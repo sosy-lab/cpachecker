@@ -99,6 +99,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInvariant;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -123,6 +125,8 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ACSLConverter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ACSLInvariant;
 
 class WitnessFactory implements EdgeAppender {
 
@@ -262,6 +266,31 @@ class WitnessFactory implements EdgeAppender {
         if (graphType != WitnessType.VIOLATION_WITNESS) {
           ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
           boolean exportInvariant = exportInvariant(pEdge, pFromState);
+
+          if (witnessOptions.exportMemorySafetyInvariants() && pFromState.isPresent()) {
+            for (ARGState state : pFromState.orElseThrow()) {
+              SMGState smgState = extractStateByType(state, SMGState.class);
+              if (smgState != null) {
+                List<SMGInvariant> memoryInvariants = smgState.getInvariants().stream()
+                    .filter(inv -> inv.getProperty() == SMGInvariant.Property.MEMORY_SAFETY)
+                    .collect(Collectors.toList());
+                
+                if (!memoryInvariants.isEmpty()) {
+                  exportInvariant = true;
+                  // Convert to expression tree format if needed
+                  ACSLConverter converter = new ACSLConverter();
+                  List<String> acslExpressions = memoryInvariants.stream()
+                      .map(inv -> converter.convertToACSL(inv))
+                      .collect(Collectors.toList());
+                  
+                  // Add memory safety invariant to state
+                  String combinedExpression = String.join(" && ", acslExpressions);
+                  invariant = factory.fromString(combinedExpression);
+                }
+              }
+            }
+          }
+
           if (exportInvariant) {
             invariantExportStates.add(to);
           }
@@ -340,6 +369,10 @@ class WitnessFactory implements EdgeAppender {
           result,
           goesToSink,
           isDefaultCase);
+    }
+    if (pFromState.isPresent() && witnessOptions.exportMemorySafetyInvariants()) {
+      return extractMemorySafetyTransitions(
+          pFrom, pTo, pEdge, pFromStates, result);
     }
     return Collections.singletonList(result);
   }
@@ -626,8 +659,65 @@ class WitnessFactory implements EdgeAppender {
           result, pEdge, state, pGoesToSink, pIsDefaultCase, pAdditionalInfo);
     }
 
+    if (witnessOptions.exportMemorySafetyInvariants()) {
+      return extractMemorySafetyTransitions(pFrom, pTo, pEdge, pFromStates, result);
+    }
     return Collections.singleton(result);
   }
+  /**
+   * Extract memory safety invariants from SMG states and convert them to ACSL format
+   */
+  private Collection<TransitionCondition> extractMemorySafetyTransitions(
+      final String pFrom,
+      final String pTo,
+      final CFAEdge pEdge,
+      final Collection<ARGState> pFromStates,
+      final TransitionCondition pBaseCondition) {
+
+    List<TransitionCondition> result = new ArrayList<>();
+    
+    // Check if any of the states contain SMG information
+    boolean hasSMGStates = pFromStates.stream()
+        .anyMatch(state -> extractStateByType(state, SMGState.class) != null);
+    
+    if (!hasSMGStates) {
+      return Collections.singletonList(pBaseCondition);
+    }
+    
+    // Extract memory safety invariants from SMG states
+    for (ARGState state : pFromStates) {
+      SMGState smgState = extractStateByType(state, SMGState.class);
+      if (smgState != null) {
+        List<SMGInvariant> smgInvariants = smgState.getInvariants();
+        
+        // Filter for memory safety invariants only
+        List<SMGInvariant> memorySafetyInvariants = smgInvariants.stream()
+            .filter(inv -> inv.getProperty() == SMGInvariant.Property.MEMORY_SAFETY)
+            .collect(Collectors.toList());
+        
+        if (!memorySafetyInvariants.isEmpty()) {
+          // Convert SMG invariants to ACSL expressions
+          ACSLConverter converter = new ACSLConverter();
+          List<String> acslExpressions = memorySafetyInvariants.stream()
+              .map(inv -> converter.convertToACSL(inv))
+              .collect(Collectors.toList());
+          
+          // Create transition condition with memory safety invariants
+          TransitionCondition memorySafetyCondition = pBaseCondition;
+          String combinedExpression = String.join(" && ", acslExpressions);
+          memorySafetyCondition = memorySafetyCondition.putAndCopy(
+              KeyDef.INVARIANT, combinedExpression);
+          memorySafetyCondition = memorySafetyCondition.putAndCopy(
+              KeyDef.INVARIANTSCOPE, "memory_safety");
+          
+          result.add(memorySafetyCondition);
+        }
+      }
+    }
+    
+    return result.isEmpty() ? Collections.singletonList(pBaseCondition) : result;
+  }
+
 
   /**
    * Extract all assignments from the given edge. Remove all assignments using tmp variables.
@@ -1691,10 +1781,19 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private Collection<NodeFlag> extractNodeFlags(ARGState pState) {
+    Set<NodeFlag> flags = new HashSet<>();
+    
     if (pState.isTarget() && graphType != WitnessType.CORRECTNESS_WITNESS) {
-      return Collections.singleton(NodeFlag.ISVIOLATION);
+      flags.add(NodeFlag.ISVIOLATION);
     }
-    return ImmutableSet.of();
+    
+    // Add memory safety flags
+    SMGState smgState = extractStateByType(pState, SMGState.class);
+    if (smgState != null && !smgState.getInvariants().isEmpty()) {
+      flags.add(NodeFlag.ISMEMORYSTATE);
+    }
+    
+    return flags;
   }
 
   private Collection<TargetInformation> extractViolatedProperties(ARGState pState) {

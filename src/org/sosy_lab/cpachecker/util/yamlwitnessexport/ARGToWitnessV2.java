@@ -13,6 +13,8 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -23,6 +25,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState; //
+import org.sosy_lab.cpachecker.cpa.smg.SMGInvariant; //
+import org.sosy_lab.cpachecker.util.AbstractStates; //
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -79,6 +84,57 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
             locationRecord);
 
     return new InvariantCreationResult(invariantEntry, invariantResult.backTranslationSuccessful());
+  }
+
+  /**
+   * Create memory safety invariants from SMGStates at a given node, as ACSL expressions.
+   */
+  private InvariantCreationResult createMemorySafetyInvariant(
+      Collection<ARGState> argStates, CFANode node)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+
+    List<SMGState> smgStates = argStates.stream()
+        .map(s -> AbstractStates.extractStateByType(s, SMGState.class))
+        .filter(smg -> smg != null)
+        .collect(Collectors.toList());
+
+    if (smgStates.isEmpty()) {
+      return null;
+    }
+
+    // Accumulate memory safety invariants (as ACSL) for this set of ARG states
+    List<String> acslInvariants = smgStates.stream()
+        .flatMap(smg -> smg.getInvariants().stream())
+        .filter(inv -> inv.getProperty() == SMGInvariant.Property.MEMORY_SAFETY)
+        .map(inv -> inv.accept(new ACSLConverter()))
+        .collect(Collectors.toList());
+
+    if (acslInvariants.isEmpty()) {
+      return null;
+    }
+    String combinedInvariant = String.join(" && ", acslInvariants);
+
+    Optional<IterationElement> iterationStructure =
+        getASTStructure().getTightestIterationStructureForNode(node);
+    if (iterationStructure.isEmpty()) {
+      return null;
+    }
+    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+    LocationRecord locationRecord =
+        LocationRecord.createLocationRecordAtStart(
+            fileLocation,
+            node.getFunction().getFileLocation().getFileName().toString(),
+            node.getFunctionName());
+
+    // Here, YAMLWitnessExpressionType.ACSL is assumed to exist for ACSL-formatted output
+    InvariantEntry invariantEntry =
+        new InvariantEntry(
+            combinedInvariant,
+            "memory_safety",
+            YAMLWitnessExpressionType.ACSL,
+            locationRecord);
+
+    return new InvariantCreationResult(invariantEntry, true);
   }
 
   WitnessExportResult exportWitnesses(ARGState pRootState, Path pPath)

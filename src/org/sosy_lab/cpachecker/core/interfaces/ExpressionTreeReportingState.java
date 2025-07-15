@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.io.Serial;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -24,6 +25,14 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
  * not needed, the methods can be implemented to throw a {@link
  * ReportingMethodNotImplementedException}. Be aware that if you do this the export of witnesses
  * will not be possible.
+ *
+ * <p><b>Extension for Memory Safety Witness Export:</b>
+ * <ul>
+ *   <li>Provides optional method to return ACSL-based memory safety invariants 
+ *       for export (e.g., \valid, \allocated, buffer boundaries, temporal safety).
+ *   <li>Default implementation throws {@link ReportingMethodNotImplementedException}.
+ *   <li>Implement in states that support memory invariants (e.g., SMGState).
+ * </ul>
  */
 public interface ExpressionTreeReportingState extends AbstractState {
 
@@ -106,4 +115,20 @@ public interface ExpressionTreeReportingState extends AbstractState {
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException;
+
+  /**
+   * Returns a list of memory safety invariants (e.g., ACSL expressions such as \valid(p), 
+   * \allocated(p), buffer properties, temporal safety) encoded for this abstract state.
+   *
+   * <p>States not supporting memory safety invariants may throw
+   *     {@link ReportingMethodNotImplementedException}.
+   *
+   * @return a {@code List<String>} of ACSL memory safety invariants describing this state
+   * @throws ReportingMethodNotImplementedException if not implemented
+   */
+  default List<String> getMemorySafetyInvariants()
+      throws ReportingMethodNotImplementedException {
+    throw new ReportingMethodNotImplementedException(
+        "Memory safety invariant extraction not implemented");
+  }
 }

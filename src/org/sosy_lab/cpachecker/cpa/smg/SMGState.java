@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInvariant;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
@@ -81,6 +82,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ACSLConverter;
 
 public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, Graphable {
 
@@ -330,6 +332,54 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addStackFrame(pFunctionDefinition);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
+
+  public List<SMGInvariant> getInvariants() {
+    List<SMGInvariant> result = new ArrayList<>();
+
+    for (SMGObject obj : heap.getHeapObjects()) {
+      String ptrName = obj.getLabel();
+      long sizeBits  = obj.getSize();
+      boolean isAllocated = heap.isObjectValid(obj);
+
+      // 1. pointer validity
+      result.add(new SMGInvariant(
+          SMGInvariant.InvariantType.POINTER_VALIDITY,
+          SMGInvariant.Property.MEMORY_SAFETY,
+          ptrName, null, 0, null));
+
+      // 2. allocation state
+      if (isAllocated) {
+        result.add(new SMGInvariant(
+            SMGInvariant.InvariantType.ALLOCATION_STATUS,
+            SMGInvariant.Property.MEMORY_SAFETY,
+            ptrName, null, 0, null));
+      }
+
+      // 3. buffer bounds
+      result.add(new SMGInvariant(
+          SMGInvariant.InvariantType.BUFFER_BOUNDS,
+          SMGInvariant.Property.MEMORY_SAFETY,
+          ptrName, null, (int)sizeBits, null));
+
+    // === Temporal Safety Invariants === (example or placeholder)
+    // Logic if  SMG can track freed memory and use-after-free
+    /*
+    for (SMGObject obj : previouslyFreedObjects) {
+      String pointer = obj.getLabel();
+      result.add(new SMGInvariant(
+          SMGInvariant.InvariantType.TEMPORAL_SAFETY,
+          SMGInvariant.Property.MEMORY_SAFETY,
+          pointer,
+          "use_after_free",
+          0,
+          "\\old"));
+    }
+    */
+
+    }
+    return result;
+  }
+
 
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */

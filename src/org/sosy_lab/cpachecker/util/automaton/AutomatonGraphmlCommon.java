@@ -229,7 +229,7 @@ public final class AutomatonGraphmlCommon {
     ISVIOLATION(KeyDef.ISVIOLATIONNODE),
     ISENTRY(KeyDef.ISENTRYNODE),
     ISSINKNODE(KeyDef.ISSINKNODE),
-    ISCYCLEHEAD(KeyDef.ISCYCLEHEAD);
+    ISCYCLEHEAD(KeyDef.ISCYCLEHEAD), ISMEMORYSTATE;
 
     public final KeyDef key;
 
