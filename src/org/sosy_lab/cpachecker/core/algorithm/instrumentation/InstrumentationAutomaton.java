@@ -522,10 +522,4 @@ public class InstrumentationAutomaton {
     value += ");}";
     return value;
   }
-
-    private ImmutableMap<String, String> modifyVariablesForArrays(ImmutableMap<String, String> pLiveVariables) {
-    ImmutableMap<String, String> newVars = ImmutableMap.copyOf(LoopInfoUtils.expandArrays(pLiveVariables));
-    return newVars;
-  }
-
 }

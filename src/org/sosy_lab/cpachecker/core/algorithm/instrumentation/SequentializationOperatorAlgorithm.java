@@ -87,7 +87,6 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   }
 
   @Override
-  @SuppressWarnings("DefaultCharset")
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Collect all the information about the new edges for the instrumented CFA
     Set<String> newEdges = new HashSet<>();
@@ -252,7 +251,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       if (edge.indexOf("COMPARE_ARRAYS_AT_INDEX") != -1) {
         List<Entry<String, String>> entries = notAccessedLoopNumbers.entrySet().stream()
             .filter(e -> edgeValue.contains(e.getKey()) && edgeValue.contains(e.getKey() + "_INSTR_" + e.getValue()))
-            .collect(Collectors.toList());
+            .collect(ImmutableList.toImmutableList());
         if (!entries.isEmpty()) {
           String numberString = entries.stream()
               .map(e -> e.getValue())
@@ -264,8 +263,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         }
       }
       return edge;
-    })
-        .collect(Collectors.toSet());
+    }).collect(ImmutableSet.toImmutableSet());
 
     writeAllInformationIntoOutputFile(newEdges);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
