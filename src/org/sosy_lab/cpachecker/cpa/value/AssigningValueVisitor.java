@@ -264,7 +264,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
           NumericValue resVal;
           if (number instanceof Rational ratVal) {
             if (ratVal.isIntegral()) {
-              resVal = new NumericValue((ratVal).getNum());
+              resVal = new NumericValue(ratVal.getNum());
             } else { // Rational always normalized,
               // thus, denominator cannot be a divisor of nominator
               return UnknownValue.getInstance(); // no integer value exists
