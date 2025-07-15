@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class AssigningValueVisitorTest {
@@ -107,10 +107,6 @@ public class AssigningValueVisitorTest {
             visitor.invertCastFromInteger(
                 unsignedChar, unsignedInt, new NumericValue(BigDecimal.ONE), false))
         .isEqualTo(UnknownValue.getInstance());
-    assertThat(
-            visitor.invertCastFromInteger(
-                unsignedChar, unsignedInt, new NumericValue(NegativeNaN.VALUE), false))
-        .isEqualTo(UnknownValue.getInstance());
 
     assertThat(
             visitor.invertCastFromInteger(
@@ -126,7 +122,50 @@ public class AssigningValueVisitorTest {
 
     assertThat(
             visitor.invertCastFromInteger(
-                unsignedChar, unsignedInt, new NumericValue(NegativeNaN.VALUE), false))
+                unsignedChar,
+                unsignedInt,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float16).negate()),
+                false))
+        .isEqualTo(UnknownValue.getInstance());
+
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar,
+                unsignedInt,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float32).negate()),
+                false))
+        .isEqualTo(UnknownValue.getInstance());
+
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar,
+                unsignedInt,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float64).negate()),
+                false))
+        .isEqualTo(UnknownValue.getInstance());
+
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar,
+                unsignedInt,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float80).negate()),
+                false))
+        .isEqualTo(UnknownValue.getInstance());
+
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar,
+                unsignedInt,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float128).negate()),
+                false))
+        .isEqualTo(UnknownValue.getInstance());
+
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar,
+                unsignedInt,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float256).negate()),
+                false))
         .isEqualTo(UnknownValue.getInstance());
 
     assertThat(
@@ -229,7 +268,39 @@ public class AssigningValueVisitorTest {
         .isEqualTo(UnknownValue.getInstance());
     assertThat(
             visitor.invertCast(
-                signedInt, CNumericTypes.DOUBLE, new NumericValue(NegativeNaN.VALUE)))
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float16).negate())))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float32).negate())))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float64).negate())))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float80).negate())))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float128).negate())))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float256).negate())))
         .isEqualTo(UnknownValue.getInstance());
     assertThat(
             visitor.invertCast(
