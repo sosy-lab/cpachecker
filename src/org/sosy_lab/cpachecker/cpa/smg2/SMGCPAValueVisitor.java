@@ -3347,11 +3347,8 @@ public class SMGCPAValueVisitor
         // SymbolicIdentifier. This is then used as interpretation such that the Value
         // of the memory location (on the stack) is used. This is used by assignments only as far as
         // I know, i.e. when assigning a complete struct to a new variable.
-        finalStatesBuilder.add(
-            ValueAndSMGState.of(
-                SymbolicValueFactory.getInstance()
-                    .newIdentifier(MemoryLocation.forIdentifier(variableName).withOffset(0)),
-                state));
+        finalStatesBuilder.add(ValueAndSMGState.of(SymbolicValueFactory.getInstance()
+            .newIdentifier(MemoryLocation.forIdentifier(variableName).withOffset(0)), state));
 
       } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
         // Pointer/Array/Function types should return a Value that internally can be translated into
@@ -3362,13 +3359,9 @@ public class SMGCPAValueVisitor
         // methods. (The check is fine because we already filtered out structs/unions)
         BigInteger sizeInBits = evaluator.getBitSizeof(state, expressionType);
         // Now use the qualified name to get the actual global/stack memory location
-        for (ValueAndSMGState readValueAndState :
-            evaluator.readStackOrGlobalVariable(
-                state,
-                acslDecl.getQualifiedName(),
-                new NumericValue(BigInteger.ZERO),
-                sizeInBits,
-                SMGCPAExpressionEvaluator.getCanonicalType(expressionType))) {
+        for (ValueAndSMGState readValueAndState : evaluator.readStackOrGlobalVariable(state,
+            acslDecl.getQualifiedName(), new NumericValue(BigInteger.ZERO), sizeInBits,
+            SMGCPAExpressionEvaluator.getCanonicalType(expressionType))) {
           Value readValue = readValueAndState.getValue();
           SMGState newState = readValueAndState.getState();
 
@@ -3396,11 +3389,8 @@ public class SMGCPAValueVisitor
         BigInteger sizeInBits = evaluator.getBitSizeof(state, expressionType);
         // Now use the qualified name to get the actual global/stack memory location
         finalStatesBuilder.addAll(
-            evaluator.readStackOrGlobalVariable(
-                state,
-                acslDecl.getQualifiedName(),
-                new NumericValue(BigInteger.ZERO),
-                sizeInBits,
+            evaluator.readStackOrGlobalVariable(state, acslDecl.getQualifiedName(),
+                new NumericValue(BigInteger.ZERO), sizeInBits,
                 SMGCPAExpressionEvaluator.getCanonicalType(expressionType)));
       }
     }
