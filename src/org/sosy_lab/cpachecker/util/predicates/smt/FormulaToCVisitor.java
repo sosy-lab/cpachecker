@@ -25,8 +25,8 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  * This visitor is used to translate predicate based invariants from SMT formulae to expressions
  * which are evaluable in C.
  *
- * <p>If visit returns <code>Boolean.FALSE</code> the computed C code is likely to be invalid, and
- * therefore it is discouraged to use it.
+ * <p>If visit returns <code>false</code> the computed C code is likely to be invalid, and therefore
+ * it is discouraged to use it.
  *
  * <p>Warning: Usage of this class can be exponentially expensive, because formulas are unfolded
  * into C code. For formulas with several shared subtrees this leads to bad performance.
@@ -80,13 +80,13 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       pName = pName.substring(index + 1);
     }
     builder.append(variableNameConverter.apply(pName));
-    return Boolean.TRUE;
+    return true;
   }
 
   @Override
   public Boolean visitBoundVariable(Formula pF, int pDeBruijnIdx) {
     // No-OP; not relevant for the given use-cases
-    return Boolean.TRUE;
+    return true;
   }
 
   @Override
@@ -99,13 +99,13 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       switch (size) {
         case 32 -> {
           if (appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue)) {
-            return Boolean.TRUE;
+            return true;
           }
           builder.append(value);
         }
         case 64 -> {
           if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
-            return Boolean.TRUE;
+            return true;
           }
           builder.append(value);
         }
@@ -117,7 +117,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       builder.append(value);
     }
 
-    return Boolean.TRUE;
+    return true;
   }
 
   /**
@@ -192,7 +192,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       case BV_SHL -> op = "<<";
       case BV_LSHR, BV_ASHR -> op = ">>";
       default -> {
-        return Boolean.FALSE;
+        return false;
       }
     }
     bvSigned =
@@ -204,25 +204,25 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     builder.append("( ");
     if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
       if (!fmgr.visit(pArgs.get(0), this)) {
-        return Boolean.FALSE;
+        return false;
       }
       builder.append(" ? ");
       if (!fmgr.visit(pArgs.get(1), this)) {
-        return Boolean.FALSE;
+        return false;
       }
       builder.append(" : ");
       if (!fmgr.visit(pArgs.get(2), this)) {
-        return Boolean.FALSE;
+        return false;
       }
     } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
       builder.append(op).append(" ");
       if (!fmgr.visit(pArgs.get(0), this)) {
-        return Boolean.FALSE;
+        return false;
       }
     } else if (N_ARY_OPS.contains(kind)) {
       for (int i = 0; i < pArgs.size(); i++) {
         if (!fmgr.visit(pArgs.get(i), this)) {
-          return Boolean.FALSE;
+          return false;
         }
         if (i != pArgs.size() - 1) {
           builder.append(" ").append(op).append(" ");
@@ -230,11 +230,11 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       }
     } else if (pArgs.size() == 2) {
       if (!fmgr.visit(pArgs.get(0), this)) {
-        return Boolean.FALSE;
+        return false;
       }
       builder.append(" ").append(op).append(" ");
       if (!fmgr.visit(pArgs.get(1), this)) {
-        return Boolean.FALSE;
+        return false;
       }
     } else {
       throw new AssertionError(
@@ -248,7 +248,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     // of the translation
     bvSigned = signedCarryThrough;
 
-    return Boolean.TRUE;
+    return true;
   }
 
   @Override
@@ -258,7 +258,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       List<Formula> pBoundVariables,
       BooleanFormula pBody) {
     // No-OP; not relevant for the given use-cases
-    return Boolean.TRUE;
+    return true;
   }
 
   public String getString() {

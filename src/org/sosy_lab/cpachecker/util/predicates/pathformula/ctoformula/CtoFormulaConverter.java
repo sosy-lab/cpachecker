@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -1017,7 +1018,12 @@ public class CtoFormulaConverter {
       Value floatValue =
           AbstractExpressionValueVisitor.castCValue(intValue, targetType, machineModel, logger);
       return new CFloatLiteralExpression(
-          e.getFileLocation(), targetType, floatValue.asNumericValue().bigDecimalValue());
+          e.getFileLocation(),
+          machineModel,
+          targetType,
+          FloatValue.fromInteger(
+              FloatValue.Format.fromCType(machineModel, targetType),
+              floatValue.asNumericValue().bigIntegerValue()));
     }
 
     return pExp;

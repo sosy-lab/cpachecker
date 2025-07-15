@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -37,12 +38,16 @@ import org.sosy_lab.java_smt.api.Formula;
  */
 public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
+  private final MachineModel machineModel;
   private final CtoFormulaConverter toFormulaTransformer;
 
   private final String functionName;
 
   public FormulaCreatorUsingCConverter(
-      final CtoFormulaConverter pConverter, final String pFunctionName) {
+      final MachineModel pMachineModel,
+      final CtoFormulaConverter pConverter,
+      final String pFunctionName) {
+    machineModel = pMachineModel;
     toFormulaTransformer = pConverter;
     functionName = pFunctionName;
   }
@@ -52,7 +57,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
       throws UnrecognizedCodeException, InterruptedException {
 
     final SymbolicExpressionToCExpressionTransformer toExpressionTransformer =
-        new SymbolicExpressionToCExpressionTransformer();
+        new SymbolicExpressionToCExpressionTransformer(machineModel);
 
     CExpression constraintExpression = pConstraint.accept(toExpressionTransformer);
 

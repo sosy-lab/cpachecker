@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.simplification;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /**
  * This visitor visits an expression and evaluates it. The returnvalue of the visit consists of the
@@ -93,19 +93,12 @@ public class ExpressionSimplificationVisitor
         return new CIntegerLiteralExpression(
             expr.getFileLocation(), type, numericResult.bigIntegerValue());
       } else if (basicType.isFloatingPointType()) {
-        try {
-          return new CFloatLiteralExpression(
-              expr.getFileLocation(), type, numericResult.bigDecimalValue());
-        } catch (NumberFormatException nfe) {
-          // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
-          logger.logf(
-              Level.FINE,
-              "Cannot simplify expression to numeric value %s, keeping original expression %s"
-                  + " instead",
-              numericResult,
-              expr.toASTString());
-          return expr;
-        }
+        FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, type);
+        return new CFloatLiteralExpression(
+            expr.getFileLocation(),
+            machineModel,
+            type,
+            numericResult.floatingPointValue(precision));
       }
     }
     if (numericResult != null) {
@@ -280,14 +273,10 @@ public class ExpressionSimplificationVisitor
             // but does not match its CType bounds.
             return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigIntegerValue());
           }
-          case FLOAT, DOUBLE -> {
-            double v = negatedValue.doubleValue();
-            // Check if v is -0.0; if so, we cannot simplify it,
-            // because we cannot represent it with BigDecimal
-            if (v == 0 && 1 / v < 0) {
-              return new CUnaryExpression(loc, exprType, op, unaryOperator);
-            }
-            return new CFloatLiteralExpression(loc, exprType, BigDecimal.valueOf(v));
+          case FLOAT, DOUBLE, FLOAT128 -> {
+            FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, exprType);
+            return new CFloatLiteralExpression(
+                loc, machineModel, exprType, negatedValue.floatingPointValue(precision));
           }
           default -> {
             // return the original expression below
@@ -354,8 +343,14 @@ public class ExpressionSimplificationVisitor
               return new CIntegerLiteralExpression(
                   expr.getFileLocation(), type, v.bigIntegerValue());
             }
-            case FLOAT, DOUBLE -> {
-              return new CFloatLiteralExpression(expr.getFileLocation(), type, v.bigDecimalValue());
+            case FLOAT, DOUBLE, FLOAT128 -> {
+              // Cast the literal to the target type before assigning the value
+              // This is necessary to handle initializer like `float x = 1.0` where the type of the
+              // literal on the right is different from the type of the variable.
+              FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, type);
+              FloatValue litValue = v.floatingPointValue(precision);
+              return new CFloatLiteralExpression(
+                  expr.getFileLocation(), machineModel, type, litValue);
             }
             default -> {
               // return the original expression below
