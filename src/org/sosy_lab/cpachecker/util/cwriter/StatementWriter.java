@@ -47,7 +47,6 @@ public class StatementWriter implements StatementVisitor<IOException>, Closeable
       }
     }
     sb.append("extern void __VERIFIER_assume();\n");
-    sb.append("extern _Bool __VERIFIER_nondet_bool();\n");
   }
 
   public static StatementWriter getWriter(

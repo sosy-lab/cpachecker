@@ -65,7 +65,7 @@ public class CFAToCTranslator extends AbstractToCTranslator {
     }
 
     // the final C program may contain `abort()` statements, so we need a suitable declaration
-    globalDefinitionsList.add("extern void abort();");
+    globalDefinitionsSet.add("extern void abort();");
 
     for (FunctionEntryNode func : pCfa.entryNodes()) {
       translate((CFunctionEntryNode) func);

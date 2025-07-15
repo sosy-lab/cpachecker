@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
@@ -64,7 +66,7 @@ public abstract class AbstractToCTranslator {
     }
   }
 
-  protected final List<String> globalDefinitionsList = new ArrayList<>();
+  protected final Set<String> globalDefinitionsSet = new HashSet<>();
   protected final ListMultimap<CFANode, Statement> createdStatements = ArrayListMultimap.create();
   protected Collection<FunctionDefinition> functions = new ArrayList<>();
   protected final TranslatorConfig config;
@@ -77,7 +79,7 @@ public abstract class AbstractToCTranslator {
     StringBuilder buffer = new StringBuilder();
     try (StatementWriter writer = StatementWriter.getWriter(buffer, config)) {
 
-      for (String globalDef : globalDefinitionsList) {
+      for (String globalDef : globalDefinitionsSet) {
         writer.write(globalDef);
       }
       for (FunctionDefinition f : functions) {
@@ -311,7 +313,8 @@ public abstract class AbstractToCTranslator {
         }
 
         if (lDeclarationEdge.getDeclaration().isGlobal()) {
-          globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
+          globalDefinitionsSet.add(
+              "extern " + declaration + (declaration.endsWith(";") ? "" : ";"));
         } else {
           return declaration;
         }
