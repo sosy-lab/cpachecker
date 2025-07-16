@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -20,12 +20,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmUtils;
-import org.sosy_lab.cpachecker.exceptions.ClangParserException;
+import org.sosy_lab.cpachecker.cfa.Preprocessor;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "parser")
-public class ClangPreprocessor extends Preprocessor {
+class ClangPreprocessor extends Preprocessor {
 
   @Option(
       description =
@@ -41,8 +40,7 @@ public class ClangPreprocessor extends Preprocessor {
       description = "Whether to dump the results of the preprocessor to disk.")
   private boolean dumpResults = true;
 
-  public ClangPreprocessor(Configuration config, LogManager pLogger)
-      throws InvalidConfigurationException {
+  ClangPreprocessor(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super(config, pLogger);
     config.inject(this);
   }
@@ -54,7 +52,7 @@ public class ClangPreprocessor extends Preprocessor {
    * @param dumpDirectory The required dump directory where the dump file will be written to.
    * @return The path denoting the dump file.
    */
-  public @Nullable Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
+  @Nullable Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
       throws ParserException, InterruptedException {
     checkNotNull(dumpDirectory, "Using the clang preprocessor requires a dump directory.");
     if (Files.getFileExtension(file.toString()).isEmpty()) {

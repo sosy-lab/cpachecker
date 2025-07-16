@@ -104,7 +104,7 @@ import org.sosy_lab.llvm_j.Value.IntPredicate;
 import org.sosy_lab.llvm_j.Value.OpCode;
 
 /** CFA builder for LLVM IR. Metadata stored in the LLVM IR file is ignored. */
-public class CFABuilder {
+class CFABuilder {
   // TODO: Thread Local Storage Model: May be important for concurrency
   // TODO: Aliases (@a = %b) and IFuncs (@a = ifunc @..)
 
@@ -143,7 +143,7 @@ public class CFABuilder {
   protected TreeMultimap<String, CFANode> cfaNodes;
   protected List<Pair<ADeclaration, String>> globalDeclarations;
 
-  public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
+  CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
     logger = pLogger;
     machineModel = pMachineModel;
 
@@ -160,14 +160,14 @@ public class CFABuilder {
     globalDeclarations = new ArrayList<>();
   }
 
-  public ParseResult build(final Module pModule, final Path pFilename) throws LLVMException {
+  ParseResult build(final Module pModule, final Path pFilename) throws LLVMException {
     visit(pModule, pFilename);
     List<Path> input_file = ImmutableList.of(pFilename);
 
     return new ParseResult(functions, cfaNodes, globalDeclarations, input_file);
   }
 
-  public void visit(final Module pItem, final Path pFileName) throws LLVMException {
+  void visit(final Module pItem, final Path pFileName) throws LLVMException {
     if (pItem.getFirstFunction() == null) {
       return;
     }
@@ -630,16 +630,16 @@ public class CFABuilder {
     private CFANode entryNode;
     private CFANode exitNode;
 
-    public BasicBlockInfo(CFANode entry, CFANode exit) {
+    BasicBlockInfo(CFANode entry, CFANode exit) {
       entryNode = entry;
       exitNode = exit;
     }
 
-    public CFANode getEntryNode() {
+    CFANode getEntryNode() {
       return entryNode;
     }
 
-    public CFANode getExitNode() {
+    CFANode getExitNode() {
       return exitNode;
     }
 

@@ -137,7 +137,9 @@ public class CFACreator {
       secure = true,
       name = "parser.useClang",
       description =
-          "For C files, convert to LLVM IR with clang first and then use the LLVM parser.")
+          "For C files, convert to LLVM IR with clang first and then use the LLVM parser (currently"
+              + " unsupported).")
+  @Deprecated
   private boolean useClang = false;
 
   @Option(
@@ -317,9 +319,11 @@ public class CFACreator {
   @Option(
       secure = true,
       description =
-          "Programming language of the input program. If not given explicitly, "
-              + "auto-detection will occur")
-  // keep option name in sync with {@link CPAMain#language}, value might differ
+          "Programming language of the input program. If not given explicitly, auto-detection"
+              + " will occur. LLVM IR is currently unsupported as input (cf."
+              + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
+  // keep option name in sync with {@link CPAMain#language} and {@link
+  // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
   private Language language = Language.C;
 
   private Language inputLanguage = Language.C;
@@ -447,8 +451,7 @@ public class CFACreator {
             logger.log(
                 Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
-          ClangPreprocessor clang = new ClangPreprocessor(config, logger);
-          parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
+          parser = Parsers.getLlvmClangParser(config, logger, machineModel);
         } else {
           parser = outerParser;
         }
