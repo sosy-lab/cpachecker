@@ -1,13 +1,12 @@
 <?xml version="1.0"?>
 
-<!--
-This file is part of CPAchecker, a tool for configurable software verification:
-https://cpachecker.sosy-lab.org
-
-SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
-
-SPDX-License-Identifier: Apache-2.0
--->
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.30//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.30.dtd">
 <benchmark tool="cpachecker"
@@ -22,13 +21,13 @@ SPDX-License-Identifier: Apache-2.0
         <option name="--no-output-files"/>
         <option name="--heap">2000M</option>
         <tasks>
-            <includesfile>./taint_analysis.set</includesfile>
-            <propertyfile>../../../config/specification/information-flow.spc</propertyfile>
+            <includesfile>../programs/taint_analysis/taint_analysis.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
         </tasks>
     </rundefinition>
 
     <resultfiles>**.graphml*</resultfiles>
-
+table
     <columns>
         <column title="time for safety analysis">Total time for safety analysis</column>
         <column title="time for lasso construction">Time for lassos construction</column>
