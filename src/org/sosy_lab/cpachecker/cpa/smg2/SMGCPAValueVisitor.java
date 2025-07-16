@@ -119,6 +119,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
@@ -3255,7 +3256,9 @@ public class SMGCPAValueVisitor
         case NEGATION -> {
           final ConstraintFactory constraintFactory = ConstraintFactory
               .getInstance(state, state.getMachineModel(), logger, options, evaluator, cfaEdge);
-          final Function<ValueAndSMGState, ValueAndSMGState> negateConstraint = x -> ValueAndSMGState.of(constraintFactory.createNot((Constraint) x.getValue()), x.getState());
+          final Function<ValueAndSMGState, ValueAndSMGState> negateConstraint =
+              x -> ValueAndSMGState.of(constraintFactory.createNot((Constraint) x.getValue()),
+                  x.getState());
 
           //Returns empty list or wraps single constraint into LogicalNotExpression
           if (valueAndSMGStates.size() <= 1) {
@@ -3269,25 +3272,41 @@ public class SMGCPAValueVisitor
 
           //If we want to negate multiple Constraints we need to use De Morgan's Law
           ValueAndSMGState first = negateConstraint.apply(valueAndSMGStates.get(0));
-          result.add(
-              valueAndSMGStates
-                  .subList(1, valueAndSMGStates.size())
-                  .stream()
-                  .map(negateConstraint)
-                  .reduce(first, (a, b) -> ValueAndSMGState.of(
-                      constraintFactory.getLogicalOrConstraint(
-                          ((ValueAndSMGState)a).getValue(),
-                          b.getValue(),
-                          pPredicate.getExpressionType(),
-                          state),
-                      state
-                      )
-                  )
+          result.add(valueAndSMGStates
+              .subList(1, valueAndSMGStates.size())
+              .stream()
+              .map(negateConstraint)
+              .reduce(first, (a, b) -> {
+                    SMGState newState = joinStatesIfDifferent(a.getState(), b.getState());
+                    return ValueAndSMGState.of(
+                        constraintFactory.getLogicalOrConstraint(
+                            a.getValue(),
+                            b.getValue(),
+                            pPredicate.getExpressionType(),
+                            newState
+                        ),
+                        newState
+                    );
+                  }
+              )
+
           );
         }
       }
     }
     return result.build();
+  }
+
+  private SMGState joinStatesIfDifferent(SMGState one, SMGState two) {
+    if (one == two) {
+      return one;
+    }
+    try {
+      return one.join(two);
+    } catch (CPAException | InterruptedException pE) {
+      logger.log(Level.WARNING, "Couldn't join states " + one + " and " + two, pE);
+      return state; //Unsure if this is the best return
+    }
   }
 
   @Override
