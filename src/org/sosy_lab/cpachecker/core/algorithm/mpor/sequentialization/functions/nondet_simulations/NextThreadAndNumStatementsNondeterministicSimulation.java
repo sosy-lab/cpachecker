@@ -74,14 +74,13 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
 
-    // assigning K and r is necessary only once since we use next_thread
+    // assigning K is necessary only once since we use next_thread
     rLines.add(LineOfCode.of(pKNondet.toASTString()));
     rLines.add(LineOfCode.of(pKGreaterZeroAssumption.toASTString()));
-    rLines.add(LineOfCode.of(pRReset.toASTString()));
 
     ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements(
-            pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);
+            pOptions, pPcVariables, pRReset, pClauses, pBinaryExpressionBuilder);
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
             pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
@@ -94,6 +93,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       buildInnerMultiControlStatements(
           MPOROptions pOptions,
           PcVariables pPcVariables,
+          CExpressionAssignmentStatement pRReset,
           ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
           throws UnrecognizedCodeException {
@@ -110,7 +110,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
               thread.id,
               pBinaryExpressionBuilder),
           buildSingleThreadMultiControlStatementWithoutCount(
-              pOptions, pPcVariables, thread, clauses, pBinaryExpressionBuilder));
+              pOptions, pPcVariables, thread, pRReset, clauses, pBinaryExpressionBuilder));
     }
     return rStatements.buildOrThrow();
   }
@@ -119,6 +119,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
+      CExpressionAssignmentStatement pRReset,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -146,7 +147,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         pOptions,
         pOptions.controlEncodingStatement,
         expression,
-        assumption,
+        MultiControlStatementBuilder.buildPrecedingStatements(assumption, Optional.of(pRReset)),
         expressionClauseMap,
         pThread.endLabel,
         lastThreadUpdate,

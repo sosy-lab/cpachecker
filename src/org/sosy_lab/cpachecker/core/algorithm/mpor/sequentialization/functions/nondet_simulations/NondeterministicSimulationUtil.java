@@ -78,7 +78,7 @@ public class NondeterministicSimulationUtil {
         pOptions.controlEncodingThread,
         SeqIdExpression.NEXT_THREAD,
         // the outer multi control statement never has an assumption
-        Optional.empty(),
+        ImmutableList.of(),
         pInnerMultiControlStatements,
         // the outer multi control statement never updates last_thread
         Optional.empty(),

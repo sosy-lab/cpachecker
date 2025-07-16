@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
@@ -37,7 +37,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
 
   private final CLeftHandSide expression;
 
-  private final Optional<CFunctionCallStatement> assumption;
+  private final ImmutableList<CStatement> precedingStatements;
 
   private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
 
@@ -49,14 +49,14 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
 
   SeqBinaryIfTreeStatement(
       CLeftHandSide pExpression,
-      Optional<CFunctionCallStatement> pAssumption,
+      ImmutableList<CStatement> pPrecedingStatements,
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
       Optional<SeqThreadEndLabelStatement> pThreadEndLabel,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     expression = pExpression;
-    assumption = pAssumption;
+    precedingStatements = pPrecedingStatements;
     statements = pStatements;
     threadEndLabel = pThreadEndLabel;
     lastThreadUpdate = pLastThreadUpdate;
@@ -66,9 +66,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> tree = ImmutableList.builder();
-    if (assumption.isPresent()) {
-      tree.add(LineOfCode.of(assumption.orElseThrow().toASTString()));
-    }
+    tree.addAll(LineOfCodeUtil.buildLinesOfCode(precedingStatements));
     ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     recursivelyBuildTree(statementList, statementList, expression, tree);

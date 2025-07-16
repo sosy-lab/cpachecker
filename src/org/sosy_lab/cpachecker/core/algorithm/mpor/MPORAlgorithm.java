@@ -124,8 +124,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "defines the syntax in which the next thread executing a statement is chosen."
               + " may slow down or improve performance, depending on the verifier.")
-  private MultiControlStatementEncoding controlEncodingThread =
-      MultiControlStatementEncoding.IF_ELSE_CHAIN;
+  private MultiControlStatementEncoding controlEncodingThread = MultiControlStatementEncoding.NONE;
 
   @Option(
       secure = true,

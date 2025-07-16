@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
@@ -27,8 +27,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqIfElseChainStatement implements SeqMultiControlStatement {
 
-  // TODO generalize into preceding statements, ImmutableList<CStatement>?
-  private final Optional<CFunctionCallStatement> assumption;
+  private final ImmutableList<CStatement> precedingStatements;
 
   private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
 
@@ -37,12 +36,12 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
   private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
 
   SeqIfElseChainStatement(
-      Optional<CFunctionCallStatement> pAssumption,
+      ImmutableList<CStatement> pPrecedingStatements,
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
       Optional<SeqThreadEndLabelStatement> pThreadEndLabel,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate) {
 
-    assumption = pAssumption;
+    precedingStatements = pPrecedingStatements;
     statements = pStatements;
     threadEndLabel = pThreadEndLabel;
     lastThreadUpdate = pLastThreadUpdate;
@@ -51,9 +50,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> ifElseChain = ImmutableList.builder();
-    if (assumption.isPresent()) {
-      ifElseChain.add(LineOfCode.of(assumption.orElseThrow().toASTString()));
-    }
+    ifElseChain.addAll(LineOfCodeUtil.buildLinesOfCode(precedingStatements));
     ifElseChain.addAll(buildIfElseChain(statements));
     ifElseChain.addAll(
         MultiControlStatementBuilder.buildThreadEndLabel(threadEndLabel, lastThreadUpdate));

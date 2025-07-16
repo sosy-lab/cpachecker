@@ -77,11 +77,10 @@ public class NumStatementsNondeterministicSimulation {
       MPORThread thread = entry.getKey();
       ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
 
-      // choose nondet iterations and reset current iteration before each loop
+      // choose nondet iterations before each thread simulation
       rLines.add(LineOfCode.of(pKNondet.toASTString()));
-      rLines.add(LineOfCode.of(pRReset.toASTString()));
 
-      // add condition if loop still active and K > 0
+      // add condition if thread still active and K > 0
       CBinaryExpression pcUnequalExitPc =
           SeqExpressionBuilder.buildPcUnequalExitPc(
               pPcVariables.getPcLeftHandSide(thread.id), pBinaryExpressionBuilder);
@@ -89,6 +88,9 @@ public class NumStatementsNondeterministicSimulation {
           new SeqLogicalAndExpression(pcUnequalExitPc, pKGreaterZero);
       SeqIfExpression ifExpression = new SeqIfExpression(loopCondition);
       rLines.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
+
+      // reset iteration only when needed i.e. after if (...) for performance
+      rLines.add(LineOfCode.of(pRReset.toASTString()));
 
       // add the thread loop statements (assumptions and switch)
       rLines.addAll(
@@ -126,7 +128,9 @@ public class NumStatementsNondeterministicSimulation {
             pOptions,
             pOptions.controlEncodingStatement,
             expression,
-            assumption,
+            assumption.isPresent()
+                ? ImmutableList.of(assumption.orElseThrow())
+                : ImmutableList.of(),
             expressionClauseMap,
             pThread.endLabel,
             tryBuildLastThreadUpdate(pOptions, pThread),

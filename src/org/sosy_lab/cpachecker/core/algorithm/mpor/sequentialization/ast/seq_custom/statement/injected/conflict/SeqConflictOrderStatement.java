@@ -79,7 +79,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
             options,
             options.controlEncodingConflict,
             SeqIdExpression.LAST_THREAD,
-            Optional.empty(),
+            ImmutableList.of(),
             assumptionStatements,
             Optional.empty(),
             Optional.empty(),

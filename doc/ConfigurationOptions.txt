@@ -298,7 +298,7 @@ analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
 
 # defines the syntax in which the next thread executing a statement is
 # chosen. may slow down or improve performance, depending on the verifier.
-analysis.algorithm.MPOR.controlEncodingThread = IF_ELSE_CHAIN
+analysis.algorithm.MPOR.controlEncodingThread = NONE
   enum:     [NONE, BINARY_IF_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
 # format the output sequentialized C program using clang-format?

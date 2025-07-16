@@ -81,7 +81,7 @@ public class NextThreadNondeterministicSimulation {
               pOptions,
               pOptions.controlEncodingStatement,
               expression,
-              assumption,
+              MultiControlStatementBuilder.buildPrecedingStatements(assumption, Optional.empty()),
               expressionClauseMap,
               Optional.empty(),
               Optional.empty(),

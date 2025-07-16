@@ -14,8 +14,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSwitchExpression;
@@ -40,7 +40,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
 
   private final SeqSwitchExpression switchExpression;
 
-  private final Optional<CFunctionCallStatement> assumption;
+  private final ImmutableList<CStatement> precedingStatements;
 
   private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
 
@@ -53,13 +53,13 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   SeqSwitchStatement(
       MPOROptions pOptions,
       CLeftHandSide pSwitchExpression,
-      Optional<CFunctionCallStatement> pAssumption,
+      ImmutableList<CStatement> pPrecedingStatements,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
 
     options = pOptions;
     switchExpression = new SeqSwitchExpression(pSwitchExpression);
-    assumption = pAssumption;
+    precedingStatements = pPrecedingStatements;
     lastThreadUpdate = pLastThreadUpdate;
     statements = pStatements;
   }
@@ -67,9 +67,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> switchCase = ImmutableList.builder();
-    if (assumption.isPresent()) {
-      switchCase.add(LineOfCode.of(assumption.orElseThrow().toASTString()));
-    }
+    switchCase.addAll(LineOfCodeUtil.buildLinesOfCode(precedingStatements));
     switchCase.add(
         LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(switchExpression.toASTString())));
     switchCase.addAll(buildCases(options, statements));

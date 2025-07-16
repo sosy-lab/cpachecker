@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadEndLabelStatement;
@@ -29,7 +30,7 @@ public class MultiControlStatementBuilder {
       MPOROptions pOptions,
       MultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
-      Optional<CFunctionCallStatement> pAssumption,
+      ImmutableList<CStatement> pPrecedingStatements,
       // ImmutableMap retains insertion order when using ImmutableMap.Builder
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
       Optional<SeqThreadEndLabelStatement> pThreadEndLabel,
@@ -44,16 +45,17 @@ public class MultiControlStatementBuilder {
       case BINARY_IF_TREE ->
           new SeqBinaryIfTreeStatement(
               pExpression,
-              pAssumption,
+              pPrecedingStatements,
               pStatements,
               pThreadEndLabel,
               pLastThreadUpdate,
               pBinaryExpressionBuilder);
       case IF_ELSE_CHAIN ->
-          new SeqIfElseChainStatement(pAssumption, pStatements, pThreadEndLabel, pLastThreadUpdate);
+          new SeqIfElseChainStatement(
+              pPrecedingStatements, pStatements, pThreadEndLabel, pLastThreadUpdate);
       case SWITCH_CASE ->
           new SeqSwitchStatement(
-              pOptions, pExpression, pAssumption, pLastThreadUpdate, pStatements);
+              pOptions, pExpression, pPrecedingStatements, pLastThreadUpdate, pStatements);
     };
   }
 
@@ -70,5 +72,20 @@ public class MultiControlStatementBuilder {
       }
     }
     return rLines.build();
+  }
+
+  public static ImmutableList<CStatement> buildPrecedingStatements(
+      Optional<CFunctionCallStatement> pAssumption,
+      Optional<CExpressionAssignmentStatement> pRReset) {
+
+    ImmutableList.Builder<CStatement> rPreceding = ImmutableList.builder();
+    if (pAssumption.isPresent()) {
+      rPreceding.add(pAssumption.orElseThrow());
+    }
+    // place r reset after the assumption for optimization
+    if (pRReset.isPresent()) {
+      rPreceding.add(pRReset.orElseThrow());
+    }
+    return rPreceding.build();
   }
 }
