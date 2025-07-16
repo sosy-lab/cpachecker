@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.IntStream;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -384,7 +384,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     CompositeState wrappedState = (CompositeState) argState.getWrappedState();
     List<AbstractState> elements =
         IntStream.range(0, wrappedState.getNumberOfStates()).
-            mapToObj(i -> processElements(wrappedState.get(i))).collect(Collectors.toList());
+            mapToObj(i -> processElements(wrappedState.get(i))).collect(ImmutableList.toImmutableList());
     return new ARGState(new CompositeState(elements), null);
   }
 
