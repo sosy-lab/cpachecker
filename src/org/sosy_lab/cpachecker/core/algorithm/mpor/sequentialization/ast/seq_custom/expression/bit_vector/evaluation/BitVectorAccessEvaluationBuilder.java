@@ -93,7 +93,7 @@ public class BitVectorAccessEvaluationBuilder {
 
     CIntegerLiteralExpression directBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.globalVariableIds, pDirectVariables);
+            pBitVectorVariables.getGlobalVariableIds(), pDirectVariables);
     ImmutableSet<CExpression> otherBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
             BitVectorAccessType.ACCESS, pOtherThreads);
@@ -113,14 +113,12 @@ public class BitVectorAccessEvaluationBuilder {
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pBitVectorVariables.sparseAccessBitVectors.isEmpty()) {
+    if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
       // no sparse variables (i.e. no global variables) -> no evaluation
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    ImmutableMap<CVariableDeclaration, SparseBitVector> sparseBitVectors =
-        pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
-    for (var entry : sparseBitVectors.entrySet()) {
+    for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
       SparseBitVector sparseBitVector = entry.getValue();
       ImmutableMap<MPORThread, CIdExpression> accessVariables = sparseBitVector.variables;
@@ -147,14 +145,12 @@ public class BitVectorAccessEvaluationBuilder {
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pBitVectorVariables.sparseAccessBitVectors.isEmpty()) {
+    if (pBitVectorVariables.areSparseAccessBitVectorsEmpty()) {
       // no sparse variables (i.e. no global variables) -> no evaluation
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    ImmutableMap<CVariableDeclaration, SparseBitVector> sparseBitVectors =
-        pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
-    for (var entry : sparseBitVectors.entrySet()) {
+    for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
       ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
       ImmutableList<SeqExpression> otherVariables =

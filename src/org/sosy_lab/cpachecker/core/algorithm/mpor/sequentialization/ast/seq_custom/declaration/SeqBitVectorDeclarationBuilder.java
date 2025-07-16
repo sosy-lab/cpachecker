@@ -75,7 +75,7 @@ public class SeqBitVectorDeclarationBuilder {
       BitVectorVariables pBitVectorVariables,
       BitVectorAccessType pAccessType) {
 
-    int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorVariables.numGlobalVariables);
+    int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorVariables.getNumGlobalVariables());
     BitVectorDataType type = BitVectorUtil.getDataTypeByLength(binaryLength);
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (DenseBitVector denseBitVector :
@@ -83,7 +83,7 @@ public class SeqBitVectorDeclarationBuilder {
 
       BitVectorValueExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.globalVariableIds, ImmutableSet.of());
+              pOptions, pBitVectorVariables.getGlobalVariableIds(), ImmutableSet.of());
       SeqBitVectorDeclaration bitVectorDeclaration =
           new SeqBitVectorDeclaration(type, denseBitVector.reachableVariable, initializer);
 
@@ -101,15 +101,15 @@ public class SeqBitVectorDeclarationBuilder {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
           createSparseBitVectorDeclarations(
-              pBitVectorVariables.sparseAccessBitVectors.orElseThrow().values(), pThreads);
+              pBitVectorVariables.getSparseAccessBitVectors().values(), pThreads);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
                   createSparseBitVectorDeclarations(
-                      pBitVectorVariables.sparseAccessBitVectors.orElseThrow().values(), pThreads))
+                      pBitVectorVariables.getSparseAccessBitVectors().values(), pThreads))
               .addAll(
                   createSparseBitVectorDeclarations(
-                      pBitVectorVariables.sparseWriteBitVectors.orElseThrow().values(), pThreads))
+                      pBitVectorVariables.getSparseWriteBitVectors().values(), pThreads))
               .build();
     };
   }

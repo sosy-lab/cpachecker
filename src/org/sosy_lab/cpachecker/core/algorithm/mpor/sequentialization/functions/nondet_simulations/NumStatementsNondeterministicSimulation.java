@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -120,9 +122,12 @@ public class NumStatementsNondeterministicSimulation {
       throws UnrecognizedCodeException {
 
     ImmutableSet<CExpression> allK =
-        pThreads.stream()
-            .map(thread -> thread.getKVariable().orElseThrow())
-            .collect(ImmutableSet.toImmutableSet());
+        transformedImmutableSetCopy(
+            pThreads,
+            t -> {
+              assert t != null;
+              return t.getKVariable().orElseThrow();
+            });
     CExpression KSum =
         SeqExpressionBuilder.nestBinaryExpressions(
             allK, BinaryOperator.PLUS, pBinaryExpressionBuilder);

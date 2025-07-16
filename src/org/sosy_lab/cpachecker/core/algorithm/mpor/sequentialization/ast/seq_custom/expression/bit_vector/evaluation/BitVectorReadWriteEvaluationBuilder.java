@@ -122,7 +122,7 @@ public class BitVectorReadWriteEvaluationBuilder {
     } else {
       CIntegerLiteralExpression directReadBitVector =
           BitVectorUtil.buildDirectBitVectorExpression(
-              pBitVectorVariables.globalVariableIds, pDirectReadVariables);
+              pBitVectorVariables.getGlobalVariableIds(), pDirectReadVariables);
       ImmutableSet<CExpression> otherWriteBitVectors =
           pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
               BitVectorAccessType.WRITE, pOtherThreads);
@@ -145,7 +145,7 @@ public class BitVectorReadWriteEvaluationBuilder {
     } else {
       CIntegerLiteralExpression directWriteBitVector =
           BitVectorUtil.buildDirectBitVectorExpression(
-              pBitVectorVariables.globalVariableIds, pDirectWriteVariables);
+              pBitVectorVariables.getGlobalVariableIds(), pDirectWriteVariables);
       ImmutableSet<CExpression> otherAccessBitVectors =
           pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
               BitVectorAccessType.ACCESS, pOtherThreads);
@@ -176,14 +176,14 @@ public class BitVectorReadWriteEvaluationBuilder {
     // (R & (W' | W'' | ...))
     CIntegerLiteralExpression directReadBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.globalVariableIds, pDirectReadVariables);
+            pBitVectorVariables.getGlobalVariableIds(), pDirectReadVariables);
     CExpression leftHandSide =
         buildGeneralDenseLeftHandSide(
             directReadBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
     // (W & (A' | A'' | ...))
     CIntegerLiteralExpression directWriteBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.globalVariableIds, pDirectWriteVariables);
+            pBitVectorVariables.getGlobalVariableIds(), pDirectWriteVariables);
     CExpression rightHandSide =
         buildGeneralDenseRightHandSide(
             directWriteBitVector, otherAccessBitVectors, pBinaryExpressionBuilder);
@@ -235,9 +235,7 @@ public class BitVectorReadWriteEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    ImmutableMap<CVariableDeclaration, SparseBitVector> sparseAccessBitVectors =
-        pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
-    for (var entry : sparseAccessBitVectors.entrySet()) {
+    for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
 
       // handle read variables
@@ -248,8 +246,7 @@ public class BitVectorReadWriteEvaluationBuilder {
 
       // handle write variables
       ImmutableMap<MPORThread, CIdExpression> writeVariables =
-          Objects.requireNonNull(
-                  pBitVectorVariables.sparseWriteBitVectors.orElseThrow().get(globalVariable))
+          Objects.requireNonNull(pBitVectorVariables.getSparseWriteBitVectors().get(globalVariable))
               .variables;
       ImmutableList<SeqExpression> otherWriteVariables =
           BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
@@ -313,14 +310,11 @@ public class BitVectorReadWriteEvaluationBuilder {
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pBitVectorVariables.sparseAccessBitVectors.isEmpty()
-        && pBitVectorVariables.sparseWriteBitVectors.isEmpty()) {
+    if (pBitVectorVariables.areSparseBitVectorsEmpty()) {
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    ImmutableMap<CVariableDeclaration, SparseBitVector> sparseAccessBitVectors =
-        pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
-    for (var entry : sparseAccessBitVectors.entrySet()) {
+    for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
 
       // handle read variables
@@ -332,7 +326,7 @@ public class BitVectorReadWriteEvaluationBuilder {
 
       // handle write variables
       SparseBitVector sparseBitVector =
-          pBitVectorVariables.sparseWriteBitVectors.orElseThrow().get(globalVariable);
+          pBitVectorVariables.getSparseWriteBitVectors().get(globalVariable);
       ImmutableMap<MPORThread, CIdExpression> writeVariables =
           Objects.requireNonNull(sparseBitVector).variables;
       // convert from CExpression to SeqExpression

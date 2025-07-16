@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -81,7 +80,7 @@ public class BitVectorInjector {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    if (pBitVectorVariables.globalVariableIds.isEmpty()) {
+    if (pBitVectorVariables.getNumGlobalVariables() == 0) {
       pLogger.log(
           Level.INFO,
           "bit vectors are enabled, but the program does not contain any global variables.");
@@ -332,7 +331,7 @@ public class BitVectorInjector {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
-      for (var entry : pBitVectorVariables.sparseAccessBitVectors.orElseThrow().entrySet()) {
+      for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
         boolean value = pReachableVariables.contains(entry.getKey());
         SparseBitVectorValueExpression sparseBitVectorExpression =
@@ -346,7 +345,7 @@ public class BitVectorInjector {
           pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.ACCESS, pThread);
       BitVectorValueExpression reachableBitVectorExpression =
           BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.globalVariableIds, pReachableVariables);
+              pOptions, pBitVectorVariables.getGlobalVariableIds(), pReachableVariables);
       rStatements.add(
           new SeqBitVectorAssignmentStatement(reachableBitVector, reachableBitVectorExpression));
     }
@@ -362,9 +361,7 @@ public class BitVectorInjector {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
-      ImmutableMap<CVariableDeclaration, SparseBitVector> sparseAccessBitVectors =
-          pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
-      for (var entry : sparseAccessBitVectors.entrySet()) {
+      for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
         CVariableDeclaration variable = entry.getKey();
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
         boolean value = pReachableAccessVariables.contains(variable);
@@ -374,7 +371,7 @@ public class BitVectorInjector {
             new SeqBitVectorAssignmentStatement(
                 accessVariables.get(pThread), sparseBitVectorExpression));
       }
-      for (var entry : pBitVectorVariables.sparseWriteBitVectors.orElseThrow().entrySet()) {
+      for (var entry : pBitVectorVariables.getSparseWriteBitVectors().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> writeVariables = entry.getValue().variables;
         boolean value = pReachableWriteVariables.contains(entry.getKey());
         SparseBitVectorValueExpression sparseBitVectorExpression =
@@ -415,7 +412,7 @@ public class BitVectorInjector {
         pBitVectorVariables.getDenseBitVectorByAccessType(pAccessType, pThread);
     BitVectorValueExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(
-            pOptions, pBitVectorVariables.globalVariableIds, pAccessedVariables);
+            pOptions, pBitVectorVariables.getGlobalVariableIds(), pAccessedVariables);
     return new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression);
   }
 

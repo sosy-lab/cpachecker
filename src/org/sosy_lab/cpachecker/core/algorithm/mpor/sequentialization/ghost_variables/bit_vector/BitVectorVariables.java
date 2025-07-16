@@ -17,19 +17,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorVariables {
 
-  // TODO best make all these fields private
+  private final int numGlobalVariables;
 
-  public final int numGlobalVariables;
-
-  public final ImmutableMap<CVariableDeclaration, Integer> globalVariableIds;
+  private final ImmutableMap<CVariableDeclaration, Integer> globalVariableIds;
 
   private final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
 
   private final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
 
-  public final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseAccessBitVectors;
+  private final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>>
+      sparseAccessBitVectors;
 
-  public final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseWriteBitVectors;
+  private final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseWriteBitVectors;
 
   public BitVectorVariables(
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
@@ -81,23 +80,31 @@ public class BitVectorVariables {
     };
   }
 
-  public ImmutableMap<CVariableDeclaration, SparseBitVector> getSparseBitVectorsByAccessType(
-      BitVectorAccessType pAccessType) {
-
-    return switch (pAccessType) {
-      case NONE -> ImmutableMap.of();
-      case ACCESS -> sparseAccessBitVectors.orElseThrow();
-      case READ -> throw new IllegalArgumentException("READ bit vectors are not used");
-      case WRITE -> sparseWriteBitVectors.orElseThrow();
-    };
-  }
-
-  public boolean areDenseBitVectorsEmpty() {
-    return getDenseBitVectorsByAccessType(BitVectorAccessType.READ).isEmpty()
-        && getDenseBitVectorsByAccessType(BitVectorAccessType.WRITE).isEmpty();
-  }
+  // Boolean Helpers ===============================================================================
 
   public boolean areSparseBitVectorsEmpty() {
     return sparseAccessBitVectors.isEmpty() && sparseWriteBitVectors.isEmpty();
+  }
+
+  public boolean areSparseAccessBitVectorsEmpty() {
+    return sparseAccessBitVectors.isEmpty();
+  }
+
+  // Getters =======================================================================================
+
+  public int getNumGlobalVariables() {
+    return numGlobalVariables;
+  }
+
+  public ImmutableMap<CVariableDeclaration, Integer> getGlobalVariableIds() {
+    return globalVariableIds;
+  }
+
+  public ImmutableMap<CVariableDeclaration, SparseBitVector> getSparseAccessBitVectors() {
+    return sparseAccessBitVectors.orElseThrow();
+  }
+
+  public ImmutableMap<CVariableDeclaration, SparseBitVector> getSparseWriteBitVectors() {
+    return sparseWriteBitVectors.orElseThrow();
   }
 }
