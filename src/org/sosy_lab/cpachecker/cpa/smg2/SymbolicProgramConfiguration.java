@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -244,9 +245,9 @@ public class SymbolicProgramConfiguration {
         ImmutableBiMap.of(
             valueWrapper.wrap(new NumericValue(0)),
             SMGValue.zeroValue(),
-            valueWrapper.wrap(new NumericValue(0.0f)),
+            valueWrapper.wrap(new NumericValue(FloatValue.zero(FloatValue.Format.Float32))),
             SMGValue.zeroFloatValue(),
-            valueWrapper.wrap(new NumericValue(0.0)),
+            valueWrapper.wrap(new NumericValue(FloatValue.zero(FloatValue.Format.Float64))),
             SMGValue.zeroDoubleValue()),
         PathCopyingPersistentTreeMap.of(),
         newMemoryAddressAssumptionsMap,

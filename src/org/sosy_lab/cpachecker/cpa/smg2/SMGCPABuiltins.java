@@ -119,7 +119,8 @@ public class SMGCPABuiltins {
           "__builtin_va_end",
           "__builtin_va_copy",
           "atexit",
-          "__CPACHECKER_atexit_next");
+          "__CPACHECKER_atexit_next",
+          "fgets");
 
   /**
    * Returns true if the functionName equals a built in function handleable by this class. This
@@ -231,7 +232,7 @@ public class SMGCPABuiltins {
       throws CPATransferException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
-      return evaluateExternalAllocationFunction(cFCExpression, pState);
+      return evaluateExternalAllocationFunction(cFCExpression, pState, calledFunctionName);
     }
 
     return switch (calledFunctionName) {
@@ -273,6 +274,8 @@ public class SMGCPABuiltins {
 
       case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(pState);
 
+      case "fgets" -> evaluateFGets(cFCExpression, pCfaEdge, pState, calledFunctionName);
+
       default -> {
         if (isNondetBuiltin(calledFunctionName)) {
           yield Collections.singletonList(
@@ -287,6 +290,69 @@ public class SMGCPABuiltins {
         }
       }
     };
+  }
+
+  private List<ValueAndSMGState> evaluateFGets(
+      CFunctionCallExpression pCFCExpression,
+      CFAEdge pCfaEdge,
+      SMGState pState,
+      String calledFunctionName)
+      throws CPATransferException {
+
+    if (pCFCExpression.getParameterExpressions().size() != 3) {
+      throw new UnrecognizedCodeException(
+          pCFCExpression.getFunctionNameExpression().toASTString() + " needs 3 argument.",
+          pCfaEdge,
+          pCFCExpression);
+    }
+
+    /*
+     * C def:
+     * char *fgets(char *str, int n, FILE *stream);
+     * char *str: A pointer to an array of characters where the read string will be stored.
+     *   This array should be large enough to hold the string, including the terminating null
+     *   character.
+     * int n: The maximum number of characters to read, including the terminating null character.
+     *   fgets will read up to n-1 characters, leaving room for the null character.
+     * FILE *stream: A pointer to a FILE object that specifies the input stream to read from.
+     *   This can be a file pointer obtained from functions like fopen, or it can be stdin for
+     *   standard input.
+     * return: fgets returns the same pointer str that was passed in, which now contains the string
+     *   that was read. If an error occurs, or if end-of-file is reached and no characters were
+     *   read, fgets returns NULL.
+     */
+
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    // Check valid inputs
+    for (SMGState checkedState :
+        checkAllParametersForValidity(pState, pCfaEdge, pCFCExpression, calledFunctionName)) {
+
+      // Copy is not possible of course, so we simply set the memory region to unknown (no edge)
+      for (ValueAndSMGState argumentStrAndState :
+          pCFCExpression
+              .getParameterExpressions()
+              .get(0)
+              .accept(new SMGCPAValueVisitor(evaluator, checkedState, pCfaEdge, logger, options))) {
+        Value argStr = argumentStrAndState.getValue();
+        // TODO: Model errors etc.
+        resultBuilder.add(ValueAndSMGState.of(argStr, argumentStrAndState.getState()));
+        /*
+        for (ValueAndSMGState argumentNAndState :
+            pCFCExpression.getParameterExpressions().get(1).accept(new SMGCPAValueVisitor(evaluator, argumentStrAndState.getState(), pCfaEdge, logger, options))) {
+          Value argN = argumentNAndState.getValue();
+
+          for (ValueAndSMGState argumentStreamAndState :
+              pCFCExpression.getParameterExpressions().get(2).accept(new SMGCPAValueVisitor(evaluator, argumentNAndState.getState(), pCfaEdge, logger, options))) {
+
+            SMGState state = argumentStreamAndState.getState();
+            Value argStream = argumentStreamAndState.getValue();
+
+            // TODO:
+            resultBuilder.add();
+          }}*/
+      }
+    }
+    return resultBuilder.build();
   }
 
   /*
@@ -654,7 +720,8 @@ public class SMGCPABuiltins {
               Level.FINE,
               "Returned unknown value with allocated memory for unknown function " + cFCExpression,
               pCfaEdge);
-          builder.addAll(evaluateExternalAllocationFunction(cFCExpression, checkedState));
+          builder.addAll(
+              evaluateExternalAllocationFunction(cFCExpression, checkedState, calledFunctionName));
         }
         yield builder.build();
       }
@@ -1250,12 +1317,15 @@ public class SMGCPABuiltins {
   }
 
   private List<ValueAndSMGState> evaluateExternalAllocationFunction(
-      CFunctionCallExpression pFunctionCall, SMGState pState) {
+      CFunctionCallExpression pFunctionCall, SMGState pState, String calledFunctionName) {
 
-    if (!(pFunctionCall.getExpressionType() instanceof CPointerType)) {
+    if (!(pFunctionCall.getExpressionType() instanceof CPointerType)
+        || !isExternalAllocationFunction(calledFunctionName)) {
       // Non-allocating call, return unknown value.
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
     }
+    // Some methods like fgets return pointers that were parameters of the function, we need to
+    //  model those functions fully, so that they don't end up here!
 
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
     Value allocationSize =

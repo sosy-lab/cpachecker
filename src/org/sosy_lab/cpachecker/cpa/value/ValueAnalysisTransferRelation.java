@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -90,7 +89,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -128,6 +126,8 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.xml.sax.SAXException;
@@ -1473,18 +1473,16 @@ public class ValueAnalysisTransferRelation
               NumericValue numericValue = value.asNumericValue();
               CSimpleType paramType =
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
-              if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
-                  .contains(paramType.getType())) {
-                final BigDecimal integralPartValue =
-                    switch (paramType.getType()) {
-                      case FLOAT -> BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
-                      case DOUBLE ->
-                          BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
-                      default -> throw new AssertionError("Unsupported float type: " + paramType);
-                    };
+              if (paramType.getType().isFloatingPointType()) {
+                FloatValue.Format format = FloatValue.Format.fromCType(machineModel, paramType);
+                FloatValue integralPartValue =
+                    numericValue.floatingPointValue(format).round(RoundingMode.TRUNCATE);
                 CFloatLiteralExpression integralPart =
                     new CFloatLiteralExpression(
-                        functionCallExpression.getFileLocation(), paramType, integralPartValue);
+                        functionCallExpression.getFileLocation(),
+                        machineModel,
+                        paramType,
+                        integralPartValue);
                 newState =
                     strengthenWithPointerInformation(
                         newState,

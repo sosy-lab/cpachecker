@@ -41,7 +41,7 @@ import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 import org.sosy_lab.llvm_j.Value;
 
 /** Converts LLVM types to {@link CType CTypes}. */
-public class LlvmTypeConverter {
+class LlvmTypeConverter {
 
   private static final String PREFIX_LITERAL_STRUCT = "lit_struc_";
   private static final String PREFIX_STRUCT_MEMBER = "elem_";
@@ -54,16 +54,16 @@ public class LlvmTypeConverter {
 
   private final Map<Integer, CType> typeCache = new HashMap<>();
 
-  public LlvmTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
+  LlvmTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
     machineModel = pMachineModel;
     logger = pLogger;
   }
 
-  public @Nullable CType getCType(final Value pLlvmValue) {
+  @Nullable CType getCType(final Value pLlvmValue) {
     return getCType(pLlvmValue.typeOf(), /* isUnsigned= */ false, pLlvmValue.isConstant());
   }
 
-  public @Nullable CType getCType(
+  @Nullable CType getCType(
       final TypeRef pLlvmType, final boolean isUnsigned, final boolean isConst) {
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();

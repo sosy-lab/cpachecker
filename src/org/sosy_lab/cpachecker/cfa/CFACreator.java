@@ -137,7 +137,9 @@ public class CFACreator {
       secure = true,
       name = "parser.useClang",
       description =
-          "For C files, convert to LLVM IR with clang first and then use the LLVM parser.")
+          "For C files, convert to LLVM IR with clang first and then use the LLVM parser (currently"
+              + " unsupported).")
+  @Deprecated
   private boolean useClang = false;
 
   @Option(
@@ -317,9 +319,11 @@ public class CFACreator {
   @Option(
       secure = true,
       description =
-          "Programming language of the input program. If not given explicitly, "
-              + "auto-detection will occur")
-  // keep option name in sync with {@link CPAMain#language}, value might differ
+          "Programming language of the input program. If not given explicitly, auto-detection"
+              + " will occur. LLVM IR is currently unsupported as input (cf."
+              + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
+  // keep option name in sync with {@link CPAMain#language} and {@link
+  // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
   private Language language = Language.C;
 
   private Language inputLanguage = Language.C;
@@ -447,8 +451,7 @@ public class CFACreator {
             logger.log(
                 Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
-          ClangPreprocessor clang = new ClangPreprocessor(config, logger);
-          parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
+          parser = Parsers.getLlvmClangParser(config, logger, machineModel);
         } else {
           parser = outerParser;
         }
@@ -1026,7 +1029,7 @@ public class CFACreator {
     }
 
     if (cfa.getLanguage() == Language.C) {
-      addDefaultInitializers(globalVars);
+      addDefaultInitializers(cfa.getMachineModel(), globalVars);
     } else {
       // TODO addDefaultInitializerForJava
     }
@@ -1088,7 +1091,8 @@ public class CFACreator {
    *
    * @param globalVars a list with all global declarations
    */
-  private static void addDefaultInitializers(List<Pair<ADeclaration, String>> globalVars) {
+  private static void addDefaultInitializers(
+      MachineModel pMachineModel, List<Pair<ADeclaration, String>> globalVars) {
     // first, collect all variables which do have an explicit initializer
     Set<String> initializedVariables = new HashSet<>();
     for (Pair<ADeclaration, String> p : globalVars) {
@@ -1133,7 +1137,7 @@ public class CFACreator {
           CType type = v.getType().getCanonicalType();
           if (!(type instanceof CElaboratedType)
               || (((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM)) {
-            CInitializer initializer = CDefaults.forType(type, v.getFileLocation());
+            CInitializer initializer = CDefaults.forType(pMachineModel, type, v.getFileLocation());
             v.addInitializer(initializer);
             v =
                 new CVariableDeclaration(
