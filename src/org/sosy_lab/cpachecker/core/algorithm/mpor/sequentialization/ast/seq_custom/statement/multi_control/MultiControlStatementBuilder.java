@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -75,12 +76,20 @@ public class MultiControlStatementBuilder {
   }
 
   public static ImmutableList<CStatement> buildPrecedingStatements(
-      Optional<CFunctionCallStatement> pAssumption,
+      Optional<CFunctionCallStatement> pThreadActiveAssumption,
+      Optional<CFunctionCallAssignmentStatement> pKNondet,
+      Optional<CFunctionCallStatement> pKGreaterZeroAssumption,
       Optional<CExpressionAssignmentStatement> pRReset) {
 
     ImmutableList.Builder<CStatement> rPreceding = ImmutableList.builder();
-    if (pAssumption.isPresent()) {
-      rPreceding.add(pAssumption.orElseThrow());
+    if (pThreadActiveAssumption.isPresent()) {
+      rPreceding.add(pThreadActiveAssumption.orElseThrow());
+    }
+    if (pKNondet.isPresent()) {
+      rPreceding.add(pKNondet.orElseThrow());
+    }
+    if (pKGreaterZeroAssumption.isPresent()) {
+      rPreceding.add(pKGreaterZeroAssumption.orElseThrow());
     }
     // place r reset after the assumption for optimization
     if (pRReset.isPresent()) {

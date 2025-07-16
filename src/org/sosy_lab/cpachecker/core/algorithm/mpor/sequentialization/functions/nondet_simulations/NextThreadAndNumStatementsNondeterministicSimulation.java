@@ -74,13 +74,15 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
 
-    // assigning K is necessary only once since we use next_thread
-    rLines.add(LineOfCode.of(pKNondet.toASTString()));
-    rLines.add(LineOfCode.of(pKGreaterZeroAssumption.toASTString()));
-
     ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements(
-            pOptions, pPcVariables, pRReset, pClauses, pBinaryExpressionBuilder);
+            pOptions,
+            pPcVariables,
+            pKNondet,
+            pKGreaterZeroAssumption,
+            pRReset,
+            pClauses,
+            pBinaryExpressionBuilder);
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
             pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
@@ -93,6 +95,8 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       buildInnerMultiControlStatements(
           MPOROptions pOptions,
           PcVariables pPcVariables,
+          CFunctionCallAssignmentStatement pKNondet,
+          CFunctionCallStatement pKGreaterZeroAssumption,
           CExpressionAssignmentStatement pRReset,
           ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -110,7 +114,14 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
               thread.id,
               pBinaryExpressionBuilder),
           buildSingleThreadMultiControlStatementWithoutCount(
-              pOptions, pPcVariables, thread, pRReset, clauses, pBinaryExpressionBuilder));
+              pOptions,
+              pPcVariables,
+              thread,
+              pKNondet,
+              pKGreaterZeroAssumption,
+              pRReset,
+              clauses,
+              pBinaryExpressionBuilder));
     }
     return rStatements.buildOrThrow();
   }
@@ -119,6 +130,8 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
+      CFunctionCallAssignmentStatement pKNondet,
+      CFunctionCallStatement pKGreaterZeroAssumption,
       CExpressionAssignmentStatement pRReset,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -147,7 +160,11 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         pOptions,
         pOptions.controlEncodingStatement,
         expression,
-        MultiControlStatementBuilder.buildPrecedingStatements(assumption, Optional.of(pRReset)),
+        MultiControlStatementBuilder.buildPrecedingStatements(
+            assumption,
+            Optional.of(pKNondet),
+            Optional.of(pKGreaterZeroAssumption),
+            Optional.of(pRReset)),
         expressionClauseMap,
         pThread.endLabel,
         lastThreadUpdate,
