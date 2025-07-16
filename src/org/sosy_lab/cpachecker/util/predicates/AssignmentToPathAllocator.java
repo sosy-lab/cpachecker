@@ -114,8 +114,8 @@ public class AssignmentToPathAllocator {
         ImmutableList.builderWithExpectedSize(pPath.getInnerEdges().size());
     ImmutableMap<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
 
-    // Its too inefficient to recreate every assignment from scratch, but the ssaIndex of the
-    // Assignable Terms are needed, thats why we declare two maps of variables and functions. One
+    // It's too inefficient to recreate every assignment from scratch, but the ssaIndex of the
+    // Assignable Terms are needed, that's why we declare two maps of variables and functions. One
     // for the calculation of the SSAIndex, the other to save the references to the objects we want
     // to store in the concrete State, so we can avoid recreating those objects
     final Map<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
@@ -537,7 +537,7 @@ public class AssignmentToPathAllocator {
   }
 
   /*
-   * Allocate the assignable terms with a SSAIndex in the given model
+   * Allocate the assignable terms with an SSAIndex in the given model
    * to the position in the path they were first used. The result of this
    * allocation is used to determine the model at each edge of the path.
    *

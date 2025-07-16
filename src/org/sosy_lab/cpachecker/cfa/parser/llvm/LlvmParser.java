@@ -74,7 +74,7 @@ public class LlvmParser implements Parser {
     libDirs.add(nativeDir);
 
     // If cpachecker.jar is used, decodedBasePath will look similar to CPACHECKER/cpachecker.jar .
-    // If the compiled class files are used outside of a jar, decodedBasePath will look similar to
+    // If the compiled class files are used outside a jar, decodedBasePath will look similar to
     // CPACHECKER/bin .
     // In both cases, we strip the last part to get the CPAchecker base directory.
     String encodedBasePath =

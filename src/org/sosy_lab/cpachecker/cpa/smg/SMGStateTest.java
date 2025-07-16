@@ -552,7 +552,7 @@ public class SMGStateTest {
             logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
-    // Add an 16b object and write a 16b value into it
+    // Add a 16b object and write a 16b value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockSize16b, new_value).getNewEdge();
@@ -619,7 +619,7 @@ public class SMGStateTest {
             logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
-    // Add an 16b object and write a 16b zero value into it
+    // Add a 16b object and write a 16b zero value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGEdgeHasValue hv =
         state.writeValue(pt.getObject(), 0, mockSize16b, SMGZeroValue.INSTANCE).getNewEdge();

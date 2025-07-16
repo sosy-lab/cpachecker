@@ -170,7 +170,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
   /**
    * Transform a branching waypoint into automata transitions
    *
-   * @param pAstCfaRelation the relation between the cfa and ast to find out which if statement is
+   * @param pAstCfaRelation the relation between the CFA and ast to find out which if statement is
    *     being considered
    * @param nextStateId the id of the next state in the automaton being constructed
    * @param followLine the line at which the target is
@@ -260,7 +260,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
    * @param pDistanceToViolation the distance to the violation
    * @param constraint the constraint on the return value of the function. It can be null, which
    *     means that returning from the function is the relevant aspect
-   * @param startLineToCFAEdge a mapping from the start line to the cfa edge
+   * @param startLineToCFAEdge a mapping from the start line to the CFA edge
    * @return an automaton transition encoding the constraint on the returned value of a function
    * @throws InterruptedException if the function call is interrupted
    */
@@ -378,7 +378,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
               Level.INFO,
               "Target waypoint is not the last waypoint, following waypoints will be ignored!");
         }
-        // Add the state directly, since we are exiting the loop afterwards
+        // Add the state directly, since we are exiting the loop afterward
         automatonStates.add(
             new AutomatonInternalState(
                 currentStateId,

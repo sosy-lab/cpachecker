@@ -33,7 +33,7 @@ class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentExcepti
 
   @Override
   public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
-    // the alignment of an array is the same as the alignment of an member of the array
+    // the alignment of an array is the same as the alignment of a member of the array
     return pArrayType.getType().accept(this);
   }
 

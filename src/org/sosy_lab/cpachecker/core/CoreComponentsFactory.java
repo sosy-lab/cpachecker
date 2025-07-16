@@ -253,7 +253,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "split.program",
-      description = "Split program in subprograms which can be analyzed separately afterwards")
+      description = "Split program in subprograms which can be analyzed separately afterward")
   private boolean splitProgram = false;
 
   @Option(
@@ -266,7 +266,7 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.analysisWithEnabler",
       description =
-          "use a analysis which proves if the program satisfies a specified property"
+          "use an analysis which proves if the program satisfies a specified property"
               + " with the help of an enabler CPA to separate differnt program paths")
   private boolean useAnalysisWithEnablerCPAAlgorithm = false;
 

@@ -167,7 +167,7 @@ public class ReachedSetFactory {
               + "NORMAL: just a simple set\n"
               + "LOCATIONMAPPED: a different set per location (faster, states with different"
               + " locations cannot be merged)\n"
-              + "PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)\n"
+              + "PARTITIONED: partitioning depending on CPAs (e.g. Location, Callstack etc.)\n"
               + "PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the states'"
               + " lattice (maybe faster for some special analyses which use merge_sep and stop_sep")
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;

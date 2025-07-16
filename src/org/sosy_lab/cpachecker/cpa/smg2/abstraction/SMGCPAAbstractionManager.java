@@ -1385,7 +1385,7 @@ public class SMGCPAAbstractionManager {
     // We abort after we find 1 valid pointer for the candidate
     ImmutableList<SMGHasValueEdge> sortedPointersList =
         ImmutableList.sortedCopyOf(Comparator.comparing(SMGHasValueEdge::getOffset), setOfPointers);
-    // If there are no targets that match this one, this is either a end part or not a list
+    // If there are no targets that match this one, this is either an end part or not a list
     if (setOfPointers.isEmpty()) {
       return Optional.empty();
     }

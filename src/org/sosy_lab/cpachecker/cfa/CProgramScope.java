@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Used to store the types of the cfa that are lost when only a single or a block of statements of
+ * Used to store the types of the CFA that are lost when only a single or a block of statements of
  * the original program is parsed.
  */
 public class CProgramScope implements Scope {
@@ -228,11 +228,11 @@ public class CProgramScope implements Scope {
   /**
    * Creates an object of this class.
    *
-   * <p>When a single or a block of statements is supposed to be parsed, first a cfa for the whole
+   * <p>When a single or a block of statements is supposed to be parsed, first a CFA for the whole
    * program has to be parsed to generate complex types for the variables. These types and
    * declarations are stored in this scope.
    *
-   * @param pCFA the cfa of the program, where single or block of statements are supposed to be
+   * @param pCFA the CFA of the program, where single or block of statements are supposed to be
    *     parsed
    */
   public CProgramScope(CFA pCFA, LogManager pLogger) {

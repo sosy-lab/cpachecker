@@ -399,7 +399,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         unregisterReachedSetUpdateListeners();
         singleShutdownManager.getNotifier().unregister(logShutdownListener);
         singleShutdownManager.requestShutdown(
-            "Analysis terminated"); // shutdown any remaining components
+            "Analysis terminated"); // shut down any remaining components
         stats.totalTime.stop();
       }
 
@@ -430,9 +430,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   }
 
   /**
-   * Advance the given iterator by skipping over analyses where the usage condition does not match,
-   * such that the next entry in the iterator is the next analysis that should be used or the
-   * iterator is empty.
+   * Advance the given iterator by skipping analyses where the usage condition does not match, such
+   * that the next entry in the iterator is the next analysis that should be used or the iterator is
+   * empty.
    */
   private void skipNextAnalysesIfRequired(
       final PeekingIterator<AnnotatedValue<Path>> configFilesIterator,

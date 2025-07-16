@@ -47,7 +47,7 @@ public class PathExtractor implements Statistics {
   @Option(
       secure = true,
       name = "cegar.globalRefinement",
-      description = "whether or not global refinement is performed")
+      description = "whether global refinement is performed")
   private boolean globalRefinement = false;
 
   /** keep log of feasible targets that were already found */

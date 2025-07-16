@@ -304,7 +304,7 @@ class EclipseCParser implements CParser {
           .precomputed();
 
   /**
-   * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for
+   * Builds the CFA out of a list of pairs of translation units and their appropriate prefixes for
    * static variables
    *
    * @param asts a List of Pairs of translation units and the appropriate prefix for static
