@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -222,8 +221,8 @@ public class SeqThreadStatementClauseUtil {
   }
 
   /**
-   * Searches {@code pInjectedStatements} for {@link SeqBitVectorAccessEvaluationStatement}s and
-   * replaces their {@code goto} labels with the updated {@code pc}.
+   * Searches {@code pInjectedStatements} for {@link SeqBitVectorEvaluationStatement}s and replaces
+   * their {@code goto} labels with the updated {@code pc}.
    */
   public static ImmutableList<SeqInjectedStatement> replaceTargetGotoLabel(
       ImmutableList<SeqInjectedStatement> pInjectedStatements, int pNewTargetPc) {
