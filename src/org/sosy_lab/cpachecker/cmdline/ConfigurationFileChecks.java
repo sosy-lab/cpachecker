@@ -496,7 +496,8 @@ public class ConfigurationFileChecks {
               // a timeout. If the analysis is improved such that already
               // seen paths are not considered twice, this test can be re-enabled.
               Path.of("parallel-randomSampling.properties"),
-              Path.of("randomSampling.properties"));
+              Path.of("randomSampling.properties"),
+              Path.of("randomTesting.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
