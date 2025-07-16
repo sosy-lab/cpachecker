@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
@@ -46,9 +47,8 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       throws UnrecognizedCodeException {
 
     CFunctionCallAssignmentStatement kNondet =
-        NondeterministicSimulationUtil.buildKNondetAssignment(pOptions);
-    CBinaryExpression kGreaterZero =
-        NondeterministicSimulationUtil.buildKGreaterZero(pBinaryExpressionBuilder);
+        NondeterministicSimulationUtil.buildKNondetAssignment(pOptions, SeqIdExpression.K);
+    CBinaryExpression kGreaterZero = buildKGreaterZero(pBinaryExpressionBuilder);
     CFunctionCallStatement kGreaterZeroAssumption =
         SeqAssumptionBuilder.buildAssumption(kGreaterZero);
     CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRReset();
@@ -201,5 +201,15 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
           clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
     }
     return updatedClauses.build();
+  }
+
+  // Helpers =======================================================================================
+
+  /** Returns the expression for {@code K > 0} */
+  private static CBinaryExpression buildKGreaterZero(
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) throws UnrecognizedCodeException {
+
+    return pBinaryExpressionBuilder.buildBinaryExpression(
+        SeqIdExpression.K, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
   }
 }

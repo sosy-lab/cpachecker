@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
@@ -192,5 +195,24 @@ public class SeqExpressionBuilder {
 
   public static CStringLiteralExpression buildStringLiteralExpression(String pValue) {
     return new CStringLiteralExpression(FileLocation.DUMMY, pValue);
+  }
+
+  // Helper ========================================================================================
+
+  public static CExpression nestBinaryExpressions(
+      ImmutableCollection<CExpression> pAllExpressions,
+      BinaryOperator pBinaryOperator,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
+
+    CExpression rNested = pAllExpressions.iterator().next();
+    for (CExpression next : pAllExpressions) {
+      if (!next.equals(rNested)) {
+        rNested = pBinaryExpressionBuilder.buildBinaryExpression(rNested, next, pBinaryOperator);
+      }
+    }
+    return rNested;
   }
 }

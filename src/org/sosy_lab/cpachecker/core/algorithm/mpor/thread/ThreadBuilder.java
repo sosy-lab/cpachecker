@@ -36,12 +36,15 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqPointerType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadEndLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -131,6 +134,7 @@ public class ThreadBuilder {
         startRoutineExitVariable,
         localVariables,
         threadCfa,
+        tryBuildKVariable(pOptions, newThreadId),
         tryBuildThreadEndLabel(pOptions, newThreadId));
   }
 
@@ -289,6 +293,21 @@ public class ThreadBuilder {
       rThreadEdges.put(new ThreadEdge(pThreadId, cfaEdge, pCallContext), cfaEdge);
     }
     return rThreadEdges;
+  }
+
+  private static Optional<CIdExpression> tryBuildKVariable(MPOROptions pOptions, int pThreadId) {
+    if (pOptions.nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
+      String variableName = SeqNameUtil.buildThreadKVariable(pThreadId);
+      CVariableDeclaration declaration =
+          SeqDeclarationBuilder.buildVariableDeclaration(
+              false,
+              pOptions.signedNondet ? SeqSimpleType.INT : SeqSimpleType.UNSIGNED_INT,
+              variableName,
+              SeqInitializer.INT_0);
+      CIdExpression KVariable = SeqExpressionBuilder.buildIdExpression(declaration);
+      return Optional.of(KVariable);
+    }
+    return Optional.empty();
   }
 
   private static Optional<SeqThreadEndLabelStatement> tryBuildThreadEndLabel(

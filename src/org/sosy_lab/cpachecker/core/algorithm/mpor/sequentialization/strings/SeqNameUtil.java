@@ -28,6 +28,10 @@ public class SeqNameUtil {
     return SeqSyntax.UNDERSCORE + variableId++ + SeqSyntax.UNDERSCORE;
   }
 
+  public static String buildThreadKVariable(int pThreadId) {
+    return SeqToken.K + pThreadId;
+  }
+
   public static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
     return (pOptions.shortVariableNames ? SeqToken.T : SeqToken.__MPOR_SEQ__ + SeqToken.THREAD)
         + pThreadId

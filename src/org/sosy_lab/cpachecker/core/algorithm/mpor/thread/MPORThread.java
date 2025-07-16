@@ -48,6 +48,11 @@ public class MPORThread {
   public final ThreadCFA cfa;
 
   /**
+   * The thread-specific nondeterministic {@code K{thread_id}} variable (statement round counter).
+   */
+  private final Optional<CIdExpression> KVariable;
+
+  /**
    * The label marking the threads end, e.g. {@code T0_END:}. Note that the end is not equivalent to
    * the thread's termination.
    */
@@ -61,6 +66,7 @@ public class MPORThread {
       Optional<CIdExpression> pStartRoutineExitVariable,
       ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
       ThreadCFA pCfa,
+      Optional<CIdExpression> pKVariable,
       Optional<SeqThreadEndLabelStatement> pEndLabel) {
 
     id = pId;
@@ -70,10 +76,15 @@ public class MPORThread {
     startRoutineExitVariable = pStartRoutineExitVariable;
     localVariables = pLocalVariables;
     cfa = pCfa;
+    KVariable = pKVariable;
     endLabel = pEndLabel;
   }
 
   public boolean isMain() {
     return threadObject.isEmpty();
+  }
+
+  public Optional<CIdExpression> getKVariable() {
+    return KVariable;
   }
 }

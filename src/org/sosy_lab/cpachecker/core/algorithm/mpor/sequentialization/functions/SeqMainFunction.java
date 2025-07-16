@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
@@ -119,7 +121,10 @@ public class SeqMainFunction extends SeqFunction {
     // TODO its probably best to remove num threads entirely and just place the int
     rBody.addAll(
         buildLocalThreadSimulationVariableDeclarations(
-            options, numThreadsVariable.getDeclaration(), threadSimulationVariables));
+            options,
+            clauses.keySet(),
+            numThreadsVariable.getDeclaration(),
+            threadSimulationVariables));
 
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, logger));
@@ -247,6 +252,7 @@ public class SeqMainFunction extends SeqFunction {
    */
   private ImmutableList<LineOfCode> buildLocalThreadSimulationVariableDeclarations(
       MPOROptions pOptions,
+      ImmutableSet<MPORThread> pThreads,
       CSimpleDeclaration pNumThreadDeclaration,
       ThreadSimulationVariables pThreadSimulationVariables) {
 
@@ -260,13 +266,22 @@ public class SeqMainFunction extends SeqFunction {
       rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.CNT.toASTString()));
     }
 
-    // if enabled: K and r (for thread loops iterations)
+    // if enabled: K and r
     if (pOptions.nondeterminismSource.isNumStatementsNondeterministic()) {
       rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.R.toASTString()));
-      if (pOptions.signedNondet) {
-        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.K_SIGNED.toASTString()));
-      } else {
-        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.K_UNSIGNED.toASTString()));
+      if (pOptions.nondeterminismSource.equals(
+          NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS)) {
+        if (pOptions.signedNondet) {
+          rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.K_SIGNED.toASTString()));
+        } else {
+          rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.K_UNSIGNED.toASTString()));
+        }
+      }
+      if (pOptions.nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
+        for (MPORThread thread : pThreads) {
+          rDeclarations.add(
+              LineOfCode.of(thread.getKVariable().orElseThrow().getDeclaration().toASTString()));
+        }
       }
     }
 

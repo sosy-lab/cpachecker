@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
@@ -87,7 +88,7 @@ public class BitVectorEvaluationUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    return nestBinaryExpressions(
+    return SeqExpressionBuilder.nestBinaryExpressions(
         pDisjunctionTerms, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
   }
 
@@ -104,23 +105,6 @@ public class BitVectorEvaluationUtil {
         rNested =
             SeqLogicalExpressionBuilder.buildBinaryLogicalExpressionByOperator(
                 pLogicalOperator, rNested, next);
-      }
-    }
-    return rNested;
-  }
-
-  private static CExpression nestBinaryExpressions(
-      ImmutableCollection<CExpression> pAllExpressions,
-      BinaryOperator pBinaryOperator,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
-
-    CExpression rNested = pAllExpressions.iterator().next();
-    for (CExpression next : pAllExpressions) {
-      if (!next.equals(rNested)) {
-        rNested = pBinaryExpressionBuilder.buildBinaryExpression(rNested, next, pBinaryOperator);
       }
     }
     return rNested;

@@ -13,12 +13,12 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -111,20 +111,14 @@ public class NondeterministicSimulationUtil {
   // r and K statements/expressions ================================================================
 
   /** Returns the expression for {@code K = __VERIFIER_nondet_{int, uint}()} */
-  static CFunctionCallAssignmentStatement buildKNondetAssignment(MPOROptions pOptions) {
+  static CFunctionCallAssignmentStatement buildKNondetAssignment(
+      MPOROptions pOptions, CIdExpression pKVariable) {
+
     return SeqStatementBuilder.buildFunctionCallAssignmentStatement(
-        SeqIdExpression.K,
+        pKVariable,
         pOptions.signedNondet
             ? VerifierNondetFunctionType.INT.getFunctionCallExpression()
             : VerifierNondetFunctionType.UINT.getFunctionCallExpression());
-  }
-
-  /** Returns the expression for {@code K > 0} */
-  static CBinaryExpression buildKGreaterZero(CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    return pBinaryExpressionBuilder.buildBinaryExpression(
-        SeqIdExpression.K, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
   }
 
   /** Returns the expression for {@code r = 1;} */
