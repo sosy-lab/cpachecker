@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -313,7 +314,11 @@ public class BitVectorInjector {
             pOptions,
             pAcitveThread,
             pBitVectorVariables,
-            reachableReadVariables,
+            // combine both read and write for access
+            ImmutableSet.<CVariableDeclaration>builder()
+                .addAll(reachableReadVariables)
+                .addAll(reachableWriteVariables)
+                .build(),
             reachableWriteVariables);
       }
     };
@@ -352,19 +357,22 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableSet<CVariableDeclaration> pReachableReadVariables,
+      ImmutableSet<CVariableDeclaration> pReachableAccessVariables,
       ImmutableSet<CVariableDeclaration> pReachableWriteVariables) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
-      for (var entry : pBitVectorVariables.sparseReadBitVectors.orElseThrow().entrySet()) {
-        ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
-        boolean value = pReachableReadVariables.contains(entry.getKey());
+      ImmutableMap<CVariableDeclaration, SparseBitVector> sparseAccessBitVectors =
+          pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
+      for (var entry : sparseAccessBitVectors.entrySet()) {
+        CVariableDeclaration variable = entry.getKey();
+        ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
+        boolean value = pReachableAccessVariables.contains(variable);
         SparseBitVectorValueExpression sparseBitVectorExpression =
             new SparseBitVectorValueExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
-                readVariables.get(pThread), sparseBitVectorExpression));
+                accessVariables.get(pThread), sparseBitVectorExpression));
       }
       for (var entry : pBitVectorVariables.sparseWriteBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> writeVariables = entry.getValue().variables;
@@ -376,13 +384,14 @@ public class BitVectorInjector {
                 writeVariables.get(pThread), sparseBitVectorExpression));
       }
     } else {
+
       rStatements.add(
           buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
               pOptions,
               pThread,
               pBitVectorVariables,
-              BitVectorAccessType.READ,
-              pReachableReadVariables));
+              BitVectorAccessType.ACCESS,
+              pReachableAccessVariables));
       rStatements.add(
           buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
               pOptions,

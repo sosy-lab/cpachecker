@@ -24,7 +24,7 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
   public final SeqBlockLabelStatement gotoLabel;
 
   /**
-   * The statement for evaluating bit vectors (including {@code if (...)}. Used for both {@link
+   * The statement for evaluating bit vectors (including {@code if (...)}). Used for both {@link
    * ReductionMode#ACCESS_ONLY} and {@link ReductionMode#READ_AND_WRITE}.
    */
   public SeqBitVectorEvaluationStatement(

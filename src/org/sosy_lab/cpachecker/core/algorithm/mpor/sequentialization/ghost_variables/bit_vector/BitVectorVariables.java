@@ -25,32 +25,24 @@ public class BitVectorVariables {
 
   private final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
 
-  private final Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors;
-
   private final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
 
   public final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseAccessBitVectors;
-
-  public final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseReadBitVectors;
 
   public final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseWriteBitVectors;
 
   public BitVectorVariables(
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
-      Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
       Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseAccessBitVectors,
-      Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseReadBitVectors,
       Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseWriteBitVectors) {
 
     numGlobalVariables = pGlobalVariableIds.size();
     globalVariableIds = pGlobalVariableIds;
-    denseReadBitVectors = pDenseReadBitVectors;
     denseWriteBitVectors = pDenseWriteBitVectors;
     denseAccessBitVectors = pDenseAccessBitVectors;
     sparseAccessBitVectors = pSparseAccessBitVectors;
-    sparseReadBitVectors = pSparseReadBitVectors;
     sparseWriteBitVectors = pSparseWriteBitVectors;
   }
 
@@ -84,7 +76,7 @@ public class BitVectorVariables {
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> denseAccessBitVectors.orElseThrow();
-      case READ -> denseReadBitVectors.orElseThrow();
+      case READ -> throw new IllegalArgumentException("READ bit vectors are not used");
       case WRITE -> denseWriteBitVectors.orElseThrow();
     };
   }
@@ -95,7 +87,7 @@ public class BitVectorVariables {
     return switch (pAccessType) {
       case NONE -> ImmutableMap.of();
       case ACCESS -> sparseAccessBitVectors.orElseThrow();
-      case READ -> sparseReadBitVectors.orElseThrow();
+      case READ -> throw new IllegalArgumentException("READ bit vectors are not used");
       case WRITE -> sparseWriteBitVectors.orElseThrow();
     };
   }
@@ -106,6 +98,6 @@ public class BitVectorVariables {
   }
 
   public boolean areSparseBitVectorsEmpty() {
-    return sparseReadBitVectors.isEmpty() && sparseWriteBitVectors.isEmpty();
+    return sparseAccessBitVectors.isEmpty() && sparseWriteBitVectors.isEmpty();
   }
 }

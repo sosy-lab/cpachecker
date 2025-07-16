@@ -62,7 +62,7 @@ public class SeqBitVectorDeclarationBuilder {
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
                   buildDenseBitVectorDeclarationsByAccessType(
-                      pOptions, pBitVectorVariables, BitVectorAccessType.READ))
+                      pOptions, pBitVectorVariables, BitVectorAccessType.ACCESS))
               .addAll(
                   buildDenseBitVectorDeclarationsByAccessType(
                       pOptions, pBitVectorVariables, BitVectorAccessType.WRITE))
@@ -106,7 +106,7 @@ public class SeqBitVectorDeclarationBuilder {
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
                   createSparseBitVectorDeclarations(
-                      pBitVectorVariables.sparseReadBitVectors.orElseThrow().values(), pThreads))
+                      pBitVectorVariables.sparseAccessBitVectors.orElseThrow().values(), pThreads))
               .addAll(
                   createSparseBitVectorDeclarations(
                       pBitVectorVariables.sparseWriteBitVectors.orElseThrow().values(), pThreads))

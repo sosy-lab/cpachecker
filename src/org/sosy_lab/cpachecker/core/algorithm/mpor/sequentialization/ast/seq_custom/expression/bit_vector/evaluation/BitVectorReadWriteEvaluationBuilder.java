@@ -48,6 +48,10 @@ public class BitVectorReadWriteEvaluationBuilder {
           throw new IllegalArgumentException(
               "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
       case BINARY, DECIMAL, HEXADECIMAL -> {
+        // TODO think about dynamic reordering of the LHS/RHS depending on how many variables are
+        //  read/written. more variables -> conflict likelier -> put left instead of right. a
+        //  conflict on a direct write is also more likelier, since the accesses contain both R/W.
+        //  this only works for dense bit vectors.
         if (pOptions.bitVectorEvaluationPrune) {
           yield buildPrunedDenseEvaluation(
               pOtherThreads,
@@ -142,18 +146,12 @@ public class BitVectorReadWriteEvaluationBuilder {
       CIntegerLiteralExpression directWriteBitVector =
           BitVectorUtil.buildDirectBitVectorExpression(
               pBitVectorVariables.globalVariableIds, pDirectWriteVariables);
-      ImmutableSet<CExpression> otherReadBitVectors =
+      ImmutableSet<CExpression> otherAccessBitVectors =
           pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-              BitVectorAccessType.READ, pOtherThreads);
-      ImmutableSet<CExpression> otherWriteBitVectors =
-          pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-              BitVectorAccessType.WRITE, pOtherThreads);
+              BitVectorAccessType.ACCESS, pOtherThreads);
       CBinaryExpression rRightHandSide =
           buildGeneralDenseRightHandSide(
-              directWriteBitVector,
-              otherReadBitVectors,
-              otherWriteBitVectors,
-              pBinaryExpressionBuilder);
+              directWriteBitVector, otherAccessBitVectors, pBinaryExpressionBuilder);
       return Optional.of(new SeqLogicalNotExpression(rRightHandSide));
     }
   }
@@ -168,12 +166,12 @@ public class BitVectorReadWriteEvaluationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableSet<CExpression> otherReadBitVectors =
-        pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-            BitVectorAccessType.READ, pOtherThreads);
     ImmutableSet<CExpression> otherWriteBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
             BitVectorAccessType.WRITE, pOtherThreads);
+    ImmutableSet<CExpression> otherAccessBitVectors =
+        pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
+            BitVectorAccessType.ACCESS, pOtherThreads);
 
     // (R & (W' | W'' | ...))
     CIntegerLiteralExpression directReadBitVector =
@@ -182,16 +180,13 @@ public class BitVectorReadWriteEvaluationBuilder {
     CExpression leftHandSide =
         buildGeneralDenseLeftHandSide(
             directReadBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
-    // (W & (R' | R'' | ... | W' | W''))
+    // (W & (A' | A'' | ...))
     CIntegerLiteralExpression directWriteBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
             pBitVectorVariables.globalVariableIds, pDirectWriteVariables);
     CExpression rightHandSide =
         buildGeneralDenseRightHandSide(
-            directWriteBitVector,
-            otherReadBitVectors,
-            otherWriteBitVectors,
-            pBinaryExpressionBuilder);
+            directWriteBitVector, otherAccessBitVectors, pBinaryExpressionBuilder);
 
     SeqLogicalAndExpression logicalAnd =
         new SeqLogicalAndExpression(
@@ -217,16 +212,12 @@ public class BitVectorReadWriteEvaluationBuilder {
   /** General = used for both pruned and full evaluations. */
   private static CBinaryExpression buildGeneralDenseRightHandSide(
       CIntegerLiteralExpression pDirectWriteBitVector,
-      ImmutableSet<CExpression> pOtherReads,
-      ImmutableSet<CExpression> pOtherWrites,
+      ImmutableSet<CExpression> pOtherAccesses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableSet<CExpression> otherReadAndWriteBitVectors =
-        ImmutableSet.<CExpression>builder().addAll(pOtherReads).addAll(pOtherWrites).build();
     CExpression otherReadsAndWrites =
-        BitVectorEvaluationUtil.binaryDisjunction(
-            otherReadAndWriteBitVectors, pBinaryExpressionBuilder);
+        BitVectorEvaluationUtil.binaryDisjunction(pOtherAccesses, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pDirectWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
   }
@@ -244,7 +235,9 @@ public class BitVectorReadWriteEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.sparseReadBitVectors.orElseThrow().entrySet()) {
+    ImmutableMap<CVariableDeclaration, SparseBitVector> sparseAccessBitVectors =
+        pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
+    for (var entry : sparseAccessBitVectors.entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
 
       // handle read variables
@@ -320,12 +313,14 @@ public class BitVectorReadWriteEvaluationBuilder {
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pBitVectorVariables.sparseReadBitVectors.isEmpty()
+    if (pBitVectorVariables.sparseAccessBitVectors.isEmpty()
         && pBitVectorVariables.sparseWriteBitVectors.isEmpty()) {
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.sparseReadBitVectors.orElseThrow().entrySet()) {
+    ImmutableMap<CVariableDeclaration, SparseBitVector> sparseAccessBitVectors =
+        pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
+    for (var entry : sparseAccessBitVectors.entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
 
       // handle read variables

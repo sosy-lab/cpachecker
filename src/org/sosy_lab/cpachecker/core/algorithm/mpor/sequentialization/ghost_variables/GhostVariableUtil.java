@@ -110,9 +110,7 @@ public class GhostVariableUtil {
             pGlobalVariableIds,
             denseAccessBitVectors,
             Optional.empty(),
-            Optional.empty(),
             sparseAccessBitVectors,
-            Optional.empty(),
             Optional.empty()));
   }
 
@@ -123,25 +121,23 @@ public class GhostVariableUtil {
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds) {
 
     // create bit vector read + write variables for all threads, e.g. __uint8_t br0, bw0
-    Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors =
-        buildDenseBitVectorsByAccessType(pOptions, pThreads, BitVectorAccessType.READ);
+    Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
+        buildDenseBitVectorsByAccessType(pOptions, pThreads, BitVectorAccessType.ACCESS);
     Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors =
         buildDenseBitVectorsByAccessType(pOptions, pThreads, BitVectorAccessType.WRITE);
     // create read + write variables (for sparse bit vectors)
-    Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseReadBitVectors =
+    Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseAccessBitVectors =
         buildSparseBitVectorsByAccessType(
-            pOptions, pThreads, pAllGlobalVariables, BitVectorAccessType.READ);
+            pOptions, pThreads, pAllGlobalVariables, BitVectorAccessType.ACCESS);
     Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseWriteBitVectors =
         buildSparseBitVectorsByAccessType(
             pOptions, pThreads, pAllGlobalVariables, BitVectorAccessType.WRITE);
     return Optional.of(
         new BitVectorVariables(
             pGlobalVariableIds,
-            Optional.empty(),
-            denseReadBitVectors,
+            denseAccessBitVectors,
             denseWriteBitVectors,
-            Optional.empty(),
-            sparseReadBitVectors,
+            sparseAccessBitVectors,
             sparseWriteBitVectors));
   }
 
