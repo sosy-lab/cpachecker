@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -271,22 +270,8 @@ public class SymbolicExpressionToCExpressionTransformer
         assert operand instanceof BinarySymbolicExpression;
         BinarySymbolicExpression innerExpression = (BinarySymbolicExpression) operand;
 
-        CExpression expr;
-        if (operand instanceof EqualsExpression) {
-          expr = createBinaryExpression(innerExpression, BinaryOperator.EQUALS);
-
-        } else if (operand instanceof LessThanExpression) {
-          expr = createBinaryExpression(innerExpression, BinaryOperator.LESS_THAN);
-
-        } else if (operand instanceof LessThanOrEqualExpression) {
-          expr = createBinaryExpression(innerExpression, BinaryOperator.LESS_EQUAL);
-
-        } else {
-          throw new AssertionError("Unhandled operation " + operand);
-        }
-
         return new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
-            .negateExpressionAndSimplify(expr);
+            .negateExpressionAndSimplify(innerExpression.accept(this));
 
       } catch (UnrecognizedCodeException urce) {
         // This may only happen for unhandled cases in negateExpressionAndSimplify() or invalid
