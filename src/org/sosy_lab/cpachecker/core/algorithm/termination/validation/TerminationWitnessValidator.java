@@ -14,14 +14,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import de.uni_freiburg.informatik.ultimate.util.datastructures.HashDeque;
-import de.uni_freiburg.informatik.ultimate.util.datastructures.LinkedScopedHashMap;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import net.bytebuddy.description.type.TypeDescription.Generic.Visitor;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
@@ -30,7 +28,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -58,7 +55,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class TerminationWitnessValidator implements Algorithm {
@@ -143,11 +139,13 @@ public class TerminationWitnessValidator implements Algorithm {
         Formula invariant = waitlist.remove();
         // Check the proper well-foundedness of the formula and if it succeeds, check R => T
         if (isTheFormulaWellFounded(loopsToTransitionInvariants.get(loop))
-            && isCandidateInvariantTransitionInvariant(loop, loopsToTransitionInvariants.get(loop))) {
+            && isCandidateInvariantTransitionInvariant(
+                loop, loopsToTransitionInvariants.get(loop))) {
           continue;
         }
 
-        // The formula is not well-founded, therefore we have to check for disjunctive well-foundedness
+        // The formula is not well-founded, therefore we have to check for disjunctive
+        // well-foundedness
         // And hence, we have to do check R^+ => T
         if (!canBeDecomposedByDNFRules(invariant, waitlist)) {
           // The invariant is not disjunctively well-founded
@@ -332,17 +330,17 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
-   * Checks whether the path formula R given by the loop implies the candidate invariants, i.e. R=>T.
-   * This check is sufficient if we checked before that T is well-founded.
+   * Checks whether the path formula R given by the loop implies the candidate invariants, i.e.
+   * R=>T. This check is sufficient if we checked before that T is well-founded.
    *
    * @param pLoop for which we construct the path formula
    * @param pCandidateInvariant that we need to check
    * @return true if the candidate invariant is a transition invariant, false otherwise
    */
-  private boolean isCandidateInvariantTransitionInvariant(LoopStructure.Loop pLoop, BooleanFormula pCandidateInvariant)
+  private boolean isCandidateInvariantTransitionInvariant(
+      LoopStructure.Loop pLoop, BooleanFormula pCandidateInvariant)
       throws InterruptedException, CPATransferException {
-    PathFormula loopFormula =
-        pfmgr.makeFormulaForPath(new ArrayList<>(pLoop.getInnerLoopEdges()));
+    PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(pLoop.getInnerLoopEdges()));
     pCandidateInvariant =
         fmgr.instantiate(
             pCandidateInvariant,
@@ -354,22 +352,17 @@ public class TerminationWitnessValidator implements Algorithm {
 
     // Instantiate __PREV variables to match the SSA indices of the variables in the loop.
     // In other words, add equivalences like x@1 = x__PREV@1
-    booleanLoopFormula = bfmgr.and(booleanLoopFormula,
-        makeStatesEquivalent(
-            pCandidateInvariant,
+    booleanLoopFormula =
+        bfmgr.and(
             booleanLoopFormula,
-            1,
-            1));
+            makeStatesEquivalent(pCandidateInvariant, booleanLoopFormula, 1, 1));
 
     boolean isTransitionInvariant;
     try {
-      isTransitionInvariant = solver.isUnsat(
-          bfmgr.not(
-              bfmgr.implication(booleanLoopFormula, pCandidateInvariant)));
+      isTransitionInvariant =
+          solver.isUnsat(bfmgr.not(bfmgr.implication(booleanLoopFormula, pCandidateInvariant)));
     } catch (SolverException e) {
-      logger.log(
-          Level.WARNING,
-          "Transition invariant check failed !");
+      logger.log(Level.WARNING, "Transition invariant check failed !");
       return false;
     }
     return isTransitionInvariant;
