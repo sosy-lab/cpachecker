@@ -146,12 +146,10 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
   private final TransferRelation transferRelation;
   private final TestTargetOptions targetOptions;
 
-
   @Option(
       secure = true,
       name = "extractorMode",
-      description =
-          "CPA is running in extractor mode of test case generation")
+      description = "CPA is running in extractor mode of test case generation")
   private boolean extractorMode = false;
 
   public static CPAFactory factory() {
