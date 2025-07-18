@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -17,6 +18,7 @@ import java.nio.file.Path;
 import java.util.Deque;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,6 +52,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class TerminationWitnessValidator implements Algorithm {
 
@@ -132,7 +135,7 @@ public class TerminationWitnessValidator implements Algorithm {
       while (!waitlist.isEmpty()) {
         Formula invariant = waitlist.remove();
         // Check the well-foundedness of the subformula
-        if (!isTheFormulaWellFounded(loop, loopsToTransitionInvariants.get(loop))
+        if (!isTheFormulaWellFounded(loopsToTransitionInvariants.get(loop))
             && !canBeDecomposedByDNFRules(invariant, waitlist)) {
           // The invariant is not disjunctively well-founded
           pReachedSet.add(new ARGState(DUMMY_TARGET_STATE, null), SingletonPrecision.getInstance());
@@ -196,7 +199,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
   /**
    * This method checks whether one concrete subformula from transition invariant is well-founded.
-   * It does it using the check T(s,s') => [∃s1.T(s,s1) ∧ ¬T(s',s1)] ∧ [∀s2.T(s,s2) => T(s',s2)] If
+   * It does it using the check T(s,s') => [∃s1.T(s,s1) ∧ ¬T(s',s1)] ∧ [∀s2.T(s',s2) => T(s,s2)] If
    * this holds, it means that the number of states reachable from s is decreasing. In other words,
    * the cardinality of the set of reachable states is rank for every state.
    *
@@ -204,16 +207,49 @@ public class TerminationWitnessValidator implements Algorithm {
    * @param pFormula representing the transition invariant
    * @return true if the formula really is well-founded, false otherwise
    */
-  private boolean isTheFormulaWellFounded(LoopStructure.Loop pLoop, BooleanFormula pFormula) {
+  private boolean isTheFormulaWellFounded(BooleanFormula pFormula) throws InterruptedException {
     SSAMap ssaMap = setIndicesToDifferentValues(pFormula, 1, 2);
 
     // T(s,s')
     BooleanFormula oneStep = fmgr.instantiate(pFormula, ssaMap);
 
-    // ∃s1.T(s,s1) ∧ ¬T(s',s1)
-    makeStatesEquivalent(oneStep, 1, 2);
+    // T(s,s1), ¬T(s',s1)
+    SSAMap ssaMapForS = setIndicesToDifferentValues(pFormula, 1, 3);
+    BooleanFormula stepFromS = fmgr.instantiate(pFormula, ssaMapForS);
+    SSAMap ssaMapForSPrime = setIndicesToDifferentValues(pFormula, 4, 3);
+    BooleanFormula stepFromSPrime = fmgr.instantiate(pFormula, ssaMapForSPrime);
+    stepFromSPrime = fmgr.makeNot(stepFromSPrime);
 
-    return true;
+    // ∃s1. T(s,s1) ∧ ¬T(s',s1)
+    BooleanFormula middleStep = fmgr.makeAnd(stepFromS, stepFromSPrime);
+    middleStep = qfmgr.exists(collectAllCurrVariables(stepFromS), middleStep);
+
+    // T(s,s2), T(s',s2)
+    SSAMap ssaMapForS2 = setIndicesToDifferentValues(pFormula, 1, 5);
+    BooleanFormula stepFromS2 = fmgr.instantiate(pFormula, ssaMapForS2);
+    SSAMap ssaMapForSPrime2 = setIndicesToDifferentValues(pFormula, 4, 5);
+    BooleanFormula stepFromSPrime2 = fmgr.instantiate(pFormula, ssaMapForSPrime2);
+
+    // ∀s2.T(s',s2) => T(s,s2)
+    BooleanFormula middleStep2 = bfmgr.implication(stepFromSPrime2, stepFromS2);
+    middleStep2 = qfmgr.forall(collectAllCurrVariables(stepFromS2), middleStep2);
+
+    // T(s,s') => [∃s1.T(s,s1) ∧ ¬T(s',s1)] ∧ [∀s2.T(s',s2) => T(s,s2)]
+    BooleanFormula conclusion = bfmgr.and(middleStep, middleStep2);
+    oneStep = bfmgr.and(makeStatesEquivalent(stepFromSPrime, oneStep, 4, 2), oneStep);
+    BooleanFormula wellFoundedness = bfmgr.implication(oneStep, conclusion);
+    wellFoundedness = bfmgr.not(wellFoundedness);
+
+    boolean isWellfounded = false;
+    try {
+      isWellfounded = solver.isUnsat(wellFoundedness);
+    } catch (SolverException e) {
+      logger.log(
+          Level.WARNING,
+          "Well-Foundedness check failed ! Continuing with further division of the formula.");
+    }
+
+    return isWellfounded;
   }
 
   /**
@@ -235,24 +271,44 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
+   * Collects all the variables without the __PREV suffix.
+   *
+   * @param pFormula containing all the variables
+   * @return List of the variables without __PREV suffix.
+   */
+  private ImmutableList<Formula> collectAllCurrVariables(Formula pFormula) {
+    ImmutableList.Builder<Formula> builder = ImmutableList.builder();
+    Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pFormula);
+    for (String var : mapNamesToVariables.keySet()) {
+      if (!var.contains("__PREV")) {
+        builder.add(mapNamesToVariables.get(var));
+      }
+    }
+    return builder.build();
+  }
+
+  /**
    * Constructs formulas to make some states equivalent. For example, s' occurs in the formulas both
    * in T(.,s') and T(s',.), so we have to make the corresponding variables equivalent.
    *
-   * @param pFormula on the input
+   * @param pPrevFormula with the previous variables (i.e. variables like x__PREV)
+   * @param pCurrFormula with the current variables (i.e. variables like x)
    * @param prevIndex the index of the variables from the previous state
    * @param currIndex the index of the current variables
-   * @return the formula with terms like x_PREV@1 <==> x@2
+   * @return the formula with terms like x__PREV@1 <==> x@2
    */
   private BooleanFormula makeStatesEquivalent(
-      BooleanFormula pFormula, int prevIndex, int currIndex) {
+      BooleanFormula pPrevFormula, BooleanFormula pCurrFormula, int prevIndex, int currIndex) {
     BooleanFormula equivalence = bfmgr.makeTrue();
-    Map<String, Formula> mapNamesToVars = fmgr.extractVariables(pFormula);
-    for (String prevVar : fmgr.extractVariableNames(pFormula)) {
+    Map<String, Formula> prevMapNamesToVars = fmgr.extractVariables(pPrevFormula);
+    Map<String, Formula> currMapNamesToVars = fmgr.extractVariables(pCurrFormula);
+
+    for (String prevVar : prevMapNamesToVars.keySet()) {
       if (prevVar.contains("__PREV") && prevVar.contains("@" + prevIndex)) {
         String prevVarPure = prevVar.replace("__PREV", "");
         prevVarPure = prevVarPure.replace("@" + prevIndex, "");
         String currVar = "";
-        for (String var : fmgr.extractVariableNames(pFormula)) {
+        for (String var : currMapNamesToVars.keySet()) {
           if (var.replace("@" + currIndex, "").equals(prevVarPure)) {
             currVar = var;
             break;
@@ -262,7 +318,7 @@ public class TerminationWitnessValidator implements Algorithm {
           equivalence =
               fmgr.makeAnd(
                   equivalence,
-                  fmgr.makeEqual(mapNamesToVars.get(prevVar), mapNamesToVars.get(currVar)));
+                  fmgr.makeEqual(prevMapNamesToVars.get(prevVar), currMapNamesToVars.get(currVar)));
         }
       }
     }
