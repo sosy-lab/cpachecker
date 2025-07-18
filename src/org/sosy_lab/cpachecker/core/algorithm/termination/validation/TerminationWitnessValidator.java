@@ -412,8 +412,41 @@ public class TerminationWitnessValidator implements Algorithm {
    * @param pFormula that is to be checked for disjunctive well-foundedness.
    * @return true if the formula is disjunctively well-founded, false otherwise.
    */
-  private boolean isDisjunctivelyWellFounded(BooleanFormula pFormula) {
+  private boolean isDisjunctivelyWellFounded(BooleanFormula pFormula)
+    throws InterruptedException {
+    Set<BooleanFormula> invariantInDNF = bfmgr.toDisjunctionArgs(pFormula, true);
 
-    return false;
+    for (BooleanFormula candidateInvariant : invariantInDNF) {
+      if (!isTheFormulaSimplyWellFounded(candidateInvariant)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Checks whether the formula is simply well-founded, i.e. T(s,s) holds.
+   * We can do it as R^+ => T means that T(s,s) violates well-foundedness on reachable states.
+   */
+  private boolean isTheFormulaSimplyWellFounded(BooleanFormula pFormula)
+      throws InterruptedException {
+    pFormula = fmgr.instantiate(
+        pFormula,
+        setIndicesToDifferentValues(pFormula, 1, 1));
+    pFormula = bfmgr.implication(
+        makeStatesEquivalent(pFormula, pFormula, 1,1),
+        pFormula
+    );
+
+    try {
+      // Checks well-foundedness as
+      if (solver.isUnsat(bfmgr.not(pFormula))) {
+        return false;
+      }
+    } catch (SolverException e) {
+      logger.log(Level.WARNING, "Disjunctive well-foundedness check failed !");
+      return false;
+    }
+    return true;
   }
 }
