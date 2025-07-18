@@ -144,7 +144,9 @@ public class TerminationWitnessValidator implements Algorithm {
       // The formula is not well-founded, therefore we have to check for disjunctive
       // well-foundedness
       // And hence, we have to do check R^+ => T
-      if (!isDisjunctivelyWellFounded(invariant)) {
+      if (!isDisjunctivelyWellFounded(invariant)
+          && isCandidateInvariantInductiveTransitionInvariant(
+              loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
         // The invariant is not disjunctively well-founded
         pReachedSet.add(new ARGState(DUMMY_TARGET_STATE, null), SingletonPrecision.getInstance());
         return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -420,6 +422,50 @@ public class TerminationWitnessValidator implements Algorithm {
       }
     }
     return true;
+  }
+
+  /**
+   * Checks whether the path formula R given by the loop implies the candidate invariants, i.e.
+   * R=>T. We also need to check that T(s,s') and R(s',s'') => T(s,s''), i.e. T is inductive because
+   * it is not well-founded but disjunctively well-founded.
+   *
+   * @param pLoop for which we construct the path formula
+   * @param pCandidateInvariant that we need to check
+   * @return true if the candidate invariant is a transition invariant, false otherwise
+   */
+  private boolean isCandidateInvariantInductiveTransitionInvariant(
+      LoopStructure.Loop pLoop,
+      BooleanFormula pCandidateInvariant,
+      ImmutableList<BooleanFormula> pSupportingInvariants)
+      throws InterruptedException, CPATransferException {
+    if (!isCandidateInvariantTransitionInvariant(
+        pLoop, pCandidateInvariant, pSupportingInvariants)) {
+      return false;
+    }
+
+    PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(pLoop.getInnerLoopEdges()));
+    BooleanFormula firstStep =
+        fmgr.instantiate(
+            pCandidateInvariant, setIndicesToDifferentValues(pCandidateInvariant, 0, 1));
+    BooleanFormula secondStep =
+        fmgr.instantiate(
+            pCandidateInvariant,
+            SSAMap.merge(
+                loopFormula.getSsa(),
+                setIndicesToDifferentValues(pCandidateInvariant, 0, -1),
+                MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
+    BooleanFormula booleanLoopFormula = loopFormula.getFormula();
+
+    boolean isTransitionInvariant;
+    try {
+      isTransitionInvariant =
+          solver.isUnsat(
+              bfmgr.not(bfmgr.implication(bfmgr.and(firstStep, booleanLoopFormula), secondStep)));
+    } catch (SolverException e) {
+      logger.log(Level.WARNING, "Transition invariant check failed !");
+      return false;
+    }
+    return isTransitionInvariant;
   }
 
   /**
