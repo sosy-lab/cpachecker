@@ -139,7 +139,10 @@ public abstract class DssMessage {
         ImmutableMap.<String, String>builder()
             .put(DSS_MESSAGE_SENDER_ID_KEY, getSenderId())
             .put(DSS_MESSAGE_TYPE_KEY, getType().name())
-            .put(DSS_MESSAGE_TIMESTAMP_KEY, Integer.toString(getTimestamp().getNano()))
+            .put(
+                DSS_MESSAGE_TIMESTAMP_KEY,
+                Long.toString(
+                    getTimestamp().getEpochSecond() * 1_000_000_000L + getTimestamp().getNano()))
             .put(DSS_MESSAGE_IDENTIFIER_KEY, Integer.toString(pIdentifier));
     return ImmutableMap.<String, ImmutableMap<String, String>>builder()
         .put(DSS_MESSAGE_HEADER_ID, header.buildOrThrow())

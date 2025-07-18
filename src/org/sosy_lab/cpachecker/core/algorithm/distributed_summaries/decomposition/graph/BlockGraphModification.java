@@ -113,10 +113,7 @@ public class BlockGraphModification {
     // Adjust the block graph to the modified CFA
     BlockGraph adjustedBlockGraph =
         adaptBlockGraph(
-            pBlockGraph,
-            mutableCfa.getMainFunction(),
-            modificationMetadata.mappingInfo(),
-            modificationMetadata.abstractions());
+            pBlockGraph, modificationMetadata.mappingInfo(), modificationMetadata.abstractions());
 
     // Adjust metadata to the modified CFA
     setReversePostorderForInstrumentedNodes(originalInstrumentedMapping);
@@ -270,7 +267,6 @@ public class BlockGraphModification {
 
   private static BlockGraph adaptBlockGraph(
       BlockGraph pBlockGraph,
-      CFANode pNewMainFunctionNode,
       MappingInformation pMappingInformation,
       Map<CFANode, CFAEdge> blockAbstractionEnds) {
     Map<CFANode, CFANode> originalInstrumentedNodes =
