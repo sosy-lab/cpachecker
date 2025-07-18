@@ -14,18 +14,23 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import de.uni_freiburg.informatik.ultimate.util.datastructures.HashDeque;
+import de.uni_freiburg.informatik.ultimate.util.datastructures.LinkedScopedHashMap;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import net.bytebuddy.description.type.TypeDescription.Generic.Visitor;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -43,6 +48,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -52,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class TerminationWitnessValidator implements Algorithm {
@@ -260,6 +267,9 @@ public class TerminationWitnessValidator implements Algorithm {
   private SSAMap setIndicesToDifferentValues(Formula pFormula, int prevIndex, int currIndex) {
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
     for (String var : fmgr.extractVariableNames(pFormula)) {
+      if (currIndex < 0 && !var.contains("__PREV")) {
+        continue;
+      }
       builder.setIndex(
           var, scope.lookupVariable(var).getType(), var.contains("__PREV") ? prevIndex : currIndex);
     }
@@ -321,14 +331,53 @@ public class TerminationWitnessValidator implements Algorithm {
     return equivalence;
   }
 
+  /**
+   * Checks whether the path formula R given by the loop implies the candidate invariants, i.e. R=>T.
+   * This check is sufficient if we checked before that T is well-founded.
+   *
+   * @param pLoop for which we construct the path formula
+   * @param pCandidateInvariant that we need to check
+   * @return true if the candidate invariant is a transition invariant, false otherwise
+   */
+  private boolean isCandidateInvariantTransitionInvariant(LoopStructure.Loop pLoop, BooleanFormula pCandidateInvariant)
+      throws InterruptedException, CPATransferException {
+    PathFormula loopFormula =
+        pfmgr.makeFormulaForPath(new ArrayList<>(pLoop.getInnerLoopEdges()));
+    pCandidateInvariant =
+        fmgr.instantiate(
+            pCandidateInvariant,
+            SSAMap.merge(
+                loopFormula.getSsa(),
+                setIndicesToDifferentValues(pCandidateInvariant, 1, -1),
+                MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
+    BooleanFormula booleanLoopFormula = loopFormula.getFormula();
+
+    // Instantiate __PREV variables to match the SSA indices of the variables in the loop.
+    // In other words, add equivalences like x@1 = x__PREV@1
+    booleanLoopFormula = bfmgr.and(booleanLoopFormula,
+        makeStatesEquivalent(
+            pCandidateInvariant,
+            booleanLoopFormula,
+            1,
+            1));
+
+    boolean isTransitionInvariant;
+    try {
+      isTransitionInvariant = solver.isUnsat(
+          bfmgr.not(
+              bfmgr.implication(booleanLoopFormula, pCandidateInvariant)));
+    } catch (SolverException e) {
+      logger.log(
+          Level.WARNING,
+          "Transition invariant check failed !");
+      return false;
+    }
+    return isTransitionInvariant;
+  }
+
   // TODO: Write the method that decomposes the formula with rewrite rules and puts the formulas in
   // the waitlist.
   private boolean canBeDecomposedByDNFRules(Formula pFormula, Deque<Formula> pWaitlist) {
     return false;
-  }
-
-  // TODO: Write this method
-  private boolean isCandidateInvariantTransitionInvariant(LoopStructure.Loop pLoop, Formula pInvariant) {
-    return true;
   }
 }
