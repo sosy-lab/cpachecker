@@ -136,26 +136,21 @@ public class TerminationWitnessValidator implements Algorithm {
 
     // Check that every candidate invariant is disjunctively well-founded and transition invariant
     for (LoopStructure.Loop loop : loops) {
-      Deque<Formula> waitlist = new HashDeque<>();
-      waitlist.add(loopsToTransitionInvariants.get(loop));
+      BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
+      // Check the proper well-foundedness of the formula and if it succeeds, check R => T
+      if (isTheFormulaWellFounded(loopsToTransitionInvariants.get(loop))
+          && isCandidateInvariantTransitionInvariant(
+              loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
+        continue;
+      }
 
-      while (!waitlist.isEmpty()) {
-        Formula invariant = waitlist.remove();
-        // Check the proper well-foundedness of the formula and if it succeeds, check R => T
-        if (isTheFormulaWellFounded(loopsToTransitionInvariants.get(loop))
-            && isCandidateInvariantTransitionInvariant(
-                loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
-          continue;
-        }
-
-        // The formula is not well-founded, therefore we have to check for disjunctive
-        // well-foundedness
-        // And hence, we have to do check R^+ => T
-        if (!canBeDecomposedByDNFRules(invariant, waitlist)) {
-          // The invariant is not disjunctively well-founded
-          pReachedSet.add(new ARGState(DUMMY_TARGET_STATE, null), SingletonPrecision.getInstance());
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
+      // The formula is not well-founded, therefore we have to check for disjunctive
+      // well-foundedness
+      // And hence, we have to do check R^+ => T
+      if (!isDisjunctivelyWellFounded(invariant)) {
+        // The invariant is not disjunctively well-founded
+        pReachedSet.add(new ARGState(DUMMY_TARGET_STATE, null), SingletonPrecision.getInstance());
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
     }
     pReachedSet.clear();
@@ -397,7 +392,7 @@ public class TerminationWitnessValidator implements Algorithm {
         bfmgr.and(
             booleanLoopFormula,
             makeStatesEquivalent(pCandidateInvariant, booleanLoopFormula, 1, 1));
-    
+
     boolean isTransitionInvariant;
     try {
       isTransitionInvariant =
@@ -409,9 +404,16 @@ public class TerminationWitnessValidator implements Algorithm {
     return isTransitionInvariant;
   }
 
-  // TODO: Write the method that decomposes the formula with rewrite rules and puts the formulas in
-  // the waitlist.
-  private boolean canBeDecomposedByDNFRules(Formula pFormula, Deque<Formula> pWaitlist) {
+  /**
+   * Checks whether the formula can be divided into disjunction of formulas expressing
+   * relations that are well-founded. We do it by transformation into DNF and then
+   * checking each respective subformula.
+   *
+   * @param pFormula that is to be checked for disjunctive well-foundedness.
+   * @return true if the formula is disjunctively well-founded, false otherwise.
+   */
+  private boolean isDisjunctivelyWellFounded(BooleanFormula pFormula) {
+
     return false;
   }
 }
