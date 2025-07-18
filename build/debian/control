@@ -15,7 +15,6 @@ Depends: ${shlibs:Depends},
          ${misc:Depends},
          openjdk-17-jre-headless | java17-runtime-headless
 Recommends: build-essential,
-            clang-9,
             openjdk-17-jre | java17-runtime
 Description: The Configurable Software-Verification Platform
  CPAchecker is a tool for configurable software verification.
