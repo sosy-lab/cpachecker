@@ -134,8 +134,6 @@ public class InvariantExchangeFormatTransformer {
    * declarations of these variables in CFA.
    *
    * @param pInvariant the invariant as string
-   * @param pScope the scope of the cfa, where we need to register the variables
-   * @return The new scope with the variables with __PREV
    */
   private void registerThePrevVariables(String pInvariant) {
     Pattern pattern = Pattern.compile("\\b\\w+__PREV\\b");
@@ -178,7 +176,7 @@ public class InvariantExchangeFormatTransformer {
    * In case the witness is termination witness, it may contain \prev keyword which is not parsed.
    * We have to encode this keyword into the names of the variables.
    *
-   * @param pInvariantString transition invariant string
+   * @param pInvariantEntry transition invariant string
    * @return Invariant string with \prev encoded as __PREV suffix
    */
   private String replacePrevKeywordWithFreshVariables(InvariantEntry pInvariantEntry) {

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -160,7 +159,7 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableCollection<LoopStructure.Loop> pLoops,
       Set<ExpressionTreeLocationInvariant> pInvariants)
       throws InterruptedException {
-    ImmutableMap.Builder<Loop, ImmutableList<BooleanFormula>> builder = new Builder<>();
+    ImmutableMap.Builder<Loop, ImmutableList<BooleanFormula>> builder = new ImmutableMap.Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
       ImmutableList.Builder<BooleanFormula> builder1 = new ImmutableList.Builder<>();
@@ -188,7 +187,7 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableCollection<LoopStructure.Loop> pLoops,
       Set<ExpressionTreeLocationInvariant> pInvariants)
       throws InterruptedException {
-    ImmutableMap.Builder<LoopStructure.Loop, BooleanFormula> builder = new Builder<>();
+    ImmutableMap.Builder<LoopStructure.Loop, BooleanFormula> builder = new ImmutableMap.Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
       BooleanFormula invariantForTheLoop = bfmgr.makeFalse();
@@ -228,7 +227,6 @@ public class TerminationWitnessValidator implements Algorithm {
    * this holds, it means that the number of states reachable from s is decreasing. In other words,
    * the cardinality of the set of reachable states is rank for every state.
    *
-   * @param pLoop that the transition invariant overapproximates
    * @param pFormula representing the transition invariant
    * @return true if the formula really is well-founded, false otherwise
    */
