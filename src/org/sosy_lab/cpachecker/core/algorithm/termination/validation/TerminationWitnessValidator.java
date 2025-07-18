@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.ImmutableIntArray;
 import de.uni_freiburg.informatik.ultimate.util.datastructures.HashDeque;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -129,6 +131,8 @@ public class TerminationWitnessValidator implements Algorithm {
 
     ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
         mapTransitionInvariantsToLoops(loops, invariants);
+    ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> loopsToSupportingInvariants =
+        mapSupportingInvariantsToLoops(loops, invariants);
 
     // Check that every candidate invariant is disjunctively well-founded and transition invariant
     for (LoopStructure.Loop loop : loops) {
@@ -140,7 +144,7 @@ public class TerminationWitnessValidator implements Algorithm {
         // Check the proper well-foundedness of the formula and if it succeeds, check R => T
         if (isTheFormulaWellFounded(loopsToTransitionInvariants.get(loop))
             && isCandidateInvariantTransitionInvariant(
-                loop, loopsToTransitionInvariants.get(loop))) {
+                loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
           continue;
         }
 
@@ -158,6 +162,34 @@ public class TerminationWitnessValidator implements Algorithm {
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
+  private ImmutableMap<Loop, ImmutableList<BooleanFormula>> mapSupportingInvariantsToLoops(
+      ImmutableCollection<LoopStructure.Loop> pLoops,
+      Set<ExpressionTreeLocationInvariant> pInvariants)
+      throws InterruptedException {
+    ImmutableMap.Builder<Loop, ImmutableList<BooleanFormula>> builder = new Builder<>();
+
+    for (LoopStructure.Loop loop : pLoops) {
+      ImmutableList.Builder<BooleanFormula> builder1 = new ImmutableList.Builder<>();
+      for (ExpressionTreeLocationInvariant invariant : pInvariants) {
+        if (!invariant.isTransitionInvariant()) {
+          // The check for supporting invariants is not yet supported
+          // TODO: Implement checking that the invariants are really invariants
+          if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
+            BooleanFormula invariantFormula;
+            try {
+              invariantFormula = invariant.getFormula(fmgr, pfmgr, pfmgr.makeEmptyPathFormula());
+            } catch (CPATransferException e) {
+              invariantFormula = bfmgr.makeFalse();
+            }
+            builder1.add(invariantFormula);
+          }
+        }
+      }
+      builder.put(loop, builder1.build());
+    }
+    return builder.build();
+  }
+
   private ImmutableMap<LoopStructure.Loop, BooleanFormula> mapTransitionInvariantsToLoops(
       ImmutableCollection<LoopStructure.Loop> pLoops,
       Set<ExpressionTreeLocationInvariant> pInvariants)
@@ -168,8 +200,6 @@ public class TerminationWitnessValidator implements Algorithm {
       BooleanFormula invariantForTheLoop = bfmgr.makeFalse();
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         if (!invariant.isTransitionInvariant()) {
-          // The check for supporting invariants is not yet supported
-          // TODO: Implement checking that the invariants are really invariants
           continue;
         }
 
@@ -338,7 +368,7 @@ public class TerminationWitnessValidator implements Algorithm {
    * @return true if the candidate invariant is a transition invariant, false otherwise
    */
   private boolean isCandidateInvariantTransitionInvariant(
-      LoopStructure.Loop pLoop, BooleanFormula pCandidateInvariant)
+      LoopStructure.Loop pLoop, BooleanFormula pCandidateInvariant, ImmutableList<BooleanFormula> pSupportingInvariants)
       throws InterruptedException, CPATransferException {
     PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(pLoop.getInnerLoopEdges()));
     pCandidateInvariant =
@@ -350,13 +380,24 @@ public class TerminationWitnessValidator implements Algorithm {
                 MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
     BooleanFormula booleanLoopFormula = loopFormula.getFormula();
 
+    // Strengthening the loop formula with the supporting invariants
+    BooleanFormula strengtheningFormula = bfmgr.makeTrue();
+    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+      strengtheningFormula = bfmgr.and(
+          strengtheningFormula,
+          fmgr.instantiate(
+              supportingInvariant,
+              setIndicesToDifferentValues(supportingInvariant, 1, 1)));
+    }
+    booleanLoopFormula = bfmgr.and(booleanLoopFormula, strengtheningFormula);
+
     // Instantiate __PREV variables to match the SSA indices of the variables in the loop.
     // In other words, add equivalences like x@1 = x__PREV@1
     booleanLoopFormula =
         bfmgr.and(
             booleanLoopFormula,
             makeStatesEquivalent(pCandidateInvariant, booleanLoopFormula, 1, 1));
-
+    
     boolean isTransitionInvariant;
     try {
       isTransitionInvariant =
