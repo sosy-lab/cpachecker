@@ -105,14 +105,14 @@ public class DssWorkerBuilder {
 
   @CanIgnoreReturnValue
   public DssWorkerBuilder addVisualizationWorker(
-      BlockGraph pBlockTree, DssAnalysisOptions pOptions) {
+      BlockGraph pBlockGraph, DssAnalysisOptions pOptions) {
     String workerId = "visualization-worker";
     final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.put(
         new CommunicationId(workerId, DssCommunicationEntity.OBSERVER),
         connection ->
             new DssVisualizationWorker(
-                workerId, pBlockTree, connection, pOptions, messageFactory, logger));
+                workerId, pBlockGraph, connection, pOptions, messageFactory, logger));
     return this;
   }
 

@@ -48,7 +48,7 @@ public class DssVisualizationWorker extends DssWorker {
       pLogger.logException(
           Level.WARNING,
           e,
-          "VisualizationWorker failed to log the BlockTree. "
+          "VisualizationWorker failed to log the BlockGraph. "
               + "The visualization might contain old data or will not work. "
               + "However, the analysis continues normally.");
     }
