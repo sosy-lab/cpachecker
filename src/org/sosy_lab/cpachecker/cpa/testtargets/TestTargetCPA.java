@@ -90,12 +90,10 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
           "CFA edge if only a specific edge should be considered, e.g., in counterexample check")
   private String targetEdge = null;
 
-
   @Option(
       secure = true,
       name = "extractorMode",
-      description =
-          "CPA is running in extractor mode of test case generation")
+      description = "CPA is running in extractor mode of test case generation")
   private boolean extractorMode = false;
 
   public static CPAFactory factory() {

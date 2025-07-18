@@ -114,7 +114,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   @Option(
       secure = true,
       name = "extractor.config",
-//      required = true,
+      //      required = true,
       description = "configuration file for test case extraction with CPAchecker")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path configFile = null;
@@ -202,7 +202,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         boolean ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
-//        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
+        //        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
 
         AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
@@ -323,9 +323,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // eReached is a single arg state that's the starting point of the extraction value analysis
   // after the algo is done, the newly reached states are added to this variable
   private void runExtractorAlgo(
-      final ReachedSet pReached,
-      AbstractState reachedState,
-      CounterexampleInfo cexInfo) {
+      final ReachedSet pReached, AbstractState reachedState, CounterexampleInfo cexInfo) {
 
     Algorithm extractionAlgorithm;
     try {
@@ -345,8 +343,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     evaluateExtractorResult(eReached);
   }
 
-  private Algorithm createExtractorAlgorithm()
-      throws CPAException {
+  private Algorithm createExtractorAlgorithm() throws CPAException {
     Algorithm extractionAlgorithm = null;
     try {
       assert (configFile != null);
@@ -361,13 +358,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       extractionAlgorithm = eFactory.createAlgorithm(eCpas, cfa, spec);
 
     } catch (InvalidConfigurationException e) {
-      logger.log(Level.FINE,
+      logger.log(
+          Level.FINE,
           "Could not create CPA Algorithm for extractor because of Invalid Configuration.");
     } catch (IOException e) {
-      logger.log(Level.FINE,
-          "Could not create CPA Algorithm for extractor because of IO exception:" + e);
+      logger.log(
+          Level.FINE, "Could not create CPA Algorithm for extractor because of IO exception:" + e);
     } catch (InterruptedException e) {
-      logger.log(Level.FINE,
+      logger.log(
+          Level.FINE,
           "Could not create CPA Algorithm for extractor because of Interrupted Exception.");
 
     } catch (Exception e) {
@@ -382,16 +381,17 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private ARGState createStartState(ARGState argState) {
     CompositeState wrappedState = (CompositeState) argState.getWrappedState();
     List<AbstractState> elements =
-        IntStream.range(0, wrappedState.getNumberOfStates()).
-            mapToObj(i -> processElements(wrappedState.get(i))).collect(ImmutableList.toImmutableList());
+        IntStream.range(0, wrappedState.getNumberOfStates())
+            .mapToObj(i -> processElements(wrappedState.get(i)))
+            .collect(ImmutableList.toImmutableList());
     return new ARGState(new CompositeState(elements), null);
   }
 
-  //parses argstate and modifies them if necessesary during creation of startState
+  // parses argstate and modifies them if necessesary during creation of startState
   // todo modify other elements of wrapped state as well?
   private AbstractState processElements(AbstractState abstractState) {
     if (abstractState instanceof ValueAnalysisState) {
-    //todo add assert?
+      // todo add assert?
       return ValueAnalysisState.copyOf((ValueAnalysisState) abstractState);
     } else {
       return abstractState;
@@ -403,9 +403,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // in descending order relative to the line number of the c program
   private void processExpressions(CounterexampleInfo cexInfo, ARGState eStartState) {
     // extract all variable assignments from reached state
-    ValueAnalysisState valueAnalysisState = extractVAState((CompositeState) eStartState.getWrappedState());
-    CFAPathWithAssumptions reachStateAssignments =
-        cexInfo.getCFAPathWithAssignments();
+    ValueAnalysisState valueAnalysisState =
+        extractVAState((CompositeState) eStartState.getWrappedState());
+    CFAPathWithAssumptions reachStateAssignments = cexInfo.getCFAPathWithAssignments();
     for (int i = reachStateAssignments.size() - 1; i >= 0; i--) {
       CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(i);
       ImmutableList<AExpressionStatement> stateExpStmts = edgeWithAssignment.getExpStmts();
@@ -416,16 +416,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // reads the value assigned to a variable, and adds that value to the abstract state,
   // but only if there is no disctinct value tracked already for that variable
   private void writeExpressionToState(
-      ImmutableList<AExpressionStatement> expStmt,
-      ValueAnalysisState valueAnalysisState) {
+      ImmutableList<AExpressionStatement> expStmt, ValueAnalysisState valueAnalysisState) {
     if (expStmt.isEmpty()) {
       return;
     }
-    //todo can expStmt contain more than 1 element? replace with precondition?
+    // todo can expStmt contain more than 1 element? replace with precondition?
     assert expStmt.size() == 1;
 
     CBinaryExpression cBinaryExpression = (CBinaryExpression) expStmt.get(0).getExpression();
-// todo add guards and asserts
+    // todo add guards and asserts
     CIdExpression op1 = (CIdExpression) cBinaryExpression.getOperand1();
     CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
     Value variableValue = new NumericValue(op2.getValue());
@@ -435,15 +434,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   private ValueAnalysisState extractVAState(CompositeState wrappedState) {
-    assert(wrappedState != null);
+    assert (wrappedState != null);
     for (int i = wrappedState.getNumberOfStates() - 1; i >= 0; i--) {
       AbstractState element = wrappedState.get(i);
       if (element instanceof ValueAnalysisState) {
         return (ValueAnalysisState) element;
       }
-    }//end while
+    } // end while
     logger.log(Level.FINE, "Found no ValueAnalysisState in wrappedState.");
-    //todo error handling (needed if there is assert?)
+    // todo error handling (needed if there is assert?)
     return null;
   }
 
@@ -468,9 +467,11 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   private void evaluateExtractorResult(ReachedSet eReached) {
-// drop first element as it is the starting state that is always a TargetState
-      from(eReached).skip(1).filter(AbstractStates::isTargetState).
-          forEach(element -> evaluateGoalState((ARGState) element));
+    // drop first element as it is the starting state that is always a TargetState
+    from(eReached)
+        .skip(1)
+        .filter(AbstractStates::isTargetState)
+        .forEach(element -> evaluateGoalState((ARGState) element));
   }
 
   // checks for singe ARGState if the targetEdge that led to that state is an uncovered test goal
@@ -488,8 +489,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       } else {
         logger.log(
             Level.FINE,
-            "Extractor: Ignoring target as it is not in set of test targets."
-                + targetEdge);
+            "Extractor: Ignoring target as it is not in set of test targets." + targetEdge);
       }
     } else {
       logger.log(Level.FINE, "Extractor: Target edge was null.");

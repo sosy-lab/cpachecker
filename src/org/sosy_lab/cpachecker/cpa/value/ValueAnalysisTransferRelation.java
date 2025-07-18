@@ -200,8 +200,7 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         name = "extractorMode",
-        description =
-            "CPA is running in extractor mode of test case generation")
+        description = "CPA is running in extractor mode of test case generation")
     private boolean extractorMode = false;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {

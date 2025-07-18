@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class TestTargetPrecisionAdjustment extends SimplePrecisionAdjustment {
   private boolean extractionMode = false;
 
-  public TestTargetPrecisionAdjustment(final boolean pExtractionMode){
+  public TestTargetPrecisionAdjustment(final boolean pExtractionMode) {
     extractionMode = pExtractionMode;
   }
 
