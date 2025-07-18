@@ -127,30 +127,26 @@ public class TerminationWitnessValidator implements Algorithm {
     ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
         mapTransitionInvariantsToLoops(loops, invariants);
 
-    // Check that every transition invariant is disjunctively well-founded
+    // Check that every candidate invariant is disjunctively well-founded and transition invariant
     for (LoopStructure.Loop loop : loops) {
       Deque<Formula> waitlist = new HashDeque<>();
       waitlist.add(loopsToTransitionInvariants.get(loop));
 
       while (!waitlist.isEmpty()) {
         Formula invariant = waitlist.remove();
-        // Check the well-foundedness of the subformula
-        if (!isTheFormulaWellFounded(loopsToTransitionInvariants.get(loop))
-            && !canBeDecomposedByDNFRules(invariant, waitlist)) {
+        // Check the proper well-foundedness of the formula and if it succeeds, check R => T
+        if (isTheFormulaWellFounded(loopsToTransitionInvariants.get(loop))
+            && isCandidateInvariantTransitionInvariant(loop, loopsToTransitionInvariants.get(loop))) {
+          continue;
+        }
+
+        // The formula is not well-founded, therefore we have to check for disjunctive well-foundedness
+        // And hence, we have to do check R^+ => T
+        if (!canBeDecomposedByDNFRules(invariant, waitlist)) {
           // The invariant is not disjunctively well-founded
           pReachedSet.add(new ARGState(DUMMY_TARGET_STATE, null), SingletonPrecision.getInstance());
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-      }
-    }
-
-    // Check that every invariant is actually a transition invariant, i.e. R^+ => T
-    // TODO: Consider, implementing these checks in two different configurations and run them in
-    // parallel.
-    for (LoopStructure.Loop loop : loops) {
-      if (!isTheInvariantTransitionInvariant(loop, loopsToTransitionInvariants.get(loop))) {
-        pReachedSet.add(new ARGState(DUMMY_TARGET_STATE, null), SingletonPrecision.getInstance());
-        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
     }
     pReachedSet.clear();
@@ -332,7 +328,7 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   // TODO: Write this method
-  private boolean isTheInvariantTransitionInvariant(LoopStructure.Loop pLoop, Formula pInvariant) {
+  private boolean isCandidateInvariantTransitionInvariant(LoopStructure.Loop pLoop, Formula pInvariant) {
     return true;
   }
 }
