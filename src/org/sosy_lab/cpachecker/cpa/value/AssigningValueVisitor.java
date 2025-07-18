@@ -258,6 +258,14 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
             BigInteger intValue = numVal.getFloatValue().toInteger().orElseThrow();
             if (FloatValue.fromInteger(numVal.getFloatValue().getFormat(), intValue)
                 .equals(numVal.getFloatValue())) {
+              // checked that float value indeed represented an integer value
+              if (intValue.bitLength() <= numVal.getFloatValue().getFormat().sigBits()) {
+                // check that int value can be precisely represented
+                resVal = new NumericValue(intValue);
+              } else {
+                return UnknownValue.getInstance(); // no integer value exists
+              }
+
               resVal = new NumericValue(intValue);
             } else {
               return UnknownValue.getInstance(); // no integer value exists
