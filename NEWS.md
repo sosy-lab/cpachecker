@@ -8,6 +8,26 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes from CPAchecker 4.0 to CPAchecker 4.1
+---------------------------------------------
+* CPAchecker 4.1 is the last release that works on Java 17,
+  future versions of CPAchecker will require Java 21 or newer.
+* Improved float handling.  
+  The internal handling of floats of the analyzed program
+  was improved in several ways in CPAchecker and is now more precise.
+* Better support for systems other than Linux x86_64.  
+  Previously CPAchecker could typically not be used for any float-containing program
+  on non-Linux and non-x86_64 platforms due to a missing binary library.
+  Now we eliminated the need for this library and many configurations of CPAchecker
+  now consist of only Java code, which is platform independent.
+  Configurations that rely on external binary libraries (like most SMT solvers)
+  still have limited platform support.
+* LLVM frontend of CPAchecker disabled.  
+  The LLVM frontend of CPAchecker (used for analyzing programs in LLVM IR
+  or for C programs after compiling with Clang) supported only an old LLVM version
+  and was unmaintained. Now it is disabled completely.
+
+
 Changes from CPAchecker 3.0 to CPAchecker 4.0
 ---------------------------------------------
 * Improved default configuration of CPAchecker.  
