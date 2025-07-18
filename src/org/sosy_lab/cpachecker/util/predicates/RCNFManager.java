@@ -87,23 +87,7 @@ public class RCNFManager implements StatisticsProvider {
     DROP
   }
 
-  private static final class BodyAndBoundVariables {
-    private final BooleanFormula body;
-    private final List<Formula> boundVariables;
-
-    public BodyAndBoundVariables(BooleanFormula pBody, List<Formula> pBoundVariables) {
-      body = pBody;
-      boundVariables = pBoundVariables;
-    }
-
-    public BooleanFormula getBody() {
-      return body;
-    }
-
-    public List<Formula> getBoundVariables() {
-      return boundVariables;
-    }
-  }
+  private record BodyAndBoundVariables(BooleanFormula body, List<Formula> boundVariables) {}
 
   private FormulaManagerView fmgr = null;
   private BooleanFormulaManager bfmgr = null;
@@ -192,9 +176,9 @@ public class RCNFManager implements StatisticsProvider {
 
     Optional<BodyAndBoundVariables> bodyAndBoundVars = fmgr.visit(input, quantifiedBodyExtractor);
     if (bodyAndBoundVars.isPresent()) {
-      BooleanFormula body = bodyAndBoundVars.orElseThrow().getBody();
+      BooleanFormula body = bodyAndBoundVars.orElseThrow().body();
       Set<Formula> boundVariables =
-          ImmutableSet.copyOf(bodyAndBoundVars.orElseThrow().getBoundVariables());
+          ImmutableSet.copyOf(bodyAndBoundVars.orElseThrow().boundVariables());
       return fmgr.filterLiterals(body, input1 -> !hasBoundVariables(input1, boundVariables));
     } else {
 
