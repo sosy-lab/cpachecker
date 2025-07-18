@@ -26,6 +26,8 @@ Changes from CPAchecker 4.0 to CPAchecker 4.1
   The LLVM frontend of CPAchecker (used for analyzing programs in LLVM IR
   or for C programs after compiling with Clang) supported only an old LLVM version
   and was unmaintained. Now it is disabled completely.
+* The official container image of CPAchecker is now based on Ubuntu 22.04
+  instead of Ubuntu 20.04.
 
 
 Changes from CPAchecker 3.0 to CPAchecker 4.0

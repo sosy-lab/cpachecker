@@ -20,7 +20,7 @@
 # podman push sosylab/cpachecker:4.0
 # podman push sosylab/cpachecker:latest
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
   unzip
@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ADD https://cpachecker.sosy-lab.org/CPAchecker-4.0-unix.zip /
 RUN unzip -q /CPAchecker*-unix.zip -d / && mv /CPAchecker*-unix /cpachecker
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
   gcc \
