@@ -133,6 +133,7 @@ public abstract class DssMessage {
     return exceptionMessage;
   }
 
+  @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
       int pIdentifier) {
     ImmutableMap.Builder<String, String> header =
