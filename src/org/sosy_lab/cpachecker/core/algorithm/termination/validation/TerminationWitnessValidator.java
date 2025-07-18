@@ -13,11 +13,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.primitives.ImmutableIntArray;
-import de.uni_freiburg.informatik.ultimate.util.datastructures.HashDeque;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -363,7 +360,9 @@ public class TerminationWitnessValidator implements Algorithm {
    * @return true if the candidate invariant is a transition invariant, false otherwise
    */
   private boolean isCandidateInvariantTransitionInvariant(
-      LoopStructure.Loop pLoop, BooleanFormula pCandidateInvariant, ImmutableList<BooleanFormula> pSupportingInvariants)
+      LoopStructure.Loop pLoop,
+      BooleanFormula pCandidateInvariant,
+      ImmutableList<BooleanFormula> pSupportingInvariants)
       throws InterruptedException, CPATransferException {
     PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(pLoop.getInnerLoopEdges()));
     pCandidateInvariant =
@@ -378,11 +377,11 @@ public class TerminationWitnessValidator implements Algorithm {
     // Strengthening the loop formula with the supporting invariants
     BooleanFormula strengtheningFormula = bfmgr.makeTrue();
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
-      strengtheningFormula = bfmgr.and(
-          strengtheningFormula,
-          fmgr.instantiate(
-              supportingInvariant,
-              setIndicesToDifferentValues(supportingInvariant, 1, 1)));
+      strengtheningFormula =
+          bfmgr.and(
+              strengtheningFormula,
+              fmgr.instantiate(
+                  supportingInvariant, setIndicesToDifferentValues(supportingInvariant, 1, 1)));
     }
     booleanLoopFormula = bfmgr.and(booleanLoopFormula, strengtheningFormula);
 
@@ -405,15 +404,14 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
-   * Checks whether the formula can be divided into disjunction of formulas expressing
-   * relations that are well-founded. We do it by transformation into DNF and then
-   * checking each respective subformula.
+   * Checks whether the formula can be divided into disjunction of formulas expressing relations
+   * that are well-founded. We do it by transformation into DNF and then checking each respective
+   * subformula.
    *
    * @param pFormula that is to be checked for disjunctive well-foundedness.
    * @return true if the formula is disjunctively well-founded, false otherwise.
    */
-  private boolean isDisjunctivelyWellFounded(BooleanFormula pFormula)
-    throws InterruptedException {
+  private boolean isDisjunctivelyWellFounded(BooleanFormula pFormula) throws InterruptedException {
     Set<BooleanFormula> invariantInDNF = bfmgr.toDisjunctionArgs(pFormula, true);
 
     for (BooleanFormula candidateInvariant : invariantInDNF) {
@@ -425,18 +423,13 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
-   * Checks whether the formula is simply well-founded, i.e. T(s,s) holds.
-   * We can do it as R^+ => T means that T(s,s) violates well-foundedness on reachable states.
+   * Checks whether the formula is simply well-founded, i.e. T(s,s) holds. We can do it as R^+ => T
+   * means that T(s,s) violates well-foundedness on reachable states.
    */
   private boolean isTheFormulaSimplyWellFounded(BooleanFormula pFormula)
       throws InterruptedException {
-    pFormula = fmgr.instantiate(
-        pFormula,
-        setIndicesToDifferentValues(pFormula, 1, 1));
-    pFormula = bfmgr.implication(
-        makeStatesEquivalent(pFormula, pFormula, 1,1),
-        pFormula
-    );
+    pFormula = fmgr.instantiate(pFormula, setIndicesToDifferentValues(pFormula, 1, 1));
+    pFormula = bfmgr.implication(makeStatesEquivalent(pFormula, pFormula, 1, 1), pFormula);
 
     try {
       // Checks well-foundedness as
