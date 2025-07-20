@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
+import com.google.common.collect.ComparisonChain;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -27,7 +28,8 @@ public record SideEffectInfo(
     MemoryLocation memoryLocation,
     AccessType accessType,
     CFAEdge cfaEdge,
-    SideEffectKind sideEffectKind) {
+    SideEffectKind sideEffectKind)
+    implements Comparable<SideEffectInfo> {
 
   public enum AccessType {
     WRITE,
@@ -51,6 +53,16 @@ public record SideEffectInfo(
 
   public boolean isUnresolvedPointer() {
     return sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED;
+  }
+
+  @Override
+  public int compareTo(SideEffectInfo other) {
+    return ComparisonChain.start()
+        .compare(memoryLocation, other.memoryLocation)
+        .compare(accessType, other.accessType)
+        .compare(sideEffectKind, other.sideEffectKind)
+        .compare(cfaEdge.getFileLocation(), other.cfaEdge.getFileLocation())
+        .result();
   }
 
   @Override

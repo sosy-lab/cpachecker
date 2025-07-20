@@ -35,7 +35,7 @@ public record ConflictPair(
       CFAEdge location,
       CRightHandSide exprA,
       CRightHandSide exprB) {
-    if (accessA.toString().compareTo(accessB.toString()) > 0) {
+    if (accessA.compareTo(accessB) > 0) {
       return new ConflictPair(accessB, accessA, location, exprB, exprA);
     } else {
       return new ConflictPair(accessA, accessB, location, exprA, exprB);
