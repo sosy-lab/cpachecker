@@ -101,10 +101,14 @@ public class UnseqBehaviorAnalysisTransferRelation
         mergeSideEffects(
             mergedSideEffects,
             recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState));
+        // to detect unseq behavior like *f() = g; and return *f() = g;
+        mergeConflicts(
+            mergedConflicts,
+            detectAssignmentStatementConflicts(lhsExpr, rhsExpr, statementEdge, newState));
       } else if (lhsExpr instanceof CPointerExpression pointerExpr) {
         mergeSideEffects(
             mergedSideEffects,
-            recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.READ, newState));
+            recordSideEffectsIfInFunctionCall(pointerExpr.getOperand(), statementEdge, AccessType.READ, newState));
         mergeSideEffects(
             mergedSideEffects,
             recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState));
@@ -116,11 +120,6 @@ public class UnseqBehaviorAnalysisTransferRelation
               mergedConflicts,
               detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState));
         }
-
-        // to detect unseq behavior like *f() = g(); and return *f() = g();
-        mergeConflicts(
-            mergedConflicts,
-            detectAssignmentStatementConflicts(lhsExpr, rhsExpr, statementEdge, newState));
       }
 
       // check if there exists unsequenced behavior and cause conflict

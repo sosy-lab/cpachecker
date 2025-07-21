@@ -264,7 +264,6 @@ public class ExpressionBehaviorVisitor
     if (operand instanceof CIdExpression idExpr) {
       MemoryLocation pointerLoc =
           MemoryLocation.fromQualifiedName(idExpr.getDeclaration().getQualifiedName());
-
       SideEffectInfo sideEffectInfo =
           new SideEffectInfo(
               pointerLoc, // pointer itself address here
