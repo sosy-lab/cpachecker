@@ -48,6 +48,7 @@ void *thr2(void *_) {
     y = a;
   } else {
     y = 0 - a;
+    reach_error();
   }
 }
 int main() {
