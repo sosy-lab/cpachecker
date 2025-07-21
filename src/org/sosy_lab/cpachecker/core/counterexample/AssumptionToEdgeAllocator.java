@@ -438,7 +438,7 @@ public class AssumptionToEdgeAllocator {
     ValueLiterals valueAsCode =
         getValueAsCode(value, expectedType, pLeftHandSide, functionName, pConcreteState);
 
-    return handleSimpleValueLiteralsAssumptions(valueAsCode, value, pLeftHandSide);
+    return handleSimpleValueLiteralsAssumptions(valueAsCode, pLeftHandSide);
   }
 
   private List<AExpressionStatement> handleAssignment(
@@ -511,18 +511,16 @@ public class AssumptionToEdgeAllocator {
       ValueLiterals valueAsCode =
           getValueAsCode(value, dclType, idExpression, pFunctionName, pConcreteState);
       CLeftHandSide leftHandSide = new CIdExpression(FileLocation.DUMMY, cDcl);
-      return handleSimpleValueLiteralsAssumptions(valueAsCode, value, leftHandSide);
+      return handleSimpleValueLiteralsAssumptions(valueAsCode, leftHandSide);
     }
 
     return ImmutableList.of();
   }
 
   /** Builds the C expr for FP NaN as inequality of the CLeftHandSide with itself. */
-  private List<AExpressionStatement> handleFloatNanLiteralAssumptions(CLeftHandSide pLValue) {
+  private AExpressionStatement handleFloatNanLiteralAssumptions(
+      CExpression leftSide, CBinaryExpressionBuilder expressionBuilder) {
 
-    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
-
-    CExpression leftSide = getLeftAssumptionFromLhs(pLValue);
     AExpressionStatement statement =
         buildNegatedEquationExpressionStatement(expressionBuilder, leftSide, leftSide);
 
@@ -532,15 +530,11 @@ public class AssumptionToEdgeAllocator {
           "Invalid transformation when constructing floating-point NaN C expression");
     }
 
-    return ImmutableList.of(statement);
+    return statement;
   }
 
   private List<AExpressionStatement> handleSimpleValueLiteralsAssumptions(
-      ValueLiterals pValueLiterals, Object pValueLiteralsObject, CLeftHandSide pLValue) {
-
-    if (pValueLiteralsObject instanceof FloatValue floatValue && floatValue.isNan()) {
-      return handleFloatNanLiteralAssumptions(pLValue);
-    }
+      ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
 
     Set<SubExpressionValueLiteral> subValues = pValueLiterals.getSubExpressionValueLiteral();
     Set<AExpressionStatement> statements = new LinkedHashSet<>();
@@ -550,8 +544,13 @@ public class AssumptionToEdgeAllocator {
 
       CExpression leftSide = getLeftAssumptionFromLhs(pLValue);
       CExpression rightSide = pValueLiterals.getExpressionValueLiteralAsCExpression();
-      AExpressionStatement statement =
-          buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
+      AExpressionStatement statement;
+      if (rightSide instanceof CFloatLiteralExpression floatLiteral
+          && floatLiteral.getValue().isNan()) {
+        statement = handleFloatNanLiteralAssumptions(leftSide, expressionBuilder);
+      } else {
+        statement = buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
+      }
       statements.add(statement);
     }
 
@@ -559,8 +558,13 @@ public class AssumptionToEdgeAllocator {
 
       CExpression leftSide = getLeftAssumptionFromLhs(subValueLiteral.subExpression());
       CExpression rightSide = subValueLiteral.valueLiteralAsCExpression();
-      AExpressionStatement statement =
-          buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
+      AExpressionStatement statement;
+      if (rightSide instanceof CFloatLiteralExpression floatLiteral
+          && floatLiteral.getValue().isNan()) {
+        statement = handleFloatNanLiteralAssumptions(leftSide, expressionBuilder);
+      } else {
+        statement = buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
+      }
       statements.add(statement);
     }
 
