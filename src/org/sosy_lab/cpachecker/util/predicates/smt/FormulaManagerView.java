@@ -1062,10 +1062,12 @@ public class FormulaManagerView {
       T pFormula, boolean isSigned, FloatingPointType formulaType) {
     Formula formula = pFormula;
     if (encodeBitvectorAs != Theory.BITVECTOR && getFormulaType(formula).isBitvectorType()) {
+      int size = getBitvectorFormulaManager().getLength((BitvectorFormula) formula);
       formula = unwrap(formula);
-    }
-    if (getFormulaType(formula).isIntegerType()) {
-      formula = manager.getBitvectorFormulaManager().makeBitvector(128, (IntegerFormula) formula);
+      if (getFormulaType(formula).isIntegerType()) {
+        formula =
+            manager.getBitvectorFormulaManager().makeBitvector(size, (IntegerFormula) formula);
+      }
     }
     return getFloatingPointFormulaManager().castFrom(formula, isSigned, formulaType);
   }
@@ -1087,9 +1089,11 @@ public class FormulaManagerView {
         getFloatingPointFormulaManager()
             .castTo(pFormula, isSigned, formulaType, floatToIntRoundingMode);
     if (wrappingHandler.useIntForBitvectors() && formulaType.isBitvectorType()) {
-      return wrap(formulaType, manager
-          .getBitvectorFormulaManager()
-          .toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned));
+      return wrap(
+          formulaType,
+          manager
+              .getBitvectorFormulaManager()
+              .toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned));
     }
     return ret;
   }
