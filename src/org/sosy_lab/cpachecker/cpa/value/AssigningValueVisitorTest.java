@@ -378,7 +378,7 @@ public class AssigningValueVisitorTest {
 
     assertThat(
             visitor.invertCast(
-                signedInt, CNumericTypes.FLOAT, new NumericValue(Float.valueOf(2147480647.0f))))
+                signedInt, CNumericTypes.FLOAT, new NumericValue(Float.valueOf(2.1474807E+9f))))
         .isEqualTo(UnknownValue.getInstance());
 
     // both integer types
