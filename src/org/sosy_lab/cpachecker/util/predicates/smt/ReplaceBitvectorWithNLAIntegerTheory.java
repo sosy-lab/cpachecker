@@ -27,6 +27,32 @@ import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * Internally, all integers are treated as unsigned unless a signed operator explicitly requires a
+ * signed interpretation. For example, creating a negative number actually produces a large unsigned
+ * number in the range [{@code 2^(N-1)}, {@code 2^N}) using 2's complement encoding. It is only when
+ * a signed operator is applied that the value is interpreted as negative.
+ *
+ * <p>This behavior is necessary because bitvectors themselves do not carry information about
+ * signedness; the interpretation must be imposed externally based on the operations used.
+ *
+ * <p>A configuration option, {@code cpa.predicate.signedWraparound}, is available to enable
+ * wraparound semantics for signed integers as well. When enabled, signed overflow behaves similarly
+ * to unsigned overflow, using more expensive arithmetic transformations. If signed overflow is
+ * instead treated as undefined behavior (UB), this option is not needed, and a lightweight
+ * conditional (ITE) expression is used whenever a signed interpretation is required from an
+ * unsigned value.
+ *
+ * <p>Note that even with {@code signedWraparound} enabled, signed integers are not treated as
+ * unbounded. Internally, unsigned wraparound behavior is always assumed for all arithmetic
+ * operations.
+ *
+ * <p>The only operations that differ between signed and unsigned semantics are division and
+ * remainder. These operations explicitly encode whether the operands are signed or unsigned,
+ * allowing the logic to handle them accordingly. For all other arithmetic operations, the result is
+ * unaffected by whether a value is interpreted as a large unsigned number or as a signed 2's
+ * complement negative number with the same bit pattern.
+ */
 @Options(prefix = "cpa.predicate")
 class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
     implements BitvectorFormulaManager {
