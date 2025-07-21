@@ -829,7 +829,15 @@ public class UnseqBehaviorAnalysisTransferRelation
           resolvedBatch.add(
               new SideEffectInfo(
                   tgt, se.accessType(), se.cfaEdge(), SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
+          logger.logf(
+              Level.INFO,
+              "Resolved pointer %s to target %s at %s",
+              se.memoryLocation(),
+              tgt,
+              se.cfaEdge().getRawStatement()
+          );
         }
+
         result = UnseqUtils.replaceSideEffectBatch(se, resolvedBatch, result);
         anyResolved.set(true);
 
