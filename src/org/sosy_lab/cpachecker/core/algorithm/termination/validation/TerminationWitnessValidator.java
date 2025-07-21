@@ -159,7 +159,8 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableCollection<LoopStructure.Loop> pLoops,
       Set<ExpressionTreeLocationInvariant> pInvariants)
       throws InterruptedException {
-    ImmutableMap.Builder<Loop, ImmutableList<BooleanFormula>> builder = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<Loop, ImmutableList<BooleanFormula>> builder =
+        new ImmutableMap.Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
       ImmutableList.Builder<BooleanFormula> builder1 = new ImmutableList.Builder<>();
@@ -180,7 +181,7 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       builder.put(loop, builder1.build());
     }
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private ImmutableMap<LoopStructure.Loop, BooleanFormula> mapTransitionInvariantsToLoops(
@@ -208,7 +209,7 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       builder.put(loop, invariantForTheLoop);
     }
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private boolean isTheInvariantLocationInLoop(
@@ -305,9 +306,9 @@ public class TerminationWitnessValidator implements Algorithm {
   private ImmutableList<Formula> collectAllCurrVariables(Formula pFormula) {
     ImmutableList.Builder<Formula> builder = ImmutableList.builder();
     Map<String, Formula> mapNamesToVariables = fmgr.extractVariables(pFormula);
-    for (String var : mapNamesToVariables.keySet()) {
-      if (!var.contains("__PREV")) {
-        builder.add(mapNamesToVariables.get(var));
+    for (Map.Entry<String, Formula> entry : mapNamesToVariables.entrySet()) {
+      if (!entry.getKey().contains("__PREV")) {
+        builder.add(mapNamesToVariables.get(entry.getKey()));
       }
     }
     return builder.build();
@@ -329,7 +330,8 @@ public class TerminationWitnessValidator implements Algorithm {
     Map<String, Formula> prevMapNamesToVars = fmgr.extractVariables(pPrevFormula);
     Map<String, Formula> currMapNamesToVars = fmgr.extractVariables(pCurrFormula);
 
-    for (String prevVar : prevMapNamesToVars.keySet()) {
+    for (Map.Entry<String, Formula> entry : prevMapNamesToVars.entrySet()) {
+      String prevVar = entry.getKey();
       if (prevVar.contains("__PREV") && prevVar.contains("@" + prevIndex)) {
         String prevVarPure = prevVar.replace("__PREV", "");
         prevVarPure = prevVarPure.replace("@" + prevIndex, "");
