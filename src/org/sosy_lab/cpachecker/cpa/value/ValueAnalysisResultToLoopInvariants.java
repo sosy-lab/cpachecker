@@ -14,11 +14,13 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.AtomicDouble;
 import java.io.IOException;
@@ -51,10 +53,13 @@ import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -73,6 +78,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -98,6 +104,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   @Option(secure = true, description = "Enable to export invariants on single variables")
   private boolean exportUnary = true;
 
+  @Option(
+      secure = true,
+      description = "Enable to export invariants stating whether single variables are even or odd")
+  private boolean exportEvenVal = true;
+
   @Option(secure = true, description = "Enable to export invariants that include two variables")
   private boolean exportBinary = true;
 
@@ -120,7 +131,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       description =
           "Enable invariants that use  an arithmetic operator"
               + "(linear invariants are enabled separately)")
-  private boolean exportArithmetic = true;
+  private boolean exportArithmetic = false;
 
   @Option(secure = true, description = "Enable invariants that use a bit operator")
   private boolean exportBitops = true;
@@ -134,6 +145,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           "Enable invariants that use a shift operator,"
               + " note that additionally exportBitops must be enabled")
   private boolean exportShiftops = true;
+
+  @Option(
+      secure = true,
+      description = "Defines which variables may be combined in binary and ternary invariants",
+      name = "combinationStrategy")
+  private AllowedVariableCombinations combinationStrategy = AllowedVariableCombinations.ALL;
 
   /* TODO support?
    * @Option(
@@ -152,6 +169,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   private final ImmutableMap<MemoryLocation, Type> varToType;
   private final CtoFormulaConverter c2Formula;
   private final MachineModel machineModel;
+  private final Predicate<Collection<MemoryLocation>> combinationChecker;
+
+  private enum AllowedVariableCombinations {
+    ALL,
+    FUNCTION_SCOPE,
+    PROGRAM_RELATION,
+    ASSUME_RELATION
+  }
 
   private int numBooleanInvariants = -1;
   private int numNumericInvariants = -1;
@@ -199,6 +224,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     if (!anyInvariantsConfiguredForExport()) {
       logger.log(Level.WARNING, "No invariants configured for export");
     }
+    combinationChecker = createAllowedVariableChecker(pCfa);
   }
 
   private boolean anyInvariantsConfiguredForExport() {
@@ -211,7 +237,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     ImmutableMap.Builder<MemoryLocation, Type> builder = ImmutableMap.builder();
 
     for (AbstractSimpleDeclaration decl :
-        FluentIterable.from(pCfa.edges())
+        CFAUtils.allEdges(pCfa)
             .filter(ADeclarationEdge.class)
             .transform(ADeclarationEdge::getDeclaration)
             .filter(AbstractSimpleDeclaration.class)
@@ -224,7 +250,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     }
 
     for (AParameterDeclaration decl :
-        FluentIterable.from(pCfa.edges())
+        CFAUtils.allEdges(pCfa)
             .filter(FunctionCallEdge.class)
             .transform(FunctionCallEdge::getFunctionCallExpression)
             .transform(AFunctionCallExpression::getDeclaration)
@@ -234,6 +260,74 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     }
 
     return builder.buildKeepingLast();
+  }
+
+  private ImmutableMultimap<MemoryLocation, MemoryLocation> detectVariablesAllowedForCombination(
+      final CFA pCfa, final Predicate<CFAEdge> pEdgesToConsider) {
+    ImmutableListMultimap.Builder<MemoryLocation, MemoryLocation> builder =
+        ImmutableListMultimap.builder();
+
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa).filter(pEdgesToConsider)) {
+      if (edge.getRawAST().isPresent()) {
+        FluentIterable<MemoryLocation> varsAtNode =
+            CFAUtils.traverseRecursively(edge.getRawAST().orElseThrow())
+                .filter(AIdExpression.class)
+                .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration()));
+        for (MemoryLocation var : varsAtNode) {
+          builder.putAll(var, varsAtNode.filter(varV -> !var.equals(varV)));
+        }
+      }
+    }
+
+    return builder.build();
+  }
+
+  private boolean areAllVariablesRelated(
+      final Multimap<MemoryLocation, MemoryLocation> pRelatedVars,
+      final Collection<MemoryLocation> pVariables) {
+    if (pVariables.size() > 1) {
+      for (MemoryLocation var : pVariables) {
+        for (MemoryLocation var2 : pVariables) {
+          if (!var.equals(var2) && !pRelatedVars.containsEntry(var, var2)) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private boolean globalOrSameFunction(final Collection<MemoryLocation> pVariables) {
+    String funName = null;
+    for (MemoryLocation var : pVariables) {
+      if (var.isOnFunctionStack()) {
+        if (funName == null) {
+          funName = var.getFunctionName();
+        } else if (!funName.equals(var.getFunctionName())) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private Predicate<Collection<MemoryLocation>> createAllowedVariableChecker(final CFA pCfa) {
+
+    return switch (combinationStrategy) {
+      case ALL -> Predicates.alwaysTrue();
+      case FUNCTION_SCOPE -> vars -> globalOrSameFunction(vars);
+      case PROGRAM_RELATION -> {
+        ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation =
+            detectVariablesAllowedForCombination(pCfa, Predicates.alwaysTrue());
+        yield vars -> areAllVariablesRelated(inRelation, vars);
+      }
+      case ASSUME_RELATION -> {
+        ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation =
+            detectVariablesAllowedForCombination(pCfa, Predicates.instanceOf(AssumeEdge.class));
+        yield vars -> areAllVariablesRelated(inRelation, vars);
+      }
+    };
   }
 
   @Override
@@ -305,7 +399,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           EXPORT_OPTION.NO_OPT,
           pLoopInvariantsFiles.getPath("_num"));
 
-      if (exportArithmetic) {
+      if (exportEvenVal) {
         filterCandidatesAndExportPrecision(
             invPerLoc,
             inv ->
@@ -564,7 +658,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     // not supported bitwise negation ~x
     // not expressible: zweierpotenz
     numNumericInvariants = Math.max(0, numNumericInvariants);
-    if (exportArithmetic) {
+    if (exportEvenVal) {
       numEvenOrOdd = Math.max(0, numEvenOrOdd);
     }
     numBooleanInvariants = Math.max(0, numBooleanInvariants);
@@ -575,13 +669,13 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           Preconditions.checkState(varToType.containsKey(varAndVals.getKey()));
           SingleNumericVariableInvariant numInv =
               new SingleNumericVariableInvariant(
-                  varAndVals.getKey(), val.asNumericValue(), exportArithmetic);
+                  varAndVals.getKey(), val.asNumericValue(), exportEvenVal);
           for (ValueAndType valPlusType : varAndVals.getValue()) {
             numInv.adaptToAdditionalValue(valPlusType.getValue());
           }
           pInvBuilder.add(numInv);
           numNumericInvariants += numInv.getNumInvariants();
-          if (exportArithmetic) {
+          if (exportEvenVal) {
             numEvenOrOdd += numInv.exportEvenOrOdd() ? 1 : 0;
           }
         } else if (val instanceof BooleanValue) {
@@ -650,7 +744,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       for (Entry<MemoryLocation, List<ValueAndType>> varWithVals2 : pVarsWithVals.entrySet()) {
         if (varWithVals1.getKey().equals(varWithVals2.getKey())
             || exploredVars.contains(varWithVals2.getKey())
-            || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType)) {
+            || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType)
+            || !combinationChecker.apply(
+                ImmutableList.of(varWithVals1.getKey(), varWithVals2.getKey()))) {
           continue;
         }
 
@@ -879,7 +975,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             || exploredVarsOuter.contains(varWithVals2.getKey())
             || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType)
             || varWithVals2.getValue().size() < 3
-            || varWithVals1.getValue().size() != varWithVals2.getValue().size()) {
+            || varWithVals1.getValue().size() != varWithVals2.getValue().size()
+            || !combinationChecker.apply(
+                ImmutableList.of(varWithVals1.getKey(), varWithVals2.getKey()))) {
           exploredVarsInner.add(varWithVals2.getKey());
           continue;
         }
@@ -903,7 +1001,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 || exploredVarsInner.contains(varWithVals3.getKey())
                 || !(varToType.get(varWithVals3.getKey()) instanceof CSimpleType)
                 || varWithVals3.getValue().size() < 3
-                || varWithVals1.getValue().size() != varWithVals3.getValue().size()) {
+                || varWithVals1.getValue().size() != varWithVals3.getValue().size()
+                || !combinationChecker.apply(
+                    ImmutableList.of(
+                        varWithVals1.getKey(), varWithVals2.getKey(), varWithVals3.getKey()))) {
               continue;
             }
 
