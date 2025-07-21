@@ -254,8 +254,7 @@ public class UnseqBehaviorAnalysisTransferRelation
       ExpressionAnalysisSummary summary = rhs.accept(visitor);
       mergeConflicts(
           mergedConflicts,
-          detectCrossArgumentConflicts(
-              summary.getSideEffectsPerSubExpr(), funReturnEdge, newState));
+          detectCrossArgumentConflicts(summary.sideEffectsPerSubExpr(), funReturnEdge, newState));
 
       if (lhs instanceof CIdExpression tmpVar) { // map tmp name and function name
         String tmpName = tmpVar.getDeclaration().getQualifiedName();
@@ -384,7 +383,7 @@ public class UnseqBehaviorAnalysisTransferRelation
     ExpressionBehaviorVisitor visitor =
         new ExpressionBehaviorVisitor(pState, edge, accessType, logger);
     ExpressionAnalysisSummary summary = expr.accept(visitor);
-    Set<SideEffectInfo> effects = summary.getSideEffects();
+    Set<SideEffectInfo> effects = summary.sideEffects();
 
     if (!effects.isEmpty()) {
       String currentFunction = mergedFunctionCallStack.peek();
@@ -439,15 +438,15 @@ public class UnseqBehaviorAnalysisTransferRelation
         new ExpressionBehaviorVisitor(pState, edge, AccessType.READ, logger);
     ExpressionAnalysisSummary summary = expr.accept(visitor);
 
-    for (CBinaryExpression unseqExpr : summary.getUnsequencedBinaryExprs()) {
+    for (CBinaryExpression unseqExpr : summary.unsequencedBinaryExprs()) {
       CExpression left = unseqExpr.getOperand1();
       CExpression right = unseqExpr.getOperand2();
 
       ExpressionAnalysisSummary leftSummary = left.accept(visitor);
       ExpressionAnalysisSummary rightSummary = right.accept(visitor);
 
-      Set<SideEffectInfo> leftEffects = leftSummary.getSideEffects();
-      Set<SideEffectInfo> rightEffects = rightSummary.getSideEffects();
+      Set<SideEffectInfo> leftEffects = leftSummary.sideEffects();
+      Set<SideEffectInfo> rightEffects = rightSummary.sideEffects();
 
       logger.logf(
           Level.INFO,
@@ -482,7 +481,7 @@ public class UnseqBehaviorAnalysisTransferRelation
    *     conflicts, including those already present in {@code pState}
    */
   private Set<ConflictPair> detectCrossArgumentConflicts(
-      Map<CRightHandSide, Set<SideEffectInfo>> sideEffectsPerSubExpr,
+      ImmutableMap<CRightHandSide, ImmutableSet<SideEffectInfo>> sideEffectsPerSubExpr,
       CFAEdge edge,
       UnseqBehaviorAnalysisState pState) {
 
@@ -547,17 +546,12 @@ public class UnseqBehaviorAnalysisTransferRelation
             + " Effects: %s",
         UnseqUtils.replaceTmpInExpression(lhsExpr, pState),
         UnseqUtils.replaceTmpInExpression(rhsExpr, pState),
-        lhsSummary.getSideEffects(),
-        rhsSummary.getSideEffects());
+        lhsSummary.sideEffects(),
+        rhsSummary.sideEffects());
 
     Set<ConflictPair> conflicts =
         getUnsequencedConflicts(
-            lhsSummary.getSideEffects(),
-            rhsSummary.getSideEffects(),
-            edge,
-            lhsExpr,
-            rhsExpr,
-            pState);
+            lhsSummary.sideEffects(), rhsSummary.sideEffects(), edge, lhsExpr, rhsExpr, pState);
 
     if (!conflicts.isEmpty()) {
       newConflicts.addAll(conflicts);
@@ -719,10 +713,10 @@ public class UnseqBehaviorAnalysisTransferRelation
       CExpression expr = exprInit.getExpression();
       ExpressionAnalysisSummary summary = expr.accept(visitor);
 
-      collectedEffects.put(expr, summary.getSideEffects());
+      collectedEffects.put(expr, summary.sideEffects());
 
       // Detect binary conflicts inside this expression, e.g., f() + g()
-      for (CBinaryExpression binExpr : summary.getUnsequencedBinaryExprs()) {
+      for (CBinaryExpression binExpr : summary.unsequencedBinaryExprs()) {
         mergeConflicts(conflicts, detectConflictsInUnsequencedBinaryExprs(binExpr, edge, pState));
       }
 

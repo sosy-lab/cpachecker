@@ -69,7 +69,7 @@ public class ExpressionBehaviorVisitor
   @Override
   public ExpressionAnalysisSummary visit(CIdExpression idExpr) throws UnrecognizedCodeException {
     String varName = idExpr.getDeclaration().getQualifiedName();
-    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
+    Set<SideEffectInfo> sideEffects = new HashSet<>();
 
     // 1. Check if this is a TMP variable mapped to the original expression
     Optional<CRightHandSide> originalExpr = state.getFunctionForTmp(varName);
@@ -84,18 +84,17 @@ public class ExpressionBehaviorVisitor
       if (decl.isGlobal()) {
         SideEffectInfo sideEffectInfo =
             new SideEffectInfo(loc, accessType, cfaEdge, SideEffectKind.GLOBAL_VARIABLE);
-        result.addSideEffect(sideEffectInfo);
+        sideEffects.add(sideEffectInfo);
         logger.logf(Level.INFO, "%s", sideEffectInfo);
       }
     }
 
-    return result;
+    return ExpressionAnalysisSummary.of(sideEffects, new HashSet<>(), new HashMap<>());
   }
 
   @Override
   public ExpressionAnalysisSummary visit(CFunctionCallExpression funCallExpr)
       throws UnrecognizedCodeException {
-    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
     Set<SideEffectInfo> sideEffects = new HashSet<>();
     Map<CRightHandSide, Set<SideEffectInfo>> sideEffectsPerSubExpr = new HashMap<>();
 
@@ -104,7 +103,7 @@ public class ExpressionBehaviorVisitor
     // Gather side effects for each function parameter
     for (CRightHandSide param : funCallExpr.getParameterExpressions()) {
       ExpressionAnalysisSummary paramSummary = param.accept(this);
-      Set<SideEffectInfo> paramEffects = paramSummary.getSideEffects();
+      Set<SideEffectInfo> paramEffects = paramSummary.sideEffects();
 
       sideEffectsPerSubExpr.put(param, paramEffects);
       sideEffects.addAll(paramEffects);
@@ -119,44 +118,43 @@ public class ExpressionBehaviorVisitor
       }
     }
 
-    result.addSideEffects(sideEffects);
-    result.addSideEffectsForSubExprs(sideEffectsPerSubExpr);
-    return result;
+    return ExpressionAnalysisSummary.of(sideEffects, new HashSet<>(), sideEffectsPerSubExpr);
   }
 
   @Override
   public ExpressionAnalysisSummary visit(CBinaryExpression binaryExpr)
       throws UnrecognizedCodeException {
 
-    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
+    Set<SideEffectInfo> sideEffects = new HashSet<>();
+    Set<CBinaryExpression> unsequencedBinaryExprs = new HashSet<>();
     ExpressionAnalysisSummary leftSummary = binaryExpr.getOperand1().accept(this);
     ExpressionAnalysisSummary rightSummary = binaryExpr.getOperand2().accept(this);
 
-    result.addSideEffects(leftSummary.getSideEffects());
-    result.addSideEffects(rightSummary.getSideEffects());
-    result.addUnsequencedBinaryExprs(leftSummary.getUnsequencedBinaryExprs());
-    result.addUnsequencedBinaryExprs(rightSummary.getUnsequencedBinaryExprs());
-
-    if (isPointerArithmetic(binaryExpr)) {
-      logger.logf(
-          Level.WARNING,
-          "[Pointer Arithmetic] '%s' at %s. CPAchecker currently cannot fully analyze this"
-              + " expression. Analysis may miss alias resolution or report imprecise conflicts.",
-          UnseqUtils.replaceTmpInExpression(binaryExpr, state),
-          binaryExpr.getFileLocation());
-    }
+    sideEffects.addAll(leftSummary.sideEffects());
+    sideEffects.addAll(rightSummary.sideEffects());
+    unsequencedBinaryExprs.addAll(leftSummary.unsequencedBinaryExprs());
+    unsequencedBinaryExprs.addAll(rightSummary.unsequencedBinaryExprs());
 
     // Check if current binary operator itself is unsequenced
     if (isUnsequencedBinaryOperator(binaryExpr.getOperator())) {
-      result.addUnsequencedBinaryExpr(binaryExpr);
+      unsequencedBinaryExprs.add(binaryExpr);
       logger.logf(
           Level.INFO,
           "Detected unsequenced binary expression '%s' at %s",
           UnseqUtils.replaceTmpInExpression(binaryExpr, state),
           binaryExpr.getFileLocation());
+
+      if (isPointerArithmetic(binaryExpr)) {
+        logger.logf(
+            Level.WARNING,
+            "[Pointer Arithmetic] '%s' at %s. CPAchecker currently cannot fully analyze this"
+                + " expression. Analysis may miss alias resolution or report imprecise conflicts.",
+            UnseqUtils.replaceTmpInExpression(binaryExpr, state),
+            binaryExpr.getFileLocation());
+      }
     }
 
-    return result;
+    return ExpressionAnalysisSummary.of(sideEffects, unsequencedBinaryExprs, new HashMap<>());
   }
 
   @Override
@@ -198,29 +196,22 @@ public class ExpressionBehaviorVisitor
   @Override
   public ExpressionAnalysisSummary visit(CArraySubscriptExpression arrayExpr)
       throws UnrecognizedCodeException {
-    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
     Set<SideEffectInfo> sideEffects = new HashSet<>();
 
     ExpressionAnalysisSummary arrayBaseSummary = arrayExpr.getArrayExpression().accept(this);
     ExpressionAnalysisSummary indexSummary = arrayExpr.getSubscriptExpression().accept(this);
-    sideEffects.addAll(arrayBaseSummary.getSideEffects());
-    sideEffects.addAll(indexSummary.getSideEffects());
+    sideEffects.addAll(arrayBaseSummary.sideEffects());
+    sideEffects.addAll(indexSummary.sideEffects());
 
-    result.addSideEffects(sideEffects);
-
-    return result;
+    return ExpressionAnalysisSummary.of(sideEffects, new HashSet<>(), new HashMap<>());
   }
 
   @Override
   public ExpressionAnalysisSummary visit(CFieldReference fieldRef)
       throws UnrecognizedCodeException {
-    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
-
     CExpression fieldOwner = fieldRef.getFieldOwner();
-
-    if (!(fieldOwner instanceof CIdExpression)) {
-      result = fieldOwner.accept(this);
-    }
+    ExpressionAnalysisSummary ownerSummary = fieldOwner.accept(this);
+    Set<SideEffectInfo> sideEffects = new HashSet<>(ownerSummary.sideEffects());
 
     if (fieldRef.isPointerDereference()) {
       // g->cache, (*p).field
@@ -230,7 +221,7 @@ public class ExpressionBehaviorVisitor
         SideEffectInfo sideEffect =
             new SideEffectInfo(
                 pointerLoc, accessType, cfaEdge, SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
-        result.addSideEffect(sideEffect);
+        sideEffects.add(sideEffect);
       }
     } else {
       // g.cache
@@ -243,11 +234,11 @@ public class ExpressionBehaviorVisitor
                 decl.getQualifiedName() + "." + fieldRef.getFieldName());
         SideEffectInfo sideEffect =
             new SideEffectInfo(fieldLoc, accessType, cfaEdge, SideEffectKind.GLOBAL_VARIABLE);
-        result.addSideEffect(sideEffect);
+        sideEffects.add(sideEffect);
       }
     }
 
-    return result;
+    return ExpressionAnalysisSummary.of(sideEffects, new HashSet<>(), new HashMap<>());
   }
 
   @Override
@@ -265,11 +256,10 @@ public class ExpressionBehaviorVisitor
   @Override
   public ExpressionAnalysisSummary visit(CPointerExpression pointerExpr)
       throws UnrecognizedCodeException {
-    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
 
     CExpression operand = pointerExpr.getOperand();
     ExpressionAnalysisSummary operandSummary = operand.accept(this);
-    result.addSideEffects(operandSummary.getSideEffects());
+    Set<SideEffectInfo> sideEffects = new HashSet<>(operandSummary.sideEffects());
 
     if (operand instanceof CIdExpression idExpr) {
       MemoryLocation pointerLoc =
@@ -281,11 +271,11 @@ public class ExpressionBehaviorVisitor
               accessType,
               cfaEdge,
               SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
-      result.addSideEffect(sideEffectInfo);
+      sideEffects.add(sideEffectInfo);
       logger.logf(Level.INFO, "%s", sideEffectInfo);
     }
 
-    return result;
+    return ExpressionAnalysisSummary.of(sideEffects, new HashSet<>(), new HashMap<>());
   }
 
   private boolean isUnsequencedBinaryOperator(CBinaryExpression.BinaryOperator op) {

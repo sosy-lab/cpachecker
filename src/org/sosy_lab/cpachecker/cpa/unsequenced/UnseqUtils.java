@@ -60,11 +60,13 @@ public class UnseqUtils {
         oldState.getLogger());
   }
 
-  public static ImmutableMap<String, ImmutableSet<SideEffectInfo>> toImmutableSideEffectsMap(
-      Map<String, Set<SideEffectInfo>> mutableMap) {
-
-    ImmutableMap.Builder<String, ImmutableSet<SideEffectInfo>> builder = ImmutableMap.builder();
-    for (Map.Entry<String, Set<SideEffectInfo>> entry : mutableMap.entrySet()) {
+  /**
+   * Convert a Map<K, Set<SideEffectInfo>> into an immutable Map<K, ImmutableSet<SideEffectInfo>>.
+   */
+  public static <K> ImmutableMap<K, ImmutableSet<SideEffectInfo>> toImmutableSideEffectsMap(
+      Map<K, Set<SideEffectInfo>> mutableMap) {
+    ImmutableMap.Builder<K, ImmutableSet<SideEffectInfo>> builder = ImmutableMap.builder();
+    for (Map.Entry<K, Set<SideEffectInfo>> entry : mutableMap.entrySet()) {
       builder.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
     }
     return builder.buildOrThrow();
