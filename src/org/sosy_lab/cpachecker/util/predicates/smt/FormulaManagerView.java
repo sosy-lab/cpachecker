@@ -1087,10 +1087,9 @@ public class FormulaManagerView {
         getFloatingPointFormulaManager()
             .castTo(pFormula, isSigned, formulaType, floatToIntRoundingMode);
     if (wrappingHandler.useIntForBitvectors() && formulaType.isBitvectorType()) {
-      return (T)
-          manager
-              .getBitvectorFormulaManager()
-              .toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned);
+      return wrap(formulaType, manager
+          .getBitvectorFormulaManager()
+          .toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned));
     }
     return ret;
   }
