@@ -376,6 +376,11 @@ public class AssigningValueVisitorTest {
                 signedInt, CNumericTypes.FLOAT, new NumericValue(Float.valueOf(2.3f))))
         .isEqualTo(UnknownValue.getInstance());
 
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.FLOAT, new NumericValue(Float.valueOf(2147480704.0f))))
+        .isEqualTo(UnknownValue.getInstance());
+
     // both integer types
     assertThat(visitor.invertCast(signedInt, unsignedInt, val1)).isEqualTo(val1);
     assertThat(visitor.invertCast(unsignedChar, unsignedInt, val1))
