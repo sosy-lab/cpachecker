@@ -521,6 +521,7 @@ public class AssumptionToEdgeAllocator {
   private AExpressionStatement handleFloatNanLiteralAssumptions(
       CExpression leftSide, CBinaryExpressionBuilder expressionBuilder) {
 
+    Preconditions.checkArgument(leftSide instanceof CLeftHandSide);
     AExpressionStatement statement =
         buildNegatedEquationExpressionStatement(expressionBuilder, leftSide, leftSide);
 
