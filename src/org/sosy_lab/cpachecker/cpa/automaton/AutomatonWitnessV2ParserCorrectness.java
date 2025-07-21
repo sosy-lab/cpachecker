@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
-  protected final String ENTRY_STATE_ID = "singleState";
+  protected static String ENTRY_STATE_ID = "singleState";
 
   AutomatonWitnessV2ParserCorrectness(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
