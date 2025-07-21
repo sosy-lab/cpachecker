@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -271,7 +270,6 @@ public class UnseqBehaviorAnalysisState
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals(UNSEQUENCED) && isUnsequenced()) {
       // Unsequenced/Unspecified behavior found according to C11 standard annex J.
-      logger.log(Level.INFO, "Found possible unant spotbugs checkstyleant spotbugs checkstyle");
       return true;
     }
     return false;

@@ -108,7 +108,8 @@ public class UnseqBehaviorAnalysisTransferRelation
       } else if (lhsExpr instanceof CPointerExpression pointerExpr) {
         mergeSideEffects(
             mergedSideEffects,
-            recordSideEffectsIfInFunctionCall(pointerExpr.getOperand(), statementEdge, AccessType.READ, newState));
+            recordSideEffectsIfInFunctionCall(
+                pointerExpr.getOperand(), statementEdge, AccessType.READ, newState));
         mergeSideEffects(
             mergedSideEffects,
             recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState));
@@ -833,8 +834,7 @@ public class UnseqBehaviorAnalysisTransferRelation
               "Resolved pointer %s to target %s at %s",
               se.memoryLocation(),
               tgt,
-              se.cfaEdge().getRawStatement()
-          );
+              se.cfaEdge().getRawStatement());
         }
 
         result = UnseqUtils.replaceSideEffectBatch(se, resolvedBatch, result);
