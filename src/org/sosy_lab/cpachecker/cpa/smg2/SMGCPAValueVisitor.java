@@ -3343,15 +3343,15 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(AcslValidPredicate pAcslValidPredicate)
       throws CPATransferException {
 
-    AcslMemoryLocationSet locationSet = pAcslValidPredicate.getMemoryLocationSet();
-
-    //Empty Constraint set for empty MemoryLocationSet
-    if (locationSet instanceof AcslMemoryLocationSetEmpty) {
+     //Empty Constraint set for empty MemoryLocationSet
+    if (pAcslValidPredicate.getMemoryLocationSet() instanceof AcslMemoryLocationSetEmpty) {
       return ImmutableList.of();
     }
 
+    AcslMemoryLocationSetTerm locationSet = (AcslMemoryLocationSetTerm) pAcslValidPredicate.getMemoryLocationSet();
+
     ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
-    for (ValueAndSMGState valueAndSMGState : ((AcslMemoryLocationSetTerm)locationSet).getTerm().accept(this)) {
+    for (ValueAndSMGState valueAndSMGState : locationSet.getTerm().accept(this)) {
       Value value = valueAndSMGState.getValue();
       SMGState newState = valueAndSMGState.getState();
 
