@@ -165,9 +165,9 @@ public class DssAnalysisWorker extends DssWorker {
   }
 
   @Override
-  public void broadcast(Collection<DssMessage> pMessage) throws InterruptedException {
+  public void broadcast(Collection<DssMessage> pMessages) throws InterruptedException {
     DssMessageBroadcaster broadcaster = getConnection().getBroadcaster();
-    for (DssMessage message : pMessage) {
+    for (DssMessage message : pMessages) {
       sentMessages.inc();
       switch (message.getType()) {
         case PRECONDITION -> {

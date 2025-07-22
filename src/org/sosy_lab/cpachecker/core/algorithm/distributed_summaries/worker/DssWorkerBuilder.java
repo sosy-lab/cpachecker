@@ -59,7 +59,7 @@ public class DssWorkerBuilder {
   public List<DssActor> build()
       throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
 
-    // create a queue for each worker and additional connection
+    // create a queue for each worker
     ImmutableMap<CommunicationId, WorkerGenerator> futureWorkers = workerGenerators.buildOrThrow();
     ImmutableMap.Builder<CommunicationId, BlockingQueue<DssMessage>> queues =
         ImmutableMap.builderWithExpectedSize(futureWorkers.size());
@@ -106,6 +106,8 @@ public class DssWorkerBuilder {
   @CanIgnoreReturnValue
   public DssWorkerBuilder addVisualizationWorker(
       BlockGraph pBlockGraph, DssAnalysisOptions pOptions) {
+    // ensures that exactly one visualization worker is created
+    // as later, we call buildOrThrow() on the map
     String workerId = "visualization-worker";
     final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.put(
