@@ -3356,46 +3356,46 @@ public class SMGCPAValueVisitor
       SMGState newState = valueAndSMGState.getState();
 
       //The parameter of the \\valid() function should always be a memory address
-      if (value instanceof AddressExpression pAddressExpression) {
-        final ConstraintFactory constraintFactory =
-            ConstraintFactory.getInstance(newState, newState.getMachineModel(), logger, options, evaluator, cfaEdge);
-
-        //Generates a list that connects SymbolicIdentifiers with their MemoryLocations excluding __CPAchecker_TMP for irrelevancy
-        Set<Entry<MemoryLocation, ValueAndValueSize>> memLocations = newState
-            .getMemoryModel()
-            .getMemoryLocationsAndValuesForSPCWithoutHeap()
-            .entrySet()
-            .stream()
-            .filter(x -> x.getValue().getValue().equals(pAddressExpression.getMemoryAddress()))
-            .filter(x -> !x.getKey().getIdentifier().contains("__CPAchecker_TMP"))
-            .collect(Collectors.toSet());
-
-        //Generates constraints for all the MemoryLocation-SymbolicIdentifier-Pairs and adds them to the output
-        for (Entry<MemoryLocation, ValueAndValueSize> entry : memLocations) {
-          MemoryLocation memLocation = entry.getKey();
-
-          Optional<SMGObject> maybeObject =
-              state.getMemoryModel().getObjectForVisibleVariable(memLocation.getQualifiedName());
-
-          CPointerType expressionType = (CPointerType) pAddressExpression.getType();
-          List<Constraint> constraints =
-              constraintFactory.checkForConcreteMemoryAccessAssignmentWithSolver(
-                  new NumericValue(memLocation.getOffset()),
-                  new NumericValue(evaluator.getBitSizeof(newState, expressionType)),
-                  maybeObject.orElseThrow().getSize(),
-                  expressionType,
-                  newState);
-
-          result.addAll(
-              constraints
-                  .stream()
-                  .map(x -> ValueAndSMGState.of(x, newState))
-                  .collect(Collectors.toSet())
-          );
-        }
-      }
-      else {
+      if (!(value instanceof AddressExpression pAddressExpression)) {
         throw new SMGException("Content of \\valid function not memory address");
+      }
+
+      final ConstraintFactory constraintFactory =
+          ConstraintFactory.getInstance(newState, newState.getMachineModel(), logger, options, evaluator, cfaEdge);
+
+      //Generates a list that connects SymbolicIdentifiers with their MemoryLocations excluding __CPAchecker_TMP for irrelevancy
+      Set<Entry<MemoryLocation, ValueAndValueSize>> memLocations = newState
+          .getMemoryModel()
+          .getMemoryLocationsAndValuesForSPCWithoutHeap()
+          .entrySet()
+          .stream()
+          .filter(x -> x.getValue().getValue().equals(pAddressExpression.getMemoryAddress()))
+          .filter(x -> !x.getKey().getIdentifier().contains("__CPAchecker_TMP"))
+          .collect(Collectors.toSet());
+
+      //Generates constraints for all the MemoryLocation-SymbolicIdentifier-Pairs and adds them to the output
+      for (Entry<MemoryLocation, ValueAndValueSize> entry : memLocations) {
+        MemoryLocation memLocation = entry.getKey();
+
+        Optional<SMGObject> maybeObject =
+            state.getMemoryModel().getObjectForVisibleVariable(memLocation.getQualifiedName());
+
+        CPointerType expressionType = (CPointerType) pAddressExpression.getType();
+        List<Constraint> constraints =
+            constraintFactory.checkForConcreteMemoryAccessAssignmentWithSolver(
+                new NumericValue(memLocation.getOffset()),
+                new NumericValue(evaluator.getBitSizeof(newState, expressionType)),
+                maybeObject.orElseThrow().getSize(),
+                expressionType,
+                newState);
+
+        result.addAll(
+            constraints
+                .stream()
+                .map(x -> ValueAndSMGState.of(x, newState))
+                .collect(Collectors.toSet())
+        );
+
       }
     }
 
