@@ -518,7 +518,7 @@ public class AssumptionToEdgeAllocator {
   }
 
   /** Builds the C expr for FP NaN as inequality of the CLeftHandSide with itself. */
-  private AExpressionStatement handleFloatNanLiteralAssumptions(
+  private AExpressionStatement buildNanEqualityAssumption(
       CExpression leftSide, CBinaryExpressionBuilder expressionBuilder) {
 
     Preconditions.checkArgument(leftSide instanceof CLeftHandSide);
@@ -548,7 +548,7 @@ public class AssumptionToEdgeAllocator {
       AExpressionStatement statement;
       if (rightSide instanceof CFloatLiteralExpression floatLiteral
           && floatLiteral.getValue().isNan()) {
-        statement = handleFloatNanLiteralAssumptions(leftSide, expressionBuilder);
+        statement = buildNanEqualityAssumption(leftSide, expressionBuilder);
       } else {
         statement = buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
       }
@@ -562,7 +562,7 @@ public class AssumptionToEdgeAllocator {
       AExpressionStatement statement;
       if (rightSide instanceof CFloatLiteralExpression floatLiteral
           && floatLiteral.getValue().isNan()) {
-        statement = handleFloatNanLiteralAssumptions(leftSide, expressionBuilder);
+        statement = buildNanEqualityAssumption(leftSide, expressionBuilder);
       } else {
         statement = buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
       }
