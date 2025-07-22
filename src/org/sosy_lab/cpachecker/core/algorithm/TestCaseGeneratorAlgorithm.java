@@ -125,8 +125,33 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     if (pSpec.getProperties().size() == 1) {
       specProp = pSpec.getProperties().iterator().next();
       Preconditions.checkArgument(
-          specProp.isCoverage(), "Property %s not supported for test generation", specProp);
+          specProp.isCoverage(), "Property %s not supported for test-case generation", specProp);
+      Preconditions.checkArgument(
+          pSpec.getFiles().isEmpty(), "Specification files not supported for test-case generation");
+      Preconditions.checkArgument(
+          pSpec.getPathToSpecificationAutomata().isEmpty(),
+          "Specification automata not supported n test-case generation");
+      Preconditions.checkArgument(
+          pSpec.getSpecificationAutomata().isEmpty(),
+          "Specification automata not supported n test-case generation");
     } else {
+      if (pSpec.getProperties().size() > 1) {
+        logger.log(
+            Level.INFO,
+            "Multiple properties are not supported by test-case generation and will be ignored.");
+      }
+      if (!pSpec.getFiles().isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "Specification files are not supported by test-case generation and will be ignored.");
+      }
+      if (!pSpec.getPathToSpecificationAutomata().isEmpty()
+          || !pSpec.getSpecificationAutomata().isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "Specification automata are not supported by test-case generation and will be"
+                + " ignored.");
+      }
       specProp = null;
     }
   }
