@@ -14,28 +14,19 @@ import java.util.Map;
 public class DssViolationConditionMessage extends DssMessage {
 
   public static final String DSS_MESSAGE_FIRST_KEY = "first";
-  public static final String DSS_MESSAGE_PREFIX_KEY = "prefix";
 
-  private final String prefix;
   private final boolean first;
 
   DssViolationConditionMessage(String pSenderId, ImmutableMap<String, String> pContent) {
     super(pSenderId, DssMessageType.VIOLATION_CONDITION, pContent);
-    prefix = pContent.get(DSS_MESSAGE_PREFIX_KEY);
     first = Boolean.parseBoolean(pContent.get(DSS_MESSAGE_FIRST_KEY));
   }
 
   @Override
   boolean isValid(Map<String, String> pContent) {
     return !pContent.isEmpty()
-        && pContent.containsKey(DSS_MESSAGE_PREFIX_KEY)
-        && pContent.get(DSS_MESSAGE_PREFIX_KEY) != null
         && pContent.containsKey(DSS_MESSAGE_FIRST_KEY)
         && pContent.get(DSS_MESSAGE_FIRST_KEY) != null;
-  }
-
-  public String getPrefix() {
-    return prefix;
   }
 
   public boolean isFirst() {

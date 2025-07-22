@@ -59,7 +59,6 @@ public class DssMessageFactory {
       String pSenderId,
       AlgorithmStatus pStatus,
       boolean isFirst,
-      String prefix,
       ImmutableMap<String, String> pStateContent) {
     return new DssViolationConditionMessage(
         pSenderId,
@@ -67,7 +66,6 @@ public class DssMessageFactory {
             .putAll(serializeStatus(pStatus))
             .putAll(pStateContent)
             .put(DssViolationConditionMessage.DSS_MESSAGE_FIRST_KEY, Boolean.toString(isFirst))
-            .put(DssViolationConditionMessage.DSS_MESSAGE_PREFIX_KEY, prefix)
             .buildOrThrow());
   }
 

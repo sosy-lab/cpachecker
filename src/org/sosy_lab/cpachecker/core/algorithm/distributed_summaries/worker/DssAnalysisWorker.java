@@ -113,8 +113,7 @@ public class DssAnalysisWorker extends DssWorker {
       case VIOLATION_CONDITION -> {
         try {
           backwardAnalysisTime.start();
-          yield dssBlockAnalysis.runAnalysisUnderCondition(
-              (DssViolationConditionMessage) message, true);
+          yield dssBlockAnalysis.runAnalysisUnderCondition((DssViolationConditionMessage) message);
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
@@ -144,12 +143,12 @@ public class DssAnalysisWorker extends DssWorker {
       case STATISTIC, RESULT, EXCEPTION -> {}
       case VIOLATION_CONDITION -> {
         DssViolationConditionMessage errorCond = (DssViolationConditionMessage) message;
-        dssBlockAnalysis.updateViolationCondition(errorCond);
-        dssBlockAnalysis.updateSeenPrefixes(errorCond);
+        // dssBlockAnalysis.updateViolationCondition(errorCond);
+        // dssBlockAnalysis.updateSeenPrefixes(errorCond);
       }
       case PRECONDITION -> {
         //noinspection ResultOfMethodCallIgnored
-        dssBlockAnalysis.shouldRepeatAnalysis((DssPreconditionMessage) message);
+        // dssBlockAnalysis.shouldRepeatAnalysis((DssPreconditionMessage) message);
       }
     }
   }
