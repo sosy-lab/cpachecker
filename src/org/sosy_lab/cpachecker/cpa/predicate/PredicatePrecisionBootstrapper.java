@@ -251,6 +251,19 @@ public final class PredicatePrecisionBootstrapper {
       }
     }
 
+    logger.log(
+        Level.INFO,
+        "Amount of initial location predicates loaded: ",
+        result.getLocalPredicates().size());
+    logger.log(
+        Level.INFO,
+        "Amount of initial function predicates loaded: ",
+        result.getFunctionPredicates().size());
+    logger.log(
+        Level.INFO,
+        "Amount of initial global predicates loaded: ",
+        result.getGlobalPredicates().size());
+
     return result;
   }
 
