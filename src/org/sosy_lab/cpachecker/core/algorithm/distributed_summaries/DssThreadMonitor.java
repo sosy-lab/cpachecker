@@ -50,7 +50,7 @@ public class DssThreadMonitor extends Thread {
       }
 
       try {
-        Thread.sleep(1); // 1 millisecond
+        Thread.sleep(1);
       } catch (InterruptedException e) {
         connection
             .getBroadcaster()
