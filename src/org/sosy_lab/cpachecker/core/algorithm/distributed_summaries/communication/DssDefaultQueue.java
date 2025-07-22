@@ -13,7 +13,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssFixpointNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 
 public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
@@ -46,7 +45,6 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
   @Override
   public boolean add(DssMessage pMessage) {
-    DssFixpointNotifier.getInstance().active(Thread.currentThread().getName());
     return queue.add(pMessage);
   }
 
@@ -59,7 +57,6 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
   @Override
   public DssMessage take() throws InterruptedException {
     // empty pending messages (non blocking)
-    DssFixpointNotifier.getInstance().active(Thread.currentThread().getName());
     while (!queue.isEmpty()) {
       DssMessage message = queue.take();
       Deque<DssMessage> queueForMessage =
@@ -75,11 +72,6 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
     if (!next.isEmpty()) {
       return next.removeFirst();
     }
-    DssFixpointNotifier.getInstance().waiting(Thread.currentThread().getName());
-    try {
-      return queue.take();
-    } finally {
-      DssFixpointNotifier.getInstance().active(Thread.currentThread().getName());
-    }
+    return queue.take();
   }
 }

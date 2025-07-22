@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssPrioritizeViolationConditionQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAn
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -338,16 +340,17 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
                 + worker.getClass().getName());
       }
       Thread thread = new Thread(worker, worker.getId());
-      thread.setDaemon(true);
       threads.add(thread);
-    }
-    Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
-    DssFixpointNotifier.init(messageFactory, observer.getConnection(), actors.size());
-    // must be started after fixpoint notifier is initialized
-    for (Thread thread : threads) {
+      thread.setDaemon(true);
       thread.start();
     }
 
+    Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
+    // sends a result message iff all workers are waiting
+    DssThreadMonitor monitor =
+        new DssThreadMonitor(threads, messageFactory, observer.getConnection());
+    monitor.setDaemon(true);
+    monitor.start();
     // blocks the thread until result message is received
     return observer.observe();
   }
