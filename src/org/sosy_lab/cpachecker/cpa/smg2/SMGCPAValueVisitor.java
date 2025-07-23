@@ -3282,7 +3282,7 @@ public class SMGCPAValueVisitor
                         constraintFactory.getLogicalOrConstraint(
                             a.getValue(),
                             b.getValue(),
-                            pPredicate.getExpressionType(),
+                            CNumericTypes.SIGNED_INT,
                             newState
                         ),
                         newState
