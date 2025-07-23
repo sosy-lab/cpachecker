@@ -16,13 +16,17 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -34,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -259,6 +264,86 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     return results.isEmpty() ? null : results;
   }
 
+  public List<ValueAndSMGState> visit(AcslUnaryPredicate pE) throws CPATransferException {
+    SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
+    LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
+    CFAEdge edge = super.getInitialVisitorCFAEdge();
+    SMGState initialState = super.getInitialVisitorState();
+
+
+    ImmutableList.Builder<ValueAndSMGState> finalValueAndStateBuilder = ImmutableList.builder();
+    SMGCPAValueVisitor visitor = new SMGCPAValueVisitor(
+        evaluator, initialState, edge, logger, getInitialVisitorOptions());
+
+    if (pE.getOperand() instanceof AcslPredicate pPredicate) {
+      List<ValueAndSMGState> valueAndSMGStates = pPredicate.accept(visitor);
+
+      ValueAndSMGState negated = null;
+
+      //Until now only NEGATION exists as AcslUnaryPredicate
+      switch ((AcslUnaryExpressionOperator) pE.getOperator()) {
+        case NEGATION -> {
+          final ConstraintFactory constraintFactory = ConstraintFactory
+              .getInstance(initialState, initialState.getMachineModel(), logger, getInitialVisitorOptions(), evaluator, edge);
+          final Function<ValueAndSMGState, ValueAndSMGState> negateConstraint =
+              x -> ValueAndSMGState.of(constraintFactory.createNot((Constraint) x.getValue()),
+                  x.getState());
+
+          if (valueAndSMGStates.isEmpty()) {
+            return null;
+          }
+
+          //Returns empty list or wraps single constraint into LogicalNotExpression
+          if (valueAndSMGStates.size() == 1) {
+            negated = valueAndSMGStates
+                .stream()
+                .map(negateConstraint)
+                .toList()
+                .get(0);
+          }
+          else {
+            //If we want to negate multiple Constraints we need to use De Morgan's Law
+            ValueAndSMGState first = negateConstraint.apply(valueAndSMGStates.get(0));
+            negated = valueAndSMGStates
+                .subList(1, valueAndSMGStates.size())
+                .stream()
+                .map(negateConstraint)
+                .reduce(first, (a, b) -> {
+                      SMGState newState = visitor.joinStatesIfDifferent(a.getState(), b.getState());
+                      return ValueAndSMGState.of(
+                          constraintFactory.getLogicalOrConstraint(
+                              a.getValue(),
+                              b.getValue(),
+                              CNumericTypes.SIGNED_INT,
+                              newState
+                          ),
+                          newState
+                      );
+                    }
+                );
+
+          }
+
+          SMGState newStateWithConstraints = negated.getState().addConstraint((Constraint) negated.getValue());
+
+          try {
+            SolverResult solverResult = solver.checkUnsat(
+                newStateWithConstraints.getConstraints(), callerFunctionName
+            );
+            if (solverResult.satisfiability() == Satisfiability.SAT) {
+              finalValueAndStateBuilder.add(ValueAndSMGState.of(new NumericValue(1), newStateWithConstraints));
+            }
+          } catch (SolverException | InterruptedException pException) {
+            throw new SMGSolverException(pException, newStateWithConstraints);
+          }
+
+        }
+      }
+    }
+
+    List<ValueAndSMGState> results = finalValueAndStateBuilder.build();
+    return results.isEmpty() ? null : results;
+  }
 
   /**
    * Handles equality assumptions. Examples: a == b, possibly nested expressions, e.g. (a==b)==c,

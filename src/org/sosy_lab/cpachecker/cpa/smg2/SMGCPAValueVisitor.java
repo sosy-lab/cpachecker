@@ -3297,7 +3297,7 @@ public class SMGCPAValueVisitor
     return result.build();
   }
 
-  private SMGState joinStatesIfDifferent(SMGState one, SMGState two) {
+  public SMGState joinStatesIfDifferent(SMGState one, SMGState two) {
     if (one == two) {
       return one;
     }
