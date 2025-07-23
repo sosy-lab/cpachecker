@@ -3381,12 +3381,13 @@ public class SMGCPAValueVisitor
             state.getMemoryModel().getObjectForVisibleVariable(memLocation.getQualifiedName());
 
         CPointerType expressionType = (CPointerType) pAddressExpression.getType();
+        CType memoryCalculationType = evaluator.getMachineModel().getPointerSizedIntType();
         List<Constraint> constraints =
             constraintFactory.checkForConcreteMemoryAccessAssignmentWithSolver(
                 new NumericValue(memLocation.getOffset()),
                 new NumericValue(evaluator.getBitSizeof(newState, expressionType)),
                 maybeObject.orElseThrow().getSize(),
-                expressionType,
+                memoryCalculationType,
                 newState);
 
         result.addAll(
