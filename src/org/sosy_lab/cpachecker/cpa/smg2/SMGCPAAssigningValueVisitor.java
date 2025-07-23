@@ -213,7 +213,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       }
 
       final ConstraintFactory constraintFactory =
-          ConstraintFactory.getInstance(newState, newState.getMachineModel(), logger, getInitialVisitorOptions(), evaluator, edge);
+          ConstraintFactory.getInstance(newState, newState.getMachineModel(), logger,
+              getInitialVisitorOptions(), evaluator, edge);
 
       //Generates a list that connects SymbolicIdentifiers with their MemoryLocations excluding __CPAchecker_TMP for irrelevancy
       Set<Entry<MemoryLocation, ValueAndValueSize>> memLocations = newState
@@ -252,7 +253,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               newStateWithConstraints.getConstraints(), callerFunctionName
           );
           if (solverResult.satisfiability() == Satisfiability.SAT) {
-            finalValueAndStateBuilder.add(ValueAndSMGState.of(new NumericValue(1), newStateWithConstraints));
+            finalValueAndStateBuilder.add(
+                ValueAndSMGState.of(new NumericValue(1), newStateWithConstraints));
           }
         } catch (SolverException | InterruptedException pException) {
           throw new SMGSolverException(pException, newStateWithConstraints);
@@ -264,6 +266,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     return results.isEmpty() ? null : results;
   }
 
+  @Override
   public List<ValueAndSMGState> visit(AcslUnaryPredicate pE) throws CPATransferException {
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
@@ -284,7 +287,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       switch ((AcslUnaryExpressionOperator) pE.getOperator()) {
         case NEGATION -> {
           final ConstraintFactory constraintFactory = ConstraintFactory
-              .getInstance(initialState, initialState.getMachineModel(), logger, getInitialVisitorOptions(), evaluator, edge);
+              .getInstance(initialState, initialState.getMachineModel(), logger,
+                  getInitialVisitorOptions(), evaluator, edge);
           final Function<ValueAndSMGState, ValueAndSMGState> negateConstraint =
               x -> ValueAndSMGState.of(constraintFactory.createNot((Constraint) x.getValue()),
                   x.getState());
@@ -300,8 +304,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                 .map(negateConstraint)
                 .toList()
                 .get(0);
-          }
-          else {
+          } else {
             //If we want to negate multiple Constraints we need to use De Morgan's Law
             ValueAndSMGState first = negateConstraint.apply(valueAndSMGStates.get(0));
             negated = valueAndSMGStates
@@ -324,14 +327,16 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
           }
 
-          SMGState newStateWithConstraints = negated.getState().addConstraint((Constraint) negated.getValue());
+          SMGState newStateWithConstraints =
+              negated.getState().addConstraint((Constraint) negated.getValue());
 
           try {
             SolverResult solverResult = solver.checkUnsat(
                 newStateWithConstraints.getConstraints(), callerFunctionName
             );
             if (solverResult.satisfiability() == Satisfiability.SAT) {
-              finalValueAndStateBuilder.add(ValueAndSMGState.of(new NumericValue(1), newStateWithConstraints));
+              finalValueAndStateBuilder.add(
+                  ValueAndSMGState.of(new NumericValue(1), newStateWithConstraints));
             }
           } catch (SolverException | InterruptedException pException) {
             throw new SMGSolverException(pException, newStateWithConstraints);
