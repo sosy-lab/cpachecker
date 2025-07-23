@@ -438,7 +438,7 @@ public class AssumptionToEdgeAllocator {
     ValueLiterals valueAsCode =
         getValueAsCode(value, expectedType, pLeftHandSide, functionName, pConcreteState);
 
-    return handleSimpleValueLiteralsAssumptions(valueAsCode, value, pLeftHandSide);
+    return handleSimpleValueLiteralsAssumptions(valueAsCode, pLeftHandSide);
   }
 
   private List<AExpressionStatement> handleAssignment(
@@ -511,36 +511,14 @@ public class AssumptionToEdgeAllocator {
       ValueLiterals valueAsCode =
           getValueAsCode(value, dclType, idExpression, pFunctionName, pConcreteState);
       CLeftHandSide leftHandSide = new CIdExpression(FileLocation.DUMMY, cDcl);
-      return handleSimpleValueLiteralsAssumptions(valueAsCode, value, leftHandSide);
+      return handleSimpleValueLiteralsAssumptions(valueAsCode, leftHandSide);
     }
 
     return ImmutableList.of();
   }
 
-  /** Builds the C expr for FP NaN as inequality of the CLeftHandSide with itself. */
-  private List<AExpressionStatement> handleFloatNanLiteralAssumptions(CLeftHandSide pLValue) {
-
-    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
-
-    CExpression leftSide = getLeftAssumptionFromLhs(pLValue);
-    AExpressionStatement statement =
-        buildNegatedEquationExpressionStatement(expressionBuilder, leftSide, leftSide);
-
-    if (statement == null) {
-      // Should not be possible, but better be sure
-      throw new IllegalArgumentException(
-          "Invalid transformation when constructing floating-point NaN C expression");
-    }
-
-    return ImmutableList.of(statement);
-  }
-
   private List<AExpressionStatement> handleSimpleValueLiteralsAssumptions(
-      ValueLiterals pValueLiterals, Object pValueLiteralsObject, CLeftHandSide pLValue) {
-
-    if (pValueLiteralsObject instanceof FloatValue floatValue && floatValue.isNan()) {
-      return handleFloatNanLiteralAssumptions(pLValue);
-    }
+      ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
 
     Set<SubExpressionValueLiteral> subValues = pValueLiterals.getSubExpressionValueLiteral();
     Set<AExpressionStatement> statements = new LinkedHashSet<>();
@@ -565,27 +543,6 @@ public class AssumptionToEdgeAllocator {
     }
 
     return FluentIterable.from(statements).filter(Predicates.notNull()).toList();
-  }
-
-  private @Nullable AExpressionStatement buildNegatedEquationExpressionStatement(
-      CBinaryExpressionBuilder pBuilder, CExpression pLeftSide, CExpression pRightSide) {
-
-    AExpressionStatement eqStatement =
-        buildEquationExpressionStatement(pBuilder, pLeftSide, pRightSide);
-
-    if (eqStatement == null) {
-      return null;
-    }
-
-    CExpression eqExpr = (CExpression) eqStatement.getExpression();
-
-    try {
-      CBinaryExpression negatedEquality = pBuilder.negateExpressionAndSimplify(eqExpr);
-      return new CExpressionStatement(eqStatement.getFileLocation(), negatedEquality);
-
-    } catch (UnrecognizedCodeException e1) {
-      throw new IllegalArgumentException(e1);
-    }
   }
 
   private @Nullable AExpressionStatement buildEquationExpressionStatement(
