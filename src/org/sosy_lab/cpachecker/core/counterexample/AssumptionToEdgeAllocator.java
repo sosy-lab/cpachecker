@@ -517,23 +517,6 @@ public class AssumptionToEdgeAllocator {
     return ImmutableList.of();
   }
 
-  /** Builds the C expr for FP NaN as inequality of the CLeftHandSide with itself. */
-  private AExpressionStatement buildNanEqualityAssumption(
-      CExpression leftSide, CBinaryExpressionBuilder expressionBuilder) {
-
-    Preconditions.checkArgument(leftSide instanceof CLeftHandSide);
-    AExpressionStatement statement =
-        buildNegatedEquationExpressionStatement(expressionBuilder, leftSide, leftSide);
-
-    if (statement == null) {
-      // Should not be possible, but better be sure
-      throw new IllegalArgumentException(
-          "Invalid transformation when constructing floating-point NaN C expression");
-    }
-
-    return statement;
-  }
-
   private List<AExpressionStatement> handleSimpleValueLiteralsAssumptions(
       ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
 
@@ -546,12 +529,7 @@ public class AssumptionToEdgeAllocator {
       CExpression leftSide = getLeftAssumptionFromLhs(pLValue);
       CExpression rightSide = pValueLiterals.getExpressionValueLiteralAsCExpression();
       AExpressionStatement statement;
-      if (rightSide instanceof CFloatLiteralExpression floatLiteral
-          && floatLiteral.getValue().isNan()) {
-        statement = buildNanEqualityAssumption(leftSide, expressionBuilder);
-      } else {
-        statement = buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
-      }
+      statement = buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
       statements.add(statement);
     }
 
@@ -560,37 +538,11 @@ public class AssumptionToEdgeAllocator {
       CExpression leftSide = getLeftAssumptionFromLhs(subValueLiteral.subExpression());
       CExpression rightSide = subValueLiteral.valueLiteralAsCExpression();
       AExpressionStatement statement;
-      if (rightSide instanceof CFloatLiteralExpression floatLiteral
-          && floatLiteral.getValue().isNan()) {
-        statement = buildNanEqualityAssumption(leftSide, expressionBuilder);
-      } else {
-        statement = buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
-      }
+      statement = buildEquationExpressionStatement(expressionBuilder, leftSide, rightSide);
       statements.add(statement);
     }
 
     return FluentIterable.from(statements).filter(Predicates.notNull()).toList();
-  }
-
-  private @Nullable AExpressionStatement buildNegatedEquationExpressionStatement(
-      CBinaryExpressionBuilder pBuilder, CExpression pLeftSide, CExpression pRightSide) {
-
-    AExpressionStatement eqStatement =
-        buildEquationExpressionStatement(pBuilder, pLeftSide, pRightSide);
-
-    if (eqStatement == null) {
-      return null;
-    }
-
-    CExpression eqExpr = (CExpression) eqStatement.getExpression();
-
-    try {
-      CBinaryExpression negatedEquality = pBuilder.negateExpressionAndSimplify(eqExpr);
-      return new CExpressionStatement(eqStatement.getFileLocation(), negatedEquality);
-
-    } catch (UnrecognizedCodeException e1) {
-      throw new IllegalArgumentException(e1);
-    }
   }
 
   private @Nullable AExpressionStatement buildEquationExpressionStatement(
@@ -643,9 +595,34 @@ public class AssumptionToEdgeAllocator {
       }
     }
 
-    CBinaryExpression assumption =
-        pBuilder.buildBinaryExpressionUnchecked(
-            leftSide, rightSide, CBinaryExpression.BinaryOperator.EQUALS);
+    CBinaryExpression assumption;
+    try {
+      if (rightSide instanceof CFloatLiteralExpression floatLiteral
+          && floatLiteral.getValue().isNan()) {
+        // NaN can be encoded as leftSide != leftSide (which is ONLY true for NaN)
+        CBinaryExpression eqExpr =
+            pBuilder.buildBinaryExpressionUnchecked(
+                leftSide, leftSide, CBinaryExpression.BinaryOperator.EQUALS);
+        assumption = pBuilder.negateExpressionAndSimplify(eqExpr);
+
+      } else if (leftSide instanceof CFloatLiteralExpression floatLiteral
+          && floatLiteral.getValue().isNan()) {
+        // NaN can be encoded as rightSide != rightSide (which is ONLY true for NaN)
+        CBinaryExpression eqExpr =
+            pBuilder.buildBinaryExpressionUnchecked(
+                rightSide, rightSide, CBinaryExpression.BinaryOperator.EQUALS);
+        assumption = pBuilder.negateExpressionAndSimplify(eqExpr);
+
+      } else {
+        // normal assignments using equality
+        assumption =
+            pBuilder.buildBinaryExpressionUnchecked(
+                leftSide, rightSide, CBinaryExpression.BinaryOperator.EQUALS);
+      }
+
+    } catch (UnrecognizedCodeException e1) {
+      throw new IllegalArgumentException(e1);
+    }
 
     return new CExpressionStatement(assumption.getFileLocation(), assumption);
   }
