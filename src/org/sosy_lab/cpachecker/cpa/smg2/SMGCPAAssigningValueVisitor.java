@@ -13,10 +13,17 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -27,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
@@ -37,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
@@ -45,6 +54,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
@@ -167,6 +178,87 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     ImmutableList<ValueAndSMGState> returnList = finalValueAndStateBuilder.build();
     return returnList.isEmpty() ? null : returnList;
   }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslValidPredicate pE) throws CPATransferException {
+
+    if (pE.getMemoryLocationSet() instanceof AcslMemoryLocationSetEmpty) {
+      return null;
+    }
+    AcslMemoryLocationSetTerm locationSet = (AcslMemoryLocationSetTerm) pE.getMemoryLocationSet();
+    AcslTerm term = locationSet.getTerm();
+
+    SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
+    LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
+    CFAEdge edge = super.getInitialVisitorCFAEdge();
+    SMGState initialState = super.getInitialVisitorState();
+
+    ImmutableList.Builder<ValueAndSMGState> finalValueAndStateBuilder = ImmutableList.builder();
+
+    for (ValueAndSMGState valueAndState :
+        term.accept(
+            new SMGCPAValueVisitor(
+                evaluator, initialState, edge, logger, getInitialVisitorOptions()))) {
+      Value value = valueAndState.getValue();
+      SMGState newState = valueAndState.getState();
+
+      //The parameter of the \\valid() function should always be a memory address
+      if (!(value instanceof AddressExpression pAddressExpression)) {
+        throw new SMGException("Content of \\valid function not memory address");
+      }
+
+      final ConstraintFactory constraintFactory =
+          ConstraintFactory.getInstance(newState, newState.getMachineModel(), logger, getInitialVisitorOptions(), evaluator, edge);
+
+      //Generates a list that connects SymbolicIdentifiers with their MemoryLocations excluding __CPAchecker_TMP for irrelevancy
+      Set<Entry<MemoryLocation, ValueAndValueSize>> memLocations = newState
+          .getMemoryModel()
+          .getMemoryLocationsAndValuesForSPCWithoutHeap()
+          .entrySet()
+          .stream()
+          .filter(x -> x.getValue().getValue().equals(pAddressExpression.getMemoryAddress()))
+          .filter(x -> !x.getKey().getIdentifier().contains("__CPAchecker_TMP"))
+          .collect(Collectors.toSet());
+
+      //Generates constraints for all the MemoryLocation-SymbolicIdentifier-Pairs and adds them to the output
+      for (Entry<MemoryLocation, ValueAndValueSize> entry : memLocations) {
+        MemoryLocation memLocation = entry.getKey();
+
+        Optional<SMGObject> maybeObject =
+            newState.getMemoryModel().getObjectForVisibleVariable(memLocation.getQualifiedName());
+
+        CPointerType expressionType = (CPointerType) pAddressExpression.getType();
+        CType memoryCalculationType = evaluator.getMachineModel().getPointerSizedIntType();
+        List<Constraint> constraints =
+            constraintFactory.checkForConcreteMemoryAccessAssignmentWithSolver(
+                new NumericValue(memLocation.getOffset()),
+                new NumericValue(evaluator.getBitSizeof(newState, expressionType)),
+                maybeObject.orElseThrow().getSize(),
+                memoryCalculationType,
+                newState);
+
+        SMGState newStateWithConstraints = newState;
+        for (Constraint constraint : constraints) {
+          newStateWithConstraints = newStateWithConstraints.addConstraint(constraint);
+        }
+
+        try {
+          SolverResult solverResult = solver.checkUnsat(
+              newStateWithConstraints.getConstraints(), callerFunctionName
+          );
+          if (solverResult.satisfiability() == Satisfiability.SAT) {
+            finalValueAndStateBuilder.add(ValueAndSMGState.of(new NumericValue(1), newStateWithConstraints));
+          }
+        } catch (SolverException | InterruptedException pException) {
+          throw new SMGSolverException(pException, newStateWithConstraints);
+        }
+
+      }
+    }
+    List<ValueAndSMGState> results = finalValueAndStateBuilder.build();
+    return results.isEmpty() ? null : results;
+  }
+
 
   /**
    * Handles equality assumptions. Examples: a == b, possibly nested expressions, e.g. (a==b)==c,
