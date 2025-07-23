@@ -595,9 +595,34 @@ public class AssumptionToEdgeAllocator {
       }
     }
 
-    CBinaryExpression assumption =
-        pBuilder.buildBinaryExpressionUnchecked(
-            leftSide, rightSide, CBinaryExpression.BinaryOperator.EQUALS);
+    CBinaryExpression assumption;
+    try {
+      if (rightSide instanceof CFloatLiteralExpression floatLiteral
+          && floatLiteral.getValue().isNan()) {
+        // NaN can be encoded as leftSide != leftSide (which is ONLY true for NaN)
+        CBinaryExpression eqExpr =
+            pBuilder.buildBinaryExpressionUnchecked(
+                leftSide, leftSide, CBinaryExpression.BinaryOperator.EQUALS);
+        assumption = pBuilder.negateExpressionAndSimplify(eqExpr);
+
+      } else if (leftSide instanceof CFloatLiteralExpression floatLiteral
+          && floatLiteral.getValue().isNan()) {
+        // NaN can be encoded as rightSide != rightSide (which is ONLY true for NaN)
+        CBinaryExpression eqExpr =
+            pBuilder.buildBinaryExpressionUnchecked(
+                rightSide, rightSide, CBinaryExpression.BinaryOperator.EQUALS);
+        assumption = pBuilder.negateExpressionAndSimplify(eqExpr);
+
+      } else {
+        // normal assignments using equality
+        assumption =
+            pBuilder.buildBinaryExpressionUnchecked(
+                leftSide, rightSide, CBinaryExpression.BinaryOperator.EQUALS);
+      }
+
+    } catch (UnrecognizedCodeException e1) {
+      throw new IllegalArgumentException(e1);
+    }
 
     return new CExpressionStatement(assumption.getFileLocation(), assumption);
   }
