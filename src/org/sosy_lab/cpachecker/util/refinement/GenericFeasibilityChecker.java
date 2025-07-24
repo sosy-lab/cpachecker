@@ -106,9 +106,9 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
 
       if (refineMemorySafety) {
         for (AbstractState state : iterator.getAbstractState().getWrappedStates()) {
-          if (state instanceof SMGState && next instanceof SMGState) {
-            if (((SMGState) state)
-                .getErrorInfo().stream().anyMatch(((SMGState) next).getErrorInfo()::contains)) {
+          if (state instanceof SMGState sMGState && next instanceof SMGState) {
+            if (sMGState.getErrorInfo().stream()
+                .anyMatch(((SMGState) next).getErrorInfo()::contains)) {
               return true;
             }
           }

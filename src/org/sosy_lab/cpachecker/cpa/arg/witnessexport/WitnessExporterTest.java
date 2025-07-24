@@ -339,8 +339,8 @@ public class WitnessExporterTest {
       if (this == pOther) {
         return true;
       }
-      return pOther instanceof TempCompressedFilePath
-          && compressedFilePath.equals(((TempCompressedFilePath) pOther).compressedFilePath);
+      return pOther instanceof TempCompressedFilePath other
+          && compressedFilePath.equals(other.compressedFilePath);
     }
 
     @Override

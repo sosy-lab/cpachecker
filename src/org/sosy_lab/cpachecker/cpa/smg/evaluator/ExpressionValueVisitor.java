@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 import static java.util.Collections.singletonList;
 
 import com.google.common.collect.ImmutableList;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -185,7 +184,7 @@ class ExpressionValueVisitor
   public List<? extends SMGValueAndState> visit(CFloatLiteralExpression exp)
       throws CPATransferException {
 
-    boolean isZero = exp.getValue().compareTo(BigDecimal.ZERO) == 0;
+    boolean isZero = exp.getValue().isZero();
 
     SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
@@ -197,9 +196,9 @@ class ExpressionValueVisitor
 
     CSimpleDeclaration decl = idExpression.getDeclaration();
 
-    if (decl instanceof CEnumerator) {
+    if (decl instanceof CEnumerator cEnumerator) {
 
-      BigInteger enumValue = ((CEnumerator) decl).getValue();
+      BigInteger enumValue = cEnumerator.getValue();
 
       SMGSymbolicValue val =
           enumValue.equals(BigInteger.ZERO) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
@@ -372,9 +371,9 @@ class ExpressionValueVisitor
           if (lValAddress.getObject().equals(rValAddress.getObject())) {
             CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
             final CType type;
-            if (lVarType instanceof CPointerType) {
+            if (lVarType instanceof CPointerType cPointerType) {
               // normal pointer type
-              type = ((CPointerType) lVarType).getType();
+              type = cPointerType.getType();
             } else if (lVarType instanceof CSimpleType) {
               // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
               // Let's assume, that invalid combinations like "int" for 64bit do not appear.

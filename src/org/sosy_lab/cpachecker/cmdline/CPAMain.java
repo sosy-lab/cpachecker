@@ -284,9 +284,11 @@ public class CPAMain {
     @Option(
         secure = true,
         description =
-            "Programming language of the input program. If not given explicitly, "
-                + "auto-detection will occur")
-    // keep option name in sync with {@link CFACreator#language}, value might differ
+            "Programming language of the input program. If not given explicitly, auto-detection"
+                + " will occur. LLVM IR is currently unsupported as input (cf."
+                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
+    // keep option name in sync with {@link CPAMain#language} and {@link
+    // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
     private Language language = null;
 
     @Option(
@@ -890,8 +892,8 @@ public class CPAMain {
       justification = "Default encoding is the correct one for stdout.")
   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
   private static PrintStream makePrintStream(OutputStream stream) {
-    if (stream instanceof PrintStream) {
-      return (PrintStream) stream;
+    if (stream instanceof PrintStream printStream) {
+      return printStream;
     } else {
       // Default encoding is actually desired here because we output to the terminal,
       // so the default PrintStream constructor is ok.

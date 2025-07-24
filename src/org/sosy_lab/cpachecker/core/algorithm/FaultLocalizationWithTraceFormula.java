@@ -432,17 +432,17 @@ public class FaultLocalizationWithTraceFormula
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
-    if (algorithm instanceof Statistics) {
-      statsCollection.add((Statistics) algorithm);
+    if (algorithm instanceof Statistics statistics) {
+      statsCollection.add(statistics);
     }
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(statsCollection);
     }
-    if (faultAlgorithm instanceof Statistics) {
-      statsCollection.add((Statistics) faultAlgorithm);
+    if (faultAlgorithm instanceof Statistics statistics) {
+      statsCollection.add(statistics);
     }
-    if (faultAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) faultAlgorithm).collectStatistics(statsCollection);
+    if (faultAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(statsCollection);
     }
   }
 

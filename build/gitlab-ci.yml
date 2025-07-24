@@ -2,7 +2,7 @@
 # a collection of common files and build definitions for Java projects:
 # https://gitlab.com/sosy-lab/software/java-project-template
 #
-# SPDX-FileCopyrightText: 2018-2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2018-2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -64,9 +64,9 @@ build:jdk-21:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build:jdk-23:
+build:jdk-24:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 # For checks that need the binaries
@@ -96,9 +96,9 @@ build-project-ecj:jdk-21:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build-project-ecj:jdk-23:
+build-project-ecj:jdk-24:
   <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 check-format:
@@ -186,15 +186,15 @@ unit-tests:jdk-21:
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-unit-tests:jdk-23:
+unit-tests:jdk-24:
   <<: *unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-23
+    - build:jdk-24
   needs:
     - build-dependencies
-    - build:jdk-23
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+    - build:jdk-24
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 refaster:
@@ -247,6 +247,7 @@ deploy-gh-pages:
   needs:
     - build:jdk-11
     - javadoc
+  environment: deploy/gh-pages
   only:
     variables:
       - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # only on default branch
@@ -291,8 +292,8 @@ build-docker:test:jdk-21:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-21
     IMAGE: /test:jdk-21
 
-build-docker:test:jdk-23:
+build-docker:test:jdk-24:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-23
-    IMAGE: /test:jdk-23
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-24
+    IMAGE: /test:jdk-24

@@ -126,8 +126,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof TerminationToReachState
-        && storedValues.equals(((TerminationToReachState) pOther).getStoredValues());
+    return pOther instanceof TerminationToReachState other
+        && storedValues.equals(other.getStoredValues());
   }
 
   private String getReadableStoredValues() {

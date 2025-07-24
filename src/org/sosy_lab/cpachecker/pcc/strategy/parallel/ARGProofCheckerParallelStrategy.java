@@ -67,8 +67,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     super(pConfig, pLogger, pProofFile);
     checker = pChecker;
     propChecker = new NoTargetStateChecker();
-    if (pChecker instanceof PropertyCheckerCPA) {
-      propChecker = ((PropertyCheckerCPA) pChecker).getPropChecker();
+    if (pChecker instanceof PropertyCheckerCPA propertyCheckerCPA) {
+      propChecker = propertyCheckerCPA.getPropChecker();
     }
   }
 

@@ -158,8 +158,9 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
         setState(symValueAndState.getSmgState());
 
         CType type1 = binaryExp.getOperand1().getExpressionType().getCanonicalType();
-        if (symValue instanceof SMGKnownExpValue && type1 instanceof CPointerType) {
-          return new NumericValue(((SMGKnownExpValue) symValue).getValue());
+        if (symValue instanceof SMGKnownExpValue sMGKnownExpValue
+            && type1 instanceof CPointerType) {
+          return new NumericValue(sMGKnownExpValue.getValue());
         }
       }
     }

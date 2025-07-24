@@ -450,11 +450,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : leavingEdges(node)) {
         if (leavingEdge instanceof AStatementEdge edge) {
-          if (!(edge.getStatement() instanceof CAssignment)) {
+          if (!(edge.getStatement() instanceof CAssignment assignment)) {
             continue;
           }
 
-          CAssignment assignment = (CAssignment) edge.getStatement();
           assignedVariables.addAll(
               CFAUtils.getIdExpressionsOfExpression(assignment.getLeftHandSide())
                   .transform(id -> id.getDeclaration().getQualifiedName())
@@ -491,16 +490,13 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
         // normal assignment of variable, rightHandSide can be expression or (external)
         // functioncall
-        if (statement instanceof CAssignment) {
-          handleAssignment(edge, (CAssignment) statement, cfa);
+        if (statement instanceof CAssignment cAssignment) {
+          handleAssignment(edge, cAssignment, cfa);
 
           // pure external functioncall
-        } else if (statement instanceof CFunctionCallStatement) {
+        } else if (statement instanceof CFunctionCallStatement cFunctionCallStatement) {
           handleExternalFunctionCall(
-              edge,
-              ((CFunctionCallStatement) statement)
-                  .getFunctionCallExpression()
-                  .getParameterExpressions());
+              edge, cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions());
         }
       }
       case FunctionCallEdge -> handleFunctionCallEdge((CFunctionCallEdge) edge);
@@ -534,11 +530,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
    */
   private void handleDeclarationEdge(final CDeclarationEdge edge) {
     CDeclaration declaration = edge.getDeclaration();
-    if (!(declaration instanceof CVariableDeclaration)) {
+    if (!(declaration instanceof CVariableDeclaration vdecl)) {
       return;
     }
 
-    CVariableDeclaration vdecl = (CVariableDeclaration) declaration;
     String varName = vdecl.getQualifiedName();
     allVars.add(varName);
 
@@ -558,11 +553,11 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
     final CInitializer initializer = vdecl.getInitializer();
 
-    if (!(initializer instanceof CInitializerExpression)) {
+    if (!(initializer instanceof CInitializerExpression cInitializerExpression)) {
       return;
     }
 
-    CExpression exp = ((CInitializerExpression) initializer).getExpression();
+    CExpression exp = cInitializerExpression.getExpression();
     if (exp == null) {
       return;
     }
@@ -580,8 +575,9 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     // If we have a simple pointer, we handle it like a simple variable.
     // This allows us to track dependencies between simple references.
     String varName = scopeVar(function, lhs.toASTString());
-    if (lhs instanceof CPointerExpression && lhs.getExpressionType() instanceof CSimpleType) {
-      CExpression operand = ((CPointerExpression) lhs).getOperand();
+    if (lhs instanceof CPointerExpression cPointerExpression
+        && lhs.getExpressionType() instanceof CSimpleType) {
+      CExpression operand = cPointerExpression.getOperand();
       if (operand instanceof CIdExpression) {
         varName = scopeVar(function, operand.toASTString());
       }
@@ -596,8 +592,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
     dependencies.addVar(varName);
 
-    if (rhs instanceof CExpression) {
-      handleExpression(edge, ((CExpression) rhs), varName);
+    if (rhs instanceof CExpression cExpression) {
+      handleExpression(edge, cExpression, varName);
 
     } else if (rhs instanceof CFunctionCallExpression func) {
       // use FUNCTION_RETURN_VARIABLE for RIGHT SIDE
@@ -641,10 +637,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
        * and the var can be boolean, intEqual or intAdd,
        * because we know, the variable can have a random (unknown) value after the functioncall.
        * example: "scanf("%d", &input);" */
-      if (param instanceof CUnaryExpression
-          && UnaryOperator.AMPER == ((CUnaryExpression) param).getOperator()
-          && ((CUnaryExpression) param).getOperand() instanceof CIdExpression) {
-        final CIdExpression id = (CIdExpression) ((CUnaryExpression) param).getOperand();
+      if (param instanceof CUnaryExpression cUnaryExpression
+          && UnaryOperator.AMPER == cUnaryExpression.getOperator()
+          && cUnaryExpression.getOperand() instanceof CIdExpression id) {
+
         final String varName = id.getDeclaration().getQualifiedName();
 
         dependencies.addVar(varName);
@@ -784,8 +780,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   static boolean isGlobal(CExpression exp) {
     if (checkNotNull(exp) instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
-      if (decl instanceof CDeclaration) {
-        return ((CDeclaration) decl).isGlobal();
+      if (decl instanceof CDeclaration cDeclaration) {
+        return cDeclaration.isGlobal();
       }
     }
     return false;
@@ -794,8 +790,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   /** returns the value of a (nested) IntegerLiteralExpression or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {
     checkNotNull(exp);
-    if (exp instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) exp).getValue();
+    if (exp instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      return cIntegerLiteralExpression.getValue();
 
     } else if (exp instanceof CUnaryExpression unExp) {
       BigInteger value = getNumber(unExp.getOperand());
@@ -807,8 +803,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
         default -> null;
       };
 
-    } else if (exp instanceof CCastExpression) {
-      return getNumber(((CCastExpression) exp).getOperand());
+    } else if (exp instanceof CCastExpression cCastExpression) {
+      return getNumber(cCastExpression.getOperand());
 
     } else {
       return null;

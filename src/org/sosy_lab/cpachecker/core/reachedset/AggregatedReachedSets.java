@@ -96,8 +96,9 @@ public abstract class AggregatedReachedSets {
       lock.writeLock().lock();
 
       try {
-        if (pAggregatedReachedSets instanceof AggregatedThreadedReachedSets) {
-          otherAggregators.add((AggregatedThreadedReachedSets) pAggregatedReachedSets);
+        if (pAggregatedReachedSets
+            instanceof AggregatedThreadedReachedSets aggregatedThreadedReachedSets) {
+          otherAggregators.add(aggregatedThreadedReachedSets);
 
         } else {
           reachedSets.addAll(pAggregatedReachedSets.snapShot());

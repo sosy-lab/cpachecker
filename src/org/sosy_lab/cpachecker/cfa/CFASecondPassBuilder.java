@@ -394,10 +394,9 @@ public class CFASecondPassBuilder {
   }
 
   private void applyAttributes(AStatementEdge edge, AFunctionCall call) {
-    if (!(edge instanceof CStatementEdge)) {
+    if (!(edge instanceof CStatementEdge cEdge)) {
       return;
     }
-    CStatementEdge cEdge = (CStatementEdge) edge;
 
     AFunctionCallExpression f = call.getFunctionCallExpression();
     AFunctionDeclaration decl = f.getDeclaration();
@@ -436,7 +435,7 @@ public class CFASecondPassBuilder {
   }
 
   private boolean isAbortingFunction(AFunctionDeclaration pDecl) {
-    return (pDecl instanceof CFunctionDeclaration
-        && ((CFunctionDeclaration) pDecl).doesNotReturn());
+    return (pDecl instanceof CFunctionDeclaration cFunctionDeclaration
+        && cFunctionDeclaration.doesNotReturn());
   }
 }

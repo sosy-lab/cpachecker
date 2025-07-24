@@ -366,9 +366,9 @@ abstract class AbstractBMCAlgorithm
     } else {
       propagateSafetyInterrupt = null;
     }
-    if (invariantGenerator instanceof ConditionAdjustmentEventSubscriber) {
-      conditionAdjustmentEventSubscribers.add(
-          (ConditionAdjustmentEventSubscriber) invariantGenerator);
+    if (invariantGenerator
+        instanceof ConditionAdjustmentEventSubscriber conditionAdjustmentEventSubscriber) {
+      conditionAdjustmentEventSubscribers.add(conditionAdjustmentEventSubscriber);
     }
     invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
 
@@ -564,8 +564,8 @@ abstract class AbstractBMCAlgorithm
     Iterable<CandidateInvariant> candidatesToCheck = candidates;
     for (CandidateInvariant candidate : candidatesToCheck) {
       // No need to check the same clause twice
-      if (candidate instanceof Obligation) {
-        if (!checked.add(((Obligation) candidate).getBlockingClause())) {
+      if (candidate instanceof Obligation obligation) {
+        if (!checked.add(obligation.getBlockingClause())) {
           continue;
         }
         pCtiBlockingClauses.remove(candidate);
@@ -581,10 +581,10 @@ abstract class AbstractBMCAlgorithm
 
       // If we are not running KI-PDR and the candidate invariant is specified at a certain
       // location, checked keys (i.e., loop-bound states) should come from this location.
-      if (!extractCtiBlockingClauses && candidate instanceof SingleLocationFormulaInvariant) {
+      if (!extractCtiBlockingClauses
+          && candidate instanceof SingleLocationFormulaInvariant singleLocationFormulaInvariant) {
         checkedKeys =
-            getCheckedKeysAtLocation(
-                reachedSet, ((SingleLocationFormulaInvariant) candidate).getLocation());
+            getCheckedKeysAtLocation(reachedSet, singleLocationFormulaInvariant.getLocation());
       }
 
       InductionResult<CandidateInvariant> inductionResult =
@@ -1027,8 +1027,8 @@ abstract class AbstractBMCAlgorithm
         }
         for (AbstractState s : toRemove) {
           pReachedSet.remove(s);
-          if (s instanceof ARGState) {
-            ((ARGState) s).removeFromARG();
+          if (s instanceof ARGState aRGState) {
+            aRGState.removeFromARG();
           }
         }
       }
@@ -1043,12 +1043,12 @@ abstract class AbstractBMCAlgorithm
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
-    if (invariantGenerator instanceof StatisticsProvider) {
-      ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
+    if (invariantGenerator instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     if (predToKIndInv != null) {
       pStatsCollection.add(predToKIndInv);
@@ -1273,8 +1273,8 @@ abstract class AbstractBMCAlgorithm
         CandidateInvariant pCause,
         SymbolicCandiateInvariant pBlockingClause,
         List<SymbolicCandiateInvariant> pStrengthening) {
-      if (pCause instanceof Obligation) {
-        causingObligation = (Obligation) pCause;
+      if (pCause instanceof Obligation obligation) {
+        causingObligation = obligation;
         causingCandidateInvariant = causingObligation.causingCandidateInvariant;
       } else {
         causingCandidateInvariant = Objects.requireNonNull(pCause);

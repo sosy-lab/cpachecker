@@ -396,9 +396,9 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
     for (ARGState currentState : allChangedStates) {
 
       // Optimization to reduce number of solver calls:
-      if (currentState instanceof SLARGState) {
-        SlicingAbstractionsUtils.removeIncomingEdgesWithLocationMismatch((SLARGState) currentState);
-        SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch((SLARGState) currentState);
+      if (currentState instanceof SLARGState sLARGState) {
+        SlicingAbstractionsUtils.removeIncomingEdgesWithLocationMismatch(sLARGState);
+        SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch(sLARGState);
       }
 
       Map<ARGState, PersistentList<ARGState>> segmentMap =
@@ -541,9 +541,9 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
               + " must be infeasible!";
     }
 
-    assert !(startState instanceof SLARGState)
-        || ((SLARGState) startState).getEdgeSetToChild(endState) == null
-        || ((SLARGState) startState).getEdgeSetToChild(endState).size() > 0
+    assert !(startState instanceof SLARGState sLARGState)
+        || sLARGState.getEdgeSetToChild(endState) == null
+        || sLARGState.getEdgeSetToChild(endState).size() > 0
         || infeasible;
     return infeasible;
   }

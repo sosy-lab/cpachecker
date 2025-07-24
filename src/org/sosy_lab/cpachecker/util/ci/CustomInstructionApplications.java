@@ -379,10 +379,10 @@ public class CustomInstructionApplications {
         // inspect all CFA edges potential candidates
         for (CFANode node : cfa.nodes()) {
           for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-            if (edge instanceof CStatementEdge
-                && ((CStatementEdge) edge).getStatement()
-                    instanceof CExpressionAssignmentStatement) {
-              stmt = (CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement();
+            if (edge instanceof CStatementEdge cStatementEdge
+                && cStatementEdge.getStatement()
+                    instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+              stmt = cExpressionAssignmentStatement;
               if (stmt.getRightHandSide() instanceof CBinaryExpression
                   && ((CBinaryExpression) stmt.getRightHandSide())
                       .getOperator()

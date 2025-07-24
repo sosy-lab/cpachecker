@@ -349,11 +349,11 @@ public class ThreadingState
   private boolean isWaitingForOtherThread(CFAEdge edge) throws UnrecognizedCodeException {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       AStatement statement = ((AStatementEdge) edge).getStatement();
-      if (statement instanceof AFunctionCall) {
+      if (statement instanceof AFunctionCall aFunctionCall) {
         AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          final String functionName = aIdExpression.getName();
           if (THREAD_JOIN.equals(functionName)) {
             final String joiningThread = extractParamName(statement, 0);
             // check whether other thread is running and has at least one outgoing edge,

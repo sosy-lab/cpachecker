@@ -153,20 +153,20 @@ public class NullPointerChecks {
       }
     } else if (edge instanceof CStatementEdge) {
       CStatement stmt = ((CStatementEdge) edge).getStatement();
-      if (stmt instanceof CFunctionCallStatement) {
-        ((CFunctionCallStatement) stmt).getFunctionCallExpression().accept(visitor);
-      } else if (stmt instanceof CExpressionStatement) {
-        ((CExpressionStatement) stmt).getExpression().accept(visitor);
-      } else if (stmt instanceof CAssignment) {
-        ((CAssignment) stmt).getRightHandSide().accept(visitor);
-        ((CAssignment) stmt).getLeftHandSide().accept(visitor);
+      if (stmt instanceof CFunctionCallStatement cFunctionCallStatement) {
+        cFunctionCallStatement.getFunctionCallExpression().accept(visitor);
+      } else if (stmt instanceof CExpressionStatement cExpressionStatement) {
+        cExpressionStatement.getExpression().accept(visitor);
+      } else if (stmt instanceof CAssignment cAssignment) {
+        cAssignment.getRightHandSide().accept(visitor);
+        cAssignment.getLeftHandSide().accept(visitor);
       }
     } else if (edge instanceof CDeclarationEdge) {
       CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-      if (!decl.isGlobal() && decl instanceof CVariableDeclaration) {
+      if (!decl.isGlobal() && decl instanceof CVariableDeclaration cVariableDeclaration) {
         try {
           for (CAssignment assignment :
-              CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
+              CInitializers.convertToAssignments(cVariableDeclaration, edge)) {
             // left-hand side can be ignored (it is the currently declared variable
             assignment.getRightHandSide().accept(visitor);
           }
@@ -322,11 +322,11 @@ public class NullPointerChecks {
         return null;
       }
       if (e.getOperator() == UnaryOperator.AMPER) {
-        if (e.getOperand() instanceof CFieldReference
-            && ((CFieldReference) e.getOperand()).isPointerDereference()) {
+        if (e.getOperand() instanceof CFieldReference cFieldReference
+            && cFieldReference.isPointerDereference()) {
           // &(s->f)
           // ignore this dereference and visit "s"
-          return ((CFieldReference) e.getOperand()).getFieldOwner().accept(this);
+          return cFieldReference.getFieldOwner().accept(this);
         }
       }
       return e.getOperand().accept(this);

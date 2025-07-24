@@ -279,10 +279,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // check if analysis stopped exploration due to true state in automaton --> concrete successors
     // may exist
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
-      if (state instanceof AutomatonState
-          && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
+      if (state instanceof AutomatonState automatonState
+          && automatonState.getOwningAutomatonName().equals("AssumptionAutomaton")) {
         if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState(
-            (AutomatonState) state, pSuccEdge, logger)) {
+            automatonState, pSuccEdge, logger)) {
           return false;
         }
       }
@@ -361,8 +361,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // assume root is the root node of the first ARG constructed
     ARGState root = rootNodes.iterator().next();
 
-    if (root.getWrappedState() instanceof AbstractWrapperState) {
-      wrapped = ((AbstractWrapperState) root.getWrappedState()).getWrappedStates();
+    if (root.getWrappedState() instanceof AbstractWrapperState abstractWrapperState) {
+      wrapped = abstractWrapperState.getWrappedStates();
     } else {
       wrapped = Collections.singleton(root.getWrappedState());
     }
@@ -394,16 +394,16 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   }
 
   private Iterable<AbstractState> getWrappedStates(ARGState wrapper) {
-    if (wrapper.getWrappedState() instanceof AbstractWrapperState) {
-      return ((AbstractWrapperState) wrapper.getWrappedState()).getWrappedStates();
+    if (wrapper.getWrappedState() instanceof AbstractWrapperState abstractWrapperState) {
+      return abstractWrapperState.getWrappedStates();
     } else {
       return Collections.singleton(wrapper.getWrappedState());
     }
   }
 
   private String getName(AbstractState pState) {
-    if (pState instanceof AutomatonState) {
-      return ((AutomatonState) pState).getOwningAutomatonName();
+    if (pState instanceof AutomatonState automatonState) {
+      return automatonState.getOwningAutomatonName();
     }
     if (pState instanceof PredicateAbstractState) {
       return PredicateAbstractState.class.getName();
@@ -572,8 +572,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (restartAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) restartAlgorithm).collectStatistics(pStatsCollection);
+    if (restartAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }

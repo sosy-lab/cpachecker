@@ -435,10 +435,10 @@ public class SMGCPAAddressVisitor
             evaluator.getTargetObjectAndOffset(
                 currentState, structAddr.getMemoryAddress(), finalFieldOffset));
 
-      } else if (structValue instanceof SymbolicIdentifier
-          && ((SymbolicIdentifier) structValue).getRepresentedLocation().isPresent()) {
+      } else if (structValue instanceof SymbolicIdentifier symbolicIdentifier
+          && symbolicIdentifier.getRepresentedLocation().isPresent()) {
         MemoryLocation variableAndOffset =
-            ((SymbolicIdentifier) structValue).getRepresentedLocation().orElseThrow();
+            symbolicIdentifier.getRepresentedLocation().orElseThrow();
         String varName = variableAndOffset.getIdentifier();
         Value baseOffset = new NumericValue(BigInteger.valueOf(variableAndOffset.getOffset()));
         Value finalFieldOffset = evaluator.addBitOffsetValues(baseOffset, fieldOffset);
@@ -504,12 +504,10 @@ public class SMGCPAAddressVisitor
       SMGState currentState = evaluatedSubExpr.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = evaluatedSubExpr.getValue();
-      if (!(value instanceof AddressExpression)) {
+      if (!(value instanceof AddressExpression pointerValue)) {
         resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         continue;
       }
-
-      AddressExpression pointerValue = (AddressExpression) value;
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();

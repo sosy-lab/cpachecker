@@ -228,9 +228,9 @@ class AutomatonExpressionArguments {
   }
 
   private CAstNode findSubstitute(CAstNode pNode) {
-    if (pNode instanceof CIdExpression) {
+    if (pNode instanceof CIdExpression cIdExpression) {
       // Substitute id for automata variable value or transition variable name.
-      String idName = ((CIdExpression) pNode).getName();
+      String idName = cIdExpression.getName();
       AutomatonVariable automatonVariable = getAutomatonVariable(idName);
       if (automatonVariable != null) {
         return new CIntegerLiteralExpression(
@@ -317,8 +317,8 @@ class AutomatonExpressionArguments {
     ImmutableList.Builder<AExpression> builder = ImmutableList.builder();
     SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(this::findSubstitute);
     for (AExpression expr : pAssumptions) {
-      if ((expr instanceof CExpression)) {
-        CExpression substitutedExpr = (CExpression) ((CExpression) expr).accept(visitor);
+      if ((expr instanceof CExpression cExpression)) {
+        CExpression substitutedExpr = (CExpression) cExpression.accept(visitor);
         if (substitutedExpr.getExpressionType() instanceof CProblemType) {
           logger.log(
               Level.WARNING,

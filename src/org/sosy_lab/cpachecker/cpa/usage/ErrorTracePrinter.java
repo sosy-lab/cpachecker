@@ -128,8 +128,8 @@ public abstract class ErrorTracePrinter {
   public void printErrorTraces(UnmodifiableReachedSet reached) {
     preparationTimer.start();
     ReachedSet reachedSet;
-    if (reached instanceof ForwardingReachedSet) {
-      reachedSet = ((ForwardingReachedSet) reached).getDelegate();
+    if (reached instanceof ForwardingReachedSet forwardingReachedSet) {
+      reachedSet = forwardingReachedSet.getDelegate();
     } else {
       reachedSet = (ReachedSet) reached;
     }

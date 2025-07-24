@@ -249,8 +249,8 @@ public class CFAToCTranslator {
       return ImmutableList.of();
     }
 
-    if (pNode instanceof CFALabelNode) {
-      pBlock.addStatement(createLabel((CFALabelNode) pNode));
+    if (pNode instanceof CFALabelNode cFALabelNode) {
+      pBlock.addStatement(createLabel(cFALabelNode));
     }
 
     Collection<Pair<CFAEdge, CompoundStatement>> outgoingEdges =
@@ -484,8 +484,8 @@ public class CFAToCTranslator {
           declaration =
               lDeclarationEdge.getDeclaration().toASTString(AAstNodeRepresentation.DEFAULT);
 
-          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-            CVariableDeclaration varDecl = (CVariableDeclaration) lDeclarationEdge.getDeclaration();
+          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration varDecl) {
+
             if (varDecl.getType() instanceof CArrayType
                 && varDecl.getInitializer() instanceof CInitializerExpression) {
               int assignAfterPos = declaration.indexOf("=") + 1;

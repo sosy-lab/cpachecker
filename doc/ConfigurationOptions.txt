@@ -56,7 +56,6 @@ output.path = "output/"
 rootDirectory = "."
 
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 #
@@ -64,9 +63,9 @@ rootDirectory = "."
 
 # Further options for Bitwuzla in addition to the default options. Format: 
 # "option_name=value" with ’,’ to separate options. Option names and values
-# can be found in the Bitwuzla documentation
-# online:https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionEExample:
-# "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
+# can be found in the Bitwuzla documentation online:
+# https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionE
+# Example: "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
 solver.bitwuzla.furtherOptions = ""
 
 # The SAT solver used by Bitwuzla.
@@ -74,8 +73,8 @@ solver.bitwuzla.satSolver = CADICAL
   enum:     [LINGELING, CMS, CADICAL, KISSAT]
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ’,’ to seperate options. Optionname and value can
-# be found in BtorOption or Boolector C Api.Example:
+# "Optionname=value" with ’,’ to separate options. Option names and values
+# can be found in BtorOption or Boolector C Api. Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
 
@@ -85,6 +84,10 @@ solver.boolector.satSolver = CADICAL
 
 # Counts all operations and interactions towards the SMT solver.
 solver.collectStatistics = false
+
+# Further options that will be passed to CVC5 in addition to the default
+# options. Format is 'key1=value1,key2=value2'
+solver.cvc5.furtherOptions = ""
 
 # apply additional validation checks for interpolation results
 solver.cvc5.validateInterpolants = false
@@ -3851,15 +3854,23 @@ cpa.value.interpolation.applyUnsatSuffixOptimization = true
 # whether to manage the callstack, which is needed for BAM
 cpa.value.interpolation.manageCallstack = true
 
+# Defines which variables may be combined in binary and ternary invariants
+cpa.value.invExport.combinationStrategy = ALL
+  enum:     [ALL, FUNCTION_SCOPE, PROGRAM_RELATION, ASSUME_RELATION]
+
 # Enable invariants that use  an arithmetic operator(linear invariants are
 # enabled separately)
-cpa.value.invExport.exportArithmetic = true
+cpa.value.invExport.exportArithmetic = false
 
 # Enable to export invariants that include two variables
 cpa.value.invExport.exportBinary = true
 
 # Enable invariants that use a bit operator
 cpa.value.invExport.exportBitops = true
+
+# Enable to export invariants stating whether single variables are even or
+# odd
+cpa.value.invExport.exportEvenVal = true
 
 # Enable to export linear equalities or inequalities over variables, e.g., ax
 # + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
@@ -4469,8 +4480,8 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 java.version = JavaCore.VERSION_1_7
 
 # Programming language of the input program. If not given explicitly,
-# auto-detection will occur
-# C, Java, or LLVM IR?
+# auto-detection will occur. LLVM IR is currently unsupported as input (cf.
+# https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).
 language = C
   enum:     [C, JAVA, LLVM]
 language = no default value
@@ -4671,8 +4682,8 @@ parser.readLineDirectives = false
 # new line. Then the line number corresponds to the token number.
 parser.transformTokensToLines = false
 
-# For C files, convert to LLVM IR with clang first and then use the LLVM
-# parser.
+# DEPRECATED: For C files, convert to LLVM IR with clang first and then use
+# the LLVM parser (currently unsupported).
 parser.useClang = false
 
 # For C files, run the preprocessor on them before parsing. Note that all

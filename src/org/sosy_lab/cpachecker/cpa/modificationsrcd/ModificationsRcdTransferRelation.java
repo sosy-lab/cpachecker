@@ -226,8 +226,8 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       // only new declarations are added and existing declarations are deleted
       if (ignoreDeclarations) {
 
-        if (pEdgeInGiven instanceof CDeclarationEdge) {
-          if (!declarationNameAlreadyExistsInOtherCFA(true, (CDeclarationEdge) pEdgeInGiven)) {
+        if (pEdgeInGiven instanceof CDeclarationEdge cDeclarationEdge) {
+          if (!declarationNameAlreadyExistsInOtherCFA(true, cDeclarationEdge)) {
             return Optional.of(
                 new ModificationsRcdState(
                     pEdgeInGiven.getSuccessor(),
@@ -392,47 +392,46 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     Set<String> usedVars = new HashSet<>();
 
     // EdgeType is..
-    if (pEdge instanceof CDeclarationEdge) { // DeclarationEdge
-      CDeclaration decl = ((CDeclarationEdge) pEdge).getDeclaration();
+    if (pEdge instanceof CDeclarationEdge cDeclarationEdge) { // DeclarationEdge
+      CDeclaration decl = cDeclarationEdge.getDeclaration();
 
       if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
         return false;
-      } else if (decl instanceof CVariableDeclaration) {
-        CInitializer initl = ((CVariableDeclaration) decl).getInitializer();
-        if (initl instanceof CInitializerExpression) {
-          usedVars = ((CInitializerExpression) initl).getExpression().accept(visitor);
+      } else if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+        CInitializer initl = cVariableDeclaration.getInitializer();
+        if (initl instanceof CInitializerExpression cInitializerExpression) {
+          usedVars = cInitializerExpression.getExpression().accept(visitor);
         } else {
           return !pVars.isEmpty(); // not implemented for this initializer types, fallback
         }
       }
 
-    } else if (pEdge instanceof CReturnStatementEdge) { // ReturnStatementEdge
-      CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orElse(null);
+    } else if (pEdge instanceof CReturnStatementEdge cReturnStatementEdge) { // ReturnStatementEdge
+      CExpression exp = cReturnStatementEdge.getExpression().orElse(null);
       if (exp != null) {
         usedVars = exp.accept(visitor);
       } else {
         return !pVars.isEmpty(); // fallback, shouldn't happen
       }
-    } else if (pEdge instanceof CAssumeEdge) { // AssumeEdge
-      usedVars = ((CAssumeEdge) pEdge).getExpression().accept(visitor);
-    } else if (pEdge instanceof CStatementEdge) { // StatementEdge
-      CStatement stmt = ((CStatementEdge) pEdge).getStatement();
+    } else if (pEdge instanceof CAssumeEdge cAssumeEdge) { // AssumeEdge
+      usedVars = cAssumeEdge.getExpression().accept(visitor);
+    } else if (pEdge instanceof CStatementEdge cStatementEdge) { // StatementEdge
+      CStatement stmt = cStatementEdge.getStatement();
 
-      if (stmt instanceof CExpressionStatement) {
-        usedVars = ((CExpressionStatement) stmt).getExpression().accept(visitor);
+      if (stmt instanceof CExpressionStatement cExpressionStatement) {
+        usedVars = cExpressionStatement.getExpression().accept(visitor);
       } else {
-        if (stmt instanceof CAssignment) {
-          CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+        if (stmt instanceof CAssignment cAssignment) {
+          CLeftHandSide lhs = cAssignment.getLeftHandSide();
           if (!(lhs instanceof CIdExpression)) {
             usedVars.addAll(lhs.accept(visitor));
           }
-          if (stmt instanceof CExpressionAssignmentStatement) {
-            usedVars.addAll(
-                ((CExpressionAssignmentStatement) stmt).getRightHandSide().accept(visitor));
+          if (stmt instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+            usedVars.addAll(cExpressionAssignmentStatement.getRightHandSide().accept(visitor));
           }
         }
-        if (stmt instanceof CFunctionCall) {
-          CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
+        if (stmt instanceof CFunctionCall cFunctionCall) {
+          CFunctionCallExpression funCall = cFunctionCall.getFunctionCallExpression();
           usedVars.addAll(funCall.getFunctionNameExpression().accept(visitor));
           for (CExpression exp : funCall.getParameterExpressions()) {
             usedVars.addAll(exp.accept(visitor));
@@ -442,8 +441,8 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
 
     } else if (pEdge instanceof BlankEdge) { // BlankEdge
       return false;
-    } else if (pEdge instanceof CFunctionCallEdge) { // FunctionCallEdge
-      for (CExpression exp : ((CFunctionCallEdge) pEdge).getArguments()) {
+    } else if (pEdge instanceof CFunctionCallEdge cFunctionCallEdge) { // FunctionCallEdge
+      for (CExpression exp : cFunctionCallEdge.getArguments()) {
         usedVars.addAll(exp.accept(visitor));
       }
     } else if (pEdge instanceof CFunctionSummaryEdge

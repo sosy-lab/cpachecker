@@ -33,11 +33,11 @@ public abstract sealed class JArrayLengthExpression extends AbstractExpression
   }
 
   public static JArrayLengthExpression getInstance(JExpression pQualifier, FileLocation pLocation) {
-    if (pQualifier instanceof JArraySubscriptExpression) {
-      return new JSubArrayLengthExpression(pLocation, (JArraySubscriptExpression) pQualifier);
+    if (pQualifier instanceof JArraySubscriptExpression jArraySubscriptExpression) {
+      return new JSubArrayLengthExpression(pLocation, jArraySubscriptExpression);
 
-    } else if (pQualifier instanceof JIdExpression) {
-      return new JTopArrayLengthExpression(pLocation, (JIdExpression) pQualifier);
+    } else if (pQualifier instanceof JIdExpression jIdExpression) {
+      return new JTopArrayLengthExpression(pLocation, jIdExpression);
 
     } else {
       throw new AssertionError("Unexpected expression " + pQualifier);

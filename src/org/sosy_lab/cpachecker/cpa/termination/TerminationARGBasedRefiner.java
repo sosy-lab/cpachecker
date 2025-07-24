@@ -65,8 +65,8 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
         new TerminationARGBasedRefinerConfig(terminationCPA.getConfig()).refinerFactory;
     Refiner refiner = refinerFactory.create(pCpa, pLogger, pShutdownNotifier);
 
-    if (refiner instanceof AbstractARGBasedRefiner) {
-      return new TerminationARGBasedRefiner((AbstractARGBasedRefiner) refiner, terminationCPA);
+    if (refiner instanceof AbstractARGBasedRefiner abstractARGBasedRefiner) {
+      return new TerminationARGBasedRefiner(abstractARGBasedRefiner, terminationCPA);
     } else {
       throw new InvalidConfigurationException(
           TerminationARGBasedRefiner.class.getSimpleName() + " requires ARGBasedRefiner.");

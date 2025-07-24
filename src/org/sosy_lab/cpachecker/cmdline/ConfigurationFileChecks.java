@@ -172,7 +172,12 @@ public class ConfigurationFileChecks {
   @Options
   private static class OptionsWithSpecialHandlingInTest {
 
-    @Option(secure = true, description = "C, Java, or LLVM IR?")
+    @Option(
+        secure = true,
+        description =
+            "Programming language of the input program. If not given explicitly, auto-detection"
+                + " will occur. LLVM IR is currently unsupported as input (cf."
+                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
     private Language language = Language.C;
 
     @Option(
@@ -251,10 +256,10 @@ public class ConfigurationFileChecks {
   private static ConfigurationBuilder parse(Object pConfigFile)
       throws IOException, InvalidConfigurationException, URISyntaxException {
     Path configFile;
-    if (pConfigFile instanceof Path) {
-      configFile = (Path) pConfigFile;
-    } else if (pConfigFile instanceof URL) {
-      configFile = Path.of(((URL) pConfigFile).toURI());
+    if (pConfigFile instanceof Path path) {
+      configFile = path;
+    } else if (pConfigFile instanceof URL uRL) {
+      configFile = Path.of(uRL.toURI());
     } else {
       throw new AssertionError("Unexpected config file " + pConfigFile);
     }

@@ -127,7 +127,7 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
   public boolean equals(final Object pObj) {
     // This equals should be overridden for state dependant values, as the states might be equal,
     // but the values not. -> Override always!
-    return pObj instanceof SymbolicExpression
-        && Objects.equals(representedLocation, ((SymbolicExpression) pObj).representedLocation);
+    return pObj instanceof SymbolicExpression symbolicExpression
+        && Objects.equals(representedLocation, symbolicExpression.representedLocation);
   }
 }

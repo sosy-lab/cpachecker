@@ -117,8 +117,8 @@ public class GlobalAccessChecker {
 
     if (ast instanceof CRightHandSide) {
 
-      if (ast instanceof CExpression) {
-        return ((CExpression) ast).accept(GlobalAccessVisitor.INSTANCE);
+      if (ast instanceof CExpression cExpression) {
+        return cExpression.accept(GlobalAccessVisitor.INSTANCE);
 
       } else if (ast instanceof CFunctionCallExpression func) {
         return anyHasGlobalAccess(func.getParameterExpressions());
@@ -126,11 +126,11 @@ public class GlobalAccessChecker {
 
     } else if (ast instanceof CInitializer) {
 
-      if (ast instanceof CInitializerExpression) {
-        return hasGlobalAccess(((CInitializerExpression) ast).getExpression());
+      if (ast instanceof CInitializerExpression cInitializerExpression) {
+        return hasGlobalAccess(cInitializerExpression.getExpression());
 
-      } else if (ast instanceof CInitializerList) {
-        return anyHasGlobalAccess(((CInitializerList) ast).getInitializers());
+      } else if (ast instanceof CInitializerList cInitializerList) {
+        return anyHasGlobalAccess(cInitializerList.getInitializers());
 
       } else if (ast instanceof CDesignatedInitializer di) {
         return anyHasGlobalAccess(di.getDesignators()) || hasGlobalAccess(di.getRightHandSide());
@@ -165,27 +165,27 @@ public class GlobalAccessChecker {
       } else if (ast instanceof CExpressionAssignmentStatement stat) {
         return hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
 
-      } else if (ast instanceof CFunctionCallStatement) {
-        return hasGlobalAccess(((CFunctionCallStatement) ast).getFunctionCallExpression());
+      } else if (ast instanceof CFunctionCallStatement cFunctionCallStatement) {
+        return hasGlobalAccess(cFunctionCallStatement.getFunctionCallExpression());
 
-      } else if (ast instanceof CExpressionStatement) {
-        return hasGlobalAccess(((CExpressionStatement) ast).getExpression());
+      } else if (ast instanceof CExpressionStatement cExpressionStatement) {
+        return hasGlobalAccess(cExpressionStatement.getExpression());
       }
 
-    } else if (ast instanceof CReturnStatement) {
-      Optional<CExpression> returnExp = ((CReturnStatement) ast).getReturnValue();
-      Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
+    } else if (ast instanceof CReturnStatement cReturnStatement) {
+      Optional<CExpression> returnExp = cReturnStatement.getReturnValue();
+      Optional<CAssignment> returnAssignment = cReturnStatement.asAssignment();
       return (returnExp.isPresent() && hasGlobalAccess(returnExp.orElseThrow()))
           || (returnAssignment.isPresent() && hasGlobalAccess(returnAssignment.orElseThrow()));
 
     } else if (ast instanceof CDesignator) {
 
-      if (ast instanceof CArrayDesignator) {
-        return hasGlobalAccess(((CArrayDesignator) ast).getSubscriptExpression());
+      if (ast instanceof CArrayDesignator cArrayDesignator) {
+        return hasGlobalAccess(cArrayDesignator.getSubscriptExpression());
 
-      } else if (ast instanceof CArrayRangeDesignator) {
-        return hasGlobalAccess(((CArrayRangeDesignator) ast).getFloorExpression())
-            || hasGlobalAccess(((CArrayRangeDesignator) ast).getCeilExpression());
+      } else if (ast instanceof CArrayRangeDesignator cArrayRangeDesignator) {
+        return hasGlobalAccess(cArrayRangeDesignator.getFloorExpression())
+            || hasGlobalAccess(cArrayRangeDesignator.getCeilExpression());
 
       } else if (ast instanceof CFieldDesignator) {
         return false;
@@ -205,7 +205,8 @@ public class GlobalAccessChecker {
     @Override
     public Boolean visit(CIdExpression pE) {
       CSimpleDeclaration decl = pE.getDeclaration();
-      return decl instanceof AbstractDeclaration && ((AbstractDeclaration) decl).isGlobal();
+      return decl instanceof AbstractDeclaration abstractDeclaration
+          && abstractDeclaration.isGlobal();
     }
 
     @Override

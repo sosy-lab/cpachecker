@@ -118,8 +118,8 @@ public class CParserUtils {
                   + assignment.getRightHandSide().toASTString()
                   + "' is not supported in automaton assumption");
         }
-      } else if (statement instanceof CExpressionStatement) {
-        result.add(((CExpressionStatement) statement).getExpression());
+      } else if (statement instanceof CExpressionStatement cExpressionStatement) {
+        result.add(cExpressionStatement.getExpression());
       } else {
         throw new InvalidAutomatonException(
             "Statement '" + statement.toASTString() + "' is not supported in automaton assumption");
@@ -156,10 +156,10 @@ public class CParserUtils {
       throws InvalidAutomatonException, InterruptedException {
     try {
       CAstNode statement = parser.parseSingleStatement(code, scope);
-      if (!(statement instanceof CStatement)) {
+      if (!(statement instanceof CStatement cStatement)) {
         throw new InvalidAutomatonException("Not a valid statement: " + statement.toASTString());
       }
-      return (CStatement) statement;
+      return cStatement;
     } catch (ParserException e) {
       throw new InvalidAutomatonException(
           "Error during parsing C code \"" + code + "\": " + e.getMessage());
@@ -248,8 +248,8 @@ public class CParserUtils {
       if (tree instanceof LeafExpression) {
         LeafExpression<AExpression> leaf = (LeafExpression<AExpression>) tree;
         AExpression expression = leaf.getExpression();
-        if (expression instanceof CExpression) {
-          result.add(new CExpressionStatement(FileLocation.DUMMY, (CExpression) expression));
+        if (expression instanceof CExpression cExpression) {
+          result.add(new CExpressionStatement(FileLocation.DUMMY, cExpression));
         } else {
           fallBack = true;
         }
@@ -257,8 +257,8 @@ public class CParserUtils {
         for (ExpressionTree<AExpression> child : ExpressionTrees.getChildren(tree)) {
           if (child instanceof LeafExpression) {
             AExpression expression = ((LeafExpression<AExpression>) child).getExpression();
-            if (expression instanceof CExpression) {
-              result.add(new CExpressionStatement(FileLocation.DUMMY, (CExpression) expression));
+            if (expression instanceof CExpression cExpression) {
+              result.add(new CExpressionStatement(FileLocation.DUMMY, cExpression));
             } else {
               fallBack = true;
             }
@@ -477,10 +477,10 @@ public class CParserUtils {
             return ExpressionTrees.getTrue();
           }
           AExpression expression = optExpression.get();
-          if (!(expression instanceof AIntegerLiteralExpression)) {
+          if (!(expression instanceof AIntegerLiteralExpression literal)) {
             return ExpressionTrees.getTrue();
           }
-          AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+
           // If the value is zero, the current path is 'false', so we do not add it.
           // If the value is one, we add the current path
           if (!literal.getValue().equals(BigInteger.ZERO)) {
@@ -571,12 +571,12 @@ public class CParserUtils {
   }
 
   private static Map<AExpression, AExpression> collectCPAcheckerTMPValues(CFAEdge pEdge) {
-    if (pEdge instanceof AStatementEdge) {
-      AStatement statement = ((AStatementEdge) pEdge).getStatement();
+    if (pEdge instanceof AStatementEdge aStatementEdge) {
+      AStatement statement = aStatementEdge.getStatement();
       if (statement instanceof AExpressionAssignmentStatement expAssignStmt) {
         ALeftHandSide lhs = expAssignStmt.getLeftHandSide();
-        if (lhs instanceof AIdExpression
-            && ((AIdExpression) lhs).getName().contains(CPACHECKER_TMP_PREFIX)) {
+        if (lhs instanceof AIdExpression aIdExpression
+            && aIdExpression.getName().contains(CPACHECKER_TMP_PREFIX)) {
           AExpression rhs = expAssignStmt.getRightHandSide();
           return ImmutableMap.of(lhs, rhs);
         }

@@ -139,26 +139,23 @@ public final class ReachingDefUtils {
   public static Set<MemoryLocation> possiblePointees(CExpression pExp, PointerState pPointerState) {
     Set<MemoryLocation> possibleOperands;
 
-    if (pExp instanceof CPointerExpression) {
-      possibleOperands = possiblePointees(((CPointerExpression) pExp).getOperand(), pPointerState);
+    if (pExp instanceof CPointerExpression cPointerExpression) {
+      possibleOperands = possiblePointees(cPointerExpression.getOperand(), pPointerState);
 
-    } else if (pExp instanceof CIdExpression) {
-      return Collections.singleton(
-          MemoryLocation.forDeclaration(((CIdExpression) pExp).getDeclaration()));
+    } else if (pExp instanceof CIdExpression cIdExpression) {
+      return Collections.singleton(MemoryLocation.forDeclaration(cIdExpression.getDeclaration()));
 
-    } else if (pExp instanceof CFieldReference) {
-      if (((CFieldReference) pExp).isPointerDereference()) {
-        possibleOperands =
-            possiblePointees(((CFieldReference) pExp).getFieldOwner(), pPointerState);
+    } else if (pExp instanceof CFieldReference cFieldReference) {
+      if (cFieldReference.isPointerDereference()) {
+        possibleOperands = possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
       } else {
-        return possiblePointees(((CFieldReference) pExp).getFieldOwner(), pPointerState);
+        return possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
       }
-    } else if (pExp instanceof CArraySubscriptExpression) {
-      return possiblePointees(
-          ((CArraySubscriptExpression) pExp).getArrayExpression(), pPointerState);
+    } else if (pExp instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      return possiblePointees(cArraySubscriptExpression.getArrayExpression(), pPointerState);
 
-    } else if (pExp instanceof CCastExpression) {
-      return possiblePointees(((CCastExpression) pExp).getOperand(), pPointerState);
+    } else if (pExp instanceof CCastExpression cCastExpression) {
+      return possiblePointees(cCastExpression.getOperand(), pPointerState);
     } else {
       return null;
     }

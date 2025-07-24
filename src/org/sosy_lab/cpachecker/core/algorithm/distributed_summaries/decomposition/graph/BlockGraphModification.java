@@ -89,8 +89,8 @@ public class BlockGraphModification {
     for (CFANode node : clone.nodes()) {
       String functionName = node.getFunction().getQualifiedName();
       allNodes.put(functionName, node);
-      if (node instanceof FunctionEntryNode) {
-        functionEntryNodes.put(functionName, (FunctionEntryNode) node);
+      if (node instanceof FunctionEntryNode functionEntryNode) {
+        functionEntryNodes.put(functionName, functionEntryNode);
       }
     }
     return new MutableCFA(functionEntryNodes, allNodes, clone.getMetadata());

@@ -147,8 +147,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     PrecisionAdjustment wrappedPrec = getWrappedCpa().getPrecisionAdjustment();
-    if (wrappedPrec instanceof SimplePrecisionAdjustment) {
-      return new ARGSimplePrecisionAdjustment((SimplePrecisionAdjustment) wrappedPrec);
+    if (wrappedPrec instanceof SimplePrecisionAdjustment simplePrecisionAdjustment) {
+      return new ARGSimplePrecisionAdjustment(simplePrecisionAdjustment);
     } else {
       return new ARGPrecisionAdjustment(wrappedPrec, inCPAEnabledAnalysis, stats);
     }
