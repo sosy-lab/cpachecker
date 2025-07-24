@@ -21,13 +21,13 @@ public final class PointerUtils {
 
   private PointerUtils() {}
 
-  private static boolean isStruct(Type pType) {
+  public static boolean isStruct(Type pType) {
     return pType instanceof CType cType
         && cType.getCanonicalType() instanceof CComplexType complexType
         && complexType.getKind() == ComplexTypeKind.STRUCT;
   }
 
-  private static boolean isUnion(Type pType) {
+  public static boolean isUnion(Type pType) {
     return pType instanceof CType cType
         && cType.getCanonicalType() instanceof CComplexType complexType
         && complexType.getKind() == ComplexTypeKind.UNION;

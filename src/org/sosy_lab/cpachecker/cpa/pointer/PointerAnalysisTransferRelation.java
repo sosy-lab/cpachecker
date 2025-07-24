@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -89,8 +88,6 @@ import org.sosy_lab.cpachecker.cpa.pointer.util.PointerTarget;
 import org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.StructLocation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -501,6 +498,17 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
     LocationSet lhsLocations = getReferencedLocations(pLhs, pState, false, pCfaEdge);
     LocationSet rhsTargets = getReferencedLocations(pRhs, pState, true, pCfaEdge);
+    if (pLhs instanceof CFieldReference pCFieldReference) {
+      CType baseType = pCFieldReference.getFieldOwner().getExpressionType().getCanonicalType();
+
+      while (baseType instanceof CPointerType ptrType) {
+        baseType = ptrType.getType().getCanonicalType();
+      }
+      if (PointerUtils.isUnion(baseType)) {
+        // TODO change assignment for union
+        return handleAssignment(pState, lhsLocations, rhsTargets, pCfaEdge);
+      }
+    }
     // TODO: Handle the case pLhs is CFieldReference
     return handleAssignment(pState, lhsLocations, rhsTargets, pCfaEdge);
   }
@@ -696,11 +704,19 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                   default -> LocationSetTop.INSTANCE;
                 };
 
-            if (shouldDereference) {
+            if (shouldDereference
+                && (strategy == StructHandlingStrategy.STRUCT_INSTANCE
+                    || strategy == StructHandlingStrategy.ALL_FIELDS)) {
               return dereference(baseLocation);
             } else {
               return baseLocation;
             }
+
+            //            if (shouldDereference) {
+            //              return dereference(baseLocation);
+            //            } else {
+            //              return baseLocation;
+            //            }
           }
 
           @Override
@@ -763,7 +779,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
           @Override
           public LocationSet visit(CStringLiteralExpression pStringLiteralExpression) {
-            return LocationSetBot.INSTANCE;
+            // TODO create StringLiteralLocation
+            String literal = pStringLiteralExpression.getContentWithoutNullTerminator();
+            MemoryLocation stringLoc = MemoryLocation.forIdentifier("__string_literal_" + literal);
+            return ExplicitLocationSet.from(new MemoryLocationPointer(stringLoc));
           }
 
           @Override
