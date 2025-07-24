@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -416,13 +417,13 @@ public class ConstraintsSolver {
 
   private void preparePersistentProverForCheck(Collection<BooleanFormula> constraintsToCheck)
       throws InterruptedException {
-    int[] totalKeptRef = new int[] {0};
-    int[] totalRemovedRef = new int[] {0};
+    AtomicInteger totalKeptRef = new AtomicInteger();
+    AtomicInteger totalRemovedRef = new AtomicInteger();
 
     buildProverStackFor(constraintsToCheck, totalKeptRef, totalRemovedRef);
 
-    int totalKept = totalKeptRef[0];
-    int totalRemoved = totalRemovedRef[0];
+    int totalKept = totalKeptRef.get();
+    int totalRemoved = totalRemovedRef.get();
 
     if (totalKept + totalRemoved > 0) {
       stats.reuseRatio.setNextValue((double) totalKept / (totalKept + totalRemoved));
@@ -451,7 +452,9 @@ public class ConstraintsSolver {
   }
 
   private void buildProverStackFor(
-      Collection<BooleanFormula> constraintsToCheck, int[] totalKept, int[] totalRemoved) {
+      Collection<BooleanFormula> constraintsToCheck,
+      AtomicInteger totalKept,
+      AtomicInteger totalRemoved) {
     // Descending iterator through current stack:
     //   If stackFormula is in constraintsToCheck: save in retained, continue.
     //   eif stackFormula is not in constraintsToCheck and retained empty: remove from top,
@@ -472,7 +475,7 @@ public class ConstraintsSolver {
       if (constraintsToCheck.contains(constraintOnStack)) {
         // Remember formulas that are needed and already processed, so that we can remove them in
         // the correct order if a lower formula needs to be removed.
-        totalKept[0]++;
+        totalKept.getAndIncrement();
         retainedFormulas.addLast(constraintOnStack);
 
       } else {
@@ -480,14 +483,14 @@ public class ConstraintsSolver {
           // Remove current stack top.
           // Potentially problematic on level 1 for some solvers!
           persistentProver.pop();
-          totalRemoved[0]++;
+          totalRemoved.getAndIncrement();
           currentStack.remove();
 
         } else {
           // We need to remove levels that we already iterated through, they are found in
           // retainedFormulas.
           formulasToRemove = retainedFormulas;
-          totalRemoved[0] += retainedFormulas.size();
+          totalRemoved.getAndAdd(retainedFormulas.size());
           // Remove from the top of the stack and restart iterator.
           removeMultipleFormulasFromTop(
               formulasToRemove, constraintsToCheck, totalKept, totalRemoved);
@@ -503,8 +506,8 @@ public class ConstraintsSolver {
   private void removeMultipleFormulasFromTop(
       Deque<BooleanFormula> formulasToRemove,
       Collection<BooleanFormula> constraintsToCheck,
-      int[] totalKept,
-      int[] totalRemoved) {
+      AtomicInteger totalKept,
+      AtomicInteger totalRemoved) {
     assert !formulasToRemove.isEmpty();
     // Remove from the top.
     stats.persistentProverUsedIncrementallyFormulasPopdAndRepushed.inc();
