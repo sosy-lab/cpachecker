@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="4">
+
+    <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
+
+    <resultfiles>**/witness.*</resultfiles>
+
+    <option name="--svcomp25" />
+    <option name="--heap" />
+    <option name="10000M" />
+    <option name="--benchmark" />
+    <option name="--timelimit" />
+    <option name="900s" />
+
+    <rundefinition name="Unseq-DeterministicExecutionOrder">
+        <tasks name="Check-Arrays-Unsequenced">
+            <includesfile>../../../sv-benchmarks/c/Arrays.set</includesfile>
+            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <columns>
+        <column title="UsedConfig">Used algorithm property</column>
+    </columns>
+</benchmark>
