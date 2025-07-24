@@ -239,9 +239,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         return Collections.singleton(handleBlankEdge(state, (BlankEdge) cfaEdge));
       }
       case CallToReturnEdge -> {
-        if (cfaEdge instanceof CFunctionSummaryEdge) {
-          return Collections.singleton(
-              handleFunctionSummaryEdge(state, (CFunctionSummaryEdge) cfaEdge));
+        if (cfaEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
+          return Collections.singleton(handleFunctionSummaryEdge(state, cFunctionSummaryEdge));
         } else {
           throw new AssertionError("unknown edge");
         }
