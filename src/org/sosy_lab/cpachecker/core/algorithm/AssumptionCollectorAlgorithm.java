@@ -680,8 +680,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (innerAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) innerAlgorithm).collectStatistics(pStatsCollection);
+    if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }

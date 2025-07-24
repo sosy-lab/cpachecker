@@ -69,28 +69,22 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
     if (!constraintsPrecision.isTracked(pConstraint, pLocation)) {
       IncrementScope constraintScope = IncrementScope.NONE;
       // verify if pConstraint is Unary or BinaryConstraint
-      if (pConstraint instanceof UnaryConstraint) {
+      if (pConstraint instanceof UnaryConstraint unaryConstraint) {
         constraintScope =
             getScopeForConstraint(
-                ((UnaryConstraint) pConstraint)
-                    .getOperand()
-                    .accept(SymbolicIdentifierLocator.getInstance()),
+                unaryConstraint.getOperand().accept(SymbolicIdentifierLocator.getInstance()),
                 pLocation,
                 IncrementScope.GLOBAL);
-      } else if (pConstraint instanceof BinaryConstraint) {
+      } else if (pConstraint instanceof BinaryConstraint binaryConstraint) {
         constraintScope =
             getScopeForConstraint(
-                ((BinaryConstraint) pConstraint)
-                    .getOperand1()
-                    .accept(SymbolicIdentifierLocator.getInstance()),
+                binaryConstraint.getOperand1().accept(SymbolicIdentifierLocator.getInstance()),
                 pLocation,
                 IncrementScope.GLOBAL);
         if (constraintScope != IncrementScope.NONE) {
           constraintScope =
               getScopeForConstraint(
-                  ((BinaryConstraint) pConstraint)
-                      .getOperand2()
-                      .accept(SymbolicIdentifierLocator.getInstance()),
+                  binaryConstraint.getOperand2().accept(SymbolicIdentifierLocator.getInstance()),
                   pLocation,
                   constraintScope);
         }

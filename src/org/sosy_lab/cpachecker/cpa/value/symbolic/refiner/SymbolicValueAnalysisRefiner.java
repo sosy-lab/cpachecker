@@ -294,9 +294,8 @@ public class SymbolicValueAnalysisRefiner
           Set<SymbolicIdentifier> usedIdentifiers = new HashSet<>();
           for (Entry<MemoryLocation, ValueAndType> e : currentValueState.getConstants()) {
             Value v = e.getValue().getValue();
-            if (v instanceof SymbolicValue) {
-              usedIdentifiers.addAll(
-                  ((SymbolicValue) v).accept(SymbolicIdentifierLocator.getInstance()));
+            if (v instanceof SymbolicValue symbolicValue) {
+              usedIdentifiers.addAll(symbolicValue.accept(SymbolicIdentifierLocator.getInstance()));
             }
           }
           ExpressionValueVisitor valueVisitor =

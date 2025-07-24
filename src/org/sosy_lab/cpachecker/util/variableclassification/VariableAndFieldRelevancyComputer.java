@@ -465,7 +465,7 @@ final class VariableAndFieldRelevancyComputer {
       }
       case DeclarationEdge -> {
         final CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-        if (!(decl instanceof CVariableDeclaration)) {
+        if (!(decl instanceof CVariableDeclaration cVariableDeclaration)) {
           break;
         }
         for (CExpression exp : CTypes.getArrayLengthExpressions(decl.getType())) {
@@ -478,7 +478,7 @@ final class VariableAndFieldRelevancyComputer {
 
         CollectingLHSVisitor collectingLHSVisitor = CollectingLHSVisitor.create(pCfa);
         for (CExpressionAssignmentStatement init :
-            CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
+            CInitializers.convertToAssignments(cVariableDeclaration, edge)) {
           Pair<VariableOrField, VarFieldDependencies> r =
               init.getLeftHandSide().accept(collectingLHSVisitor);
           result =
@@ -507,10 +507,10 @@ final class VariableAndFieldRelevancyComputer {
           } else {
             throw new UnrecognizedCodeException("Unhandled assignment", edge, assignment);
           }
-        } else if (statement instanceof CFunctionCallStatement) {
+        } else if (statement instanceof CFunctionCallStatement cFunctionCallStatement) {
           result =
               result.withDependencies(
-                  ((CFunctionCallStatement) statement)
+                  cFunctionCallStatement
                       .getFunctionCallExpression()
                       .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
         }
@@ -532,9 +532,10 @@ final class VariableAndFieldRelevancyComputer {
         Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
         if (returnVar.isPresent()) {
           String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
-          if (statement instanceof CFunctionCallAssignmentStatement) {
+          if (statement
+              instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
             final Pair<VariableOrField, VarFieldDependencies> r =
-                ((CFunctionCallAssignmentStatement) statement)
+                cFunctionCallAssignmentStatement
                     .getLeftHandSide()
                     .accept(CollectingLHSVisitor.create(pCfa));
             result =

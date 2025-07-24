@@ -140,8 +140,8 @@ class ASTOperatorConverter {
           BinaryOperator.LESS_THAN);
 
   static boolean isBooleanExpression(CExpression e) {
-    if (e instanceof CBinaryExpression) {
-      return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression) e).getOperator());
+    if (e instanceof CBinaryExpression cBinaryExpression) {
+      return BOOLEAN_BINARY_OPERATORS.contains(cBinaryExpression.getOperator());
 
     } else {
       return false;

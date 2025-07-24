@@ -495,8 +495,8 @@ public abstract class ConditionFolder {
         newLoopContext += "|L" + pEdge.getSuccessor().getNodeNumber() + "L";
       }
 
-      if (pEdge instanceof AssumeEdge) {
-        if (((AssumeEdge) pEdge).getTruthAssumption()) {
+      if (pEdge instanceof AssumeEdge assumeEdge) {
+        if (assumeEdge.getTruthAssumption()) {
           newLoopContext += "1";
         } else {
           newLoopContext += "0";
@@ -664,8 +664,8 @@ public abstract class ConditionFolder {
                 + "L";
       }
 
-      if (pEdge instanceof AssumeEdge) {
-        if (((AssumeEdge) pEdge).getTruthAssumption()) {
+      if (pEdge instanceof AssumeEdge assumeEdge) {
+        if (assumeEdge.getTruthAssumption()) {
           newLoopBoundContextID += "1";
         } else {
           newLoopBoundContextID += "0";

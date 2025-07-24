@@ -229,7 +229,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     TraceAtom lastSelector = null;
 
     for (AbstractTraceElement abstractTraceElement : abstractTrace) {
-      if (abstractTraceElement instanceof TraceAtom) {
+      if (abstractTraceElement instanceof TraceAtom traceAtom) {
         if (abstractTraceElement.equals(lastSelector)) {
           Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
           Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
@@ -237,7 +237,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
           summarizedList.add(summarizedList.size() - 1, merged);
         } else {
           summarizedList.add(abstractTraceElement);
-          lastSelector = (TraceAtom) abstractTraceElement;
+          lastSelector = traceAtom;
         }
       } else {
         summarizedList.add(abstractTraceElement);
@@ -261,8 +261,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     Set<Fault> faults = new HashSet<>();
     for (int i = 0; i < abstractTrace.size(); i++) {
       AbstractTraceElement errorInvariant = abstractTrace.get(i);
-      if (errorInvariant instanceof TraceAtom) {
-        prev = (TraceAtom) errorInvariant;
+      if (errorInvariant instanceof TraceAtom traceAtom) {
+        prev = traceAtom;
         Fault singleton = new Fault(prev);
         singleton.setIntendedIndex(i);
         faults.add(singleton);

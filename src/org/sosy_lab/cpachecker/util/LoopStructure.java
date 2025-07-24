@@ -385,8 +385,7 @@ public final class LoopStructure {
   @Nullable
   private static String obtainIncDecVariable(CFAEdge e) {
     if ((e instanceof CStatementEdge stmtEdge)
-        && (stmtEdge.getStatement() instanceof CAssignment)) {
-      CAssignment assign = (CAssignment) stmtEdge.getStatement();
+        && (stmtEdge.getStatement() instanceof CAssignment assign)) {
 
       if (assign.getLeftHandSide() instanceof CIdExpression assignementToId) {
         String assignToVar = assignementToId.getDeclaration().getQualifiedName();
@@ -400,11 +399,11 @@ public final class LoopStructure {
                 || binExpr.getOperand2() instanceof CLiteralExpression) {
               CIdExpression operandId = null;
 
-              if (binExpr.getOperand1() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand1();
+              if (binExpr.getOperand1() instanceof CIdExpression cIdExpression) {
+                operandId = cIdExpression;
               }
-              if (binExpr.getOperand2() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand2();
+              if (binExpr.getOperand2() instanceof CIdExpression cIdExpression) {
+                operandId = cIdExpression;
               }
 
               if (operandId != null) {
@@ -478,9 +477,9 @@ public final class LoopStructure {
     List<CFANode> initialChain = new ArrayList<>();
     @Nullable CFANode nodeAfterInitialChain = null;
     {
-      CFANode functionExitNode = pNodes.first(); // The function exit node is always the first
-      if (functionExitNode instanceof FunctionExitNode) {
-        CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
+      // The function exit node is always the first
+      if (pNodes.first() instanceof FunctionExitNode functionExitNode) {
+        CFANode startNode = functionExitNode.getEntryNode();
         while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
           initialChain.add(startNode);
           startNode = startNode.getLeavingEdge(0).getSuccessor();

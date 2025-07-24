@@ -87,10 +87,10 @@ public class SymbolicExpressionToCExpressionTransformer
 
   private CExpression transformValue(Value pValue, CType pType) {
 
-    if (pValue instanceof SymbolicIdentifier) {
-      return getIdentifierCExpression((SymbolicIdentifier) pValue, pType);
-    } else if (pValue instanceof SymbolicValue) {
-      return ((SymbolicValue) pValue).accept(this);
+    if (pValue instanceof SymbolicIdentifier symbolicIdentifier) {
+      return getIdentifierCExpression(symbolicIdentifier, pType);
+    } else if (pValue instanceof SymbolicValue symbolicValue) {
+      return symbolicValue.accept(this);
 
     } else {
       return pValue.accept(new ValueToCExpressionTransformer(machineModel, pType));
@@ -154,8 +154,8 @@ public class SymbolicExpressionToCExpressionTransformer
   }*/
 
   private CType getCType(Type pType) {
-    if (pType instanceof CType) {
-      return (CType) pType;
+    if (pType instanceof CType cType) {
+      return cType;
 
     } else {
       assert pType instanceof JType;
@@ -262,8 +262,8 @@ public class SymbolicExpressionToCExpressionTransformer
   public CExpression visit(LogicalNotExpression pExpression) {
     SymbolicExpression operand = pExpression.getOperand();
 
-    if (operand instanceof LogicalNotExpression) {
-      return ((LogicalNotExpression) operand).getOperand().accept(this);
+    if (operand instanceof LogicalNotExpression logicalNotExpression) {
+      return logicalNotExpression.getOperand().accept(this);
 
     } else {
       try {

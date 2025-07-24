@@ -354,8 +354,8 @@ public class CPAchecker {
       }
       stats.setCPA(cpa);
 
-      if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
+      if (cpa instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
       algorithm = factory.createAlgorithm(cpa, cfa, specification);
@@ -454,8 +454,8 @@ public class CPAchecker {
       pLogger.logUserException(Level.SEVERE, e, "Could not read file");
     } else if (e instanceof InvalidConfigurationException) {
       pLogger.logUserException(Level.SEVERE, e, "Invalid configuration");
-    } else if (e instanceof ParserException) {
-      handleParserException((ParserException) e, pLogger);
+    } else if (e instanceof ParserException parserException) {
+      handleParserException(parserException, pLogger);
     } else if (e instanceof InterruptedException) {
       // CPAchecker must exit because it was asked to
       // we return normally instead of propagating the exception
@@ -561,8 +561,8 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {
-    if (reached instanceof ResultProviderReachedSet) {
-      return ((ResultProviderReachedSet) reached).getOverallResult();
+    if (reached instanceof ResultProviderReachedSet resultProviderReachedSet) {
+      return resultProviderReachedSet.getOverallResult();
     }
     if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");

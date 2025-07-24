@@ -84,10 +84,10 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
   /** {@inheritDoc} */
   @Override
   public IOctagonCoefficients add(IOctagonCoefficients other) {
-    if (other instanceof OctagonSimpleCoefficients) {
-      return add((OctagonSimpleCoefficients) other);
-    } else if (other instanceof OctagonIntervalCoefficients) {
-      return add((OctagonIntervalCoefficients) other);
+    if (other instanceof OctagonSimpleCoefficients octagonSimpleCoefficients) {
+      return add(octagonSimpleCoefficients);
+    } else if (other instanceof OctagonIntervalCoefficients octagonIntervalCoefficients) {
+      return add(octagonIntervalCoefficients);
     } else if (other instanceof OctagonUniversalCoefficients) {
       return OctagonUniversalCoefficients.INSTANCE;
     }
@@ -115,10 +115,10 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
   /** {@inheritDoc} */
   @Override
   public IOctagonCoefficients sub(IOctagonCoefficients other) {
-    if (other instanceof OctagonSimpleCoefficients) {
-      return sub((OctagonSimpleCoefficients) other);
-    } else if (other instanceof OctagonIntervalCoefficients) {
-      return sub((OctagonIntervalCoefficients) other);
+    if (other instanceof OctagonSimpleCoefficients octagonSimpleCoefficients) {
+      return sub(octagonSimpleCoefficients);
+    } else if (other instanceof OctagonIntervalCoefficients octagonIntervalCoefficients) {
+      return sub(octagonIntervalCoefficients);
     } else if (other instanceof OctagonUniversalCoefficients) {
       return OctagonUniversalCoefficients.INSTANCE;
     }
@@ -192,10 +192,10 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
   @Override
   protected IOctagonCoefficients divInner(IOctagonCoefficients coeffs) {
     assert coeffs.hasOnlyOneValue();
-    if (coeffs instanceof OctagonSimpleCoefficients) {
-      return divInner((OctagonSimpleCoefficients) coeffs);
-    } else if (coeffs instanceof OctagonIntervalCoefficients) {
-      return divInner((OctagonIntervalCoefficients) coeffs);
+    if (coeffs instanceof OctagonSimpleCoefficients octagonSimpleCoefficients) {
+      return divInner(octagonSimpleCoefficients);
+    } else if (coeffs instanceof OctagonIntervalCoefficients octagonIntervalCoefficients) {
+      return divInner(octagonIntervalCoefficients);
     } else if (coeffs instanceof OctagonUniversalCoefficients) {
       return OctagonUniversalCoefficients.INSTANCE;
     }

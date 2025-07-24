@@ -218,8 +218,8 @@ public interface PointerTargetSetBuilder {
       // checkArgument(bases.containsKey(name),
       //     "The base should be prepared before with prepareBase()");
 
-      if (type instanceof CElaboratedType) {
-        assert ((CElaboratedType) type).getRealType() == null
+      if (type instanceof CElaboratedType cElaboratedType) {
+        assert cElaboratedType.getRealType() == null
             : "Elaborated type " + type + " that was not simplified but could have been.";
         // This is the declaration of a variable of an incomplete struct type.
         // We can't access the contents of this variable anyway,

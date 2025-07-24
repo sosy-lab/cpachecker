@@ -348,9 +348,9 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
         "each abstraction state should have a state in the counterexample trace");
 
     // Set the atomic Predicates configuration in the RefinementStrategy
-    if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-      ((PredicateAbstractionRefinementStrategy) strategy)
-          .setUseAtomicPredicates(atomicInterpolants);
+    if (strategy
+        instanceof PredicateAbstractionRefinementStrategy predicateAbstractionRefinementStrategy) {
+      predicateAbstractionRefinementStrategy.setUseAtomicPredicates(atomicInterpolants);
     }
 
     if (!repeatedCounterexample && (invariantsManager.addToPrecision() || usePathInvariants)) {
@@ -619,8 +619,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
-    if (strategy instanceof StatisticsProvider) {
-      ((StatisticsProvider) strategy).collectStatistics(pStatsCollection);
+    if (strategy instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     if (useNewtonRefinement) {
       newtonManager.orElseThrow().collectStatistics(pStatsCollection);

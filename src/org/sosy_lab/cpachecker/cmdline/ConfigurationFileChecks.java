@@ -256,10 +256,10 @@ public class ConfigurationFileChecks {
   private static ConfigurationBuilder parse(Object pConfigFile)
       throws IOException, InvalidConfigurationException, URISyntaxException {
     Path configFile;
-    if (pConfigFile instanceof Path) {
-      configFile = (Path) pConfigFile;
-    } else if (pConfigFile instanceof URL) {
-      configFile = Path.of(((URL) pConfigFile).toURI());
+    if (pConfigFile instanceof Path path) {
+      configFile = path;
+    } else if (pConfigFile instanceof URL uRL) {
+      configFile = Path.of(uRL.toURI());
     } else {
       throw new AssertionError("Unexpected config file " + pConfigFile);
     }

@@ -99,8 +99,9 @@ public class LiveVariables {
 
         @Override
         protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {
-          if (pA instanceof CVariableDeclaration && pB instanceof CVariableDeclaration) {
-            return ((CVariableDeclaration) pA).equalsWithoutStorageClass(pB);
+          if (pA instanceof CVariableDeclaration cVariableDeclaration
+              && pB instanceof CVariableDeclaration) {
+            return cVariableDeclaration.equalsWithoutStorageClass(pB);
           } else {
             return pA.equals(pB);
           }
@@ -108,8 +109,8 @@ public class LiveVariables {
 
         @Override
         protected int doHash(ASimpleDeclaration pT) {
-          if (pT instanceof CVariableDeclaration) {
-            return ((CVariableDeclaration) pT).hashCodeWithOutStorageClass();
+          if (pT instanceof CVariableDeclaration cVariableDeclaration) {
+            return cVariableDeclaration.hashCodeWithOutStorageClass();
           } else {
             return pT.hashCode();
           }

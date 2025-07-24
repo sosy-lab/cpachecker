@@ -314,8 +314,8 @@ final class HappensBeforeEdgeTools {
 
     if (ast instanceof CRightHandSide) {
 
-      if (ast instanceof CExpression) {
-        return ((CExpression) ast).accept(expCloner);
+      if (ast instanceof CExpression cExpression) {
+        return cExpression.accept(expCloner);
 
       } else if (ast instanceof CFunctionCallExpression func) {
         return new CFunctionCallExpression(
@@ -328,12 +328,12 @@ final class HappensBeforeEdgeTools {
 
     } else if (ast instanceof CInitializer) {
 
-      if (ast instanceof CInitializerExpression) {
+      if (ast instanceof CInitializerExpression cInitializerExpression) {
         return new CInitializerExpression(
-            loc, cloneAstRightSide(((CInitializerExpression) ast).getExpression()));
+            loc, cloneAstRightSide(cInitializerExpression.getExpression()));
 
-      } else if (ast instanceof CInitializerList) {
-        return new CInitializerList(loc, cloneAstList(((CInitializerList) ast).getInitializers()));
+      } else if (ast instanceof CInitializerList cInitializerList) {
+        return new CInitializerList(loc, cloneAstList(cInitializerList.getInitializers()));
 
       } else if (ast instanceof CDesignatedInitializer di) {
         return new CDesignatedInitializer(
@@ -399,21 +399,21 @@ final class HappensBeforeEdgeTools {
             cloneAstLeftSide(stat.getLeftHandSide()),
             cloneAstRightSide(stat.getRightHandSide()));
 
-      } else if (ast instanceof CFunctionCallStatement) {
+      } else if (ast instanceof CFunctionCallStatement cFunctionCallStatement) {
         return new CFunctionCallStatement(
-            loc, cloneAstRightSide(((CFunctionCallStatement) ast).getFunctionCallExpression()));
+            loc, cloneAstRightSide(cFunctionCallStatement.getFunctionCallExpression()));
 
-      } else if (ast instanceof CExpressionStatement) {
+      } else if (ast instanceof CExpressionStatement cExpressionStatement) {
         return new CExpressionStatement(
-            loc, cloneAstRightSide(((CExpressionStatement) ast).getExpression()));
+            loc, cloneAstRightSide(cExpressionStatement.getExpression()));
       }
 
-    } else if (ast instanceof CReturnStatement) {
-      Optional<CExpression> returnExp = ((CReturnStatement) ast).getReturnValue();
+    } else if (ast instanceof CReturnStatement cReturnStatement) {
+      Optional<CExpression> returnExp = cReturnStatement.getReturnValue();
       if (returnExp.isPresent()) {
         returnExp = Optional.of(cloneAstRightSide(returnExp.orElseThrow()));
       }
-      Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
+      Optional<CAssignment> returnAssignment = cReturnStatement.asAssignment();
       if (returnAssignment.isPresent()) {
         returnAssignment = Optional.of(cloneAst(returnAssignment.orElseThrow()));
       }
@@ -421,18 +421,18 @@ final class HappensBeforeEdgeTools {
 
     } else if (ast instanceof CDesignator) {
 
-      if (ast instanceof CArrayDesignator) {
+      if (ast instanceof CArrayDesignator cArrayDesignator) {
         return new CArrayDesignator(
-            loc, cloneAstRightSide(((CArrayDesignator) ast).getSubscriptExpression()));
+            loc, cloneAstRightSide(cArrayDesignator.getSubscriptExpression()));
 
-      } else if (ast instanceof CArrayRangeDesignator) {
+      } else if (ast instanceof CArrayRangeDesignator cArrayRangeDesignator) {
         return new CArrayRangeDesignator(
             loc,
-            cloneAstRightSide(((CArrayRangeDesignator) ast).getFloorExpression()),
-            cloneAstRightSide(((CArrayRangeDesignator) ast).getCeilExpression()));
+            cloneAstRightSide(cArrayRangeDesignator.getFloorExpression()),
+            cloneAstRightSide(cArrayRangeDesignator.getCeilExpression()));
 
-      } else if (ast instanceof CFieldDesignator) {
-        return new CFieldDesignator(loc, ((CFieldDesignator) ast).getFieldName());
+      } else if (ast instanceof CFieldDesignator cFieldDesignator) {
+        return new CFieldDesignator(loc, cFieldDesignator.getFieldName());
       }
     }
 

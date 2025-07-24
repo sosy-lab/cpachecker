@@ -90,8 +90,8 @@ public class CFACheck {
         // If the function entry node has a function exit node, the exit node must be part of the
         // CFA, so we check it here. This check detects function exit nodes that are unreachable but
         // have not been removed.
-        if (node instanceof FunctionEntryNode) {
-          ((FunctionEntryNode) node).getExitNode().ifPresent(CFACheck::checkEdgeCount);
+        if (node instanceof FunctionEntryNode functionEntryNode) {
+          functionEntryNode.getExitNode().ifPresent(CFACheck::checkEdgeCount);
         }
       }
     }
@@ -251,23 +251,23 @@ public class CFACheck {
   private static void checkEdge(CFAEdge edge, MachineModel machineModel) {
     switch (edge.getEdgeType()) {
       case AssumeEdge -> {
-        if (edge instanceof CAssumeEdge) {
-          checkTypes(((CAssumeEdge) edge).getExpression(), machineModel);
+        if (edge instanceof CAssumeEdge cAssumeEdge) {
+          checkTypes(cAssumeEdge.getExpression(), machineModel);
         }
       }
       case DeclarationEdge -> {
         ADeclaration decl = ((ADeclarationEdge) edge).getDeclaration();
-        if (decl instanceof CVariableDeclaration) {
-          CInitializer init = ((CVariableDeclaration) decl).getInitializer();
-          if (init instanceof CInitializerExpression) {
-            checkTypes(((CInitializerExpression) init).getExpression(), machineModel);
+        if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+          CInitializer init = cVariableDeclaration.getInitializer();
+          if (init instanceof CInitializerExpression cInitializerExpression) {
+            checkTypes(cInitializerExpression.getExpression(), machineModel);
           }
         }
       }
       case StatementEdge -> {
         AStatement stat = ((AStatementEdge) edge).getStatement();
-        if (stat instanceof CExpressionStatement) {
-          checkTypes(((CExpressionStatement) stat).getExpression(), machineModel);
+        if (stat instanceof CExpressionStatement cExpressionStatement) {
+          checkTypes(cExpressionStatement.getExpression(), machineModel);
         }
       }
       default -> {

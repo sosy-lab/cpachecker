@@ -130,10 +130,10 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   @Override
   public boolean equals(Object pObj) {
     // TODO loopstack
-    if (!(pObj instanceof ApronState)) {
+    if (!(pObj instanceof ApronState otherApron)) {
       return false;
     }
-    ApronState otherApron = (ApronState) pObj;
+
     logger.log(Level.FINEST, "apron state: isEqual");
     boolean result;
     try {
@@ -793,14 +793,14 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   abstract static class Texpr0NodeTraversal<T> {
 
     T visit(Texpr0Node node) {
-      if (node instanceof Texpr0BinNode) {
-        return visit((Texpr0BinNode) node);
-      } else if (node instanceof Texpr0CstNode) {
-        return visit((Texpr0CstNode) node);
-      } else if (node instanceof Texpr0DimNode) {
-        return visit((Texpr0DimNode) node);
-      } else if (node instanceof Texpr0UnNode) {
-        return visit((Texpr0UnNode) node);
+      if (node instanceof Texpr0BinNode texpr0BinNode) {
+        return visit(texpr0BinNode);
+      } else if (node instanceof Texpr0CstNode texpr0CstNode) {
+        return visit(texpr0CstNode);
+      } else if (node instanceof Texpr0DimNode texpr0DimNode) {
+        return visit(texpr0DimNode);
+      } else if (node instanceof Texpr0UnNode texpr0UnNode) {
+        return visit(texpr0UnNode);
       }
 
       throw new AssertionError("Unhandled Texpr0Node subclass.");
@@ -846,12 +846,12 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       if (pNode.isScalar()) {
         double value;
         Scalar scalar = pNode.getConstant().inf();
-        if (scalar instanceof DoubleScalar) {
-          value = ((DoubleScalar) scalar).get();
-        } else if (scalar instanceof MpqScalar) {
-          value = ((MpqScalar) scalar).get().doubleValue();
-        } else if (scalar instanceof MpfrScalar) {
-          value = ((MpfrScalar) scalar).get().doubleValue(Mpfr.RNDN);
+        if (scalar instanceof DoubleScalar doubleScalar) {
+          value = doubleScalar.get();
+        } else if (scalar instanceof MpqScalar mpqScalar) {
+          value = mpqScalar.get().doubleValue();
+        } else if (scalar instanceof MpfrScalar mpfrScalar) {
+          value = mpfrScalar.get().doubleValue(Mpfr.RNDN);
         } else {
           throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
         }

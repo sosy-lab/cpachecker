@@ -892,8 +892,8 @@ public class CPAMain {
       justification = "Default encoding is the correct one for stdout.")
   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
   private static PrintStream makePrintStream(OutputStream stream) {
-    if (stream instanceof PrintStream) {
-      return (PrintStream) stream;
+    if (stream instanceof PrintStream printStream) {
+      return printStream;
     } else {
       // Default encoding is actually desired here because we output to the terminal,
       // so the default PrintStream constructor is ok.

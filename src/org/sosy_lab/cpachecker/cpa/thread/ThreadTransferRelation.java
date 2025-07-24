@@ -76,16 +76,16 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     try {
       if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         newState = handleFunctionCall(tState, (CFunctionCallEdge) pCfaEdge);
-      } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
-        CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pCfaEdge).getFunctionCall();
+      } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge cFunctionSummaryStatementEdge) {
+        CFunctionCall functionCall = cFunctionSummaryStatementEdge.getFunctionCall();
         if (isThreadCreateFunction(functionCall)) {
           newState = handleParentThread(tState, (CThreadCreateStatement) functionCall);
         }
       } else if (pCfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
         CStatement stmnt = ((CStatementEdge) pCfaEdge).getStatement();
-        if (stmnt instanceof CThreadJoinStatement) {
+        if (stmnt instanceof CThreadJoinStatement cThreadJoinStatement) {
           threadStatistics.threadJoins.inc();
-          newState = joinThread(tState, (CThreadJoinStatement) stmnt);
+          newState = joinThread(tState, cThreadJoinStatement);
         }
       } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         CFunctionCall functionCall = ((CFunctionReturnEdge) pCfaEdge).getFunctionCall();

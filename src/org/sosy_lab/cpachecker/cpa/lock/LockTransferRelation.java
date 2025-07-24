@@ -213,14 +213,14 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     if (assumption instanceof CBinaryExpression binExpression) {
       IdentifierCreator creator = new IdentifierCreator(cfaEdge.getSuccessor().getFunctionName());
       AbstractIdentifier varId = creator.createIdentifier(binExpression.getOperand1(), 0);
-      if (varId instanceof SingleIdentifier) {
-        String varName = ((SingleIdentifier) varId).getName();
+      if (varId instanceof SingleIdentifier singleIdentifier) {
+        String varName = singleIdentifier.getName();
         if (lockDescription.getVariableEffectDescription().containsKey(varName)) {
           CExpression val = binExpression.getOperand2();
-          if (val instanceof CIntegerLiteralExpression) {
+          if (val instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
             if (binExpression.getOperator() == BinaryOperator.EQUALS) {
               LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
-              int level = ((CIntegerLiteralExpression) val).getValue().intValue();
+              int level = cIntegerLiteralExpression.getValue().intValue();
               AbstractLockEffect e =
                   CheckLockEffect.createEffectForId(level, cfaEdge.getTruthAssumption(), id);
               return Collections.singletonList(e);
@@ -304,8 +304,8 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     if (effect == SetLockEffect.getInstance()) {
       CExpression expression = function.getParameterExpressions().get(0);
       // Replace it by parametrical one
-      if (expression instanceof CIntegerLiteralExpression) {
-        int newValue = ((CIntegerLiteralExpression) expression).getValue().intValue();
+      if (expression instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        int newValue = cIntegerLiteralExpression.getValue().intValue();
         int max = lockDescription.getMaxLevel(uId.getName());
         if (max < newValue) {
           newValue = max;
@@ -332,11 +332,11 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   private List<AbstractLockEffect> handleStatement(CStatementEdge statementEdge) {
 
     CStatement statement = statementEdge.getStatement();
-    if (statement instanceof CAssignment) {
+    if (statement instanceof CAssignment cAssignment) {
       /*
        * level = intLock();
        */
-      CRightHandSide op2 = ((CAssignment) statement).getRightHandSide();
+      CRightHandSide op2 = cAssignment.getRightHandSide();
 
       if (op2 instanceof CFunctionCallExpression function) {
         return handleFunctionCallExpression(function);
@@ -344,17 +344,17 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         /*
          * threadDispatchLevel = 1;
          */
-        CLeftHandSide leftSide = ((CAssignment) statement).getLeftHandSide();
-        CRightHandSide rightSide = ((CAssignment) statement).getRightHandSide();
+        CLeftHandSide leftSide = cAssignment.getLeftHandSide();
+        CRightHandSide rightSide = cAssignment.getRightHandSide();
         IdentifierCreator creator =
             new IdentifierCreator(statementEdge.getSuccessor().getFunctionName());
         AbstractIdentifier varId = creator.createIdentifier(leftSide, 0);
-        if (varId instanceof SingleIdentifier) {
-          String varName = ((SingleIdentifier) varId).getName();
+        if (varId instanceof SingleIdentifier singleIdentifier) {
+          String varName = singleIdentifier.getName();
           if (lockDescription.getVariableEffectDescription().containsKey(varName)) {
-            if (rightSide instanceof CIntegerLiteralExpression) {
+            if (rightSide instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
               LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
-              int level = ((CIntegerLiteralExpression) rightSide).getValue().intValue();
+              int level = cIntegerLiteralExpression.getValue().intValue();
               AbstractLockEffect e = SetLockEffect.createEffectForId(level, id);
               return Collections.singletonList(e);
             }

@@ -57,8 +57,8 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       throws InvalidConfigurationException {
     super("sep", "sep", null);
     logger = pLogManager;
-    if (pCFA instanceof CFAWithACSLAnnotations) {
-      cfa = (CFAWithACSLAnnotations) pCFA;
+    if (pCFA instanceof CFAWithACSLAnnotations cFAWithACSLAnnotations) {
+      cfa = cFAWithACSLAnnotations;
     } else {
       cfa = new CFAWithACSLAnnotations(pCFA);
       logger.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");

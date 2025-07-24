@@ -258,8 +258,8 @@ public class SMGUseDefBasedInterpolator {
 
       CExpression arrayLength = pArrayType.getLength();
 
-      if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+      if (arrayLength instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        int length = cIntegerLiteralExpression.getValue().intValue();
 
         return createMemoryLocationsForArray(length, pArrayType.getType());
       }

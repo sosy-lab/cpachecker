@@ -202,8 +202,8 @@ public class Parsers {
       try {
         return parserConstructor.newInstance(logger, config, entryMethod);
       } catch (InvocationTargetException e) {
-        if (e.getCause() instanceof InvalidConfigurationException) {
-          throw (InvalidConfigurationException) e.getCause();
+        if (e.getCause() instanceof InvalidConfigurationException invalidConfigurationException) {
+          throw invalidConfigurationException;
         }
         throw e;
       }
@@ -231,8 +231,8 @@ public class Parsers {
       try {
         return parserConstructor.newInstance(pLogger, pMachineModel);
       } catch (InvocationTargetException e) {
-        if (e.getCause() instanceof InvalidConfigurationException) {
-          throw (InvalidConfigurationException) e.getCause();
+        if (e.getCause() instanceof InvalidConfigurationException invalidConfigurationException) {
+          throw invalidConfigurationException;
         }
         throw e;
       }

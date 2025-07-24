@@ -200,8 +200,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (analysisAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) analysisAlgorithm).collectStatistics(pStatsCollection);
+    if (analysisAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }

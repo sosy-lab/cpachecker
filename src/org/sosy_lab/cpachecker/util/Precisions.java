@@ -35,8 +35,8 @@ public class Precisions {
     if (pType.isInstance(pPrecision)) {
       return pType.cast(pPrecision);
 
-    } else if (pPrecision instanceof WrapperPrecision) {
-      return ((WrapperPrecision) pPrecision).retrieveWrappedPrecision(pType);
+    } else if (pPrecision instanceof WrapperPrecision wrapperPrecision) {
+      return wrapperPrecision.retrieveWrappedPrecision(pType);
     }
 
     return null;
@@ -70,8 +70,8 @@ public class Precisions {
     return FluentIterable.from(
         Traverser.forTree(
                 (Precision precision) ->
-                    (precision instanceof WrapperPrecision)
-                        ? ((WrapperPrecision) precision).getWrappedPrecisions()
+                    (precision instanceof WrapperPrecision wrapperPrecision)
+                        ? wrapperPrecision.getWrappedPrecisions()
                         : ImmutableList.of())
             .depthFirstPreOrder(prec));
   }
@@ -80,9 +80,8 @@ public class Precisions {
       Precision pOldPrecision,
       Precision pNewPrecision,
       Predicate<? super Precision> pPrecisionType) {
-    if (pOldPrecision instanceof WrapperPrecision) {
-      return ((WrapperPrecision) pOldPrecision)
-          .replaceWrappedPrecision(pNewPrecision, pPrecisionType);
+    if (pOldPrecision instanceof WrapperPrecision wrapperPrecision) {
+      return wrapperPrecision.replaceWrappedPrecision(pNewPrecision, pPrecisionType);
     } else {
       assert pNewPrecision.getClass().isAssignableFrom(pOldPrecision.getClass());
 

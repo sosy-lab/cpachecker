@@ -59,8 +59,8 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
   @Override
   public String toASTString() {
     String name;
-    if (getTypeDef() instanceof JClassOrInterfaceType) {
-      name = ((JClassOrInterfaceType) getTypeDef()).getName();
+    if (getTypeDef() instanceof JClassOrInterfaceType jClassOrInterfaceType) {
+      name = jClassOrInterfaceType.getName();
     } else {
       name = ((JArrayType) getTypeDef()).getElementType().toASTString("");
     }

@@ -1538,8 +1538,9 @@ public class SMG {
     }
     Optional<SMGPointsToEdge> maybePTEdge = getPTEdge(value);
     return maybePTEdge.isPresent()
-        && maybePTEdge.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment
-        && ((SMGSinglyLinkedListSegment) maybePTEdge.orElseThrow().pointsTo()).getMinLength() == 0;
+        && maybePTEdge.orElseThrow().pointsTo()
+            instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment
+        && sMGSinglyLinkedListSegment.getMinLength() == 0;
   }
 
   /**
@@ -1987,8 +1988,8 @@ public class SMG {
       SMGObject oldObj, SMGObject newTarget, int incrementAmount) {
 
     int minListLen = 0;
-    if (newTarget instanceof SMGSinglyLinkedListSegment) {
-      minListLen = ((SMGSinglyLinkedListSegment) newTarget).getMinLength();
+    if (newTarget instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      minListLen = sMGSinglyLinkedListSegment.getMinLength();
     }
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
