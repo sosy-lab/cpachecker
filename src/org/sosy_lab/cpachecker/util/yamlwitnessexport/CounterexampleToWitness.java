@@ -447,6 +447,19 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build()), pPath);
   }
 
+  private static String addAssumptions(String pAssumption1, String pAssumption2) {
+    if (pAssumption1.equals("0") || pAssumption2.equals("0")) {
+      return "0";
+    }
+    if (pAssumption1.equals("1") || pAssumption1.isEmpty()) {
+      return pAssumption2;
+    }
+    if (pAssumption2.equals("1") || pAssumption2.isEmpty()) {
+      return pAssumption1;
+    }
+    return pAssumption1 + " && " + pAssumption2;
+  }
+
   /**
    * Export the given counterexample to a witness file. The format of the witness file is determined
    * by the witness versions given in the configuration. All versions of witnesses will be exported.
