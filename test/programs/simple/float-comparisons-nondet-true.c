@@ -36,6 +36,11 @@ int main() {
   int n8 = !(nd == nan2);
   int n9 = !(nd == nd);
 
+  // Never true
+  if (c7) goto ERROR;
+  if (c8) goto ERROR;
+
+
   // Since we have a nondet, these expressions all may evaluate to true
   if (c1) return 0;
   if (c2) return 0;
@@ -44,9 +49,7 @@ int main() {
   if (c5) return 0;
   if (c6) return 0;
 
-  // Never true
-  if (c7) goto ERROR;
-  if (c8) goto ERROR;
+  // By this point nd can only be NaN
   if (c9) goto ERROR;
 
   if (n1 && n2 && n3 && n4 && n5 && n6 && n7 && n8 && n9) {
