@@ -292,6 +292,15 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return ImmutableList.of();
   }
 
+  private boolean specificationContainsMemSafety() {
+    Set<Property> properties = getSpecification().getProperties();
+    return properties.stream().anyMatch(p ->
+        p == CommonVerificationProperty.VALID_FREE ||
+            p == CommonVerificationProperty.VALID_DEREF ||
+            p == CommonVerificationProperty.VALID_MEMTRACK
+    );
+  }
+
   private static WaypointRecord defaultTargetWaypoint(CFAEdge pEdge) {
     return new WaypointRecord(
         WaypointType.TARGET,
