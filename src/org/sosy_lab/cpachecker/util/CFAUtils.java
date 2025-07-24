@@ -117,6 +117,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -918,6 +919,14 @@ public class CFAUtils {
       }
     }
     return false;
+  }
+
+  public static boolean isFreeStatement(CFAEdge pEdge) {
+    return pEdge instanceof CStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof CFunctionCallStatement functionCallStatement
+        && functionCallStatement.getFunctionCallExpression()
+        .getFunctionNameExpression() instanceof CIdExpression cIdExpression
+        && cIdExpression.getName().equals("free");
   }
 
   /**
