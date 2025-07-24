@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -41,6 +42,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   private final DeserializeCompositePrecisionOperator deserializePrecisionOperator;
   private final SerializeCompositePrecisionOperator serializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
+  private final CoverageOperator coverageOperator;
 
   private final ImmutableMap<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
@@ -63,6 +65,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
         new DeserializeCompositePrecisionOperator(registered, pNode, compositeCPA);
     analyses = registered;
     verificationConditionOperator = new CompositeViolationConditionOperator(compositeCPA, analyses);
+    coverageOperator = new CompositeStateCoverageOperator(registered);
   }
 
   @Override
@@ -109,6 +112,11 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   @Override
   public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
+  }
+
+  @Override
+  public CoverageOperator getCoverageOperator() {
+    return coverageOperator;
   }
 
   @Override

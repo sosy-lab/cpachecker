@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
@@ -22,6 +24,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
+
+  record StateAndPrecision(AbstractState state, Precision precision) {}
 
   /**
    * Operator that knows how to serialize the abstract states from {@link
@@ -72,6 +76,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   ViolationConditionOperator getViolationConditionOperator();
 
+  CoverageOperator getCoverageOperator();
+
   /**
    * Check whether this distributed CPA can work with {@code pClass}.
    *
@@ -88,5 +94,11 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
         .putAll(getSerializeOperator().serialize(pAbstractState))
         .putAll(getSerializePrecisionOperator().serializePrecision(pPrecision))
         .buildOrThrow();
+  }
+
+  default StateAndPrecision deserialize(DssMessage pMessage) throws InterruptedException {
+    AbstractState state = getDeserializeOperator().deserialize(pMessage);
+    Precision precision = getDeserializePrecisionOperator().deserializePrecision(pMessage);
+    return new StateAndPrecision(state, precision);
   }
 }

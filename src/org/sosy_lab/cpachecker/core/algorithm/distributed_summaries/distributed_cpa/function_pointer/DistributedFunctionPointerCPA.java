@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -28,6 +29,7 @@ public class DistributedFunctionPointerCPA
 
   private final FunctionPointerCPA functionPointerCPA;
   private final ViolationConditionOperator verificationConditionOperator;
+  private final FunctionPointerStateCoverageOperator coverageOperator;
 
   public DistributedFunctionPointerCPA(FunctionPointerCPA pParentCPA, BlockNode pNode) {
     functionPointerCPA = pParentCPA;
@@ -36,6 +38,7 @@ public class DistributedFunctionPointerCPA
     verificationConditionOperator =
         new BackwardTransferViolationConditionOperator(
             pParentCPA.getTransferRelation(), pParentCPA);
+    coverageOperator = new FunctionPointerStateCoverageOperator();
   }
 
   @Override
@@ -71,5 +74,10 @@ public class DistributedFunctionPointerCPA
   @Override
   public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
+  }
+
+  @Override
+  public CoverageOperator getCoverageOperator() {
+    return coverageOperator;
   }
 }

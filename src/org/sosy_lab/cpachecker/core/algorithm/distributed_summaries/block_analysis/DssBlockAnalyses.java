@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -37,15 +38,15 @@ public class DssBlockAnalyses {
    * @throws InterruptedException thread interrupted during precision computation
    * @throws CPAException wrapper exception for all CPA exceptions
    */
-  static void performCpaAlgorithmWithStates(
-      ReachedSet reachedSet, ConfigurableProgramAnalysis pCpa, List<AbstractState> pStates)
+  static void executeCpaAlgorithmWithStates(
+      ReachedSet reachedSet, ConfigurableProgramAnalysis pCpa, List<StateAndPrecision> pStates)
       throws InterruptedException, CPAException {
-    for (AbstractState state : pStates) {
+    for (StateAndPrecision stateAndPrecision : pStates) {
+      AbstractState state = stateAndPrecision.state();
       CFANode location = AbstractStates.extractLocation(state);
       assert location != null;
       if (reachedSet.isEmpty()) {
-        reachedSet.add(
-            state, pCpa.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()));
+        reachedSet.add(state, stateAndPrecision.precision());
       } else {
         // CPA algorithm
         for (AbstractState abstractState : ImmutableSet.copyOf(reachedSet)) {

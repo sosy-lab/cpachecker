@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -33,6 +34,7 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
+  private final CoverageOperator coverageOperator;
 
   public DistributedARGCPA(ARGCPA pARGCPA, DistributedConfigurableProgramAnalysis pWrapped) {
     argcpa = pARGCPA;
@@ -43,6 +45,7 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
     serializePrecisionOperator = new SerializeARGPrecisionOperator(wrappedCPA);
     deserializePrecisionOperator = new DeserializeARGPrecisionOperator(wrappedCPA);
     verificationConditionOperator = new ARGViolationConditionOperator(wrappedCPA);
+    coverageOperator = new ARGStateCoverageOperator(wrappedCPA);
   }
 
   @Override
@@ -98,6 +101,11 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   @Override
   public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
+  }
+
+  @Override
+  public CoverageOperator getCoverageOperator() {
+    return coverageOperator;
   }
 
   public DistributedConfigurableProgramAnalysis getWrappedCPA() {

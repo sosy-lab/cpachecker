@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -54,8 +55,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -184,28 +183,6 @@ public class DssBlockAnalysis {
     return messages.build();
   }
 
-  private boolean implies(DssPreconditionMessage pMessage1, DssPreconditionMessage pMessage2)
-      throws InterruptedException, SolverException {
-    if (pMessage1 == null || pMessage2 == null) {
-      return false;
-    }
-    PredicateCPA predicateCPA =
-        Objects.requireNonNull(CPAs.retrieveCPA(dcpa.getCPA(), PredicateCPA.class));
-    PredicateAbstractState msg1 =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(
-                dcpa.getDeserializeOperator().deserialize(pMessage1),
-                PredicateAbstractState.class));
-    PredicateAbstractState msg2 =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(
-                dcpa.getDeserializeOperator().deserialize(pMessage2),
-                PredicateAbstractState.class));
-    return predicateCPA
-        .getSolver()
-        .implies(msg1.getPathFormula().getFormula(), msg2.getPathFormula().getFormula());
-  }
-
   private Collection<DssMessage> reportViolationConditions(
       Set<ARGState> violations, ARGState condition, boolean first)
       throws CPAException, InterruptedException, SolverException {
@@ -264,13 +241,15 @@ public class DssBlockAnalysis {
   public Collection<DssMessage> runAnalysis(DssPreconditionMessage pReceived)
       throws SolverException, InterruptedException, CPAException, InvalidConfigurationException {
     logger.log(Level.INFO, "Running forward analysis with new precondition");
-    AbstractState deserialized = getDCPA().getDeserializeOperator().deserialize(pReceived);
-    DssMessageProcessing processing = getDCPA().getProceedOperator().processForward(deserialized);
+    AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
+    DssMessageProcessing processing = dcpa.getProceedOperator().processForward(deserialized);
     if (!processing.shouldProceed()) {
       return processing;
     }
     if (preconditions.containsKey(pReceived.getSenderId())) {
-      if (implies(preconditions.get(pReceived.getSenderId()), pReceived)) {
+      AbstractState previous =
+          dcpa.getDeserializeOperator().deserialize(preconditions.get(pReceived.getSenderId()));
+      if (dcpa.getCoverageOperator().covers(previous, deserialized)) {
         // we already have a precondition implying by the new one
         return ImmutableSet.of();
       }
@@ -351,16 +330,17 @@ public class DssBlockAnalysis {
   private void prepareReachedSet() throws CPAException, InterruptedException {
     // simulate merge and stop for all states ending up at block#getStartNode
     reachedSet.clear();
-    ImmutableList.Builder<AbstractState> deserializedStates = ImmutableList.builder();
+    ImmutableList.Builder<StateAndPrecision> deserializedStates = ImmutableList.builder();
     for (Entry<String, DssPreconditionMessage> messageEntry : preconditions.entrySet()) {
       DssMessage message = messageEntry.getValue();
-      AbstractState state = dcpa.getDeserializeOperator().deserialize(message);
-      if (dcpa.isTop(state) && block.getLoopPredecessorIds().contains(messageEntry.getKey())) {
+      StateAndPrecision stateAndPrecision = dcpa.deserialize(message);
+      if (dcpa.isTop(stateAndPrecision.state())
+          && block.getLoopPredecessorIds().contains(messageEntry.getKey())) {
         continue;
       }
-      deserializedStates.add(state);
+      deserializedStates.add(stateAndPrecision);
     }
-    DssBlockAnalyses.performCpaAlgorithmWithStates(reachedSet, cpa, deserializedStates.build());
+    DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, deserializedStates.build());
     if (reachedSet.isEmpty()) {
       reachedSet.add(makeStartState(), makeStartPrecision());
     }

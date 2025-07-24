@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -31,6 +32,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
 
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
+  private final CoverageOperator coverage;
 
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
@@ -50,6 +52,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
     verificationConditionOperator =
         new BackwardTransferViolationConditionOperator(
             callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA);
+    coverage = new CallstackStateCoverageOperator();
   }
 
   @Override
@@ -98,5 +101,10 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
+  }
+
+  @Override
+  public CoverageOperator getCoverageOperator() {
+    return coverage;
   }
 }

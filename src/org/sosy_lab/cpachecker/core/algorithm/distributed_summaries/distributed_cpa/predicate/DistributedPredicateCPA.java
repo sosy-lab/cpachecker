@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -44,6 +45,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ProceedPredicateStateOperator proceedOperator;
   private final PredicateViolationConditionOperator verificationConditionOperator;
+  private final PredicateStateCoverageOperator stateCoverageOperator;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -66,6 +68,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), threadSafeCopy::get);
     proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
+    stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
     verificationConditionOperator =
         new PredicateViolationConditionOperator(
             new PathFormulaManagerImpl(
@@ -130,5 +133,10 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   @Override
   public ViolationConditionOperator getViolationConditionOperator() {
     return verificationConditionOperator;
+  }
+
+  @Override
+  public CoverageOperator getCoverageOperator() {
+    return stateCoverageOperator;
   }
 }

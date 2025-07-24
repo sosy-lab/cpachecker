@@ -11,10 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -32,6 +34,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final SerializeOperator serializeOperator;
   private final ProceedOperator proceedOperator;
   private final ViolationConditionOperator verificationConditionOperator;
+  private final CoverageOperator coverageOperator;
 
   private final ConfigurableProgramAnalysis blockCPA;
   private final Function<CFANode, BlockState> blockStateSupplier;
@@ -46,6 +49,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     blockStateSupplier =
         node -> new BlockState(node, pNode, BlockStateType.INITIAL, Optional.empty());
     verificationConditionOperator = new BlockViolationConditionOperator();
+    coverageOperator = new BlockStateCoverageOperator();
   }
 
   @Override
@@ -84,8 +88,13 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   }
 
   @Override
+  public CoverageOperator getCoverageOperator() {
+    return coverageOperator;
+  }
+
+  @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return blockStateSupplier.apply(node);
+    return Objects.requireNonNull(blockStateSupplier.apply(node));
   }
 }
