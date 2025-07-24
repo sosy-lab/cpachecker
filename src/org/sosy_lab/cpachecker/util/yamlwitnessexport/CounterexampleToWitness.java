@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -37,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Property;
@@ -191,6 +194,17 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
 
       return ImmutableList.of(assumptionWaypoint.orElseThrow());
+    } else if (CFAUtils.isFreeStatement(pEdge) && specificationContainsMemSafety()) {
+      Optional<WaypointRecord> assumptionWaypoint =
+          handleAssumptionWhenAtPossibleLocation(
+              pEdge, pEdgeToAssumptions, pEdgeToCurrentExpressionIndex, pAstCFARelation);
+
+      if (assumptionWaypoint.isEmpty()) {
+        return ImmutableList.of();
+      }
+
+      return ImmutableList.of(assumptionWaypoint.orElseThrow());
+
     } else if (pEdge instanceof AssumeEdge assumeEdge) {
       // Without the AST structure we cannot guarantee that we are exporting at the beginning of
       // an iteration or if statement
@@ -409,6 +423,16 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                   // Remove any temporary variables created by CPAchecker
                   .filter(s -> !s.contains("__CPAchecker_TMP"))
                   .join(Joiner.on(" && "));
+        }
+
+        if (specificationContainsMemSafety()) {
+          //VALID-FREE handling
+          if (CFAUtils.isFreeStatement(edge)) {
+            CFunctionCallExpression functionCall =
+                ((CFunctionCallStatement) ((CStatementEdge) edge).getStatement()).getFunctionCallExpression();
+            statement = addAssumptions(statement,
+                "!\\valid(" + functionCall.getParameterExpressions().get(0).toString() + ")");
+          }
         }
 
         edgeToAssumptionsBuilder.put(edge, statement);
