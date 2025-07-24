@@ -195,7 +195,7 @@ public class ConstraintsSolver {
   public Satisfiability checkUnsatWithFreshSolver(
       Constraint pSingleConstraintToCheck, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
-    ConstraintsState s = new ConstraintsState(Collections.singleton(pSingleConstraintToCheck));
+    ConstraintsState s = new ConstraintsState(ImmutableSet.of(pSingleConstraintToCheck));
     return checkUnsat(s, pFunctionName, true).satisfiability();
   }
 
