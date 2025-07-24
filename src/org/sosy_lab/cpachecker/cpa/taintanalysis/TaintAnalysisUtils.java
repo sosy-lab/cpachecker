@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.MathContext;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -28,7 +27,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public class TaintAnalysisUtils {
 
@@ -152,25 +153,25 @@ public class TaintAnalysisUtils {
     if (operand1 instanceof CFloatLiteralExpression floatExpr1
         && operand2 instanceof CFloatLiteralExpression floatExpr2) {
 
-      BigDecimal value1 = BigDecimal.valueOf(floatExpr1.getValue().doubleValue());
-      BigDecimal value2 = BigDecimal.valueOf(floatExpr2.getValue().doubleValue());
+      FloatValue value1 = floatExpr1.getValue();
+      FloatValue value2 = floatExpr2.getValue();
 
-      BigDecimal result =
+      FloatValue result =
           switch (operator) {
             case PLUS -> value1.add(value2);
             case MINUS -> value1.subtract(value2);
             case MULTIPLY -> value1.multiply(value2);
             case DIVIDE -> {
-              if (value2.compareTo(BigDecimal.ZERO) == 0) {
+              if (value2.equalTo(FloatValue.zero(value2.getFormat()))) {
                 throw new ArithmeticException("Division by zero.");
               }
-              yield value1.divide(value2, MathContext.DECIMAL128);
+              yield value1.divide(value2);
             }
             default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
           };
 
       return new CFloatLiteralExpression(
-          operand1.getFileLocation(), operand1.getExpressionType(), result);
+          operand1.getFileLocation(), MachineModel.LINUX64, operand1.getExpressionType(), result);
     }
 
     if (operand1 instanceof CStringLiteralExpression strExpr1
@@ -244,9 +245,9 @@ public class TaintAnalysisUtils {
             operand.getFileLocation(), operand.getExpressionType(), result);
 
       } else if (operand instanceof CFloatLiteralExpression floatExpr) {
-        BigDecimal result = BigDecimal.valueOf(floatExpr.getValue().doubleValue()).negate();
+        FloatValue result = floatExpr.getValue().negate();
         return new CFloatLiteralExpression(
-            operand.getFileLocation(), operand.getExpressionType(), result);
+            operand.getFileLocation(), MachineModel.LINUX64, operand.getExpressionType(), result);
       }
 
     } else if (Objects.requireNonNull(operator) == UnaryOperator.AMPER) {
