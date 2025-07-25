@@ -527,16 +527,16 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       analysisName = pAnalysisName;
     }
 
-    public static ParallelAnalysisResult of(
+    static ParallelAnalysisResult of(
         ReachedSet pReached, AlgorithmStatus pStatus, String pAnalysisName) {
       return new ParallelAnalysisResult(pReached, pStatus, pAnalysisName);
     }
 
-    public static ParallelAnalysisResult absent(String pAnalysisName) {
+    static ParallelAnalysisResult absent(String pAnalysisName) {
       return new ParallelAnalysisResult(null, null, pAnalysisName);
     }
 
-    public boolean hasValidReachedSet() {
+    boolean hasValidReachedSet() {
       if (reached == null || status == null) {
         return false;
       }
@@ -548,15 +548,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                   .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
     }
 
-    public @Nullable ReachedSet getReached() {
+    @Nullable ReachedSet getReached() {
       return reached;
     }
 
-    public @Nullable AlgorithmStatus getStatus() {
+    @Nullable AlgorithmStatus getStatus() {
       return status;
     }
 
-    public String getAnalysisName() {
+    String getAnalysisName() {
       return analysisName;
     }
   }
@@ -573,7 +573,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       writeUnsuccessfulAnalysisFiles = pWriteUnsuccessfulAnalysisFiles;
     }
 
-    public synchronized StatisticsEntry getNewSubStatistics(
+    synchronized StatisticsEntry getNewSubStatistics(
         ReachedSet pReached, String pName, AtomicBoolean pTerminated) {
       Collection<Statistics> subStats = new CopyOnWriteArrayList<>();
       StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pTerminated);

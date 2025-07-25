@@ -425,7 +425,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
   private static class FunctionExitValueVisitor extends ExpressionValueVisitor {
 
-    public FunctionExitValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
+    FunctionExitValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
       super(pEdge, pState, pFunctionName);
     }
 
@@ -442,7 +442,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     private final RTTState newState; // this state will be changed!
     private final String methodName;
 
-    public AssigningValueVisitor(RTTState pNewState, boolean pTruthAssumption, String pMethodName) {
+    AssigningValueVisitor(RTTState pNewState, boolean pTruthAssumption, String pMethodName) {
       truthAssumption = pTruthAssumption;
       newState = pNewState;
       methodName = pMethodName;
@@ -494,11 +494,11 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       extends DefaultJExpressionVisitor<String, UnrecognizedCodeException>
       implements JRightHandSideVisitor<String, UnrecognizedCodeException> {
 
-    protected final CFAEdge edge;
-    protected final RTTState state; // only for read-access, do never change this state!
-    protected final String functionName;
+    final CFAEdge edge;
+    final RTTState state; // only for read-access, do never change this state!
+    final String functionName;
 
-    public ExpressionValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
+    ExpressionValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
       edge = pEdge;
       state = pState;
       functionName = pFunctionName;

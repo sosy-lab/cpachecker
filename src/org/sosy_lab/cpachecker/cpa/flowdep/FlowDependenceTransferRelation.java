@@ -557,7 +557,7 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
     private final Optional<VariableClassification> varClassification;
 
-    public UsesCollector(
+    UsesCollector(
         final PointerState pPointerState,
         final Optional<VariableClassification> pVarClassification) {
       pointerState = pPointerState;

@@ -64,7 +64,7 @@ public abstract class ConditionFolder {
     private final CFA cfa;
     private final Map<CFANode, Loop> loopMap;
 
-    public LoopInfo(final CFA pCfa) {
+    LoopInfo(final CFA pCfa) {
       cfa = pCfa;
       loopMap = buildLoopMap();
     }
@@ -133,7 +133,7 @@ public abstract class ConditionFolder {
       return loopMapResult;
     }
 
-    public boolean leaveLoop(final CFAEdge pEdge) {
+    boolean leaveLoop(final CFAEdge pEdge) {
       Loop l = loopMap.get(pEdge.getPredecessor());
       return l != null
           && !(pEdge instanceof CFunctionCallEdge)
@@ -142,7 +142,7 @@ public abstract class ConditionFolder {
           && !l.getLoopNodes().contains(pEdge.getSuccessor());
     }
 
-    public boolean startNewLoopIteation(final CFAEdge pEdge) {
+    boolean startNewLoopIteation(final CFAEdge pEdge) {
       if (cfa.getAllLoopHeads().orElseThrow().contains(pEdge.getSuccessor())) {
         if (loopMap.get(pEdge.getPredecessor()) == loopMap.get(pEdge.getSuccessor())) {
           return true;
@@ -237,7 +237,7 @@ public abstract class ConditionFolder {
 
   private static class CFAFolder extends ConditionFolder {
 
-    public CFAFolder() {
+    CFAFolder() {
       super(FolderType.CFA);
     }
 
@@ -294,21 +294,21 @@ public abstract class ConditionFolder {
   }
 
   private abstract static class StructureFolder<T> extends ConditionFolder {
-    protected final CFA cfa;
-    protected final Set<CFANode> loopHeads;
+    final CFA cfa;
+    final Set<CFANode> loopHeads;
 
-    protected StructureFolder(final CFA pCfa, final FolderType type) {
+    StructureFolder(final CFA pCfa, final FolderType type) {
       super(type);
       cfa = pCfa;
       Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
       loopHeads = cfa.getAllLoopHeads().orElseThrow();
     }
 
-    protected abstract T getRootFoldId(final ARGState pRoot);
+    abstract T getRootFoldId(final ARGState pRoot);
 
-    protected abstract T adaptID(CFAEdge pEdge, T pFoldID, ARGState pChild);
+    abstract T adaptID(CFAEdge pEdge, T pFoldID, ARGState pChild);
 
-    protected abstract boolean shouldFold(CFANode loc);
+    abstract boolean shouldFold(CFANode loc);
 
     @Override
     public ARGState foldARG(final ARGState pRoot) {
@@ -424,7 +424,7 @@ public abstract class ConditionFolder {
   private static class LoopAlwaysFolder
       extends StructureFolder<Pair<CFANode, CallstackStateEqualsWrapper>> {
 
-    public LoopAlwaysFolder(final CFA pCfa) {
+    LoopAlwaysFolder(final CFA pCfa) {
       super(pCfa, FolderType.LOOP_ALWAYS);
     }
 

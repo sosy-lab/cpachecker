@@ -909,7 +909,7 @@ public class CPAMain {
 
     private final String outputPath;
 
-    public Config(Configuration pConfiguration, String pOutputPath) {
+    Config(Configuration pConfiguration, String pOutputPath) {
       configuration = pConfiguration;
       outputPath = pOutputPath;
     }

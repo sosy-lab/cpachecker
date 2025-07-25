@@ -63,16 +63,16 @@ public class CFAToCTranslator {
     private final CFANode node;
     private final CompoundStatement currentBlock;
 
-    public NodeAndBlock(CFANode pNode, CompoundStatement pCurrentBlock) {
+    NodeAndBlock(CFANode pNode, CompoundStatement pCurrentBlock) {
       node = pNode;
       currentBlock = pCurrentBlock;
     }
 
-    public CFANode getNode() {
+    CFANode getNode() {
       return node;
     }
 
-    public CompoundStatement getCurrentBlock() {
+    CompoundStatement getCurrentBlock() {
       return currentBlock;
     }
   }

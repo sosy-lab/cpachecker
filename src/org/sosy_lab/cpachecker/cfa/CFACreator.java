@@ -1172,7 +1172,7 @@ public class CFACreator {
       @JsonProperty("name") @NonNull String name,
       @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
 
-    public AVariableDeclarationExchange {
+    AVariableDeclarationExchange {
       checkNotNull(name);
       checkNotNull(simpleType);
     }

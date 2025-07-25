@@ -263,7 +263,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     private final AbstractState[] roots;
     private final ReachedSetFactory factory;
 
-    public ProofPartReader(
+    ProofPartReader(
         final Semaphore pReadNext,
         Semaphore pPartitionsAvailable,
         final AtomicBoolean pCheckResult,

@@ -651,7 +651,7 @@ public class CFAUtils {
       }
     }
 
-    public boolean hasBackwardsEdges() {
+    boolean hasBackwardsEdges() {
       return hasBackwardsEdges;
     }
   }

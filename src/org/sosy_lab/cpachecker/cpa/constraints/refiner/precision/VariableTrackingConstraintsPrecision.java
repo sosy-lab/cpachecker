@@ -40,7 +40,7 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
       order = pOrder;
     }
 
-    public IncrementScope lower(final IncrementScope pOther) {
+    IncrementScope lower(final IncrementScope pOther) {
       if (pOther.order < order) {
         return pOther;
       } else {

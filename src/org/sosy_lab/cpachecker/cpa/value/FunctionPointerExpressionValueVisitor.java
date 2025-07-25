@@ -78,7 +78,7 @@ class FunctionPointerExpressionValueVisitor extends ExpressionValueVisitor {
 
   private static class FunctionPointerMemoryLocationEvaluator extends MemoryLocationEvaluator {
 
-    public FunctionPointerMemoryLocationEvaluator(ExpressionValueVisitor pEvv) {
+    FunctionPointerMemoryLocationEvaluator(ExpressionValueVisitor pEvv) {
       super(pEvv);
     }
 

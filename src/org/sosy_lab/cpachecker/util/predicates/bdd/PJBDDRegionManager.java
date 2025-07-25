@@ -254,11 +254,11 @@ public class PJBDDRegionManager implements RegionManager {
       pConfig.inject(this);
     }
 
-    protected String getUseBDDType() {
+    String getUseBDDType() {
       return useBDDType;
     }
 
-    protected List<String> getAllValidBDDTypes() {
+    List<String> getAllValidBDDTypes() {
       return ALL_BDD_TYPES;
     }
 

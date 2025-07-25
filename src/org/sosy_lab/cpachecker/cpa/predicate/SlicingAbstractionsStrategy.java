@@ -105,11 +105,11 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
       SlicingAbstractionsStrategy.this.printStatistics(out);
     }
 
-    public void increaseRefinementCounter() {
+    void increaseRefinementCounter() {
       refinementCount++;
     }
 
-    public void increaseSolverCallCounter() {
+    void increaseSolverCallCounter() {
       solverCallCount++;
     }
   }

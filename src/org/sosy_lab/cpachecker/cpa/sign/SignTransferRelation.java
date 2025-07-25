@@ -148,7 +148,7 @@ public class SignTransferRelation
     CExpression identifier;
     Sign value;
 
-    public IdentifierValuePair(CExpression pIdentifier, Sign pValue) {
+    IdentifierValuePair(CExpression pIdentifier, Sign pValue) {
       identifier = pIdentifier;
       value = pValue;
     }

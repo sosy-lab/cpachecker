@@ -447,19 +447,19 @@ public class RankingRelationBuilder {
       primedFormulaSummands = pPrimedFormulaSummands;
     }
 
-    public Optional<CExpression> getPrimedExpression() {
+    Optional<CExpression> getPrimedExpression() {
       return primedExpression;
     }
 
-    public Optional<CExpression> getUnprimedExpression() {
+    Optional<CExpression> getUnprimedExpression() {
       return unprimedExpression;
     }
 
-    public NumeralFormula getPrimedFormula() {
+    NumeralFormula getPrimedFormula() {
       return sum(primedFormulaSummands);
     }
 
-    public NumeralFormula getUnprimedFormula() {
+    NumeralFormula getUnprimedFormula() {
       return sum(unprimedFormulaSummands);
     }
 

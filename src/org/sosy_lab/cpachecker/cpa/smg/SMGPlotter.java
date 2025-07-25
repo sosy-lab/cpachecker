@@ -50,21 +50,21 @@ public final class SMGPlotter {
     private final String definition;
     private static int counter = 0;
 
-    public SMGObjectNode(String pType, String pDefinition) {
+    SMGObjectNode(String pType, String pDefinition) {
       name = "node_" + pType + "_" + counter++;
       definition = pDefinition;
     }
 
-    public SMGObjectNode(String pName) {
+    SMGObjectNode(String pName) {
       name = pName;
       definition = null;
     }
 
-    public String getName() {
+    String getName() {
       return name;
     }
 
-    public String getDefinition() {
+    String getDefinition() {
       return name + "[" + definition + "];";
     }
   }
@@ -73,7 +73,7 @@ public final class SMGPlotter {
 
     private final UnmodifiableCLangSMG smg;
 
-    public SMGNodeDotVisitor(UnmodifiableCLangSMG pSmg) {
+    SMGNodeDotVisitor(UnmodifiableCLangSMG pSmg) {
       smg = pSmg;
     }
 

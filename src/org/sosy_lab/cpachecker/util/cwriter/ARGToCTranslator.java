@@ -89,27 +89,26 @@ public class ARGToCTranslator {
     private final CFAEdge cfaEdge;
     private final CompoundStatement currentBlock;
 
-    public ARGEdge(
-        ARGState pParent, ARGState pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
+    ARGEdge(ARGState pParent, ARGState pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
       parent = pParent;
       child = pChild;
       cfaEdge = pCfaEdge;
       currentBlock = pCurrentBlock;
     }
 
-    public ARGState getParentElement() {
+    ARGState getParentElement() {
       return parent;
     }
 
-    public ARGState getChildElement() {
+    ARGState getChildElement() {
       return child;
     }
 
-    public CFAEdge getCfaEdge() {
+    CFAEdge getCfaEdge() {
       return cfaEdge;
     }
 
-    public CompoundStatement getCurrentBlock() {
+    CompoundStatement getCurrentBlock() {
       return currentBlock;
     }
   }
@@ -1031,14 +1030,14 @@ public class ARGToCTranslator {
     private final ImmutableMap<CDeclaration, String> currentFuncDecInfo;
     private final ImmutableList<ImmutableMap<CDeclaration, String>> calleeFunDecInfos;
 
-    public DeclarationInfo(
+    DeclarationInfo(
         final ImmutableMap<CDeclaration, String> funDec,
         final ImmutableList<ImmutableMap<CDeclaration, String>> calleesFunInfo) {
       currentFuncDecInfo = funDec;
       calleeFunDecInfos = calleesFunInfo;
     }
 
-    public DeclarationInfo addNewDeclarationInfo(final CDeclaration dec, final String decId) {
+    DeclarationInfo addNewDeclarationInfo(final CDeclaration dec, final String decId) {
       ImmutableMap<CDeclaration, String> newFunDecInfo;
       if (currentFuncDecInfo.containsKey(dec)) {
         ImmutableMap.Builder<CDeclaration, String> builder = ImmutableMap.builder();
@@ -1060,7 +1059,7 @@ public class ARGToCTranslator {
       return new DeclarationInfo(newFunDecInfo, calleeFunDecInfos);
     }
 
-    public DeclarationInfo fromFunctionCall(final CFunctionCallEdge callEdge, final String decId) {
+    DeclarationInfo fromFunctionCall(final CFunctionCallEdge callEdge, final String decId) {
       ImmutableMap.Builder<CDeclaration, String> builder = ImmutableMap.builder();
 
       for (CParameterDeclaration paramDecl :
@@ -1072,7 +1071,7 @@ public class ARGToCTranslator {
           builder.buildOrThrow(), listAndElement(calleeFunDecInfos, currentFuncDecInfo));
     }
 
-    public DeclarationInfo fromFunctionReturn() {
+    DeclarationInfo fromFunctionReturn() {
       checkState(!calleeFunDecInfos.isEmpty());
       return new DeclarationInfo(
           calleeFunDecInfos.get(calleeFunDecInfos.size() - 1),

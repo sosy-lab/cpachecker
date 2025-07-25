@@ -762,7 +762,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
         private CPATransferException transferException;
 
-        public EpsilonMatchVisitor(ResultValue<Boolean> pEvaluation) {
+        EpsilonMatchVisitor(ResultValue<Boolean> pEvaluation) {
           evaluation = pEvaluation;
         }
 

@@ -284,11 +284,11 @@ public class CFADeclarationMover {
 
     private final List<CFAEdge> edges;
 
-    public DeclarationCollector() {
+    DeclarationCollector() {
       edges = new ArrayList<>();
     }
 
-    public List<CFAEdge> getCollectedDeclarations() {
+    List<CFAEdge> getCollectedDeclarations() {
       return edges;
     }
 
