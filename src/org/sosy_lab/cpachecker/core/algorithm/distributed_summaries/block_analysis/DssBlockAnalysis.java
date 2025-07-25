@@ -249,7 +249,7 @@ public class DssBlockAnalysis {
     if (preconditions.containsKey(pReceived.getSenderId())) {
       AbstractState previous =
           dcpa.getDeserializeOperator().deserialize(preconditions.get(pReceived.getSenderId()));
-      if (dcpa.getCoverageOperator().covers(previous, deserialized)) {
+      if (!dcpa.isTop(previous) && dcpa.getCoverageOperator().covers(previous, deserialized)) {
         // we already have a precondition implying by the new one
         return ImmutableSet.of();
       }
@@ -260,16 +260,6 @@ public class DssBlockAnalysis {
       messages.addAll(runAnalysisUnderCondition(violation));
     }
     return messages.build();
-  }
-
-  private AbstractState makeStartState() throws InterruptedException {
-    return dcpa.getInitialState(
-        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
-  }
-
-  private Precision makeStartPrecision() throws InterruptedException {
-    return dcpa.getInitialPrecision(
-        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
   }
 
   /**
@@ -318,6 +308,16 @@ public class DssBlockAnalysis {
               result.getViolations(), ((ARGState) violationCondition), false));
     }
     return messages.build();
+  }
+
+  private AbstractState makeStartState() throws InterruptedException {
+    return dcpa.getInitialState(
+        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
+  }
+
+  private Precision makeStartPrecision() throws InterruptedException {
+    return dcpa.getInitialPrecision(
+        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
   }
 
   /**

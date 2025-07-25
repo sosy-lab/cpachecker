@@ -22,5 +22,4 @@ public class BlockStateCoverageOperator implements CoverageOperator {
     BlockState blockState2 = (BlockState) state2;
     return blockState1.equals(blockState2);
   }
-
 }

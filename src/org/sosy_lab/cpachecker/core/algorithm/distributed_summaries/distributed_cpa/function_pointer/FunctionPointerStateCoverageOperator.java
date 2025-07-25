@@ -24,5 +24,4 @@ public class FunctionPointerStateCoverageOperator implements CoverageOperator {
     FunctionPointerState.Builder builder2 = functionPointerState2.createBuilder();
     return builder1.getValues().equals(builder2.getValues());
   }
-
 }

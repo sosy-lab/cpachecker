@@ -15,11 +15,11 @@ public interface CoverageOperator {
 
   /**
    * Whether the concretization of state1 is a subset of the concretization of state2
+   *
    * @param state1 First abstract state
    * @param state2 Second abstract state
    * @return Whether state1 <= state2
    */
   boolean covers(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException;
-
 }
