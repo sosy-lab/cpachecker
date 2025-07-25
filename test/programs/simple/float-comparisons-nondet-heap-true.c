@@ -6,8 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <stdlib.h>
-
+extern void *malloc(unsigned long);
+extern void free(void*);
 extern double nan(const char*);
 extern double __VERIFIER_nondet_double();
 
