@@ -330,8 +330,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         // getMachineModel().getSizeof(pCastType))
 
         BigInteger toAdd;
-        if (num instanceof BigInteger) {
-          toAdd = (BigInteger) num;
+        if (num instanceof BigInteger biNum) {
+          toAdd = biNum;
         } else {
           toAdd = BigInteger.valueOf(num.longValue());
         }
@@ -355,8 +355,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
               <= getMachineModel().getSizeof(pCastType));
 
       BigInteger toAdd;
-      if (num instanceof BigInteger) {
-        toAdd = (BigInteger) num;
+      if (num instanceof BigInteger biNum) {
+        toAdd = biNum;
       } else {
         toAdd = BigInteger.valueOf(num.longValue());
       }
@@ -532,8 +532,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
     if (pValue instanceof NumericValue numVal) {
       Preconditions.checkArgument(numVal.hasFloatType() || numVal.hasIntegerType());
-      if (pExpectedTypeOfValue instanceof CSimpleType) {
-        CSimpleType type = (CSimpleType) pExpectedTypeOfValue;
+      if (pExpectedTypeOfValue instanceof CSimpleType type) {
         if (type.getType().isIntegerType()) {
 
           if (numVal.hasIntegerType()) {
