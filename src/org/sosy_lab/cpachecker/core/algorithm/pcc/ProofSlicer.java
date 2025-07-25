@@ -494,7 +494,7 @@ public class ProofSlicer {
 
     private static VarNameRetriever retriever = new VarNameRetriever();
 
-    public static String getVarName(final CLeftHandSide lhsAssign) {
+    static String getVarName(final CLeftHandSide lhsAssign) {
       return lhsAssign.accept(retriever);
     }
 

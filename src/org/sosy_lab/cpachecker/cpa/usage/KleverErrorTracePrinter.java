@@ -70,7 +70,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     private Set<Integer> usedThreadIds;
     private int currentThread;
 
-    public ThreadIterator() {
+    ThreadIterator() {
       usedThreadIds = new HashSet<>();
       currentThread = 0;
     }
@@ -91,11 +91,11 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       return getCurrentThread();
     }
 
-    public int getCurrentThread() {
+    int getCurrentThread() {
       return currentThread;
     }
 
-    public void setCurrentThread(int newVal) {
+    void setCurrentThread(int newVal) {
       currentThread = newVal;
     }
   }

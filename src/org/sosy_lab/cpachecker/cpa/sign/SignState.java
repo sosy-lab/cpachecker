@@ -192,7 +192,7 @@ public class SignState
 
     @Serial private static final long serialVersionUID = 2843708585446089623L;
 
-    public SerialProxySign() {}
+    SerialProxySign() {}
 
     @Serial
     private Object readResolve() {

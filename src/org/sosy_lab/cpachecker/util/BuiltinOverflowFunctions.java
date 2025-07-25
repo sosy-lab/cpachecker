@@ -64,10 +64,10 @@ public class BuiltinOverflowFunctions {
     UMULL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_INT, false),
     UMULLL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_LONG_INT, false);
 
-    public final BinaryOperator operator;
-    public final Optional<CSimpleType> type;
-    public final Boolean hasNoSideEffects;
-    public final String name;
+    final BinaryOperator operator;
+    final Optional<CSimpleType> type;
+    final Boolean hasNoSideEffects;
+    final String name;
 
     BuiltinOverflowFunction(
         BinaryOperator pOperator, @Nullable CSimpleType pType, Boolean pHasNoSideEffect) {

@@ -1233,7 +1233,7 @@ public class ValueAnalysisTransferRelation
   private class FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
 
-    public FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
+    FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
       super(pState, functionName, machineModel, logger);
       jortState = pJortState;
     }

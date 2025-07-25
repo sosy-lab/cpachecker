@@ -60,8 +60,7 @@ public abstract sealed class JArrayLengthExpression extends AbstractExpression
     @Serial private static final long serialVersionUID = 7488687702133599086L;
     private final JArraySubscriptExpression qualifier;
 
-    public JSubArrayLengthExpression(
-        FileLocation pFileLocation, JArraySubscriptExpression pQualifier) {
+    JSubArrayLengthExpression(FileLocation pFileLocation, JArraySubscriptExpression pQualifier) {
       super(pFileLocation);
       qualifier = pQualifier;
     }

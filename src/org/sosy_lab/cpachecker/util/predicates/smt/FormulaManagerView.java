@@ -1874,7 +1874,7 @@ public class FormulaManagerView {
 
     private final FormulaTransformationVisitor delegate;
 
-    protected UnwrappingFormulaTransformationVisitor(FormulaTransformationVisitor pDelegate) {
+    UnwrappingFormulaTransformationVisitor(FormulaTransformationVisitor pDelegate) {
       super(manager);
       delegate = Objects.requireNonNull(pDelegate);
     }

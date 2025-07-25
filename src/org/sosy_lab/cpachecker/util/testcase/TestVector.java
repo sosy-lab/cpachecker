@@ -175,7 +175,7 @@ public class TestVector {
 
     private final AFunctionDeclaration declaration;
 
-    public ComparableFunctionDeclaration(AFunctionDeclaration pDeclaration) {
+    ComparableFunctionDeclaration(AFunctionDeclaration pDeclaration) {
       declaration = Objects.requireNonNull(pDeclaration);
     }
 
@@ -223,7 +223,7 @@ public class TestVector {
 
     private final AVariableDeclaration declaration;
 
-    public ComparableVariableDeclaration(AVariableDeclaration pDeclaration) {
+    ComparableVariableDeclaration(AVariableDeclaration pDeclaration) {
       declaration = Objects.requireNonNull(pDeclaration);
     }
 

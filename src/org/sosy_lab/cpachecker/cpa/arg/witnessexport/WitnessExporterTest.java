@@ -309,7 +309,7 @@ public class WitnessExporterTest {
 
     private final Path compressedFilePath;
 
-    public TempCompressedFilePath(String pPrefix, String pSuffix) throws IOException {
+    TempCompressedFilePath(String pPrefix, String pSuffix) throws IOException {
       String compressedSuffix = ".gz";
       compressedFilePath =
           TempFile.builder()
@@ -367,18 +367,18 @@ public class WitnessExporterTest {
     }
 
     @CanIgnoreReturnValue
-    public WitnessTester forSpecification(String pSpecificationFile) {
+    WitnessTester forSpecification(String pSpecificationFile) {
       specificationFile = Objects.requireNonNull(pSpecificationFile);
       return this;
     }
 
     @CanIgnoreReturnValue
-    public WitnessTester addOverrideOption(String pOptionName, String pOptionValue) {
+    WitnessTester addOverrideOption(String pOptionName, String pOptionValue) {
       overrideOptionsBuilder.put(pOptionName, pOptionValue);
       return this;
     }
 
-    public void performTest() throws Exception {
+    void performTest() throws Exception {
       WitnessExporterTest.performTest(
           programFile,
           specificationFile,

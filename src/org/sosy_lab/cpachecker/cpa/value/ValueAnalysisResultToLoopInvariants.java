@@ -1249,15 +1249,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
   private abstract static class CandidateInvariant {
 
-    protected enum EqualCompareType {
+    enum EqualCompareType {
       EQ,
       GEQ,
       LEQ,
       NONE
     }
 
-    protected EqualCompareType updateCompareType(
-        final int compRes, final EqualCompareType currentType) {
+    EqualCompareType updateCompareType(final int compRes, final EqualCompareType currentType) {
 
       return switch (currentType) {
         case EQ ->
@@ -1268,7 +1267,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       };
     }
 
-    protected @Nullable NumericValue extractNumValue(Value pValue) {
+    @Nullable NumericValue extractNumValue(Value pValue) {
       Preconditions.checkNotNull(pValue);
       if (pValue.isExplicitlyKnown() && pValue.isNumericValue()) {
         return pValue.asNumericValue();
@@ -1276,14 +1275,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       return null;
     }
 
-    protected abstract Collection<BooleanFormula> asBooleanFormulae(
+    abstract Collection<BooleanFormula> asBooleanFormulae(
         final FormulaManagerView pFormulaManagerView,
         final ImmutableMap<MemoryLocation, Type> pVarToType,
         final CtoFormulaConverter pC2Formula,
         final MachineModel pMachineModel,
         final EXPORT_OPTION pExportOpt);
 
-    protected static boolean isIntegralType(final Number pNum) {
+    static boolean isIntegralType(final Number pNum) {
       return pNum instanceof java.lang.Byte
           || pNum instanceof Short
           || pNum instanceof Integer
@@ -1292,11 +1291,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           || pNum instanceof AtomicLong;
     }
 
-    protected static boolean isFloatingNumber(final Number pNum) {
+    static boolean isFloatingNumber(final Number pNum) {
       return pNum instanceof Float || pNum instanceof Double || pNum instanceof AtomicDouble;
     }
 
-    protected int compareVals(final NumericValue pVal1, final NumericValue pVal2) {
+    int compareVals(final NumericValue pVal1, final NumericValue pVal2) {
       Number num1 = pVal1.getNumber();
       Number num2 = pVal2.getNumber();
 
@@ -1373,7 +1372,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           "Comparision between " + pVal1 + " and " + pVal2 + " not supported.");
     }
 
-    protected Formula encodeNumVal(
+    Formula encodeNumVal(
         final FormulaManagerView pFmgrV,
         final FormulaType<?> pFormulaType,
         final Formula pVarF,
@@ -1412,7 +1411,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       throw new AssertionError("Unsupported Number instance " + numVal);
     }
 
-    protected BooleanFormula makeComparison(
+    BooleanFormula makeComparison(
         final Formula pTermF,
         final Pair<Number, EqualCompareType> pOp,
         final FormulaManagerView pFmgrV,
@@ -1431,7 +1430,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       };
     }
 
-    protected CSimpleType getCompareType(final CSimpleType pType1, final CSimpleType pType2) {
+    CSimpleType getCompareType(final CSimpleType pType1, final CSimpleType pType2) {
       CBasicType bType1 = pType1.getType();
       CBasicType bType2 = pType2.getType();
 
@@ -1493,7 +1492,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       }
     }
 
-    protected CSimpleType getCTypeFromValue(
+    CSimpleType getCTypeFromValue(
         final boolean isSigned, final Number pNumber, final MachineModel pMachineModel) {
       if (isFloatingNumber(pNumber)
           || pNumber instanceof BigDecimal
@@ -1588,7 +1587,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       }
     }
 
-    protected Formula simpleCast(
+    Formula simpleCast(
         final Formula pFormula,
         final boolean pIsSignedOriginal,
         final CType originalType,

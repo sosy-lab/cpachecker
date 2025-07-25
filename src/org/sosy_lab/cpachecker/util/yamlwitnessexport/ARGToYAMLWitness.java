@@ -138,7 +138,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     private final Map<ARGState, ListMultimap<AFunctionDeclaration, ARGState>> callStackRecovery =
         new HashMap<>();
 
-    protected void analyze(ARGState pSuccessor) {
+    void analyze(ARGState pSuccessor) {
       if (!pSuccessor.getParents().isEmpty()) {
         ARGState parent = pSuccessor.getParents().stream().findFirst().orElseThrow();
         if (callStackRecovery.containsKey(parent)) {
@@ -175,7 +175,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
-    public CollectedARGStates getCollectedStates() {
+    CollectedARGStates getCollectedStates() {
       return collectedStates;
     }
   }

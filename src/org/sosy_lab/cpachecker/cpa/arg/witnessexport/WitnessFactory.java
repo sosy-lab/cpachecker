@@ -1939,11 +1939,11 @@ class WitnessFactory implements EdgeAppender {
 
     private final boolean gotoLoop;
 
-    public LoopEntryInfo() {
+    LoopEntryInfo() {
       this(null, false);
     }
 
-    public LoopEntryInfo(CFANode pLoopHead, boolean pGotoLoop) {
+    LoopEntryInfo(CFANode pLoopHead, boolean pGotoLoop) {
       if (pGotoLoop) {
         Objects.requireNonNull(pLoopHead);
       }
@@ -1951,15 +1951,15 @@ class WitnessFactory implements EdgeAppender {
       gotoLoop = pGotoLoop;
     }
 
-    public boolean entersLoop() {
+    boolean entersLoop() {
       return loopHead != null;
     }
 
-    public CFANode getLoopHead() {
+    CFANode getLoopHead() {
       return loopHead;
     }
 
-    public boolean isGotoLoop() {
+    boolean isGotoLoop() {
       return gotoLoop;
     }
 

@@ -139,7 +139,7 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
     private final Multimap<String, String> functionToGlobalMatching = HashMultimap.create();
     private @Nullable String lastFunction;
 
-    public CollectFunctionsVisitorWithFieldMatching(Set<String> collectedFuncs) {
+    CollectFunctionsVisitorWithFieldMatching(Set<String> collectedFuncs) {
       super(collectedFuncs);
     }
 

@@ -85,7 +85,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
       dummyNode = CFANode.newDummyCFANode(pFunctionName);
     }
 
-    public static DummyEdge getInstance(String pFunctionName) {
+    static DummyEdge getInstance(String pFunctionName) {
       DummyEdge edge = existingEdges.get(pFunctionName);
 
       if (edge == null) {

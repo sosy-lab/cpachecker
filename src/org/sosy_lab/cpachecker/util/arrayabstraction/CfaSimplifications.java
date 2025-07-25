@@ -458,8 +458,7 @@ final class CfaSimplifications {
 
     private final Map<CSimpleDeclaration, CExpression> substitution;
 
-    public IdExpressionSubstitutingCAstNodeVisitor(
-        Map<CSimpleDeclaration, CExpression> pSubstitution) {
+    IdExpressionSubstitutingCAstNodeVisitor(Map<CSimpleDeclaration, CExpression> pSubstitution) {
       substitution = pSubstitution;
     }
 

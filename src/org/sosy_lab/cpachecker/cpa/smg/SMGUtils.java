@@ -89,12 +89,12 @@ public final class SMGUtils {
         new CSimpleType(
             false, false, CBasicType.UNSPECIFIED, false, false, false, false, false, false, false);
 
-    public CFieldTypeVisitor(long pFieldOffset, MachineModel pModel) {
+    CFieldTypeVisitor(long pFieldOffset, MachineModel pModel) {
       fieldOffset = pFieldOffset;
       model = pModel;
     }
 
-    public static boolean isUnknownInstance(CType type) {
+    static boolean isUnknownInstance(CType type) {
       return type == UNKNOWN;
     }
 

@@ -387,15 +387,15 @@ public class ThreadingState
       num = pNum;
     }
 
-    public AbstractState getLocation() {
+    AbstractState getLocation() {
       return location;
     }
 
-    public AbstractState getCallstack() {
+    AbstractState getCallstack() {
       return callstack.getState();
     }
 
-    public int getNum() {
+    int getNum() {
       return num;
     }
 

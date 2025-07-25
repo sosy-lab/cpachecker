@@ -135,11 +135,11 @@ public class PredicateRequirementsTranslator
     private final Set<String> relevantVars;
     private boolean success = true;
 
-    public RelevantFormulaDetector(final Set<String> pRelevantVars) {
+    RelevantFormulaDetector(final Set<String> pRelevantVars) {
       relevantVars = pRelevantVars;
     }
 
-    public BooleanFormula getRelevantFormula() {
+    BooleanFormula getRelevantFormula() {
       Preconditions.checkState(success);
       if (clauses.isEmpty()) {
         return fmgr.getBooleanFormulaManager().makeTrue();
@@ -147,7 +147,7 @@ public class PredicateRequirementsTranslator
       return fmgr.getBooleanFormulaManager().and(clauses);
     }
 
-    public boolean detectionSuccessful() {
+    boolean detectionSuccessful() {
       return success;
     }
 

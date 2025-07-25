@@ -545,7 +545,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     private final FormulaManagerView fmgr;
     private final BooleanFormula invariant;
 
-    public TerminationInvariantSupplierState(
+    TerminationInvariantSupplierState(
         CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pFmgr) {
       location = checkNotNull(pLocation);
       invariant = checkNotNull(pInvariant);

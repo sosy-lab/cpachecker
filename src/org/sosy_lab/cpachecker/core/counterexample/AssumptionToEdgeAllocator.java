@@ -708,7 +708,7 @@ public class AssumptionToEdgeAllocator {
     private final AddressValueVisitor addressVisitor;
     private final ConcreteState concreteState;
 
-    public LModelValueVisitor(String pFunctionName, ConcreteState pConcreteState) {
+    LModelValueVisitor(String pFunctionName, ConcreteState pConcreteState) {
       functionName = pFunctionName;
       addressVisitor = new AddressValueVisitor(this);
       concreteState = pConcreteState;
@@ -928,11 +928,11 @@ public class AssumptionToEdgeAllocator {
 
       private final LModelValueVisitor valueVisitor;
 
-      public AddressValueVisitor(LModelValueVisitor pValueVisitor) {
+      AddressValueVisitor(LModelValueVisitor pValueVisitor) {
         valueVisitor = pValueVisitor;
       }
 
-      public Address getAddress(CSimpleDeclaration dcl) {
+      Address getAddress(CSimpleDeclaration dcl) {
         IDExpression name = getIDExpression(dcl);
         if (concreteState.hasAddressOfVariable(name)) {
           return concreteState.getVariableAddress(name);
@@ -1036,7 +1036,7 @@ public class AssumptionToEdgeAllocator {
 
     private class ModelExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
-      public ModelExpressionValueVisitor(
+      ModelExpressionValueVisitor(
           String pFunctionName, MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
         super(pFunctionName, pMachineModel, pLogger);
       }
@@ -1297,7 +1297,7 @@ public class AssumptionToEdgeAllocator {
     private final CExpression exp;
     private final ConcreteState concreteState;
 
-    public ValueLiteralsVisitor(Object pValue, CExpression pExp, ConcreteState pConcreteState) {
+    ValueLiteralsVisitor(Object pValue, CExpression pExp, ConcreteState pConcreteState) {
       value = pValue;
       exp = pExp;
       concreteState = pConcreteState;
@@ -1417,7 +1417,7 @@ public class AssumptionToEdgeAllocator {
       }
     }
 
-    protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
+    ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
       CBasicType basicType = pSimpleType.getCanonicalType().getType();
       if (pValue instanceof FloatingPointNumber pFloatingPointNumber) {
         // Unlike other floating point values, FloatingPointNumbers do not implement the Number
@@ -1486,7 +1486,7 @@ public class AssumptionToEdgeAllocator {
               pValue, pValue.getClass().getSimpleName()));
     }
 
-    public void resolveStruct(
+    void resolveStruct(
         CType type, ValueLiterals pValueLiterals, CIdExpression pOwner, String pFunctionName) {
 
       ValueLiteralStructResolver v =
@@ -1620,8 +1620,7 @@ public class AssumptionToEdgeAllocator {
 
       private final CExpression subExpression;
 
-      public ValueLiteralVisitor(
-          Address pAddress, ValueLiterals pValueLiterals, CExpression pSubExp) {
+      ValueLiteralVisitor(Address pAddress, ValueLiterals pValueLiterals, CExpression pSubExp) {
         address = pAddress;
         valueLiterals = pValueLiterals;
         visited = new HashSet<>();
@@ -1929,14 +1928,14 @@ public class AssumptionToEdgeAllocator {
       private final String functionName;
       private final CExpression prevSub;
 
-      public ValueLiteralStructResolver(
+      ValueLiteralStructResolver(
           ValueLiterals pValueLiterals, String pFunctionName, CFieldReference pPrevSub) {
         valueLiterals = pValueLiterals;
         functionName = pFunctionName;
         prevSub = pPrevSub;
       }
 
-      public ValueLiteralStructResolver(
+      ValueLiteralStructResolver(
           ValueLiterals pValueLiterals, String pFunctionName, CIdExpression pOwner) {
         valueLiterals = pValueLiterals;
         functionName = pFunctionName;
@@ -2029,27 +2028,27 @@ public class AssumptionToEdgeAllocator {
 
     private final ValueLiteral expressionValueLiteral;
 
-    public ValueLiterals() {
+    ValueLiterals() {
       expressionValueLiteral = UnknownValueLiteral.getInstance();
     }
 
-    public ValueLiterals(ValueLiteral valueLiteral) {
+    ValueLiterals(ValueLiteral valueLiteral) {
       expressionValueLiteral = valueLiteral;
     }
 
-    public CExpression getExpressionValueLiteralAsCExpression() {
+    CExpression getExpressionValueLiteralAsCExpression() {
       return expressionValueLiteral.getValueLiteral();
     }
 
-    public void addSubExpressionValueLiteral(SubExpressionValueLiteral code) {
+    void addSubExpressionValueLiteral(SubExpressionValueLiteral code) {
       subExpressionValueLiterals.add(code);
     }
 
-    public boolean hasUnknownValueLiteral() {
+    boolean hasUnknownValueLiteral() {
       return expressionValueLiteral.isUnknown();
     }
 
-    public Set<SubExpressionValueLiteral> getSubExpressionValueLiteral() {
+    Set<SubExpressionValueLiteral> getSubExpressionValueLiteral() {
       return ImmutableSet.copyOf(subExpressionValueLiterals);
     }
 
@@ -2076,7 +2075,7 @@ public class AssumptionToEdgeAllocator {
   private enum UnknownValueLiteral implements ValueLiteral {
     INSTANCE;
 
-    public static UnknownValueLiteral getInstance() {
+    static UnknownValueLiteral getInstance() {
       return INSTANCE;
     }
 
@@ -2105,11 +2104,11 @@ public class AssumptionToEdgeAllocator {
 
     private final CLiteralExpression explicitValueLiteral;
 
-    protected ExplicitValueLiteral(CLiteralExpression pValueLiteral) {
+    ExplicitValueLiteral(CLiteralExpression pValueLiteral) {
       explicitValueLiteral = pValueLiteral;
     }
 
-    public static ValueLiteral valueOf(Address address, MachineModel pMachineModel) {
+    static ValueLiteral valueOf(Address address, MachineModel pMachineModel) {
       if (address.isUnknown() || address.isSymbolic()) {
         return UnknownValueLiteral.getInstance();
       }
@@ -2134,14 +2133,13 @@ public class AssumptionToEdgeAllocator {
       return new CastedExplicitValueLiteral(explicitValueLiteral, castExpression);
     }
 
-    public static ValueLiteral valueOf(BigInteger value, CSimpleType pType) {
+    static ValueLiteral valueOf(BigInteger value, CSimpleType pType) {
       CIntegerLiteralExpression literal =
           new CIntegerLiteralExpression(FileLocation.DUMMY, pType, value);
       return new ExplicitValueLiteral(literal);
     }
 
-    public static ValueLiteral valueOf(
-        FloatValue value, MachineModel pMachineModel, CSimpleType pType) {
+    static ValueLiteral valueOf(FloatValue value, MachineModel pMachineModel, CSimpleType pType) {
 
       Format targetFormat = FloatValue.Format.fromCType(pMachineModel, pType);
       if (!targetFormat.equals(value.getFormat())
@@ -2190,7 +2188,7 @@ public class AssumptionToEdgeAllocator {
 
   private record SubExpressionValueLiteral(ValueLiteral valueLiteral, CLeftHandSide subExpression) {
 
-    public CExpression valueLiteralAsCExpression() {
+    CExpression valueLiteralAsCExpression() {
       return valueLiteral().getValueLiteral();
     }
   }

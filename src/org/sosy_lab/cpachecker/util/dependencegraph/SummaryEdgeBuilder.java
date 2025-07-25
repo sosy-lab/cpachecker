@@ -146,34 +146,33 @@ final class SummaryEdgeBuilder {
       reachedFormalInNodes = new ArrayList<>();
     }
 
-    protected abstract void run(
-        List<N> pFormalOutNode, boolean pRecursive, SummaryEdgeConsumer<N> pConsumer);
+    abstract void run(List<N> pFormalOutNode, boolean pRecursive, SummaryEdgeConsumer<N> pConsumer);
 
-    protected void traverse(Collection<N> pStartNodes, BackwardsVisitor<N> pVisitor) {
+    void traverse(Collection<N> pStartNodes, BackwardsVisitor<N> pVisitor) {
       builder.traverse(pStartNodes, pVisitor);
     }
 
-    protected int getProcedureId(int pNodeTd) {
+    int getProcedureId(int pNodeTd) {
       return procedureIds[pNodeTd];
     }
 
-    protected boolean isFormalOutFinished(int pNodeId) {
+    boolean isFormalOutFinished(int pNodeId) {
       return finished.get(pNodeId);
     }
 
-    protected void setFormalOutFinished(int pNodeId) {
+    void setFormalOutFinished(int pNodeId) {
       finished.set(pNodeId);
     }
 
-    protected List<N> getReachedFormalInNodes() {
+    List<N> getReachedFormalInNodes() {
       return reachedFormalInNodes;
     }
 
-    protected void addReachedFormalInNode(N pFormalInNode) {
+    void addReachedFormalInNode(N pFormalInNode) {
       reachedFormalInNodes.add(pFormalInNode);
     }
 
-    protected void clearReachedFormalInNodes() {
+    void clearReachedFormalInNodes() {
       reachedFormalInNodes.clear();
     }
   }

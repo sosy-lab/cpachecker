@@ -785,10 +785,10 @@ public class CustomInstruction {
   private static class StructureComparisonVisitor
       implements CExpressionVisitor<Void, AppliedCustomInstructionParsingFailedException> {
 
-    protected CExpression aciExp;
-    protected final Map<String, String> ciVarToAciVar;
+    CExpression aciExp;
+    final Map<String, String> ciVarToAciVar;
 
-    public StructureComparisonVisitor(
+    StructureComparisonVisitor(
         final CExpression pAciExp, final Map<String, String> pCiVarToAciVar) {
       aciExp = pAciExp;
       ciVarToAciVar = pCiVarToAciVar;
@@ -909,7 +909,7 @@ public class CustomInstruction {
       return null;
     }
 
-    protected void computeMapping(final String ciString, final String aciString) {
+    void computeMapping(final String ciString, final String aciString) {
       ciVarToAciVar.put(ciString, aciString);
     }
 
@@ -1383,7 +1383,7 @@ public class CustomInstruction {
 
     private final Map<String, String> currentCiVarToAciVar;
 
-    public StructureExtendedComparisonVisitor(
+    StructureExtendedComparisonVisitor(
         final CExpression pAciExp,
         final Map<String, String> pCiVarToAciVar,
         Map<String, String> pCurrentCiVarToAciVar) {

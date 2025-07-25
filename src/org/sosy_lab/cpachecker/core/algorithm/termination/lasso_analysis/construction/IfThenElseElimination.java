@@ -64,7 +64,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
       additionalAxioms = new ArrayList<>();
     }
 
-    public Collection<BooleanFormula> getAdditionalAxioms() {
+    Collection<BooleanFormula> getAdditionalAxioms() {
       return additionalAxioms;
     }
 

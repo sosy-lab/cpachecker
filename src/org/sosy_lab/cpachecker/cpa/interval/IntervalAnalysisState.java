@@ -480,7 +480,7 @@ public class IntervalAnalysisState
     private final int size;
     private final BigInteger absoluteDistance;
 
-    public IntervalPseudoPartitionKey(int pSize, BigInteger pAbsoluteDistance) {
+    IntervalPseudoPartitionKey(int pSize, BigInteger pAbsoluteDistance) {
       size = pSize;
       absoluteDistance = pAbsoluteDistance;
     }

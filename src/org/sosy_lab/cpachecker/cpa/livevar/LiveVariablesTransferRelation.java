@@ -654,7 +654,7 @@ public class LiveVariablesTransferRelation
   private static class LhsPointerDereferenceVisitor extends AExpressionVisitor<Boolean, NoException>
       implements CExpressionVisitor<Boolean, NoException> {
 
-    protected LhsPointerDereferenceVisitor() {}
+    LhsPointerDereferenceVisitor() {}
 
     @Override
     public Boolean visit(CBinaryExpression pIastBinaryExpression) throws NoException {

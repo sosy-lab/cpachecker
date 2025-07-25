@@ -48,7 +48,7 @@ public class WitnessExporter {
     private final ExpressionTreeFactory<Object> factory;
     private final CFA cfa;
 
-    public ProofInvariantProvider(CFA pCfa, ExpressionTreeFactory<Object> pFactory) {
+    ProofInvariantProvider(CFA pCfa, ExpressionTreeFactory<Object> pFactory) {
       cfa = pCfa;
       factory = pFactory;
     }

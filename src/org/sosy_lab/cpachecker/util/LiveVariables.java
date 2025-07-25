@@ -148,7 +148,7 @@ public class LiveVariables {
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
     private TimeSpan partwiseLivenessCheckTime = TimeSpan.ofSeconds(20);
 
-    public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
+    LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
   }

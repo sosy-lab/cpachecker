@@ -287,7 +287,7 @@ public class CFACheck {
     private final MachineModel machineModel;
     private final CExpression expressionForLogging;
 
-    public ExpressionValidator(MachineModel pMachineModel, CExpression pExp) {
+    ExpressionValidator(MachineModel pMachineModel, CExpression pExp) {
       machineModel = pMachineModel;
       expressionForLogging = pExp;
     }

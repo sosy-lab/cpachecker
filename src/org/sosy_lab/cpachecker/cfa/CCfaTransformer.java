@@ -598,7 +598,7 @@ public final class CCfaTransformer {
 
     private static final class SummaryPlaceholderEdge extends BlankEdge {
 
-      public SummaryPlaceholderEdge(
+      SummaryPlaceholderEdge(
           String pRawStatement,
           FileLocation pFileLocation,
           CFANode pPredecessor,

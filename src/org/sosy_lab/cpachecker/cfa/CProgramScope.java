@@ -720,15 +720,15 @@ public class CProgramScope implements Scope {
 
     private final Set<CType> collectedTypes;
 
-    public TypeCollector() {
+    TypeCollector() {
       this(new HashSet<>());
     }
 
-    public TypeCollector(Set<CType> pCollectedTypes) {
+    TypeCollector(Set<CType> pCollectedTypes) {
       collectedTypes = pCollectedTypes;
     }
 
-    public Set<CType> getCollectedTypes() {
+    Set<CType> getCollectedTypes() {
       return Collections.unmodifiableSet(collectedTypes);
     }
 

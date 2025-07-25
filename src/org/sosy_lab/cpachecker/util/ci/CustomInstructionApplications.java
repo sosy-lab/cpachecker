@@ -213,7 +213,7 @@ public class CustomInstructionApplications {
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
     private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionApplicationsFromFile(
+    CustomInstructionApplicationsFromFile(
         Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
         throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
@@ -253,7 +253,7 @@ public class CustomInstructionApplications {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionApplicationsAutomatic(
+    CustomInstructionApplicationsAutomatic(
         Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
         throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
@@ -307,7 +307,7 @@ public class CustomInstructionApplications {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path foundCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionsForBinaryOperator(
+    CustomInstructionsForBinaryOperator(
         Configuration pConfig, LogManager pLogger, ShutdownNotifier pSdNotifier, CFA pCfa)
         throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);

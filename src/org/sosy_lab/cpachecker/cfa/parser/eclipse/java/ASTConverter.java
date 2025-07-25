@@ -453,7 +453,7 @@ class ASTConverter {
 
     private final JInitializerExpression initializer;
 
-    public NameAndInitializer(String pName, JInitializerExpression pInitializer) {
+    NameAndInitializer(String pName, JInitializerExpression pInitializer) {
 
       checkNotNull(pName);
 
@@ -461,12 +461,11 @@ class ASTConverter {
       initializer = pInitializer;
     }
 
-    public String getName() {
+    String getName() {
       return name;
     }
 
-    @Nullable
-    public JInitializerExpression getInitializer() {
+    @Nullable JInitializerExpression getInitializer() {
       return initializer;
     }
   }

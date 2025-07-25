@@ -97,7 +97,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     private final Collection<Statistics> currentSubStat;
     private int noOfRuns = 0;
 
-    public CompositionAlgorithmStatistics() {
+    CompositionAlgorithmStatistics() {
       totalTimer = new Timer();
       currentSubStat = new ArrayList<>();
     }
@@ -145,11 +145,11 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    public Collection<Statistics> getSubStatistics() {
+    Collection<Statistics> getSubStatistics() {
       return currentSubStat;
     }
 
-    public void resetSubStatistics() {
+    void resetSubStatistics() {
       currentSubStat.clear();
     }
   }

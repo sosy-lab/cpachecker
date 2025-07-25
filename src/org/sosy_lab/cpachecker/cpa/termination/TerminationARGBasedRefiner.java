@@ -50,8 +50,7 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
     @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
     private Refiner.Factory refinerFactory;
 
-    public TerminationARGBasedRefinerConfig(Configuration config)
-        throws InvalidConfigurationException {
+    TerminationARGBasedRefinerConfig(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
   }

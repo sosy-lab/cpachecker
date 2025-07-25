@@ -1284,11 +1284,11 @@ abstract class AbstractBMCAlgorithm
       weakenings = ImmutableList.copyOf(pStrengthening);
     }
 
-    public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
+    Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
       this(pCause, pBlockingClause, ImmutableList.of());
     }
 
-    public int getDepth() {
+    int getDepth() {
       int depth = 0;
       Obligation current = this;
       while (current.causingObligation != null) {
@@ -1304,19 +1304,19 @@ abstract class AbstractBMCAlgorithm
       return blockingClause.toString();
     }
 
-    public CandidateInvariant getRootCause() {
+    CandidateInvariant getRootCause() {
       return causingCandidateInvariant;
     }
 
-    public SymbolicCandiateInvariant getBlockingClause() {
+    SymbolicCandiateInvariant getBlockingClause() {
       return blockingClause;
     }
 
-    public List<SymbolicCandiateInvariant> getWeakenings() {
+    List<SymbolicCandiateInvariant> getWeakenings() {
       return weakenings;
     }
 
-    public Obligation refineWith(
+    Obligation refineWith(
         FormulaManagerView pFmgr, SymbolicCandiateInvariant pRefinedBlockingClause)
         throws InterruptedException {
       if (pRefinedBlockingClause == blockingClause) {
@@ -1427,20 +1427,20 @@ abstract class AbstractBMCAlgorithm
 
     private boolean safe = true;
 
-    public void addSafeStates(Iterable<AbstractState> pSafeStates) {
+    void addSafeStates(Iterable<AbstractState> pSafeStates) {
       Iterables.addAll(checkedStates, pSafeStates);
     }
 
-    public void declareUnsafe() {
+    void declareUnsafe() {
       safe = false;
       checkedStates.clear();
     }
 
-    public boolean isSafe() {
+    boolean isSafe() {
       return safe;
     }
 
-    public Iterable<AbstractState> filterUnchecked(Iterable<AbstractState> pStates) {
+    Iterable<AbstractState> filterUnchecked(Iterable<AbstractState> pStates) {
       checkState(isSafe(), "A counterexample was found already.");
       return Iterables.filter(pStates, Predicates.not(Predicates.in(checkedStates)));
     }
@@ -1530,7 +1530,7 @@ abstract class AbstractBMCAlgorithm
             }
           };
 
-      public HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
+      HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
         latch = Objects.requireNonNull(pLatch);
         pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
       }
