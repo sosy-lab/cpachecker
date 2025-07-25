@@ -165,13 +165,13 @@ public class ApronTransferRelation
       throws CPATransferException {
 
     if (expression instanceof CLiteralExpression) {
-      if (expression instanceof CIntegerLiteralExpression) {
+      if (expression instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
         return handleLiteralBooleanExpression(
-            ((CIntegerLiteralExpression) expression).asLong(), truthAssumption, state);
+            cIntegerLiteralExpression.asLong(), truthAssumption, state);
 
-      } else if (expression instanceof CCharLiteralExpression) {
+      } else if (expression instanceof CCharLiteralExpression cCharLiteralExpression) {
         return handleLiteralBooleanExpression(
-            ((CCharLiteralExpression) expression).getCharacter(), truthAssumption, state);
+            cCharLiteralExpression.getCharacter(), truthAssumption, state);
 
       } else if (expression instanceof CFloatLiteralExpression floatExpression) {
         // only when the float is exactly zero the condition is wrong, for all other float values it
@@ -237,9 +237,8 @@ public class ApronTransferRelation
                           Tcons0.EQ,
                           new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
             } else {
-              if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
-                  || (right instanceof Texpr0DimNode
-                      && !state.isInt(((Texpr0DimNode) right).dim))) {
+              if ((left instanceof Texpr0DimNode leftNode && !state.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode && !state.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedRight =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
                 Texpr0BinNode increasedLeft =
@@ -302,9 +301,8 @@ public class ApronTransferRelation
           case GREATER_THAN -> {
             if (truthAssumption) {
               Tcons0 act;
-              if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
-                  || (right instanceof Texpr0DimNode
-                      && !state.isInt(((Texpr0DimNode) right).dim))) {
+              if ((left instanceof Texpr0DimNode leftNode && !state.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode && !state.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedRight =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
                 act =
@@ -346,9 +344,8 @@ public class ApronTransferRelation
           case LESS_THAN -> {
             if (truthAssumption) {
               Tcons0 act;
-              if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
-                  || (right instanceof Texpr0DimNode
-                      && !state.isInt(((Texpr0DimNode) right).dim))) {
+              if ((left instanceof Texpr0DimNode leftNode && !state.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode && !state.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedLeft =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
                 act =
@@ -374,9 +371,8 @@ public class ApronTransferRelation
           }
           case NOT_EQUALS -> {
             if (truthAssumption) {
-              if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
-                  || (right instanceof Texpr0DimNode
-                      && !state.isInt(((Texpr0DimNode) right).dim))) {
+              if ((left instanceof Texpr0DimNode leftNode && !state.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode && !state.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedRight =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
                 Texpr0BinNode increasedLeft =
@@ -506,9 +502,9 @@ public class ApronTransferRelation
   }
 
   private ApronState.Type getCorrespondingOctStateType(CType type) {
-    if (type instanceof CSimpleType
-        && (((CSimpleType) type).getType() == CBasicType.FLOAT
-            || ((CSimpleType) type).getType() == CBasicType.DOUBLE)) {
+    if (type instanceof CSimpleType cSimpleType
+        && (cSimpleType.getType() == CBasicType.FLOAT
+            || cSimpleType.getType() == CBasicType.DOUBLE)) {
       return Type.FLOAT;
     } else {
       return Type.INT;
@@ -520,7 +516,8 @@ public class ApronTransferRelation
         || var instanceof CFieldReference
         || var instanceof CPointerExpression
         || (var instanceof CStringLiteralExpression)
-        || (var instanceof CFieldReference && ((CFieldReference) var).isPointerDereference())) {
+        || (var instanceof CFieldReference cFieldReference
+            && cFieldReference.isPointerDereference())) {
       return false;
     }
     return isHandleAbleType(var.getExpressionType());
@@ -685,8 +682,8 @@ public class ApronTransferRelation
 
       Set<ApronState> possibleStates = new HashSet<>();
       if (init != null) {
-        if (init instanceof CInitializerExpression) {
-          CExpression exp = ((CInitializerExpression) init).getExpression();
+        if (init instanceof CInitializerExpression cInitializerExpression) {
+          CExpression exp = cInitializerExpression.getExpression();
 
           Set<Texpr0Node> initCoeffs = exp.accept(new CApronExpressionVisitor());
 
@@ -734,11 +731,10 @@ public class ApronTransferRelation
   protected Set<ApronState> handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
       throws CPATransferException {
     // check if there are functioncalls we cannot handle
-    if (statement instanceof CFunctionCall) {
-      CExpression fn =
-          ((CFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-      if (fn instanceof CIdExpression) {
-        String func = ((CIdExpression) fn).getName();
+    if (statement instanceof CFunctionCall cFunctionCall) {
+      CExpression fn = cFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (fn instanceof CIdExpression cIdExpression) {
+        String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
         }
@@ -746,9 +742,9 @@ public class ApronTransferRelation
     }
 
     // expression is a binary operation, e.g. a = b;
-    if (statement instanceof CAssignment) {
-      CLeftHandSide left = ((CAssignment) statement).getLeftHandSide();
-      CRightHandSide right = ((CAssignment) statement).getRightHandSide();
+    if (statement instanceof CAssignment cAssignment) {
+      CLeftHandSide left = cAssignment.getLeftHandSide();
+      CRightHandSide right = cAssignment.getRightHandSide();
 
       MemoryLocation variableName = buildVarName(left, functionName);
 
@@ -793,12 +789,12 @@ public class ApronTransferRelation
 
   private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {
     String variableName = null;
-    if (left instanceof CArraySubscriptExpression) {
-      variableName = ((CArraySubscriptExpression) left).getArrayExpression().toASTString();
-    } else if (left instanceof CPointerExpression) {
-      variableName = ((CPointerExpression) left).getOperand().toASTString();
-    } else if (left instanceof CFieldReference) {
-      variableName = ((CFieldReference) left).getFieldOwner().toASTString();
+    if (left instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      variableName = cArraySubscriptExpression.getArrayExpression().toASTString();
+    } else if (left instanceof CPointerExpression cPointerExpression) {
+      variableName = cPointerExpression.getOperand().toASTString();
+    } else if (left instanceof CFieldReference cFieldReference) {
+      variableName = cFieldReference.getFieldOwner().toASTString();
     } else {
       variableName = left.toASTString();
     }
@@ -1045,8 +1041,8 @@ public class ApronTransferRelation
 
     @Override
     public Set<Texpr0Node> visit(CFunctionCallExpression e) throws CPATransferException {
-      if (e.getFunctionNameExpression() instanceof CIdExpression) {
-        switch (((CIdExpression) e.getFunctionNameExpression()).getName()) {
+      if (e.getFunctionNameExpression() instanceof CIdExpression cIdExpression) {
+        switch (cIdExpression.getName()) {
           case "__VERIFIER_nondet_int" -> {
             Scalar sup = Scalar.create();
             sup.setInfty(1);
@@ -1135,9 +1131,9 @@ public class ApronTransferRelation
     public Double visit(CCastExpression e) throws CPATransferException {
       Double op = e.getOperand().accept(this);
       if (op != null
-          && e.getExpressionType() instanceof CSimpleType
-          && ((((CSimpleType) e.getExpressionType()).getType() == CBasicType.INT)
-              || (((CSimpleType) e.getExpressionType()).getType() == CBasicType.CHAR))) {
+          && e.getExpressionType() instanceof CSimpleType cSimpleType
+          && ((cSimpleType.getType() == CBasicType.INT)
+              || (cSimpleType.getType() == CBasicType.CHAR))) {
         return (double) op.intValue();
       }
       return op;

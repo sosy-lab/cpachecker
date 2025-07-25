@@ -1073,8 +1073,8 @@ public class SMGCPAAbstractionManager {
     }
 
     int addSize = 1;
-    if (root instanceof SMGSinglyLinkedListSegment) {
-      addSize = ((SMGSinglyLinkedListSegment) root).getMinLength();
+    if (root instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      addSize = sMGSinglyLinkedListSegment.getMinLength();
     }
 
     for (SMGHasValueEdge hve : smg.getEdges(root)) {

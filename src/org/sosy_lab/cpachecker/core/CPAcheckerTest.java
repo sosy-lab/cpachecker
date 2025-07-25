@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import org.junit.AssumptionViolatedException;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -105,6 +106,8 @@ public class CPAcheckerTest {
   }
 
   @Test
+  @Deprecated // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
+  @Ignore
   public void testRunForSafeLlvmProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
 
@@ -121,6 +124,8 @@ public class CPAcheckerTest {
   }
 
   @Test
+  @Deprecated // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
+  @Ignore
   public void testRunForUnsafeLlvmProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
 

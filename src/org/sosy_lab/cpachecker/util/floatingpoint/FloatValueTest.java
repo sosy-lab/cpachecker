@@ -927,7 +927,8 @@ public class FloatValueTest {
     testOperator(
         "ln",
         ulpError(),
-        (CFloat a) -> (a instanceof CFloatImpl) ? ((CFloatImpl) a).lnWithStats(lnStats) : a.ln());
+        (CFloat a) ->
+            (a instanceof CFloatImpl cFloatImpl) ? cFloatImpl.lnWithStats(lnStats) : a.ln());
     // println(printStatistics(lnStats));
   }
 
@@ -938,7 +939,7 @@ public class FloatValueTest {
         "exp",
         ulpError(),
         (CFloat a) ->
-            (a instanceof CFloatImpl) ? ((CFloatImpl) a).expWithStats(expStats) : a.exp());
+            (a instanceof CFloatImpl cFloatImpl) ? cFloatImpl.expWithStats(expStats) : a.exp());
     // println(printStatistics(expStats));
   }
 
@@ -949,7 +950,9 @@ public class FloatValueTest {
         "powTo",
         ulpError(),
         (CFloat a, CFloat b) ->
-            (a instanceof CFloatImpl) ? ((CFloatImpl) a).powToWithStats(b, powStats) : a.powTo(b));
+            (a instanceof CFloatImpl cFloatImpl)
+                ? cFloatImpl.powToWithStats(b, powStats)
+                : a.powTo(b));
     // println(printStatistics(powStats));
   }
 

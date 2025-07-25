@@ -151,8 +151,8 @@ public class AutomatonTransferRelation implements TransferRelation {
       return ImmutableSet.of(state);
     }
 
-    if (precision instanceof AutomatonPrecision) {
-      if (!((AutomatonPrecision) precision).isEnabled()) {
+    if (precision instanceof AutomatonPrecision automatonPrecision) {
+      if (!automatonPrecision.isEnabled()) {
         if (state.isTarget()) {
           // do not create transition from target states
           return ImmutableSet.of();
@@ -328,11 +328,11 @@ public class AutomatonTransferRelation implements TransferRelation {
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
-    if (pElement instanceof AutomatonUnknownState) {
+    if (pElement instanceof AutomatonUnknownState automatonUnknownState) {
       totalStrengthenTime.start();
       Collection<AutomatonState> successors =
           strengthenAutomatonUnknownState(
-              (AutomatonUnknownState) pElement, pOtherElements, pCfaEdge, pPrecision);
+              automatonUnknownState, pOtherElements, pCfaEdge, pPrecision);
       totalStrengthenTime.stop();
       assert !from(successors).anyMatch(instanceOf(AutomatonUnknownState.class));
       return successors;

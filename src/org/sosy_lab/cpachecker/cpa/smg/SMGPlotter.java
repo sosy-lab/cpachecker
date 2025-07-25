@@ -50,21 +50,21 @@ public final class SMGPlotter {
     private final String definition;
     private static int counter = 0;
 
-    public SMGObjectNode(String pType, String pDefinition) {
+    SMGObjectNode(String pType, String pDefinition) {
       name = "node_" + pType + "_" + counter++;
       definition = pDefinition;
     }
 
-    public SMGObjectNode(String pName) {
+    SMGObjectNode(String pName) {
       name = pName;
       definition = null;
     }
 
-    public String getName() {
+    String getName() {
       return name;
     }
 
-    public String getDefinition() {
+    String getDefinition() {
       return name + "[" + definition + "];";
     }
   }
@@ -73,7 +73,7 @@ public final class SMGPlotter {
 
     private final UnmodifiableCLangSMG smg;
 
-    public SMGNodeDotVisitor(UnmodifiableCLangSMG pSmg) {
+    SMGNodeDotVisitor(UnmodifiableCLangSMG pSmg) {
       smg = pSmg;
     }
 
@@ -354,8 +354,8 @@ public final class SMGPlotter {
     } else if (explicitValues.containsKey(value)) {
       label += " : " + explicitValues.get(value).getAsLong();
       color = "black";
-    } else if (value instanceof SMGKnownAddressValue) {
-      label += "\\n" + ((SMGKnownAddressValue) value).getObject();
+    } else if (value instanceof SMGKnownAddressValue sMGKnownAddressValue) {
+      label += "\\n" + sMGKnownAddressValue.getObject();
       color = "blue";
     }
     return String.format("value_%s[color=%s label=\"%s\"];", value.asDotId(), color, label);

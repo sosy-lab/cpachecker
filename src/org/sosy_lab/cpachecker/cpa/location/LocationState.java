@@ -219,7 +219,7 @@ public class LocationState
     @Serial private static final long serialVersionUID = 6889568471468710163L;
     private final int nodeNumber;
 
-    public SerialProxy(int nodeNumber) {
+    SerialProxy(int nodeNumber) {
       this.nodeNumber = nodeNumber;
     }
 

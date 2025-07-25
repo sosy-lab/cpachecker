@@ -247,7 +247,7 @@ class CodeAppender implements Appendable {
           inputVariable.getOrigName(),
           inputVariable.getQualifiedName(),
           (CInitializer) initializer);
-    } else if (inputVariable instanceof JVariableDeclaration) {
+    } else if (inputVariable instanceof JVariableDeclaration jVariableDeclaration) {
       return new JVariableDeclaration(
           FileLocation.DUMMY,
           (JType) inputVariable.getType(),
@@ -255,7 +255,7 @@ class CodeAppender implements Appendable {
           inputVariable.getOrigName(),
           inputVariable.getQualifiedName(),
           initializer,
-          ((JVariableDeclaration) inputVariable).isFinal());
+          jVariableDeclaration.isFinal());
     } else {
       throw new AssertionError("Unsupported declaration type: " + inputVariable);
     }

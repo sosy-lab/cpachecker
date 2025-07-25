@@ -302,10 +302,10 @@ public abstract class AbstractExpressionValueVisitor
 
   public static Value calculateExpressionWithFunctionValue(
       BinaryOperator binaryOperator, Value val1, Value val2) {
-    if (val1 instanceof FunctionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val1, val2);
-    } else if (val2 instanceof FunctionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val2, val1);
+    if (val1 instanceof FunctionValue functionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val2);
+    } else if (val2 instanceof FunctionValue functionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val1);
     } else {
       return new Value.UnknownValue();
     }
@@ -782,8 +782,8 @@ public abstract class AbstractExpressionValueVisitor
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
     // We only handle builtin functions
-    if (functionNameExp instanceof CIdExpression) {
-      String calledFunctionName = ((CIdExpression) functionNameExp).getName();
+    if (functionNameExp instanceof CIdExpression cIdExpression) {
+      String calledFunctionName = cIdExpression.getName();
 
       if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
         CType functionType = BuiltinFunctions.getFunctionType(calledFunctionName);
@@ -1061,8 +1061,8 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private boolean isUnspecifiedType(CType pType) {
-    return pType instanceof CSimpleType
-        && ((CSimpleType) pType).getType() == CBasicType.UNSPECIFIED;
+    return pType instanceof CSimpleType cSimpleType
+        && cSimpleType.getType() == CBasicType.UNSPECIFIED;
   }
 
   @Override
@@ -1306,7 +1306,7 @@ public abstract class AbstractExpressionValueVisitor
       return createSymbolicExpression(
           pLValue, pLType, pRValue, pRType, pOperator, expressionType, expressionType);
 
-    } else if (pLValue instanceof NumericValue) {
+    } else if (pLValue instanceof NumericValue numericValue) {
 
       assert pRValue instanceof NumericValue;
       assert pLType instanceof JSimpleType && pRType instanceof JSimpleType;
@@ -1314,7 +1314,7 @@ public abstract class AbstractExpressionValueVisitor
 
       if (isFloatType(pLType) || isFloatType(pRType)) {
         return calculateFloatOperation(
-            (NumericValue) pLValue,
+            numericValue,
             (NumericValue) pRValue,
             pOperator,
             (JSimpleType) pLType,
@@ -1322,17 +1322,17 @@ public abstract class AbstractExpressionValueVisitor
 
       } else {
         return calculateIntegerOperation(
-            (NumericValue) pLValue,
+            numericValue,
             (NumericValue) pRValue,
             pOperator,
             (JSimpleType) pLType,
             (JSimpleType) pRType);
       }
 
-    } else if (pLValue instanceof BooleanValue) {
+    } else if (pLValue instanceof BooleanValue booleanValue) {
       assert pRValue instanceof BooleanValue;
 
-      boolean lVal = ((BooleanValue) pLValue).isTrue();
+      boolean lVal = booleanValue.isTrue();
       boolean rVal = ((BooleanValue) pRValue).isTrue();
 
       return calculateBooleanOperation(lVal, rVal, pOperator);
@@ -1620,7 +1620,7 @@ public abstract class AbstractExpressionValueVisitor
       return UnknownValue.getInstance();
     }
 
-    if (decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()) {
+    if (decl instanceof JFieldDeclaration jFieldDeclaration && !jFieldDeclaration.isStatic()) {
       missingFieldAccessInformation = true;
 
       return UnknownValue.getInstance();
@@ -1656,9 +1656,9 @@ public abstract class AbstractExpressionValueVisitor
         }
       };
 
-    } else if (valueObject instanceof BooleanValue
+    } else if (valueObject instanceof BooleanValue booleanValue
         && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {
-      return ((BooleanValue) valueObject).negate();
+      return booleanValue.negate();
 
     } else if (valueObject instanceof SymbolicValue) {
       final JType expressionType = unaryExpression.getExpressionType();
@@ -1702,11 +1702,11 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static boolean isIntegerType(JType type) {
-    return type instanceof JSimpleType && ((JSimpleType) type).isIntegerType();
+    return type instanceof JSimpleType jSimpleType && jSimpleType.isIntegerType();
   }
 
   private static boolean isFloatType(JType type) {
-    return type instanceof JSimpleType && ((JSimpleType) type).isFloatingPointType();
+    return type instanceof JSimpleType jSimpleType && jSimpleType.isFloatingPointType();
   }
 
   @Override
@@ -1991,11 +1991,9 @@ public abstract class AbstractExpressionValueVisitor
       final MachineModel machineModel,
       final int size) {
 
-    if (!(type instanceof CSimpleType)) {
+    if (!(type instanceof CSimpleType st)) {
       return numericValue;
     }
-
-    final CSimpleType st = (CSimpleType) type;
 
     switch (st.getType()) {
       case BOOL -> {
@@ -2143,7 +2141,7 @@ public abstract class AbstractExpressionValueVisitor
   private static boolean isBooleanFalseRepresentation(final Number n) {
     return ((n instanceof Float || n instanceof Double) && 0 == n.doubleValue())
         || (n instanceof BigInteger && BigInteger.ZERO.equals(n))
-        || (n instanceof FloatValue && ((FloatValue) n).isZero())
+        || (n instanceof FloatValue floatValue && floatValue.isZero())
         || 0 == n.longValue();
   }
 
@@ -2160,10 +2158,10 @@ public abstract class AbstractExpressionValueVisitor
   private static Value castIfSymbolic(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-    if (pValue instanceof SymbolicValue
+    if (pValue instanceof SymbolicValue symbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast((SymbolicValue) pValue, pTargetType);
+      return factory.cast(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.

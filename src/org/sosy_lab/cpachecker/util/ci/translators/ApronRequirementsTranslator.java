@@ -233,10 +233,10 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
 
   private String getIntegerValFromScalar(final Scalar pCst) {
     double value;
-    if (pCst instanceof DoubleScalar) {
-      value = ((DoubleScalar) pCst).get();
-    } else if (pCst instanceof MpfrScalar) {
-      value = ((MpfrScalar) pCst).get().doubleValue(Mpfr.RNDN);
+    if (pCst instanceof DoubleScalar doubleScalar) {
+      value = doubleScalar.get();
+    } else if (pCst instanceof MpfrScalar mpfrScalar) {
+      value = mpfrScalar.get().doubleValue(Mpfr.RNDN);
     } else {
       assert pCst instanceof MpqScalar;
       value = ((MpqScalar) pCst).get().doubleValue();

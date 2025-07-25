@@ -1605,11 +1605,9 @@ public class SMGState
       Number otherNum = otherValue.asNumericValue().getNumber();
       if (thisNum.getClass() != otherNum.getClass()) {
         return false;
-      } else if (thisNum instanceof Float
-          && (((Float) thisNum).isNaN() || ((Float) otherNum).isNaN())) {
+      } else if (thisNum instanceof Float f && (f.isNaN() || ((Float) otherNum).isNaN())) {
         return false;
-      } else if (thisNum instanceof Double
-          && (((Double) thisNum).isNaN() || ((Double) otherNum).isNaN())) {
+      } else if (thisNum instanceof Double d && (d.isNaN() || ((Double) otherNum).isNaN())) {
         return false;
       }
       return thisNum.equals(otherNum);
@@ -3513,7 +3511,7 @@ public class SMGState
   }
 
   private boolean isFloatingPointType(CType pType) {
-    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
+    return pType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType();
   }
 
   private boolean isFloatingPointType(Value value) {
@@ -4310,10 +4308,10 @@ public class SMGState
           lValueExpr.accept(
               new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
     } catch (CPATransferException e) {
-      if (e instanceof SMGException) {
-        throw (SMGException) e;
-      } else if (e instanceof SMGSolverException) {
-        throw (SMGSolverException) e;
+      if (e instanceof SMGException sMGException) {
+        throw sMGException;
+      } else if (e instanceof SMGSolverException sMGSolverException) {
+        throw sMGSolverException;
       }
       // This can never happen, but i am forced to do this as the visitor demands the
       // CPATransferException
@@ -4343,10 +4341,10 @@ public class SMGState
           exprReading.accept(
               new SMGCPAValueVisitor(evaluator, assignedState, edge, logger, options));
     } catch (CPATransferException e) {
-      if (e instanceof SMGException) {
-        throw (SMGException) e;
-      } else if (e instanceof SMGSolverException) {
-        throw (SMGSolverException) e;
+      if (e instanceof SMGException sMGException) {
+        throw sMGException;
+      } else if (e instanceof SMGSolverException sMGSolverException) {
+        throw sMGSolverException;
       }
       // This can never happen, but i am forced to do this as the visitor demands the
       // CPATransferException
@@ -4365,10 +4363,10 @@ public class SMGState
     try {
       possibleValues = rValueExpr.accept(vv);
     } catch (CPATransferException e) {
-      if (e instanceof SMGException) {
-        throw (SMGException) e;
-      } else if (e instanceof SMGSolverException) {
-        throw (SMGSolverException) e;
+      if (e instanceof SMGException sMGException) {
+        throw sMGException;
+      } else if (e instanceof SMGSolverException sMGSolverException) {
+        throw sMGSolverException;
       }
       // This can never happen, but i am forced to do this as the visitor demands the
       // CPATransferException
@@ -6159,9 +6157,9 @@ public class SMGState
       return this;
     } else if (root instanceof SMGDoublyLinkedListSegment oldDLL) {
       int newMinLength = ((SMGDoublyLinkedListSegment) root).getMinLength();
-      if (nextObj instanceof SMGSinglyLinkedListSegment) {
-        newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
-        incrementAmount = ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+      if (nextObj instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+        newMinLength = newMinLength + sMGSinglyLinkedListSegment.getMinLength();
+        incrementAmount = sMGSinglyLinkedListSegment.getMinLength();
       } else {
         newMinLength++;
       }
@@ -6187,9 +6185,9 @@ public class SMGState
         headOffset = BigInteger.ZERO;
       }
       int newMinLength = 1;
-      if (nextObj instanceof SMGSinglyLinkedListSegment) {
-        newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
-        incrementAmount = ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+      if (nextObj instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+        newMinLength = newMinLength + sMGSinglyLinkedListSegment.getMinLength();
+        incrementAmount = sMGSinglyLinkedListSegment.getMinLength();
       } else {
         newMinLength++;
       }
@@ -6455,9 +6453,9 @@ public class SMGState
     Preconditions.checkArgument(!(root instanceof SMGDoublyLinkedListSegment));
     if (root instanceof SMGSinglyLinkedListSegment oldSLL) {
       int newMinLength = oldSLL.getMinLength();
-      if (nextObj instanceof SMGSinglyLinkedListSegment) {
-        newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
-        incrementAmount = ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+      if (nextObj instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+        newMinLength = newMinLength + sMGSinglyLinkedListSegment.getMinLength();
+        incrementAmount = sMGSinglyLinkedListSegment.getMinLength();
       } else {
         newMinLength++;
       }
@@ -6467,9 +6465,9 @@ public class SMGState
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
       // not. We don't care about it however
       int newMinLength = 1;
-      if (nextObj instanceof SMGSinglyLinkedListSegment) {
-        newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
-        incrementAmount = ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+      if (nextObj instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+        newMinLength = newMinLength + sMGSinglyLinkedListSegment.getMinLength();
+        incrementAmount = sMGSinglyLinkedListSegment.getMinLength();
       } else {
         newMinLength++;
       }

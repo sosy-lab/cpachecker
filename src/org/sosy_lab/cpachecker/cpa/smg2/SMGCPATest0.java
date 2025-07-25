@@ -404,10 +404,10 @@ public class SMGCPATest0 {
                   null,
                   dummyCFAEdge);
         } catch (CPATransferException e) {
-          if (e instanceof SMGException) {
-            throw (SMGException) e;
-          } else if (e instanceof SMGSolverException) {
-            throw (SMGSolverException) e;
+          if (e instanceof SMGException sMGException) {
+            throw sMGException;
+          } else if (e instanceof SMGSolverException sMGSolverException) {
+            throw sMGSolverException;
           }
           // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException
@@ -431,10 +431,10 @@ public class SMGCPATest0 {
                   null,
                   dummyCFAEdge);
         } catch (CPATransferException e) {
-          if (e instanceof SMGException) {
-            throw (SMGException) e;
-          } else if (e instanceof SMGSolverException) {
-            throw (SMGSolverException) e;
+          if (e instanceof SMGException sMGException) {
+            throw sMGException;
+          } else if (e instanceof SMGSolverException sMGSolverException) {
+            throw sMGSolverException;
           }
           // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException

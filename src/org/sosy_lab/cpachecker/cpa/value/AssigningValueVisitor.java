@@ -485,13 +485,13 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
   private static boolean isAssignableVariable(JExpression expression) {
 
-    if (expression instanceof JIdExpression) {
-      JSimpleDeclaration decl = ((JIdExpression) expression).getDeclaration();
+    if (expression instanceof JIdExpression jIdExpression) {
+      JSimpleDeclaration decl = jIdExpression.getDeclaration();
 
       if (decl == null) {
         return false;
-      } else if (decl instanceof JFieldDeclaration) {
-        return ((JFieldDeclaration) decl).isStatic();
+      } else if (decl instanceof JFieldDeclaration jFieldDeclaration) {
+        return jFieldDeclaration.isStatic();
       } else {
         return true;
       }

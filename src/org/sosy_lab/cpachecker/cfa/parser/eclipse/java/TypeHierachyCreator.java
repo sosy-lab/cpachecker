@@ -164,10 +164,10 @@ class TypeHierachyCreator extends ASTVisitor {
       if (typeBinding.isTopLevel()) {
         boolean isPublic = false;
         for (Object mod : node.modifiers()) {
-          if (!(mod instanceof Modifier)) {
+          if (!(mod instanceof Modifier modifier)) {
             continue;
           }
-          if (((Modifier) mod).isPublic()) {
+          if (modifier.isPublic()) {
             isPublic = true;
             break;
           }
