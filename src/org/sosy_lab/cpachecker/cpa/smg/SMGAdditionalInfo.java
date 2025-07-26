@@ -34,6 +34,14 @@ public class SMGAdditionalInfo {
     return new SMGAdditionalInfo(pValue, pLevel, false);
   }
 
+  public Level getLevel() {
+    return level;
+  }
+
+  public String getValue() {
+    return value;
+  }
+
   @Override
   public String toString() {
     return "level=\"" + level + "\" hide=\"" + hide + "\" value=\"" + value + "\"";
