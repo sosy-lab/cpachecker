@@ -17,6 +17,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +37,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
+import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class CounterexampleInfo extends AbstractAppender {
@@ -222,6 +225,12 @@ public class CounterexampleInfo extends AbstractAppender {
     return additionalInfo.isEmpty()
         ? ImmutableMap.of()
         : additionalInfo.getAdditionalInfoMapping(targetPath);
+  }
+
+  public Map<CFAEdge, Multimap<ConvertingTags, SMGAdditionalInfo>> getAdditionalInfoAsMap() {
+    return additionalInfo.isEmpty()
+           ? ImmutableMap.of()
+           : additionalInfo.getAdditionalInfoAsMap();
   }
 
   public Set<AdditionalInfoConverter> getAdditionalInfoConverters() {

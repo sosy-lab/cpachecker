@@ -12,6 +12,8 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,7 +28,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessFactory;
+import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
@@ -140,5 +144,23 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     // last state is ignored
 
     return result.buildOrThrow();
+  }
+
+  public Map<CFAEdge, Multimap<ConvertingTags, SMGAdditionalInfo>> getAdditionalInfoAsMap() {
+    return pathInfo.stream()
+        .collect(
+            ImmutableMap.toImmutableMap(
+                CFAEdgeWithAdditionalInfo::getCFAEdge,
+                e -> {
+                  Multimap<ConvertingTags, SMGAdditionalInfo> map = MultimapBuilder.hashKeys().hashSetValues().build();
+                  e.getInfos().forEach(entry -> {
+                    if (entry.getValue() instanceof SMGAdditionalInfo) {
+                      map.put(entry.getKey(), (SMGAdditionalInfo) entry.getValue());
+                    }
+                  });
+                  return map;
+                }
+            )
+        );
   }
 }
