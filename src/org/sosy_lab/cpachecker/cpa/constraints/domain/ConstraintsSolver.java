@@ -86,12 +86,6 @@ public class ConstraintsSolver {
     }
   }
 
-  @Option(
-      secure = true,
-      description = "Whether to allow the model generation to fail for known problems or not",
-      name = "allowModelFailure")
-  private boolean allowModelFailure = false;
-
   @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
   private boolean cacheSubsets = false;
 
@@ -381,20 +375,13 @@ public class ConstraintsSolver {
     ImmutableList<ValueAssignment> satisfyingModel = null;
     ImmutableCollection<ValueAssignment> definiteAssignmentsInModel = null;
     if (!unsat) {
-      try {
-        satisfyingModel = prover.getModelAssignments();
-      } catch (IllegalArgumentException iae) {
-        // Mathsat error, still usable, but no model
-        if (allowModelFailure && !iae.getMessage().contains("MathSAT returned null")) {
-          throw iae;
-        }
-      }
+      satisfyingModel = prover.getModelAssignments();
       cache.addSat(constraintsAsFormulas, satisfyingModel);
 
       // doing this while the complete formula is still on the prover environment stack is
       // cheaper than performing another complete SAT check when the assignment is really
       // requested
-      if (resolveDefinites && satisfyingModel != null) {
+      if (resolveDefinites) {
         definiteAssignmentsInModel =
             resolveDefiniteAssignments(pConstraintsToCheck, satisfyingModel, prover);
         assert satisfyingModel.containsAll(definiteAssignmentsInModel)
