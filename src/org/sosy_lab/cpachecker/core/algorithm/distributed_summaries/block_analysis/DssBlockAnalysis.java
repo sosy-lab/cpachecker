@@ -270,7 +270,6 @@ public class DssBlockAnalysis {
    * Adds a new abstract state to the known start states and execute the configured forward
    * analysis.
    *
-   * @param pReceived Current message to process
    * @return All violations and/or abstractions that occurred while running the forward analysis.
    */
   public Collection<DssMessage> analyzePrecondition()
@@ -305,8 +304,8 @@ public class DssBlockAnalysis {
    * the error condition will be attached to that edge. In case this makes the path formula
    * infeasible, we compute an abstraction. If no error condition is present, we run the CPA.
    *
-   * @param pNewViolationCondition a message containing an abstract state representing an error
-   *     condition
+   * @param violation The violation condition to analyze, which is a precise summary of all
+   *     specification violations
    * @return Important messages for other blocks.
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
@@ -351,7 +350,7 @@ public class DssBlockAnalysis {
    * ARGState without any parent.
    */
   private void resetArgStates() {
-    for (Entry<String, StateAndPrecision> entry : preconditions.entrySet()) {
+    for (Entry<String, StateAndPrecision> entry : ImmutableList.copyOf(preconditions.entrySet())) {
       StateAndPrecision stateAndPrecision = entry.getValue();
       if (stateAndPrecision.state() instanceof ARGState argState) {
         String id = entry.getKey();
