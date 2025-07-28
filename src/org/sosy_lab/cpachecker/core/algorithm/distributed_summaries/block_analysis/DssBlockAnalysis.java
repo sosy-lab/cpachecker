@@ -212,7 +212,7 @@ public class DssBlockAnalysis {
   }
 
   public Collection<DssMessage> runInitialAnalysis()
-      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, SolverException {
     reachedSet.clear();
     reachedSet.add(makeStartState(), makeStartPrecision());
 
@@ -311,7 +311,7 @@ public class DssBlockAnalysis {
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
   public Collection<DssMessage> analyzeViolationCondition(StateAndPrecision violation)
-      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, SolverException {
     prepareReachedSet();
 
     reachedSet.forEach(

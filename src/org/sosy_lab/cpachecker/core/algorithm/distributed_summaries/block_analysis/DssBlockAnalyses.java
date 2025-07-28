@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -20,6 +21,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -88,7 +91,6 @@ public class DssBlockAnalyses {
       Algorithm pAlgorithm, ReachedSet pReachedSet, BlockNode pBlockNode)
       throws CPAException, InterruptedException {
 
-    AbstractState startState = pReachedSet.getFirstState();
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     // find all target states in block, except target states that are only reachable from another
     // target state
@@ -97,7 +99,7 @@ public class DssBlockAnalyses {
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
     }
 
-    return new DssBlockAnalysisResult(pReachedSet, startState, pBlockNode, status);
+    return new DssBlockAnalysisResult(pReachedSet, pBlockNode, status);
   }
 
   static class DssBlockAnalysisResult {
@@ -107,23 +109,23 @@ public class DssBlockAnalyses {
     private final AlgorithmStatus status;
 
     private DssBlockAnalysisResult(
-        ReachedSet pReachedSet,
-        AbstractState pStartState,
-        BlockNode pBlockNode,
-        AlgorithmStatus pStatus) {
+        ReachedSet pReachedSet, BlockNode pBlockNode, AlgorithmStatus pStatus) {
       status = pStatus;
       ImmutableSet.Builder<ARGState> summariesBuilder = ImmutableSet.builder();
       ImmutableSet.Builder<ARGState> violationsBuilder = ImmutableSet.builder();
       for (AbstractState abstractState : pReachedSet) {
-        if (abstractState.equals(pStartState)) {
+        ARGState argState = (ARGState) abstractState;
+        BlockState blockState =
+            Objects.requireNonNull(AbstractStates.extractStateByType(argState, BlockState.class));
+        if (blockState.getType() == BlockStateType.INITIAL) {
           continue;
         }
-        ARGState argState = (ARGState) abstractState;
         if (argState.isTarget()) {
           // if we find a target state, it is either a real violation
           // or the ghost edge was reached (violation condition cannot be refuted)
           violationsBuilder.add(argState);
-        } else if (pBlockNode.getFinalLocation().equals(AbstractStates.extractLocation(argState))) {
+        } else if (blockState.getLocationNode().equals(pBlockNode.getFinalLocation())
+            && blockState.getType() == BlockStateType.FINAL) {
           summariesBuilder.add(argState);
         }
       }

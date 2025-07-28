@@ -13,19 +13,19 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class ContentBuilder {
 
   private final ImmutableMap.Builder<String, String> contentBuilder;
 
-  private final Deque<String> level;
+  private final List<String> levels;
 
   private ContentBuilder(int pExpectedSize) {
     contentBuilder = ImmutableMap.builderWithExpectedSize(pExpectedSize);
-    level = new ArrayDeque<>();
+    levels = new ArrayList<>();
   }
 
   public static ContentBuilder builder() {
@@ -39,7 +39,7 @@ public class ContentBuilder {
 
   @CanIgnoreReturnValue
   public ContentBuilder pushLevel(String pLevel) {
-    level.push(pLevel);
+    levels.add(pLevel);
     return this;
   }
 
@@ -53,15 +53,15 @@ public class ContentBuilder {
 
   @CanIgnoreReturnValue
   public ContentBuilder popLevel() {
-    if (!level.isEmpty()) {
-      level.pop();
+    if (!levels.isEmpty()) {
+      levels.remove(levels.size() - 1);
     }
     return this;
   }
 
   @CanIgnoreReturnValue
   public ContentBuilder put(String pKey, String pValue) {
-    String fullKey = Joiner.on(".").join(listAndElement(level, pKey));
+    String fullKey = Joiner.on(".").join(listAndElement(levels, pKey));
     contentBuilder.put(fullKey, pValue);
     return this;
   }

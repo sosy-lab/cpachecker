@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -149,19 +150,15 @@ public class DssAnalysisWorker extends DssWorker {
     };
   }
 
-  public void storeMessage(DssMessage message) throws SolverException, InterruptedException {
-    switch (message.getType()) {
-      case STATISTIC, RESULT, EXCEPTION -> {}
-      case VIOLATION_CONDITION -> {
-        DssViolationConditionMessage errorCond = (DssViolationConditionMessage) message;
-        // dssBlockAnalysis.updateViolationCondition(errorCond);
-        // dssBlockAnalysis.updateSeenPrefixes(errorCond);
-      }
-      case PRECONDITION -> {
-        //noinspection ResultOfMethodCallIgnored
-        // dssBlockAnalysis.shouldRepeatAnalysis((DssPreconditionMessage) message);
-      }
-    }
+  @CanIgnoreReturnValue
+  public DssMessageProcessing storeMessage(DssMessage message)
+      throws SolverException, InterruptedException, CPAException {
+    return switch (message.getType()) {
+      case STATISTIC, RESULT, EXCEPTION -> DssMessageProcessing.stop();
+      case VIOLATION_CONDITION ->
+          dssBlockAnalysis.storeViolationCondition((DssViolationConditionMessage) message);
+      case PRECONDITION -> dssBlockAnalysis.storePrecondition((DssPreconditionMessage) message);
+    };
   }
 
   @Override

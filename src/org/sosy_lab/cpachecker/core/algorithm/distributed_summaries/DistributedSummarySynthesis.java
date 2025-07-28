@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -294,7 +295,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
             .addAnalysisWorker(blockNode, options)
             .build();
 
-    DssAnalysisWorker actor = (DssAnalysisWorker) Iterables.getOnlyElement(actors);
+    DssAnalysisWorker actor =
+        (DssAnalysisWorker) Objects.requireNonNull(Iterables.getOnlyElement(actors));
     // use list instead of set. Each message has a unique timestamp,
     // so there will be no duplicates that a set can remove.
     // But the equality checks are unnecessarily expensive
