@@ -951,7 +951,7 @@ public class CtoFormulaConverter {
         ret =
             fmgr.castFromFloat(
                 (FloatingPointFormula) pFormula,
-                isSigned.test(pFromCType),
+                isSigned.test(pToCType),
                 toType,
                 FloatingPointRoundingMode.TOWARD_ZERO);
       }
