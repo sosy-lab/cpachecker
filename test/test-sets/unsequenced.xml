@@ -20,7 +20,7 @@
     <option name="10000M" />
     <option name="--benchmark" />
 
-    <rundefinition name="Unseq-DeterministicExecutionOrder">
+    <rundefinition>
         <tasks name="Arrays">
             <includesfile>../programs/benchmarks/Arrays.set</includesfile>
             <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
