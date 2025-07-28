@@ -8,15 +8,33 @@
 
 package org.sosy_lab.cpachecker.cpa.oc;
 
+import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 public record OrderingConsistencyThreadState(
     LocationState pLocationState,
-    CallstackState pCallstackState
-) {
+    CallstackState pCallstackState,
+    PathFormula pPathFormula,
+    List<MemoryEvent> pMemoryEvents
+    ) {
   @Override
   public String toString() {
-    return "(loc=%s, callstack=%s)".formatted(pLocationState, pCallstackState);
+    return "(loc=%s, callstack=%s, pathFormula=%s, memoryEvents=%s)"
+        .formatted(pLocationState, pCallstackState, pPathFormula, pMemoryEvents);
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (!(pO instanceof OrderingConsistencyThreadState that)) return false;
+    return Objects.equals(pPathFormula, that.pPathFormula) && Objects.equals(pLocationState,
+        that.pLocationState) && Objects.equals(pCallstackState, that.pCallstackState);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(pLocationState, pCallstackState, pPathFormula);
   }
 }

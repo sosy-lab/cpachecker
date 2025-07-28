@@ -12,7 +12,10 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -23,76 +26,99 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 public record OrderingConsistencyState(
     Optional<Integer> pid,
-    ImmutableMap<Integer, OrderingConsistencyThreadState> waitingThreads,
-    int uniqueCounter
-) implements AbstractState, AbstractStateWithLocations, Graphable {
+    ImmutableMap<Integer, OrderingConsistencyThreadState> waitingThreads)
+    implements AbstractState, AbstractStateWithLocations, Graphable {
   static OrderingConsistencyState empty() {
-    return new OrderingConsistencyState(Optional.empty(), ImmutableMap.of(), -1);
+    return new OrderingConsistencyState(Optional.empty(), ImmutableMap.of());
   }
 
   boolean canMerge(OrderingConsistencyState other) {
-    return pid == other.pid && waitingThreads.equals(other.waitingThreads);
+    return Objects.equals(pid, other.pid) && waitingThreads.equals(other.waitingThreads);
   }
 
   Optional<Pair<Integer, OrderingConsistencyThreadState>> nextThreadToStep() {
     final Predicate<OrderingConsistencyThreadState> hasNext =
-        state ->
-            !allLeavingEdges(state.pLocationState().getLocationNode()).isEmpty();
+        state -> !allLeavingEdges(state.pLocationState().getLocationNode()).isEmpty();
 
     // if the current pid can continue, we keep it
-    if(pid.isPresent() && hasNext.test(waitingThreads.get(pid.get()))) {
+    if (pid.isPresent() && hasNext.test(waitingThreads.get(pid.get()))) {
       return Optional.of(Pair.of(pid.orElseThrow(), waitingThreads.get(pid.get())));
     }
     // otherwise, we choose the first suitable candidate (doesn't matter which)
     for (Entry<Integer, OrderingConsistencyThreadState> entry : waitingThreads.entrySet()) {
       final int nextPid = entry.getKey();
       final OrderingConsistencyThreadState threadState = entry.getValue();
-      if(hasNext.test(threadState)) {
+      if (hasNext.test(threadState)) {
         return Optional.of(Pair.of(nextPid, threadState));
       }
     }
     return Optional.empty();
   }
 
-  OrderingConsistencyState addNewThread(LocationState pInitialLoc, CallstackState pInitialStack) {
-    final int newPid = uniqueCounter + 1;
+  OrderingConsistencyState addNewThread(
+      LocationState pInitialLoc, CallstackState pInitialStack, PathFormula pEmptyFormula,
+      Optional<MemoryEvent> pHbBeforeEvent) {
+    final int newPid = waitingThreads.size();
+    final List<MemoryEvent>
+        eventList = pHbBeforeEvent.map(pMemoryEvent -> ImmutableList.of(pMemoryEvent)).orElse(ImmutableList.of());
     final ImmutableMap<Integer, OrderingConsistencyThreadState> newWaiting =
-        ImmutableMap.<Integer, OrderingConsistencyThreadState>builder().putAll(waitingThreads).put(newPid, new OrderingConsistencyThreadState(pInitialLoc, pInitialStack)).buildKeepingLast();
-    return new OrderingConsistencyState(pid, newWaiting, newPid);
+        ImmutableMap.<Integer, OrderingConsistencyThreadState>builder()
+            .putAll(waitingThreads)
+            .put(
+                newPid,
+                new OrderingConsistencyThreadState(pInitialLoc, pInitialStack, pEmptyFormula, eventList))
+            .buildKeepingLast();
+    return new OrderingConsistencyState(pid, newWaiting);
   }
 
-  public OrderingConsistencyState stepThread(int pPid, LocationState pNextLoc, CallstackState pNextStack, int newCounter) {
+  public OrderingConsistencyState stepThread(
+      int pPid,
+      LocationState pNextLoc,
+      CallstackState pNextStack,
+      PathFormula pNextFormula,
+      List<MemoryEvent> pAccesses) {
     assert waitingThreads.containsKey(pPid) : "waitingThreads must contain pid to step " + pPid;
-    final ImmutableMap<Integer, OrderingConsistencyThreadState> newWaiting =
-        ImmutableMap.<Integer, OrderingConsistencyThreadState>builder().putAll(waitingThreads).put(pPid, new OrderingConsistencyThreadState(pNextLoc, pNextStack)).buildKeepingLast();
-    return new OrderingConsistencyState(Optional.of(pPid), newWaiting, newCounter);
+    boolean removeCurrent = pid.map(it -> it != pPid).orElse(false);
+    final Builder<Integer, OrderingConsistencyThreadState> newWaiting = ImmutableMap.builder();
+    for (Entry<Integer, OrderingConsistencyThreadState> entry : waitingThreads.entrySet()) {
+      if(!removeCurrent || !Objects.equals(entry.getKey(), pid.get())) {
+        newWaiting.put(entry.getKey(), entry.getValue());
+      }
+    }
+    newWaiting.put(pPid, new OrderingConsistencyThreadState(pNextLoc, pNextStack, pNextFormula, pAccesses));
+    return new OrderingConsistencyState(Optional.of(pPid), newWaiting.buildKeepingLast());
   }
 
   @Override
   public Iterable<CFANode> getLocationNodes() {
-    return pid.map(
-        pid -> waitingThreads.get(pid).pLocationState()
-            .getLocationNodes()).orElseGet(ImmutableList::of);
+    return pid.map(pid -> waitingThreads.get(pid).pLocationState().getLocationNodes())
+        .orElseGet(ImmutableList::of);
   }
 
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    return nextThreadToStep().map(pair -> {
-      final var ret = ImmutableList.<CFAEdge>builder();
-      for (CFAEdge outgoingEdge : pair.getSecondNotNull().pLocationState().getOutgoingEdges()) {
-        ret.add(EdgeCloner.clone(outgoingEdge, pair.getFirstNotNull(), uniqueCounter));
-      }
-      return ret.build();
-    }).orElseGet(ImmutableList::of);
+    return nextThreadToStep()
+        .map(
+            pair -> {
+              final var ret = ImmutableList.<CFAEdge>builder();
+              for (CFAEdge outgoingEdge :
+                  pair.getSecondNotNull().pLocationState().getOutgoingEdges()) {
+                ret.add(EdgeCloner.clone(outgoingEdge, pair.getFirstNotNull(), this));
+              }
+              return ret.build();
+            })
+        .orElseGet(ImmutableList::of);
   }
 
   @Override
   public Iterable<CFAEdge> getIncomingEdges() {
     // TODO: how to parameterize EdgeTools::clone() here?
-    return pid.map(pid -> waitingThreads.get(pid).pLocationState().getIncomingEdges()).orElseGet(ImmutableList::of);
+    return pid.map(pid -> waitingThreads.get(pid).pLocationState().getIncomingEdges())
+        .orElseGet(ImmutableList::of);
   }
 
   @Override

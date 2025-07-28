@@ -8,12 +8,16 @@
 
 package org.sosy_lab.cpachecker.cpa.oc;
 
+import static org.sosy_lab.cpachecker.cpa.oc.EventType.READ;
+import static org.sosy_lab.cpachecker.cpa.oc.EventType.WRITE;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.SequencedMap;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -24,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -60,58 +65,42 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 final class EdgeCloner {
   private static final String ONLY_C_SUPPORTED = "only C supported";
-  private static final Map<Pair<Integer, Integer>, EdgeCloner> cache =
-      new LinkedHashMap<>();
+  private static final Map<EdgeIdentifier, EdgeCloner> cache = new HashMap<>();
+  private static final Map<CFAEdge, EdgeCloner> reverseCache = new HashMap<>();
+  private static int mutableUniqueCounter = 0;
 
-  static CFAEdge clone(
-      final CFAEdge pCFAEdge, final int pid, final int uniqueCounter) {
-    return cache
-        .computeIfAbsent(
-            Pair.of(pid, uniqueCounter), pair -> new EdgeCloner(pid, uniqueCounter))
-        .cloneEdge(pCFAEdge);
+  static CFAEdge clone(final CFAEdge pCFAEdge, final int pid, final AbstractState pState) {
+    final EdgeCloner edgeCloner = cache
+        .computeIfAbsent(new EdgeIdentifier(pState, pid, pCFAEdge), pair -> new EdgeCloner(pid, pCFAEdge));
+    reverseCache.put(edgeCloner.mappedEdge, edgeCloner);
+    return edgeCloner.mappedEdge;
   }
 
-  static int nextCounter(
-      final CFAEdge pCFAEdge, final int idx, final int uniqueCounter) {
-    final var edgeCloner =
-        cache.computeIfAbsent(
-            Pair.of(idx, uniqueCounter), pair -> new EdgeCloner(idx, uniqueCounter));
-    //noinspection ResultOfMethodCallIgnored
-    edgeCloner.cloneEdge(pCFAEdge);
-    return edgeCloner.mutableUniqueCounter;
+  record EdgeIdentifier(AbstractState state, int pid, CFAEdge pCFAEdge) {
   }
 
-  static Pair<List<CVariableDeclaration>, List<CVariableDeclaration>> getAccesses(
-      final CFAEdge pCFAEdge, final int idx, final int uniqueCounter) {
-    final var astIdQualifier =
-        cache.computeIfAbsent(
-            Pair.of(idx, uniqueCounter), pair -> new EdgeCloner(idx, uniqueCounter));
-    astIdQualifier.cloneEdge(pCFAEdge);
-    return Pair.of(astIdQualifier.writeAccesses, astIdQualifier.readAccesses);
+  static List<MemoryEvent> getAccesses(final CFAEdge pCFAEdge) {
+    final var edgeCloner = reverseCache.get(pCFAEdge);
+    return edgeCloner.getMemoryEvents();
   }
 
 
   private final SequencedMap<CFAEdge, CFAEdge> edgeCache = new LinkedHashMap<>();
   private final CExpressionCloner expCloner;
   private final int threadId;
-  private int mutableUniqueCounter;
-  private final List<CVariableDeclaration> writeAccesses = new ArrayList<>();
-  private final List<CVariableDeclaration> readAccesses = new ArrayList<>();
+  private final List<MemoryEvent> memoryEvents = new ArrayList<>();
   private boolean isLhs = false;
 
-  private EdgeCloner(final int idx, final int uniqueCounter) {
+  private EdgeCloner(final int idx, final CFAEdge pCFAEdge) {
     this.threadId = idx;
-    this.mutableUniqueCounter = uniqueCounter;
     this.expCloner = new CExpressionCloner();
-  }
-
-  private CFAEdge cloneEdge(final CFAEdge pCFAEdge) {
-    return edgeCache.computeIfAbsent(pCFAEdge, this::cloneEdgeDirect);
+    this.mappedEdge = cloneEdgeDirect(pCFAEdge);
   }
 
   private CFAEdge cloneEdgeDirect(final CFAEdge edge) {
@@ -386,12 +375,41 @@ final class EdgeCloner {
     };
   }
 
+  private CSimpleDeclaration createNewDeclaration(CSimpleDeclaration cDecl) {
+    if (cDecl instanceof CVariableDeclaration decl) {
+      FileLocation loc = decl.getFileLocation();
+      CVariableDeclaration newDecl =
+          new CVariableDeclaration(
+              loc,
+              decl.isGlobal(),
+              decl.getCStorageClass(),
+              decl.getType(),
+              decl.getName(),
+              decl.getOrigName(),
+              changeQualifiedName(decl, decl.isGlobal()),
+              null);
+      if (decl.isGlobal()) {
+        final var type = isLhs ? WRITE : READ;
+        final var id = ++mutableUniqueCounter;
+        memoryEvents.add(new MemoryEvent(id, decl, newDecl, Optional.empty(), type));
+      }
+      return newDecl;
+    } else {
+      // is this always good?
+      return cDecl;
+    }
+  }
+
   private String changeQualifiedName(CSimpleDeclaration decl, boolean isGlobal) {
     if (isGlobal) {
       final var nextId = ++mutableUniqueCounter;
       return "%s_%d".formatted(decl.getQualifiedName(), nextId);
     }
     return "T%d_%s".formatted(threadId, decl.getQualifiedName());
+  }
+
+  public List<MemoryEvent> getMemoryEvents() {
+    return memoryEvents;
   }
 
   private class CExpressionCloner extends DefaultCExpressionVisitor<CExpression, NoException> {
@@ -459,7 +477,7 @@ final class EdgeCloner {
             exp.getFileLocation(),
             exp.getExpressionType(),
             exp.getName(),
-            cloneAst(exp.getDeclaration()));
+            createNewDeclaration(exp.getDeclaration()));
       }
     }
 
