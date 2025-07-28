@@ -15,111 +15,111 @@
 
     <resultfiles>**/witness.*</resultfiles>
 
-    <option name="--svcomp25" />
+    <option name="-config">../config/unseq-analysis.properties</option>
     <option name="--heap" />
     <option name="10000M" />
     <option name="--benchmark" />
-    <option name="--timelimit" />
-    <option name="900s" />
 
     <rundefinition name="Unseq-DeterministicExecutionOrder">
         <tasks name="Arrays">
             <includesfile>../programs/benchmarks/Arrays.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="BitVectors">
             <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="ControlFlow">
             <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="ECA">
             <includesfile>../programs/benchmarks/ECA.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Floats">
             <includesfile>../programs/benchmarks/Floats.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Heap">
             <includesfile>../programs/benchmarks/Heap.set</includesfile>
             <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Loops">
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
             <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Recursive">
             <includesfile>../programs/benchmarks/Recursive.set</includesfile>
             <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Sequentialized">
             <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="XCSP">
             <includesfile>../programs/benchmarks/XCSP.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Combinations">
             <includesfile>../programs/benchmarks/Combinations.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Hardware">
             <includesfile>../programs/benchmarks/Hardware.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Hardness">
             <includesfile>../programs/benchmarks/Hardness.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Fuzzle">
             <includesfile>../programs/benchmarks/Fuzzle.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="Concurrency">
             <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="SoftwareSystems-AWS-C-Common">
             <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="SoftwareSystems-DeviceDriversLinux64">
             <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
             <excludesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large.set</excludesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="SoftwareSystems-DeviceDriversLinux64Large">
             <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="SoftwareSystems-coreutils">
             <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
             <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
             <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="SoftwareSystems-uthash">
             <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
         <tasks name="SoftwareSystems-Intel-TDX-Module">
             <includesfile>../programs/benchmarks/SoftwareSystems-Intel-TDX-Module.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../config/specification/deterministic-execution-order.spc</propertyfile>
         </tasks>
     </rundefinition>
 
     <columns>
-        <column title="UsedConfig">Used algorithm property</column>
+        <column title="status" />
+        <column title="cpu_time" />
+        <column title="memory" />
     </columns>
 </benchmark>
