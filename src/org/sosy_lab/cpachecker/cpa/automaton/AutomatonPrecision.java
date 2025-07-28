@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 
-public class AutomatonPrecision implements Precision {
+public class AutomatonPrecision implements AdjustablePrecision {
 
   private final Automaton automaton;
   private boolean enabled;
@@ -45,5 +45,27 @@ public class AutomatonPrecision implements Precision {
 
   public Automaton getAutomaton() {
     return automaton;
+  }
+
+  @Override
+  public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
+    if (otherPrecision instanceof AutomatonPrecision otherAutomatonPrecision) {
+      if (automaton.equals(otherAutomatonPrecision.automaton)) {
+        return this;
+      }
+    }
+    throw new UnsupportedOperationException(
+        "Cannot add AutomatonPrecision with different automaton: "
+            + otherPrecision.getClass().getSimpleName());
+  }
+
+  @Override
+  public AdjustablePrecision subtract(AdjustablePrecision otherPrecision) {
+    throw new UnsupportedOperationException("Subtracting AutomatonPrecision is not supported");
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return true;
   }
 }

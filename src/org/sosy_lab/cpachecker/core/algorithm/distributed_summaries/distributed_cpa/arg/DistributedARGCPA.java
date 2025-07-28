@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
+import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -21,10 +22,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public class DistributedARGCPA implements ForwardingDistributedConfigurableProgramAnalysis {
+public class DistributedARGCPA
+    implements ForwardingDistributedConfigurableProgramAnalysis, StatisticsProvider {
 
   private final ARGCPA argcpa;
   private final DistributedConfigurableProgramAnalysis wrappedCPA;
@@ -110,5 +114,12 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
 
   public DistributedConfigurableProgramAnalysis getWrappedCPA() {
     return wrappedCPA;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    if (wrappedCPA instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(statsCollection);
+    }
   }
 }

@@ -16,9 +16,9 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Base64;
 
-public class DssSerializeUtil {
+public class DssSerializeObjectUtil {
 
-  private DssSerializeUtil() {}
+  private DssSerializeObjectUtil() {}
 
   public static <T extends Serializable> String serialize(T pObject) throws IOException {
     try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -35,7 +35,7 @@ public class DssSerializeUtil {
         ObjectInputStream in = new ObjectInputStream(bis)) {
       return pClass.cast(in.readObject());
     } catch (IOException | ClassNotFoundException e) {
-      // in no scenario deserializing a message should cause exceptions
+      // in no scenario, deserializing a message should cause exceptions
       throw new AssertionError(e);
     }
   }

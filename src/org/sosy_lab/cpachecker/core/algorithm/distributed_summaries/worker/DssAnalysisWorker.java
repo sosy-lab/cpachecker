@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics.ThreadCPUTimer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -113,7 +114,12 @@ public class DssAnalysisWorker extends DssWorker {
       case VIOLATION_CONDITION -> {
         try {
           backwardAnalysisTime.start();
-          yield dssBlockAnalysis.runAnalysisUnderCondition((DssViolationConditionMessage) message);
+          DssMessageProcessing processing =
+              dssBlockAnalysis.storeViolationCondition((DssViolationConditionMessage) message);
+          if (!processing.shouldProceed()) {
+            yield processing;
+          }
+          yield dssBlockAnalysis.analyzeViolationCondition(message.getSenderId());
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
@@ -123,7 +129,12 @@ public class DssAnalysisWorker extends DssWorker {
       case PRECONDITION -> {
         try {
           forwardAnalysisTime.start();
-          yield dssBlockAnalysis.runAnalysis((DssPreconditionMessage) message);
+          DssMessageProcessing processing =
+              dssBlockAnalysis.storePrecondition((DssPreconditionMessage) message);
+          if (!processing.shouldProceed()) {
+            yield processing;
+          }
+          yield dssBlockAnalysis.analyzePrecondition();
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
@@ -212,7 +223,7 @@ public class DssAnalysisWorker extends DssWorker {
   private ImmutableMap<StatisticsKey, String> getStats() {
     ImmutableMap.Builder<StatisticsKey, String> stats = ImmutableMap.builder();
 
-    if (dssBlockAnalysis.getDCPA() instanceof DistributedARGCPA arg
+    if (dssBlockAnalysis.getDcpa() instanceof DistributedARGCPA arg
         && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
       stats.putAll(composite.getStatistics().getStatistics());
     }

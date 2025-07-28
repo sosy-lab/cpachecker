@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -63,8 +63,8 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     String serializedSSAMap;
     String pts;
     try {
-      serializedSSAMap = DssSerializeUtil.serialize(ssaMap);
-      pts = DssSerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
+      serializedSSAMap = DssSerializeObjectUtil.serialize(ssaMap);
+      pts = DssSerializeObjectUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException e) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     } finally {

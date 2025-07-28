@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -67,20 +68,18 @@ public class DssBlockAnalysis {
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
   private final DistributedConfigurableProgramAnalysis dcpa;
-  // In this map, value 'null' means that the key 'blockId' is a loop predecessor
-  // from which we have not seen any summary message yet
-  private final Map<String, DssPreconditionMessage> preconditions;
-  private final Map<String, DssViolationConditionMessage> violationConditions;
+  private final DssMessageFactory messageFactory;
+  private final Map<String, StateAndPrecision> preconditions;
+  private final Map<String, StateAndPrecision> violationConditions;
+
   private final ConfigurableProgramAnalysis cpa;
   private final BlockNode block;
   private final ReachedSet reachedSet;
   private final Algorithm algorithm;
+
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final LogManager logger;
 
-  private final DssMessageFactory messageFactory;
-
-  // forward analysis variables
   private AlgorithmStatus status;
 
   public DssBlockAnalysis(
@@ -231,6 +230,42 @@ public class DssBlockAnalysis {
     return reportViolationConditions(result.getViolations(), null, true);
   }
 
+  public DssMessageProcessing storePrecondition(DssPreconditionMessage pReceived)
+      throws InterruptedException, SolverException, CPAException {
+    logger.log(Level.INFO, "Running forward analysis with new precondition");
+    StateAndPrecision deserialized = dcpa.deserialize(pReceived);
+    DssMessageProcessing processing =
+        dcpa.getProceedOperator().processForward(deserialized.state());
+    if (!processing.shouldProceed()) {
+      return processing;
+    }
+    if (preconditions.containsKey(pReceived.getSenderId())) {
+      AbstractState previous = preconditions.get(pReceived.getSenderId()).state();
+      if (!dcpa.isTop(previous)
+          && dcpa.getCoverageOperator().covers(previous, deserialized.state())) {
+        // we already have a precondition implying the new one
+        return DssMessageProcessing.stop();
+      }
+    }
+    preconditions.put(pReceived.getSenderId(), deserialized);
+    return processing;
+  }
+
+  public DssMessageProcessing storeViolationCondition(
+      DssViolationConditionMessage pNewViolationCondition)
+      throws InterruptedException, SolverException {
+    logger.log(Level.INFO, "Running forward analysis with respect to error condition");
+    // merge all states into the reached set
+    StateAndPrecision violationCondition = dcpa.deserialize(pNewViolationCondition);
+    DssMessageProcessing processing =
+        dcpa.getProceedOperator().processBackward(violationCondition.state());
+    if (!processing.shouldProceed()) {
+      return processing;
+    }
+    violationConditions.put(pNewViolationCondition.getSenderId(), violationCondition);
+    return processing;
+  }
+
   /**
    * Adds a new abstract state to the known start states and execute the configured forward
    * analysis.
@@ -238,28 +273,31 @@ public class DssBlockAnalysis {
    * @param pReceived Current message to process
    * @return All violations and/or abstractions that occurred while running the forward analysis.
    */
-  public Collection<DssMessage> runAnalysis(DssPreconditionMessage pReceived)
+  public Collection<DssMessage> analyzePrecondition()
       throws SolverException, InterruptedException, CPAException, InvalidConfigurationException {
-    logger.log(Level.INFO, "Running forward analysis with new precondition");
-    AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
-    DssMessageProcessing processing = dcpa.getProceedOperator().processForward(deserialized);
-    if (!processing.shouldProceed()) {
-      return processing;
-    }
-    if (preconditions.containsKey(pReceived.getSenderId())) {
-      AbstractState previous =
-          dcpa.getDeserializeOperator().deserialize(preconditions.get(pReceived.getSenderId()));
-      if (!dcpa.isTop(previous) && dcpa.getCoverageOperator().covers(previous, deserialized)) {
-        // we already have a precondition implying by the new one
-        return ImmutableSet.of();
-      }
-    }
-    preconditions.put(pReceived.getSenderId(), pReceived);
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (DssViolationConditionMessage violation : violationConditions.values()) {
-      messages.addAll(runAnalysisUnderCondition(violation));
+    for (StateAndPrecision violation : violationConditions.values()) {
+      messages.addAll(analyzeViolationCondition(violation));
     }
     return messages.build();
+  }
+
+  /**
+   * Analyzes the violation condition for the given sender ID. The violation condition is extracted
+   * from the violation conditions stored via {@link
+   * #storeViolationCondition(DssViolationConditionMessage)}
+   *
+   * @param pSenderId The ID of the sender of the violation condition message.
+   * @return The messages resulting from the analysis of the violation condition.
+   */
+  public Collection<DssMessage> analyzeViolationCondition(String pSenderId)
+      throws SolverException, InterruptedException, CPAException, InvalidConfigurationException {
+    StateAndPrecision violation = violationConditions.get(pSenderId);
+    if (violation == null) {
+      throw new IllegalArgumentException(
+          "No violation condition found for sender ID: " + pSenderId);
+    }
+    return analyzeViolationCondition(violation);
   }
 
   /**
@@ -267,32 +305,21 @@ public class DssBlockAnalysis {
    * the error condition will be attached to that edge. In case this makes the path formula
    * infeasible, we compute an abstraction. If no error condition is present, we run the CPA.
    *
-   * @param pViolationCondition a message containing an abstract state representing an error
+   * @param pNewViolationCondition a message containing an abstract state representing an error
    *     condition
    * @return Important messages for other blocks.
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
-  public Collection<DssMessage> runAnalysisUnderCondition(
-      DssViolationConditionMessage pViolationCondition)
+  public Collection<DssMessage> analyzeViolationCondition(StateAndPrecision violation)
       throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
-    logger.log(Level.INFO, "Running forward analysis with respect to error condition");
-    violationConditions.put(pViolationCondition.getSenderId(), pViolationCondition);
-    // merge all states into the reached set
-    AbstractState violationCondition =
-        dcpa.getDeserializeOperator().deserialize(pViolationCondition);
-    DssMessageProcessing processing = dcpa.getProceedOperator().processBackward(violationCondition);
-    if (!processing.shouldProceed()) {
-      return processing;
-    }
-
     prepareReachedSet();
 
     reachedSet.forEach(
         abstractState ->
             Objects.requireNonNull(
                     AbstractStates.extractStateByType(abstractState, BlockState.class))
-                .setViolationCondition(violationCondition));
+                .setViolationCondition(violation.state()));
 
     DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
 
@@ -304,8 +331,7 @@ public class DssBlockAnalysis {
     }
     if (!result.getViolations().isEmpty()) {
       messages.addAll(
-          reportViolationConditions(
-              result.getViolations(), ((ARGState) violationCondition), false));
+          reportViolationConditions(result.getViolations(), ((ARGState) violation.state()), false));
     }
     return messages.build();
   }
@@ -321,32 +347,80 @@ public class DssBlockAnalysis {
   }
 
   /**
-   * Prepare the reached set for next analysis by merging all received BPC messages into a non-empty
-   * set of start states.
+   * Resets all preconditions to their initial state, i.e., the ARGState is wrapped in a new
+   * ARGState without any parent.
+   */
+  private void resetArgStates() {
+    for (Entry<String, StateAndPrecision> entry : preconditions.entrySet()) {
+      StateAndPrecision stateAndPrecision = entry.getValue();
+      if (stateAndPrecision.state() instanceof ARGState argState) {
+        String id = entry.getKey();
+        preconditions.put(
+            id,
+            new StateAndPrecision(
+                new ARGState(argState.getWrappedState(), null), stateAndPrecision.precision()));
+      }
+    }
+  }
+
+  /**
+   * Combines all preconditions into a single precision if all precisions are from type
+   * AdjustablePrecision.
+   *
+   * @return combined precision if all preconditions are of type {@link AdjustablePrecision}, empty
+   *     otherwise
+   */
+  private Optional<Precision> combinePrecisionIfPossible() {
+    AdjustablePrecision combined = null;
+    for (StateAndPrecision stateAndPrecision : preconditions.values()) {
+      Precision precision = stateAndPrecision.precision();
+      if (precision instanceof AdjustablePrecision adjustablePrecision) {
+        if (combined == null) {
+          combined = adjustablePrecision;
+        } else {
+          combined = combined.add(adjustablePrecision);
+        }
+      } else {
+        return Optional.empty();
+      }
+    }
+    return Optional.ofNullable(combined);
+  }
+
+  /**
+   * Prepare the reached set for next analysis by merging all received preconditions into a
+   * non-empty set of start states.
    *
    * @throws CPAException thrown in merge or stop operation runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly.
    */
   private void prepareReachedSet() throws CPAException, InterruptedException {
-    // simulate merge and stop for all states ending up at block#getStartNode
+    // clear stateful data structures
     reachedSet.clear();
+    resetArgStates();
+
+    // prepare states to be added to the reached set
+    Optional<Precision> combinedPrecision = combinePrecisionIfPossible();
     ImmutableList.Builder<StateAndPrecision> deserializedStates = ImmutableList.builder();
-    for (Entry<String, DssPreconditionMessage> messageEntry : preconditions.entrySet()) {
-      DssMessage message = messageEntry.getValue();
-      StateAndPrecision stateAndPrecision = dcpa.deserialize(message);
+    for (Entry<String, StateAndPrecision> messageEntry : preconditions.entrySet()) {
+      StateAndPrecision stateAndPrecision = messageEntry.getValue();
       if (dcpa.isTop(stateAndPrecision.state())
           && block.getLoopPredecessorIds().contains(messageEntry.getKey())) {
         continue;
       }
-      deserializedStates.add(stateAndPrecision);
+      deserializedStates.add(
+          new StateAndPrecision(
+              stateAndPrecision.state(), combinedPrecision.orElse(stateAndPrecision.precision())));
     }
+
+    // execute the CPA algorithm with the prepared states at the start location of the block
     DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, deserializedStates.build());
     if (reachedSet.isEmpty()) {
       reachedSet.add(makeStartState(), makeStartPrecision());
     }
   }
 
-  public DistributedConfigurableProgramAnalysis getDCPA() {
+  public DistributedConfigurableProgramAnalysis getDcpa() {
     return dcpa;
   }
 }

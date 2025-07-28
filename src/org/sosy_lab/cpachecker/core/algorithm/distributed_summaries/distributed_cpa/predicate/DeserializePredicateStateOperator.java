@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -54,11 +54,12 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
     try {
       String serializedSsaMap = predicateContent.get(SerializePredicateStateOperator.SSA_KEY);
       Preconditions.checkNotNull(serializedSsaMap, "SSA Map must be provided");
-      SSAMap map = DssSerializeUtil.deserialize(serializedSsaMap, SSAMap.class);
+      SSAMap map = DssSerializeObjectUtil.deserialize(serializedSsaMap, SSAMap.class);
 
       String serializedPts = predicateContent.get(SerializePredicateStateOperator.PTS_KEY);
       Preconditions.checkNotNull(serializedPts, "PTS must be provided");
-      PointerTargetSet pts = DssSerializeUtil.deserialize(serializedPts, PointerTargetSet.class);
+      PointerTargetSet pts =
+          DssSerializeObjectUtil.deserialize(serializedPts, PointerTargetSet.class);
 
       String serializedState = predicateContent.get(STATE_KEY);
       Preconditions.checkNotNull(serializedState, "State must be provided");
