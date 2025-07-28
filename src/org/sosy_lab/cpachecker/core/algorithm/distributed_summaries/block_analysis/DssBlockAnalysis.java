@@ -273,7 +273,7 @@ public class DssBlockAnalysis {
    * @return All violations and/or abstractions that occurred while running the forward analysis.
    */
   public Collection<DssMessage> analyzePrecondition()
-      throws SolverException, InterruptedException, CPAException, InvalidConfigurationException {
+      throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     for (StateAndPrecision violation : violationConditions.values()) {
       messages.addAll(analyzeViolationCondition(violation));
@@ -290,7 +290,7 @@ public class DssBlockAnalysis {
    * @return The messages resulting from the analysis of the violation condition.
    */
   public Collection<DssMessage> analyzeViolationCondition(String pSenderId)
-      throws SolverException, InterruptedException, CPAException, InvalidConfigurationException {
+      throws SolverException, InterruptedException, CPAException {
     StateAndPrecision violation = violationConditions.get(pSenderId);
     if (violation == null) {
       throw new IllegalArgumentException(
