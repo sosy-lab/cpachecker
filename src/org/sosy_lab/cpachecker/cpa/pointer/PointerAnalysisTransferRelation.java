@@ -588,6 +588,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                   @Override
                   public LocationSet visit(CInitializerExpression pInitializerExpression)
                       throws CPATransferException {
+                    if (pInitializerExpression.getExpression()
+                        instanceof CIntegerLiteralExpression) {
+                      return LocationSetTop.INSTANCE;
+                    }
 
                     return getReferencedLocations(
                         pInitializerExpression.getExpression(), pState, true, pCfaEdge);
@@ -605,6 +609,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     return LocationSetTop.INSTANCE;
                   }
                 });
+        if (pointsToSet.isTop()) {
+          return pState;
+        }
         MemoryLocationPointer pointerLocation =
             new MemoryLocationPointer(MemoryLocation.forDeclaration(declaration));
         return new PointerAnalysisState(
