@@ -123,7 +123,7 @@ public class BlockState
     return pO instanceof BlockState that
         && Objects.equals(node, that.node)
         && type == that.type
-        && blockNode.getId().equals(that.getBlockNode().getId());
+        && blockNode == that.getBlockNode();
   }
 
   @Override

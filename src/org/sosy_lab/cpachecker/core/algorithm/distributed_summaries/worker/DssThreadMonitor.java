@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import java.util.List;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
