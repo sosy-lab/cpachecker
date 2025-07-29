@@ -372,34 +372,42 @@ public class ConstraintsSolver {
       Collection<BooleanFormula> constraintsAsFormulas,
       ConstraintsState pConstraintsToCheck)
       throws SolverException, InterruptedException {
-    ImmutableList<ValueAssignment> satisfyingModel = null;
-    ImmutableCollection<ValueAssignment> definiteAssignmentsInModel = null;
+
     if (!unsat) {
-      satisfyingModel = prover.getModelAssignments();
+      ImmutableList<ValueAssignment> satisfyingModel = prover.getModelAssignments();
       cache.addSat(constraintsAsFormulas, satisfyingModel);
 
       // doing this while the complete formula is still on the prover environment stack is
       // cheaper than performing another complete SAT check when the assignment is really
       // requested
       if (resolveDefinites) {
-        definiteAssignmentsInModel =
+        ImmutableCollection<ValueAssignment> definiteAssignmentsInModel =
             resolveDefiniteAssignments(pConstraintsToCheck, satisfyingModel, prover);
         assert satisfyingModel.containsAll(definiteAssignmentsInModel)
             : "Model does not imply definites: "
                 + satisfyingModel
                 + " !=> "
                 + definiteAssignmentsInModel;
+
+        return new SolverResult(
+            relevantConstraints,
+            Satisfiability.SAT,
+            Optional.of(satisfyingModel),
+            Optional.of(definiteAssignmentsInModel));
+
+      } else {
+        return new SolverResult(
+            relevantConstraints,
+            Satisfiability.SAT,
+            Optional.of(satisfyingModel),
+            Optional.empty());
       }
 
     } else {
       cache.addUnsat(constraintsAsFormulas);
+      return new SolverResult(
+          relevantConstraints, Satisfiability.UNSAT, Optional.empty(), Optional.empty());
     }
-
-    return new SolverResult(
-        relevantConstraints,
-        unsat ? Satisfiability.UNSAT : Satisfiability.SAT,
-        Optional.ofNullable(satisfyingModel),
-        Optional.ofNullable(definiteAssignmentsInModel));
   }
 
   private void preparePersistentProverForCheck(Collection<BooleanFormula> constraintsToCheck)
