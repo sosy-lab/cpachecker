@@ -588,6 +588,8 @@ public class CtoFormulaConverter {
     return result;
   }
 
+  @Nullable public static BooleanFormula additionalConstraint = null;
+
   /**
    * Create a formula that reinterprets the raw bit values as a different type. Returns {@code null}
    * if this is not implemented for the given types. Returns the original formula if no
@@ -626,8 +628,28 @@ public class CtoFormulaConverter {
       int sourceSize = ((FloatingPointType) fromFormulaType).getTotalSize();
       int targetSize = ((BitvectorType) toFormulaType).getSize();
 
-      formula =
-          fmgr.getFloatingPointFormulaManager().toIeeeBitvector((FloatingPointFormula) formula);
+      try {
+        formula =
+            fmgr.getFloatingPointFormulaManager().toIeeeBitvector((FloatingPointFormula) formula);
+      } catch (UnsupportedOperationException e) {
+        // TODO: this is experimental, badly coded, and NOT ready to be merged!!!!!
+        // Better: use makeValueReinterpretation() reversely
+        boolean escaped = formula.toString().startsWith("|") && formula.toString().endsWith("|");
+        Formula bvformula =
+            efmgr.makeVariable(
+                ((BitvectorType) toFormulaType).getSize(),
+                escaped
+                    ? formula.toString().subSequence(1, formula.toString().length() - 1) + "_as_BV"
+                    : formula + "_as_BV");
+        FloatingPointFormula tmpFp =
+            fmgr.getFloatingPointFormulaManager()
+                .fromIeeeBitvector(
+                    (BitvectorFormula) bvformula, (FloatingPointType) fromFormulaType);
+        additionalConstraint =
+            fmgr.getFloatingPointFormulaManager()
+                .equalWithFPSemantics(tmpFp, (FloatingPointFormula) formula);
+        formula = bvformula;
+      }
 
       if (sourceSize > targetSize) {
         formula =
