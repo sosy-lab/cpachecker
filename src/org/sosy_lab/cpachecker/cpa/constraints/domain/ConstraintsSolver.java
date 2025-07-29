@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -292,7 +291,7 @@ public class ConstraintsSolver {
 
       ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraintsToCheck);
 
-      Collection<BooleanFormula> constraintsAsFormulas =
+      List<BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
       CacheResult res = cache.getCachedResult(constraintsAsFormulas);
 
@@ -410,7 +409,7 @@ public class ConstraintsSolver {
     }
   }
 
-  private void preparePersistentProverForCheck(Collection<BooleanFormula> constraintsToCheck)
+  private void preparePersistentProverForCheck(List<BooleanFormula> constraintsToCheck)
       throws InterruptedException {
     AtomicInteger totalKeptRef = new AtomicInteger();
     AtomicInteger totalRemovedRef = new AtomicInteger();
@@ -679,25 +678,25 @@ public class ConstraintsSolver {
 
   /**
    * Returns the set of formulas representing all constraints of this state. If no constraints
-   * exist, this method will return an empty set.
+   * exist, this method will return an empty list.
    *
-   * @return the set of formulas representing all constraints of this state
+   * @return the list of formulas representing all constraints of this state
    * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
-  private Collection<BooleanFormula> getFullFormula(
+  private List<BooleanFormula> getFullFormula(
       Collection<Constraint> pConstraints, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
 
-    List<BooleanFormula> formulas = new ArrayList<>(pConstraints.size());
+    ImmutableList.Builder<BooleanFormula> formulasBuilder = ImmutableList.builder();
     for (Constraint c : pConstraints) {
       if (!constraintFormulas.containsKey(c)) {
         constraintFormulas.put(c, createConstraintFormulas(c, pFunctionName));
       }
-      formulas.add(constraintFormulas.get(c));
+      formulasBuilder.add(constraintFormulas.get(c));
     }
 
-    return formulas;
+    return formulasBuilder.build();
   }
 
   private BooleanFormula createConstraintFormulas(Constraint pConstraint, String pFunctionName)
