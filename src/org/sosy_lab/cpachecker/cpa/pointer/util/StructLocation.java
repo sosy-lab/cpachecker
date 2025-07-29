@@ -99,4 +99,8 @@ public final class StructLocation implements PointerTarget {
   public boolean isOnFunctionStack() {
     return functionName != null;
   }
+
+  public @Nullable String getFunctionName() {
+    return functionName;
+  }
 }
