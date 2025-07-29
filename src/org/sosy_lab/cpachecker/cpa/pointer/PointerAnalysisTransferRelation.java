@@ -349,8 +349,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         Set<PointerTarget> newTargets = new HashSet<>();
         boolean containsNull = explicitSet.containsNull();
 
+        String callerFunctionName = pCfaEdge.getSummaryEdge().getPredecessor().getFunctionName();
         for (PointerTarget target : explicitSet.getExplicitLocations()) {
-          if (PointerUtils.isValidFunctionReturn(target)) {
+          if (PointerUtils.isValidFunctionReturn(target, callerFunctionName)) {
             newTargets.add(target);
           } else {
             newTargets.add(InvalidLocation.forInvalidation(InvalidationReason.LOCAL_SCOPE_EXPIRED));

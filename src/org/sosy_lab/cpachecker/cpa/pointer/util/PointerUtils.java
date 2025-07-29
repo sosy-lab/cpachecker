@@ -52,12 +52,17 @@ public final class PointerUtils {
     return Optional.empty();
   }
 
-  public static boolean isValidFunctionReturn(PointerTarget pTarget) {
+  public static boolean isValidFunctionReturn(PointerTarget pTarget, String currentFunctionName) {
     if (pTarget instanceof HeapLocation) {
       return true;
     }
     if (pTarget instanceof MemoryLocationPointer ptr) {
-      return ptr.isNotLocalVariable();
+      return ptr.isNotLocalVariable()
+          || ptr.getMemoryLocation().getFunctionName().equals(currentFunctionName);
+    }
+    if (pTarget instanceof StructLocation structLoc) {
+      return !structLoc.isOnFunctionStack()
+          || currentFunctionName.equals(structLoc.getFunctionName());
     }
     return true;
   }
