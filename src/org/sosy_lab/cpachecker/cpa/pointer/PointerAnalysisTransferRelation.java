@@ -343,7 +343,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       if (!(lhs.getExpressionType() instanceof CPointerType)) {
         return pState;
       }
-      int lhsDeref = determineDerefCounter(lhs, true);
       LocationSet rhsTargets = pState.getPointsToSet(returnVarPointer);
       if (rhsTargets instanceof ExplicitLocationSet explicitSet) {
         Set<PointerTarget> newTargets = new HashSet<>();
@@ -415,6 +414,11 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             if (pt instanceof HeapLocation) {
               updatedTargets.add(InvalidLocation.forInvalidation(InvalidationReason.FREED));
             } else {
+              logger.logf(
+                  Level.WARNING,
+                  "PointerAnalysis: free() called on non-heap object at %s: %s",
+                  pCfaEdge.getFileLocation(),
+                  freedExpr.toASTString());
               updatedTargets.add(pt);
             }
           }
@@ -519,9 +523,29 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       LocationSet lhsLocations,
       LocationSet rhsTargets,
       CCfaEdge pCfaEdge) {
+
+    if (lhsLocations.isBot()) {
+      return PointerAnalysisState.BOTTOM_STATE;
+    }
+
     if (lhsLocations instanceof ExplicitLocationSet explicitLhsLocations) {
       if (explicitLhsLocations.getSize() == 1) {
+        if (explicitLhsLocations.isNull()) {
+          logger.logf(
+              Level.WARNING,
+              "PointerAnalysis: Assignment to null at %s",
+              pCfaEdge.getFileLocation());
+          return PointerAnalysisState.BOTTOM_STATE;
+        }
         PointerTarget lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();
+        if (lhsLocation instanceof InvalidLocation) {
+          logger.logf(
+              Level.WARNING,
+              "PointerAnalysis: Assignment to invalid location %s at %s",
+              lhsLocation,
+              pCfaEdge.getFileLocation());
+          return PointerAnalysisState.BOTTOM_STATE;
+        }
         return new PointerAnalysisState(
             pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
       } else {
