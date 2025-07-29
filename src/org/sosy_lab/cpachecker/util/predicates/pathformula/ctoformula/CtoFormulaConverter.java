@@ -111,7 +111,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
 
 /** Class containing all the code that converts C code into a formula. */
 public class CtoFormulaConverter {
@@ -189,8 +188,6 @@ public class CtoFormulaConverter {
   // VARIABLE_UNINITIALIZED!)
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  private final FunctionDeclaration<?> stringUfDecl;
-
   protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
   public CtoFormulaConverter(
@@ -216,9 +213,6 @@ public class CtoFormulaConverter {
     shutdownNotifier = pShutdownNotifier;
 
     direction = pDirection;
-
-    stringUfDecl =
-        ffmgr.declareUF("__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
   @FormatMethod
@@ -576,7 +570,11 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.callUF(stringUfDecl, fmgr.getIntegerFormulaManager().makeNumber(n));
+      result =
+          ffmgr.declareAndCallUF(
+              "__string__",
+              typeHandler.getPointerType(),
+              fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
 
       // In principle, we could add constraints that the addresses of all these string literals
