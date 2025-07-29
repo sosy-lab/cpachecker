@@ -446,7 +446,7 @@ public class ConstraintsSolver {
   }
 
   private void buildProverStackFor(
-      Collection<BooleanFormula> constraintsToCheck,
+      List<BooleanFormula> constraintsToCheck,
       AtomicInteger totalKept,
       AtomicInteger totalRemoved) {
     // Descending iterator through current stack:
@@ -499,7 +499,7 @@ public class ConstraintsSolver {
 
   private void removeMultipleFormulasFromTop(
       Deque<BooleanFormula> formulasToRemove,
-      Collection<BooleanFormula> constraintsToCheck,
+      List<BooleanFormula> constraintsToCheck,
       AtomicInteger totalKept,
       AtomicInteger totalRemoved) {
     assert !formulasToRemove.isEmpty();
