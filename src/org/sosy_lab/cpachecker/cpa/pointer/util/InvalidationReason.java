@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.cpa.pointer.util;
 public enum InvalidationReason {
   UNKNOWN,
   FREED,
-  LOCAL_SCOPE_EXPIRED;
+  LOCAL_SCOPE_EXPIRED,
+  POINTER_ARITHMETIC;
 
   @Override
   public String toString() {

@@ -8,27 +8,46 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.util;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
 
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Ordering;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class HeapLocation implements PointerTarget {
   private final String functionName;
   private final String identifier;
+  private final @Nullable Long offset;
 
   private HeapLocation(String pFunctionName, String pIdentifier) {
     functionName = pFunctionName;
     identifier = pIdentifier;
+    offset = 0L;
   }
 
-  public static HeapLocation forAllocation(String pFunctionName, int pIndex) {
-    String finalIdentifier = (pIndex == -1) ? "heap_obj" : "heap_obj" + pIndex;
-    return new HeapLocation(pFunctionName, finalIdentifier);
+  private HeapLocation(String pFunctionName, String pIdentifier, Long pOffset) {
+    functionName = pFunctionName;
+    identifier = pIdentifier;
+    offset = pOffset;
   }
 
-  public static HeapLocation forLineBasedAllocation(String pFunctionName, int lineNumber) {
-    return new HeapLocation(pFunctionName, "heap_obj" + lineNumber);
+  public static HeapLocation forAllocation(
+      String pFunctionName, int pIndex, @Nullable Long pOffset) {
+    if (pIndex == -1) {
+      String finalIdentifier = "heap_obj";
+      return new HeapLocation(pFunctionName, finalIdentifier, pOffset);
+    } else {
+      String finalIdentifier = "heap_obj" + pIndex;
+      return new HeapLocation(pFunctionName, finalIdentifier, pOffset);
+    }
+  }
+
+  public static HeapLocation forLineBasedAllocation(
+      String pFunctionName, int lineNumber, @Nullable Long pOffset) {
+    return new HeapLocation(pFunctionName, "heap_obj" + lineNumber, pOffset);
   }
 
   @Override
@@ -40,6 +59,7 @@ public class HeapLocation implements PointerTarget {
     return ComparisonChain.start()
         .compare(this.identifier, other.identifier)
         .compare(this.functionName, other.functionName)
+        .compare(offset, other.offset, Ordering.natural().nullsFirst())
         .result();
   }
 
@@ -48,16 +68,35 @@ public class HeapLocation implements PointerTarget {
     return this == pOther
         || (pOther instanceof HeapLocation other
             && identifier.equals(other.identifier)
-            && functionName.equals(other.functionName));
+            && functionName.equals(other.functionName)
+            && Objects.equals(offset, other.offset));
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(identifier, functionName);
+    return Objects.hash(identifier, functionName, offset);
   }
 
   @Override
   public String toString() {
-    return functionName + "::" + identifier;
+    String heapName = functionName + "::" + identifier;
+    if (offset == null) {
+      return heapName;
+    }
+    return heapName + "/" + offset;
+  }
+
+  public boolean isReference() {
+    return offset != null;
+  }
+
+  public long getOffset() {
+    checkState(offset != null, "heap location '%s' has no offset", this);
+    return offset;
+  }
+
+  public HeapLocation withAddedOffset(long pAddToOffset) {
+    long oldOffset = offset == null ? 0 : offset;
+    return new HeapLocation(functionName, identifier, oldOffset + pAddToOffset);
   }
 }
