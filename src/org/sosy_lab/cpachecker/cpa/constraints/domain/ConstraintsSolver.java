@@ -566,8 +566,7 @@ public class ConstraintsSolver {
     }
 
     // Push all remaining constraints (might include common ones again!)
-    Set<BooleanFormula> currentConstraintsOnProverSet =
-        new HashSet<>(currentConstraintsOnProver);
+    Set<BooleanFormula> currentConstraintsOnProverSet = new HashSet<>(currentConstraintsOnProver);
     checkState(currentConstraintsOnProverSet.size() == currentConstraintsOnProver.size());
     for (BooleanFormula constraintToCheck : constraintsToCheckList) {
       if (!currentConstraintsOnProverSet.contains(constraintToCheck)) {
