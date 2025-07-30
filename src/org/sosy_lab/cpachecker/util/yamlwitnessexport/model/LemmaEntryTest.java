@@ -28,8 +28,8 @@ public class LemmaEntryTest {
   public void testParsingLemmaEntry() throws IOException {
     List<LemmaSetEntry> loadedEntries = testLemmaFile("witness.yml");
     for (AbstractEntry e : loadedEntries) {
-      if (e instanceof LemmaSetEntry) {
-        List<LemmaEntry> lemmaEntries = ((LemmaSetEntry) e).getContent();
+      if (e instanceof LemmaSetEntry pEntry) {
+        List<LemmaEntry> lemmaEntries = pEntry.getContent();
         assertThat(lemmaEntries).hasSize(2);
         assertThat(lemmaEntries.get(0).value()).isEqualTo("ACSL(_L_MAX(A,0)) == A[0]");
         assertThat(lemmaEntries.get(0).format().toString()).isEqualTo("c_expression");
