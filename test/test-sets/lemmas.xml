@@ -16,13 +16,37 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition>
     <option name="--predicateAnalysis"/>
     <option name="--option">cpa.predicate.abstraction.initialPredicates.applyFunctionWide=true</option>
+    <option name= "--option">witness.validation.correctness.config=./config/predicateAnalysis.properties</option>
   </rundefinition>
   
-  <propertyfile>../config/properties/unreach-call.prp</propertyfile>
 
-  <tasks>
-    <include>../programs/lemma/max-array/max-array.yml</include>
-    <option name="--option">cpa.predicate.abstraction.initialPredicates=../programs/lemma/max-array/max-array-witness.yml</option> 
+  <tasks name="max-array-expected-true">
+    <include>../programs/lemma/max-array/max-array-expected-true.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <!-- TODO this option should be unnecessary -->
+    <option name="--option">cpa.predicate.abstraction.initialPredicates=test/programs/lemma/max-array/max-array-witness.yml</option> 
+  </tasks>
+
+  <tasks name="max-array-expected-unknown">
+    <include>../programs/lemma/max-array/max-array-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="min-array-expected-true">
+    <include>../programs/lemma/min-array/min-array-expected-true.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <!-- TODO this option should be unnecessary -->
+    <option name="--option">cpa.predicate.abstraction.initialPredicates=test/programs/lemma/min-array/min-array-witness.yml</option> 
+  </tasks>
+
+  <tasks name="min-array-expected-unknown">
+    <include>../programs/lemma/min-array/min-array-expected-timeout.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="array1_pattern_buggy-expected-unknown">
+    <include>../programs/lemma/array-pattern-buggy/array1_pattern_buggy-expected-timeout.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
 
 </benchmark>
