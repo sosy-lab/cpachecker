@@ -13,13 +13,13 @@ additional_information:
     - property_file: ../../../config/properties/unreach-call.prp
       expected verdict: true
 
-input_files:
+input_files: 
   - 'max-array.c'
   - 'max-array-witness.yml'
 
 properties:
-    - property_file: ../../../config/properties/unreach-call.prp
-      expected verdict: true
+  - property_file: ../../../config/properties/unreach-call.prp
+    expected verdict: true
 
 options:
   language: C
