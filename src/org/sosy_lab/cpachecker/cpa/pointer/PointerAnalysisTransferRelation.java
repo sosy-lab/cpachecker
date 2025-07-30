@@ -121,6 +121,13 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     @Option(secure = true, description = "Strategy for handling structs in pointer analysis")
     private StructHandlingStrategy structHandlingStrategy = StructHandlingStrategy.STRUCT_INSTANCE;
 
+    @Option(
+        secure = true,
+        description =
+            "Enable or disable offset-sensitive pointer analysis. "
+                + "When false, offsets in pointer arithmetic are ignored.")
+    private boolean isOffsetSensitive = true;
+
     public PointerTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -770,21 +777,18 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             }
 
             long offset = idxExpr.getValue().longValue();
-            Set<PointerTarget> targets = new HashSet<>();
-            for (PointerTarget baseLoc : ((ExplicitLocationSet) base).getExplicitLocations()) {
-              if (baseLoc instanceof MemoryLocationPointer memPtr) {
-                MemoryLocation withOffset = memPtr.getMemoryLocation().withAddedOffset(offset);
-                targets.add(new MemoryLocationPointer(withOffset));
+            if (base instanceof ExplicitLocationSet explicitBase) {
+              LocationSet locationSet =
+                  PointerArithmeticUtils.applyPointerArithmetic(
+                      explicitBase, offset, getOptions().isOffsetSensitive);
+
+              if (shouldDereference) {
+                return dereference(locationSet);
+              } else {
+                return locationSet;
               }
             }
-
-            LocationSet locationSet = ExplicitLocationSet.from(targets);
-
-            if (shouldDereference) {
-              return dereference(locationSet);
-            } else {
-              return locationSet;
-            }
+            return LocationSetTop.INSTANCE;
           }
 
           @Override
@@ -829,7 +833,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     operator == CBinaryExpression.BinaryOperator.MINUS
                         ? -intLit.getValue().longValue()
                         : intLit.getValue().longValue();
-                return PointerArithmeticUtils.applyPointerArithmetic(base, offset);
+                return PointerArithmeticUtils.applyPointerArithmetic(
+                    base, offset, getOptions().isOffsetSensitive);
               }
 
               return LocationSetTop.INSTANCE;
@@ -948,61 +953,5 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     }
     return pExpression instanceof CIntegerLiteralExpression intLiteral
         && intLiteral.getValue().longValue() == 0;
-  }
-
-  public int determineDerefCounter(CRightHandSide pExpression, boolean pIsLhs) {
-    if (pExpression instanceof CExpression cExpression) {
-      if (isNullPointer(cExpression)) {
-        return 0;
-      }
-      return determineDerefCounter(cExpression, pIsLhs);
-    }
-    return 0;
-  }
-
-  public static int determineDerefCounter(CExpression pExpression, boolean pIsLhs) {
-    int derefCounter = 0;
-
-    if (!pIsLhs) {
-
-      if (pExpression instanceof CArraySubscriptExpression arrayExpr) {
-        CType arrayType = arrayExpr.getArrayExpression().getExpressionType().getCanonicalType();
-
-        if (arrayType instanceof CArrayType arrayTypeC) {
-          CType elementType = arrayTypeC.getType().getCanonicalType();
-
-          if (elementType instanceof CPointerType) {
-            return computeExpressionDerefCounter(arrayExpr, derefCounter) + 1;
-          }
-        }
-
-        return computeExpressionDerefCounter(arrayExpr, derefCounter);
-      }
-
-      if (pExpression instanceof CIdExpression idExpr
-          && idExpr.getExpressionType() instanceof CPointerType) {
-        return computeExpressionDerefCounter(idExpr, derefCounter) + 1;
-      }
-    }
-    return computeExpressionDerefCounter(pExpression, derefCounter);
-  }
-
-  public static int computeExpressionDerefCounter(CExpression pExpression, int pCounter) {
-    if (pExpression == null) {
-      return pCounter;
-    }
-
-    if (pExpression instanceof CPointerExpression pointerExpr) {
-      return computeExpressionDerefCounter(pointerExpr.getOperand(), pCounter + 1);
-    } else if (pExpression instanceof CUnaryExpression unaryExpr
-        && unaryExpr.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
-      return computeExpressionDerefCounter(unaryExpr.getOperand(), pCounter - 1);
-    } else if (pExpression instanceof CArraySubscriptExpression arrayExpr) {
-      return computeExpressionDerefCounter(arrayExpr.getArrayExpression(), pCounter);
-    } else if (pExpression instanceof CCastExpression castExpr) {
-      return computeExpressionDerefCounter(castExpr.getOperand(), pCounter);
-    } else {
-      return pCounter;
-    }
   }
 }
