@@ -59,7 +59,7 @@ public class ACSLVisitor extends DefaultCExpressionVisitor<CExpression, NoExcept
     CExpression op1 = pE.getOperand1();
     CExpression op2 = pE.getOperand2();
 
-    if (!(op1 instanceof CIdExpression)) {
+    if (!(op1 instanceof CIdExpression pCIdExpression)) {
       expression =
           new CBinaryExpression(
               expression.getFileLocation(),
@@ -68,7 +68,7 @@ public class ACSLVisitor extends DefaultCExpressionVisitor<CExpression, NoExcept
               op1.accept(this),
               expression.getOperand2(),
               expression.getOperator());
-    } else if (p.matcher(((CIdExpression) op1).getName()).find()) {
+    } else if (p.matcher(pCIdExpression.getName()).find()) {
       expression =
           new CBinaryExpression(
               expression.getFileLocation(),
@@ -79,7 +79,7 @@ public class ACSLVisitor extends DefaultCExpressionVisitor<CExpression, NoExcept
               expression.getOperator());
     }
 
-    if (!(op2 instanceof CIdExpression)) {
+    if (!(op2 instanceof CIdExpression pCIdExpression)) {
       expression =
           new CBinaryExpression(
               expression.getFileLocation(),
@@ -88,7 +88,7 @@ public class ACSLVisitor extends DefaultCExpressionVisitor<CExpression, NoExcept
               expression.getOperand1(),
               op2.accept(this),
               expression.getOperator());
-    } else if (p.matcher(((CIdExpression) op2).getName()).find()) {
+    } else if (p.matcher(pCIdExpression.getName()).find()) {
       expression =
           new CBinaryExpression(
               expression.getFileLocation(),

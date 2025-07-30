@@ -39,18 +39,16 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
               assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);
       return of(assumeExp);
     }
-    if (pStatement instanceof CFunctionCallStatement) {
-      CFunctionCallExpression exp =
-          ((CFunctionCallStatement) pStatement).getFunctionCallExpression();
+    if (pStatement instanceof CFunctionCallStatement pCFunctionCallStatement) {
+      CFunctionCallExpression exp = pCFunctionCallStatement.getFunctionCallExpression();
       return of(new ACSLFunctionCall(exp));
     }
-    if (pStatement instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallExpression exp =
-          ((CFunctionCallAssignmentStatement) pStatement).getFunctionCallExpression();
+    if (pStatement instanceof CFunctionCallAssignmentStatement pCFunctionCallAssignmentStatement) {
+      CFunctionCallExpression exp = pCFunctionCallAssignmentStatement.getFunctionCallExpression();
       ACSLFunctionCall functionCall = new ACSLFunctionCall(exp);
       CBinaryExpression binaryExpression =
           pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
-              ((CFunctionCallAssignmentStatement) pStatement).getLeftHandSide(),
+              pCFunctionCallAssignmentStatement.getLeftHandSide(),
               functionCall,
               BinaryOperator.EQUALS);
       return of(binaryExpression);
