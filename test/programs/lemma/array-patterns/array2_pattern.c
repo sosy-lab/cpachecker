@@ -22,14 +22,14 @@
 /* Program Description :-
  * Two arrays are declared of same size. All elements are initialized to 0.
  * In while(1) loop, any index is selected non-deterministically.
- * Array1[index] is initialized with index.
- * At mirror image from END of Array2, the element is initialized with -index.
+ * Array1[index] is incremented each time with index.
+ * At mirror image from END of Array2, the element is also incremented with -index.
  * Sum of both array should be always zero. 
  * */
 
 extern void abort(void);
 extern void __assert_fail(const char *, const char *, unsigned int, const char *) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__noreturn__));
-void reach_error() { __assert_fail("0", "array1_pattern.c", 25, "reach_error"); }
+void reach_error() { __assert_fail("0", "array2_pattern.c", 25, "reach_error"); }
 extern void abort(void);
 void assume_abort_if_not(int cond) {
   if(!cond) {abort();}
@@ -42,15 +42,15 @@ extern short __VERIFIER_nondet_short() ;
 
 int main()
 {
-	// ARR_SIZE = __VERIFIER_nondet_short() ;
-	int ARR_SIZE = 10000;
-	assume_abort_if_not(ARR_SIZE > 0) ;
+	// ARR_SIZE = (signed long long)__VERIFIER_nondet_short() ;
+	// assume_abort_if_not(ARR_SIZE > 0) ;
+signed long long ARR_SIZE = 10000 ;
 
 	int array1[10000] ;
 	int array2[10000] ;
 	int count = 0, num = -1 ;
-	int temp ;
 	short index ;
+	int temp ;
 	signed long long sum = 0 ;
 
 	for(count=0;count<ARR_SIZE;count++)
@@ -65,8 +65,8 @@ int main()
 		index = __VERIFIER_nondet_short() ;
 		assume_abort_if_not(index>=0 && index < ARR_SIZE) ;
 		
-		array1[index] = num*(num*index) ;
-		array2[ARR_SIZE-1-index] = num * index ;
+		array1[index] = array1[index] + (num*num*index) ;
+		array2[ARR_SIZE-1-index] = array2[ARR_SIZE-1-index] + (num * index) ;
 
 		temp = __VERIFIER_nondet_int() ;
 		if(temp == 0) break ;
@@ -74,9 +74,11 @@ int main()
 
 	for(count=0;count<ARR_SIZE;count++)
 	{
-		sum = sum+ array1[count] + array2[count] ;
+		sum = sum + array1[count] + array2[count] ;
 	}
 
 	__VERIFIER_assert(sum == 0) ;
 	return 0 ;
-}		
+}
+
+		

@@ -455,9 +455,8 @@ public class CProgramScope implements Scope {
       this.simpleDeclarations =
           newSimpleDeclarations.put(pDeclaration.getName(), pDeclaration).build();
 
-    } else if (pDeclaration instanceof CFunctionDeclaration) {
-      CSimpleDeclaration artRetVal =
-          getArtificialFunctionReturnVariable((CFunctionDeclaration) pDeclaration);
+    } else if (pDeclaration instanceof CFunctionDeclaration pCFunctionDeclaration) {
+      CSimpleDeclaration artRetVal = getArtificialFunctionReturnVariable(pCFunctionDeclaration);
       if (variableNames.contains(artRetVal.getName())
           || simpleDeclarations.containsKey(artRetVal.getName())
           || functionDeclarations.containsKey(pDeclaration.getName())) {
@@ -471,7 +470,7 @@ public class CProgramScope implements Scope {
       this.functionDeclarations =
           newFunctionDeclarations
               .putAll(functionDeclarations)
-              .put(pDeclaration.getName(), (CFunctionDeclaration) pDeclaration)
+              .put(pDeclaration.getName(), pCFunctionDeclaration)
               .build();
 
     } else {
