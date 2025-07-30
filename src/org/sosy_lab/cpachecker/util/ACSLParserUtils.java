@@ -140,11 +140,11 @@ public class ACSLParserUtils {
     } catch (InvalidAutomatonException e) {
       throw new RuntimeException("Not a valid statement: " + lString);
     }
-    if (!(statement instanceof CExpressionStatement)) {
+    if (!(statement instanceof CExpressionStatement pCExpressionStatement)) {
       throw new InvalidAutomatonException(
           "Cannot interpret String as CExpressionStatement" + lString);
     }
-    CExpression exp = ((CExpressionStatement) statement).getExpression();
+    CExpression exp = pCExpressionStatement.getExpression();
     exp = exp.accept(new ACSLVisitor(replacements));
     return exp;
   }
