@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetTop;
 import org.sosy_lab.cpachecker.cpa.pointer.util.MemoryLocationPointer;
+import org.sosy_lab.cpachecker.cpa.pointer.util.PointerArithmeticUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.PointerTarget;
 import org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.StructLocation;
@@ -828,7 +829,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     operator == CBinaryExpression.BinaryOperator.MINUS
                         ? -intLit.getValue().longValue()
                         : intLit.getValue().longValue();
-                return pointerArithmetic(base, offset);
+                return PointerArithmeticUtils.applyPointerArithmetic(base, offset);
               }
 
               return LocationSetTop.INSTANCE;
@@ -1002,72 +1003,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       return computeExpressionDerefCounter(castExpr.getOperand(), pCounter);
     } else {
       return pCounter;
-    }
-  }
-
-  private static LocationSet pointerArithmetic(LocationSet baseLocations, long offset) {
-    if (baseLocations.isTop() || baseLocations.isBot()) {
-      return baseLocations;
-    }
-
-    if (baseLocations.isNull()) {
-      return ExplicitLocationSet.from(
-          InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
-    }
-
-    if (baseLocations instanceof ExplicitLocationSet explicitSet) {
-      Set<PointerTarget> targets = new HashSet<>();
-      for (PointerTarget pt : explicitSet.getExplicitLocations()) {
-        if (pt instanceof InvalidLocation || pt instanceof StructLocation) {
-          targets.add(InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
-        }
-        if (pt instanceof MemoryLocationPointer memPtrTarget) {
-          if (offset == 0) {
-            targets.add(memPtrTarget);
-            continue;
-          }
-          if (memPtrTarget.getMemoryLocation().isReference()) {
-            long currentOffset = memPtrTarget.getMemoryLocation().getOffset();
-            long newOffset = currentOffset + offset;
-
-            if (newOffset < 0) {
-              targets.add(InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
-              continue;
-            }
-
-            // TODO: Check if newOffset >= arraySize when array size is known
-            MemoryLocation targetWithOffset =
-                memPtrTarget.getMemoryLocation().withAddedOffset(offset);
-            targets.add(new MemoryLocationPointer(targetWithOffset));
-          } else {
-            targets.add(InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
-          }
-        }
-        if (pt instanceof HeapLocation heapTarget) {
-          if (offset == 0) {
-            targets.add(heapTarget);
-            continue;
-          }
-          if (heapTarget.isReference()) {
-            long currentOffset = heapTarget.getOffset();
-            long newOffset = currentOffset + offset;
-
-            if (newOffset < 0) {
-              targets.add(InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
-              continue;
-            }
-
-            // TODO: Check if newOffset >= arraySize when array size is known
-            HeapLocation targetWithOffset = heapTarget.withAddedOffset(offset);
-            targets.add(targetWithOffset);
-          } else {
-            targets.add(heapTarget);
-          }
-        }
-      }
-      return ExplicitLocationSet.from(targets);
-    } else {
-      return LocationSetTop.INSTANCE;
     }
   }
 }
