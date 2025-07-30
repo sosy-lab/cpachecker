@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.IncrementalSolverUsage.NONE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -71,6 +72,7 @@ public class ConstraintsSolver {
       Satisfiability satisfiability,
       Optional<ImmutableList<ValueAssignment>> model,
       Optional<ImmutableCollection<ValueAssignment>> definiteAssignments) {
+
     public enum Satisfiability {
       SAT,
       UNSAT
@@ -83,6 +85,12 @@ public class ConstraintsSolver {
     public boolean isUNSAT() {
       return satisfiability.equals(Satisfiability.UNSAT);
     }
+  }
+
+  public enum IncrementalSolverUsage {
+    NONE,
+    FROM_TOP,
+    COMMON_PREFIX
   }
 
   @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
@@ -116,11 +124,15 @@ public class ConstraintsSolver {
   @Option(
       secure = true,
       description =
-          "Whether to create a new, fresh solver instance for each SAT check with an SMT solver or,"
-              + " if true, try to reuse the solver and its previous results as far as possible (may"
-              + " be helpful/faster when formulas are built on top of each other often).",
+          "Whether to create a new, fresh solver instance for each SAT check with an SMT solver (=="
+              + " NONE), or try to reuse the solver and its previous results as far as possible"
+              + " (may be helpful/faster when formulas are built on top of each other often). This"
+              + " can be chosen from COMMON_PREFIX; which builds the solver from bottom to top with"
+              + " the longest existing prefix of common constraints, or FROM_TOP; which removes"
+              + " constraints from the top of the incremental prover stack until a common prefix is"
+              + " reached.",
       name = "incrementalSolverUsage")
-  private boolean incrementalSolverUsage = true;
+  private IncrementalSolverUsage incrementalSolverUsage = IncrementalSolverUsage.COMMON_PREFIX;
 
   private final ConstraintsCache cache;
   private final Solver solver;
@@ -293,6 +305,7 @@ public class ConstraintsSolver {
 
       ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraintsToCheck);
 
+      // This list is deduplicated due to the input-set
       List<BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
       CacheResult res = cache.getCachedResult(constraintsAsFormulas);
@@ -308,7 +321,7 @@ public class ConstraintsSolver {
       } else {
 
         stats.timeForProverPreparation.start();
-        if (useFreshProver || !incrementalSolverUsage) {
+        if (useFreshProver || incrementalSolverUsage == NONE) {
           // Non-Incremental
           stats.distinctFreshProversUsed.inc();
           try (ProverEnvironment prover =
@@ -416,7 +429,11 @@ public class ConstraintsSolver {
     AtomicInteger totalKeptRef = new AtomicInteger();
     AtomicInteger totalRemovedRef = new AtomicInteger();
 
-    buildProverStackFor(constraintsToCheck, totalKeptRef, totalRemovedRef);
+    if (incrementalSolverUsage == IncrementalSolverUsage.FROM_TOP) {
+      buildProverStackFromTop(constraintsToCheck, totalKeptRef, totalRemovedRef);
+    } else if (incrementalSolverUsage == IncrementalSolverUsage.COMMON_PREFIX) {
+      buildProverStackBasedOnCommonConstraints(constraintsToCheck, totalKeptRef, totalRemovedRef);
+    }
 
     int totalKept = totalKeptRef.get();
     int totalRemoved = totalRemovedRef.get();
@@ -447,7 +464,8 @@ public class ConstraintsSolver {
     checkState(constraintsToCheck.size() == currentConstraintsOnProver.size());
   }
 
-  private void buildProverStackFor(
+  // Builds the prover stack based on removing items from top, might be inefficient
+  private void buildProverStackFromTop(
       List<BooleanFormula> constraintsToCheck,
       AtomicInteger totalKept,
       AtomicInteger totalRemoved) {
@@ -499,6 +517,68 @@ public class ConstraintsSolver {
     checkState(formulasToRemove.isEmpty());
   }
 
+  // Builds the prover stack incrementally based on the set of common constraints
+  private void buildProverStackBasedOnCommonConstraints(
+      List<BooleanFormula> constraintsToCheckList,
+      AtomicInteger totalKept,
+      AtomicInteger totalRemoved)
+      throws InterruptedException {
+
+    Set<BooleanFormula> commonConstraints = new HashSet<>(currentConstraintsOnProver);
+    commonConstraints.retainAll(constraintsToCheckList);
+
+    // This iterator goes from the bottom of the stack to the top.
+    // We check for the first constraint in the stack that's not in the wanted constraints and pop
+    // everything >= in the stack and push the wanted constraints.
+    Iterator<BooleanFormula> currentStack = currentConstraintsOnProver.iterator();
+    int constraintsToCheckListSize = constraintsToCheckList.size();
+    int index = 0;
+    while (currentStack.hasNext()) {
+      BooleanFormula constraintOnStack = currentStack.next();
+
+      if (index >= constraintsToCheckListSize) {
+        // pop rest from currentStack, including current index
+        int numOfPops = currentConstraintsOnProver.size() - index;
+        for (int i = 0; i < numOfPops; i++) {
+          currentConstraintsOnProver.removeLast();
+          persistentProver.pop();
+          totalRemoved.getAndIncrement();
+        }
+        break;
+      }
+
+      // Keep constraints as long as they are in the new stack
+      if (commonConstraints.contains(constraintOnStack)) {
+        // Keep constraint
+        totalKept.getAndIncrement();
+        index++;
+
+      } else {
+        // Pop all remaining constraints (these might include common ones!)
+        int numOfPops = currentConstraintsOnProver.size() - index;
+        for (int i = 0; i < numOfPops; i++) {
+          currentConstraintsOnProver.removeLast();
+          persistentProver.pop();
+          totalRemoved.getAndIncrement();
+        }
+        break;
+      }
+    }
+
+    // Push all remaining constraints (might include common ones again!)
+    HashSet<BooleanFormula> currentConstraintsOnProverSet =
+        new HashSet<>(currentConstraintsOnProver);
+    checkState(currentConstraintsOnProverSet.size() == currentConstraintsOnProver.size());
+    for (BooleanFormula constraintToCheck : constraintsToCheckList) {
+      if (!currentConstraintsOnProverSet.contains(constraintToCheck)) {
+        currentConstraintsOnProver.add(constraintToCheck);
+        persistentProver.push(constraintToCheck);
+      }
+    }
+
+    checkState(currentConstraintsOnProver.size() == constraintsToCheckList.size());
+  }
+
   private void removeMultipleFormulasFromTop(
       Deque<BooleanFormula> formulasToRemove,
       List<BooleanFormula> constraintsToCheck,
@@ -508,7 +588,7 @@ public class ConstraintsSolver {
     // Remove from the top.
     stats.persistentProverUsedIncrementallyFormulasPopdAndRepushed.inc();
     onlyRemoveFromTopOfStack(formulasToRemove);
-    buildProverStackFor(constraintsToCheck, totalKept, totalRemoved);
+    buildProverStackFromTop(constraintsToCheck, totalKept, totalRemoved);
   }
 
   // TODO: replace this with the soon to be public stack from JavaSMT and make it an assertion!!!!
@@ -690,7 +770,7 @@ public class ConstraintsSolver {
       Collection<Constraint> pConstraints, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
 
-    ImmutableList.Builder<BooleanFormula> formulasBuilder = ImmutableList.builder();
+    ImmutableSet.Builder<BooleanFormula> formulasBuilder = ImmutableSet.builder();
     for (Constraint c : pConstraints) {
       if (!constraintFormulas.containsKey(c)) {
         constraintFormulas.put(c, createConstraintFormulas(c, pFunctionName));
@@ -698,7 +778,7 @@ public class ConstraintsSolver {
       formulasBuilder.add(constraintFormulas.get(c));
     }
 
-    return formulasBuilder.build();
+    return formulasBuilder.build().asList();
   }
 
   private BooleanFormula createConstraintFormulas(Constraint pConstraint, String pFunctionName)
