@@ -1,0 +1,14 @@
+format_version: '2.0'
+
+input_files: 'array3_pattern.c'
+
+properties:
+  - property_file: ../properties/unreach-call.prp
+    expected_verdict: true
+  - property_file: ../properties/coverage-branches.prp
+  - property_file: ../properties/coverage-conditions.prp
+  - property_file: ../properties/coverage-statements.prp
+
+options:
+  language: C
+  data_model: ILP32
