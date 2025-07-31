@@ -473,8 +473,7 @@ public class SMGExpressionEvaluator {
             SMGObject target = addressValue.getObject();
             SMGExplicitValue addressOffset = addressValue.getOffset();
 
-            SMGExplicitValue newAddressOffset;
-            newAddressOffset =
+            SMGExplicitValue newAddressOffset =
                 switch (binaryOperator) {
                   case PLUS -> addressOffset.add(pointerOffsetValue);
                   case MINUS -> {

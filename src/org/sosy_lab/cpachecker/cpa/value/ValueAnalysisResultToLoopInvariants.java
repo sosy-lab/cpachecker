@@ -318,7 +318,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
     return switch (combinationStrategy) {
       case ALL -> Predicates.alwaysTrue();
-      case FUNCTION_SCOPE -> vars -> globalOrSameFunction(vars);
+      case FUNCTION_SCOPE -> this::globalOrSameFunction;
       case PROGRAM_RELATION -> {
         ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation =
             detectVariablesAllowedForCombination(pCfa, Predicates.alwaysTrue());

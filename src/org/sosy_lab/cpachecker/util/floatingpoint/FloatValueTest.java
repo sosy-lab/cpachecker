@@ -903,7 +903,7 @@ public class FloatValueTest {
   // Print statistics about the required bit width in ln, exp and pow
   @SuppressWarnings("unused")
   private static String printStatistics(Multiset<Integer> stats) {
-    int total = stats.entrySet().stream().mapToInt(e -> e.getCount()).sum();
+    int total = stats.entrySet().stream().mapToInt(Multiset.Entry::getCount).sum();
 
     ImmutableMap.Builder<Integer, Float> accum = ImmutableMap.builder();
     int sum = 0;
