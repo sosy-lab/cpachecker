@@ -196,7 +196,7 @@ class MpfrFloat extends CFloat {
   @Override
   public CFloat round() {
     if (isNan()) {
-      return this.abs();
+      return abs();
     }
     BigFloat posValue = value.abs();
     BigFloat above = posValue.rint(format.withRoundingMode(RoundingMode.CEILING));
