@@ -290,7 +290,7 @@ public class FloatValueTest {
     if (value.isPositiveZero()) {
       return "0.0";
     }
-    return value.toString().replaceAll(",", ".");
+    return value.toString().replace(',', '.');
   }
 
   /** Convert floating point value to its decimal representation. */
