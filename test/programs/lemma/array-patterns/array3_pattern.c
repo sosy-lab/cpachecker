@@ -44,7 +44,6 @@ void __VERIFIER_assert(int cond) { if(!(cond)) { ERROR: {reach_error();abort();}
 extern int __VERIFIER_nondet_int() ;
 extern short __VERIFIER_nondet_short() ;
 
-// signed long long ARR_SIZE ;
 
 signed long long square(signed long long x)
 {
@@ -53,8 +52,6 @@ signed long long square(signed long long x)
 
 int main()
 {
-	// ARR_SIZE = (signed long long)__VERIFIER_nondet_short() ;
-	// assume_abort_if_not(ARR_SIZE > 0) ;
 signed long long ARR_SIZE = 10000;
 
 	int array1[10000] ;
