@@ -10,12 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
@@ -35,10 +34,6 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   SerializeOperator getSerializeOperator();
 
-  default SerializePrecisionOperator getSerializePrecisionOperator() {
-    return new NoPrecisionSerializeOperator();
-  }
-
   /**
    * Operator that knows how to deserialize a message to abstract states of type {@link
    * DistributedConfigurableProgramAnalysis#getAbstractStateClass()}.
@@ -47,9 +42,9 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   DeserializeOperator getDeserializeOperator();
 
-  default DeserializePrecisionOperator getDeserializePrecisionOperator() {
-    return new NoPrecisionDeserializeOperator();
-  }
+  SerializePrecisionOperator getSerializePrecisionOperator();
+
+  DeserializePrecisionOperator getDeserializePrecisionOperator();
 
   /**
    * Operator that decides whether to proceed with an analysis based on the given message.
@@ -57,6 +52,12 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return Proceed operator for a distributed CPA.
    */
   ProceedOperator getProceedOperator();
+
+  ViolationConditionOperator getViolationConditionOperator();
+
+  CoverageOperator getCoverageOperator();
+
+  CombineOperator getCombineOperator();
 
   /**
    * The abstract state this distributed analysis works n.
@@ -73,10 +74,6 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   ConfigurableProgramAnalysis getCPA();
 
   boolean isTop(AbstractState pAbstractState);
-
-  ViolationConditionOperator getViolationConditionOperator();
-
-  CoverageOperator getCoverageOperator();
 
   /**
    * Check whether this distributed CPA can work with {@code pClass}.

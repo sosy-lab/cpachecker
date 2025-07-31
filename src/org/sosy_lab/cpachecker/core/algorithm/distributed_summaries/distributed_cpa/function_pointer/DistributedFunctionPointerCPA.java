@@ -10,10 +10,16 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.BackwardTransferViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -26,19 +32,25 @@ public class DistributedFunctionPointerCPA
 
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
+  private final SerializePrecisionOperator serializePrecisionOperator;
+  private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final ViolationConditionOperator verificationConditionOperator;
+  private final CoverageOperator coverageOperator;
+  private final CombineOperator combineOperator;
 
   private final FunctionPointerCPA functionPointerCPA;
-  private final ViolationConditionOperator verificationConditionOperator;
-  private final FunctionPointerStateCoverageOperator coverageOperator;
 
   public DistributedFunctionPointerCPA(FunctionPointerCPA pParentCPA, BlockNode pNode) {
     functionPointerCPA = pParentCPA;
     serialize = new SerializeFunctionPointerStateOperator();
     deserialize = new DeserializeFunctionPointerStateOperator(pParentCPA, pNode);
+    serializePrecisionOperator = new NoPrecisionSerializeOperator();
+    deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
     verificationConditionOperator =
         new BackwardTransferViolationConditionOperator(
             pParentCPA.getTransferRelation(), pParentCPA);
     coverageOperator = new FunctionPointerStateCoverageOperator();
+    combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
   }
 
   @Override
@@ -49,6 +61,16 @@ public class DistributedFunctionPointerCPA
   @Override
   public DeserializeOperator getDeserializeOperator() {
     return deserialize;
+  }
+
+  @Override
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return serializePrecisionOperator;
+  }
+
+  @Override
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return deserializePrecisionOperator;
   }
 
   @Override
@@ -79,5 +101,10 @@ public class DistributedFunctionPointerCPA
   @Override
   public CoverageOperator getCoverageOperator() {
     return coverageOperator;
+  }
+
+  @Override
+  public CombineOperator getCombineOperator() {
+    return combineOperator;
   }
 }

@@ -37,16 +37,15 @@ public class DssThreadMonitor extends Thread {
       boolean allWaiting =
           threadsToMonitor.stream()
               .allMatch(
-                  t -> {
-                    Thread.State state = t.getState();
-                    return state == Thread.State.WAITING || state == Thread.State.TIMED_WAITING;
-                  });
+                  t ->
+                      t.getState() == Thread.State.WAITING
+                          || t.getState() == Thread.State.TIMED_WAITING);
 
       if (allWaiting) {
         connection
             .getBroadcaster()
             .broadcastToAll(messageFactory.createDssResultMessage(THREAD_NAME, Result.TRUE));
-        break;
+        return;
       }
 
       try {

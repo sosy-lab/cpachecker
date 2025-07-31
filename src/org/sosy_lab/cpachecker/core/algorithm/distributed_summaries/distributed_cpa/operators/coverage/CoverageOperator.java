@@ -22,4 +22,19 @@ public interface CoverageOperator {
    */
   boolean covers(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException;
+
+  /**
+   * Whether state1 covers state2 if and only if state1 and state2 are equal.
+   *
+   * @return True if the operator is based on equality, false otherwise.
+   */
+  boolean isBasedOnEquality();
+
+  default boolean areStatesEqual(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    if (covers(state1, state2)) {
+      return isBasedOnEquality() || covers(state2, state1);
+    }
+    return false;
+  }
 }

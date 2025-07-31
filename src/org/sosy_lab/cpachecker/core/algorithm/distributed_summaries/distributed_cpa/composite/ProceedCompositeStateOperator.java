@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ProceedCompositeStateOperator implements ProceedOperator {
@@ -48,9 +49,20 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   public DssMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException {
     stats.getProceedTime().start();
+    CompositeState compositeState = (CompositeState) pState;
     DssMessageProcessing processing = DssMessageProcessing.proceed();
-    for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-      processing = processing.merge(value.getProceedOperator().processBackward(pState), true);
+    for (AbstractState wrappedState : compositeState.getWrappedStates()) {
+      boolean existsDcpaForState = false;
+      for (DistributedConfigurableProgramAnalysis value : registered.values()) {
+        if (value.doesOperateOn(wrappedState.getClass())) {
+          existsDcpaForState = true;
+          processing =
+              processing.merge(value.getProceedOperator().processBackward(wrappedState), true);
+        }
+      }
+      if (!existsDcpaForState) {
+        throw new UnregisteredDistributedCpaError("Found no Dcpa for " + wrappedState.getClass());
+      }
     }
     stats.getProceedTime().stop();
     return processing;

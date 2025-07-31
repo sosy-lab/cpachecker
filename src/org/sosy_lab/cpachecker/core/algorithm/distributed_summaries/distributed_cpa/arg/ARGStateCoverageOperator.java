@@ -31,4 +31,9 @@ public class ARGStateCoverageOperator implements CoverageOperator {
         .getCoverageOperator()
         .covers(argState1.getWrappedState(), argState2.getWrappedState());
   }
+
+  @Override
+  public boolean isBasedOnEquality() {
+    return false;
+  }
 }

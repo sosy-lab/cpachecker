@@ -46,4 +46,9 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
       throw new CPAException("Solver encountered an issue when calculating implication.", e);
     }
   }
+
+  @Override
+  public boolean isBasedOnEquality() {
+    return false;
+  }
 }

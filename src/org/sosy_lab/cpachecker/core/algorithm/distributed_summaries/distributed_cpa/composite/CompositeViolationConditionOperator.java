@@ -16,13 +16,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class CompositeViolationConditionOperator implements ViolationConditionOperator {
@@ -48,20 +46,17 @@ public class CompositeViolationConditionOperator implements ViolationConditionOp
     ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : compositeCPA.getWrappedCPAs()) {
       if (!analyses.containsKey(cpa.getClass())) {
-        states.add(
-            cpa.getInitialState(
-                Objects.requireNonNull(AbstractStates.extractLocation(pARGPath.getFirstState())),
-                StateSpacePartition.getDefaultPartition()));
-      } else {
-        Optional<AbstractState> abstractState =
-            Objects.requireNonNull(analyses.get(cpa.getClass()))
-                .getViolationConditionOperator()
-                .computeViolationCondition(pARGPath, pPreviousCondition);
-        if (abstractState.isEmpty()) {
-          return Optional.empty();
-        }
-        states.add(abstractState.orElseThrow());
+        throw new UnregisteredDistributedCpaError(
+            "Unsupported composite analysis " + cpa.getClass());
       }
+      Optional<AbstractState> abstractState =
+          Objects.requireNonNull(analyses.get(cpa.getClass()))
+              .getViolationConditionOperator()
+              .computeViolationCondition(pARGPath, pPreviousCondition);
+      if (abstractState.isEmpty()) {
+        return Optional.empty();
+      }
+      states.add(abstractState.orElseThrow());
     }
     return Optional.of(new CompositeState(states.build()));
   }

@@ -6,21 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location;
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class BlockStateCoverageOperator implements CoverageOperator {
-
+public class LocationStateCoverageOperator implements CoverageOperator {
   @Override
   public boolean covers(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
-    BlockState blockState1 = (BlockState) state1;
-    BlockState blockState2 = (BlockState) state2;
-    return blockState1.equals(blockState2);
+    LocationState locationState1 = (LocationState) state1;
+    LocationState locationState2 = (LocationState) state2;
+    return locationState1.getLocationNode().equals(locationState2.getLocationNode());
   }
 
   @Override

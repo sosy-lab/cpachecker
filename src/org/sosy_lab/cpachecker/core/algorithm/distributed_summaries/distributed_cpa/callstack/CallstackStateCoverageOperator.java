@@ -22,4 +22,9 @@ public class CallstackStateCoverageOperator implements CoverageOperator {
     CallstackState callstackState2 = (CallstackState) state2;
     return callstackState1.sameStateInProofChecking(callstackState2);
   }
+
+  @Override
+  public boolean isBasedOnEquality() {
+    return true;
+  }
 }

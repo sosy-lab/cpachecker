@@ -14,11 +14,9 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 
@@ -42,22 +40,15 @@ public class DeserializeCompositePrecisionOperator implements DeserializePrecisi
 
   @Override
   public Precision deserializePrecision(DssMessage pMessage) {
-    try {
-      List<Precision> precisions = new ArrayList<>();
-      for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
-        if (registered.containsKey(wrappedCPA.getClass())) {
-          DistributedConfigurableProgramAnalysis entry = registered.get(wrappedCPA.getClass());
-          precisions.add(entry.getDeserializePrecisionOperator().deserializePrecision(pMessage));
-        } else {
-          precisions.add(
-              wrappedCPA.getInitialPrecision(
-                  DeserializeOperator.startLocationFromMessageType(pMessage, node),
-                  StateSpacePartition.getDefaultPartition()));
-        }
+    List<Precision> precisions = new ArrayList<>();
+    for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
+      if (!registered.containsKey(wrappedCPA.getClass())) {
+        throw new UnregisteredDistributedCpaError(
+            "Every state needs a wrapped cpa to be deserialized");
       }
-      return new CompositePrecision(precisions);
-    } catch (InterruptedException e) {
-      throw new AssertionError(e);
+      DistributedConfigurableProgramAnalysis entry = registered.get(wrappedCPA.getClass());
+      precisions.add(entry.getDeserializePrecisionOperator().deserializePrecision(pMessage));
     }
+    return new CompositePrecision(precisions);
   }
 }

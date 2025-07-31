@@ -12,6 +12,7 @@ import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -39,6 +40,7 @@ public class DistributedARGCPA
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
+  private final CombineOperator combineOperator;
 
   public DistributedARGCPA(ARGCPA pARGCPA, DistributedConfigurableProgramAnalysis pWrapped) {
     argcpa = pARGCPA;
@@ -50,6 +52,7 @@ public class DistributedARGCPA
     deserializePrecisionOperator = new DeserializeARGPrecisionOperator(wrappedCPA);
     verificationConditionOperator = new ARGViolationConditionOperator(wrappedCPA);
     coverageOperator = new ARGStateCoverageOperator(wrappedCPA);
+    combineOperator = new ARGStateCombineOperator(wrappedCPA);
   }
 
   @Override
@@ -110,6 +113,11 @@ public class DistributedARGCPA
   @Override
   public CoverageOperator getCoverageOperator() {
     return coverageOperator;
+  }
+
+  @Override
+  public CombineOperator getCombineOperator() {
+    return combineOperator;
   }
 
   public DistributedConfigurableProgramAnalysis getWrappedCPA() {

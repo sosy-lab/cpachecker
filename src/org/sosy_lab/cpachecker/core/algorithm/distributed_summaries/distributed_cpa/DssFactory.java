@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -100,15 +102,20 @@ public class DssFactory {
           pLogManager,
           pShutdownNotifier);
     }
-    /* TODO: implement support for LocationCPA and LocationBackwardCPA
-    as soon as targetCFANode is not required anymore */
-    // creates CPA for every thread without communication
+    if (pCPA instanceof LocationCPA locationCPA) {
+      return distribute(locationCPA, integerToNodeMap);
+    }
     return null;
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
       BlockCPA pBlockCPA, BlockNode pBlockNode) {
     return new DistributedBlockCPA(pBlockCPA, pBlockNode);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      LocationCPA pLocationCPA, Map<Integer, CFANode> pNodeMap) {
+    return new DistributedLocationCPA(pLocationCPA, pNodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

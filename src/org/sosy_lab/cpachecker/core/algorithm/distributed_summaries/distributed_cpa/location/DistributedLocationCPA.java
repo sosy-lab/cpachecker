@@ -2,16 +2,14 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location;
 
 import java.util.Map;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
@@ -27,66 +25,45 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.location.LocationTransferRelationBackwards;
 
-public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
+public class DistributedLocationCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
-  static final String DELIMITER = ",  ";
-
-  private final SerializeOperator serialize;
-  private final DeserializeOperator deserialize;
-  private final CoverageOperator coverageOperator;
-  private final ViolationConditionOperator verificationConditionOperator;
-  private final CombineOperator combineOperator;
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final SerializeOperator serializeOperator;
+  private final DeserializeOperator deserializeOperator;
+  private final CoverageOperator coverageOperator;
+  private final CombineOperator combineOperator;
+  private final ProceedOperator proceedOperator;
+  private final ViolationConditionOperator violationConditionOperator;
 
-  private final CallstackCPA callstackCPA;
-  private final CFA cfa;
+  private final LocationCPA locationCPA;
 
-  public DistributedCallstackCPA(
-      CallstackCPA pCallstackCPA,
-      BlockNode pBlockNode,
-      CFA pCFA,
-      Map<Integer, CFANode> pIdToNodeMap) {
-    callstackCPA = pCallstackCPA;
-    cfa = pCFA;
-    serialize = new SerializeCallstackStateOperator();
-    deserialize =
-        new DeserializeCallstackStateOperator(pCallstackCPA, pBlockNode, pIdToNodeMap::get);
-    verificationConditionOperator =
-        new BackwardTransferViolationConditionOperator(
-            callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA);
-    coverageOperator = new CallstackStateCoverageOperator();
-    combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
+  public DistributedLocationCPA(LocationCPA pLocationCPA, Map<Integer, CFANode> pNodes) {
+    locationCPA = pLocationCPA;
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
-  }
-
-  @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
-      throws InterruptedException {
-    return getCPA().getInitialState(node, partition);
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
-      throws InterruptedException {
-    return getCPA()
-        .getInitialPrecision(cfa.getAllFunctions().get(node.getFunctionName()), partition);
+    proceedOperator = ProceedOperator.always();
+    coverageOperator = new LocationStateCoverageOperator();
+    combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
+    serializeOperator = new SerializeLocationStateOperator();
+    deserializeOperator = new DeserializeLocationState(locationCPA.getStateFactory(), pNodes);
+    violationConditionOperator =
+        new BackwardTransferViolationConditionOperator(
+            new LocationTransferRelationBackwards(locationCPA.getStateFactory()), locationCPA);
   }
 
   @Override
   public SerializeOperator getSerializeOperator() {
-    return serialize;
+    return serializeOperator;
   }
 
   @Override
   public DeserializeOperator getDeserializeOperator() {
-    return deserialize;
+    return deserializeOperator;
   }
 
   @Override
@@ -101,27 +78,12 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
 
   @Override
   public ProceedOperator getProceedOperator() {
-    return ProceedOperator.always();
-  }
-
-  @Override
-  public Class<? extends AbstractState> getAbstractStateClass() {
-    return CallstackState.class;
-  }
-
-  @Override
-  public ConfigurableProgramAnalysis getCPA() {
-    return callstackCPA;
-  }
-
-  @Override
-  public boolean isTop(AbstractState pAbstractState) {
-    return true;
+    return proceedOperator;
   }
 
   @Override
   public ViolationConditionOperator getViolationConditionOperator() {
-    return verificationConditionOperator;
+    return violationConditionOperator;
   }
 
   @Override
@@ -132,5 +94,20 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public CombineOperator getCombineOperator() {
     return combineOperator;
+  }
+
+  @Override
+  public Class<? extends AbstractState> getAbstractStateClass() {
+    return LocationState.class;
+  }
+
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return locationCPA;
+  }
+
+  @Override
+  public boolean isTop(AbstractState pAbstractState) {
+    return false;
   }
 }

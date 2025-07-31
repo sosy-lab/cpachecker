@@ -41,10 +41,15 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
       ContentBuilder contentBuilder = ContentBuilder.builderWithExpectedSize(registered.size());
       CompositeState compositeState = ((CompositeState) pState);
       for (AbstractState wrappedState : compositeState.getWrappedStates()) {
+        boolean existsDcpaForState = false;
         for (DistributedConfigurableProgramAnalysis value : registered.values()) {
           if (value.doesOperateOn(wrappedState.getClass())) {
+            existsDcpaForState = true;
             contentBuilder.putAll(value.getSerializeOperator().serialize(wrappedState));
           }
+        }
+        if (!existsDcpaForState) {
+          throw new UnregisteredDistributedCpaError("Found no DCPA for " + wrappedState.getClass());
         }
       }
       return contentBuilder.build();

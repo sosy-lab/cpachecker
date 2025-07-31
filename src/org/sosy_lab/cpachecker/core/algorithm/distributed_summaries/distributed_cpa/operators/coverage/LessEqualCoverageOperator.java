@@ -25,4 +25,9 @@ public class LessEqualCoverageOperator implements CoverageOperator {
       throws CPAException, InterruptedException {
     return cpa.getAbstractDomain().isLessOrEqual(state1, state2);
   }
+
+  @Override
+  public boolean isBasedOnEquality() {
+    return false;
+  }
 }
