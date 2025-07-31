@@ -12,7 +12,8 @@ public enum InvalidationReason {
   UNKNOWN,
   FREED,
   LOCAL_SCOPE_EXPIRED,
-  POINTER_ARITHMETIC;
+  POINTER_ARITHMETIC,
+  NULL_DEREFERENCE;
 
   @Override
   public String toString() {

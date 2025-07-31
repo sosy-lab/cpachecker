@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.util.PointerArithmeticUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.PointerTarget;
 import org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.StructLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.util.StructUnionHandler;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -518,12 +519,24 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       while (baseType instanceof CPointerType ptrType) {
         baseType = ptrType.getType().getCanonicalType();
       }
-      if (PointerUtils.isUnion(baseType)) {
-        // TODO change assignment for union
-        return handleAssignment(pState, lhsLocations, rhsTargets, pCfaEdge);
+      if (StructUnionHandler.isUnion(baseType)) {
+        return StructUnionHandler.handleUnionAssignment(
+            pState,
+            lhsLocations,
+            rhsTargets,
+            pCfaEdge,
+            getOptions().structHandlingStrategy,
+            logger);
+      } else if (StructUnionHandler.isStruct(baseType)) {
+        return StructUnionHandler.handleStructAssignment(
+            pState,
+            lhsLocations,
+            rhsTargets,
+            pCfaEdge,
+            getOptions().structHandlingStrategy,
+            logger);
       }
     }
-    // TODO: Handle the case pLhs is CFieldReference
     return handleAssignment(pState, lhsLocations, rhsTargets, pCfaEdge);
   }
 
@@ -691,8 +704,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           public LocationSet visit(CFieldReference pFieldReference) throws CPATransferException {
             CExpression owner = pFieldReference.getFieldOwner();
             String fieldName = pFieldReference.getFieldName();
-            CType ownerType = owner.getExpressionType().getCanonicalType();
-            CType baseType = ownerType;
+            CType baseType = owner.getExpressionType().getCanonicalType();
 
             while (baseType instanceof CPointerType ptrType) {
               baseType = ptrType.getType().getCanonicalType();
@@ -704,7 +716,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             String instanceName = null;
 
             if (pFieldReference.isPointerDereference()) {
-              // owner is always Rhs
               LocationSet pointees = getReferencedLocations(owner, pState, true, pCfaEdge);
               // TODO explicit.getSize() >1?
               if (pointees instanceof ExplicitLocationSet explicit && explicit.getSize() == 1) {
@@ -717,6 +728,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     break;
                   }
                 }
+                if (explicit.isNull()) {
+                  return ExplicitLocationSet.from(
+                      InvalidLocation.forInvalidation(InvalidationReason.NULL_DEREFERENCE));
+                }
               }
             } else {
               if (owner instanceof CIdExpression idExpr) {
@@ -728,28 +743,16 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               return LocationSetTop.INSTANCE;
             }
 
-            LocationSet baseLocation =
-                switch (strategy) {
-                  case STRUCT_INSTANCE ->
-                      ExplicitLocationSet.from(
-                          StructLocation.forStructInstance(
-                              pCfaEdge.getPredecessor().getFunctionName(),
-                              structType,
-                              instanceName));
-                  case ALL_FIELDS ->
-                      ExplicitLocationSet.from(
-                          StructLocation.forField(
-                              pCfaEdge.getPredecessor().getFunctionName(),
-                              structType,
-                              instanceName,
-                              fieldName));
-                  case JUST_STRUCT ->
-                      ExplicitLocationSet.from(
-                          StructLocation.forStruct(
-                              pCfaEdge.getPredecessor().getFunctionName(), structType));
-                  default -> LocationSetTop.INSTANCE;
-                };
+            LocationSet baseLocation = LocationSetTop.INSTANCE;
+            if (StructUnionHandler.isUnion(baseType)) {
+              baseLocation =
+                  StructUnionHandler.getUnionLocation(strategy, structType, instanceName, pCfaEdge);
 
+            } else if (StructUnionHandler.isStruct(baseType)) {
+              baseLocation =
+                  StructUnionHandler.getStructLocation(
+                      strategy, structType, instanceName, fieldName, pCfaEdge);
+            }
             if (shouldDereference
                 && (strategy == StructHandlingStrategy.STRUCT_INSTANCE
                     || strategy == StructHandlingStrategy.ALL_FIELDS)) {
@@ -757,12 +760,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             } else {
               return baseLocation;
             }
-
-            //            if (shouldDereference) {
-            //              return dereference(baseLocation);
-            //            } else {
-            //              return baseLocation;
-            //            }
           }
 
           @Override
@@ -898,13 +895,16 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           }
 
           private LocationSet dereference(LocationSet set) {
-            if (set.isTop() || set.isBot() || set.isNull()) return set;
+            if (set.isTop() || set.isBot()) return set;
+            if (set.isNull()) {
+              return ExplicitLocationSet.from(
+                  InvalidLocation.forInvalidation(InvalidationReason.NULL_DEREFERENCE));
+            }
             if (!(set instanceof ExplicitLocationSet explicitSet)) return LocationSetTop.INSTANCE;
 
             LocationSet result = LocationSetBot.INSTANCE;
             for (PointerTarget pt : explicitSet.getExplicitLocations()) {
               LocationSet target = pState.getPointsToSet(pt);
-              // if (target.isTop() || target.isBot() || target.isNull()) return target;
               if (target.isTop() || target.isBot()) return target;
               result = result.addElements(target);
             }
@@ -913,13 +913,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
           private LocationSet addressOf(LocationSet set) {
             if (!(set instanceof ExplicitLocationSet explicit)) return LocationSetTop.INSTANCE;
-            //            Set<PointerTarget> result = new HashSet<>();
-            //            for (PointerTarget pt : explicit.getExplicitLocations()) {
-            //              if (pt instanceof MemoryLocationPointer mem) {
-            //                result.add(new MemoryLocationPointer(mem.getMemoryLocation()));
-            //              }
-            //            }
-            //            return ExplicitLocationSet.from(result, explicit.containsNull());
             return explicit;
           }
         });

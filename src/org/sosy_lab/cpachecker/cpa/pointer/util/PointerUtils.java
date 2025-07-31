@@ -12,26 +12,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class PointerUtils {
 
   private PointerUtils() {}
-
-  public static boolean isStruct(Type pType) {
-    return pType instanceof CType cType
-        && cType.getCanonicalType() instanceof CComplexType complexType
-        && complexType.getKind() == ComplexTypeKind.STRUCT;
-  }
-
-  public static boolean isUnion(Type pType) {
-    return pType instanceof CType cType
-        && cType.getCanonicalType() instanceof CComplexType complexType
-        && complexType.getKind() == ComplexTypeKind.UNION;
-  }
 
   public static boolean isFreeFunction(CExpression pExpression) {
     return getFunctionName(pExpression).map("free"::equals).orElse(false);
