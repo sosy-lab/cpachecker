@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * This class evaluates expressions that evaluate to a array type. The type of every expression
+ * This class evaluates expressions that evaluate to an array type. The type of every expression
  * visited by this visitor has to be a {@link CArrayType }. The result of the evaluation is an
  * {@link SMGAddress}. The object represents the memory this array is placed in, the offset
  * represents the start of the array in the object.

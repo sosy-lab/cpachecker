@@ -56,8 +56,8 @@ public enum BooleanValue implements Value {
     } else if (pValue.isNumericValue()) {
       return valueOf((NumericValue) pValue);
 
-    } else if (pValue instanceof BooleanValue) {
-      return Optional.of((BooleanValue) pValue);
+    } else if (pValue instanceof BooleanValue booleanValue) {
+      return Optional.of(booleanValue);
 
     } else {
       return Optional.empty();

@@ -178,7 +178,7 @@ public class SMGInterpolationTree {
    * This method checks if for the given state a non-trivial interpolant is present.
    *
    * @param currentState the state for which to check
-   * @return true, if a non-trivial interpolant is present, else false
+   * @return whether a non-trivial interpolant is present
    */
   private boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
@@ -206,16 +206,16 @@ public class SMGInterpolationTree {
    * This method checks if for the given state a false interpolant is present.
    *
    * @param currentState the state for which to check
-   * @return true, if a false interpolant is present, else false
+   * @return whether a false interpolant is present
    */
   private boolean stateHasFalseInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && interpolants.get(currentState).isFalse();
   }
 
   /**
-   * This method decides whether or not there are more paths left for interpolation.
+   * This method decides whether there are more paths left for interpolation.
    *
-   * @return true if there are more paths left for interpolation, else false
+   * @return whether there are more paths left for interpolation
    */
   public boolean hasNextPathForInterpolation() {
     return strategy.hasNextPathForInterpolation();
@@ -344,7 +344,7 @@ public class SMGInterpolationTree {
     }
 
     /**
-     * The given state is not a valid interpolation root if it is associated with a interpolant
+     * The given state is not a valid interpolation root if it is associated with an interpolant
      * representing "false"
      */
     private boolean isValidInterpolationRoot(ARGState pRoot) {
@@ -376,7 +376,7 @@ public class SMGInterpolationTree {
     /** the states that are the sources for obtaining error paths */
     private List<ARGState> sources;
 
-    public BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
+    BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
       sources = new ArrayList<>(pTargets);
     }
 

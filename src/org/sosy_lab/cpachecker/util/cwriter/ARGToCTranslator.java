@@ -89,27 +89,26 @@ public class ARGToCTranslator {
     private final CFAEdge cfaEdge;
     private final CompoundStatement currentBlock;
 
-    public ARGEdge(
-        ARGState pParent, ARGState pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
+    ARGEdge(ARGState pParent, ARGState pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
       parent = pParent;
       child = pChild;
       cfaEdge = pCfaEdge;
       currentBlock = pCurrentBlock;
     }
 
-    public ARGState getParentElement() {
+    ARGState getParentElement() {
       return parent;
     }
 
-    public ARGState getChildElement() {
+    ARGState getChildElement() {
       return child;
     }
 
-    public CFAEdge getCfaEdge() {
+    CFAEdge getCfaEdge() {
       return cfaEdge;
     }
 
-    public CompoundStatement getCurrentBlock() {
+    CompoundStatement getCurrentBlock() {
       return currentBlock;
     }
   }
@@ -220,9 +219,8 @@ public class ARGToCTranslator {
     isVoidMain = returnType instanceof CVoidType;
     if (!isVoidMain) {
       mainReturnVar = "__return_main";
-      if (returnType instanceof CArrayType) {
-        globalDefinitionsList.add(
-            ((CArrayType) returnType).toQualifiedASTString(mainReturnVar) + ";");
+      if (returnType instanceof CArrayType cArrayType) {
+        globalDefinitionsList.add(cArrayType.toQualifiedASTString(mainReturnVar) + ";");
       } else {
         globalDefinitionsList.add(returnType.toASTString(mainReturnVar) + ";");
       }
@@ -594,9 +592,8 @@ public class ARGToCTranslator {
             : "Unexpected assume edge in dynamic multi edge " + innerEdge;
         assert !(innerEdge instanceof CFunctionCallEdge || innerEdge instanceof CFunctionReturnEdge)
             : "Unexpected edge " + innerEdge + " in dynmaic multi edge";
-        if (innerEdge instanceof CReturnStatementEdge) {
+        if (innerEdge instanceof CReturnStatementEdge returnEdge) {
           assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
-          CReturnStatementEdge returnEdge = (CReturnStatementEdge) innerEdge;
 
           String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
           String returnVar;
@@ -685,8 +682,8 @@ public class ARGToCTranslator {
           (CFunctionReturnEdge) pReturnEdge.getSuccessor().getLeavingEdge(0);
       CFunctionEntryNode fn = functionReturnEdge.getFunctionEntry();
       CType retType = fn.getFunctionDefinition().getType().getReturnType();
-      if (retType instanceof CArrayType) {
-        returnType = ((CArrayType) retType).toQualifiedASTString(varName);
+      if (retType instanceof CArrayType cArrayType) {
+        returnType = cArrayType.toQualifiedASTString(varName);
       } else {
         returnType = retType.toASTString(varName);
       }
@@ -698,8 +695,8 @@ public class ARGToCTranslator {
     CType returnType = pFunDecl.getType().getReturnType();
     if (!(returnType instanceof CVoidType)) {
       String varName = "__return_" + pElementId;
-      if (returnType instanceof CArrayType) {
-        globalDefinitionsList.add(((CArrayType) returnType).toQualifiedASTString(varName) + ";");
+      if (returnType instanceof CArrayType cArrayType) {
+        globalDefinitionsList.add(cArrayType.toQualifiedASTString(varName) + ";");
       } else {
         globalDefinitionsList.add(returnType.toASTString(varName) + ";");
       }
@@ -740,8 +737,8 @@ public class ARGToCTranslator {
           // TODO check if works without lDeclarationEdge.getRawStatement();
           declaration = lDeclarationEdge.getDeclaration().toQualifiedASTString();
 
-          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-            CVariableDeclaration varDecl = (CVariableDeclaration) lDeclarationEdge.getDeclaration();
+          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration varDecl) {
+
             if (varDecl.getType() instanceof CArrayType
                 && varDecl.getInitializer() instanceof CInitializerExpression) {
               int assignAfterPos = declaration.indexOf("=") + 1;
@@ -1011,19 +1008,19 @@ public class ARGToCTranslator {
 
   private DeclarationInfo handleDecInfoForEdge(
       final CFAEdge edge, final ARGState pred, final ARGState succ, final DeclarationInfo decInfo) {
-    if (edge instanceof CFunctionCallEdge) {
+    if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
       return decInfo.fromFunctionCall(
-          (CFunctionCallEdge) edge, pred.getStateId() + ":" + +succ.getStateId());
+          cFunctionCallEdge, pred.getStateId() + ":" + +succ.getStateId());
     }
 
     if (edge instanceof CFunctionReturnEdge) {
       return decInfo.fromFunctionReturn();
     }
-    if (edge instanceof CDeclarationEdge
-        && ((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration
-        && !((CDeclarationEdge) edge).getDeclaration().isGlobal()) {
+    if (edge instanceof CDeclarationEdge cDeclarationEdge
+        && cDeclarationEdge.getDeclaration() instanceof CVariableDeclaration
+        && !cDeclarationEdge.getDeclaration().isGlobal()) {
       return decInfo.addNewDeclarationInfo(
-          ((CDeclarationEdge) edge).getDeclaration(), pred.getStateId() + ":" + +succ.getStateId());
+          cDeclarationEdge.getDeclaration(), pred.getStateId() + ":" + +succ.getStateId());
     }
 
     return decInfo;
@@ -1033,14 +1030,14 @@ public class ARGToCTranslator {
     private final ImmutableMap<CDeclaration, String> currentFuncDecInfo;
     private final ImmutableList<ImmutableMap<CDeclaration, String>> calleeFunDecInfos;
 
-    public DeclarationInfo(
+    DeclarationInfo(
         final ImmutableMap<CDeclaration, String> funDec,
         final ImmutableList<ImmutableMap<CDeclaration, String>> calleesFunInfo) {
       currentFuncDecInfo = funDec;
       calleeFunDecInfos = calleesFunInfo;
     }
 
-    public DeclarationInfo addNewDeclarationInfo(final CDeclaration dec, final String decId) {
+    DeclarationInfo addNewDeclarationInfo(final CDeclaration dec, final String decId) {
       ImmutableMap<CDeclaration, String> newFunDecInfo;
       if (currentFuncDecInfo.containsKey(dec)) {
         ImmutableMap.Builder<CDeclaration, String> builder = ImmutableMap.builder();
@@ -1062,7 +1059,7 @@ public class ARGToCTranslator {
       return new DeclarationInfo(newFunDecInfo, calleeFunDecInfos);
     }
 
-    public DeclarationInfo fromFunctionCall(final CFunctionCallEdge callEdge, final String decId) {
+    DeclarationInfo fromFunctionCall(final CFunctionCallEdge callEdge, final String decId) {
       ImmutableMap.Builder<CDeclaration, String> builder = ImmutableMap.builder();
 
       for (CParameterDeclaration paramDecl :
@@ -1074,7 +1071,7 @@ public class ARGToCTranslator {
           builder.buildOrThrow(), listAndElement(calleeFunDecInfos, currentFuncDecInfo));
     }
 
-    public DeclarationInfo fromFunctionReturn() {
+    DeclarationInfo fromFunctionReturn() {
       checkState(!calleeFunDecInfos.isEmpty());
       return new DeclarationInfo(
           calleeFunDecInfos.get(calleeFunDecInfos.size() - 1),

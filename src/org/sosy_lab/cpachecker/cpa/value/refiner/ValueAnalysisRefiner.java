@@ -80,14 +80,14 @@ public class ValueAnalysisRefiner
 
   @Option(
       secure = true,
-      description = "whether or not to do lazy-abstraction",
+      description = "whether to do lazy-abstraction",
       name = "restart",
       toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
       secure = true,
-      description = "whether or not to use heuristic to avoid similar, repeated refinements")
+      description = "whether to use heuristic to avoid similar, repeated refinements")
   private boolean avoidSimilarRepeatedRefinement = false;
 
   @Option(
@@ -102,7 +102,7 @@ public class ValueAnalysisRefiner
    * 05/2017: An evaluation on sv-benchmark files for ALL, SUBGRAPH, TARGET, and CUTPOINT showed:
    * - overall: SUBGRAPH >= ALL >> CUTPOINT > TARGET
    * - SUBGRAPH and ALL are nearly identical
-   * - CUTPOINT has smallest number of solved files,
+   * - CUTPOINT has the smallest number of solved files,
    *   especially there are many timeouts (900s) on the source files product-lines/email_spec*,
    *   and many solved tasks in ldv-linux-3.14/linux-3.14__complex_emg*
    * - TARGET is slowest and has less score

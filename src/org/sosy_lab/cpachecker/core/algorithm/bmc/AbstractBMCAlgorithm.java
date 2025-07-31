@@ -366,9 +366,9 @@ abstract class AbstractBMCAlgorithm
     } else {
       propagateSafetyInterrupt = null;
     }
-    if (invariantGenerator instanceof ConditionAdjustmentEventSubscriber) {
-      conditionAdjustmentEventSubscribers.add(
-          (ConditionAdjustmentEventSubscriber) invariantGenerator);
+    if (invariantGenerator
+        instanceof ConditionAdjustmentEventSubscriber conditionAdjustmentEventSubscriber) {
+      conditionAdjustmentEventSubscribers.add(conditionAdjustmentEventSubscriber);
     }
     invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
 
@@ -564,8 +564,8 @@ abstract class AbstractBMCAlgorithm
     Iterable<CandidateInvariant> candidatesToCheck = candidates;
     for (CandidateInvariant candidate : candidatesToCheck) {
       // No need to check the same clause twice
-      if (candidate instanceof Obligation) {
-        if (!checked.add(((Obligation) candidate).getBlockingClause())) {
+      if (candidate instanceof Obligation obligation) {
+        if (!checked.add(obligation.getBlockingClause())) {
           continue;
         }
         pCtiBlockingClauses.remove(candidate);
@@ -581,10 +581,10 @@ abstract class AbstractBMCAlgorithm
 
       // If we are not running KI-PDR and the candidate invariant is specified at a certain
       // location, checked keys (i.e., loop-bound states) should come from this location.
-      if (!extractCtiBlockingClauses && candidate instanceof SingleLocationFormulaInvariant) {
+      if (!extractCtiBlockingClauses
+          && candidate instanceof SingleLocationFormulaInvariant singleLocationFormulaInvariant) {
         checkedKeys =
-            getCheckedKeysAtLocation(
-                reachedSet, ((SingleLocationFormulaInvariant) candidate).getLocation());
+            getCheckedKeysAtLocation(reachedSet, singleLocationFormulaInvariant.getLocation());
       }
 
       InductionResult<CandidateInvariant> inductionResult =
@@ -974,7 +974,7 @@ abstract class AbstractBMCAlgorithm
    * a satisfiablity check on the formulas encoding the reachability of the states where the bounded
    * model check stopped due to reaching the bound.
    *
-   * <p>If this is is the case, then the bounded model check is guaranteed to be sound.
+   * <p>If this is the case, then the bounded model check is guaranteed to be sound.
    *
    * @param pReachedSet the reached set containing the frontier of the bounded model check, i.e.
    *     where the bounded model check stopped.
@@ -1027,8 +1027,8 @@ abstract class AbstractBMCAlgorithm
         }
         for (AbstractState s : toRemove) {
           pReachedSet.remove(s);
-          if (s instanceof ARGState) {
-            ((ARGState) s).removeFromARG();
+          if (s instanceof ARGState aRGState) {
+            aRGState.removeFromARG();
           }
         }
       }
@@ -1043,12 +1043,12 @@ abstract class AbstractBMCAlgorithm
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
-    if (invariantGenerator instanceof StatisticsProvider) {
-      ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
+    if (invariantGenerator instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     if (predToKIndInv != null) {
       pStatsCollection.add(predToKIndInv);
@@ -1273,8 +1273,8 @@ abstract class AbstractBMCAlgorithm
         CandidateInvariant pCause,
         SymbolicCandiateInvariant pBlockingClause,
         List<SymbolicCandiateInvariant> pStrengthening) {
-      if (pCause instanceof Obligation) {
-        causingObligation = (Obligation) pCause;
+      if (pCause instanceof Obligation obligation) {
+        causingObligation = obligation;
         causingCandidateInvariant = causingObligation.causingCandidateInvariant;
       } else {
         causingCandidateInvariant = Objects.requireNonNull(pCause);
@@ -1284,11 +1284,11 @@ abstract class AbstractBMCAlgorithm
       weakenings = ImmutableList.copyOf(pStrengthening);
     }
 
-    public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
+    Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
       this(pCause, pBlockingClause, ImmutableList.of());
     }
 
-    public int getDepth() {
+    int getDepth() {
       int depth = 0;
       Obligation current = this;
       while (current.causingObligation != null) {
@@ -1304,19 +1304,19 @@ abstract class AbstractBMCAlgorithm
       return blockingClause.toString();
     }
 
-    public CandidateInvariant getRootCause() {
+    CandidateInvariant getRootCause() {
       return causingCandidateInvariant;
     }
 
-    public SymbolicCandiateInvariant getBlockingClause() {
+    SymbolicCandiateInvariant getBlockingClause() {
       return blockingClause;
     }
 
-    public List<SymbolicCandiateInvariant> getWeakenings() {
+    List<SymbolicCandiateInvariant> getWeakenings() {
       return weakenings;
     }
 
-    public Obligation refineWith(
+    Obligation refineWith(
         FormulaManagerView pFmgr, SymbolicCandiateInvariant pRefinedBlockingClause)
         throws InterruptedException {
       if (pRefinedBlockingClause == blockingClause) {
@@ -1427,20 +1427,20 @@ abstract class AbstractBMCAlgorithm
 
     private boolean safe = true;
 
-    public void addSafeStates(Iterable<AbstractState> pSafeStates) {
+    void addSafeStates(Iterable<AbstractState> pSafeStates) {
       Iterables.addAll(checkedStates, pSafeStates);
     }
 
-    public void declareUnsafe() {
+    void declareUnsafe() {
       safe = false;
       checkedStates.clear();
     }
 
-    public boolean isSafe() {
+    boolean isSafe() {
       return safe;
     }
 
-    public Iterable<AbstractState> filterUnchecked(Iterable<AbstractState> pStates) {
+    Iterable<AbstractState> filterUnchecked(Iterable<AbstractState> pStates) {
       checkState(isSafe(), "A counterexample was found already.");
       return Iterables.filter(pStates, Predicates.not(Predicates.in(checkedStates)));
     }
@@ -1530,7 +1530,7 @@ abstract class AbstractBMCAlgorithm
             }
           };
 
-      public HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
+      HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
         latch = Objects.requireNonNull(pLatch);
         pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
       }

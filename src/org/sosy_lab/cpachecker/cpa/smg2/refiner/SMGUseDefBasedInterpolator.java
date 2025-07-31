@@ -68,7 +68,7 @@ public class SMGUseDefBasedInterpolator {
   /** the machine model in use */
   private final MachineModel machineModel;
 
-  /** The cfa of this analysis */
+  /** The CFA of this analysis */
   private final CFA cfa;
 
   private final SMGOptions options;
@@ -258,8 +258,8 @@ public class SMGUseDefBasedInterpolator {
 
       CExpression arrayLength = pArrayType.getLength();
 
-      if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+      if (arrayLength instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        int length = cIntegerLiteralExpression.getValue().intValue();
 
         return createMemoryLocationsForArray(length, pArrayType.getType());
       }

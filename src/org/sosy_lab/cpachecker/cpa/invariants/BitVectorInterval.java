@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * This class represents simple convex ranges of BigIntegers. It has an lower bound and an upper
+ * This class represents simple convex ranges of BigIntegers. It has a lower bound and an upper
  * bound, both of which may either be a concrete value or infinity. In case of a concrete value, the
  * bound is assumed to be included in the range.
  *
@@ -210,7 +210,7 @@ public class BitVectorInterval implements BitVectorType {
    * Returns the mathematical negation of this interval. The lower bound of the resulting interval
    * is the negated upper bound of this interval and vice versa.
    *
-   * @param pAllowSignedWrapAround whether or not to allow wrap-around for signed bit vectors.
+   * @param pAllowSignedWrapAround whether to allow wrap-around for signed bit vectors.
    * @return the mathematical negation of this interval.
    */
   public BitVectorInterval negate(

@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -110,12 +111,11 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
 
 /** Class containing all the code that converts C code into a formula. */
 public class CtoFormulaConverter {
 
-  // list of functions that are pure (no side-effects from the perspective of this analysis)
+  // list of functions that are pure (no side effects from the perspective of this analysis)
   static final ImmutableSet<String> PURE_EXTERNAL_FUNCTIONS =
       ImmutableSet.of(
           "abort",
@@ -188,8 +188,6 @@ public class CtoFormulaConverter {
   // VARIABLE_UNINITIALIZED!)
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  private final FunctionDeclaration<?> stringUfDecl;
-
   protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
   public CtoFormulaConverter(
@@ -215,9 +213,6 @@ public class CtoFormulaConverter {
     shutdownNotifier = pShutdownNotifier;
 
     direction = pDirection;
-
-    stringUfDecl =
-        ffmgr.declareUF("__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
   @FormatMethod
@@ -403,7 +398,7 @@ public class CtoFormulaConverter {
       // It is important to store the index in the variable here.
       // If getIndex() was called with a specific name,
       // this means that name@idx will appear in formulas.
-      // Thus we need to make sure that calls to FormulaManagerView.instantiate()
+      // Thus, we need to make sure that calls to FormulaManagerView.instantiate()
       // will also add indices for this name,
       // which it does exactly if the name is in the SSAMap.
       ssa.setIndex(name, type, idx);
@@ -575,10 +570,14 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.callUF(stringUfDecl, fmgr.getIntegerFormulaManager().makeNumber(n));
+      result =
+          ffmgr.declareAndCallUF(
+              "__string__",
+              typeHandler.getPointerType(),
+              fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
 
-      // In principle we could add constraints that the addresses of all these string literals
+      // In principle, we could add constraints that the addresses of all these string literals
       // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
       // package. But this is likely rarely useful in practice.
       // But we have seen code that relies on the address being non-null, so encode that.
@@ -781,7 +780,7 @@ public class CtoFormulaConverter {
 
   /**
    * Add constraint for the interval of possible values, This method should only be used for a
-   * previously declared variable, otherwise the SSA-index is invalid. Example: MIN_INT <= X <=
+   * previously declared variable, otherwise, the SSA-index is invalid. Example: MIN_INT <= X <=
    * MAX_INT
    */
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
@@ -862,8 +861,8 @@ public class CtoFormulaConverter {
     if (pType instanceof CEnumType enumType) {
       return enumType.getCompatibleType();
     }
-    if (pType instanceof CElaboratedType
-        && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM) {
+    if (pType instanceof CElaboratedType cElaboratedType
+        && cElaboratedType.getKind() == ComplexTypeKind.ENUM) {
       return CNumericTypes.INT;
     }
     return pType;
@@ -906,12 +905,12 @@ public class CtoFormulaConverter {
     checkSimpleCastArgument(pToCType);
     Predicate<CType> isSigned =
         t -> {
-          if (t instanceof CSimpleType) {
-            return machineModel.isSigned((CSimpleType) t);
+          if (t instanceof CSimpleType cSimpleType) {
+            return machineModel.isSigned(cSimpleType);
           }
           if ((t instanceof CBitFieldType bitFieldType)
-              && (bitFieldType.getType() instanceof CSimpleType)) {
-            return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
+              && (bitFieldType.getType() instanceof CSimpleType cSimpleType)) {
+            return machineModel.isSigned(cSimpleType);
           }
           throw new AssertionError("Not a simple type: " + t);
         };
@@ -992,8 +991,8 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * If the given expression is a integer literal, and the given type is a floating-point type,
-   * convert the literal into a floating-point literal. Otherwise return the expression unchanged.
+   * If the given expression is an integer literal, and the given type is a floating-point type,
+   * convert the literal into a floating-point literal. Otherwise, return the expression unchanged.
    */
   protected CExpression convertLiteralToFloatIfNecessary(
       final CExpression pExp, final CType targetType) {
@@ -1015,17 +1014,21 @@ public class CtoFormulaConverter {
         intValue = intValue.negate();
       }
       Value floatValue =
-          AbstractExpressionValueVisitor.castCValue(
-              intValue, targetType, machineModel, logger, e.getFileLocation());
+          AbstractExpressionValueVisitor.castCValue(intValue, targetType, machineModel, logger);
       return new CFloatLiteralExpression(
-          e.getFileLocation(), targetType, floatValue.asNumericValue().bigDecimalValue());
+          e.getFileLocation(),
+          machineModel,
+          targetType,
+          FloatValue.fromInteger(
+              FloatValue.Format.fromCType(machineModel, targetType),
+              floatValue.asNumericValue().bigIntegerValue()));
     }
 
     return pExp;
   }
 
   private static boolean isFloatingPointType(final CType pType) {
-    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
+    return pType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType();
   }
 
   //  @Override
@@ -1041,8 +1044,8 @@ public class CtoFormulaConverter {
 
     // param-constraints must be added _before_ handling the edge (some lines below),
     // because this edge could write a global value.
-    if (edge.getPredecessor() instanceof CFunctionEntryNode) {
-      final CFunctionEntryNode entryNode = (CFunctionEntryNode) edge.getPredecessor();
+    if (edge.getPredecessor() instanceof CFunctionEntryNode entryNode) {
+
       addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, entryNode);
       addGlobalAssignmentConstraints(
           edge, function, ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, false);
@@ -1086,7 +1089,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Ensure parameters of entry function are added to the SSAMap. Otherwise they would be missing
+   * Ensure parameters of entry function are added to the SSAMap. Otherwise, they would be missing
    * and (un)instantiate would not work correctly, leading to a wrong analysis if their value is
    * relevant. TODO: This would be also necessary when the analysis starts in the middle of a CFA.
    *
@@ -1101,7 +1104,7 @@ public class CtoFormulaConverter {
         // the entry function of a single thread.
         continue;
       }
-      // has side-effect of adding to SSAMap!
+      // has side effect of adding to SSAMap!
       final Formula var =
           makeFreshVariable(
               param.getQualifiedName(), CTypes.adjustFunctionOrArrayType(param.getType()), ssa);
@@ -1200,7 +1203,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * This helper method creates a formula for an CFA edge, given the current function, SSA map and
+   * This helper method creates a formula for a CFA edge, given the current function, SSA map and
    * constraints.
    *
    * @param edge the edge for which to create the formula
@@ -1288,11 +1291,11 @@ public class CtoFormulaConverter {
           errorConditions);
 
     } else {
-      if (stmt instanceof CFunctionCallStatement) {
+      if (stmt instanceof CFunctionCallStatement callStmt) {
         CRightHandSideVisitor<Formula, UnrecognizedCodeException> ev =
             createCRightHandSideVisitor(
                 statement, function, ssa, pts, constraints, errorConditions);
-        CFunctionCallStatement callStmt = (CFunctionCallStatement) stmt;
+
         callStmt.getFunctionCallExpression().accept(ev);
 
       } else if (!(stmt instanceof CExpressionStatement)) {
@@ -1313,13 +1316,12 @@ public class CtoFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(edge.getDeclaration() instanceof CVariableDeclaration decl)) {
       // struct prototype, function declaration, typedef etc.
       logfOnce(Level.FINEST, edge, "Ignoring declaration");
       return bfmgr.makeTrue();
     }
 
-    CVariableDeclaration decl = (CVariableDeclaration) edge.getDeclaration();
     final String varName = decl.getQualifiedName();
 
     if (!isRelevantVariable(decl)) {
@@ -1399,21 +1401,20 @@ public class CtoFormulaConverter {
    */
   protected void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
       throws UnsupportedCodeException {
-    if (!options.shouldAbortOnLargeArrays() || !(declarationType instanceof CArrayType)) {
+    if (!options.shouldAbortOnLargeArrays() || !(declarationType instanceof CArrayType arrayType)) {
       return;
     }
-    CArrayType arrayType = (CArrayType) declarationType;
+
     CType elementType = arrayType.getType();
 
-    if (elementType instanceof CSimpleType
-        && ((CSimpleType) elementType).getType().isFloatingPointType()) {
+    if (elementType instanceof CSimpleType cSimpleType
+        && cSimpleType.getType().isFloatingPointType()) {
       if (arrayType.getLengthAsInt().orElse(0) > 100) {
         throw new UnsupportedCodeException("large floating-point array", declarationEdge);
       }
     }
 
-    if (elementType instanceof CSimpleType
-        && ((CSimpleType) elementType).getType() == CBasicType.INT) {
+    if (elementType instanceof CSimpleType cSimpleType && cSimpleType.getType() == CBasicType.INT) {
       if (arrayType.getLengthAsInt().orElse(0) >= 10000) {
         throw new UnsupportedCodeException("large integer array", declarationEdge);
       }
@@ -1460,7 +1461,7 @@ public class CtoFormulaConverter {
       throws UnrecognizedCodeException {
     // NOTE: When funCallExp.getExpressionType() does always return the return type of the function
     // we don't
-    // need this function. However I'm not sure because there can be implicit casts. Just to be
+    // need this function. However, I'm not sure because there can be implicit casts. Just to be
     // safe.
     CType retType;
     CFunctionDeclaration funcDecl = funcCallExp.getDeclaration();

@@ -156,7 +156,7 @@ public class InvariantsState
    * @param pVariableSelection the selected variables.
    * @param pMachineModel the machine model used.
    * @param pAbstractionState the abstraction information.
-   * @param pIncludeTypeInformation whether or not to include type information for exports.
+   * @param pIncludeTypeInformation whether to include type information for exports.
    */
   public InvariantsState(
       VariableSelection<CompoundInterval> pVariableSelection,
@@ -189,9 +189,9 @@ public class InvariantsState
    * @param pEnvironment the environment. This instance is reused and not copied.
    * @param pAssumptions additional assumptions about this state.
    * @param pOverflowDetected if an overflow has been detected.
-   * @param pIncludeTypeInformation whether or not to include type information for exports.
-   * @param pOverapproximatesUnsupportedFeature whether or not an unsupported feature is
-   *     over-approximated by this state.
+   * @param pIncludeTypeInformation whether to include type information for exports.
+   * @param pOverapproximatesUnsupportedFeature whether an unsupported feature is over-approximated
+   *     by this state.
    */
   private InvariantsState(
       VariableSelection<CompoundInterval> pVariableSelection,
@@ -1424,7 +1424,7 @@ public class InvariantsState
     if (this == pObj) {
       return true;
     }
-    return pObj instanceof InvariantsState && equalsState((InvariantsState) pObj);
+    return pObj instanceof InvariantsState other && equalsState(other);
   }
 
   private boolean equalsState(InvariantsState pOther) {
@@ -1980,11 +1980,11 @@ public class InvariantsState
   }
 
   private static int compare(Number pOp1, Number pOp2) {
-    if (pOp1 instanceof BigInteger && pOp2 instanceof BigInteger) {
-      return ((BigInteger) pOp1).compareTo((BigInteger) pOp2);
+    if (pOp1 instanceof BigInteger op1 && pOp2 instanceof BigInteger op2) {
+      return op1.compareTo(op2);
     }
-    if (pOp1 instanceof BigDecimal && pOp2 instanceof BigDecimal) {
-      return ((BigDecimal) pOp1).compareTo((BigDecimal) pOp2);
+    if (pOp1 instanceof BigDecimal op1 && pOp2 instanceof BigDecimal op2) {
+      return op1.compareTo(op2);
     }
     if (isAssignableToLong(pOp1) && isAssignableToLong(pOp2)) {
       return Long.compare(pOp1.longValue(), pOp2.longValue());
@@ -2037,8 +2037,8 @@ public class InvariantsState
         return true;
       }
       // All tools are derived from the factory
-      return pObj instanceof Tools
-          && compoundIntervalManagerFactory.equals(((Tools) pObj).compoundIntervalManagerFactory);
+      return pObj instanceof Tools other
+          && compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory);
     }
 
     @Override

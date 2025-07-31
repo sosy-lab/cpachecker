@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
 /**
- * This class represents a Array initializer AST node type.
+ * This class represents an Array initializer AST node type.
  *
  * <pre>
  * ArrayInitializer:

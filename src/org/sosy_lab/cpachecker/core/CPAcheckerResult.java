@@ -100,7 +100,7 @@ public class CPAcheckerResult {
   }
 
   /**
-   * Write the statistics to a given PrintWriter. Additionally some output files may be written
+   * Write the statistics to a given PrintWriter. Additionally, some output files may be written
    * here, if configuration says so.
    */
   public void printStatistics(PrintStream target) {
@@ -128,8 +128,8 @@ public class CPAcheckerResult {
       return;
     }
 
-    if (reached instanceof ResultProviderReachedSet) {
-      ((ResultProviderReachedSet) reached).printResults(out);
+    if (reached instanceof ResultProviderReachedSet resultProviderReachedSet) {
+      resultProviderReachedSet.printResults(out);
     }
     if (result == Result.DONE) {
       out.println("Finished.");

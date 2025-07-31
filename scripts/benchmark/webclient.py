@@ -347,7 +347,7 @@ class RunResultFuture(Future):
 
 class WebInterface:
     """
-    The WebInterface is a executor like class for the submission of runs to the VerifierCloud
+    The WebInterface is an executor like class for the submission of runs to the VerifierCloud
     """
 
     def __init__(

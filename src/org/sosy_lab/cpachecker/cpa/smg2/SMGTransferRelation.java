@@ -208,6 +208,7 @@ public class SMGTransferRelation
     solver =
         new ConstraintsSolver(
             Configuration.defaultConfiguration(),
+            pMachineModel,
             smtSolver,
             formulaManager,
             converter,
@@ -501,33 +502,33 @@ public class SMGTransferRelation
         currentState = pState.copyAndRemoveStackVariable(varName);
       }
       if (!currentState.isLocalOrGlobalVariablePresent(varName)) {
-        if (decl instanceof CVariableDeclaration) {
+        if (decl instanceof CVariableDeclaration cVariableDeclaration) {
           return evaluator.handleVariableDeclarationWithoutInizializer(
-              currentState, (CVariableDeclaration) decl);
-        } else if (decl instanceof CParameterDeclaration) {
+              currentState, cVariableDeclaration);
+        } else if (decl instanceof CParameterDeclaration cParameterDeclaration) {
           return evaluator.handleVariableDeclarationWithoutInizializer(
-              currentState, ((CParameterDeclaration) decl).asVariableDeclaration());
+              currentState, cParameterDeclaration.asVariableDeclaration());
         }
       }
       return ImmutableList.of(pState);
 
-    } else if (leftHandSideExpr instanceof CArraySubscriptExpression) {
-      CExpression arrayExpr = ((CArraySubscriptExpression) leftHandSideExpr).getArrayExpression();
+    } else if (leftHandSideExpr instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      CExpression arrayExpr = cArraySubscriptExpression.getArrayExpression();
       return createVariableOnTheSpot(arrayExpr, pState);
 
-    } else if (leftHandSideExpr instanceof CFieldReference) {
-      CExpression fieldOwn = ((CFieldReference) leftHandSideExpr).getFieldOwner();
+    } else if (leftHandSideExpr instanceof CFieldReference cFieldReference) {
+      CExpression fieldOwn = cFieldReference.getFieldOwner();
       return createVariableOnTheSpot(fieldOwn, pState);
 
-    } else if (leftHandSideExpr instanceof CPointerExpression) {
-      CExpression operand = ((CPointerExpression) leftHandSideExpr).getOperand();
+    } else if (leftHandSideExpr instanceof CPointerExpression cPointerExpression) {
+      CExpression operand = cPointerExpression.getOperand();
       return createVariableOnTheSpot(operand, pState);
 
-    } else if (leftHandSideExpr instanceof CUnaryExpression) {
-      CExpression operand = ((CUnaryExpression) leftHandSideExpr).getOperand();
+    } else if (leftHandSideExpr instanceof CUnaryExpression cUnaryExpression) {
+      CExpression operand = cUnaryExpression.getOperand();
       return createVariableOnTheSpot(operand, pState);
-    } else if (leftHandSideExpr instanceof CCastExpression) {
-      CExpression operand = ((CCastExpression) leftHandSideExpr).getOperand();
+    } else if (leftHandSideExpr instanceof CCastExpression cCastExpression) {
+      CExpression operand = cCastExpression.getOperand();
       return createVariableOnTheSpot(operand, pState);
     }
     return ImmutableList.of(pState);
@@ -685,7 +686,7 @@ public class SMGTransferRelation
     if ((valueType instanceof CArrayType || valueType instanceof CPointerType)
         && cParamType instanceof CArrayType) {
       if (paramValue instanceof AddressExpression addrParam) {
-        // For pointer -> array we get a addressExpr that wraps the pointer
+        // For pointer -> array we get an addressExpr that wraps the pointer
 
         // We don't support symbolic pointer arithmetics yet
         if (!addrParam.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
@@ -941,8 +942,8 @@ public class SMGTransferRelation
    *
    */
   private boolean representsBoolean(Value value, boolean bool) {
-    if (value instanceof BooleanValue) {
-      return ((BooleanValue) value).isTrue() == bool;
+    if (value instanceof BooleanValue booleanValue) {
+      return booleanValue.isTrue() == bool;
 
     } else if (value.isNumericValue()) {
       if (bool) {
@@ -1070,7 +1071,7 @@ public class SMGTransferRelation
       try {
         return evaluator.handleVariableDeclaration(currentState, cVarDecl, edge);
       } catch (UnsupportedOperationException e) {
-        // Since we lose the cfa edge (and the CExpression for other cases) we can not throw this in
+        // Since we lose the CFA edge (and the CExpression for other cases) we can not throw this in
         // the method directly
         throw new UnsupportedCodeException(e.getMessage(), edge);
       }
@@ -1102,12 +1103,12 @@ public class SMGTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof AbstractStateWithAssumptions) {
+      } else if (ae instanceof AbstractStateWithAssumptions stateWithAssumptions) {
         try {
           result.clear();
           for (SMGState stateToStrengthen : toStrengthen) {
             super.setInfo(element, pPrecision, cfaEdge);
-            AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
+
             result.addAll(
                 strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, cfaEdge));
           }
@@ -1194,22 +1195,22 @@ public class SMGTransferRelation
       SMGObject addressToWriteTo = targetAndOffsetAndState.getSMGObject();
       Value offsetToWriteTo = targetAndOffsetAndState.getOffsetForObject();
 
-      if (rValue instanceof CStringLiteralExpression
+      if (rValue instanceof CStringLiteralExpression cStringLiteralExpression
           && leftHandSideType instanceof CPointerType
           && rightHandSideType instanceof CArrayType
-          && lValue instanceof CIdExpression) {
+          && lValue instanceof CIdExpression cIdExpression) {
         // Assignment of a String pointer to an existing variable with a not yet existing String
         // Create the String, get the address, save address to left hand side var
         returnStateBuilder.addAll(
             evaluator.handleStringInitializer(
                 currentState,
-                (CVariableDeclaration) ((CIdExpression) lValue).getDeclaration(),
+                (CVariableDeclaration) cIdExpression.getDeclaration(),
                 cfaEdge,
-                ((CIdExpression) lValue).getDeclaration().getQualifiedName(),
+                cIdExpression.getDeclaration().getQualifiedName(),
                 offsetToWriteTo,
                 lValue.getExpressionType(),
                 cfaEdge.getFileLocation(),
-                (CStringLiteralExpression) rValue));
+                cStringLiteralExpression));
         continue;
       } else if (leftHandSideType instanceof CPointerType
           && rightHandSideType instanceof CArrayType) {
@@ -1234,7 +1235,7 @@ public class SMGTransferRelation
         continue;
       }
 
-      // The right hand side either returns Values representing values or a AddressExpression. In
+      // The right hand side either returns Values representing values or an AddressExpression. In
       // the later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
       SMGCPAValueVisitor vv =

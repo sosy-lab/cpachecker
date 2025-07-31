@@ -355,7 +355,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     if (pNewInfo.isPreciseCounterExample()) {
       // target path is only valid in temporary, local ARG computed by counterexample-check.
       // To make this counterexample usable in other parts of CPAchecker, create a new, exchangeable
-      // ARGpath
+      // ARG path
       ARGPath strippedDownPath = getExchangeableTargetPath(pNewInfo.getTargetPath());
       assert strippedDownPath.getLastState().isTarget()
           : "Last state of exchangeable target path is no target: "

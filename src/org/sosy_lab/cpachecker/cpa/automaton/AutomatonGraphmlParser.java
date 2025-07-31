@@ -2131,7 +2131,7 @@ public class AutomatonGraphmlParser {
       saxParser = saxFactory.newSAXParser();
     } catch (ParserConfigurationException | SAXException e) {
       throw new AssertionError(
-          "SAX parser configured incorrectly. Could not determine whether or not the file describes"
+          "SAX parser configured incorrectly. Could not determine whether the file describes"
               + " a witness automaton.",
           e);
     }

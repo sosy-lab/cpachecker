@@ -50,13 +50,12 @@ public sealed interface CType extends Type
   /**
    * Check whether the current type has *known constant size* as defined by the C standard in §
    * 6.2.5 (23). These are types for which the size can be computed statically. Only incomplete
-   * types and variable-length arrays do not have known constant size, but GCC has a an extension
-   * that also allows such arrays in structs:
-   * https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html
+   * types and variable-length arrays do not have known constant size, but GCC has an extension that
+   * also allows such arrays in structs: https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html
    */
   boolean hasKnownConstantSize();
 
-  /** Will throw a UnsupportedOperationException */
+  /** Will throw an UnsupportedOperationException */
   @Override
   int hashCode();
 
@@ -97,8 +96,8 @@ public sealed interface CType extends Type
       if (CTypes.isArithmeticType(rightHandSide)) {
         return true;
       }
-      if (leftHandSide instanceof CSimpleType
-          && ((CSimpleType) leftHandSide).getType().equals(CBasicType.BOOL)
+      if (leftHandSide instanceof CSimpleType cSimpleType
+          && cSimpleType.getType().equals(CBasicType.BOOL)
           && rightHandSide instanceof CPointerType) {
         return true;
       }
@@ -113,8 +112,8 @@ public sealed interface CType extends Type
     }
 
     // Cf. C-Standard §6.3.2.3 (1):
-    if (leftHandSide instanceof CPointerType) {
-      if (((CPointerType) leftHandSide).getType() instanceof CVoidType) {
+    if (leftHandSide instanceof CPointerType cPointerType) {
+      if (cPointerType.getType() instanceof CVoidType) {
         if (rightHandSide.isIncomplete() || CTypes.isObjectType(rightHandSide)) {
           return true;
         }

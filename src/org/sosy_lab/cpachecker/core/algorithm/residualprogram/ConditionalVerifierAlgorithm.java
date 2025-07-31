@@ -273,8 +273,8 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private void collectStatistics(final Object pStatisticsProviderCandidate) {
-    if (pStatisticsProviderCandidate instanceof StatisticsProvider) {
-      ((StatisticsProvider) pStatisticsProviderCandidate).collectStatistics(stats.substats);
+    if (pStatisticsProviderCandidate instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(stats.substats);
     }
   }
 

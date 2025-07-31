@@ -99,7 +99,7 @@ public class SMGCPATest0 {
     dllSize = pointerSizeInBits.multiply(BigInteger.valueOf(3));
     dllSizeValue = new NumericValue(dllSize);
     sllSizeValue = new NumericValue(sllSize);
-    // Per default we expect the nfo after the hfo and the pfo after that
+    // By default, we expect the nfo after the hfo and the pfo after that
     nfo = hfo.add(pointerSizeInBits);
     pfo = nfo.add(pointerSizeInBits);
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
@@ -149,6 +149,7 @@ public class SMGCPATest0 {
 
     return new ConstraintsSolver(
         Configuration.defaultConfiguration(),
+        machineModel,
         smtSolver,
         formulaManager,
         converter,
@@ -403,10 +404,10 @@ public class SMGCPATest0 {
                   null,
                   dummyCFAEdge);
         } catch (CPATransferException e) {
-          if (e instanceof SMGException) {
-            throw (SMGException) e;
-          } else if (e instanceof SMGSolverException) {
-            throw (SMGSolverException) e;
+          if (e instanceof SMGException sMGException) {
+            throw sMGException;
+          } else if (e instanceof SMGSolverException sMGSolverException) {
+            throw sMGSolverException;
           }
           // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException
@@ -430,10 +431,10 @@ public class SMGCPATest0 {
                   null,
                   dummyCFAEdge);
         } catch (CPATransferException e) {
-          if (e instanceof SMGException) {
-            throw (SMGException) e;
-          } else if (e instanceof SMGSolverException) {
-            throw (SMGSolverException) e;
+          if (e instanceof SMGException sMGException) {
+            throw sMGException;
+          } else if (e instanceof SMGSolverException sMGSolverException) {
+            throw sMGSolverException;
           }
           // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException
@@ -628,7 +629,7 @@ public class SMGCPATest0 {
    * Checks that all pointers given have data that is located in the beginning of the list as 32bit
    * integers with the first being 0, then +1 for each after that in the same list.
    *
-   * @param pointers a array of pointers pointing to a list with the default data scheme.
+   * @param pointers an array of pointers pointing to a list with the default data scheme.
    */
   protected void checkListDataIntegrity(Value[] pointers, boolean dll) throws SMGException {
     int toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).intValue();

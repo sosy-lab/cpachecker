@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  *   StatementExpression ;
  * </pre>
  *
- * Note that this class is only used for side effect free expressions. For assignments with side
+ * Note that this class is only used for side-effect free expressions. For assignments with side
  * effect free right hand sides, we use {@link JExpressionAssignmentStatement}. For method
  * invocations we use {@link JMethodInvocationStatement} And for method assignments, we use {@link
  * JMethodInvocationAssignmentStatement}.

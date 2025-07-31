@@ -83,8 +83,8 @@ public sealed class StructureIdentifier extends SingleIdentifier permits Structu
   }
 
   public StructureFieldIdentifier toStructureFieldIdentifier() {
-    if (owner instanceof SingleIdentifier) {
-      return new StructureFieldIdentifier(name, ((SingleIdentifier) owner).type, dereference, null);
+    if (owner instanceof SingleIdentifier singleIdentifier) {
+      return new StructureFieldIdentifier(name, singleIdentifier.type, dereference, null);
     } else {
       return new StructureFieldIdentifier(name, type, dereference, null);
     }

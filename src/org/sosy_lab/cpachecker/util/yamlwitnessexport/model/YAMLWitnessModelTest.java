@@ -33,8 +33,8 @@ public class YAMLWitnessModelTest {
       throws JsonParseException, JsonMappingException, IOException {
     Queue<AbstractEntry> loadedEntries = testParsingFile("violation-witness.yml");
     for (AbstractEntry e : loadedEntries) {
-      if (e instanceof ViolationSequenceEntry) {
-        List<SegmentRecord> sequence = ((ViolationSequenceEntry) e).getContent();
+      if (e instanceof ViolationSequenceEntry violationSequenceEntry) {
+        List<SegmentRecord> sequence = violationSequenceEntry.getContent();
         assertThat(sequence).hasSize(5);
         assertThat(sequence.get(0).getSegment().size()).isAtLeast(1);
         assertThat(sequence.get(0).getSegment().get(0).getConstraint().getValue())

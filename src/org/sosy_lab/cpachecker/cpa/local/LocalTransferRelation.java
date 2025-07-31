@@ -210,8 +210,8 @@ public class LocalTransferRelation
   @Override
   protected LocalState handleDeclarationEdge(CDeclarationEdge declEdge, CDeclaration decl) {
     LocalState newState = state.copy();
-    if (decl instanceof CVariableDeclaration) {
-      CInitializer init = ((CVariableDeclaration) decl).getInitializer();
+    if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+      CInitializer init = cVariableDeclaration.getInitializer();
 
       int deref = findDereference(decl.getType());
       AbstractIdentifier id = IdentifierCreator.createIdentifier(decl, getFunctionName(), 0);
@@ -232,8 +232,8 @@ public class LocalTransferRelation
           }
         }
       }
-      if (init instanceof CInitializerExpression) {
-        assign(newState, id, deref, ((CInitializerExpression) init).getExpression());
+      if (init instanceof CInitializerExpression cInitializerExpression) {
+        assign(newState, id, deref, cInitializerExpression.getExpression());
       } else if (!decl.isGlobal() && type instanceof CArrayType) {
         // Uninitialized arrays (int a[2]) are pointed to local memory
         completeSet(newState, id, deref, DataType.LOCAL);
@@ -316,11 +316,11 @@ public class LocalTransferRelation
     AbstractIdentifier leftId = createId(left, 0);
     if (!(leftId instanceof ConstantIdentifier)) {
       int leftDereference = findDereference(left.getExpressionType());
-      if (right instanceof CExpression) {
-        assign(pSuccessor, leftId, leftDereference, (CExpression) right);
+      if (right instanceof CExpression cExpression) {
+        assign(pSuccessor, leftId, leftDereference, cExpression);
 
-      } else if (right instanceof CFunctionCallExpression) {
-        assign(pSuccessor, leftId, leftDereference, (CFunctionCallExpression) right);
+      } else if (right instanceof CFunctionCallExpression cFunctionCallExpression) {
+        assign(pSuccessor, leftId, leftDereference, cFunctionCallExpression);
       }
     }
   }
@@ -414,8 +414,8 @@ public class LocalTransferRelation
       return (findDereference(pointerType.getType()) + 1);
     } else if (type instanceof CArrayType arrayType) {
       return (findDereference(arrayType.getType()) + 1);
-    } else if (type instanceof CTypedefType) {
-      return findDereference(((CTypedefType) type).getRealType());
+    } else if (type instanceof CTypedefType cTypedefType) {
+      return findDereference(cTypedefType.getRealType());
     } else {
       return 0;
     }

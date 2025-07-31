@@ -63,6 +63,10 @@ SPDX-License-Identifier: Apache-2.0
         <Bug pattern="US_USELESS_SUPPRESSION_ON_CLASS"/>
         <Class name="~.*Parser"/>
     </Match>
+    <Match>
+        <!-- Ignore unmaintained package. -->
+        <Package name="org.sosy_lab.cpachecker.cfa.parser.llvm"/>
+    </Match>
 
     <Match><And>
         <!-- Allow null checks for configuration-option fields,

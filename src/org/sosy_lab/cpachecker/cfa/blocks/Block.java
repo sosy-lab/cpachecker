@@ -85,8 +85,8 @@ public class Block {
       Set<ASimpleDeclaration> declarations = new LinkedHashSet<>();
       for (CFANode node : nodes) {
         declarations.addAll(node.getOutOfScopeVariables());
-        if (node instanceof FunctionExitNode) {
-          declarations.addAll(((FunctionExitNode) node).getEntryNode().getFunctionParameters());
+        if (node instanceof FunctionExitNode functionExitNode) {
+          declarations.addAll(functionExitNode.getEntryNode().getFunctionParameters());
         }
         // TODO should we also handle a function return variable?
       }

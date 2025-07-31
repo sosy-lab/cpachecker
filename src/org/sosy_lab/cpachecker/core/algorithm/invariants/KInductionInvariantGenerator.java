@@ -369,7 +369,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       // start invariant generation asynchronously
       ExecutorService executor = Executors.newSingleThreadExecutor();
       invariantGenerationFuture = executor.submit(task);
-      executor.shutdown(); // will shutdown after task is finished
+      executor.shutdown(); // will shut down after task is finished
 
     } else {
       // create future for lazy synchronous invariant generation
@@ -802,13 +802,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         if (pVariable.getExpressionType().equals(pSubstitute.getExpressionType())) {
           return true;
         }
-        if (!(pVariable.getExpressionType() instanceof CType)
-            || !(pSubstitute.getExpressionType() instanceof CType)) {
+        if (!(pVariable.getExpressionType() instanceof CType variableType)
+            || !(pSubstitute.getExpressionType() instanceof CType substituteType)) {
           return false;
         }
-        CType typeA = ((CType) pVariable.getExpressionType()).getCanonicalType();
-        CType typeB = ((CType) pSubstitute.getExpressionType()).getCanonicalType();
-        return typeA.canBeAssignedFrom(typeB);
+        return variableType.getCanonicalType().canBeAssignedFrom(substituteType.getCanonicalType());
       }
     },
 
@@ -853,19 +851,19 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                       FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(e))
                           .transformAndConcat(CFAUtils::traverseRecursively)
                           .filter(AIdExpression.class)) {
-                    if (!(idExpression instanceof CIdExpression)) {
+                    if (!(idExpression instanceof CIdExpression id)) {
                       throw new InvalidConfigurationException(
                           "Linear templates are only supported for C code.");
                     }
                     ASimpleDeclaration decl = idExpression.getDeclaration();
                     if (decl != null) {
-                      CIdExpression id = (CIdExpression) idExpression;
+
                       idExpressions.put(decl.getQualifiedName(), id);
                       CType type = id.getExpressionType().getCanonicalType();
                       typePartitions.put(type, decl.getQualifiedName());
                       functions.put(id, e.getPredecessor().getFunction());
-                      if (type instanceof CSimpleType) {
-                        constants.add(machineModel.getMaximalIntegerValue((CSimpleType) type));
+                      if (type instanceof CSimpleType cSimpleType) {
+                        constants.add(machineModel.getMaximalIntegerValue(cSimpleType));
                       }
                     }
                   }
@@ -883,16 +881,16 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         for (Map.Entry<CType, Collection<String>> typePartition :
             typePartitions.asMap().entrySet()) {
           CType type = typePartition.getKey();
-          if (type instanceof CSimpleType) {
+          if (type instanceof CSimpleType cSimpleType) {
             Collection<String> variables = typePartition.getValue();
-            BigInteger max = machineModel.getMaximalIntegerValue((CSimpleType) type);
+            BigInteger max = machineModel.getMaximalIntegerValue(cSimpleType);
             for (String x : variables) {
               CIdExpression xId = idExpressions.get(x);
               CSimpleDeclaration xDecl = xId.getDeclaration();
-              if (!(xDecl instanceof CVariableDeclaration)) {
+              if (!(xDecl instanceof CVariableDeclaration xVarDecl)) {
                 continue;
               }
-              CVariableDeclaration xVarDecl = (CVariableDeclaration) xDecl;
+
               AFunctionDeclaration function = functions.get(xId);
               for (String y : variables) {
                 if (x.equals(y)) {
@@ -904,10 +902,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                   function = yFunction;
                 } else {
                   CSimpleDeclaration yDecl = yId.getDeclaration();
-                  if (!(yDecl instanceof CVariableDeclaration)) {
+                  if (!(yDecl instanceof CVariableDeclaration yVarDecl)) {
                     continue;
                   }
-                  CVariableDeclaration yVarDecl = (CVariableDeclaration) yDecl;
+
                   if (yVarDecl.isGlobal()) {
                     function = yFunction;
                   } else if (!function.equals(yFunction)) {

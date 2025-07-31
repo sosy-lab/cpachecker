@@ -39,9 +39,6 @@ SPDX-License-Identifier: Apache-2.0
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
          UnusedMethods: Most CPAs have private constructors that are called only via reflection
          DuplicateBranches: TODO https://github.com/google/error-prone/issues/4734
-         PatternMatchingInstanceof: TODO https://github.com/google/error-prone/issues/4921, https://github.com/google/error-prone/issues/4922, https://github.com/google/error-prone/issues/4923, https://github.com/google/error-prone/issues/4925
-
-         UnnecessaryDefaultInEnumSwitch: TODO non-default check that we want, but https://github.com/google/error-prone/issues/5045
          -->
     <property name="errorprone.options" value="
         -Xep:DuplicateBranches:OFF
@@ -49,7 +46,7 @@ SPDX-License-Identifier: Apache-2.0
         -Xep:ReferenceEquality:OFF
         -Xep:BanSerializableRead:OFF
         -Xep:UnusedMethod:OFF
-        -Xep:PatternMatchingInstanceof:OFF
+        -Xep:UnnecessaryDefaultInEnumSwitch:WARN
         "/>
 
     <import file="build/build-ivy.xml"/>

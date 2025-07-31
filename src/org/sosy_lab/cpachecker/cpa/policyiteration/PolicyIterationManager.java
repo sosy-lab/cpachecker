@@ -844,7 +844,6 @@ public class PolicyIterationManager {
             case ABSTRACTION_REQUIRED -> {
               // Continue with abstraction.
             }
-            default -> throw new UnsupportedOperationException("Unexpected case");
           }
         }
 
@@ -968,7 +967,7 @@ public class PolicyIterationManager {
       return Pair.of(ABSTRACTION_REQUIRED, null);
     }
 
-    // Slices and bounds for all template sub-components.
+    // Slices and bounds for all template subcomponents.
     List<Set<BooleanFormula>> slices = new ArrayList<>(pTemplate.size());
     List<PolicyBound> policyBounds = new ArrayList<>();
     List<Rational> coefficients = new ArrayList<>();
@@ -1278,8 +1277,9 @@ public class PolicyIterationManager {
   private BooleanFormula extractFormula(AbstractState pFormulaState) {
     List<BooleanFormula> constraints = new ArrayList<>();
     for (AbstractState a : asIterable(pFormulaState)) {
-      if (!(a instanceof PolicyAbstractedState) && a instanceof FormulaReportingState) {
-        constraints.add(((FormulaReportingState) a).getFormulaApproximation(fmgr));
+      if (!(a instanceof PolicyAbstractedState)
+          && a instanceof FormulaReportingState formulaReportingState) {
+        constraints.add(formulaReportingState.getFormulaApproximation(fmgr));
       }
     }
     return bfmgr.and(constraints);

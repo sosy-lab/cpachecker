@@ -229,7 +229,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     TraceAtom lastSelector = null;
 
     for (AbstractTraceElement abstractTraceElement : abstractTrace) {
-      if (abstractTraceElement instanceof TraceAtom) {
+      if (abstractTraceElement instanceof TraceAtom traceAtom) {
         if (abstractTraceElement.equals(lastSelector)) {
           Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
           Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
@@ -237,7 +237,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
           summarizedList.add(summarizedList.size() - 1, merged);
         } else {
           summarizedList.add(abstractTraceElement);
-          lastSelector = (TraceAtom) abstractTraceElement;
+          lastSelector = traceAtom;
         }
       } else {
         summarizedList.add(abstractTraceElement);
@@ -261,8 +261,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     Set<Fault> faults = new HashSet<>();
     for (int i = 0; i < abstractTrace.size(); i++) {
       AbstractTraceElement errorInvariant = abstractTrace.get(i);
-      if (errorInvariant instanceof TraceAtom) {
-        prev = (TraceAtom) errorInvariant;
+      if (errorInvariant instanceof TraceAtom traceAtom) {
+        prev = traceAtom;
         Fault singleton = new Fault(prev);
         singleton.setIntendedIndex(i);
         faults.add(singleton);
@@ -340,9 +340,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /**
    * Return if interpolant is inductive on position i.
    *
-   * @param interpolant A interpolant
+   * @param interpolant An interpolant
    * @param slicePosition where to slice the trace formula
-   * @return true if interpolant is inductive at i, false else
+   * @return whether interpolant is inductive at i
    */
   private boolean isErrInv(Solver solver, BooleanFormula interpolant, int slicePosition)
       throws SolverException, InterruptedException {
@@ -397,7 +397,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
    * unsatisfiable.
    *
    * @param formula check if formula is a tautology
-   * @return true if formula is a tautology, false else
+   * @return whether formula is a tautology
    */
   private boolean isValid(Solver solver, BooleanFormula formula)
       throws SolverException, InterruptedException {

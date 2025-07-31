@@ -97,7 +97,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     private final Collection<Statistics> currentSubStat;
     private int noOfRuns = 0;
 
-    public CompositionAlgorithmStatistics() {
+    CompositionAlgorithmStatistics() {
       totalTimer = new Timer();
       currentSubStat = new ArrayList<>();
     }
@@ -145,11 +145,11 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    public Collection<Statistics> getSubStatistics() {
+    Collection<Statistics> getSubStatistics() {
       return currentSubStat;
     }
 
-    public void resetSubStatistics() {
+    void resetSubStatistics() {
       currentSubStat.clear();
     }
   }
@@ -193,7 +193,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       secure = true,
       name = "initCondition",
       description =
-          "Whether or not to create an initial condition, that excludes no paths, "
+          "Whether to create an initial condition, that excludes no paths, "
               + "before first analysis is run."
               + "Required when first analysis uses condition from conditional model checking")
   private boolean generateInitialFalseCondition = false;
@@ -343,8 +343,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
             continue;
           }
 
-          if (fReached instanceof HistoryForwardingReachedSet) {
-            ((HistoryForwardingReachedSet) fReached).saveCPA(currentContext.getCPA());
+          if (fReached instanceof HistoryForwardingReachedSet historyForwardingReachedSet) {
+            historyForwardingReachedSet.saveCPA(currentContext.getCPA());
           }
           fReached.setDelegate(currentContext.getReachedSet());
 
@@ -616,12 +616,12 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         return null;
       }
 
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+      if (algorithm instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
-      if (pCurrentContext.getCPA() instanceof StatisticsProvider) {
-        ((StatisticsProvider) pCurrentContext.getCPA()).collectStatistics(stats.getSubStatistics());
+      if (pCurrentContext.getCPA() instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
       return Pair.of(algorithm, localShutdownManager);

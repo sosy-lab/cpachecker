@@ -100,8 +100,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         writer.append("###\n");
       } else if (id instanceof GlobalVariableIdentifier) {
         writer.append("#\n");
-      } else if (id instanceof LocalVariableIdentifier) {
-        writer.append("##" + ((LocalVariableIdentifier) id).getFunction() + "\n");
+      } else if (id instanceof LocalVariableIdentifier localVariableIdentifier) {
+        writer.append("##" + localVariableIdentifier.getFunction() + "\n");
       } else {
         logger.log(Level.WARNING, "What is it? " + id);
       }

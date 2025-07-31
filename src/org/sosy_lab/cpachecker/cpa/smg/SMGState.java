@@ -408,8 +408,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
     SMGObject target = pAddress.getObject();
     SMGExplicitValue offset = pAddress.getOffset();
-    if (target instanceof SMGRegion) {
-      SMGValue address = getAddress((SMGRegion) target, offset.getAsLong());
+    if (target instanceof SMGRegion sMGRegion) {
+      SMGValue address = getAddress(sMGRegion, offset.getAsLong());
       if (address == null) {
         return singletonList(
             SMGAddressValueAndState.of(
@@ -436,7 +436,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Returns a address leading from a value. If the target is an abstract heap segment, materialize
+   * Returns an address leading from a value. If the target is an abstract heap segment, materialize
    * heap segment.
    *
    * <p>Constant.
@@ -1229,7 +1229,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // if some edge points to a large enough chunk of memory, then use its middle part.
     // TODO this code is ugly and might better be placed inside heap.getHVEdges,
     // but there it removes the existing value from the heap for the rest of the region
-    // and that is not wanted. Thus we add this very special case here.
+    // and that is not wanted. Thus, we add this very special case here.
     SMGEdgeHasValueFilter filterOffsetZero =
         new SMGEdgeHasValueFilter()
             .overlapsWith(
@@ -1292,7 +1292,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGValue value;
 
     // If the value is not yet known by the SMG
-    // create a unconstrained new symbolic value
+    // create an unconstrained new symbolic value
     if (pValue.isUnknown()) {
       value = SMGKnownSymValue.of();
     } else {
@@ -1301,8 +1301,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // If the value represents an address, and the address is known,
     // add the necessary points-To edge.
-    if (pValue instanceof SMGAddressValue) {
-      SMGAddress address = ((SMGAddressValue) pValue).getAddress();
+    if (pValue instanceof SMGAddressValue sMGAddressValue) {
+      SMGAddress address = sMGAddressValue.getAddress();
 
       if (!address.isUnknown()) {
         addPointsToEdge(address.getObject(), address.getOffset().getAsLong(), value);
@@ -1737,7 +1737,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void addElementToCurrentChain(Object elem) {
     // Avoid to add Null element
-    if (elem instanceof SMGValue && ((SMGValue) elem).isZero()) {
+    if (elem instanceof SMGValue sMGValue && sMGValue.isZero()) {
       return;
     }
     errorInfo = errorInfo.withObject(elem);
@@ -1981,9 +1981,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGType pSMGType2,
       BinaryOperator pOp,
       CFAEdge pEdge) {
-    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
+    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge cAssumeEdge) {
       BinaryOperator temp;
-      if (((CAssumeEdge) pEdge).getTruthAssumption()) {
+      if (cAssumeEdge.getTruthAssumption()) {
         temp = pOp;
       } else {
         temp = pOp.getOppositLogicalOperator();
@@ -1996,9 +1996,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void addPredicateRelation(
       SMGValue pV1, SMGType pSMGType1, SMGExplicitValue pV2, BinaryOperator pOp, CFAEdge pEdge) {
-    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
+    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge cAssumeEdge) {
       BinaryOperator temp;
-      if (((CAssumeEdge) pEdge).getTruthAssumption()) {
+      if (cAssumeEdge.getTruthAssumption()) {
         temp = pOp;
       } else {
         temp = pOp.getOppositLogicalOperator();
@@ -2143,7 +2143,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration) {
 
     /* Treat functions as global objects with unknown memory size.
-     * Only write them into the smg when necessary*/
+     * Only write them into the SMG when necessary*/
     String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
 
     return heap.getObjectForVisibleVariable(functionQualifiedSMGName);
@@ -2153,7 +2153,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       throws SMGInconsistentException {
 
     /* Treat functions as global variable with unknown memory size.
-     * Only write them into the smg when necessary*/
+     * Only write them into the SMG when necessary*/
     String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
 
     assert heap.getObjectForVisibleVariable(functionQualifiedSMGName) == null;

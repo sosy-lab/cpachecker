@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -135,6 +136,7 @@ public class HarnessExporter {
   private static final String ERR_MSG = "CPAchecker test harness: property violation reached";
 
   private final CFA cfa;
+  private final MachineModel machineModel;
 
   private final LogManager logger;
 
@@ -159,6 +161,7 @@ public class HarnessExporter {
   public HarnessExporter(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     cfa = pCFA;
+    machineModel = cfa.getMachineModel();
     logger = pLogger;
     binExpBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
     pConfig.inject(this);
@@ -246,11 +249,11 @@ public class HarnessExporter {
     AFunctionCall callStatement = null;
     if (pEdgeToTarget instanceof AStatementEdge statementEdge) {
       AStatement statement = statementEdge.getStatement();
-      if (statement instanceof AFunctionCall) {
-        callStatement = (AFunctionCall) statement;
+      if (statement instanceof AFunctionCall aFunctionCall) {
+        callStatement = aFunctionCall;
       }
-    } else if (pEdgeToTarget instanceof FunctionCallEdge) {
-      callStatement = ((FunctionCallEdge) pEdgeToTarget).getFunctionCall();
+    } else if (pEdgeToTarget instanceof FunctionCallEdge functionCallEdge) {
+      callStatement = functionCallEdge.getFunctionCall();
     }
 
     if (callStatement != null) {
@@ -439,7 +442,7 @@ public class HarnessExporter {
                 return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
               } else if (onlyVerifierNondet && name.startsWith("__VERIFIER_nondet")) {
                 Optional<ExpressionTestValue> defaultValue =
-                    getDefaultValue(functionDeclaration.getType().getReturnType());
+                    getDefaultValue(machineModel, functionDeclaration.getType().getReturnType());
                 if (defaultValue.isPresent()) {
                   return Optional.of(
                       new State(
@@ -497,7 +500,8 @@ public class HarnessExporter {
               pPrevious
                   .testVector()
                   .addInputValue(
-                      variableDeclaration, getDummyInitializer(variableDeclaration.getType()))));
+                      variableDeclaration,
+                      getDummyInitializer(machineModel, variableDeclaration.getType()))));
     }
     return Optional.of(new State(pChild, pPrevious.testVector()));
   }
@@ -652,11 +656,11 @@ public class HarnessExporter {
   }
 
   private static AInitializer toInitializer(AExpression pValue) {
-    if (pValue instanceof CExpression) {
-      return new CInitializerExpression(FileLocation.DUMMY, (CExpression) pValue);
+    if (pValue instanceof CExpression cExpression) {
+      return new CInitializerExpression(FileLocation.DUMMY, cExpression);
     }
-    if (pValue instanceof JExpression) {
-      return new JInitializerExpression(FileLocation.DUMMY, (JExpression) pValue);
+    if (pValue instanceof JExpression jExpression) {
+      return new JInitializerExpression(FileLocation.DUMMY, jExpression);
     }
     throw new AssertionError("Unsupported expression type: " + pValue);
   }
@@ -703,7 +707,7 @@ public class HarnessExporter {
                 varName,
                 varName,
                 varName,
-                (CInitializer) getDummyInitializer(pType.getType()));
+                (CInitializer) getDummyInitializer(machineModel, pType.getType()));
         CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
         return ExpressionTestValue.of(
             new AuxiliaryCode(tmpDeclaration.toASTString()),
@@ -735,7 +739,7 @@ public class HarnessExporter {
     if (returnType.equals(CVoidType.VOID)) {
       return "return;";
     } else {
-      return "return " + getDummyValue(returnType).toASTString() + ";";
+      return "return " + getDummyValue(machineModel, returnType).toASTString() + ";";
     }
   }
 
@@ -761,7 +765,7 @@ public class HarnessExporter {
     Preconditions.checkArgument(getCanonicalType(expectedTargetType) instanceof CCompositeType);
 
     return pTestVector.addInputValue(
-        pVariableDeclaration, getDummyInitializer(pVariableDeclaration.getType()));
+        pVariableDeclaration, getDummyInitializer(machineModel, pVariableDeclaration.getType()));
   }
 
   private ExpressionTestValue handleComposite(CType pType, CExpression pSize, boolean pIsGlobal) {
@@ -784,7 +788,7 @@ public class HarnessExporter {
   private TestVector handleArrayDeclaration(
       TestVector pTestVector, AVariableDeclaration pVariableDeclaration) {
     return pTestVector.addInputValue(
-        pVariableDeclaration, getDummyInitializer(pVariableDeclaration.getType()));
+        pVariableDeclaration, getDummyInitializer(machineModel, pVariableDeclaration.getType()));
   }
 
   private ExpressionTestValue assignMallocToTmpVariable(
@@ -872,16 +876,16 @@ public class HarnessExporter {
     if (canonicalReturnType instanceof CCompositeType) {
       return handleCompositeCall(pTestVector, pFunctionDeclaration);
     }
-    AExpression value = getDummyValue(pFunctionDeclaration.getType().getReturnType());
+    AExpression value = getDummyValue(machineModel, pFunctionDeclaration.getType().getReturnType());
     return addValue(pTestVector, pFunctionDeclaration, value);
   }
 
-  private static AExpression getDummyValue(Type pType) {
-    if (pType instanceof CType) {
+  private static AExpression getDummyValue(MachineModel pMachineModel, Type pType) {
+    if (pType instanceof CType cType) {
       if (canInitialize(pType)) {
-        CInitializer initializer = CDefaults.forType((CType) pType, FileLocation.DUMMY);
-        if (initializer instanceof CInitializerExpression) {
-          return ((CInitializerExpression) initializer).getExpression();
+        CInitializer initializer = CDefaults.forType(pMachineModel, cType, FileLocation.DUMMY);
+        if (initializer instanceof CInitializerExpression cInitializerExpression) {
+          return cInitializerExpression.getExpression();
         }
       }
       return new CIntegerLiteralExpression(
@@ -890,10 +894,10 @@ public class HarnessExporter {
     return new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ZERO);
   }
 
-  private static AInitializer getDummyInitializer(Type pType) {
-    if (pType instanceof CType) {
+  private static AInitializer getDummyInitializer(MachineModel pMachineModel, Type pType) {
+    if (pType instanceof CType cType) {
       if (canInitialize(pType)) {
-        return CDefaults.forType((CType) pType, FileLocation.DUMMY);
+        return CDefaults.forType(pMachineModel, cType, FileLocation.DUMMY);
       }
       return new CInitializerExpression(
           FileLocation.DUMMY,
@@ -904,13 +908,14 @@ public class HarnessExporter {
         FileLocation.DUMMY, new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ZERO));
   }
 
-  private static Optional<ExpressionTestValue> getDefaultValue(final Type pReturnType) {
-    if (pReturnType instanceof CType) {
+  private static Optional<ExpressionTestValue> getDefaultValue(
+      MachineModel pMachineModel, final Type pReturnType) {
+    if (pReturnType instanceof CType cType) {
 
-      CType returnType = ((CType) pReturnType).getCanonicalType();
+      CType returnType = cType.getCanonicalType();
 
-      if (returnType instanceof CSimpleType
-          && ((CSimpleType) returnType).getType() == CBasicType.CHAR) {
+      if (returnType instanceof CSimpleType cSimpleType
+          && cSimpleType.getType() == CBasicType.CHAR) {
         return Optional.of(
             ExpressionTestValue.of(
                 new CCharLiteralExpression(FileLocation.DUMMY, returnType, ' ')));
@@ -919,12 +924,13 @@ public class HarnessExporter {
       if (!(returnType instanceof CCompositeType
           || returnType instanceof CArrayType
           || returnType instanceof CBitFieldType
-          || (returnType instanceof CElaboratedType
-              && ((CElaboratedType) returnType).getKind() != ComplexTypeKind.ENUM))) {
+          || (returnType instanceof CElaboratedType cElaboratedType
+              && cElaboratedType.getKind() != ComplexTypeKind.ENUM))) {
 
         return Optional.of(
             ExpressionTestValue.of(
-                ((CInitializerExpression) CDefaults.forType(returnType, FileLocation.DUMMY))
+                ((CInitializerExpression)
+                        CDefaults.forType(pMachineModel, returnType, FileLocation.DUMMY))
                     .getExpression()));
       }
     }
@@ -936,11 +942,11 @@ public class HarnessExporter {
     if (canonicalType.equals(CVoidType.VOID)) {
       return false;
     }
-    if (canonicalType instanceof CCompositeType) {
-      return !((CCompositeType) canonicalType).isIncomplete();
+    if (canonicalType instanceof CCompositeType cCompositeType) {
+      return !cCompositeType.isIncomplete();
     }
-    if (canonicalType instanceof CElaboratedType) {
-      return ((CElaboratedType) canonicalType).getKind() == ComplexTypeKind.ENUM;
+    if (canonicalType instanceof CElaboratedType cElaboratedType) {
+      return cElaboratedType.getKind() == ComplexTypeKind.ENUM;
     }
     if (canonicalType instanceof CFunctionType) {
       return false;
@@ -971,10 +977,8 @@ public class HarnessExporter {
         value =
             new CCastExpression(
                 pValue.getFileLocation(), (CType) pExpectedReturnType, (CExpression) value);
-      } else if (value instanceof JExpression && expectedReturnType instanceof JType) {
-        value =
-            new JCastExpression(
-                pValue.getFileLocation(), (JType) expectedReturnType, (JExpression) value);
+      } else if (value instanceof JExpression && expectedReturnType instanceof JType jType) {
+        value = new JCastExpression(pValue.getFileLocation(), jType, (JExpression) value);
       }
     }
     return value;
@@ -995,10 +999,10 @@ public class HarnessExporter {
 
   private static Optional<AExpression> getOther(
       AExpression pAssumption, ALeftHandSide pLeftHandSide) {
-    if (!(pAssumption instanceof ABinaryExpression)) {
+    if (!(pAssumption instanceof ABinaryExpression binOp)) {
       return Optional.empty();
     }
-    ABinaryExpression binOp = (ABinaryExpression) pAssumption;
+
     if (binOp.getOperator() != BinaryOperator.EQUALS
         && binOp.getOperator()
             != org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS) {

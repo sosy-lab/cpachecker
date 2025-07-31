@@ -79,11 +79,11 @@ public class SMGExpressionEvaluator {
    * Get the size of the given type in bits.
    *
    * <p>When handling variable array type length, additionally to the type itself, we also need the
-   * cfa edge to determine the location of the program we currently handle, the smg state to
+   * CFA edge to determine the location of the program we currently handle, the SMG state to
    * determine the values of the variables at the current location, and the expression with the
-   * given type to determine the smg object that represents the array of the given type.
+   * given type to determine the SMG object that represents the array of the given type.
    *
-   * @param pEdge The cfa edge that determines the location in the program.
+   * @param pEdge The CFA edge that determines the location in the program.
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
    * @param pExpression The expression, which evaluates to the value with the given type.
@@ -98,13 +98,13 @@ public class SMGExpressionEvaluator {
    * Get the size of the given type in bits.
    *
    * <p>When handling variable array type length, additionally to the type itself, we also need the
-   * cfa edge to determine the location of the program we currently handle, and the smg state to
+   * CFA edge to determine the location of the program we currently handle, and the SMG state to
    * determine the values of the variables at the current location..
    *
    * <p>This method can't calculate variable array type length for arrays that are not declared in
-   * the cfa edge.
+   * the CFA edge.
    *
-   * @param pEdge The cfa edge that determines the location in the program.
+   * @param pEdge The CFA edge that determines the location in the program.
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
    * @return The size of the given type in bits.
@@ -118,8 +118,8 @@ public class SMGExpressionEvaluator {
       CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression)
       throws CPATransferException {
 
-    if (pType instanceof CBitFieldType) {
-      return ((CBitFieldType) pType).getBitFieldSize();
+    if (pType instanceof CBitFieldType cBitFieldType) {
+      return cBitFieldType.getBitFieldSize();
     }
 
     CSizeOfVisitor v = getSizeOfVisitor(edge, pState, pExpression);
@@ -213,24 +213,24 @@ public class SMGExpressionEvaluator {
 
   private SMGField getField(CType pOwnerType, String pFieldName) {
 
-    if (pOwnerType instanceof CElaboratedType) {
+    if (pOwnerType instanceof CElaboratedType cElaboratedType) {
 
-      CType realType = ((CElaboratedType) pOwnerType).getRealType();
+      CType realType = cElaboratedType.getRealType();
 
       if (realType == null) {
         return SMGField.getUnknownInstance();
       }
 
       return getField(realType, pFieldName);
-    } else if (pOwnerType instanceof CCompositeType) {
-      return getField((CCompositeType) pOwnerType, pFieldName);
-    } else if (pOwnerType instanceof CPointerType) {
+    } else if (pOwnerType instanceof CCompositeType cCompositeType) {
+      return getField(cCompositeType, pFieldName);
+    } else if (pOwnerType instanceof CPointerType cPointerType) {
 
       /* We do not explicitly transform x->b,
       so when we try to get the field b the ownerType of x
       is a pointer type.*/
 
-      CType type = ((CPointerType) pOwnerType).getType();
+      CType type = cPointerType.getType();
 
       type = TypeUtils.getRealExpressionType(type);
 
@@ -408,9 +408,9 @@ public class SMGExpressionEvaluator {
 
     if (expressionType instanceof CPointerType
         || (expressionType instanceof CFunctionType
-            && rValue instanceof CUnaryExpression
-            && ((CUnaryExpression) rValue).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
-      // Cfa treats &foo as CFunctionType
+            && rValue instanceof CUnaryExpression cUnaryExpression
+            && cUnaryExpression.getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
+      // CFA treats &foo as CFunctionType
 
       PointerVisitor visitor = getPointerVisitor(cfaEdge, pState);
       return getAddressFromSymbolicValues(rValue.accept(visitor));
@@ -612,12 +612,12 @@ public class SMGExpressionEvaluator {
   }
 
   /**
-   * Is given a symbolic Value, looks into the smg to determine if the symbolic value represents a
+   * Is given a symbolic Value, looks into the SMG to determine if the symbolic value represents a
    * pointer, and transforms it into a {@link SMGAddressValue} containing the symbolic value that
    * represents the pointer as well as the address the pointer is pointing to.
    *
    * <p>Because all values in C represent an address, and can e cast to a pointer, the method
-   * returns a instance of {@link SMGUnknownValue} if the symbolic value does not represent a
+   * returns an instance of {@link SMGUnknownValue} if the symbolic value does not represent a
    * pointer in the smg.
    *
    * @param pAddressValueAndState This contains the SMG.
@@ -627,15 +627,15 @@ public class SMGExpressionEvaluator {
   List<SMGAddressValueAndState> getAddressFromSymbolicValue(SMGValueAndState pAddressValueAndState)
       throws SMGInconsistentException {
 
-    if (pAddressValueAndState instanceof SMGAddressValueAndState) {
-      return singletonList((SMGAddressValueAndState) pAddressValueAndState);
+    if (pAddressValueAndState instanceof SMGAddressValueAndState sMGAddressValueAndState) {
+      return singletonList(sMGAddressValueAndState);
     }
 
     SMGValue pAddressValue = pAddressValueAndState.getObject();
     SMGState smgState = pAddressValueAndState.getSmgState();
 
-    if (pAddressValue instanceof SMGAddressValue) {
-      return singletonList(SMGAddressValueAndState.of(smgState, (SMGAddressValue) pAddressValue));
+    if (pAddressValue instanceof SMGAddressValue sMGAddressValue) {
+      return singletonList(SMGAddressValueAndState.of(smgState, sMGAddressValue));
     }
 
     if (pAddressValue.isUnknown()) {
@@ -667,7 +667,7 @@ public class SMGExpressionEvaluator {
 
   /*
    * These Methods are designed to be overwritten to enable
-   * sub classes to, for example, change the smgState while
+   * subclasses to, for example, change the smgState while
    * evaluating expressions.
    *
    */

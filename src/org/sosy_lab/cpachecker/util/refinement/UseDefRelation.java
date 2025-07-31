@@ -302,12 +302,12 @@ public class UseDefRelation {
     CBinaryExpression binaryExpression = ((CBinaryExpression) expression);
 
     ASimpleDeclaration operand = null;
-    if (binaryExpression.getOperand1() instanceof CIdExpression
+    if (binaryExpression.getOperand1() instanceof CIdExpression cIdExpression
         && binaryExpression.getOperand2() instanceof CLiteralExpression) {
-      operand = ((CIdExpression) binaryExpression.getOperand1()).getDeclaration();
-    } else if (binaryExpression.getOperand2() instanceof CIdExpression
+      operand = cIdExpression.getDeclaration();
+    } else if (binaryExpression.getOperand2() instanceof CIdExpression cIdExpression
         && binaryExpression.getOperand1() instanceof CLiteralExpression) {
-      operand = ((CIdExpression) binaryExpression.getOperand2()).getDeclaration();
+      operand = cIdExpression.getDeclaration();
     }
 
     if (isEquality(assumeEdge, binaryExpression.getOperator()) && hasUnresolvedUse(operand)) {
@@ -365,22 +365,21 @@ public class UseDefRelation {
    * initializer.
    */
   private Set<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer initializer) {
-    if (initializer instanceof CDesignatedInitializer) {
+    if (initializer instanceof CDesignatedInitializer cDesignatedInitializer) {
       // e.g. .x=b or .p.x.=1  as part of struct initialization
-      return getVariablesUsedForInitialization(
-          ((CDesignatedInitializer) initializer).getRightHandSide());
+      return getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide());
 
-    } else if (initializer instanceof CInitializerList) {
+    } else if (initializer instanceof CInitializerList cInitializerList) {
       // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
       Set<ASimpleDeclaration> readVars = new HashSet<>();
 
-      for (CInitializer initializerList : ((CInitializerList) initializer).getInitializers()) {
+      for (CInitializer initializerList : cInitializerList.getInitializers()) {
         readVars.addAll(getVariablesUsedForInitialization(initializerList));
       }
 
       return readVars;
-    } else if (initializer instanceof AInitializerExpression) {
-      return acceptAll(((AInitializerExpression) initializer).getExpression());
+    } else if (initializer instanceof AInitializerExpression aInitializerExpression) {
+      return acceptAll(aInitializerExpression.getExpression());
     } else {
       throw new AssertionError("Missing case for if-then-else statement.");
     }
@@ -399,7 +398,7 @@ public class UseDefRelation {
 
     /*
         // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
-        // until is is reassigned, and not only a single field
+        // until it is reassigned, and not only a single field
         // if assigned variable is resolving a dependency
         if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
           // hack to handle assignments of structs (keeps the whole struct in use all the time)
@@ -419,7 +418,7 @@ public class UseDefRelation {
       // to the needed one (e.g. a[i] i is additionally) are added as dependency
 
       Set<ASimpleDeclaration> rightHandSideUses;
-      // all variables of the right hand side are "used" afterwards
+      // all variables of the right hand side are "used" afterward
       if (assignment instanceof AExpressionAssignmentStatement) {
         rightHandSideUses = acceptAll((AExpression) assignment.getRightHandSide());
       } else if (assignment instanceof AFunctionCallAssignmentStatement funcStmt) {

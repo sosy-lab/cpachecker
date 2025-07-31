@@ -695,8 +695,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 }

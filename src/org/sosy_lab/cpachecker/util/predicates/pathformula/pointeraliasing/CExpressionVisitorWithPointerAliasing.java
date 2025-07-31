@@ -314,11 +314,11 @@ class CExpressionVisitorWithPointerAliasing
     } else {
       // expressing as unaliased location failed, return a corresponding aliased location
       final CType fieldOwnerType = typeHandler.getSimplifiedType(e.getFieldOwner());
-      if (fieldOwnerType instanceof CCompositeType) {
+      if (fieldOwnerType instanceof CCompositeType cCompositeType) {
         // visit the field owner to get the base aliased location
         final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
         // make the field
-        CompositeField field = CompositeField.of((CCompositeType) fieldOwnerType, e.getFieldName());
+        CompositeField field = CompositeField.of(cCompositeType, e.getFieldName());
         // add the field to used fields for use by UF finishing assignments
         usedFields.add(field);
         // apply the field offset to base aliased location
@@ -387,7 +387,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   /**
-   * Evaluates the expression of a identification expression.
+   * Evaluates the expression of an identification expression.
    *
    * @param e The C id expression.
    * @return The expression.
@@ -415,7 +415,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   /**
-   * Evaluates the value of an unary expression in C.
+   * Evaluates the value of a unary expression in C.
    *
    * @param e The C expression.
    * @return The value of the expression.
@@ -429,9 +429,8 @@ class CExpressionVisitorWithPointerAliasing
       BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
       final Variable baseVariable = operand.accept(baseVisitor);
       // Whether the addressed location was previously aliased (tracked with UFs)
-      // If it was, there was no base variable/prefix used to hold its value and we simply return
-      // the
-      // aliased location
+      // If it was, there was no base variable/prefix used to hold its value, and we simply return
+      // the aliased location.
       // Otherwise, we should make it aliased by importing the value into the UF
       // There is an exception, though: arrays in function parameters are tracked as variables
       // (unaliased locations),
@@ -465,7 +464,7 @@ class CExpressionVisitorWithPointerAliasing
 
         if (errorConditions.isEnabled() && operand instanceof CFieldReference field) {
           // for &(s->f) and &((*s).f) do special case because the pointer is
-          // not actually dereferenced and thus we don't want to add error conditions
+          // not actually dereferenced, and thus we don't want to add error conditions
           // for invalid-deref
           CExpression fieldOwner = field.getFieldOwner();
           boolean isDeref = field.isPointerDereference();
@@ -502,9 +501,9 @@ class CExpressionVisitorWithPointerAliasing
         usedFields.addAll(alreadyUsedFields);
 
         return Value.ofValue(addressExpression.getAddress());
-      } else if (operand instanceof CIdExpression
+      } else if (operand instanceof CIdExpression cIdExpression
           && typeHandler.simplifyType(operand.getExpressionType()) instanceof CArrayType
-          && ((CIdExpression) operand).getDeclaration() instanceof CParameterDeclaration) {
+          && cIdExpression.getDeclaration() instanceof CParameterDeclaration) {
         return Value.ofValue(dereference(operand, operand.accept(this)).getAddress());
       } else {
         final Variable base = baseVisitor.getLastBase();
@@ -621,8 +620,8 @@ class CExpressionVisitorWithPointerAliasing
     final CExpression functionNameExpression = e.getFunctionNameExpression();
 
     // First let's handle special cases such as allocations
-    if (functionNameExpression instanceof CIdExpression) {
-      final String functionName = ((CIdExpression) functionNameExpression).getName();
+    if (functionNameExpression instanceof CIdExpression cIdExpression) {
+      final String functionName = cIdExpression.getName();
 
       if (conv.options.isDynamicMemoryFunction(functionName)) {
         DynamicMemoryHandler memoryHandler =
@@ -635,7 +634,7 @@ class CExpressionVisitorWithPointerAliasing
         }
       }
 
-      // modf, modff, and modfl raise a side-effect by writing
+      // modf, modff, and modfl raise a side effect by writing
       // the integral part of their first parameter into the
       // pointer-address given as the second parameter,
       // which is handled here
@@ -725,7 +724,7 @@ class CExpressionVisitorWithPointerAliasing
               memoryFunctionHandler.handleMemoryAssignmentFunction(functionName, e);
           // Result value creation
 
-          // all of the functions just return destination
+          // all the functions just return destination
           // we convert the destination to a formula, and return it as a value
           AliasedLocation destinationAsAliasedLocation =
               dereference(resultExpression, resultExpression.accept(this));
@@ -805,8 +804,8 @@ class CExpressionVisitorWithPointerAliasing
     long maxIndex = conv.options.maxPreciseStrFunctionSize();
     if (hasBounds) {
       CExpression size = parameters.get(2);
-      if (size instanceof CIntegerLiteralExpression) {
-        maxIndex = Math.min(maxIndex, ((CIntegerLiteralExpression) size).asLong());
+      if (size instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        maxIndex = Math.min(maxIndex, cIntegerLiteralExpression.asLong());
       }
       sizeType = e.getDeclaration().getParameters().get(2).getType().getCanonicalType();
       sizeFormula = asValueFormula(size.accept(this), sizeType);
@@ -827,7 +826,7 @@ class CExpressionVisitorWithPointerAliasing
     // ...)". Furthermore, additional clauses at each recursive step check for the string end
     // (in case of strcmp/strncmp) or "cut off" the chain if the bound is reached (in case of
     // strncmp/memcmp).
-    // Creating these constraints is done starting with the inner-most term (with highest index).
+    // Creating these constraints is done starting with the innermost term (with highest index).
     // We also need a base case for the recursive constraints, and this needs to make our bounded
     // approximation sound: if the strings are longer than our approximation bound and equal up to
     // the approximation bound, we need to make both constraints have nondeterministic value.

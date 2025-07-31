@@ -47,7 +47,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   /**
    * Returns an immutable copy of this {@link CfaNetwork}.
    *
-   * <p>Due to it's immutability, it's possible to use a more efficient internal representation,
+   * <p>Due to its immutability, it's possible to use a more efficient internal representation,
    * which can improve performance.
    *
    * @return an immutable copy of this {@link CfaNetwork}.

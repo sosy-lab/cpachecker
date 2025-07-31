@@ -150,7 +150,7 @@ public class ARGUtils {
           return true;
         }
         CFAEdge edgeToFirstChild = edgesToFirstChild.iterator().next();
-        if (!(edgeToFirstChild instanceof AssumeEdge)) {
+        if (!(edgeToFirstChild instanceof AssumeEdge assumeEdge)) {
           return true;
         }
         List<CFAEdge> edgesToSecondChild = current.getEdgesToChild(secondChild);
@@ -161,8 +161,7 @@ public class ARGUtils {
         if (!(edgeToSecondChild instanceof AssumeEdge)) {
           return true;
         }
-        if (!CFAUtils.getComplimentaryAssumeEdge((AssumeEdge) edgeToFirstChild)
-            .equals(edgeToSecondChild)) {
+        if (!CFAUtils.getComplimentaryAssumeEdge(assumeEdge).equals(edgeToSecondChild)) {
           return true;
         }
       }
@@ -1058,8 +1057,8 @@ public class ARGUtils {
         CFANode edgeSuccessor = edge.getSuccessor();
 
         // skip function calls
-        if (edge instanceof FunctionCallEdge) {
-          CFANode sumEdgeSuccessor = ((FunctionCallEdge) edge).getReturnNode();
+        if (edge instanceof FunctionCallEdge functionCallEdge) {
+          CFANode sumEdgeSuccessor = functionCallEdge.getReturnNode();
 
           // only continue if we do not meet the loophead again
           if (!sumEdgeSuccessor.equals(loopHead)) {
@@ -1108,7 +1107,7 @@ public class ARGUtils {
               || !AbstractStates.extractLocation(outOfLoopState).equals(edgeSuccessor)) {
             sb.append("STOP;\n");
 
-            // here we go out of the loop back to the arg path
+            // here we go out of the loop back to the ARG path
           } else {
             handleGotoArg(sb, outOfLoopState);
           }
@@ -1214,9 +1213,9 @@ public class ARGUtils {
    *       issue is fixed, the prefix "try" should be removed from the function name and the return
    *       type should be changed to {@link CounterexampleInfo}.
    *   <li>If no counterexample is registered for the state yet, this function uses a heuristic for
-   *       determining whether or not the counterexample should be marked as imprecise. Currently,
-   *       this heuristic will simply always mark a counterexample as feasible if and only if the
-   *       analysis used consists of either a ValueAnalysisCPA or a SMGCPA.
+   *       determining whether the counterexample should be marked as imprecise. Currently, this
+   *       heuristic will simply always mark a counterexample as feasible if and only if the
+   *       analysis used consists of either a ValueAnalysisCPA or an SMGCPA.
    * </ol>
    *
    * @param pTargetState the target state to get the counterexample for.

@@ -55,7 +55,7 @@ public abstract class ARGSubtreeRemover {
 
   /**
    * Update the reached-sets such that the subtree below the given state is removed and the state
-   * itself is updated with the new precision. The sub-class can decide how many other states are
+   * itself is updated with the new precision. The subclass can decide how many other states are
    * updated and whether the cache is touched.
    */
   abstract void removeSubtree(

@@ -89,9 +89,8 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
                       "Malformed pthread_create (not 4 params): %s",
                       pAFunctionCall);
                   checkState(
-                      params.get(2) instanceof CUnaryExpression
-                          && ((CUnaryExpression) params.get(2)).getOperator()
-                              == UnaryOperator.AMPER,
+                      params.get(2) instanceof CUnaryExpression cUnaryExpression
+                          && cUnaryExpression.getOperator() == UnaryOperator.AMPER,
                       "Malformed pthread_create (Thread not unary expression with reference): %s",
                       params.get(2));
                   checkState(
