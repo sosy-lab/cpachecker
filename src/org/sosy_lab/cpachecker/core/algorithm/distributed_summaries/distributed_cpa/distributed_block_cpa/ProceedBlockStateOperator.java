@@ -8,15 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
-import com.google.common.base.Preconditions;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ProceedBlockStateOperator implements ProceedOperator {
 
@@ -28,24 +25,21 @@ public class ProceedBlockStateOperator implements ProceedOperator {
 
   @Override
   public DssMessageProcessing processForward(AbstractState pState) {
-    Preconditions.checkArgument(
-        pState instanceof BlockState, "Expected BlockState got %s", pState.getClass());
-    if (Objects.equals(AbstractStates.extractLocation(pState), block.getInitialLocation())) {
+    BlockState blockState = (BlockState) pState;
+    CFANode node = blockState.getLocationNode();
+    if (node.equals(block.getInitialLocation())) {
       return DssMessageProcessing.proceed();
-    } else {
-      return DssMessageProcessing.stop();
     }
+    return DssMessageProcessing.stop();
   }
 
   @Override
   public DssMessageProcessing processBackward(AbstractState pState) {
-    Preconditions.checkArgument(
-        pState instanceof BlockState, "Expected BlockState got %s", pState.getClass());
-    CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
-    if (!(node.equals(block.getFinalLocation())
-        || (!node.equals(block.getInitialLocation()) && block.getNodes().contains(node)))) {
-      return DssMessageProcessing.stop();
+    BlockState blockState = (BlockState) pState;
+    CFANode node = blockState.getLocationNode();
+    if (node.equals(block.getFinalLocation())) {
+      return DssMessageProcessing.proceed();
     }
-    return DssMessageProcessing.proceed();
+    return DssMessageProcessing.stop();
   }
 }

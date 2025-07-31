@@ -13,8 +13,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -51,6 +53,10 @@ public class BackwardTransferViolationConditionOperator implements ViolationCond
     }
     for (int i = counterexample.size() - 1; i >= 0; i--) {
       CFAEdge currentEdge = counterexample.get(i);
+      if (currentEdge instanceof BlankEdge blank
+          && blank.getDescription().equals(BlockGraph.GHOST_EDGE_DESCRIPTION)) {
+        continue;
+      }
       Collection<? extends AbstractState> successors =
           transferRelation.getAbstractSuccessorsForEdge(
               state,

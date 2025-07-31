@@ -24,10 +24,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CombineCompositeStateOperator implements CombineOperator {
 
-  private final Map<ConfigurableProgramAnalysis, DistributedConfigurableProgramAnalysis> registered;
+  private final Map<
+          Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
+      registered;
 
   public CombineCompositeStateOperator(
-      Map<ConfigurableProgramAnalysis, DistributedConfigurableProgramAnalysis> pRegistered) {
+      Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
+          pRegistered) {
     registered = pRegistered;
   }
 
@@ -70,8 +73,9 @@ public class CombineCompositeStateOperator implements CombineOperator {
         }
       }
       if (!found) {
-        throw new UnregisteredDistributedCpaError(
-            "Cannot find combination of " + wrappedState.getClass());
+        // TODO: is unsound if the wrapped state is not operated on by any registered CPA
+        // However, AutomatonStates are handled correctly here.
+        combinedStates.add(wrappedState);
       }
     }
     return new CompositeState(combinedStates.build());

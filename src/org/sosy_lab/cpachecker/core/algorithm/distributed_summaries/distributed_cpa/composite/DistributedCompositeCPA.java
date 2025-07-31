@@ -44,6 +44,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   private final SerializeCompositePrecisionOperator serializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
+  private final CombineOperator combineOperator;
 
   private final ImmutableMap<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
@@ -67,6 +68,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     analyses = registered;
     verificationConditionOperator = new CompositeViolationConditionOperator(compositeCPA, analyses);
     coverageOperator = new CompositeStateCoverageOperator(registered);
+    combineOperator = new CombineCompositeStateOperator(registered);
   }
 
   @Override

@@ -46,8 +46,7 @@ public class CompositeViolationConditionOperator implements ViolationConditionOp
     ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : compositeCPA.getWrappedCPAs()) {
       if (!analyses.containsKey(cpa.getClass())) {
-        throw new UnregisteredDistributedCpaError(
-            "Unsupported composite analysis " + cpa.getClass());
+        continue;
       }
       Optional<AbstractState> abstractState =
           Objects.requireNonNull(analyses.get(cpa.getClass()))

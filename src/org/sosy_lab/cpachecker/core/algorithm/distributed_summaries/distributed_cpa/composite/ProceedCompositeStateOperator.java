@@ -33,38 +33,40 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
     stats = pStats;
   }
 
-  @Override
-  public DssMessageProcessing processForward(AbstractState pState)
+  private DssMessageProcessing process(AbstractState pState, ProcessingFunction operator)
       throws InterruptedException, SolverException {
     stats.getProceedTime().start();
+    CompositeState compositeState = (CompositeState) pState;
     DssMessageProcessing processing = DssMessageProcessing.proceed();
-    for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-      processing = processing.merge(value.getProceedOperator().processForward(pState), true);
+    for (AbstractState wrappedState : compositeState.getWrappedStates()) {
+      for (DistributedConfigurableProgramAnalysis dcpa : registered.values()) {
+        if (dcpa.doesOperateOn(wrappedState.getClass())) {
+          processing = processing.merge(operator.apply(dcpa, wrappedState), true);
+          break;
+        }
+      }
     }
     stats.getProceedTime().stop();
     return processing;
   }
 
   @Override
+  public DssMessageProcessing processForward(AbstractState pState)
+      throws InterruptedException, SolverException {
+    return process(
+        pState, (analysis, state) -> analysis.getProceedOperator().processForward(state));
+  }
+
+  @Override
   public DssMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException {
-    stats.getProceedTime().start();
-    CompositeState compositeState = (CompositeState) pState;
-    DssMessageProcessing processing = DssMessageProcessing.proceed();
-    for (AbstractState wrappedState : compositeState.getWrappedStates()) {
-      boolean existsDcpaForState = false;
-      for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-        if (value.doesOperateOn(wrappedState.getClass())) {
-          existsDcpaForState = true;
-          processing =
-              processing.merge(value.getProceedOperator().processBackward(wrappedState), true);
-        }
-      }
-      if (!existsDcpaForState) {
-        throw new UnregisteredDistributedCpaError("Found no Dcpa for " + wrappedState.getClass());
-      }
-    }
-    stats.getProceedTime().stop();
-    return processing;
+    return process(
+        pState, (analysis, state) -> analysis.getProceedOperator().processBackward(state));
+  }
+
+  @FunctionalInterface
+  private interface ProcessingFunction {
+    DssMessageProcessing apply(DistributedConfigurableProgramAnalysis analysis, AbstractState state)
+        throws InterruptedException, SolverException;
   }
 }

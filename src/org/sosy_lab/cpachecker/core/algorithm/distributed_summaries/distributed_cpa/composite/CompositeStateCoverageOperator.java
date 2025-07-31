@@ -43,20 +43,15 @@ public class CompositeStateCoverageOperator implements CoverageOperator {
     for (AbstractState wrapped : compositeState1.getWrappedStates()) {
       firstState.put(wrapped.getClass(), wrapped);
     }
+    // TODO: ignores states of cpas that are not registered
     Map<Class<? extends AbstractState>, AbstractState> firstStateMap = firstState.buildOrThrow();
     for (AbstractState wrapped : compositeState2.getWrappedStates()) {
-      boolean hasRegisteredDcpa = false;
       for (DistributedConfigurableProgramAnalysis dcpa : registered.values()) {
         if (dcpa.doesOperateOn(wrapped.getClass())) {
-          hasRegisteredDcpa = true;
           if (!dcpa.getCoverageOperator().covers(firstStateMap.get(wrapped.getClass()), wrapped)) {
             return false;
           }
         }
-      }
-      if (!hasRegisteredDcpa) {
-        throw new UnregisteredDistributedCpaError(
-            "Could not find any registered composite state for " + wrapped.getClass());
       }
     }
     return true;

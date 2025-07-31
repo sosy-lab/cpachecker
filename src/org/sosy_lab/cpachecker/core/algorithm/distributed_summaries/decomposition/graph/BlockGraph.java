@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockGraph {
 
-  static final String GHOST_EDGE_DESCRIPTION = "<<ghost-edge>>";
+  public static final String GHOST_EDGE_DESCRIPTION = "<<ghost-edge>>";
 
   public static final String ROOT_ID = "root";
   private final ImmutableSet<BlockNode> nodes;

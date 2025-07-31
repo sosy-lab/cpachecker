@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 
@@ -49,11 +50,15 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
       stats.getDeserializationTime().start();
       List<AbstractState> states = new ArrayList<>();
       for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
-        if (!registered.containsKey(wrappedCPA.getClass())) {
-          throw new UnregisteredDistributedCpaError("Unregistered cpa " + wrappedCPA.getClass());
+        if (registered.containsKey(wrappedCPA.getClass())) {
+          DistributedConfigurableProgramAnalysis entry = registered.get(wrappedCPA.getClass());
+          states.add(entry.getDeserializeOperator().deserialize(pMessage));
+        } else {
+          states.add(
+              wrappedCPA.getInitialState(
+                  DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
+                  StateSpacePartition.getDefaultPartition()));
         }
-        DistributedConfigurableProgramAnalysis entry = registered.get(wrappedCPA.getClass());
-        states.add(entry.getDeserializeOperator().deserialize(pMessage));
       }
       return new CompositeState(states);
     } finally {
