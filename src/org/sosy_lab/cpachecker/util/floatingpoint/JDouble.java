@@ -48,17 +48,13 @@ class JDouble extends CFloat {
   }
 
   private double parseDouble(String repr) {
-    if ("-nan".equals(repr)) {
-      return Double.longBitsToDouble(0xFFF8000000000000L);
-    } else if ("nan".equals(repr)) {
-      return Double.NaN;
-    } else if ("-inf".equals(repr)) {
-      return Double.NEGATIVE_INFINITY;
-    } else if ("inf".equals(repr)) {
-      return Double.POSITIVE_INFINITY;
-    } else {
-      return Double.parseDouble(repr);
-    }
+    return switch (repr) {
+      case "-nan" -> Double.longBitsToDouble(0xFFF8000000000000L);
+      case "nan" -> Double.NaN;
+      case "-inf" -> Double.NEGATIVE_INFINITY;
+      case "inf" -> Double.POSITIVE_INFINITY;
+      default -> Double.parseDouble(repr);
+    };
   }
 
   @Override

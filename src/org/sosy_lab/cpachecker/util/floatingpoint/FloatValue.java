@@ -2968,14 +2968,19 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public static FloatValue fromString(Format pFormat, String pInput) {
     Preconditions.checkArgument(!pInput.isEmpty());
 
-    if (pInput.equals("inf")) {
-      return infinity(pFormat);
-    } else if (pInput.equals("-inf")) {
-      return negativeInfinity(pFormat);
-    } else if (pInput.equals("nan")) {
-      return nan(pFormat);
-    } else if (pInput.equals("-nan")) {
-      return nan(pFormat).negate();
+    switch (pInput) {
+      case "inf" -> {
+        return infinity(pFormat);
+      }
+      case "-inf" -> {
+        return negativeInfinity(pFormat);
+      }
+      case "nan" -> {
+        return nan(pFormat);
+      }
+      case "-nan" -> {
+        return nan(pFormat).negate();
+      }
     }
     pInput = Ascii.toLowerCase(pInput);
 

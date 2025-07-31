@@ -778,17 +778,13 @@ public class FloatValueTest {
   }
 
   private BigFloat parseBigFloat(BinaryMathContext context, String repr) {
-    if ("nan".equals(repr)) {
-      return BigFloat.NaN(context.precision);
-    } else if ("-nan".equals(repr)) {
-      return BigFloat.NaN(context.precision).negate();
-    } else if ("-inf".equals(repr)) {
-      return BigFloat.negativeInfinity(context.precision);
-    } else if ("inf".equals(repr)) {
-      return BigFloat.positiveInfinity(context.precision);
-    } else {
-      return new BigFloat(repr, context);
-    }
+    return switch (repr) {
+      case "nan" -> BigFloat.NaN(context.precision);
+      case "-nan" -> BigFloat.NaN(context.precision).negate();
+      case "-inf" -> BigFloat.negativeInfinity(context.precision);
+      case "inf" -> BigFloat.positiveInfinity(context.precision);
+      default -> new BigFloat(repr, context);
+    };
   }
 
   /** Create a test value for the reference implementation by parsing a String. */
