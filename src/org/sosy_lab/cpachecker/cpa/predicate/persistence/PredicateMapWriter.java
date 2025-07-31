@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -51,12 +52,14 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractYAMLWitnessExporte
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalLoopPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionDeclaration;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionScope;
 
 /**
  * This class writes a set of predicates to a file in the same format that is also used by {@link
@@ -289,11 +292,38 @@ public final class PredicateMapWriter {
 
         for (CFANode cfaNode : pLocation.keySet()) {
           String functionName = cfaNode.getFunctionName();
+          Optional<PrecisionScope> precisionScope;
 
-          Optional<FileLocation> fileLocation =
-              astCfaRelation.getStatementFileLocationForNode(cfaNode);
+          if (cfaNode.isLoopStart()) {
+            Optional<IterationElement> iterationStructure =
+                astCfaRelation.getTightestIterationStructureForNode(cfaNode);
 
-          if (fileLocation.isEmpty()) {
+            if (iterationStructure.isEmpty()) {
+              precisionScope = Optional.empty();
+            } else {
+              FileLocation fileLocation =
+                  iterationStructure.orElseThrow().getCompleteElement().location();
+              precisionScope =
+                  Optional.of(
+                      new LocalLoopPrecisionScope(
+                          LocationRecord.createLocationRecordAtStart(fileLocation, functionName)));
+            }
+
+          } else {
+            Optional<FileLocation> fileLocation =
+                astCfaRelation.getStatementFileLocationForNode(cfaNode);
+            if (fileLocation.isEmpty()) {
+              precisionScope = Optional.empty();
+            } else {
+              precisionScope =
+                  Optional.of(
+                      new LocalPrecisionScope(
+                          LocationRecord.createLocationRecordAtStart(
+                              fileLocation.orElseThrow(), functionName)));
+            }
+          }
+
+          if (precisionScope.isEmpty()) {
             // TODO: This should never happen, it is a bug in the AST-CFA relation.
 
             // As a workaround, we export the predicates as function-scoped
@@ -319,13 +349,10 @@ public final class PredicateMapWriter {
                         .asList()));
 
           } else {
-
             entriesBuilder.add(
                 new PrecisionExchangeEntry(
                     witnessExpressionType,
-                    new LocalPrecisionScope(
-                        LocationRecord.createLocationRecordAtStart(
-                            fileLocation.orElseThrow(), cfaNode.getFunctionName())),
+                    precisionScope.orElseThrow(),
                     FluentIterable.from(pLocation.get(cfaNode))
                         .transform(
                             pFormula ->
