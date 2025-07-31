@@ -1529,11 +1529,7 @@ public class AssumptionToEdgeAllocator {
                 : new LogManagerWithoutDuplicates(logger);
         Value castValue =
             AbstractExpressionValueVisitor.castCValue(
-                new NumericValue(pIntegerValue),
-                pType,
-                machineModel,
-                logManager,
-                FileLocation.DUMMY);
+                new NumericValue(pIntegerValue), pType, machineModel, logManager);
         if (castValue.isUnknown()) {
           return UnknownValueLiteral.getInstance();
         }

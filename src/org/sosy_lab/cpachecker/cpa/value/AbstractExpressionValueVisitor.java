@@ -203,7 +203,7 @@ public abstract class AbstractExpressionValueVisitor
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     final CType calculationType = binaryExpr.getCalculationType();
 
-    lVal = castCValue(lVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
+    lVal = castCValue(lVal, calculationType, machineModel, logger);
     if (binaryOperator != BinaryOperator.SHIFT_LEFT
         && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
@@ -217,7 +217,7 @@ public abstract class AbstractExpressionValueVisitor
        * or equal to the width of the promoted left operand,
        * the behavior is undefined.
        */
-      rVal = castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
+      rVal = castCValue(rVal, calculationType, machineModel, logger);
     }
 
     if (lVal instanceof FunctionValue || rVal instanceof FunctionValue) {
@@ -257,12 +257,7 @@ public abstract class AbstractExpressionValueVisitor
                 calculationType,
                 machineModel,
                 logger);
-        yield castCValue(
-            result,
-            binaryExpr.getExpressionType(),
-            machineModel,
-            logger,
-            binaryExpr.getFileLocation());
+        yield castCValue(result, binaryExpr.getExpressionType(), machineModel, logger);
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL ->
           comparisonOperation(
@@ -272,7 +267,6 @@ public abstract class AbstractExpressionValueVisitor
               calculationType,
               machineModel,
               logger);
-        // we do not cast here, because 0 and 1 should be small enough for every type.
     };
   }
 
@@ -733,12 +727,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(CCastExpression pE) throws UnrecognizedCodeException {
-    return castCValue(
-        pE.getOperand().accept(this),
-        pE.getExpressionType(),
-        machineModel,
-        logger,
-        pE.getFileLocation());
+    return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel, logger);
   }
 
   @Override
@@ -1929,7 +1918,7 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCodeException {
-    return castCValue(pExp.accept(this), pTargetType, machineModel, logger, pExp.getFileLocation());
+    return castCValue(pExp.accept(this), pTargetType, machineModel, logger);
   }
 
   /**
@@ -1961,15 +1950,13 @@ public abstract class AbstractExpressionValueVisitor
    * @param targetType value will be casted to targetType.
    * @param machineModel contains information about types
    * @param logger for logging
-   * @param fileLocation the location of the corresponding code in the source file
    * @return the casted Value
    */
   public static Value castCValue(
       @NonNull final Value value,
       final CType targetType,
       final MachineModel machineModel,
-      final LogManagerWithoutDuplicates logger,
-      final FileLocation fileLocation) {
+      final LogManagerWithoutDuplicates logger) {
 
     if (!value.isExplicitlyKnown()) {
       return castIfSymbolic(value, targetType);
