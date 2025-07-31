@@ -48,6 +48,7 @@ public abstract class PrecisionScope {
             case GlobalPrecisionScope.GLOBAL_TYPE_IDENTIFIER -> GlobalPrecisionScope.class;
             case FunctionPrecisionScope.FUNCTION_TYPE_IDENTIFIER -> FunctionPrecisionScope.class;
             case LocalPrecisionScope.LOCATION_TYPE_IDENTIFIER -> LocalPrecisionScope.class;
+            case LocalLoopPrecisionScope.LOCATION_TYPE_IDENTIFIER -> LocalLoopPrecisionScope.class;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
           };
 

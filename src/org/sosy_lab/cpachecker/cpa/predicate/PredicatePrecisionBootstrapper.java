@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchange
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalLoopPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionDeclaration;
@@ -473,42 +474,40 @@ public final class PredicatePrecisionBootstrapper {
               continue;
             }
 
-            Deque<String> callStack = new ArrayDeque<>();
-            callStack.push(locationRecord.getFunction());
+            addLocalPrecision(
+                locationRecord,
+                location,
+                pWitnessFile,
+                transformer,
+                precisionExchangeEntry,
+                commonDefinitions,
+                localPredicatesBuilder);
 
-            Scope programScope =
-                switch (cfa.getLanguage()) {
-                  case C -> new CProgramScope(cfa, logger);
-                  default -> DummyScope.getInstance();
-                };
+          } else if (scope instanceof LocalLoopPrecisionScope pLocalLoopPrecisionScope) {
+            LocationRecord locationRecord = pLocalLoopPrecisionScope.getLocation();
 
-            for (String predicateString : precisionExchangeEntry.values()) {
+            Optional<CFANode> location =
+                astCfaRelation.getNodeForIterationStatementLocation(
+                    locationRecord.getLine(), locationRecord.getColumn());
 
-              Optional<BooleanFormula> precisionFormula =
-                  parseLocalPredicate(
-                      precisionExchangeEntry.format(),
-                      predicateString,
-                      commonDefinitions,
-                      locationRecord,
-                      callStack,
-                      programScope,
-                      transformer);
-
-              for (CFANode loc : location) {
-                if (precisionFormula.isEmpty()) {
-                  logger.logf(
-                      Level.WARNING,
-                      "Witness file %s contains an invalid precision formula for location %s, "
-                          + "ignoring it.",
-                      pWitnessFile,
-                      loc);
-                  continue;
-                }
-
-                localPredicatesBuilder.put(
-                    loc, abstractionManager.makePredicate(precisionFormula.orElseThrow()));
-              }
+            if (location.isEmpty()) {
+              logger.logf(
+                  Level.FINE,
+                  "Witness file %s contains a local loop precision scope for location %s, "
+                      + "but the location is not present in the CFA, ignoring it.",
+                  pWitnessFile,
+                  locationRecord);
             }
+
+            addLocalPrecision(
+                locationRecord,
+                ImmutableSet.of(location.orElseThrow()),
+                pWitnessFile,
+                transformer,
+                precisionExchangeEntry,
+                commonDefinitions,
+                localPredicatesBuilder);
+
           } else {
             logger.logf(
                 Level.WARNING,
@@ -528,6 +527,53 @@ public final class PredicatePrecisionBootstrapper {
           "Predicate precision from predicate witness could not be (fully) computed");
     }
     return result;
+  }
+
+  private void addLocalPrecision(
+      LocationRecord pLocationRecord,
+      Set<CFANode> pLocations,
+      Path pWitnessFile,
+      InvariantExchangeFormatTransformer pTransformer,
+      PrecisionExchangeEntry pPrecisionExchangeEntry,
+      String pCommonDefinitions,
+      ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> pLocalPredicatesBuilder)
+      throws InterruptedException {
+    Deque<String> callStack = new ArrayDeque<>();
+    callStack.push(pLocationRecord.getFunction());
+
+    Scope programScope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
+
+    for (String predicateString : pPrecisionExchangeEntry.values()) {
+
+      Optional<BooleanFormula> precisionFormula =
+          parseLocalPredicate(
+              pPrecisionExchangeEntry.format(),
+              predicateString,
+              pCommonDefinitions,
+              pLocationRecord,
+              callStack,
+              programScope,
+              pTransformer);
+
+      for (CFANode loc : pLocations) {
+        if (precisionFormula.isEmpty()) {
+          logger.logf(
+              Level.WARNING,
+              "Witness file %s contains an invalid precision formula for location %s, "
+                  + "ignoring it.",
+              pWitnessFile,
+              loc);
+          continue;
+        }
+
+        pLocalPredicatesBuilder.put(
+            loc, abstractionManager.makePredicate(precisionFormula.orElseThrow()));
+      }
+    }
   }
 
   private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(
