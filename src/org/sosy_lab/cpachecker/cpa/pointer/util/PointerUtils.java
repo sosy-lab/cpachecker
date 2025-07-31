@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 
 public final class PointerUtils {
 
@@ -54,5 +55,13 @@ public final class PointerUtils {
   /** Compares two PointerTarget objects of different types by their class names. */
   public static int compareByType(PointerTarget a, PointerTarget b) {
     return a.getClass().getName().compareTo(b.getClass().getName());
+  }
+
+  public static PointerAnalysisState handleTopAssignmentCase(
+      PointerAnalysisState pState, PointerTarget lhsLocation) {
+    if (pState.getPointsToMap().containsKey(lhsLocation)) {
+      return new PointerAnalysisState(pState.getPointsToMap().removeAndCopy(lhsLocation));
+    }
+    return pState;
   }
 }

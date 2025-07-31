@@ -1517,8 +1517,6 @@ public class ValueAnalysisTransferRelation
     boolean shouldAssign = false;
 
     if (target == null && pLeftHandSide instanceof CPointerExpression pointerExpression) {
-      int derefCounter =
-          PointerAnalysisTransferRelation.determineDerefCounter(pointerExpression, true);
 
       LocationSet directLocation =
           PointerAnalysisTransferRelation.getReferencedLocations(
@@ -1561,8 +1559,6 @@ public class ValueAnalysisTransferRelation
       }
 
       CExpression addressExpression = rhs.getOperand();
-
-      int deferenceCounter = PointerAnalysisTransferRelation.determineDerefCounter(rhs, false);
 
       LocationSet fullSet =
           PointerAnalysisTransferRelation.getReferencedLocations(

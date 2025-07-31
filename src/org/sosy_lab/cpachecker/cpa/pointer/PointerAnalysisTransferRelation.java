@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -393,8 +394,12 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       return pState;
     }
     LocationSet returnLocations = getReferencedLocations(returnExpression, pState, true, pCfaEdge);
+    if (returnLocations.isTop()) {
+      return pState;
+    }
     Optional<MemoryLocation> returnVariable =
         getFunctionReturnVariable(pCfaEdge.getSuccessor().getEntryNode());
+
     return returnVariable
         .map(
             memoryLocation ->
@@ -568,6 +573,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               pCfaEdge.getFileLocation());
           return PointerAnalysisState.BOTTOM_STATE;
         }
+        if (rhsTargets.isTop()) {
+          return PointerUtils.handleTopAssignmentCase(pState, lhsLocation);
+        }
         return new PointerAnalysisState(
             pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
       } else {
@@ -582,6 +590,12 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     Set<PointerTarget> locations = pLhsLocations.getExplicitLocations();
     PointerAnalysisState updatedState = pState;
     for (PointerTarget loc : locations) {
+      if (pRhsTargets.isTop()) {
+        if (updatedState.getPointsToMap().containsKey(loc)) {
+          updatedState = new PointerAnalysisState(pState.getPointsToMap().removeAndCopy(loc));
+        }
+        continue;
+      }
       LocationSet existingSet = updatedState.getPointsToSet(loc);
       LocationSet mergedSet = existingSet.addElements(pRhsTargets);
       updatedState =
@@ -717,7 +731,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
             if (pFieldReference.isPointerDereference()) {
               LocationSet pointees = getReferencedLocations(owner, pState, true, pCfaEdge);
-              // TODO explicit.getSize() >1?
+              // explicit.getSize() >1 -> get set os instanceNames of all possible structs and
+              // unions? (now we will return Top)
               if (pointees instanceof ExplicitLocationSet explicit && explicit.getSize() == 1) {
                 for (PointerTarget target : explicit.getExplicitLocations()) {
                   if (target instanceof MemoryLocationPointer memPtr) {
@@ -883,15 +898,31 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           }
 
           @Override
-          public LocationSet visit(CFunctionCallExpression pFunctionCallExpression) {
-            // TODO
-            return LocationSetTop.INSTANCE;
+          public LocationSet visit(CFunctionCallExpression pFunctionCallExpression)
+              throws CPATransferException {
+            CFunctionDeclaration decl = pFunctionCallExpression.getDeclaration();
+            if (decl != null) {
+              CType returnType = decl.getType().getReturnType().getCanonicalType();
+
+              if (!(returnType instanceof CPointerType)) {
+                return LocationSetBot.INSTANCE;
+              }
+              MemoryLocation functionReturnLocation = MemoryLocation.forDeclaration(decl);
+              MemoryLocationPointer returnPtr = new MemoryLocationPointer(functionReturnLocation);
+              return pState.getPointsToSet(returnPtr);
+            } else {
+              return LocationSetTop.INSTANCE;
+            }
           }
 
           @Override
-          public LocationSet visit(CComplexCastExpression complexCastExpression) {
-            // TODO
-            return LocationSetBot.INSTANCE;
+          public LocationSet visit(CComplexCastExpression complexCastExpression)
+              throws CPATransferException {
+            CRightHandSide operand = complexCastExpression.getOperand();
+            if (isNullPointer(operand)) {
+              return ExplicitLocationSet.fromNull();
+            }
+            return getReferencedLocations(operand, pState, shouldDereference, pCfaEdge);
           }
 
           private LocationSet dereference(LocationSet set) {
@@ -946,5 +977,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     }
     return pExpression instanceof CIntegerLiteralExpression intLiteral
         && intLiteral.getValue().longValue() == 0;
+  }
+
+  private static boolean isNullPointer(CRightHandSide pRhs) {
+    return (pRhs instanceof CExpression cExpr) && isNullPointer(cExpr);
   }
 }

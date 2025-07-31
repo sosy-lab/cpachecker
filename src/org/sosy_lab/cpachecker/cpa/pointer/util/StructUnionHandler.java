@@ -69,6 +69,9 @@ public class StructUnionHandler {
               pCfaEdge.getFileLocation());
           return PointerAnalysisState.BOTTOM_STATE;
         }
+        if (rhsTargets.isTop()) {
+          return PointerUtils.handleTopAssignmentCase(pState, lhsLocation);
+        }
 
         if (strategy == StructHandlingStrategy.JUST_STRUCT) {
           LocationSet existingSet = pState.getPointsToSet(lhsLocation);
@@ -121,6 +124,9 @@ public class StructUnionHandler {
               pCfaEdge.getFileLocation());
           return PointerAnalysisState.BOTTOM_STATE;
         }
+        if (rhsTargets.isTop()) {
+          return PointerUtils.handleTopAssignmentCase(pState, lhsLocation);
+        }
 
         if (strategy == StructHandlingStrategy.ALL_FIELDS) {
           return new PointerAnalysisState(
@@ -154,6 +160,12 @@ public class StructUnionHandler {
     PointerAnalysisState updatedState = pState;
 
     for (PointerTarget loc : locations) {
+      if (pRhsTargets.isTop()) {
+        if (updatedState.getPointsToMap().containsKey(loc)) {
+          updatedState = new PointerAnalysisState(pState.getPointsToMap().removeAndCopy(loc));
+        }
+        continue;
+      }
       boolean mergeTargetsOfUnions = isUnion && strategy == StructHandlingStrategy.JUST_STRUCT;
       boolean mergeTargetsOfStructs = !isUnion && strategy != StructHandlingStrategy.ALL_FIELDS;
       boolean shouldMerge = mergeTargetsOfUnions || mergeTargetsOfStructs;
