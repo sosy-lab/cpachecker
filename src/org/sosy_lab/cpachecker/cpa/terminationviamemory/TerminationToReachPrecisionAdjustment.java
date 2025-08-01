@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import com.google.common.base.Function;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustment {
@@ -91,7 +93,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             buildCycleFormula(
                 buildFullPathFormula(terminationState.getPathFormulas()),
                 terminationState.getStoredValues().get(locationState),
-                ssaMap,
                 i);
         try {
           isTargetStateReachable = !solver.isUnsat(targetFormula);
@@ -128,31 +129,27 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private BooleanFormula buildCycleFormula(
       BooleanFormula pFullPathFormula,
       List<BooleanFormula> storedValues,
-      SSAMap pSSAMap,
       int pSSAIndex) {
     BooleanFormula cycle = pFullPathFormula;
     BooleanFormula extendedFormula;
+    Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pFullPathFormula);
 
     cycle = bfmgr.and(cycle, storedValues.get(pSSAIndex));
-    for (String variable : pSSAMap.allVariables()) {
-      String newVariable = "__Q__" + variable;
+    for (String variable : mapNamesToFormulas.keySet()) {
+      String newVariable = "__Q__" + fmgr.uninstantiate(mapNamesToFormulas.get(variable)).toString().replace("@", "");
       extendedFormula =
           fmgr.assignment(
-              fmgr.makeVariable(
-                  ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
-                  newVariable,
-                  pSSAIndex),
-              fmgr.makeVariable(
-                  ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
-                  variable,
-                  pSSAMap.getIndex(variable)));
+            fmgr.makeVariable(
+                fmgr.getFormulaType(mapNamesToFormulas.get(variable)),
+                newVariable,
+                pSSAIndex),
+            mapNamesToFormulas.get(variable));
       cycle = bfmgr.and(cycle, extendedFormula);
     }
     return cycle;
   }
 
-  private BooleanFormula buildFullPathFormula(Set<BooleanFormula> pPathFormulas) {
-    List<BooleanFormula> formulas = new ArrayList<>(pPathFormulas);
-    return bfmgr.and(formulas);
+  private BooleanFormula buildFullPathFormula(List<BooleanFormula> pPathFormulas) {
+    return bfmgr.and(pPathFormulas);
   }
 }

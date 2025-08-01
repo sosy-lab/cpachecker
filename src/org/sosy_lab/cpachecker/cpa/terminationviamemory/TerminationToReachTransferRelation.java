@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -26,6 +28,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFo
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
@@ -50,7 +53,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         new TerminationToReachState(
             new HashMap<>(terminationState.getStoredValues()),
             new HashMap<>(terminationState.getNumberOfIterationsMap()),
-            new HashSet<>(terminationState.getPathFormulas())));
+            new ArrayList<>(terminationState.getPathFormulas())));
   }
 
   @Override
@@ -70,18 +73,17 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
     if (location.isLoopStart()) {
-      SSAMap currentValues = predicateState.getPathFormula().getSsa();
       if (terminationState.getStoredValues().containsKey(locationState)) {
         newConstraintformula =
             constructConstraintFormula(
-                currentValues, terminationState.getNumberOfIterationsAtLoopHead(locationState));
+                terminationState.getNumberOfIterationsAtLoopHead(locationState), predicateState.getPathFormula().getFormula());
         terminationState.setNewStoredValues(
             locationState,
             newConstraintformula,
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       } else {
-        newConstraintformula = constructConstraintFormula(currentValues, 0);
+        newConstraintformula = constructConstraintFormula(0, predicateState.getPathFormula().getFormula());
         terminationState.setNewStoredValues(locationState, newConstraintformula, 0);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       }
@@ -95,22 +97,20 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
    * are of the form __Q__[name of variable][number of loop iterations].
    */
   private BooleanFormula constructConstraintFormula(
-      SSAMap pSSAMap, int pNumberOfIterationsAtLoopHead) {
+      int pNumberOfIterationsAtLoopHead, BooleanFormula pPathFormula) {
     BooleanFormula extendedFormula = bfmgr.makeTrue();
-    for (String variable : pSSAMap.allVariables()) {
-      String newVariable = "__Q__" + variable;
+    Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pPathFormula);
+    for (String variable : mapNamesToFormulas.keySet()) {
+      String newVariable = "__Q__" + fmgr.uninstantiate(mapNamesToFormulas.get(variable)).toString().replace("@", "");
       extendedFormula =
-          bfmgr.and(
+          fmgr.makeAnd(
               extendedFormula,
               fmgr.assignment(
                   fmgr.makeVariable(
-                      ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                      fmgr.getFormulaType(mapNamesToFormulas.get(variable)),
                       newVariable,
                       pNumberOfIterationsAtLoopHead),
-                  fmgr.makeVariable(
-                      ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
-                      variable,
-                      pSSAMap.getIndex(variable))));
+                  mapNamesToFormulas.get(variable)));
     }
     return extendedFormula;
   }

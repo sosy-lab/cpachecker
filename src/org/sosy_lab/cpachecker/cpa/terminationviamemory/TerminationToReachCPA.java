@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * visiting state.
  */
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
+  private final Solver solver;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PrecisionAdjustment precisionAdjustment;
@@ -54,36 +56,34 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       CFA pCFA)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
-    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaEncodingWithPointerAliasingOptions options =
         new FormulaEncodingWithPointerAliasingOptions(pConfiguration);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
-    fmgr = solver.getFormulaManager();
-    bfmgr = fmgr.getBooleanFormulaManager();
-    TypeHandlerWithPointerAliasing ctoFormulaTypeHandler =
-        new TypeHandlerWithPointerAliasing(pLogger, pCFA.getMachineModel(), options);
-    ctoFormulaConverter =
-        new CToFormulaConverterWithPointerAliasing(
-            options,
-            fmgr,
-            pCFA.getMachineModel(),
-            pCFA.getVarClassification(),
-            pLogger,
-            pShutdownNotifier,
-            ctoFormulaTypeHandler,
-            AnalysisDirection.FORWARD);
     try {
-      FormulaManagerView predFmgr;
       if (SerializationInfoStorage.isSet()) {
-        predFmgr = SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
+        solver = SerializationInfoStorage.getInstance().getPredicateSolver();
       } else {
         // This should never be triggered because TerminationCPA can only run with predicateCPA
         // and cpa.predicate.enableSharedInformation set to true.
-        predFmgr = fmgr;
+        solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
       }
+      fmgr = solver.getFormulaManager();
+      bfmgr = fmgr.getBooleanFormulaManager();
+      TypeHandlerWithPointerAliasing ctoFormulaTypeHandler =
+          new TypeHandlerWithPointerAliasing(pLogger, pCFA.getMachineModel(), options);
+      ctoFormulaConverter =
+          new CToFormulaConverterWithPointerAliasing(
+              options,
+              fmgr,
+              pCFA.getMachineModel(),
+              pCFA.getVarClassification(),
+              pLogger,
+              pShutdownNotifier,
+              ctoFormulaTypeHandler,
+              AnalysisDirection.FORWARD);
       precisionAdjustment =
           new TerminationToReachPrecisionAdjustment(
-              solver, statistics, pCFA, bfmgr, fmgr, predFmgr, ctoFormulaConverter);
+              solver, statistics, pCFA, bfmgr, fmgr, fmgr, ctoFormulaConverter);
     } finally {
       if (SerializationInfoStorage.isSet()) {
         SerializationInfoStorage.clear();
@@ -103,7 +103,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new HashSet<>());
+    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new ArrayList<>());
   }
 
   @Override
