@@ -33,15 +33,12 @@ import org.sosy_lab.java_smt.api.Formula;
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
 
   public TerminationToReachTransferRelation(
       BooleanFormulaManagerView pBfmgr,
-      FormulaManagerView pFmgr,
-      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
+      FormulaManagerView pFmgr) {
     fmgr = pFmgr;
     bfmgr = pBfmgr;
-    ctoFormulaConverter = pCtoFormulaConverter;
   }
 
   @Override

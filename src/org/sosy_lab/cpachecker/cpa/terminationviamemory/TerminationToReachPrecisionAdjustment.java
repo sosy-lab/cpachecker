@@ -41,8 +41,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final Solver solver;
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
-  private final FormulaManagerView predFmgr;
-  private final CtoFormulaConverter ctoFormulaConverter;
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
 
@@ -51,16 +49,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       TerminationToReachStatistics pStatistics,
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
-      FormulaManagerView pFmgr,
-      FormulaManagerView pPredFmgr,
-      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
+      FormulaManagerView pFmgr) {
     solver = pSolver;
     statistics = pStatistics;
     cfa = pCFA;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
-    predFmgr = pPredFmgr;
-    ctoFormulaConverter = pCtoFormulaConverter;
   }
 
   @Override
@@ -82,8 +76,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
 
     if (location.isLoopStart() && terminationState.getStoredValues().containsKey(locationState)) {
-      terminationState.putNewPathFormula(
-          fmgr.translateFrom(predicateState.getPathFormula().getFormula(), predFmgr));
+      terminationState.putNewPathFormula(predicateState.getPathFormula().getFormula());
 
       for (int i = 0;
           i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1;

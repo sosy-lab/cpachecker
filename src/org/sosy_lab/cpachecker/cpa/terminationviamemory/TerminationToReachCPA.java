@@ -46,7 +46,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PrecisionAdjustment precisionAdjustment;
-  private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
   private final TerminationToReachStatistics statistics;
 
   public TerminationToReachCPA(
@@ -69,21 +68,9 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       }
       fmgr = solver.getFormulaManager();
       bfmgr = fmgr.getBooleanFormulaManager();
-      TypeHandlerWithPointerAliasing ctoFormulaTypeHandler =
-          new TypeHandlerWithPointerAliasing(pLogger, pCFA.getMachineModel(), options);
-      ctoFormulaConverter =
-          new CToFormulaConverterWithPointerAliasing(
-              options,
-              fmgr,
-              pCFA.getMachineModel(),
-              pCFA.getVarClassification(),
-              pLogger,
-              pShutdownNotifier,
-              ctoFormulaTypeHandler,
-              AnalysisDirection.FORWARD);
       precisionAdjustment =
           new TerminationToReachPrecisionAdjustment(
-              solver, statistics, pCFA, bfmgr, fmgr, fmgr, ctoFormulaConverter);
+              solver, statistics, pCFA, bfmgr, fmgr);
     } finally {
       if (SerializationInfoStorage.isSet()) {
         SerializationInfoStorage.clear();
@@ -97,7 +84,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new TerminationToReachTransferRelation(bfmgr, fmgr, ctoFormulaConverter);
+    return new TerminationToReachTransferRelation(bfmgr, fmgr);
   }
 
   @Override
