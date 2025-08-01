@@ -16,30 +16,38 @@
         type: loop_invariant
         location:
           # file_name: array1_pattern.c
-          line: 74
+          line: 83
           column: 2
           function: main 
-        value: "sum == ACSL(_L_SUM(array1, array2, count))"
+        value: "sum1 == ACSL(_L_SUM(array1, count))"
         format: c_expression
     - invariant:
         type: loop_invariant
         location:
           # file_name: array1_pattern.c
-          line: 74
+          line: 83
+          column: 2
+          function: main 
+        value: "sum2 == ACSL(_L_SUM_2(array2, count))"
+        format: c_expression
+    - invariant:
+        type: loop_invariant
+        location:
+          # file_name: array1_pattern.c
+          line: 86
           column: 2
           function: main 
         value: "0 <= count <= ARR_SIZE"
         format: c_expression
 - entry_type: lemma_set
   declarations: 
-    - "int _L_SUM(int* A1, int* A2, int C)"
-    - "int* A1"
-    - "int* A2"
+    - "int _L_SUM(int* A, int C)"
+    - "int* A"
     - "int C"
   content:
     - lemma:
-        value: "ACSL(_L_SUM(A1, A2, 0)) == 0"
+        value: "ACSL(_L_SUM(A, 0)) == 0"
         format: c_expression
     - lemma:
-        value: "ACSL(_L_SUM(A1, A2, C)) == ACSL(_L_SUM(A1, A2, C-1)) + A1[C] + A2[C]"
+        value: "ACSL(_L_SUM(A, C)) == ACSL(_L_SUM(A, C-1)) + A[C] * A[C]"
         format: c_expression
