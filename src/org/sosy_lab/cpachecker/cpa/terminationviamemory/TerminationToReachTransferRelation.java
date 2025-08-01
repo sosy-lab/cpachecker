@@ -13,7 +13,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -96,18 +95,15 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       int pNumberOfIterationsAtLoopHead, BooleanFormula pPathFormula) {
     BooleanFormula extendedFormula = bfmgr.makeTrue();
     Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pPathFormula);
-    for (Entry<String, Formula> variable : mapNamesToFormulas.entrySet()) {
-      String newVariable =
-          "__Q__" + fmgr.uninstantiate(variable.getValue()).toString().replace("@", "");
+    for (Formula variable : mapNamesToFormulas.values()) {
+      String newVariable = "__Q__" + fmgr.uninstantiate(variable).toString().replace("@", "");
       extendedFormula =
           fmgr.makeAnd(
               extendedFormula,
               fmgr.assignment(
                   fmgr.makeVariable(
-                      fmgr.getFormulaType(variable.getValue()),
-                      newVariable,
-                      pNumberOfIterationsAtLoopHead),
-                  variable.getValue()));
+                      fmgr.getFormulaType(variable), newVariable, pNumberOfIterationsAtLoopHead),
+                  variable));
     }
     return extendedFormula;
   }

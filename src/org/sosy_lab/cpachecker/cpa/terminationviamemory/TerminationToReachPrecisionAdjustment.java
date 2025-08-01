@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import com.google.common.base.Function;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -123,13 +122,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pFullPathFormula);
 
     cycle = bfmgr.and(cycle, storedValues.get(pSSAIndex));
-    for (Entry<String, Formula> variable : mapNamesToFormulas.entrySet()) {
-      String newVariable =
-          "__Q__" + fmgr.uninstantiate(variable.getValue()).toString().replace("@", "");
+    for (Formula variable : mapNamesToFormulas.values()) {
+      String newVariable = "__Q__" + fmgr.uninstantiate(variable).toString().replace("@", "");
       extendedFormula =
           fmgr.assignment(
-              fmgr.makeVariable(fmgr.getFormulaType(variable.getValue()), newVariable, pSSAIndex),
-              variable.getValue());
+              fmgr.makeVariable(fmgr.getFormulaType(variable), newVariable, pSSAIndex), variable);
       cycle = bfmgr.and(cycle, extendedFormula);
     }
     return cycle;
