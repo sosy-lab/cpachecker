@@ -98,8 +98,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pPathFormula);
     for (Entry<String, Formula> variable : mapNamesToFormulas.entrySet()) {
       String newVariable =
-          "__Q__"
-              + fmgr.uninstantiate(variable.getValue()).toString().replace("@", "");
+          "__Q__" + fmgr.uninstantiate(variable.getValue()).toString().replace("@", "");
       extendedFormula =
           fmgr.makeAnd(
               extendedFormula,

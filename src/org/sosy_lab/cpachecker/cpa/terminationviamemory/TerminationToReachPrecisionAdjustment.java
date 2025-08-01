@@ -125,12 +125,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     cycle = bfmgr.and(cycle, storedValues.get(pSSAIndex));
     for (Entry<String, Formula> variable : mapNamesToFormulas.entrySet()) {
       String newVariable =
-          "__Q__"
-              + fmgr.uninstantiate(variable.getValue()).toString().replace("@", "");
+          "__Q__" + fmgr.uninstantiate(variable.getValue()).toString().replace("@", "");
       extendedFormula =
           fmgr.assignment(
-              fmgr.makeVariable(
-                  fmgr.getFormulaType(variable.getValue()), newVariable, pSSAIndex),
+              fmgr.makeVariable(fmgr.getFormulaType(variable.getValue()), newVariable, pSSAIndex),
               variable.getValue());
       cycle = bfmgr.and(cycle, extendedFormula);
     }
