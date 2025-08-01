@@ -51,8 +51,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       CFA pCFA)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
-    FormulaEncodingWithPointerAliasingOptions options =
-        new FormulaEncodingWithPointerAliasingOptions(pConfiguration);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
     try {
       if (SerializationInfoStorage.isSet()) {
