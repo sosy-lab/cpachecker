@@ -131,8 +131,10 @@ def html_for_message(message, block_log: Dict[str, str], export_keys: dict):
         export_result = {}
         if len(export_keys) > 0:
             for key, value in result.items():
-                if key in export_keys:
-                    export_result[key] = value
+                for e in export_keys:
+                    if e in key:
+                        export_result[key.replace(e, "")] = value
+                        break
         else:
             export_result = result
         div.textarea(_t=export_result)
