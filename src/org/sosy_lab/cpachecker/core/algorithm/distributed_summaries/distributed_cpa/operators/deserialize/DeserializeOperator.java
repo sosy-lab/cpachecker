@@ -10,8 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPreconditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -21,9 +20,9 @@ public interface DeserializeOperator {
   String STATE_KEY = SerializeOperator.STATE_KEY;
 
   static CFANode startLocationFromMessageType(DssMessage pMessage, BlockNode blockNode) {
-    if (pMessage instanceof DssViolationConditionMessage) {
+    if (pMessage.getType() == DssMessageType.VIOLATION_CONDITION) {
       return blockNode.getFinalLocation();
-    } else if (pMessage instanceof DssPreconditionMessage) {
+    } else if (pMessage.getType() == DssMessageType.PRECONDITION) {
       return blockNode.getInitialLocation();
     } else {
       throw new IllegalArgumentException(

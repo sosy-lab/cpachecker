@@ -24,6 +24,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
@@ -40,10 +41,10 @@ public abstract class DssMessage {
   public static final String DSS_MESSAGE_HEADER_ID = "header";
   public static final String DSS_MESSAGE_CONTENT_ID = "content";
 
-  public static final String DSS_MESSAGE_SENDER_ID_KEY = "senderId";
-  public static final String DSS_MESSAGE_TYPE_KEY = "messageType";
-  public static final String DSS_MESSAGE_TIMESTAMP_KEY = "timestamp";
-  public static final String DSS_MESSAGE_IDENTIFIER_KEY = "identifier";
+  public static final String DSS_MESSAGE_HEADER_SENDER_ID_KEY = "senderId";
+  public static final String DSS_MESSAGE_HEADER_TYPE_KEY = "messageType";
+  public static final String DSS_MESSAGE_HEADER_TIMESTAMP_KEY = "timestamp";
+  public static final String DSS_MESSAGE_HEADER_IDENTIFIER_KEY = "identifier";
 
   private final String senderId;
   private final DssMessageType type;
@@ -78,9 +79,33 @@ public abstract class DssMessage {
         "Cannot get content for type: " + "%s",
         type);
     Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
-    Preconditions.checkState(!stateContent.isEmpty());
-    Preconditions.checkState(stateContent.values().stream().noneMatch(Objects::isNull));
+    Preconditions.checkState(
+        !stateContent.isEmpty(), "State content cannot be empty for key %s.", pKey);
+    Preconditions.checkState(
+        stateContent.values().stream().noneMatch(Objects::isNull),
+        "Null values are not allowed in content.");
     return ContentReader.read(stateContent);
+  }
+
+  public final int getNumberOfContainedStates() {
+    if (content.containsKey(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY)) {
+      return Integer.parseInt(
+          Objects.requireNonNull(
+              content.get(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY)));
+    }
+    return -1;
+  }
+
+  public final DssMessage advance(String pPrefix) {
+    Map<String, String> prefixContent = ContentReader.read(content).pushLevel(pPrefix).getContent();
+    ImmutableMap.Builder<String, String> advanced = ImmutableMap.builder();
+    advanced.putAll(content).putAll(prefixContent);
+    return new DssMessage(senderId, type, advanced.buildOrThrow()) {
+      @Override
+      boolean isValid(Map<String, String> pContent) {
+        return DssMessage.this.isValid(pContent);
+      }
+    };
   }
 
   public final ContentReader getAbstractStateContent(Class<? extends AbstractState> pType) {
@@ -138,13 +163,13 @@ public abstract class DssMessage {
       int pIdentifier) {
     ImmutableMap.Builder<String, String> header =
         ImmutableMap.<String, String>builder()
-            .put(DSS_MESSAGE_SENDER_ID_KEY, getSenderId())
-            .put(DSS_MESSAGE_TYPE_KEY, getType().name())
+            .put(DSS_MESSAGE_HEADER_SENDER_ID_KEY, getSenderId())
+            .put(DSS_MESSAGE_HEADER_TYPE_KEY, getType().name())
             .put(
-                DSS_MESSAGE_TIMESTAMP_KEY,
+                DSS_MESSAGE_HEADER_TIMESTAMP_KEY,
                 Long.toString(
                     getTimestamp().getEpochSecond() * 1_000_000_000L + getTimestamp().getNano()))
-            .put(DSS_MESSAGE_IDENTIFIER_KEY, Integer.toString(pIdentifier));
+            .put(DSS_MESSAGE_HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier));
     return ImmutableMap.<String, ImmutableMap<String, String>>builder()
         .put(DSS_MESSAGE_HEADER_ID, header.buildOrThrow())
         .put(DSS_MESSAGE_CONTENT_ID, content)
@@ -207,8 +232,8 @@ public abstract class DssMessage {
         Objects.requireNonNull(
             pJson.get(DSS_MESSAGE_CONTENT_ID), "Message JSON does not contain content: " + pJson);
 
-    String senderId = header.get(DSS_MESSAGE_SENDER_ID_KEY);
-    DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_TYPE_KEY));
+    String senderId = header.get(DSS_MESSAGE_HEADER_SENDER_ID_KEY);
+    DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));
 
     return switch (type) {
       case PRECONDITION -> new DssPreconditionMessage(senderId, content);

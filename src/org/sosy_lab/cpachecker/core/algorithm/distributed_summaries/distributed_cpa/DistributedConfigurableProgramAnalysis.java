@@ -8,7 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
+import java.util.Map.Entry;
+import org.jspecify.annotations.NonNull;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
@@ -25,6 +30,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
   record StateAndPrecision(AbstractState state, Precision precision) {}
+
+  String MULTIPLE_STATES_KEY = "states";
 
   /**
    * Operator that knows how to serialize the abstract states from {@link
@@ -100,16 +107,37 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   }
 
   default ImmutableMap<String, String> serialize(
-      AbstractState pAbstractState, Precision pPrecision) {
-    return ImmutableMap.<String, String>builder()
-        .putAll(getSerializeOperator().serialize(pAbstractState))
-        .putAll(getSerializePrecisionOperator().serializePrecision(pPrecision))
-        .buildOrThrow();
+      final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
+    ContentBuilder serializedContent = ContentBuilder.builder();
+    serializedContent.put(MULTIPLE_STATES_KEY, Integer.toString(pStatesAndPrecisions.size()));
+    for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
+      serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
+      StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
+      ImmutableMap<String, String> content =
+          ImmutableMap.<String, String>builder()
+              .putAll(getSerializeOperator().serialize(stateAndPrecision.state()))
+              .putAll(
+                  getSerializePrecisionOperator().serializePrecision(stateAndPrecision.precision()))
+              .buildOrThrow();
+      for (Entry<String, String> contents : content.entrySet()) {
+        serializedContent.put(contents.getKey(), contents.getValue());
+      }
+      serializedContent.popLevel();
+    }
+    return serializedContent.build();
   }
 
-  default StateAndPrecision deserialize(DssMessage pMessage) throws InterruptedException {
-    AbstractState state = getDeserializeOperator().deserialize(pMessage);
-    Precision precision = getDeserializePrecisionOperator().deserializePrecision(pMessage);
-    return new StateAndPrecision(state, precision);
+  default ImmutableList<@NonNull StateAndPrecision> deserialize(final DssMessage pMessage)
+      throws InterruptedException {
+    int numStates = pMessage.getNumberOfContainedStates();
+    ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
+        ImmutableList.builderWithExpectedSize(numStates);
+    for (int i = 0; i < numStates; i++) {
+      DssMessage advancedMessage = pMessage.advance(DeserializeOperator.STATE_KEY + i);
+      AbstractState state = getDeserializeOperator().deserialize(advancedMessage);
+      Precision precision = getDeserializePrecisionOperator().deserializePrecision(advancedMessage);
+      statesAndPrecisions.add(new StateAndPrecision(state, precision));
+    }
+    return statesAndPrecisions.build();
   }
 }
