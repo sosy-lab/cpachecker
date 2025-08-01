@@ -9,11 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -28,8 +26,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -120,23 +116,21 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   }
 
   private BooleanFormula buildCycleFormula(
-      BooleanFormula pFullPathFormula,
-      List<BooleanFormula> storedValues,
-      int pSSAIndex) {
+      BooleanFormula pFullPathFormula, List<BooleanFormula> storedValues, int pSSAIndex) {
     BooleanFormula cycle = pFullPathFormula;
     BooleanFormula extendedFormula;
     Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pFullPathFormula);
 
     cycle = bfmgr.and(cycle, storedValues.get(pSSAIndex));
     for (String variable : mapNamesToFormulas.keySet()) {
-      String newVariable = "__Q__" + fmgr.uninstantiate(mapNamesToFormulas.get(variable)).toString().replace("@", "");
+      String newVariable =
+          "__Q__"
+              + fmgr.uninstantiate(mapNamesToFormulas.get(variable)).toString().replace("@", "");
       extendedFormula =
           fmgr.assignment(
-            fmgr.makeVariable(
-                fmgr.getFormulaType(mapNamesToFormulas.get(variable)),
-                newVariable,
-                pSSAIndex),
-            mapNamesToFormulas.get(variable));
+              fmgr.makeVariable(
+                  fmgr.getFormulaType(mapNamesToFormulas.get(variable)), newVariable, pSSAIndex),
+              mapNamesToFormulas.get(variable));
       cycle = bfmgr.and(cycle, extendedFormula);
     }
     return cycle;

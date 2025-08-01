@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -23,8 +22,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -35,8 +32,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
   private final BooleanFormulaManagerView bfmgr;
 
   public TerminationToReachTransferRelation(
-      BooleanFormulaManagerView pBfmgr,
-      FormulaManagerView pFmgr) {
+      BooleanFormulaManagerView pBfmgr, FormulaManagerView pFmgr) {
     fmgr = pFmgr;
     bfmgr = pBfmgr;
   }
@@ -73,14 +69,16 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       if (terminationState.getStoredValues().containsKey(locationState)) {
         newConstraintformula =
             constructConstraintFormula(
-                terminationState.getNumberOfIterationsAtLoopHead(locationState), predicateState.getPathFormula().getFormula());
+                terminationState.getNumberOfIterationsAtLoopHead(locationState),
+                predicateState.getPathFormula().getFormula());
         terminationState.setNewStoredValues(
             locationState,
             newConstraintformula,
             terminationState.getNumberOfIterationsAtLoopHead(locationState));
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       } else {
-        newConstraintformula = constructConstraintFormula(0, predicateState.getPathFormula().getFormula());
+        newConstraintformula =
+            constructConstraintFormula(0, predicateState.getPathFormula().getFormula());
         terminationState.setNewStoredValues(locationState, newConstraintformula, 0);
         terminationState.increaseNumberOfIterationsAtLoopHead(locationState);
       }
@@ -98,7 +96,9 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     BooleanFormula extendedFormula = bfmgr.makeTrue();
     Map<String, Formula> mapNamesToFormulas = fmgr.extractVariables(pPathFormula);
     for (String variable : mapNamesToFormulas.keySet()) {
-      String newVariable = "__Q__" + fmgr.uninstantiate(mapNamesToFormulas.get(variable)).toString().replace("@", "");
+      String newVariable =
+          "__Q__"
+              + fmgr.uninstantiate(mapNamesToFormulas.get(variable)).toString().replace("@", "");
       extendedFormula =
           fmgr.makeAnd(
               extendedFormula,
