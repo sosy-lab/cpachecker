@@ -43,6 +43,13 @@ def create_arg_parser():
         help="Output path for generated files",
         default="output/block_analysis",
     )
+    parser.add_argument(
+        "--export-keys",
+        help="Space separated list of keys to export from the messages. "
+        "If not set, all keys are exported.",
+        nargs="+",
+        dest="export_keys",
+    )
     return parser
 
 
@@ -59,6 +66,7 @@ def parse_args(argv):
         raise ValueError(f"Path {args.messages_json} does not exist.")
 
     args.output = Path(args.output)
+    args.export_keys = args.export_keys or []
     return args
 
 
@@ -71,7 +79,7 @@ def parse_jsons(json_file: Path):
         return {}
 
 
-def html_for_message(message, block_log: Dict[str, str]):
+def html_for_message(message, block_log: Dict[str, str], export_keys: dict):
     div = Airium()
 
     if not message:
@@ -120,12 +128,19 @@ def html_for_message(message, block_log: Dict[str, str]):
             else:
                 receiver = "None"
             div(f"Calculated new {direction} message for <strong>{receiver}</strong>")
-        div.textarea(_t=result)
+        export_result = {}
+        if len(export_keys) > 0:
+            for key, value in result.items():
+                if key in export_keys:
+                    export_result[key] = value
+        else:
+            export_result = result
+        div.textarea(_t=export_result)
 
     return str(div)
 
 
-def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
+def html_dict_to_html_table(all_messages, block_logs: Dict[str, str], export_keys: dict):
     first_timestamp = int(all_messages[0]["header"]["timestamp"])
     timestamp_to_message = {}
     sorted_keys = sorted(block_logs.keys())
@@ -162,7 +177,7 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
                         klass = type_to_klass.get(
                             msg["header"]["messageType"], "normal"
                         )
-                        table.td(klass=klass, _t=html_for_message(msg, block_logs))
+                        table.td(klass=klass, _t=html_for_message(msg, block_logs, export_keys))
 
     return str(table)
 
@@ -199,6 +214,7 @@ def export_messages_table(
     all_messages,
     block_logs,
     output_path,
+    export_keys=None,
     report_filename="report.html",
     message_table_html_file=None,
     message_table_css_file=None,
@@ -226,7 +242,7 @@ def export_messages_table(
                 html.read()
                 .replace(
                     "<!--<<<TABLE>>><!-->",
-                    html_dict_to_html_table(all_messages, block_logs),
+                    html_dict_to_html_table(all_messages, block_logs, export_keys or {}),
                 )
                 .replace("/*CSS*/", css.read())
             )
@@ -237,7 +253,7 @@ def export_messages_table(
 
 
 def visualize_messages(
-    message_dir: Path, block_structure_json: Path, output_path: Path
+    message_dir: Path, block_structure_json: Path, output_path: Path, export_keys=None
 ):
     all_messages = []
     hash_code = None
@@ -262,6 +278,7 @@ def visualize_messages(
         all_messages=all_messages,
         block_logs=parse_jsons(block_structure_json),
         output_path=output_path,
+        export_keys=export_keys,
     )
     webbrowser.open(str(export_filename))
 
@@ -280,6 +297,7 @@ def main(argv=None):
         message_dir=args.messages_json,
         block_structure_json=args.block_structure_json,
         output_path=output_path,
+        export_keys=args.export_keys,
     )
 
 
