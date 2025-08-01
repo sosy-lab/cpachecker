@@ -149,6 +149,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
     return new OldAndNewMessages(toBeConsideredOld, toBeConsideredNew);
   }
 
+  @Override
   public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
       throws CPAException,
           SolverException,
