@@ -16,7 +16,7 @@
         type: loop_invariant
         location:
           # file_name: array1_pattern.c
-          line: 69
+          line: 78
           column: 2
           function: main 
         value: "sum == ACSL(_L_SUM(array1, array2, count))"
@@ -25,7 +25,7 @@
         type: loop_invariant
         location:
           # file_name: array1_pattern.c
-          line: 69
+          line: 78
           column: 2
           function: main 
         value: "0 <= count <= ARR_SIZE"
