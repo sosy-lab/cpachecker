@@ -121,7 +121,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public boolean isTop(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     PredicateAbstractState predicateAbstractState = (PredicateAbstractState) pAbstractState;
     if (predicateAbstractState.isAbstractionState()) {
       return predicateAbstractState.getAbstractionFormula().isTrue();

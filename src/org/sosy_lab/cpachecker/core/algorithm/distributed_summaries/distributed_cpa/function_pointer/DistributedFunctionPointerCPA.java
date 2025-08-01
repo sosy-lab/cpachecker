@@ -89,7 +89,7 @@ public class DistributedFunctionPointerCPA
   }
 
   @Override
-  public boolean isTop(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     return true;
   }
 

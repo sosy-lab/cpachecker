@@ -97,12 +97,12 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public boolean isTop(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     CompositeState co = (CompositeState) pAbstractState;
     for (AbstractState wrappedState : co.getWrappedStates()) {
       for (DistributedConfigurableProgramAnalysis value : analyses.values()) {
         if (value.doesOperateOn(wrappedState.getClass())) {
-          if (!value.isTop(wrappedState)) {
+          if (!value.isMostGeneralBlockEntryState(wrappedState)) {
             return false;
           }
           break;

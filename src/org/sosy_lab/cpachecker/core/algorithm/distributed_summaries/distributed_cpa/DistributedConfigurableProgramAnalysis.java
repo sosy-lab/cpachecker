@@ -73,7 +73,21 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   ConfigurableProgramAnalysis getCPA();
 
-  boolean isTop(AbstractState pAbstractState);
+  /**
+   * Check whether the given abstract state is the most general block entry state. Meaning that it
+   * is the state that is used to represent the entry of a block from where the whole state space of
+   * the block can be reached.
+   *
+   * <p>For analysis like the {@link org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA} this is the
+   * top element, for location-based CPAs like the {@link
+   * org.sosy_lab.cpachecker.cpa.location.LocationCPA} this is the {@link
+   * org.sosy_lab.cpachecker.cpa.location.LocationState} with the {@link
+   * org.sosy_lab.cpachecker.cfa.model.CFANode} of the block entry.
+   *
+   * @param pAbstractState Abstract state to check whether it is the most general block entry state.
+   * @return {@code true} if the given abstract state is the most general block entry state,
+   */
+  boolean isMostGeneralBlockEntryState(AbstractState pAbstractState);
 
   /**
    * Check whether this distributed CPA can work with {@code pClass}.

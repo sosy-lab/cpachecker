@@ -97,9 +97,9 @@ public class DistributedARGCPA
   }
 
   @Override
-  public boolean isTop(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     if (pAbstractState instanceof ARGState argstate) {
-      return wrappedCPA.isTop(argstate.getWrappedState());
+      return wrappedCPA.isMostGeneralBlockEntryState(argstate.getWrappedState());
     }
     throw new IllegalArgumentException(
         "DistributedARGCPA can only work on " + getAbstractStateClass());

@@ -108,11 +108,11 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   }
 
   @Override
-  public boolean isTop(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     Preconditions.checkArgument(
         pAbstractState instanceof LocationState,
         "Expected LocationState, but got %s",
         pAbstractState.getClass().getSimpleName());
-    return false;
+    return true;
   }
 }

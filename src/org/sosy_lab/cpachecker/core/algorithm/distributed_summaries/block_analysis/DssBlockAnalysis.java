@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -169,10 +170,10 @@ public class DssBlockAnalysis {
   }
 
   private Collection<DssMessage> reportBlockPostConditions(
-      Set<ARGState> blockEnds, boolean allowTop) {
+      Set<@NonNull ARGState> blockEnds, boolean allowTop) {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ARGState abstraction = Iterables.getOnlyElement(blockEnds);
-    if (dcpa.isTop(abstraction) && !allowTop) {
+    if (dcpa.isMostGeneralBlockEntryState(abstraction) && !allowTop) {
       return messages.build();
     }
     ImmutableMap<String, String> serialized =
@@ -183,7 +184,7 @@ public class DssBlockAnalysis {
   }
 
   private Collection<DssMessage> reportViolationConditions(
-      Set<ARGState> violations, ARGState condition, boolean first)
+      Set<@NonNull ARGState> violations, ARGState condition, boolean first)
       throws CPAException, InterruptedException, SolverException {
     ImmutableSet.Builder<ARGPath> pathsToViolations = ImmutableSet.builder();
     pathsToViolations.addAll(
@@ -241,7 +242,7 @@ public class DssBlockAnalysis {
     }
     if (preconditions.containsKey(pReceived.getSenderId())) {
       AbstractState previous = preconditions.get(pReceived.getSenderId()).state();
-      if (!dcpa.isTop(previous)
+      if (!dcpa.isMostGeneralBlockEntryState(previous)
           && dcpa.getCoverageOperator().covers(previous, deserialized.state())) {
         // we already have a precondition implying the new one
         return DssMessageProcessing.stop();
@@ -286,7 +287,7 @@ public class DssBlockAnalysis {
    * from the violation conditions stored via {@link
    * #storeViolationCondition(DssViolationConditionMessage)}
    *
-   * @param pSenderId The ID of the sender of the violation condition message.
+   * @param pSenderId Sender ID of the violation-condition message to analyze.
    * @return The messages resulting from the analysis of the violation condition.
    */
   public Collection<DssMessage> analyzeViolationCondition(String pSenderId)
@@ -363,7 +364,7 @@ public class DssBlockAnalysis {
   }
 
   /**
-   * Combines all preconditions into a single precision if all precisions are from type
+   * Combines all preconditions into single precision if all precisions are from type
    * AdjustablePrecision.
    *
    * @return combined precision if all preconditions are of type {@link AdjustablePrecision}, empty
@@ -403,7 +404,7 @@ public class DssBlockAnalysis {
     ImmutableList.Builder<StateAndPrecision> deserializedStates = ImmutableList.builder();
     for (Entry<String, StateAndPrecision> messageEntry : preconditions.entrySet()) {
       StateAndPrecision stateAndPrecision = messageEntry.getValue();
-      if (dcpa.isTop(stateAndPrecision.state())
+      if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())
           && block.getLoopPredecessorIds().contains(messageEntry.getKey())) {
         continue;
       }
