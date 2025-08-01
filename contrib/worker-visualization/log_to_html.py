@@ -140,7 +140,9 @@ def html_for_message(message, block_log: Dict[str, str], export_keys: dict):
     return str(div)
 
 
-def html_dict_to_html_table(all_messages, block_logs: Dict[str, str], export_keys: dict):
+def html_dict_to_html_table(
+    all_messages, block_logs: Dict[str, str], export_keys: dict
+):
     first_timestamp = int(all_messages[0]["header"]["timestamp"])
     timestamp_to_message = {}
     sorted_keys = sorted(block_logs.keys())
@@ -177,7 +179,10 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str], export_key
                         klass = type_to_klass.get(
                             msg["header"]["messageType"], "normal"
                         )
-                        table.td(klass=klass, _t=html_for_message(msg, block_logs, export_keys))
+                        table.td(
+                            klass=klass,
+                            _t=html_for_message(msg, block_logs, export_keys),
+                        )
 
     return str(table)
 
@@ -242,7 +247,9 @@ def export_messages_table(
                 html.read()
                 .replace(
                     "<!--<<<TABLE>>><!-->",
-                    html_dict_to_html_table(all_messages, block_logs, export_keys or {}),
+                    html_dict_to_html_table(
+                        all_messages, block_logs, export_keys or {}
+                    ),
                 )
                 .replace("/*CSS*/", css.read())
             )
