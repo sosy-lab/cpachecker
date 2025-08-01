@@ -7,8 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Provides operators for coverage checks in the distributed CPA framework.
- * These operators determine whether one abstract state covers another,
- * to decide which preconditions are necessary for the analysis.
+ * Provides operators for coverage checks in the distributed CPA framework. These operators
+ * determine whether one abstract state covers another, to decide which preconditions are necessary
+ * for the analysis.
  */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage;

@@ -9,14 +9,12 @@
 void reach_error(){}
 
 int main() {
-
-  int i = 0;
-  for (i = 0; i < 6; i++) {
+  int i;
+  int x = 0;
+  for (i = 0; i < 10; i++) {
+    x++;
   }
-  if (i != 6)
-    goto ERROR;
-  return 0;
-ERROR:
-  reach_error();
-  return 1;
+  if (11 == x) {
+    reach_error();
+  }
 }

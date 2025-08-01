@@ -124,7 +124,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
 
   @Override
   public CombineOperator getCombineOperator() {
-    return null;
+    return combineOperator;
   }
 
   @Override
