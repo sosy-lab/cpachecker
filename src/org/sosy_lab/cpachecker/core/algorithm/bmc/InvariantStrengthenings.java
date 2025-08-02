@@ -326,13 +326,13 @@ public class InvariantStrengthenings {
           Optional<BooleanFormula> pAssertedInvariants,
           NextCti pNextCti)
           throws SolverException, InterruptedException, CPATransferException {
-        if (pInvariant instanceof SymbolicCandiateInvariant) {
+        if (pInvariant instanceof SymbolicCandiateInvariant symbolicCandiateInvariant) {
           return (T)
               UnsatCoreBasedRefinement.INSTANCE.strengthenInvariant(
                   pProver,
                   pFmgr,
                   pPam,
-                  (SymbolicCandiateInvariant) pInvariant,
+                  symbolicCandiateInvariant,
                   pAssertPredecessor,
                   pAssertSuccessorViolation,
                   pAssertCti,

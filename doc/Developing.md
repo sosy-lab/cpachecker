@@ -195,7 +195,7 @@ Releasing a New Version
 
 1. Update the heading in [`NEWS.md`](../NEWS.md) and
    update the version number in all places in the following files:
-   - [`.gitlab-ci.yml`](../.gitlab-ci.yml)
+   - [`build/gitlab-ci.local.yml`](../build/gitlab-ci.local.yml)
    - [`build/Dockerfile.release`](../build/Dockerfile.release)
    - [`build/debian/rules`](../build/debian/rules)
 

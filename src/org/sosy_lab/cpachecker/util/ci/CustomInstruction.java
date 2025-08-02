@@ -297,15 +297,15 @@ public class CustomInstruction {
 
         computeMappingOfCiAndAci(ciEdge, aciEdge, mapping, outVariables);
 
-        if (ciEdge instanceof FunctionCallEdge) {
+        if (ciEdge instanceof FunctionCallEdge functionCallEdge) {
           computeMappingOfCiAndAci(
-              ((FunctionCallEdge) ciEdge).getSummaryEdge(),
+              functionCallEdge.getSummaryEdge(),
               ((FunctionCallEdge) aciEdge).getSummaryEdge(),
               mapping,
               outVariables);
           next =
               Pair.of(
-                  ((FunctionCallEdge) ciEdge).getSummaryEdge().getSuccessor(),
+                  functionCallEdge.getSummaryEdge().getSuccessor(),
                   ((FunctionCallEdge) aciEdge).getSummaryEdge().getSuccessor());
         } else {
           next = Pair.of(ciSucc, aciSucc);
@@ -684,18 +684,18 @@ public class CustomInstruction {
     } else if (ciI != null && aciI == null) {
       throw new AppliedCustomInstructionParsingFailedException(
           "The ci has an initializer but not the aci.");
-    } else if (ciI instanceof CInitializerExpression && aciI instanceof CInitializerExpression) {
-      ((CInitializerExpression) ciI)
+    } else if (ciI instanceof CInitializerExpression ciIExp
+        && aciI instanceof CInitializerExpression aciIExp) {
+      ciIExp
           .getExpression()
-          .accept(
-              new StructureComparisonVisitor(
-                  ((CInitializerExpression) aciI).getExpression(), ciVarToAciVar));
+          .accept(new StructureComparisonVisitor(aciIExp.getExpression(), ciVarToAciVar));
     } else if (ciI instanceof CDesignatedInitializer && aciI instanceof CDesignatedInitializer) {
       throw new AppliedCustomInstructionParsingFailedException(
           "The code contains a CDesignatedInitializer, which is unsupported.");
-    } else if (ciI instanceof CInitializerList && aciI instanceof CInitializerList) {
-      List<CInitializer> ciList = ((CInitializerList) ciI).getInitializers();
-      List<CInitializer> aciList = ((CInitializerList) aciI).getInitializers();
+    } else if (ciI instanceof CInitializerList ciIList
+        && aciI instanceof CInitializerList aciIList) {
+      List<CInitializer> ciList = ciIList.getInitializers();
+      List<CInitializer> aciList = aciIList.getInitializers();
 
       if (ciList.size() != aciList.size()) {
         throw new AppliedCustomInstructionParsingFailedException(
@@ -785,10 +785,10 @@ public class CustomInstruction {
   private static class StructureComparisonVisitor
       implements CExpressionVisitor<Void, AppliedCustomInstructionParsingFailedException> {
 
-    protected CExpression aciExp;
-    protected final Map<String, String> ciVarToAciVar;
+    CExpression aciExp;
+    final Map<String, String> ciVarToAciVar;
 
-    public StructureComparisonVisitor(
+    StructureComparisonVisitor(
         final CExpression pAciExp, final Map<String, String> pCiVarToAciVar) {
       aciExp = pAciExp;
       ciVarToAciVar = pCiVarToAciVar;
@@ -909,7 +909,7 @@ public class CustomInstruction {
       return null;
     }
 
-    protected void computeMapping(final String ciString, final String aciString) {
+    void computeMapping(final String ciString, final String aciString) {
       ciVarToAciVar.put(ciString, aciString);
     }
 
@@ -1172,9 +1172,9 @@ public class CustomInstruction {
                 + aciFloatExp.getExpressionType()
                 + ").");
       }
-      if (ciExp.getValue().compareTo(aciFloatExp.getValue()) != 0) {
+      if (!ciExp.getValue().equals(aciFloatExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException(
-            "The value of the CCharLiteralExpression of ci "
+            "The value of the FloatLiteralExpression of ci "
                 + ciExp
                 + " and aci "
                 + aciFloatExp
@@ -1383,7 +1383,7 @@ public class CustomInstruction {
 
     private final Map<String, String> currentCiVarToAciVar;
 
-    public StructureExtendedComparisonVisitor(
+    StructureExtendedComparisonVisitor(
         final CExpression pAciExp,
         final Map<String, String> pCiVarToAciVar,
         Map<String, String> pCurrentCiVarToAciVar) {

@@ -708,7 +708,7 @@ public class InvariantsCPA
 
     private ConditionAdjuster defaultInner;
 
-    public CompoundConditionAdjuster(InvariantsCPA pCPA) {
+    CompoundConditionAdjuster(InvariantsCPA pCPA) {
       cpa = Objects.requireNonNull(pCPA);
       innerAdjusters.add(new InterestingVariableLimitAdjuster(pCPA));
       innerAdjusters.add(new FormulaDepthAdjuster(pCPA));
@@ -875,7 +875,7 @@ public class InvariantsCPA
 
     private final InvariantsCPA cpa;
 
-    public AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
+    AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
       cpa = pCPA;
     }
 

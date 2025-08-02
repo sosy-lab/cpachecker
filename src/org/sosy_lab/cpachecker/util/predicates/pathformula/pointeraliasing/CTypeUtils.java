@@ -129,17 +129,17 @@ class CTypeUtils {
    */
   static CType getBaseType(CType type) {
     checkIsSimplified(type);
-    if (!(type instanceof CArrayType)) {
+    if (!(type instanceof CArrayType cArrayType)) {
       return new CPointerType(false, false, type);
     } else {
-      return new CPointerType(false, false, ((CArrayType) type).getType());
+      return new CPointerType(false, false, cArrayType.getType());
     }
   }
 
   static CType implicitCastToPointer(CType type) {
     checkIsSimplified(type);
-    if (type instanceof CArrayType) {
-      return new CPointerType(false, false, checkIsSimplified(((CArrayType) type).getType()));
+    if (type instanceof CArrayType cArrayType) {
+      return new CPointerType(false, false, checkIsSimplified(cArrayType.getType()));
     } else if (type instanceof CFunctionType) {
       return new CPointerType(false, false, type);
     } else {

@@ -401,11 +401,11 @@ public class TestCaseExporter {
   }
 
   private String unpack(final AAstNode pInputValue) {
-    if (pInputValue instanceof CCastExpression) {
-      return unpack(((CCastExpression) pInputValue).getOperand());
+    if (pInputValue instanceof CCastExpression cCastExpression) {
+      return unpack(cCastExpression.getOperand());
     } else {
-      if (plainLiteralValue && pInputValue instanceof ALiteralExpression) {
-        return String.valueOf(((ALiteralExpression) pInputValue).getValue());
+      if (plainLiteralValue && pInputValue instanceof ALiteralExpression aLiteralExpression) {
+        return String.valueOf(aLiteralExpression.getValue());
       }
       return pInputValue.toASTString();
     }

@@ -148,7 +148,7 @@ public class BDDPartitionOrderer {
 
     private Set<CFAEdge> edges = new LinkedHashSet<>();
 
-    public Set<CFAEdge> getEdges() {
+    Set<CFAEdge> getEdges() {
       return edges;
     }
 
@@ -179,7 +179,7 @@ public class BDDPartitionOrderer {
 
     private Collection<CAssumeEdge> assumptions = new ArrayList<>();
 
-    public Collection<CAssumeEdge> getAssumptions() {
+    Collection<CAssumeEdge> getAssumptions() {
       return assumptions;
     }
 

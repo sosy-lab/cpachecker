@@ -96,8 +96,8 @@ public sealed interface CType extends Type
       if (CTypes.isArithmeticType(rightHandSide)) {
         return true;
       }
-      if (leftHandSide instanceof CSimpleType
-          && ((CSimpleType) leftHandSide).getType().equals(CBasicType.BOOL)
+      if (leftHandSide instanceof CSimpleType cSimpleType
+          && cSimpleType.getType().equals(CBasicType.BOOL)
           && rightHandSide instanceof CPointerType) {
         return true;
       }
@@ -112,8 +112,8 @@ public sealed interface CType extends Type
     }
 
     // Cf. C-Standard §6.3.2.3 (1):
-    if (leftHandSide instanceof CPointerType) {
-      if (((CPointerType) leftHandSide).getType() instanceof CVoidType) {
+    if (leftHandSide instanceof CPointerType cPointerType) {
+      if (cPointerType.getType() instanceof CVoidType) {
         if (rightHandSide.isIncomplete() || CTypes.isObjectType(rightHandSide)) {
           return true;
         }

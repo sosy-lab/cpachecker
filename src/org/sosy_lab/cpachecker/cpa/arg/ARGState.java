@@ -415,16 +415,16 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   @Override
   public String toDOTLabel() {
-    if (getWrappedState() instanceof Graphable) {
-      return ((Graphable) getWrappedState()).toDOTLabel();
+    if (getWrappedState() instanceof Graphable graphable) {
+      return graphable.toDOTLabel();
     }
     return "";
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    if (getWrappedState() instanceof Graphable) {
-      return ((Graphable) getWrappedState()).shouldBeHighlighted();
+    if (getWrappedState() instanceof Graphable graphable) {
+      return graphable.shouldBeHighlighted();
     }
     return false;
   }
@@ -549,8 +549,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates) {
     AbstractState wrappedState = getWrappedState();
     AbstractState newWrappedState = null;
-    if (wrappedState instanceof Splitable) {
-      newWrappedState = ((Splitable) wrappedState).forkWithReplacements(pReplacementStates);
+    if (wrappedState instanceof Splitable splitable) {
+      newWrappedState = splitable.forkWithReplacements(pReplacementStates);
     } else {
       newWrappedState = wrappedState;
     }

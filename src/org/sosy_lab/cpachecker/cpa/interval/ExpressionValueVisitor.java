@@ -153,8 +153,8 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
   @Override
   public Interval visit(CIdExpression identifier) {
-    if (identifier.getDeclaration() instanceof CEnumerator) {
-      BigInteger enumConstant = ((CEnumerator) identifier.getDeclaration()).getValue();
+    if (identifier.getDeclaration() instanceof CEnumerator cEnumerator) {
+      BigInteger enumConstant = cEnumerator.getValue();
       return getIntervalFor(enumConstant);
     }
 

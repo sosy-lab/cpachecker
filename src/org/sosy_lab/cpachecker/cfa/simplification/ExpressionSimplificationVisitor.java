@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.simplification;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /**
  * This visitor visits an expression and evaluates it. The returnvalue of the visit consists of the
@@ -69,12 +69,12 @@ public class ExpressionSimplificationVisitor
   }
 
   private @Nullable NumericValue getValue(CExpression expr) {
-    if (expr instanceof CIntegerLiteralExpression) {
-      return new NumericValue(((CIntegerLiteralExpression) expr).getValue());
-    } else if (expr instanceof CCharLiteralExpression) {
-      return new NumericValue((int) ((CCharLiteralExpression) expr).getCharacter());
-    } else if (expr instanceof CFloatLiteralExpression) {
-      return new NumericValue(((CFloatLiteralExpression) expr).getValue());
+    if (expr instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      return new NumericValue(cIntegerLiteralExpression.getValue());
+    } else if (expr instanceof CCharLiteralExpression cCharLiteralExpression) {
+      return new NumericValue((int) cCharLiteralExpression.getCharacter());
+    } else if (expr instanceof CFloatLiteralExpression cFloatLiteralExpression) {
+      return new NumericValue(cFloatLiteralExpression.getValue());
     }
     return null;
   }
@@ -87,25 +87,18 @@ public class ExpressionSimplificationVisitor
     // TODO: handle cases other than numeric values
     NumericValue numericResult = value.asNumericValue();
     final CType type = expr.getExpressionType().getCanonicalType();
-    if (numericResult != null && type instanceof CSimpleType) {
-      CBasicType basicType = ((CSimpleType) type).getType();
+    if (numericResult != null && type instanceof CSimpleType cSimpleType) {
+      CBasicType basicType = cSimpleType.getType();
       if (basicType.isIntegerType()) {
         return new CIntegerLiteralExpression(
             expr.getFileLocation(), type, numericResult.bigIntegerValue());
       } else if (basicType.isFloatingPointType()) {
-        try {
-          return new CFloatLiteralExpression(
-              expr.getFileLocation(), type, numericResult.bigDecimalValue());
-        } catch (NumberFormatException nfe) {
-          // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
-          logger.logf(
-              Level.FINE,
-              "Cannot simplify expression to numeric value %s, keeping original expression %s"
-                  + " instead",
-              numericResult,
-              expr.toASTString());
-          return expr;
-        }
+        FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, type);
+        return new CFloatLiteralExpression(
+            expr.getFileLocation(),
+            machineModel,
+            type,
+            numericResult.floatingPointValue(precision));
       }
     }
     if (numericResult != null) {
@@ -211,7 +204,7 @@ public class ExpressionSimplificationVisitor
     // TODO: handle the case that the result is not a numeric value
     final Value castedValue =
         AbstractExpressionValueVisitor.castCValue(
-            value, expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
+            value, expr.getExpressionType(), machineModel, logger);
 
     return convertExplicitValueToExpression(expr, castedValue);
   }
@@ -262,7 +255,7 @@ public class ExpressionSimplificationVisitor
     assert op.getExpressionType().equals(operandType) : "simplification should not change type";
     final NumericValue value = getValue(op);
 
-    if (value != null && operandType instanceof CSimpleType) {
+    if (value != null && operandType instanceof CSimpleType cSimpleType) {
       if (unaryOperator == UnaryOperator.MINUS) {
         // we have to cast the value, because it can overflow, for example for the unary-expression
         // "-2147483648" (=MIN_INT),
@@ -271,8 +264,8 @@ public class ExpressionSimplificationVisitor
         final NumericValue negatedValue =
             (NumericValue)
                 AbstractExpressionValueVisitor.castCValue(
-                    value.negate(), exprType, machineModel, logger, loc);
-        switch (((CSimpleType) operandType).getType()) {
+                    value.negate(), exprType, machineModel, logger);
+        switch (cSimpleType.getType()) {
           case BOOL, CHAR, INT -> {
             // negation of zero is zero, other values should be irrelevant
             // better do not convert to long, but directly use the computed value,
@@ -280,28 +273,23 @@ public class ExpressionSimplificationVisitor
             // but does not match its CType bounds.
             return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigIntegerValue());
           }
-          case FLOAT, DOUBLE -> {
-            double v = negatedValue.doubleValue();
-            // Check if v is -0.0; if so, we cannot simplify it,
-            // because we cannot represent it with BigDecimal
-            if (v == 0 && 1 / v < 0) {
-              return new CUnaryExpression(loc, exprType, op, unaryOperator);
-            }
-            return new CFloatLiteralExpression(loc, exprType, BigDecimal.valueOf(v));
+          case FLOAT, DOUBLE, FLOAT128 -> {
+            FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, exprType);
+            return new CFloatLiteralExpression(
+                loc, machineModel, exprType, negatedValue.floatingPointValue(precision));
           }
           default -> {
             // return the original expression below
           }
         }
 
-      } else if (unaryOperator == UnaryOperator.TILDE
-          && ((CSimpleType) operandType).getType().isIntegerType()) {
+      } else if (unaryOperator == UnaryOperator.TILDE && cSimpleType.getType().isIntegerType()) {
         // cast the value, because the evaluation of "~" is done for long and maybe the target-type
         // is integer.
         final NumericValue complementValue =
             (NumericValue)
                 AbstractExpressionValueVisitor.castCValue(
-                    new NumericValue(~value.longValue()), exprType, machineModel, logger, loc);
+                    new NumericValue(~value.longValue()), exprType, machineModel, logger);
         return new CIntegerLiteralExpression(loc, exprType, complementValue.bigIntegerValue());
       }
 
@@ -336,17 +324,19 @@ public class ExpressionSimplificationVisitor
     final CType type = expr.getExpressionType();
 
     // enum constant
-    if (decl instanceof CEnumerator) {
-      final BigInteger v = ((CEnumerator) decl).getValue();
+    if (decl instanceof CEnumerator cEnumerator) {
+      final BigInteger v = cEnumerator.getValue();
       return new CIntegerLiteralExpression(expr.getFileLocation(), type, v);
     }
 
     // const variable, inline initializer
-    if (!(type instanceof CProblemType) && type.isConst() && decl instanceof CVariableDeclaration) {
+    if (!(type instanceof CProblemType)
+        && type.isConst()
+        && decl instanceof CVariableDeclaration cVariableDeclaration) {
 
-      final CInitializer init = ((CVariableDeclaration) decl).getInitializer();
-      if (init instanceof CInitializerExpression) {
-        NumericValue v = getValue(((CInitializerExpression) init).getExpression());
+      final CInitializer init = cVariableDeclaration.getInitializer();
+      if (init instanceof CInitializerExpression cInitializerExpression) {
+        NumericValue v = getValue(cInitializerExpression.getExpression());
 
         if (v != null && decl.getType() instanceof CSimpleType) {
           switch (((CSimpleType) type).getType()) {
@@ -354,8 +344,14 @@ public class ExpressionSimplificationVisitor
               return new CIntegerLiteralExpression(
                   expr.getFileLocation(), type, v.bigIntegerValue());
             }
-            case FLOAT, DOUBLE -> {
-              return new CFloatLiteralExpression(expr.getFileLocation(), type, v.bigDecimalValue());
+            case FLOAT, DOUBLE, FLOAT128 -> {
+              // Cast the literal to the target type before assigning the value
+              // This is necessary to handle initializer like `float x = 1.0` where the type of the
+              // literal on the right is different from the type of the variable.
+              FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, type);
+              FloatValue litValue = v.floatingPointValue(precision);
+              return new CFloatLiteralExpression(
+                  expr.getFileLocation(), machineModel, type, litValue);
             }
             default -> {
               // return the original expression below

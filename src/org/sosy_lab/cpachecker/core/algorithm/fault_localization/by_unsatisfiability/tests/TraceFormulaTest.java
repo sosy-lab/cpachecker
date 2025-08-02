@@ -52,7 +52,7 @@ public class TraceFormulaTest {
     TFPRECONDITION,
     TFPOSTCONDITION;
 
-    public static boolean containsKey(String keyString) {
+    static boolean containsKey(String keyString) {
       for (LogKeys key : values()) {
         if (key.toString().equalsIgnoreCase(keyString)) {
           return true;

@@ -844,7 +844,6 @@ public class PolicyIterationManager {
             case ABSTRACTION_REQUIRED -> {
               // Continue with abstraction.
             }
-            default -> throw new UnsupportedOperationException("Unexpected case");
           }
         }
 
@@ -1278,8 +1277,9 @@ public class PolicyIterationManager {
   private BooleanFormula extractFormula(AbstractState pFormulaState) {
     List<BooleanFormula> constraints = new ArrayList<>();
     for (AbstractState a : asIterable(pFormulaState)) {
-      if (!(a instanceof PolicyAbstractedState) && a instanceof FormulaReportingState) {
-        constraints.add(((FormulaReportingState) a).getFormulaApproximation(fmgr));
+      if (!(a instanceof PolicyAbstractedState)
+          && a instanceof FormulaReportingState formulaReportingState) {
+        constraints.add(formulaReportingState.getFormulaApproximation(fmgr));
       }
     }
     return bfmgr.and(constraints);

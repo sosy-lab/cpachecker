@@ -28,12 +28,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /** This enum stores the sizes for all the basic types that exist. */
 public enum MachineModel {
   /** Machine model representing a 32bit Linux machine with alignment: */
   LINUX32(
-      // numeric types
+      // precision float
+      FloatValue.Format.Float80, // long double
+
+      // sizeof numeric types
       2, // short
       4, // int
       4, // long int
@@ -42,7 +46,7 @@ public enum MachineModel {
       8, // double
       12, // long double
 
-      // other
+      // sizeof other
       1, // void
       1, // bool
       4, // pointer
@@ -72,7 +76,10 @@ public enum MachineModel {
 
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
-      // numeric types
+      // precision float
+      FloatValue.Format.Float80, // long double
+
+      // sizeof numeric types
       2, // short int
       4, // int
       8, // long int
@@ -81,7 +88,7 @@ public enum MachineModel {
       8, // double
       16, // long double
 
-      // other
+      // sizeof other
       1, // void
       1, // bool
       8, // pointer
@@ -111,7 +118,10 @@ public enum MachineModel {
 
   /** Machine model representing an ARM machine with alignment: */
   ARM(
-      // numeric types
+      // precision float
+      FloatValue.Format.Float64, // long double
+
+      // sizeof numeric types
       2, // short int
       4, // int
       4, // long int
@@ -120,7 +130,7 @@ public enum MachineModel {
       8, // double
       8, // long double
 
-      // other
+      // sizeof other
       1, // void
       1, // bool
       4, // pointer
@@ -151,7 +161,10 @@ public enum MachineModel {
 
   /** Machine model representing an ARM64 machine with alignment: */
   ARM64(
-      // numeric types
+      // precision float
+      FloatValue.Format.Float64, // long double
+
+      // sizeof numeric types
       2, // short int
       4, // int
       8, // long int
@@ -160,7 +173,7 @@ public enum MachineModel {
       8, // double
       16, // long double
 
-      // other
+      // sizeof other
       1, // void
       1, // bool
       8, // pointer
@@ -189,7 +202,10 @@ public enum MachineModel {
     }
   };
 
-  // numeric types
+  // floating point format used for `long double`
+  private final FloatValue.Format longDoubleFormat;
+
+  // sizeof numeric types
   private final int sizeofShortInt;
   private final int sizeofInt;
   private final int sizeofLongInt;
@@ -198,7 +214,7 @@ public enum MachineModel {
   private final int sizeofDouble;
   private final int sizeofLongDouble;
 
-  // other
+  // sizeof other
   private final int sizeofVoid;
   private final int sizeofBool;
   private final int sizeofPtr;
@@ -231,6 +247,7 @@ public enum MachineModel {
   private final CSimpleType uintptr_t;
 
   MachineModel(
+      FloatValue.Format pLongDoubleFormat,
       int pSizeofShort,
       int pSizeofInt,
       int pSizeofLongInt,
@@ -254,6 +271,7 @@ public enum MachineModel {
       int pAlignofMalloc,
       boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
+    longDoubleFormat = pLongDoubleFormat;
     sizeofShortInt = pSizeofShort;
     sizeofInt = pSizeofInt;
     sizeofLongInt = pSizeofLongInt;
@@ -416,6 +434,27 @@ public enum MachineModel {
     };
   }
 
+  /**
+   * Returns the floating point format used for `long double` on this platform
+   *
+   * <p>Depending on the compiler and the CPU architecture `long double` can mean on of these
+   * things:
+   *
+   * <ul>
+   *   <li>Double precision (64 bits)
+   *   <li>Extended precision (80 bits)
+   *   <li>Quadruple precision (128 bits)
+   *   <li>A non-IEC 60559 extended format (must include all IEC 60559 "double precision" values)
+   * </ul>
+   *
+   * Note that the format for `long double` can not be calculated from {@link
+   * MachineModel#getSizeofLongDouble} as additional padding bits may be included in the size of the
+   * type.
+   */
+  public FloatValue.Format getLongDoubleFormat() {
+    return longDoubleFormat;
+  }
+
   public int getSizeofCharInBits() {
     return mSizeofCharInBits;
   }
@@ -448,6 +487,14 @@ public enum MachineModel {
     return sizeofDouble;
   }
 
+  /**
+   * The size of a `long double` variable in bytes as returned by the `sizeof` operator
+   *
+   * <p>Note that the size of a `long double` is different from its precision as it may include
+   * additional padding bits. Use {@link MachineModel#getLongDoubleFormat()} to get the {@link
+   * org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format} used for `long double` variables
+   * on this platform.
+   */
   public int getSizeofLongDouble() {
     return sizeofLongDouble;
   }
@@ -657,8 +704,8 @@ public enum MachineModel {
   public <X extends Exception> BigInteger getSizeofInBits(
       CType pType, BaseSizeofVisitor<X> pSizeofVisitor) throws X {
     checkNotNull(pSizeofVisitor);
-    if (pType instanceof CBitFieldType) {
-      return BigInteger.valueOf(((CBitFieldType) pType).getBitFieldSize());
+    if (pType instanceof CBitFieldType cBitFieldType) {
+      return BigInteger.valueOf(cBitFieldType.getBitFieldSize());
     } else {
       return getSizeof(pType, pSizeofVisitor).multiply(BigInteger.valueOf(getSizeofCharInBits()));
     }

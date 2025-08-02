@@ -101,15 +101,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
           if (val == newVal) {
             // ignore, otherwise counters would double
-          } else if (newVal instanceof StatCounter) {
+          } else if (newVal instanceof StatCounter statCounter) {
             assert val instanceof StatCounter;
-            ((StatCounter) newVal).mergeWith((StatCounter) val);
-          } else if (newVal instanceof StatInt) {
+            statCounter.mergeWith((StatCounter) val);
+          } else if (newVal instanceof StatInt statInt) {
             assert val instanceof StatInt;
-            ((StatInt) newVal).add((StatInt) val);
-          } else if (newVal instanceof StatHist) {
+            statInt.add((StatInt) val);
+          } else if (newVal instanceof StatHist statHist) {
             assert val instanceof StatHist;
-            ((StatHist) newVal).mergeWith((StatHist) val);
+            statHist.mergeWith((StatHist) val);
           } else {
             throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
           }
@@ -436,8 +436,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             reachedSet.addAll(toAdd);
           }
 
-          if (mergeOperator instanceof ARGMergeJoinCPAEnabledAnalysis) {
-            ((ARGMergeJoinCPAEnabledAnalysis) mergeOperator).cleanUp(reachedSet);
+          if (mergeOperator
+              instanceof ARGMergeJoinCPAEnabledAnalysis aRGMergeJoinCPAEnabledAnalysis) {
+            aRGMergeJoinCPAEnabledAnalysis.cleanUp(reachedSet);
           }
 
         } finally {
@@ -471,8 +472,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (forcedCovering instanceof StatisticsProvider) {
-      ((StatisticsProvider) forcedCovering).collectStatistics(pStatsCollection);
+    if (forcedCovering instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }

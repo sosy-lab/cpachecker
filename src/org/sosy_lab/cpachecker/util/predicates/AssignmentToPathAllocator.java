@@ -187,7 +187,7 @@ public class AssignmentToPathAllocator {
 
     private final Multimap<String, ValueAssignment> uninterpretedFunctions;
 
-    public PredicateAnalysisConcreteExpressionEvaluator(
+    PredicateAnalysisConcreteExpressionEvaluator(
         Multimap<String, ValueAssignment> pUninterpretedFunction) {
       uninterpretedFunctions = pUninterpretedFunction;
     }
@@ -290,11 +290,11 @@ public class AssignmentToPathAllocator {
 
     private Value asValue(Object pValue) {
 
-      if (!(pValue instanceof Number)) {
+      if (!(pValue instanceof Number number)) {
         return Value.UnknownValue.getInstance();
       }
 
-      return new NumericValue((Number) pValue);
+      return new NumericValue(number);
     }
 
     @Override
@@ -618,7 +618,7 @@ public class AssignmentToPathAllocator {
     private final ImmutableSet<ValueAssignment> constants;
     private final ImmutableSet<ValueAssignment> ufFunctionsWithoutSSAIndex;
 
-    public AssignableTermsInPath(
+    AssignableTermsInPath(
         ImmutableSetMultimap<Integer, ValueAssignment> pAssignableTermsAtPosition,
         ImmutableSet<ValueAssignment> pConstants,
         ImmutableSet<ValueAssignment> pUfFunctionsWithoutSSAIndex) {
@@ -628,16 +628,16 @@ public class AssignmentToPathAllocator {
       ufFunctionsWithoutSSAIndex = pUfFunctionsWithoutSSAIndex;
     }
 
-    public ImmutableSetMultimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
+    ImmutableSetMultimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
       return assignableTermsAtPosition;
     }
 
-    public ImmutableSet<ValueAssignment> getConstants() {
+    ImmutableSet<ValueAssignment> getConstants() {
       return constants;
     }
 
     @SuppressWarnings("unused")
-    public ImmutableSet<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
+    ImmutableSet<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
       return ufFunctionsWithoutSSAIndex;
     }
 

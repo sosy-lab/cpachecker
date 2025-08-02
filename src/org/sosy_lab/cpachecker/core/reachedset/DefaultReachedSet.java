@@ -237,7 +237,7 @@ class DefaultReachedSet implements ReachedSet {
 
       @Override
       public boolean contains(Object obj) {
-        return obj instanceof AbstractState && waitlist.contains((AbstractState) obj);
+        return obj instanceof AbstractState abstractState && waitlist.contains(abstractState);
       }
 
       @Override

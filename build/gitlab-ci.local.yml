@@ -49,15 +49,15 @@ configuration-checks:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-configuration-checks:jdk-23:
+configuration-checks:jdk-24:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-23
+    - build:jdk-24
   needs:
     - build-dependencies
-    - build:jdk-23
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+    - build:jdk-24
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 configuration-documentation:
@@ -104,7 +104,7 @@ check-code-patterns:
   script: "build/check-code-patterns.sh"
   dependencies: []
   needs: []
-  image: ubuntu:20.04
+  image: ubuntu:22.04
 
 
 .python-unit-tests: &python-unit-tests
@@ -121,15 +121,15 @@ python-unit-tests:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-python-unit-tests:jdk-23:
+python-unit-tests:jdk-24:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-23
+    - build:jdk-24
   needs:
     - build-dependencies
-    - build:jdk-23
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+    - build:jdk-24
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 javascript-build:
@@ -215,7 +215,7 @@ build-docker:release:
   extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    TAG: "4.0"
+    TAG: "4.1"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest --destination docker.io/sosylab/cpachecker:latest"
   rules:
     - !reference [.build-docker-hub, rules]
@@ -318,7 +318,7 @@ unit-tests:jdk-21:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-23:
+unit-tests:jdk-24:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:

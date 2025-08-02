@@ -327,23 +327,25 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       boolean errorFound = false;
       for (AbstractState lElement : otherElements) {
-        if (lElement instanceof AssumptionStorageState) {
-          element = strengthen(element, (AssumptionStorageState) lElement);
+        if (lElement instanceof AssumptionStorageState assumptionStorageState) {
+          element = strengthen(element, assumptionStorageState);
         }
 
-        if (lElement instanceof ThreadingState) {
-          element = strengthen(element, (ThreadingState) lElement);
+        if (lElement instanceof ThreadingState threadingState) {
+          element = strengthen(element, threadingState);
         }
 
         /*
          * Add additional assumptions from an automaton state.
          */
-        if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(element, (AbstractStateWithAssumptions) lElement, edge);
+        if (!ignoreStateAssumptions
+            && lElement instanceof AbstractStateWithAssumptions abstractStateWithAssumptions) {
+          element = strengthen(element, abstractStateWithAssumptions, edge);
         }
 
-        if (strengthenWithFormulaReportingStates && lElement instanceof FormulaReportingState) {
-          element = strengthen(element, (FormulaReportingState) lElement);
+        if (strengthenWithFormulaReportingStates
+            && lElement instanceof FormulaReportingState formulaReportingState) {
+          element = strengthen(element, formulaReportingState);
         }
 
         if (AbstractStates.isTargetState(lElement)) {

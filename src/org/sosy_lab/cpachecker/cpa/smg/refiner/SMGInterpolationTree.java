@@ -376,7 +376,7 @@ public class SMGInterpolationTree {
     /** the states that are the sources for obtaining error paths */
     private List<ARGState> sources;
 
-    public BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
+    BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
       sources = new ArrayList<>(pTargets);
     }
 

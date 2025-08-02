@@ -247,8 +247,8 @@ class JavaBDDRegionManager implements RegionManager {
           Field tableField = cache.getClass().getDeclaredField("table");
           tableField.setAccessible(true);
           Object table = tableField.get(cache);
-          if (table instanceof Object[]) {
-            return ((Object[]) table).length;
+          if (table instanceof Object[] array) {
+            return array.length;
           }
         }
       } catch (ReflectiveOperationException | SecurityException e) {

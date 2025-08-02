@@ -148,8 +148,8 @@ public class CProgramScope implements Scope {
   }
 
   private static String getComplexDeclarationName(CSimpleDeclaration pDeclaration) {
-    if (pDeclaration instanceof CComplexTypeDeclaration) {
-      CComplexType complexType = ((CComplexTypeDeclaration) pDeclaration).getType();
+    if (pDeclaration instanceof CComplexTypeDeclaration cComplexTypeDeclaration) {
+      CComplexType complexType = cComplexTypeDeclaration.getType();
       if (complexType != null) {
         String name = complexType.getName();
         String originalName = complexType.getOrigName();
@@ -374,8 +374,8 @@ public class CProgramScope implements Scope {
       return result;
     }
     CType typdefResult = lookupTypedef(pName);
-    if (typdefResult instanceof CComplexType) {
-      return (CComplexType) typdefResult;
+    if (typdefResult instanceof CComplexType cComplexType) {
+      return cComplexType;
     }
     return null;
   }
@@ -499,12 +499,11 @@ public class CProgramScope implements Scope {
     }
 
     // If the types are not composite types, we are done
-    if (!(pA instanceof CCompositeType)) {
+    if (!(pA instanceof CCompositeType aComp)) {
       pResolved.add(ab);
       return true;
     }
 
-    CCompositeType aComp = (CCompositeType) pA;
     CCompositeType bComp = (CCompositeType) pB;
 
     // Check member count
@@ -610,8 +609,8 @@ public class CProgramScope implements Scope {
             .transformAndConcat(CFAUtils::traverseRecursively);
     if (pEdge instanceof ADeclarationEdge declarationEdge) {
       ADeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof AFunctionDeclaration) {
-        nodes = Iterables.concat(nodes, ((AFunctionDeclaration) declaration).getParameters());
+      if (declaration instanceof AFunctionDeclaration aFunctionDeclaration) {
+        nodes = Iterables.concat(nodes, aFunctionDeclaration.getParameters());
       }
     }
     return nodes;
@@ -629,8 +628,8 @@ public class CProgramScope implements Scope {
                     astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration)
             .filter(
                 astNode -> {
-                  if (astNode instanceof CIdExpression) {
-                    return ((CIdExpression) astNode).getDeclaration() != null;
+                  if (astNode instanceof CIdExpression cIdExpression) {
+                    return cIdExpression.getDeclaration() != null;
                   }
                   return true;
                 });
@@ -721,15 +720,15 @@ public class CProgramScope implements Scope {
 
     private final Set<CType> collectedTypes;
 
-    public TypeCollector() {
+    TypeCollector() {
       this(new HashSet<>());
     }
 
-    public TypeCollector(Set<CType> pCollectedTypes) {
+    TypeCollector(Set<CType> pCollectedTypes) {
       collectedTypes = pCollectedTypes;
     }
 
-    public Set<CType> getCollectedTypes() {
+    Set<CType> getCollectedTypes() {
       return Collections.unmodifiableSet(collectedTypes);
     }
 

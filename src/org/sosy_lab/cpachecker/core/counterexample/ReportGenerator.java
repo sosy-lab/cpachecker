@@ -386,10 +386,11 @@ public class ReportGenerator {
   }
 
   private String extractPreconditionFromFaultLocalizationInfo(FaultLocalizationInfo fInfo) {
-    if (!(fInfo instanceof FaultLocalizationInfoWithTraceFormula)) {
+    if (!(fInfo
+        instanceof FaultLocalizationInfoWithTraceFormula faultLocalizationInfoWithTraceFormula)) {
       return "";
     }
-    TraceFormula traceFormula = ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula();
+    TraceFormula traceFormula = faultLocalizationInfoWithTraceFormula.getTraceFormula();
     PreCondition preCondition = traceFormula.getPrecondition();
     FormulaContext context = traceFormula.getContext();
     FormulaToCVisitor visitor =
