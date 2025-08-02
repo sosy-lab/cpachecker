@@ -44,7 +44,7 @@ public class NextThreadNondeterministicSimulation {
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
             pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
-    return LineOfCodeUtil.buildLinesOfCode(outerMultiControlStatement.toASTString());
+    return LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(outerMultiControlStatement.toASTString());
   }
 
   private static ImmutableMap<CExpression, SeqMultiControlStatement>

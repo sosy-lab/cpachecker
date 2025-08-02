@@ -38,13 +38,17 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqForExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqWhileExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.BitVectorInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -131,6 +135,9 @@ public class SeqMainFunction extends SeqFunction {
             numThreadsVariable.getDeclaration(),
             threadSimulationVariables));
 
+    // add bit vector initializations
+    rBody.addAll(buildBitVectorInitializations(clauses, bitVectorVariables));
+
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, logger));
 
@@ -165,7 +172,7 @@ public class SeqMainFunction extends SeqFunction {
           rBody.add(LineOfCode.of(SeqComment.NEXT_THREAD_ACTIVE));
         }
         CFunctionCallStatement assumption = nextThreadActiveAssumption.orElseThrow();
-        rBody.addAll(LineOfCodeUtil.buildLinesOfCode(assumption.toASTString()));
+        rBody.addAll(LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(assumption.toASTString()));
       }
     } else {
       if (options.comments) {
@@ -208,6 +215,37 @@ public class SeqMainFunction extends SeqFunction {
   @Override
   public ImmutableList<CParameterDeclaration> getParameters() {
     return ImmutableList.of();
+  }
+
+  private ImmutableList<LineOfCode> buildBitVectorInitializations(
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      Optional<BitVectorVariables> pBitVectorVariables)
+      throws UnrecognizedCodeException {
+
+    if (pBitVectorVariables.isEmpty()) {
+      return ImmutableList.of();
+    }
+    ImmutableList.Builder<LineOfCode> rInitializations = ImmutableList.builder();
+    for (var entry : pClauses.entrySet()) {
+      MPORThread thread = entry.getKey();
+      SeqThreadStatementBlock firstBlock =
+          SeqThreadStatementClauseUtil.getFirstBlock(entry.getValue());
+      ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+          SeqThreadStatementClauseUtil.mapLabelNumberToClause(entry.getValue());
+      ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
+          SeqThreadStatementClauseUtil.mapLabelNumberToBlock(entry.getValue());
+      ImmutableList<SeqBitVectorAssignmentStatement> bitVectorInitializations =
+          BitVectorInjector.buildBitVectorAssignmentsByReduction(
+              options,
+              thread,
+              firstBlock,
+              labelClauseMap,
+              labelBlockMap,
+              pBitVectorVariables.orElseThrow());
+      rInitializations.addAll(
+          LineOfCodeUtil.buildLinesOfCodeFromSeqAstNodes(bitVectorInitializations));
+    }
+    return rInitializations.build();
   }
 
   /**

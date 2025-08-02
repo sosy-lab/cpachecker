@@ -86,7 +86,8 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
             pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
-    rLines.addAll(LineOfCodeUtil.buildLinesOfCode(outerMultiControlStatement.toASTString()));
+    rLines.addAll(
+        LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(outerMultiControlStatement.toASTString()));
 
     return rLines.build();
   }

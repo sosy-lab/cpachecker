@@ -233,7 +233,8 @@ public class NumStatementsNondeterministicSimulation {
             tryBuildLastThreadUpdate(pOptions, pThread),
             pBinaryExpressionBuilder);
 
-    rLines.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlStatement.toASTString()));
+    rLines.addAll(
+        LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(multiControlStatement.toASTString()));
     return rLines.build();
   }
 

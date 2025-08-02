@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
@@ -86,7 +85,7 @@ public class BitVectorInjector {
           "bit vectors are enabled, but the program does not contain any global variables.");
       return pClauses; // no global variables -> no bit vectors needed
     }
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> injected =
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rInjected =
         ImmutableMap.builder();
     for (var entry : pClauses.entrySet()) {
       MPORThread activeThread = entry.getKey();
@@ -97,7 +96,7 @@ public class BitVectorInjector {
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses);
-      injected.put(
+      rInjected.put(
           activeThread,
           injectBitVectors(
               pOptions,
@@ -110,7 +109,7 @@ public class BitVectorInjector {
               labelBlockMap,
               pBinaryExpressionBuilder));
     }
-    return injectBitVectorInitializations(pOptions, injected.buildOrThrow(), pBitVectorVariables);
+    return rInjected.buildOrThrow();
   }
 
   private static ImmutableList<SeqThreadStatementClause> injectBitVectors(
@@ -289,14 +288,13 @@ public class BitVectorInjector {
     };
   }
 
-  private static ImmutableList<SeqBitVectorAssignmentStatement>
-      buildBitVectorAssignmentsByReduction(
-          MPOROptions pOptions,
-          MPORThread pActiveThread,
-          SeqThreadStatementBlock pTargetBlock,
-          ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-          ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-          BitVectorVariables pBitVectorVariables) {
+  public static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorAssignmentsByReduction(
+      MPOROptions pOptions,
+      MPORThread pActiveThread,
+      SeqThreadStatementBlock pTargetBlock,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      BitVectorVariables pBitVectorVariables) {
 
     return switch (pOptions.reductionMode) {
       case NONE ->
@@ -463,75 +461,5 @@ public class BitVectorInjector {
         BitVectorUtil.buildBitVectorExpression(
             pOptions, pBitVectorVariables.getGlobalVariableIds(), pAccessedVariables);
     return new SeqBitVectorAssignmentStatement(pBitVectorVariable, bitVectorExpression);
-  }
-
-  // Bit Vector Initializations ====================================================================
-
-  /**
-   * Injects proper initializations of the threads respective bit vectors based on the reachable
-   * statements when the respective thread is created i.e. set active.
-   */
-  private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>>
-      injectBitVectorInitializations(
-          MPOROptions pOptions,
-          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pUpdatedClauses,
-          BitVectorVariables pBitVectorVariables) {
-
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rInjected =
-        ImmutableMap.builder();
-    for (var entry : pUpdatedClauses.entrySet()) {
-      ImmutableList.Builder<SeqThreadStatementClause> newClauses = ImmutableList.builder();
-      for (SeqThreadStatementClause clause : entry.getValue()) {
-        SeqThreadStatementBlock newBlock =
-            injectBitVectorInitializationsIntoBlock(
-                pOptions, pBitVectorVariables, clause.block, pUpdatedClauses);
-        ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
-        for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-          newMergedBlocks.add(
-              injectBitVectorInitializationsIntoBlock(
-                  pOptions, pBitVectorVariables, mergedBlock, pUpdatedClauses));
-        }
-        newClauses.add(
-            clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
-      }
-      rInjected.put(entry.getKey(), newClauses.build());
-    }
-    return rInjected.buildOrThrow();
-  }
-
-  private static SeqThreadStatementBlock injectBitVectorInitializationsIntoBlock(
-      MPOROptions pOptions,
-      BitVectorVariables pBitVectorVariables,
-      SeqThreadStatementBlock pBlock,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
-
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      if (statement instanceof SeqThreadCreationStatement threadCreation) {
-        MPORThread createdThread = threadCreation.createdThread;
-        SeqThreadStatementClause firstClause =
-            Objects.requireNonNull(pClauses.get(createdThread)).get(0);
-        // TODO create the maps beforehand and make them parameters, otherwise they are created
-        //  newly for each thread creation (inefficient)
-        ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-            SeqThreadStatementClauseUtil.mapLabelNumberToClause(
-                Objects.requireNonNull(pClauses.get(createdThread)));
-        ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-            SeqThreadStatementClauseUtil.mapLabelNumberToBlock(
-                Objects.requireNonNull(pClauses.get(createdThread)));
-        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-            buildBitVectorAssignmentsByReduction(
-                pOptions,
-                threadCreation.createdThread,
-                firstClause.block,
-                labelClauseMap,
-                labelBlockMap,
-                pBitVectorVariables);
-        newStatements.add(threadCreation.cloneWithBitVectorAssignments(bitVectorAssignments));
-      } else {
-        newStatements.add(statement);
-      }
-    }
-    return pBlock.cloneWithStatements(newStatements.build());
   }
 }

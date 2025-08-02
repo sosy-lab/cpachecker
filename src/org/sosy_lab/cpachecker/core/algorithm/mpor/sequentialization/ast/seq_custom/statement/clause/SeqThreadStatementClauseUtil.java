@@ -31,6 +31,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseUtil {
 
+  public static SeqThreadStatementBlock getFirstBlock(
+      ImmutableList<SeqThreadStatementClause> pClauses) {
+
+    return pClauses.get(0).block;
+  }
+
   /** Searches for all target {@code pc} in {@code pStatement}. */
   public static ImmutableSet<Integer> collectAllIntegerTargetPc(SeqThreadStatement pStatement) {
     ImmutableSet.Builder<Integer> rAllTargetPc = ImmutableSet.builder();

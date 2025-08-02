@@ -66,7 +66,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> tree = ImmutableList.builder();
-    tree.addAll(LineOfCodeUtil.buildLinesOfCode(precedingStatements));
+    tree.addAll(LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
     ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     recursivelyBuildTree(statementList, statementList, expression, tree);

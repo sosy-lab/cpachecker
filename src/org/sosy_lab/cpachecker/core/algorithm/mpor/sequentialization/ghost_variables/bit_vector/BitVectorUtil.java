@@ -191,7 +191,7 @@ public class BitVectorUtil {
     String name =
         getSparseBitVectorVariableNameByAccessType(
             pOptions, pThread.id, pVariableDeclaration, pAccessType);
-    // always initialize with 0, the actual bit vectors are set when creating a thread
+    // always initialize with 0, the actual bit vectors are set inside main()
     CSimpleDeclaration declaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
             true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);

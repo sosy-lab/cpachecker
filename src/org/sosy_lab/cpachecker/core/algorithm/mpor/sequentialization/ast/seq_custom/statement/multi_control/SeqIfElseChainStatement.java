@@ -50,7 +50,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> ifElseChain = ImmutableList.builder();
-    ifElseChain.addAll(LineOfCodeUtil.buildLinesOfCode(precedingStatements));
+    ifElseChain.addAll(LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
     ifElseChain.addAll(buildIfElseChain(statements));
     ifElseChain.addAll(
         MultiControlStatementBuilder.buildThreadEndLabel(threadEndLabel, lastThreadUpdate));

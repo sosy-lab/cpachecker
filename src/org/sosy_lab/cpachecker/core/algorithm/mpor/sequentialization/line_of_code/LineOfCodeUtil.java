@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondet
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
@@ -373,7 +374,7 @@ public class LineOfCodeUtil {
   }
 
   /** Create and return the {@link ImmutableList} for {@code pString} that is split on newlines. */
-  public static ImmutableList<LineOfCode> buildLinesOfCode(String pString) {
+  public static ImmutableList<LineOfCode> buildLinesOfCodeFromCAstNodes(String pString) {
     ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
     for (String line : SeqStringUtil.splitOnNewline(pString)) {
       rLinesOfCode.add(LineOfCode.of(line.trim()));
@@ -381,13 +382,24 @@ public class LineOfCodeUtil {
     return rLinesOfCode.build();
   }
 
-  /** Return the list of {@link LineOfCode} for pAstNodes. */
-  public static <T extends CAstNode> ImmutableList<LineOfCode> buildLinesOfCode(
-      ImmutableList<T> pAstNodes) {
+  /** Return the list of {@link LineOfCode} for {@code pAstNodes}. */
+  public static ImmutableList<LineOfCode> buildLinesOfCodeFromCAstNodes(
+      ImmutableList<? extends CAstNode> pAstNodes) {
 
     ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
-    for (T astNode : pAstNodes) {
+    for (CAstNode astNode : pAstNodes) {
       rLinesOfCode.add(buildLineOfCode(astNode));
+    }
+    return rLinesOfCode.build();
+  }
+
+  /** Return the list of {@link LineOfCode} for {@code pSeqAstNodes}. */
+  public static ImmutableList<LineOfCode> buildLinesOfCodeFromSeqAstNodes(
+      ImmutableList<? extends SeqASTNode> pSeqAstNodes) throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
+    for (SeqASTNode astNode : pSeqAstNodes) {
+      rLinesOfCode.add(LineOfCode.of(astNode.toASTString()));
     }
     return rLinesOfCode.build();
   }
