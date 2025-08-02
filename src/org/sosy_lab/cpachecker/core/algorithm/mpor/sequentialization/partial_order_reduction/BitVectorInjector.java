@@ -355,16 +355,13 @@ public class BitVectorInjector {
                 pOptions, pBitVectorVariables.getGlobalVariableIds(), pDirectVariables);
         rStatements.add(new SeqBitVectorAssignmentStatement(directVariable, directValue));
       }
-      // TODO this seems wrong, since if the variables are empty, need to reset to 0? yes, remove
-      if (!pReachableVariables.isEmpty()) {
-        CExpression reachableVariable =
-            pBitVectorVariables.getDenseReachableBitVectorByAccessType(
-                BitVectorAccessType.ACCESS, pThread);
-        BitVectorValueExpression reachableValue =
-            BitVectorUtil.buildBitVectorExpression(
-                pOptions, pBitVectorVariables.getGlobalVariableIds(), pReachableVariables);
-        rStatements.add(new SeqBitVectorAssignmentStatement(reachableVariable, reachableValue));
-      }
+      CExpression reachableVariable =
+          pBitVectorVariables.getDenseReachableBitVectorByAccessType(
+              BitVectorAccessType.ACCESS, pThread);
+      BitVectorValueExpression reachableValue =
+          BitVectorUtil.buildBitVectorExpression(
+              pOptions, pBitVectorVariables.getGlobalVariableIds(), pReachableVariables);
+      rStatements.add(new SeqBitVectorAssignmentStatement(reachableVariable, reachableValue));
     }
     return rStatements.build();
   }
@@ -378,6 +375,7 @@ public class BitVectorInjector {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
+      // sparse access bit vectors
       for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
         CVariableDeclaration variable = entry.getKey();
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
@@ -388,6 +386,7 @@ public class BitVectorInjector {
             new SeqBitVectorAssignmentStatement(
                 accessVariables.get(pThread), sparseBitVectorExpression));
       }
+      // sparse write bit vectors
       for (var entry : pBitVectorVariables.getSparseWriteBitVectors().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> writeVariables = entry.getValue().variables;
         boolean value = pReachableWriteVariables.contains(entry.getKey());
@@ -398,7 +397,7 @@ public class BitVectorInjector {
                 writeVariables.get(pThread), sparseBitVectorExpression));
       }
     } else {
-
+      // dense bit vectors
       rStatements.add(
           buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
               pOptions,

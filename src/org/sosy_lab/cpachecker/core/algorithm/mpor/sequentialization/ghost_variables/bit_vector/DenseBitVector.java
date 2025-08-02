@@ -20,7 +20,7 @@ public class DenseBitVector {
   /** The bit vector for the next statement. */
   public final CIdExpression directVariable;
 
-  /** The bit vector for all reachable statements, from this location. */
+  /** The bit vector for all reachable statements, relative to a location. */
   public final CIdExpression reachableVariable;
 
   public final BitVectorAccessType accessType;
