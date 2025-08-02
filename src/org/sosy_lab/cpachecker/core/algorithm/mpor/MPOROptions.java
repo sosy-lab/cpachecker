@@ -60,6 +60,8 @@ public class MPOROptions {
 
   public final boolean kBound;
 
+  public final boolean kIgnoreZeroReduction;
+
   public final boolean license;
 
   public final boolean linkReduction;
@@ -106,6 +108,7 @@ public class MPOROptions {
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
       boolean pKBound,
+      boolean pKIgnoreZeroReduction,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -145,6 +148,7 @@ public class MPOROptions {
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
     kBound = pKBound;
+    kIgnoreZeroReduction = pKIgnoreZeroReduction;
     license = pLicense;
     linkReduction = pLinkReduction;
     loopIterations = pLoopIterations;
@@ -165,7 +169,7 @@ public class MPOROptions {
   /** Returns a test instance where only the program customization, not output, can be specified. */
   public static MPOROptions testInstance(
       BitVectorEncoding pBitVectorEncoding,
-      boolean pPruneBitVectorEvaluation,
+      boolean pBitVectorEvaluationPrune,
       boolean pBitVectorReduction,
       boolean pComments,
       boolean pConflictReduction,
@@ -174,6 +178,7 @@ public class MPOROptions {
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pInputFunctionDeclarations,
       boolean pKBound,
+      boolean pKIgnoreZeroReduction,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -188,7 +193,7 @@ public class MPOROptions {
         // always merge atomic blocks because not doing so may add additional interleavings
         true,
         pBitVectorEncoding,
-        pPruneBitVectorEvaluation,
+        pBitVectorEvaluationPrune,
         pBitVectorReduction,
         pComments,
         pConflictReduction,
@@ -204,6 +209,7 @@ public class MPOROptions {
         // always include type declarations at the moment, excluding them is unsafe
         true,
         pKBound,
+        pKIgnoreZeroReduction,
         pLicense,
         pLinkReduction,
         pLoopIterations,
@@ -340,6 +346,13 @@ public class MPOROptions {
             Level.WARNING,
             "WARNING: kBound is enabled, but the number of statements is not chosen"
                 + " non-deterministically. Either disable kBound or choose a"
+                + " nondeterminismSource that makes the number of statements non-deterministic.");
+      }
+      if (kIgnoreZeroReduction) {
+        pLogger.log(
+            Level.WARNING,
+            "kIgnoreZeroReduction is enabled, but the number of statements is not chosen"
+                + " non-deterministically. Either disable kIgnoreZeroReduction or choose a"
                 + " nondeterminismSource that makes the number of statements non-deterministic.");
       }
     }

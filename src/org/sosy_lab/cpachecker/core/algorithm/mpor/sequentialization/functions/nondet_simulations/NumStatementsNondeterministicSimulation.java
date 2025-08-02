@@ -25,13 +25,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
@@ -42,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
@@ -54,6 +60,7 @@ public class NumStatementsNondeterministicSimulation {
 
   static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
+      Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -61,11 +68,12 @@ public class NumStatementsNondeterministicSimulation {
 
     CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRReset();
     return buildThreadSimulations(
-        pOptions, pPcVariables, pClauses, rReset, pBinaryExpressionBuilder);
+        pOptions, pBitVectorVariables, pPcVariables, pClauses, rReset, pBinaryExpressionBuilder);
   }
 
   private static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
+      Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CExpressionAssignmentStatement pRReset,
@@ -79,18 +87,16 @@ public class NumStatementsNondeterministicSimulation {
       MPORThread thread = entry.getKey();
       ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
 
-      // add condition if thread still active and K > 0
-      CBinaryExpression pcUnequalExitPc =
-          SeqExpressionBuilder.buildPcUnequalExitPc(
-              pPcVariables.getPcLeftHandSide(thread.id), pBinaryExpressionBuilder);
-      CBinaryExpression kGreaterZero =
-          pBinaryExpressionBuilder.buildBinaryExpression(
-              thread.getKVariable().orElseThrow(),
-              SeqIntegerLiteralExpression.INT_0,
-              BinaryOperator.GREATER_THAN);
-      SeqLogicalAndExpression loopCondition =
-          new SeqLogicalAndExpression(pcUnequalExitPc, kGreaterZero);
-      SeqIfExpression ifExpression = new SeqIfExpression(loopCondition);
+      // create "if (pc != 0 && K > 0 ...)" condition
+      SeqLogicalAndExpression ifCondition =
+          buildIfConditionExpression(
+              pOptions,
+              thread,
+              MPORUtil.withoutElement(pClauses.keySet(), thread),
+              pBitVectorVariables,
+              pPcVariables,
+              pBinaryExpressionBuilder);
+      SeqIfExpression ifExpression = new SeqIfExpression(ifCondition);
       rLines.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
 
       // reset iteration only when needed i.e. after if (...) for performance
@@ -153,6 +159,43 @@ public class NumStatementsNondeterministicSimulation {
             KSum, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
     CFunctionCallStatement assumption = SeqAssumptionBuilder.buildAssumption(KSumGreaterZero);
     return LineOfCode.of(assumption.toASTString());
+  }
+
+  private static SeqLogicalAndExpression buildIfConditionExpression(
+      MPOROptions pOptions,
+      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
+      Optional<BitVectorVariables> pBitVectorVariables,
+      PcVariables pPcVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    // add if condition "if (pc != 0 && K > 0 ...)"
+    CBinaryExpression pcUnequalExitPc =
+        SeqExpressionBuilder.buildPcUnequalExitPc(
+            pPcVariables.getPcLeftHandSide(pActiveThread.id), pBinaryExpressionBuilder);
+    CBinaryExpression kGreaterZero =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            pActiveThread.getKVariable().orElseThrow(),
+            SeqIntegerLiteralExpression.INT_0,
+            BinaryOperator.GREATER_THAN);
+
+    if (pOptions.kIgnoreZeroReduction) {
+      // if enabled, add bit vector evaluation: "K > 0 || {bitvector_evaluation}"
+      BitVectorEvaluationExpression bitVectorEvaluationExpression =
+          BitVectorEvaluationBuilder.buildVariableOnlyEvaluation(
+              pOptions,
+              pActiveThread,
+              pOtherThreads,
+              pBitVectorVariables.orElseThrow(),
+              pBinaryExpressionBuilder);
+      SeqLogicalOrExpression logicalOr =
+          new SeqLogicalOrExpression(
+              new CToSeqExpression(kGreaterZero), bitVectorEvaluationExpression);
+      return new SeqLogicalAndExpression(new CToSeqExpression(pcUnequalExitPc), logicalOr);
+    } else {
+      return new SeqLogicalAndExpression(pcUnequalExitPc, kGreaterZero);
+    }
   }
 
   private static ImmutableList<LineOfCode> buildSingleThreadClausesWithCount(

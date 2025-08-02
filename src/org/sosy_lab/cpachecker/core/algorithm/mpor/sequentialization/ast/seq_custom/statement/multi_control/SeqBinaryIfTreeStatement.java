@@ -175,8 +175,6 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
    * Extracts the label number of {@code pStatement}, or returns {@code pIndex} if not applicable.
    */
   private static int getLabelNumberOrIndex(SeqStatement pStatement, int pIndex) {
-    return pStatement instanceof SeqThreadStatementClause
-        ? ((SeqThreadStatementClause) pStatement).labelNumber
-        : pIndex;
+    return pStatement instanceof SeqThreadStatementClause clause ? clause.labelNumber : pIndex;
   }
 }

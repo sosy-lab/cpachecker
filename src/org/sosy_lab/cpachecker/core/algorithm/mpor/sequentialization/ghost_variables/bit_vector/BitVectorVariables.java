@@ -39,13 +39,24 @@ public class BitVectorVariables {
 
     numGlobalVariables = pGlobalVariableIds.size();
     globalVariableIds = pGlobalVariableIds;
-    denseWriteBitVectors = pDenseWriteBitVectors;
     denseAccessBitVectors = pDenseAccessBitVectors;
+    denseWriteBitVectors = pDenseWriteBitVectors;
     sparseAccessBitVectors = pSparseAccessBitVectors;
     sparseWriteBitVectors = pSparseWriteBitVectors;
   }
 
-  public CExpression getDenseBitVectorByAccessType(
+  public CExpression getDenseDirectBitVectorByAccessType(
+      BitVectorAccessType pAccessType, MPORThread pThread) {
+
+    for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
+      if (variable.thread.equals(pThread)) {
+        return variable.directVariable;
+      }
+    }
+    throw new IllegalArgumentException("could not find pThread");
+  }
+
+  public CExpression getDenseReachableBitVectorByAccessType(
       BitVectorAccessType pAccessType, MPORThread pThread) {
 
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
@@ -75,6 +86,7 @@ public class BitVectorVariables {
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> denseAccessBitVectors.orElseThrow();
+      // there are no separate READ bit vectors, only access and write
       case READ -> throw new IllegalArgumentException("READ bit vectors are not used");
       case WRITE -> denseWriteBitVectors.orElseThrow();
     };

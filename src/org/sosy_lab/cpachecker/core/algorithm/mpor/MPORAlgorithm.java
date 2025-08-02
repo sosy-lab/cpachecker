@@ -154,12 +154,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " may slow down or improve performance, depending on the verifier.")
   private boolean kBound;
 
+  @Option(
+      secure = true,
+      description =
+          "ignore K == 0 if the current thread is not in a conflict with any other thread?"
+              + " reduces the amount of interleavings.")
+  private boolean kIgnoreZeroReduction;
+
   // TODO kThreadSeparate
   //  use separate k for each thread (with k sum > 0), or one for each thread (should be used when
   //  loopIterations > 0 to prevent infinite k = 0 interleaving)
-  // TODO kIgnoreZeroReduction
-  //  if (thread_active && (K > 0 || "no conflict with any other thread"))
-  //  --> reduces interleavings
 
   @Option(
       secure = true,
@@ -344,6 +348,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               inputFunctionDeclarations,
               inputTypeDeclarations,
               kBound,
+              kIgnoreZeroReduction,
               license,
               linkReduction,
               loopIterations,

@@ -34,6 +34,28 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorReadWriteEvaluationBuilder {
 
+  static BitVectorEvaluationExpression buildVariableOnlyEvaluationByEncoding(
+      MPOROptions pOptions,
+      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pOptions.bitVectorEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+      case BINARY, DECIMAL, HEXADECIMAL ->
+          buildFullDenseVariableOnlyEvaluation(
+              pActiveThread, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+      case SPARSE ->
+          // TODO add support
+          throw new IllegalArgumentException(
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+    };
+  }
+
   static BitVectorEvaluationExpression buildEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
@@ -166,6 +188,49 @@ public class BitVectorReadWriteEvaluationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    CIntegerLiteralExpression directReadBitVector =
+        BitVectorUtil.buildDirectBitVectorExpression(
+            pBitVectorVariables.getGlobalVariableIds(), pDirectReadVariables);
+    CIntegerLiteralExpression directWriteBitVector =
+        BitVectorUtil.buildDirectBitVectorExpression(
+            pBitVectorVariables.getGlobalVariableIds(), pDirectWriteVariables);
+    return buildFullDenseLogicalAnd(
+        directReadBitVector,
+        directWriteBitVector,
+        pOtherThreads,
+        pBitVectorVariables,
+        pBinaryExpressionBuilder);
+  }
+
+  private static BitVectorEvaluationExpression buildFullDenseVariableOnlyEvaluation(
+      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CExpression directReadBitVector =
+        pBitVectorVariables.getDenseDirectBitVectorByAccessType(
+            BitVectorAccessType.READ, pActiveThread);
+    CExpression directWriteBitVector =
+        pBitVectorVariables.getDenseDirectBitVectorByAccessType(
+            BitVectorAccessType.WRITE, pActiveThread);
+    return buildFullDenseLogicalAnd(
+        directReadBitVector,
+        directWriteBitVector,
+        pOtherThreads,
+        pBitVectorVariables,
+        pBinaryExpressionBuilder);
+  }
+
+  private static BitVectorEvaluationExpression buildFullDenseLogicalAnd(
+      CExpression pDirectReadBitVector,
+      CExpression pDirectWriteBitVector,
+      ImmutableSet<MPORThread> pOtherThreads,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
     ImmutableSet<CExpression> otherWriteBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
             BitVectorAccessType.WRITE, pOtherThreads);
@@ -174,20 +239,14 @@ public class BitVectorReadWriteEvaluationBuilder {
             BitVectorAccessType.ACCESS, pOtherThreads);
 
     // (R & (W' | W'' | ...))
-    CIntegerLiteralExpression directReadBitVector =
-        BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.getGlobalVariableIds(), pDirectReadVariables);
     CExpression leftHandSide =
         buildGeneralDenseLeftHandSide(
-            directReadBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
+            pDirectReadBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
     // (W & (A' | A'' | ...))
-    CIntegerLiteralExpression directWriteBitVector =
-        BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.getGlobalVariableIds(), pDirectWriteVariables);
     CExpression rightHandSide =
         buildGeneralDenseRightHandSide(
-            directWriteBitVector, otherAccessBitVectors, pBinaryExpressionBuilder);
-
+            pDirectWriteBitVector, otherAccessBitVectors, pBinaryExpressionBuilder);
+    // !(R & (W' | W'' | ...)) && !(W & (A' | A'' | ...))
     SeqLogicalAndExpression logicalAnd =
         new SeqLogicalAndExpression(
             new SeqLogicalNotExpression(leftHandSide), new SeqLogicalNotExpression(rightHandSide));
@@ -198,7 +257,7 @@ public class BitVectorReadWriteEvaluationBuilder {
 
   /** General = used for both pruned and full evaluations. */
   private static CBinaryExpression buildGeneralDenseLeftHandSide(
-      CIntegerLiteralExpression pDirectReadBitVector,
+      CExpression pDirectReadBitVector,
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -211,7 +270,7 @@ public class BitVectorReadWriteEvaluationBuilder {
 
   /** General = used for both pruned and full evaluations. */
   private static CBinaryExpression buildGeneralDenseRightHandSide(
-      CIntegerLiteralExpression pDirectWriteBitVector,
+      CExpression pDirectWriteBitVector,
       ImmutableSet<CExpression> pOtherAccesses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {

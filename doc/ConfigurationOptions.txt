@@ -323,6 +323,10 @@ analysis.algorithm.MPOR.inputTypeDeclarations = true
 # may slow down or improve performance, depending on the verifier.
 analysis.algorithm.MPOR.kBound = no default value
 
+# ignore K == 0 if the current thread is not in a conflict with any other
+# thread? reduces the amount of interleavings.
+analysis.algorithm.MPOR.kIgnoreZeroReduction = no default value
+
 # include CPAchecker license header in the sequentialization? true -> bigger
 # file size
 analysis.algorithm.MPOR.license = false

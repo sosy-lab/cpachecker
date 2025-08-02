@@ -906,11 +906,13 @@ public class CFAUtils {
    */
   public static FunctionEntryNode getFunctionEntryNodeFromCFunctionType(
       CFA pCfa, CFunctionType pCFunctionType) {
+
     checkNotNull(pCFunctionType);
     for (CFANode cfaNode : pCfa.nodes()) {
-      if (cfaNode instanceof FunctionEntryNode
-          && cfaNode.getFunction().getType().equals(pCFunctionType)) {
-        return (FunctionEntryNode) cfaNode;
+      if (cfaNode instanceof FunctionEntryNode functionEntryNode) {
+        if (functionEntryNode.getFunction().getType().equals(pCFunctionType)) {
+          return functionEntryNode;
+        }
       }
     }
     throw new IllegalArgumentException(

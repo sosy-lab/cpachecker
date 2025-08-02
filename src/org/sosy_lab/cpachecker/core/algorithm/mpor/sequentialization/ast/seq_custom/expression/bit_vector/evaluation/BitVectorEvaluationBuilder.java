@@ -24,6 +24,39 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorEvaluationBuilder {
 
+  public static BitVectorEvaluationExpression buildVariableOnlyEvaluation(
+      MPOROptions pOptions,
+      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    checkArgument(
+        pOptions.areBitVectorsEnabled(),
+        "either conflictReduction or bitVectorReduction must be enabled");
+
+    return switch (pOptions.reductionMode) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "conflictReduction must be enabled to build evaluation expression");
+      case ACCESS_ONLY ->
+          BitVectorAccessEvaluationBuilder.buildVariableOnlyEvaluationByEncoding(
+              pOptions,
+              pActiveThread,
+              pOtherThreads,
+              pBitVectorVariables,
+              pBinaryExpressionBuilder);
+      case READ_AND_WRITE ->
+          BitVectorReadWriteEvaluationBuilder.buildVariableOnlyEvaluationByEncoding(
+              pOptions,
+              pActiveThread,
+              pOtherThreads,
+              pBitVectorVariables,
+              pBinaryExpressionBuilder);
+    };
+  }
+
   public static BitVectorEvaluationExpression buildEvaluationByDirectVariableAccesses(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
@@ -45,7 +78,7 @@ public class BitVectorEvaluationBuilder {
         ImmutableSet<CVariableDeclaration> directAccessVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pTargetBlock, BitVectorAccessType.ACCESS);
-        yield BitVectorEvaluationBuilder.buildEvaluationByReduction(
+        yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,
             directAccessVariables,
@@ -61,7 +94,7 @@ public class BitVectorEvaluationBuilder {
         ImmutableSet<CVariableDeclaration> directWriteVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pTargetBlock, BitVectorAccessType.WRITE);
-        yield BitVectorEvaluationBuilder.buildEvaluationByReduction(
+        yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,
             ImmutableSet.of(),

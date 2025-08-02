@@ -352,6 +352,7 @@ public class LineOfCodeUtil {
             pOptions,
             pSubstitutions,
             clauses,
+            pBitVectorVariables,
             pPcVariables,
             pThreadSimulationVariables,
             pBinaryExpressionBuilder,

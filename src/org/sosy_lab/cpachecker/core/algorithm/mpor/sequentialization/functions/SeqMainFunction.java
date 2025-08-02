@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqWhileExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations.NondeterministicSimulationUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -73,6 +74,8 @@ public class SeqMainFunction extends SeqFunction {
 
   private final Optional<CFunctionCallStatement> countAssumption;
 
+  private final Optional<BitVectorVariables> bitVectorVariables;
+
   private final PcVariables pcVariables;
 
   private final ThreadSimulationVariables threadSimulationVariables;
@@ -85,6 +88,7 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -97,6 +101,7 @@ public class SeqMainFunction extends SeqFunction {
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(pSubstitutions);
     numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(numThreads);
     clauses = pClauses;
+    bitVectorVariables = pBitVectorVariables;
     pcVariables = pPcVariables;
     threadSimulationVariables = pThreadSimulationVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
@@ -179,7 +184,7 @@ public class SeqMainFunction extends SeqFunction {
     }
     rBody.addAll(
         NondeterministicSimulationUtil.buildThreadSimulationsByNondeterminismSource(
-            options, pcVariables, clauses, binaryExpressionBuilder));
+            options, bitVectorVariables, pcVariables, clauses, binaryExpressionBuilder));
     rBody.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     // --- loop ends here ---
 

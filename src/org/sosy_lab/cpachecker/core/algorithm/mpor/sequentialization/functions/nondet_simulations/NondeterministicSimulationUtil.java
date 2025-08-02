@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -44,6 +45,7 @@ public class NondeterministicSimulationUtil {
 
   public static ImmutableList<LineOfCode> buildThreadSimulationsByNondeterminismSource(
       MPOROptions pOptions,
+      Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -55,7 +57,7 @@ public class NondeterministicSimulationUtil {
               pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);
       case NUM_STATEMENTS ->
           NumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);
+              pOptions, pBitVectorVariables, pPcVariables, pClauses, pBinaryExpressionBuilder);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulations(
               pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);

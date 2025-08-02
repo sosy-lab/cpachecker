@@ -84,10 +84,16 @@ public class SeqBitVectorDeclarationBuilder {
       BitVectorValueExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.getGlobalVariableIds(), ImmutableSet.of());
-      SeqBitVectorDeclaration bitVectorDeclaration =
+      if (pOptions.kIgnoreZeroReduction) {
+        // direct bit vector
+        SeqBitVectorDeclaration directDeclaration =
+            new SeqBitVectorDeclaration(type, denseBitVector.directVariable, initializer);
+        rDeclarations.add(directDeclaration);
+      }
+      // reachable bit vector
+      SeqBitVectorDeclaration reachableDeclaration =
           new SeqBitVectorDeclaration(type, denseBitVector.reachableVariable, initializer);
-
-      rDeclarations.add(bitVectorDeclaration);
+      rDeclarations.add(reachableDeclaration);
     }
     return rDeclarations.build();
   }

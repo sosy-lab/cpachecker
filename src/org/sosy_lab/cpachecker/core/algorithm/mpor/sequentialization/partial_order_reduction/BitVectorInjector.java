@@ -212,6 +212,7 @@ public class BitVectorInjector {
         // for all other target pc, set the bit vector based on global accesses in the target block
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
+        // TODO this check is only necessary if only next_thread nondeterminism is active
         if (!SeqThreadStatementUtil.anySynchronizesThreads(newTarget.getAllStatements())) {
           if (pAddEvaluation) {
             SeqBitVectorEvaluationStatement evaluationStatement =
@@ -275,7 +276,7 @@ public class BitVectorInjector {
               "cannot build assignments for reduction " + pOptions.bitVectorReduction);
       case ACCESS_ONLY ->
           buildBitVectorAccessAssignments(
-              pOptions, pThread, pBitVectorVariables, ImmutableSet.of());
+              pOptions, pThread, pBitVectorVariables, ImmutableSet.of(), ImmutableSet.of());
       case READ_AND_WRITE ->
           buildBitVectorReadWriteAssignments(
               pOptions, pThread, pBitVectorVariables, ImmutableSet.of(), ImmutableSet.of());
@@ -285,7 +286,7 @@ public class BitVectorInjector {
   private static ImmutableList<SeqBitVectorAssignmentStatement>
       buildBitVectorAssignmentsByReduction(
           MPOROptions pOptions,
-          MPORThread pAcitveThread,
+          MPORThread pActiveThread,
           SeqThreadStatementBlock pTargetBlock,
           ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
           ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -296,11 +297,14 @@ public class BitVectorInjector {
           throw new IllegalArgumentException(
               "cannot build assignments for reduction " + pOptions.bitVectorReduction);
       case ACCESS_ONLY -> {
+        ImmutableSet<CVariableDeclaration> directVariables =
+            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+                pLabelBlockMap, pTargetBlock, BitVectorAccessType.ACCESS);
         ImmutableSet<CVariableDeclaration> reachableVariables =
             GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
                 pLabelClauseMap, pLabelBlockMap, pTargetBlock, BitVectorAccessType.ACCESS);
         yield buildBitVectorAccessAssignments(
-            pOptions, pAcitveThread, pBitVectorVariables, reachableVariables);
+            pOptions, pActiveThread, pBitVectorVariables, directVariables, reachableVariables);
       }
       case READ_AND_WRITE -> {
         ImmutableSet<CVariableDeclaration> reachableReadVariables =
@@ -311,7 +315,7 @@ public class BitVectorInjector {
                 pLabelClauseMap, pLabelBlockMap, pTargetBlock, BitVectorAccessType.WRITE);
         yield buildBitVectorReadWriteAssignments(
             pOptions,
-            pAcitveThread,
+            pActiveThread,
             pBitVectorVariables,
             // combine both read and write for access
             ImmutableSet.<CVariableDeclaration>builder()
@@ -327,6 +331,7 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
+      ImmutableSet<CVariableDeclaration> pDirectVariables,
       ImmutableSet<CVariableDeclaration> pReachableVariables) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
@@ -340,14 +345,26 @@ public class BitVectorInjector {
             new SeqBitVectorAssignmentStatement(
                 accessVariables.get(pThread), sparseBitVectorExpression));
       }
-    } else if (!pReachableVariables.isEmpty()) {
-      CExpression reachableBitVector =
-          pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.ACCESS, pThread);
-      BitVectorValueExpression reachableBitVectorExpression =
-          BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.getGlobalVariableIds(), pReachableVariables);
-      rStatements.add(
-          new SeqBitVectorAssignmentStatement(reachableBitVector, reachableBitVectorExpression));
+    } else {
+      if (pOptions.kIgnoreZeroReduction) {
+        CExpression directVariable =
+            pBitVectorVariables.getDenseDirectBitVectorByAccessType(
+                BitVectorAccessType.ACCESS, pThread);
+        BitVectorValueExpression directValue =
+            BitVectorUtil.buildBitVectorExpression(
+                pOptions, pBitVectorVariables.getGlobalVariableIds(), pDirectVariables);
+        rStatements.add(new SeqBitVectorAssignmentStatement(directVariable, directValue));
+      }
+      // TODO this seems wrong, since if the variables are empty, need to reset to 0? yes, remove
+      if (!pReachableVariables.isEmpty()) {
+        CExpression reachableVariable =
+            pBitVectorVariables.getDenseReachableBitVectorByAccessType(
+                BitVectorAccessType.ACCESS, pThread);
+        BitVectorValueExpression reachableValue =
+            BitVectorUtil.buildBitVectorExpression(
+                pOptions, pBitVectorVariables.getGlobalVariableIds(), pReachableVariables);
+        rStatements.add(new SeqBitVectorAssignmentStatement(reachableVariable, reachableValue));
+      }
     }
     return rStatements.build();
   }
@@ -409,7 +426,7 @@ public class BitVectorInjector {
           ImmutableSet<CVariableDeclaration> pAccessedVariables) {
 
     CExpression bitVectorVariable =
-        pBitVectorVariables.getDenseBitVectorByAccessType(pAccessType, pThread);
+        pBitVectorVariables.getDenseReachableBitVectorByAccessType(pAccessType, pThread);
     BitVectorValueExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(
             pOptions, pBitVectorVariables.getGlobalVariableIds(), pAccessedVariables);

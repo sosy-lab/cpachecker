@@ -32,6 +32,28 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorAccessEvaluationBuilder {
 
+  static BitVectorEvaluationExpression buildVariableOnlyEvaluationByEncoding(
+      MPOROptions pOptions,
+      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pOptions.bitVectorEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+      case BINARY, DECIMAL, HEXADECIMAL ->
+          buildFullDenseVariableOnlyEvaluation(
+              pActiveThread, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+      case SPARSE ->
+          // TODO add support
+          throw new IllegalArgumentException(
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+    };
+  }
+
   /**
    * Builds a pruned evaluation expression for the given bit vectors based on the direct access
    * variables.
@@ -94,16 +116,50 @@ public class BitVectorAccessEvaluationBuilder {
     CIntegerLiteralExpression directBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
             pBitVectorVariables.getGlobalVariableIds(), pDirectVariables);
+    return buildFullDenseLogicalNot(
+        directBitVector, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+  }
+
+  private static BitVectorEvaluationExpression buildFullDenseVariableOnlyEvaluation(
+      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CExpression directBitVector =
+        pBitVectorVariables.getDenseDirectBitVectorByAccessType(
+            BitVectorAccessType.ACCESS, pActiveThread);
+    return buildFullDenseLogicalNot(
+        directBitVector, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+  }
+
+  private static BitVectorEvaluationExpression buildFullDenseLogicalNot(
+      CExpression pDirectBitVector,
+      ImmutableSet<MPORThread> pOtherThreads,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CExpression rightHandSide =
+        buildFullDenseRightHandSide(pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+    CBinaryExpression binaryExpression =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            pDirectBitVector, rightHandSide, BinaryOperator.BINARY_AND);
+    SeqLogicalNotExpression logicalNot = new SeqLogicalNotExpression(binaryExpression);
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalNot));
+  }
+
+  private static CExpression buildFullDenseRightHandSide(
+      ImmutableSet<MPORThread> pOtherThreads,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
     ImmutableSet<CExpression> otherBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
             BitVectorAccessType.ACCESS, pOtherThreads);
-    CExpression rightHandSide =
-        BitVectorEvaluationUtil.binaryDisjunction(otherBitVectors, pBinaryExpressionBuilder);
-    CBinaryExpression binaryExpression =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            directBitVector, rightHandSide, BinaryOperator.BINARY_AND);
-    SeqLogicalNotExpression logicalNot = new SeqLogicalNotExpression(binaryExpression);
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalNot));
+    return BitVectorEvaluationUtil.binaryDisjunction(otherBitVectors, pBinaryExpressionBuilder);
   }
 
   // Sparse Access Bit Vectors =====================================================================
