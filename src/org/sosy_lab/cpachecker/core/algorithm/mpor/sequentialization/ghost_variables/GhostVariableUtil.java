@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncti
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.List;
@@ -149,7 +148,7 @@ public class GhostVariableUtil {
   private static ImmutableMap<CVariableDeclaration, Integer> assignGlobalVariableIds(
       ImmutableList<CVariableDeclaration> pAllGlobalVariables) {
 
-    Builder<CVariableDeclaration, Integer> rVariables = ImmutableMap.builder();
+    ImmutableMap.Builder<CVariableDeclaration, Integer> rVariables = ImmutableMap.builder();
     int id = BitVectorUtil.RIGHT_INDEX;
     for (CVariableDeclaration variableDeclaration : pAllGlobalVariables) {
       assert variableDeclaration.isGlobal() : "variable declaration must be global";
@@ -182,7 +181,7 @@ public class GhostVariableUtil {
   private static Optional<CIdExpression> buildDenseDirectBitVectorByAccessType(
       MPOROptions pOptions, MPORThread pThread, BitVectorAccessType pAccessType) {
 
-    if (pOptions.kIgnoreZeroReduction && !pAccessType.equals(BitVectorAccessType.ACCESS)) {
+    if (pOptions.kIgnoreZeroReduction) {
       String directReadName =
           SeqNameUtil.buildDirectBitVectorNameByAccessType(pOptions, pThread.id, pAccessType);
       // these declarations are not actually used, we only need it for the CIdExpression
@@ -220,7 +219,8 @@ public class GhostVariableUtil {
     if (pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
     }
-    Builder<CVariableDeclaration, SparseBitVector> rAccessVariables = ImmutableMap.builder();
+    ImmutableMap.Builder<CVariableDeclaration, SparseBitVector> rAccessVariables =
+        ImmutableMap.builder();
     for (CVariableDeclaration variableDeclaration : pAllGlobalVariables) {
       assert variableDeclaration.isGlobal() : "variable declaration for bit vector must be global";
       ImmutableMap<MPORThread, CIdExpression> variables =
@@ -237,7 +237,7 @@ public class GhostVariableUtil {
       CVariableDeclaration pVariableDeclaration,
       BitVectorAccessType pAccessType) {
 
-    Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();
+    ImmutableMap.Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       rAccessVariables.put(
           thread,
@@ -279,7 +279,7 @@ public class GhostVariableUtil {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    Builder<CIdExpression, MutexLocked> rVars = ImmutableMap.builder();
+    ImmutableMap.Builder<CIdExpression, MutexLocked> rVars = ImmutableMap.builder();
     Set<CIdExpression> lockedVariables = new HashSet<>();
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
@@ -319,7 +319,7 @@ public class GhostVariableUtil {
   private static ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       buildParameterAssignments(MPORSubstitution pSubstitution) {
 
-    Builder<ThreadEdge, ImmutableList<FunctionParameterAssignment>> rAssignments =
+    ImmutableMap.Builder<ThreadEdge, ImmutableList<FunctionParameterAssignment>> rAssignments =
         ImmutableMap.builder();
 
     // for each function call edge (= calling context)
@@ -361,7 +361,8 @@ public class GhostVariableUtil {
   private static ImmutableMap<ThreadEdge, FunctionParameterAssignment>
       buildStartRoutineArgumentAssignments(MPORSubstitution pSubstitution) {
 
-    Builder<ThreadEdge, FunctionParameterAssignment> rAssignments = ImmutableMap.builder();
+    ImmutableMap.Builder<ThreadEdge, FunctionParameterAssignment> rAssignments =
+        ImmutableMap.builder();
     for (var entry : pSubstitution.startRoutineArgSubstitutes.entrySet()) {
       // this call context is the call to pthread_create
       ThreadEdge callContext = entry.getKey();
@@ -403,8 +404,8 @@ public class GhostVariableUtil {
       buildReturnValueAssignments(
           MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
-    Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> rReturnStatements =
-        ImmutableMap.builder();
+    ImmutableMap.Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
+        rReturnStatements = ImmutableMap.builder();
     for (ThreadEdge threadEdgeA : pThread.cfa.threadEdges) {
       if (pSubstituteEdges.containsKey(threadEdgeA)) {
         SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubstituteEdges.get(threadEdgeA));
@@ -454,7 +455,7 @@ public class GhostVariableUtil {
       buildStartRoutineExitAssignments(
           MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
-    Builder<ThreadEdge, FunctionReturnValueAssignment> rStartRoutineExitAssignments =
+    ImmutableMap.Builder<ThreadEdge, FunctionReturnValueAssignment> rStartRoutineExitAssignments =
         ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (PthreadUtil.callsPthreadFunction(threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
