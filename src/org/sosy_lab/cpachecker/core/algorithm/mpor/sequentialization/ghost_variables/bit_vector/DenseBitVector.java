@@ -40,9 +40,6 @@ public class DenseBitVector {
     checkArgument(
         !pAccessType.equals(BitVectorAccessType.READ) || pReachableVariable.isEmpty(),
         "for access type READ, the reachable variable must be empty");
-    checkArgument(
-        !pAccessType.equals(BitVectorAccessType.ACCESS) || pDirectVariable.isEmpty(),
-        "for access type ACCESS, the direct variable must be empty");
 
     thread = pThread;
     directVariable = pDirectVariable;

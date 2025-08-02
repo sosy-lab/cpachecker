@@ -150,9 +150,6 @@ public class SeqNameUtil {
 
   // Dense Bit Vectors =============================================================================
 
-  // TODO rename the bit vectors into {d, r}{a, r, w}{thread_id}
-  //  (direct / reachable) (access, read, write) (thread_id)
-
   public static String buildDirectBitVectorNameByAccessType(
       MPOROptions pOptions, int pThreadId, BitVectorAccessType pAccessType) {
 
@@ -179,30 +176,39 @@ public class SeqNameUtil {
       MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
 
     return pOptions.shortVariableNames
-        ? (pIsDirect ? SeqToken.d : SeqSyntax.EMPTY_STRING) + SeqToken.ba + pThreadId
+        ? SeqToken.b + (pIsDirect ? SeqToken.d : SeqToken.r) + SeqToken.a + pThreadId
         : buildThreadPrefix(pOptions, pThreadId)
-            + (pIsDirect ? SeqToken.DIRECT + SeqSyntax.UNDERSCORE : SeqSyntax.EMPTY_STRING)
-            + SeqToken.BIT_VECTOR_ACCESS;
+            + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + (pIsDirect ? SeqToken.DIRECT : SeqToken.REACHABLE)
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.ACCESS;
   }
 
   private static String buildBitVectorReadName(
       MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
 
     return pOptions.shortVariableNames
-        ? (pIsDirect ? SeqToken.d : SeqSyntax.EMPTY_STRING) + SeqToken.br + pThreadId
+        ? SeqToken.b + (pIsDirect ? SeqToken.d : SeqToken.r) + SeqToken.r + pThreadId
         : buildThreadPrefix(pOptions, pThreadId)
-            + (pIsDirect ? SeqToken.DIRECT + SeqSyntax.UNDERSCORE : SeqSyntax.EMPTY_STRING)
-            + SeqToken.BIT_VECTOR_READ;
+            + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + (pIsDirect ? SeqToken.DIRECT : SeqToken.REACHABLE)
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.READ;
   }
 
   private static String buildBitVectorWriteName(
       MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
 
     return pOptions.shortVariableNames
-        ? (pIsDirect ? SeqToken.d : SeqSyntax.EMPTY_STRING) + SeqToken.bw + pThreadId
+        ? SeqToken.b + (pIsDirect ? SeqToken.d : SeqToken.r) + SeqToken.w + pThreadId
         : buildThreadPrefix(pOptions, pThreadId)
-            + (pIsDirect ? SeqToken.DIRECT + SeqSyntax.UNDERSCORE : SeqSyntax.EMPTY_STRING)
-            + SeqToken.BIT_VECTOR_WRITE;
+            + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + (pIsDirect ? SeqToken.DIRECT : SeqToken.REACHABLE)
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.WRITE;
   }
 
   // Sparse Bit Vector =============================================================================
@@ -213,9 +219,11 @@ public class SeqNameUtil {
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
     return pOptions.shortVariableNames
-        ? SeqToken.ba + pThreadId + SeqSyntax.UNDERSCORE + variableName
+        ? SeqToken.b + SeqToken.a + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
-            + SeqToken.BIT_VECTOR_ACCESS
+            + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.ACCESS
             + SeqSyntax.UNDERSCORE
             + variableName;
   }
@@ -226,9 +234,11 @@ public class SeqNameUtil {
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
     return pOptions.shortVariableNames
-        ? SeqToken.br + pThreadId + SeqSyntax.UNDERSCORE + variableName
+        ? SeqToken.b + SeqToken.r + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
-            + SeqToken.BIT_VECTOR_READ
+            + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.READ
             + SeqSyntax.UNDERSCORE
             + variableName;
   }
@@ -239,9 +249,11 @@ public class SeqNameUtil {
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
     return pOptions.shortVariableNames
-        ? SeqToken.bw + pThreadId + SeqSyntax.UNDERSCORE + variableName
+        ? SeqToken.b + SeqToken.w + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
-            + SeqToken.BIT_VECTOR_WRITE
+            + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.WRITE
             + SeqSyntax.UNDERSCORE
             + variableName;
   }

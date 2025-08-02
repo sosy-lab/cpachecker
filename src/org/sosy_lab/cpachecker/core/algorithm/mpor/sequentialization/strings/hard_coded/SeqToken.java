@@ -30,7 +30,12 @@ public class SeqToken {
 
   public static final String _1 = "1";
 
+  /** a for access */
+  public static final String a = "a";
+
   public static final String abort = "abort";
+
+  public static final String ACCESS = "ACCESS";
 
   public static final String act = "act";
 
@@ -42,23 +47,17 @@ public class SeqToken {
 
   public static final String assume_abort_if_not = "assume_abort_if_not";
 
-  /** "bit vector access" */
-  public static final String ba = "ba";
-
-  /** "bit vector read" */
-  public static final String br = "br";
+  /** b for bit vector */
+  public static final String b = "b";
 
   /** "bit vector write" */
   public static final String bw = "bw";
 
-  public static final String BIT_VECTOR_ACCESS = "BIT_VECTOR_ACCESS";
-
-  public static final String BIT_VECTOR_READ = "BIT_VECTOR_READ";
-
-  public static final String BIT_VECTOR_WRITE = "BIT_VECTOR_WRITE";
+  public static final String BIT_VECTOR = "BIT_VECTOR";
 
   public static final String _break = "break";
 
+  /** C for Call */
   public static final String C = "C";
 
   public static final String CALL = "CALL";
@@ -73,6 +72,7 @@ public class SeqToken {
 
   public static final String __CPAchecker_TMP_ = "__CPAchecker_TMP_";
 
+  /** d for direct */
   public static final String d = "d";
 
   public static final String _default = "default";
@@ -132,13 +132,19 @@ public class SeqToken {
 
   public static final String PARAMETER = "PARAMETER";
 
+  /** pc for program counter */
   public static final String pc = "pc";
 
   public static final String __PRETTY_FUNCTION__ = "__PRETTY_FUNCTION__";
 
+  /** r for reachable */
   public static final String r = "r";
 
+  public static final String REACHABLE = "REACHABLE";
+
   public static final String reach_error = "reach_error";
+
+  public static final String READ = "READ";
 
   public static final String return_value = "return_value";
 
@@ -159,4 +165,9 @@ public class SeqToken {
   public static final String uint = "uint";
 
   public static final String __VERIFIER_assume = "__VERIFIER_assume";
+
+  /** w for write */
+  public static final String w = "w";
+
+  public static final String WRITE = "WRITE";
 }
