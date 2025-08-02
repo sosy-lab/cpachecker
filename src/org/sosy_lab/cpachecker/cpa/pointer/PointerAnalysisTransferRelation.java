@@ -312,16 +312,18 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       CExpression actualParam = param.getSecond();
       CParameterDeclaration formalParam = param.getFirst();
 
+      if (!(formalParam.getType().getCanonicalType() instanceof CPointerType)) {
+        continue;
+      }
+
       MemoryLocationPointer paramLocationPointer =
           new MemoryLocationPointer(getMemoryLocation(formalParam));
       LocationSet referencedLocations =
           getReferencedLocations(actualParam, pState, true, pCFunctionCallEdge);
 
-      if (!referencedLocations.isBot()) {
-        newState =
-            new PointerAnalysisState(
-                newState.getPointsToMap().putAndCopy(paramLocationPointer, referencedLocations));
-      }
+      newState =
+          new PointerAnalysisState(
+              newState.getPointsToMap().putAndCopy(paramLocationPointer, referencedLocations));
     }
 
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParams).skip(limit)) {
