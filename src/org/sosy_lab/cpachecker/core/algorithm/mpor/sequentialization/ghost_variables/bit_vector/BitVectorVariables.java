@@ -23,6 +23,8 @@ public class BitVectorVariables {
 
   private final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
 
+  private final Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors;
+
   private final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
 
   private final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>>
@@ -33,6 +35,7 @@ public class BitVectorVariables {
   public BitVectorVariables(
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
+      Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
       Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseAccessBitVectors,
       Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseWriteBitVectors) {
@@ -40,6 +43,7 @@ public class BitVectorVariables {
     numGlobalVariables = pGlobalVariableIds.size();
     globalVariableIds = pGlobalVariableIds;
     denseAccessBitVectors = pDenseAccessBitVectors;
+    denseReadBitVectors = pDenseReadBitVectors;
     denseWriteBitVectors = pDenseWriteBitVectors;
     sparseAccessBitVectors = pSparseAccessBitVectors;
     sparseWriteBitVectors = pSparseWriteBitVectors;
@@ -50,7 +54,7 @@ public class BitVectorVariables {
 
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
       if (variable.thread.equals(pThread)) {
-        return variable.directVariable;
+        return variable.directVariable.orElseThrow();
       }
     }
     throw new IllegalArgumentException("could not find pThread");
@@ -61,7 +65,7 @@ public class BitVectorVariables {
 
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
       if (variable.thread.equals(pThread)) {
-        return variable.reachableVariable;
+        return variable.reachableVariable.orElseThrow();
       }
     }
     throw new IllegalArgumentException("could not find pThread");
@@ -74,7 +78,7 @@ public class BitVectorVariables {
     ImmutableSet.Builder<CExpression> rVariables = ImmutableSet.builder();
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
       if (pOtherThreads.contains(variable.thread)) {
-        rVariables.add(variable.reachableVariable);
+        rVariables.add(variable.reachableVariable.orElseThrow());
       }
     }
     return rVariables.build();
@@ -86,8 +90,7 @@ public class BitVectorVariables {
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> denseAccessBitVectors.orElseThrow();
-      // there are no separate READ bit vectors, only access and write
-      case READ -> throw new IllegalArgumentException("READ bit vectors are not used");
+      case READ -> denseReadBitVectors.orElseThrow();
       case WRITE -> denseWriteBitVectors.orElseThrow();
     };
   }

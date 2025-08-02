@@ -65,6 +65,9 @@ public class SeqBitVectorDeclarationBuilder {
                       pOptions, pBitVectorVariables, BitVectorAccessType.ACCESS))
               .addAll(
                   buildDenseBitVectorDeclarationsByAccessType(
+                      pOptions, pBitVectorVariables, BitVectorAccessType.READ))
+              .addAll(
+                  buildDenseBitVectorDeclarationsByAccessType(
                       pOptions, pBitVectorVariables, BitVectorAccessType.WRITE))
               .build();
     };
@@ -84,16 +87,20 @@ public class SeqBitVectorDeclarationBuilder {
       BitVectorValueExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.getGlobalVariableIds(), ImmutableSet.of());
-      if (pOptions.kIgnoreZeroReduction) {
+      if (pOptions.kIgnoreZeroReduction && denseBitVector.directVariable.isPresent()) {
         // direct bit vector
         SeqBitVectorDeclaration directDeclaration =
-            new SeqBitVectorDeclaration(type, denseBitVector.directVariable, initializer);
+            new SeqBitVectorDeclaration(
+                type, denseBitVector.directVariable.orElseThrow(), initializer);
         rDeclarations.add(directDeclaration);
       }
-      // reachable bit vector
-      SeqBitVectorDeclaration reachableDeclaration =
-          new SeqBitVectorDeclaration(type, denseBitVector.reachableVariable, initializer);
-      rDeclarations.add(reachableDeclaration);
+      if (denseBitVector.reachableVariable.isPresent()) {
+        // reachable bit vector
+        SeqBitVectorDeclaration reachableDeclaration =
+            new SeqBitVectorDeclaration(
+                type, denseBitVector.reachableVariable.orElseThrow(), initializer);
+        rDeclarations.add(reachableDeclaration);
+      }
     }
     return rDeclarations.build();
   }

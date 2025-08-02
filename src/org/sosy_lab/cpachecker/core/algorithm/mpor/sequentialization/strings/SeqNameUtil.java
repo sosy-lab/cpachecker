@@ -150,6 +150,9 @@ public class SeqNameUtil {
 
   // Dense Bit Vectors =============================================================================
 
+  // TODO rename the bit vectors into {d, r}{a, r, w}{thread_id}
+  //  (direct / reachable) (access, read, write) (thread_id)
+
   public static String buildDirectBitVectorNameByAccessType(
       MPOROptions pOptions, int pThreadId, BitVectorAccessType pAccessType) {
 

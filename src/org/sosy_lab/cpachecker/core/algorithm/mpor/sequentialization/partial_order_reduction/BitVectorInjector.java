@@ -279,7 +279,13 @@ public class BitVectorInjector {
               pOptions, pThread, pBitVectorVariables, ImmutableSet.of(), ImmutableSet.of());
       case READ_AND_WRITE ->
           buildBitVectorReadWriteAssignments(
-              pOptions, pThread, pBitVectorVariables, ImmutableSet.of(), ImmutableSet.of());
+              pOptions,
+              pThread,
+              pBitVectorVariables,
+              ImmutableSet.of(),
+              ImmutableSet.of(),
+              ImmutableSet.of(),
+              ImmutableSet.of());
     };
   }
 
@@ -307,22 +313,32 @@ public class BitVectorInjector {
             pOptions, pActiveThread, pBitVectorVariables, directVariables, reachableVariables);
       }
       case READ_AND_WRITE -> {
-        ImmutableSet<CVariableDeclaration> reachableReadVariables =
-            GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
-                pLabelClauseMap, pLabelBlockMap, pTargetBlock, BitVectorAccessType.READ);
+        ImmutableSet<CVariableDeclaration> directReadVariables =
+            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+                pLabelBlockMap, pTargetBlock, BitVectorAccessType.READ);
         ImmutableSet<CVariableDeclaration> reachableWriteVariables =
             GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
                 pLabelClauseMap, pLabelBlockMap, pTargetBlock, BitVectorAccessType.WRITE);
+
+        ImmutableSet<CVariableDeclaration> directWriteVariables =
+            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+                pLabelBlockMap, pTargetBlock, BitVectorAccessType.WRITE);
+        ImmutableSet<CVariableDeclaration> reachableReadVariables =
+            GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
+                pLabelClauseMap, pLabelBlockMap, pTargetBlock, BitVectorAccessType.READ);
+
         yield buildBitVectorReadWriteAssignments(
             pOptions,
             pActiveThread,
             pBitVectorVariables,
+            directReadVariables,
+            reachableWriteVariables,
+            directWriteVariables,
             // combine both read and write for access
             ImmutableSet.<CVariableDeclaration>builder()
                 .addAll(reachableReadVariables)
                 .addAll(reachableWriteVariables)
-                .build(),
-            reachableWriteVariables);
+                .build());
       }
     };
   }
@@ -370,8 +386,10 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableSet<CVariableDeclaration> pReachableAccessVariables,
-      ImmutableSet<CVariableDeclaration> pReachableWriteVariables) {
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pReachableWriteVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
+      ImmutableSet<CVariableDeclaration> pReachableAccessVariables) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
@@ -398,20 +416,38 @@ public class BitVectorInjector {
       }
     } else {
       // dense bit vectors
+      if (pOptions.kIgnoreZeroReduction) {
+        rStatements.add(
+            buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
+                pOptions,
+                pBitVectorVariables.getDenseDirectBitVectorByAccessType(
+                    BitVectorAccessType.READ, pThread),
+                pBitVectorVariables,
+                pDirectReadVariables));
+      }
       rStatements.add(
           buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
               pOptions,
-              pThread,
+              pBitVectorVariables.getDenseReachableBitVectorByAccessType(
+                  BitVectorAccessType.WRITE, pThread),
               pBitVectorVariables,
-              BitVectorAccessType.ACCESS,
-              pReachableAccessVariables));
-      rStatements.add(
-          buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
-              pOptions,
-              pThread,
-              pBitVectorVariables,
-              BitVectorAccessType.WRITE,
               pReachableWriteVariables));
+      if (pOptions.kIgnoreZeroReduction) {
+        rStatements.add(
+            buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
+                pOptions,
+                pBitVectorVariables.getDenseDirectBitVectorByAccessType(
+                    BitVectorAccessType.WRITE, pThread),
+                pBitVectorVariables,
+                pDirectWriteVariables));
+      }
+      rStatements.add(
+          buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
+              pOptions,
+              pBitVectorVariables.getDenseReachableBitVectorByAccessType(
+                  BitVectorAccessType.ACCESS, pThread),
+              pBitVectorVariables,
+              pReachableAccessVariables));
     }
     return rStatements.build();
   }
@@ -419,17 +455,14 @@ public class BitVectorInjector {
   private static SeqBitVectorAssignmentStatement
       buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
           MPOROptions pOptions,
-          MPORThread pThread,
+          CExpression pBitVectorVariable,
           BitVectorVariables pBitVectorVariables,
-          BitVectorAccessType pAccessType,
           ImmutableSet<CVariableDeclaration> pAccessedVariables) {
 
-    CExpression bitVectorVariable =
-        pBitVectorVariables.getDenseReachableBitVectorByAccessType(pAccessType, pThread);
     BitVectorValueExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(
             pOptions, pBitVectorVariables.getGlobalVariableIds(), pAccessedVariables);
-    return new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression);
+    return new SeqBitVectorAssignmentStatement(pBitVectorVariable, bitVectorExpression);
   }
 
   // Bit Vector Initializations ====================================================================
