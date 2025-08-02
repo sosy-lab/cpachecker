@@ -79,6 +79,7 @@ public class MultiControlStatementBuilder {
       Optional<CFunctionCallStatement> pThreadActiveAssumption,
       Optional<CFunctionCallAssignmentStatement> pKNondet,
       Optional<CFunctionCallStatement> pKGreaterZeroAssumption,
+      Optional<CFunctionCallStatement> pKBoundAssumption,
       Optional<CExpressionAssignmentStatement> pRReset) {
 
     ImmutableList.Builder<CStatement> rPreceding = ImmutableList.builder();
@@ -90,6 +91,9 @@ public class MultiControlStatementBuilder {
     }
     if (pKGreaterZeroAssumption.isPresent()) {
       rPreceding.add(pKGreaterZeroAssumption.orElseThrow());
+    }
+    if (pKBoundAssumption.isPresent()) {
+      rPreceding.add(pKBoundAssumption.orElseThrow());
     }
     // place r reset after the assumption for optimization
     if (pRReset.isPresent()) {

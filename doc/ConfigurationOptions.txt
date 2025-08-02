@@ -316,6 +316,10 @@ analysis.algorithm.MPOR.inputFunctionDeclarations = false
 # size
 analysis.algorithm.MPOR.inputTypeDeclarations = true
 
+# bound K to the number of statements in a thread simulation via assumptions?
+# may slow down or improve performance, depending on the verifier.
+analysis.algorithm.MPOR.kBound = no default value
+
 # include CPAchecker license header in the sequentialization? true -> bigger
 # file size
 analysis.algorithm.MPOR.license = false

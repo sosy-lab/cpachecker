@@ -143,18 +143,19 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
-    Optional<CExpressionAssignmentStatement> lastThreadUpdate =
-        pOptions.conflictReduction
-            ? Optional.of(
-                SeqStatementBuilder.buildLastThreadAssignment(
-                    SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id)))
-            : Optional.empty();
+
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
             pOptions,
             pPcVariables.getPcLeftHandSide(pThread.id),
             clauses,
             pBinaryExpressionBuilder);
+    Optional<CExpressionAssignmentStatement> lastThreadUpdate =
+        pOptions.conflictReduction
+            ? Optional.of(
+                SeqStatementBuilder.buildLastThreadAssignment(
+                    SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id)))
+            : Optional.empty();
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
@@ -164,6 +165,9 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
             assumption,
             Optional.of(pKNondet),
             Optional.of(pKGreaterZeroAssumption),
+            pOptions.kBound
+                ? Optional.of(buildKBoundAssumption(pClauses.size(), pBinaryExpressionBuilder))
+                : Optional.empty(),
             Optional.of(pRReset)),
         expressionClauseMap,
         pThread.endLabel,
@@ -211,5 +215,17 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     return pBinaryExpressionBuilder.buildBinaryExpression(
         SeqIdExpression.K, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
+  }
+
+  private static CFunctionCallStatement buildKBoundAssumption(
+      int pNumStatements, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CBinaryExpression kBoundExpression =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpression.K,
+            SeqExpressionBuilder.buildIntegerLiteralExpression(pNumStatements),
+            BinaryOperator.LESS_EQUAL);
+    return SeqAssumptionBuilder.buildAssumption(kBoundExpression);
   }
 }

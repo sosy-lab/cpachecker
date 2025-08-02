@@ -150,6 +150,20 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "bound K to the number of statements in a thread simulation via assumptions?"
+              + " may slow down or improve performance, depending on the verifier.")
+  private boolean kBound;
+
+  // TODO kThreadSeparate
+  //  use separate k for each thread (with k sum > 0), or one for each thread (should be used when
+  //  loopIterations > 0 to prevent infinite k = 0 interleaving)
+  // TODO kIgnoreZeroReduction
+  //  if (thread_active && (K > 0 || "no conflict with any other thread"))
+  //  --> reduces interleavings
+
+  @Option(
+      secure = true,
+      description =
           "include CPAchecker license header in the sequentialization? true -> bigger file size")
   private boolean license = false;
 
@@ -329,6 +343,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               formatStyle,
               inputFunctionDeclarations,
               inputTypeDeclarations,
+              kBound,
               license,
               linkReduction,
               loopIterations,

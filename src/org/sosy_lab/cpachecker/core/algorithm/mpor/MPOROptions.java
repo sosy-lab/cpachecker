@@ -58,6 +58,8 @@ public class MPOROptions {
 
   public final boolean inputTypeDeclarations;
 
+  public final boolean kBound;
+
   public final boolean license;
 
   public final boolean linkReduction;
@@ -103,6 +105,7 @@ public class MPOROptions {
       ClangFormatStyle pFormatStyle,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
+      boolean pKBound,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -141,6 +144,7 @@ public class MPOROptions {
     formatStyle = pFormatStyle;
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
+    kBound = pKBound;
     license = pLicense;
     linkReduction = pLinkReduction;
     loopIterations = pLoopIterations;
@@ -169,6 +173,7 @@ public class MPOROptions {
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pInputFunctionDeclarations,
+      boolean pKBound,
       boolean pLicense,
       boolean pLinkReduction,
       int pLoopIterations,
@@ -198,6 +203,7 @@ public class MPOROptions {
         pInputFunctionDeclarations,
         // always include type declarations at the moment, excluding them is unsafe
         true,
+        pKBound,
         pLicense,
         pLinkReduction,
         pLoopIterations,
@@ -326,6 +332,15 @@ public class MPOROptions {
             "WARNING: controlEncodingThread is not NONE, but the next thread is not chosen"
                 + " non-deterministically. Either set controlEncodingThread to NONE or choose a"
                 + " nondeterminismSource that makes the next thread non-deterministic.");
+      }
+    }
+    if (!nondeterminismSource.isNumStatementsNondeterministic()) {
+      if (kBound) {
+        pLogger.log(
+            Level.WARNING,
+            "WARNING: kBound is enabled, but the number of statements is not chosen"
+                + " non-deterministically. Either disable kBound or choose a"
+                + " nondeterminismSource that makes the number of statements non-deterministic.");
       }
     }
     if (reductionMode.isEnabled()) {
