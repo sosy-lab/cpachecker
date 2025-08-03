@@ -1,1 +1,0 @@
-CHECK( init(main()), LTL(G ! call(__assert_fail()) ) )

@@ -6,12 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <assert.h>
+extern void __VERIFIER_error();
 
 int main() {
   int a = 0;
   int *p = &a;
   p = &a;
-  assert(p == &a);
+  if (p != &a){
+    ERROR:
+    __VERIFIER_error();
+  }
   return 0;
 }
