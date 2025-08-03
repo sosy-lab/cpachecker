@@ -68,6 +68,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+
+import static com.google.common.collect.FluentIterable.from;
 
 public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
@@ -81,10 +86,15 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
   private static final int MAX_ALLOWED_STATE_SUCCESSORS = 50;
+  private final @Nullable LoopStructure loopStructure;
 
   public TaintAnalysisTransferRelation(LogManager pLogger) {
+    this(pLogger, null);
+  }
 
+  public TaintAnalysisTransferRelation(LogManager pLogger, @Nullable LoopStructure pLoopStructure) {
     logger = pLogger;
+    loopStructure = pLoopStructure;
   }
 
   private TaintAnalysisState generateNewState(
@@ -587,20 +597,69 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CLeftHandSide lhs = exprAssignStmt.getLeftHandSide();
       CExpression rhs = exprAssignStmt.getRightHandSide();
       Set<CIdExpression> rhsVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(rhs);
+      Set<CIdExpression> lhsVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(lhs);
 
       boolean taintedVarsRHS =
           rhsVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var));
+
+      boolean taintedVarsLHS =
+          lhsVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var));
+
+      boolean statementIsInLoop = false;
+      boolean loopIsControlledByTaintedVars = false;
+//      boolean lhsIsLoopIterationIndex = false;
+
+      assert loopStructure != null;
+      Optional<Loop> OptionalLoopOfCurrentStatement =
+          getLoopForStatement(loopStructure, pCfaEdge.getPredecessor());
+
+      if (OptionalLoopOfCurrentStatement.isPresent()) {
+        statementIsInLoop = true;
+
+        Loop loopOfCurrentStatement = OptionalLoopOfCurrentStatement.orElseThrow();
+
+        loopIsControlledByTaintedVars =
+            loopIsControlledByTaintedVars(loopOfCurrentStatement, taintedVariables);
+
+//        lhsIsLoopIterationIndex = varIsLoopIterationIndex(lhs, loopOfCurrentStatement);
+      }
 
       if (lhs instanceof CIdExpression variableLHS) {
         // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
         // mark the variable on the LHS as tainted. If no variable is tainted, kill the variable on
         // LHS
-        if (taintedVarsRHS) {
-          generatedVars.add(variableLHS);
-          values.put(variableLHS, rhs);
+        if (statementIsInLoop) {
+          if (!loopIsControlledByTaintedVars) {
+            if (taintedVarsRHS) {
+              if (!taintedVarsLHS) {
+                generatedVars.add(variableLHS);
+                values.put(variableLHS, rhs);
+              }
+            } else {
+              killedVars.add(variableLHS);
+              values.put(variableLHS, rhs);
+            }
+          } else {
+            if (!taintedVarsLHS) {
+              generatedVars.add(variableLHS);
+              values.put(variableLHS, rhs);
+            }
+
+            // avoid that the index increases?
+            //            if (!lhsIsLoopIterationIndex) {
+            //              values.put(variableLHS, rhs);
+            //            }
+          }
         } else {
-          killedVars.add(variableLHS);
-          values.put(variableLHS, rhs);
+          if (taintedVarsRHS) {
+            if (!taintedVarsLHS) {
+              generatedVars.add(variableLHS);
+              values.put(variableLHS, rhs);
+            }
+          } else {
+            killedVars.add(variableLHS);
+            values.put(variableLHS, rhs);
+          }
         }
       } else if (lhs instanceof CArraySubscriptExpression arraySubscriptLHS) {
         // If the LHS is an array element and the RHS contains a tainted variable,
@@ -827,6 +886,119 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableList.copyOf(newStates);
   }
 
+  private boolean loopIsControlledByTaintedVars(
+      Loop loopOfCurrentStatement, Set<CIdExpression> taintedVariables) {
+
+    boolean isNestedLoop = isNestedLoop(loopOfCurrentStatement);
+
+    boolean loopConditionIsControlledByTaintedVars =
+        loopConditionIsControlledByTaintedVars(loopOfCurrentStatement, taintedVariables);
+    boolean loopIterationIsControlledByTaintedVars =
+        loopIterationIndexIsControlledByTaintedVars(loopOfCurrentStatement, taintedVariables);
+
+    if (loopConditionIsControlledByTaintedVars || loopIterationIsControlledByTaintedVars) {
+      return true;
+    }
+
+    if (!isNestedLoop) {
+      return false;
+    }
+
+    assert loopStructure != null;
+
+    Loop outterLoop =
+        getLoopForStatement(
+                loopStructure,
+                loopOfCurrentStatement.getIncomingEdges().iterator().next().getPredecessor())
+            .get();
+
+    return loopIsControlledByTaintedVars(outterLoop, taintedVariables);
+  }
+
+  private boolean isNestedLoop(Loop loopOfCurrentStatement) {
+    assert loopStructure != null;
+    return getLoopForStatement(
+            loopStructure,
+            loopOfCurrentStatement.getIncomingEdges().iterator().next().getPredecessor())
+        .isPresent();
+  }
+
+  private boolean loopIterationIndexIsControlledByTaintedVars(
+      Loop pLoopOfCurrentStatement, Set<CIdExpression> pTaintedVariables) {
+    boolean result = false;
+    for (CFANode node : pLoopOfCurrentStatement.getLoopHeads()) {
+      // the entering edges of a loop head are the declaration/definition and modification of the
+      // iteration index
+      for (int i = 0; i < node.getNumEnteringEdges(); i++) {
+        CFAEdge edge = node.getEnteringEdge(i);
+        if (edge instanceof CStatementEdge pCStatementEdge) {
+          if (pCStatementEdge.getStatement()
+              instanceof CExpressionAssignmentStatement pCExpressionAssignmentStatement) {
+
+            Set<CIdExpression> lhsVarsAsCExpr =
+                TaintAnalysisUtils.getAllVarsAsCExpr(
+                    pCExpressionAssignmentStatement.getLeftHandSide());
+
+            Set<CIdExpression> rhsVarsAsCExpr =
+                TaintAnalysisUtils.getAllVarsAsCExpr(
+                    pCExpressionAssignmentStatement.getRightHandSide());
+
+            result =
+                lhsVarsAsCExpr.stream().anyMatch(var -> pTaintedVariables.contains(var))
+                    || rhsVarsAsCExpr.stream().anyMatch(var -> pTaintedVariables.contains(var));
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  private boolean loopConditionIsControlledByTaintedVars(
+      Loop pLoopOfCurrentStatement, Set<CIdExpression> pTaintedVariables) {
+    boolean result = false;
+    for (CFANode node : pLoopOfCurrentStatement.getLoopHeads()) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        // the leaving edges of the loop head are the loop conditions
+        CFAEdge edge = node.getLeavingEdge(i);
+
+        if (edge instanceof CAssumeEdge assumeEdge) {
+          Set<CIdExpression> varsAsCExpr =
+              TaintAnalysisUtils.getAllVarsAsCExpr(assumeEdge.getExpression());
+          result = varsAsCExpr.stream().anyMatch(var -> pTaintedVariables.contains(var));
+        }
+      }
+    }
+    return result;
+  }
+
+  private boolean varIsLoopIterationIndex(CLeftHandSide pLhs, Loop pLoopOfCurrentStatement) {
+    return pLhs instanceof CIdExpression variableLHS
+        && getLoopIterationIndexes(pLoopOfCurrentStatement).contains(variableLHS);
+  }
+
+  private ImmutableSet<CExpression> getLoopIterationIndexes(Loop pLoopOfCurrentStatement) {
+
+    ImmutableSet.Builder<CExpression> loopIterationIndexBuilder = ImmutableSet.builder();
+
+    for (CFANode node : pLoopOfCurrentStatement.getLoopHeads()) {
+      for (int i = 0; i < node.getNumEnteringEdges(); i++) {
+        CFAEdge edge = node.getEnteringEdge(i);
+        if (edge instanceof CStatementEdge pCStatementEdge) {
+          if (pCStatementEdge.getStatement()
+              instanceof CExpressionAssignmentStatement pCExpressionAssignmentStatement) {
+
+            Set<CIdExpression> lhsVarsAsCExpr =
+                TaintAnalysisUtils.getAllVarsAsCExpr(
+                    pCExpressionAssignmentStatement.getLeftHandSide());
+
+            loopIterationIndexBuilder.add(lhsVarsAsCExpr.iterator().next());
+          }
+        }
+      }
+    }
+    return loopIterationIndexBuilder.build();
+  }
+
   private void checkInformationFlowViolation(
       TaintAnalysisState pState,
       CStatementEdge pCfaEdge,
@@ -863,6 +1035,16 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     return SOURCES.contains(
         pStatement.getFunctionCallExpression().getFunctionNameExpression().toString());
+  }
+
+  private static Optional<Loop> getLoopForStatement(
+      LoopStructure loopStructure, final CFANode node) {
+    for (Loop loop : loopStructure.getAllLoops()) {
+      if (loop.getLoopNodes().contains(node)) {
+        return Optional.of(loop);
+      }
+    }
+    return Optional.empty();
   }
 
   @Override
