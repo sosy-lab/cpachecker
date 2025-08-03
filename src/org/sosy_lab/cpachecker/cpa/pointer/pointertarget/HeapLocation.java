@@ -45,6 +45,7 @@ public class HeapLocation implements PointerTarget {
 
   @Override
   public int compareTo(PointerTarget pOther) {
+    // Custom type check required for comparing different PointerTarget subclasses.
     if (!(pOther instanceof HeapLocation other)) {
       return compareByType(this, pOther);
     }
