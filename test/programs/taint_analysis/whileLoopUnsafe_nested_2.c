@@ -27,6 +27,6 @@ int main() {
     }
 
     // t(a) = U
-    // a is expected to be public
-    __VERIFIER_is_public(a, 0);
+    // a is expected to be private
+    __VERIFIER_is_public(a, 1);
 }

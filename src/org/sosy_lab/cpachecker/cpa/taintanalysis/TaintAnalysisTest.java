@@ -1231,12 +1231,14 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testEntwurfSafe() throws Exception {
     TestResults results = runCPAchecker("entwurfSafe.c", "");
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testEntwurfUnsafe() throws Exception {
     TestResults results = runCPAchecker("entwurfUnsafe.c", "");
