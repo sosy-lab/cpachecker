@@ -309,39 +309,39 @@ public class MPOROptions {
     if (!linkReduction && bitVectorReduction) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: bitVectorReduction is only considered with linkReduction"
+          "bitVectorReduction is only considered with linkReduction"
               + " enabled. Either enable linkReduction or disable bitVectorReduction.");
     }
     if (!linkReduction && conflictReduction) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: conflictReduction is only considered with linkReduction"
+          "conflictReduction is only considered with linkReduction"
               + " enabled. Either enable linkReduction or disable conflictReduction.");
     }
     if (!linkReduction && bitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: bitVectorEncoding is only considered with linkReduction"
+          "bitVectorEncoding is only considered with linkReduction"
               + " enabled. Either enable linkReduction or set bitVectorEncoding to NONE.");
     }
     if (bitVectorEvaluationPrune && !areBitVectorsEnabled()) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: pruneBitVectorEvaluation is only considered when bitVectorReduction /"
+          "pruneBitVectorEvaluation is only considered when bitVectorReduction /"
               + " conflictReduction is enabled. . Either disable pruneBitVectorEvaluation or enable"
               + " bitVectorReduction / conflictReduction.");
     }
     if (bitVectorEvaluationPrune && !bitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: pruneBitVectorEvaluation is only considered when bitVectorEncoding is not"
+          "pruneBitVectorEvaluation is only considered when bitVectorEncoding is not"
               + " NONE. Either disable pruneBitVectorEvaluation or set bitVectorEncoding.");
     }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
       if (!controlEncodingThread.equals(MultiControlStatementEncoding.NONE)) {
         pLogger.log(
             Level.WARNING,
-            "WARNING: controlEncodingThread is not NONE, but the next thread is not chosen"
+            "controlEncodingThread is not NONE, but the next thread is not chosen"
                 + " non-deterministically. Either set controlEncodingThread to NONE or choose a"
                 + " nondeterminismSource that makes the next thread non-deterministic.");
       }
@@ -350,7 +350,7 @@ public class MPOROptions {
       if (kBound) {
         pLogger.log(
             Level.WARNING,
-            "WARNING: kBound is enabled, but the number of statements is not chosen"
+            "kBound is enabled, but the number of statements is not chosen"
                 + " non-deterministically. Either disable kBound or choose a"
                 + " nondeterminismSource that makes the number of statements non-deterministic.");
       }
@@ -366,7 +366,7 @@ public class MPOROptions {
       if (!areBitVectorsEnabled()) {
         pLogger.log(
             Level.WARNING,
-            "WARNING: reductionMode is set, but both conflictReduction and "
+            "reductionMode is set, but both conflictReduction and "
                 + " bitVectorReduction are disabled.");
       }
     }
@@ -374,7 +374,7 @@ public class MPOROptions {
       if (!areBitVectorsEnabled()) {
         pLogger.log(
             Level.WARNING,
-            "WARNING: bitVectorEncoding is set, but both conflictReduction and "
+            "bitVectorEncoding is set, but both conflictReduction and "
                 + " bitVectorReduction are disabled.");
       }
     }

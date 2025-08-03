@@ -268,7 +268,7 @@ public class SeqMainFunction extends SeqFunction {
       } else {
         pLogger.log(
             Level.WARNING,
-            "WARNING - could not find __VERIFIER_nondet function "
+            "could not find __VERIFIER_nondet function "
                 + "for the following main function argument type: "
                 + mainArgType.toASTString(""));
       }
