@@ -25,6 +25,6 @@ int main() {
     c = a;
 
     __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(b, 1);
+    __VERIFIER_is_public(b, 0);
     __VERIFIER_is_public(c, 1);
 }

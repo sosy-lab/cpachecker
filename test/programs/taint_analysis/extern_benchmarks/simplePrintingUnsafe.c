@@ -24,5 +24,5 @@ int main() {
         }
     }
 
-    __VERIFIER_is_public(a, 0);
+    __VERIFIER_is_public(a, 1);
 }

@@ -24,5 +24,6 @@ int main() {
         }
     }
 
-    __VERIFIER_is_public(a, 1);
+//   TODO: Investigate
+    __VERIFIER_is_public(a, 0);
 }

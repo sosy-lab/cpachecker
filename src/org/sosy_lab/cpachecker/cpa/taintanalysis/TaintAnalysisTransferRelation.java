@@ -27,6 +27,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -71,6 +72,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.IfElement;
 
 public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
@@ -85,10 +89,16 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   private final LogManager logger;
   private static final int MAX_ALLOWED_STATE_SUCCESSORS = 50;
   private final @Nullable LoopStructure loopStructure;
+  private final @Nullable AstCfaRelation astCfaRelation;
+  private @Nullable ImmutableSet<IfElement> ifElements = ImmutableSet.of();
 
-  public TaintAnalysisTransferRelation(LogManager pLogger, @Nullable LoopStructure pLoopStructure) {
+  public TaintAnalysisTransferRelation(
+      LogManager pLogger,
+      @Nullable LoopStructure pLoopStructure,
+      @Nullable AstCfaRelation pAstCfaRelation) {
     logger = pLogger;
     loopStructure = pLoopStructure;
+    astCfaRelation = pAstCfaRelation;
   }
 
   private TaintAnalysisState generateNewState(
@@ -257,6 +267,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   private List<TaintAnalysisState> handleAssumption(
       TaintAnalysisState pState, CAssumeEdge pCfaEdge, CExpression pExpression) {
 
+    populateIfElements(pCfaEdge);
+
     List<TaintAnalysisState> states = new ArrayList<>();
 
     Set<CIdExpression> killedVars = new HashSet<>();
@@ -295,6 +307,26 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return states;
+  }
+
+  private void populateIfElements(CAssumeEdge pCfaEdge) {
+    FileLocation fileLocation = pCfaEdge.getFileLocation();
+
+    assert ifElements != null;
+    Set<IfElement> ifElementsList = new HashSet<>(ifElements);
+    int startColumnNumber = fileLocation.getStartColumnInLine();
+    int startLineNumber = fileLocation.getStartingLineInOrigin();
+
+    assert astCfaRelation != null;
+
+    for (int i = 0; i < startColumnNumber; i++) {
+      Optional<IfElement> ifElement =
+          astCfaRelation.getIfStructureStartingAtColumn(i, startLineNumber);
+
+      ifElement.ifPresent(ifElementsList::add);
+    }
+
+    ifElements = ImmutableSet.copyOf(ifElementsList);
   }
 
   @SuppressWarnings("unused")
@@ -583,6 +615,39 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     List<TaintAnalysisState> newStates = new ArrayList<>();
     Map<CIdExpression, CExpression> values = new HashMap<>();
 
+    boolean statementIsInLoop = false;
+    boolean loopIsControlledByTaintedVars = false;
+    //      boolean lhsIsLoopIterationIndex = false;
+
+    Optional<Loop> OptionalLoopOfCurrentStatement = getLoopForStatement(pCfaEdge.getPredecessor());
+
+    if (OptionalLoopOfCurrentStatement.isPresent()) {
+      statementIsInLoop = true;
+
+      Loop loopOfCurrentStatement = OptionalLoopOfCurrentStatement.orElseThrow();
+
+      loopIsControlledByTaintedVars =
+          loopIsControlledByTaintedVars(loopOfCurrentStatement, taintedVariables);
+
+      //        lhsIsLoopIterationIndex = varIsLoopIterationIndex(lhs, loopOfCurrentStatement);
+    }
+
+    // Get the if structure for the condition edge if available
+    Optional<IfElement> optionalIfStructureOfCurrentStatement =
+        getIfStructureOfCurrentStatement(pStatement);
+
+    boolean statementIsInIfElement = false;
+    boolean conditionIsControledByTaintedVariables = false;
+
+    if (optionalIfStructureOfCurrentStatement.isPresent()) {
+      statementIsInIfElement = true;
+
+      IfElement ifElement = optionalIfStructureOfCurrentStatement.orElseThrow();
+
+      conditionIsControledByTaintedVariables =
+          conditionIsControlledByTaintedVariables(ifElement, taintedVariables);
+    }
+
     if (pStatement instanceof CExpressionStatement) {
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
 
@@ -599,31 +664,12 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       boolean taintedVarsLHS =
           lhsVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var));
 
-      boolean statementIsInLoop = false;
-      boolean loopIsControlledByTaintedVars = false;
-      //      boolean lhsIsLoopIterationIndex = false;
-
-      assert loopStructure != null;
-      Optional<Loop> OptionalLoopOfCurrentStatement =
-          getLoopForStatement(loopStructure, pCfaEdge.getPredecessor());
-
-      if (OptionalLoopOfCurrentStatement.isPresent()) {
-        statementIsInLoop = true;
-
-        Loop loopOfCurrentStatement = OptionalLoopOfCurrentStatement.orElseThrow();
-
-        loopIsControlledByTaintedVars =
-            loopIsControlledByTaintedVars(loopOfCurrentStatement, taintedVariables);
-
-        //        lhsIsLoopIterationIndex = varIsLoopIterationIndex(lhs, loopOfCurrentStatement);
-      }
-
       if (lhs instanceof CIdExpression variableLHS) {
         // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
         // mark the variable on the LHS as tainted. If no variable is tainted, kill the variable on
         // LHS
-        if (statementIsInLoop) {
-          if (!loopIsControlledByTaintedVars) {
+        if (statementIsInLoop || statementIsInIfElement) {
+          if (!loopIsControlledByTaintedVars && !conditionIsControledByTaintedVariables) {
             if (taintedVarsRHS) {
               if (!taintedVarsLHS) {
                 generatedVars.add(variableLHS);
@@ -880,6 +926,53 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableList.copyOf(newStates);
   }
 
+  private boolean conditionIsControlledByTaintedVariables(
+      IfElement pIfElement, Set<CIdExpression> pTaintedVariables) {
+
+    assert astCfaRelation != null;
+    ASTElement conditionElement = pIfElement.getConditionElement();
+
+    int startingLineNumber = conditionElement.location().getStartingLineNumber();
+    int startColumnInLine = conditionElement.location().getStartColumnInLine();
+
+    // (lazy) initialize the tightest statement for starting
+    astCfaRelation.getTightestStatementForStarting(startingLineNumber, startColumnInLine);
+
+    Optional<CFANode> optionalConditionNode = Optional.empty();
+    for (int i = 0; i < startColumnInLine; i++) {
+      optionalConditionNode = astCfaRelation.getNodeForStatementLocation(startingLineNumber, i);
+      if (optionalConditionNode.isPresent()) {
+        break;
+      }
+    }
+
+    if (optionalConditionNode.isPresent()) {
+      CFANode conditionNode = optionalConditionNode.get();
+      CFAEdge statementInConditionEdge = conditionNode.getLeavingEdge(0);
+      if (statementInConditionEdge instanceof CAssumeEdge assumeEdge) {
+        CExpression expr = assumeEdge.getExpression();
+        Set<CIdExpression> varsAsCidExpr = TaintAnalysisUtils.getAllVarsAsCExpr(expr);
+        return varsAsCidExpr.stream().anyMatch(pTaintedVariables::contains);
+      }
+    }
+
+    return false;
+  }
+
+  private Optional<IfElement> getIfStructureOfCurrentStatement(CStatement pPStatement) {
+
+    assert ifElements != null;
+    for (IfElement ifElement : ifElements) {
+      if (ifElement.getCompleteElement().location().getStartingLineNumber()
+              < pPStatement.getFileLocation().getStartingLineNumber()
+          && ifElement.getCompleteElement().location().getEndingLineNumber()
+              > pPStatement.getFileLocation().getEndingLineNumber()) {
+        return Optional.of(ifElement);
+      }
+    }
+    return Optional.empty();
+  }
+
   private boolean loopIsControlledByTaintedVars(
       Loop loopOfCurrentStatement, Set<CIdExpression> taintedVariables) {
 
@@ -902,7 +995,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     Loop outterLoop =
         getLoopForStatement(
-                loopStructure,
                 loopOfCurrentStatement.getIncomingEdges().iterator().next().getPredecessor())
             .get();
 
@@ -910,9 +1002,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private boolean isNestedLoop(Loop loopOfCurrentStatement) {
-    assert loopStructure != null;
     return getLoopForStatement(
-            loopStructure,
             loopOfCurrentStatement.getIncomingEdges().iterator().next().getPredecessor())
         .isPresent();
   }
@@ -1031,8 +1121,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         pStatement.getFunctionCallExpression().getFunctionNameExpression().toString());
   }
 
-  private static Optional<Loop> getLoopForStatement(
-      LoopStructure loopStructure, final CFANode node) {
+  private Optional<Loop> getLoopForStatement(final CFANode node) {
+    assert loopStructure != null;
     for (Loop loop : loopStructure.getAllLoops()) {
       if (loop.getLoopNodes().contains(node)) {
         return Optional.of(loop);

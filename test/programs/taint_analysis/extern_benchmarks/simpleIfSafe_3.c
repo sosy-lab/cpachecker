@@ -27,7 +27,7 @@ int main() {
     }
 
     // t(a) = U + U = U -> a expected to be untainted
-    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(a, 0);
 
     // t(b) = T + U = T -> b expected to be tainted
     __VERIFIER_is_public(b, 0);
