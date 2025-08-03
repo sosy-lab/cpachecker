@@ -12,12 +12,10 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Ordering;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
-
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 
 public class ExplicitLocationSet implements LocationSet {

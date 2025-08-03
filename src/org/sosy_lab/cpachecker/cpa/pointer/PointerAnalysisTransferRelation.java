@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.pointer;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -19,14 +18,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-
 import javax.annotation.Nonnull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -76,17 +73,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions.StructHandlingStrategy;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidationReason;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidationReason;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.MemoryLocationPointer;
-import org.sosy_lab.cpachecker.cpa.pointer.util.PointerArithmeticUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
-import org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.StructLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.util.PointerArithmeticUtils;
+import org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.StructUnionHandler;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -115,7 +112,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     @Option(
         secure = true,
         description =
-            "Strategy for mapping heap allocations to symbolic heap locations: SINGLE, PER_CALL, PER_LINE")
+            "Strategy for mapping heap allocations to symbolic heap locations: SINGLE, PER_CALL,"
+                + " PER_LINE")
     private HeapAllocationStrategy heapAllocationStrategy = HeapAllocationStrategy.SINGLE;
 
     @Option(secure = true, description = "Strategy for handling structs in pointer analysis")

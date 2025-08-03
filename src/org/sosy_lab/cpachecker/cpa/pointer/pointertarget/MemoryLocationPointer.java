@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
+
 import com.google.common.collect.ComparisonChain;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
 
 public class MemoryLocationPointer implements PointerTarget {
   private final MemoryLocation memoryLocation;
