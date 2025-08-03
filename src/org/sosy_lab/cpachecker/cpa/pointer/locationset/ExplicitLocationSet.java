@@ -153,18 +153,25 @@ public class ExplicitLocationSet implements LocationSet {
     if (this == pOther) {
       return true;
     }
+    // Compare with other location set.
     if (pOther instanceof LocationSet otherLocationSet) {
-      if (otherLocationSet.isTop()) {
-        return false;
-      }
-      if (otherLocationSet.isBot()) {
-        return isBot();
-      }
-      if (otherLocationSet instanceof ExplicitLocationSet otherExplicitLocationSet) {
-        return (explicitSet.equals(otherExplicitLocationSet.explicitSet)
-            && containsNull == otherExplicitLocationSet.containsNull);
-      }
+      return equalsToOtherLocationSet(otherLocationSet);
     }
+    return false;
+  }
+
+  private boolean equalsToOtherLocationSet(LocationSet otherLocationSet) {
+    if (otherLocationSet.isTop()) {
+      return false;
+    }
+    if (otherLocationSet.isBot()) {
+      return isBot();
+    }
+    if (otherLocationSet instanceof ExplicitLocationSet otherExplicitLocationSet) {
+      return (explicitSet.equals(otherExplicitLocationSet.explicitSet)
+          && containsNull == otherExplicitLocationSet.containsNull);
+    }
+
     return false;
   }
 

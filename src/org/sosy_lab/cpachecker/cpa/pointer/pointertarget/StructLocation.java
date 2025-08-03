@@ -51,6 +51,8 @@ public final class StructLocation implements PointerTarget {
 
   @Override
   public int compareTo(PointerTarget pOther) {
+    // Custom type check required for comparing different PointerTarget subclasses.
+    // Fallback to type-based comparison for heterogeneous comparisons.
     if (!(pOther instanceof StructLocation other)) {
       return compareByType(this, pOther);
     }

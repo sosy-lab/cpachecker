@@ -41,6 +41,7 @@ public final class InvalidLocation implements PointerTarget {
 
   @Override
   public int compareTo(PointerTarget pOther) {
+    // Compare using ComparisonChain if same type; fallback to type-based comparison otherwise.
     return (pOther instanceof InvalidLocation other)
         ? ComparisonChain.start().compare(this.reason.name(), other.reason.name()).result()
         : compareByType(this, pOther);

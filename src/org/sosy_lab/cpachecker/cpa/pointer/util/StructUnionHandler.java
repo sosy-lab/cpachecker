@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.Point
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.StructLocation;
 

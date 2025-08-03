@@ -33,6 +33,7 @@ public class MemoryLocationPointer implements PointerTarget {
 
   @Override
   public int compareTo(PointerTarget pOther) {
+    // Compare using ComparisonChain if same type; fallback to type-based comparison otherwise.
     return (pOther instanceof MemoryLocationPointer other)
         ? ComparisonChain.start().compare(this.memoryLocation, other.memoryLocation).result()
         : compareByType(this, pOther);
