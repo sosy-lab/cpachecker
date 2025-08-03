@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -68,11 +69,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
-import static com.google.common.collect.FluentIterable.from;
 
 public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
@@ -607,7 +605,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       boolean statementIsInLoop = false;
       boolean loopIsControlledByTaintedVars = false;
-//      boolean lhsIsLoopIterationIndex = false;
+      //      boolean lhsIsLoopIterationIndex = false;
 
       assert loopStructure != null;
       Optional<Loop> OptionalLoopOfCurrentStatement =
@@ -621,7 +619,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         loopIsControlledByTaintedVars =
             loopIsControlledByTaintedVars(loopOfCurrentStatement, taintedVariables);
 
-//        lhsIsLoopIterationIndex = varIsLoopIterationIndex(lhs, loopOfCurrentStatement);
+        //        lhsIsLoopIterationIndex = varIsLoopIterationIndex(lhs, loopOfCurrentStatement);
       }
 
       if (lhs instanceof CIdExpression variableLHS) {

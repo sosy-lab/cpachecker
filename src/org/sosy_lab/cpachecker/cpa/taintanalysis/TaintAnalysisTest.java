@@ -37,7 +37,8 @@ public class TaintAnalysisTest {
 
   @Test
   public void testTaintByExternFunctionUnsafe() throws Exception {
-    TestResults results = runCPAchecker("taintByExternFunctionUnsafe.c", "c_function_notation_calls");
+    TestResults results =
+        runCPAchecker("taintByExternFunctionUnsafe.c", "c_function_notation_calls");
     results.assertIsUnsafe();
   }
 
@@ -263,8 +264,7 @@ public class TaintAnalysisTest {
   @Ignore
   @Test
   public void testTernaryOperatorSafe_implicitTaint() throws Exception {
-    TestResults results =
-        runCPAchecker("ternaryOperatorSafe_implicitTaint.c", "c_infix_operators");
+    TestResults results = runCPAchecker("ternaryOperatorSafe_implicitTaint.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
