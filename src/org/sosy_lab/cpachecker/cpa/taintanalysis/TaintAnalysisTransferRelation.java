@@ -86,10 +86,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   private static final int MAX_ALLOWED_STATE_SUCCESSORS = 50;
   private final @Nullable LoopStructure loopStructure;
 
-  public TaintAnalysisTransferRelation(LogManager pLogger) {
-    this(pLogger, null);
-  }
-
   public TaintAnalysisTransferRelation(LogManager pLogger, @Nullable LoopStructure pLoopStructure) {
     logger = pLogger;
     loopStructure = pLoopStructure;
