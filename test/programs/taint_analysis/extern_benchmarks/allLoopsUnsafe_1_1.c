@@ -11,11 +11,10 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
+int main(int argc) {
     int a, b, c, tainted, i;
     a = b = 0;
     c = tainted = __VERIFIER_nondet_int();
-    int argc = __VERIFIER_nondet_int();
 
     for (i = 0; i < argc; ++i) {
         a++;
@@ -27,7 +26,7 @@ int main() {
         b+=tainted;
     }
 
-    __VERIFIER_is_public(a, 0);
-    __VERIFIER_is_public(b, 0);
+    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(b, 1);
     __VERIFIER_is_public(c, 1);
 }

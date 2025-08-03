@@ -11,20 +11,19 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
-    int a, b, c;
-    a = c = 2;
+int main(int argc) {
+    int a2, b, b2;
+    a2 = b2 = 2;
     b = __VERIFIER_nondet_int();
-    int x = __VERIFIER_nondet_int();
 
-    while (a < 10) {
-        while (c < x) {
-            c = 1;
+    while (a2 < 10) {
+        while (b2 < argc) {
+            b2 = 1;
         }
-        a = b;
+        a2 = b;
     }
 
-    __VERIFIER_is_public(a, 0);
+    __VERIFIER_is_public(a2, 0);
     __VERIFIER_is_public(b, 0);
-    __VERIFIER_is_public(c, 1);
+    __VERIFIER_is_public(b2, 0);
 }

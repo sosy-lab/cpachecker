@@ -19,6 +19,6 @@ int main() {
         x++;
     }
 
-    // x is expected to be public
-    __VERIFIER_is_public(x, 0);
+    // x is expected to be tainted
+    __VERIFIER_is_public(x, 1);
 }

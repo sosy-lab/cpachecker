@@ -15,15 +15,16 @@ int main() {
     int x, b1, b2, y;
     x = 3;
 //    scanf("%d", &x);
+    x = __VERIFIER_nondet_int();
 
     b1 = even(10);
-    __VERIFIER_nondet_int(b1, 0);
+    __VERIFIER_is_public(b1, 0);
 
     b2 = odd(x);
-    __VERIFIER_nondet_int(b2, 0);
+    __VERIFIER_is_public(b2, 0);
 
     y = compute(x);
-    __VERIFIER_nondet_int(y, 1);
+    __VERIFIER_is_public(y, 1);
 }
 
 int even(int x) {

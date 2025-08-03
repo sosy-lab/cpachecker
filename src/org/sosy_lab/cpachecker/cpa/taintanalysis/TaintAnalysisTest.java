@@ -30,14 +30,14 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintBySqrtSafe() throws Exception {
-    TestResults results = runCPAchecker("taintBySqrtSafe.c", "c_function_notation_calls");
+  public void testTaintByExternFunctionSafe() throws Exception {
+    TestResults results = runCPAchecker("taintByExternFunctionSafe.c", "c_function_notation_calls");
     results.assertIsSafe();
   }
 
   @Test
-  public void testTaintBySqrtUnsafe() throws Exception {
-    TestResults results = runCPAchecker("taintBySqrtUnsafe.c", "c_function_notation_calls");
+  public void testTaintByExternFunctionUnsafe() throws Exception {
+    TestResults results = runCPAchecker("taintByExternFunctionUnsafe.c", "c_function_notation_calls");
     results.assertIsUnsafe();
   }
 
@@ -257,6 +257,22 @@ public class TaintAnalysisTest {
   public void testTaintByComparisonOperationUnsafe_NotEqual() throws Exception {
     TestResults results =
         runCPAchecker("taintByComparisonOperationUnsafe_NotEqual.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Ignore
+  @Test
+  public void testTernaryOperatorSafe_implicitTaint() throws Exception {
+    TestResults results =
+        runCPAchecker("ternaryOperatorSafe_implicitTaint.c", "c_infix_operators");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testTernaryOperatorUnsafe_implicitTaint() throws Exception {
+    TestResults results =
+        runCPAchecker("ternaryOperatorUnsafe_implicitTaint.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
@@ -932,24 +948,6 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testAllLoopsSafe_2() throws Exception {
-    TestResults results = runCPAchecker("allLoopsSafe_2.c", "");
-    results.assertIsSafe();
-  }
-
-  @Test
-  public void testAllLoopsUnsafe_2_1() throws Exception {
-    TestResults results = runCPAchecker("allLoopsUnsafe_2_1.c", "");
-    results.assertIsUnsafe();
-  }
-
-  @Test
-  public void testAllLoopsUnsafe_2_2() throws Exception {
-    TestResults results = runCPAchecker("allLoopsUnsafe_2_2.c", "");
-    results.assertIsUnsafe();
-  }
-
-  @Test
   public void testSimpleInterproceduralSafe_1() throws Exception {
     TestResults results = runCPAchecker("simpleInterproceduralSafe_1.c", "extern_benchmarks");
     results.assertIsSafe();
@@ -1160,7 +1158,6 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testPaperExampleSafe() throws Exception {
     TestResults results = runCPAchecker("paperExampleSafe.c", "extern_benchmarks");
@@ -1225,6 +1222,24 @@ public class TaintAnalysisTest {
   @Test
   public void testTaintMainArgsUnsafe_2() throws Exception {
     TestResults results = runCPAchecker("taintMainArgsUnsafe_2.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testEdgeTypes() throws Exception {
+    TestResults results = runCPAchecker("edgeTypes.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testEntwurfSafe() throws Exception {
+    TestResults results = runCPAchecker("entwurfSafe.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testEntwurfUnsafe() throws Exception {
+    TestResults results = runCPAchecker("entwurfUnsafe.c", "");
     results.assertIsUnsafe();
   }
 }

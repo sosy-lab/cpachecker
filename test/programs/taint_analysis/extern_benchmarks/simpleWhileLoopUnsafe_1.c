@@ -13,7 +13,7 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 int main() {
     int y = 2;
 
-    while (y < 3) {
+    while (y < 10) {
         y++;
     }
 
