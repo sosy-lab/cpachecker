@@ -264,6 +264,7 @@ public class ValueAnalysisCPA extends AbstractCPA
         logger,
         cfa,
         transferOptions,
+        config,
         unknownValueHandler,
         constraintsStrengthenOperator,
         statistics);

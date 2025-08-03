@@ -51,6 +51,7 @@ public class ValueAnalysisStrongestPostOperator
             pLogger,
             pCfa,
             new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
+            pConfig,
             new UnknownValueAssigner(),
             new ConstraintsStrengthenOperator(pConfig, pLogger),
             null);

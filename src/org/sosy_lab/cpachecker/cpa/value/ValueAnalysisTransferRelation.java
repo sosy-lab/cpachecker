@@ -103,6 +103,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.MemoryLocationPointer;
@@ -139,6 +140,7 @@ public class ValueAnalysisTransferRelation
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
   private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
+  private final Configuration config;
 
   @Options(prefix = "cpa.value")
   public static class ValueTransferOptions {
@@ -285,9 +287,11 @@ public class ValueAnalysisTransferRelation
       LogManager pLogger,
       CFA pCfa,
       ValueTransferOptions pOptions,
+      Configuration pConfig,
       MemoryLocationValueHandler pUnknownValueHandler,
       ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
       @Nullable ValueAnalysisCPAStatistics pStats) {
+    config = pConfig;
     options = pOptions;
     machineModel = pCfa.getMachineModel();
     logger = new LogManagerWithoutDuplicates(pLogger);
@@ -1381,19 +1385,26 @@ public class ValueAnalysisTransferRelation
 
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
-          ValueAnalysisState newState =
-              strengthenWithPointerInformation(
-                  stateToStrengthen,
-                  pointerState,
-                  rightHandSide,
-                  leftHandType,
-                  leftHandSide,
-                  leftHandVariable,
-                  UnknownValue.getInstance(),
-                  pCfaEdge);
 
-          newState = handleModf(rightHandSide, pointerState, newState, pCfaEdge);
-          result.add(newState);
+          try {
+            ValueAnalysisState newState =
+                strengthenWithPointerInformation(
+                    stateToStrengthen,
+                    pointerState,
+                    rightHandSide,
+                    leftHandType,
+                    leftHandSide,
+                    leftHandVariable,
+                    UnknownValue.getInstance(),
+                    pCfaEdge);
+            newState = handleModf(rightHandSide, pointerState, newState, pCfaEdge);
+            result.add(newState);
+          } catch (InvalidConfigurationException e) {
+            logger.logUserException(
+                Level.WARNING,
+                e,
+                "Could not read pointer config in value analysis; skip this state ");
+          }
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
@@ -1432,7 +1443,7 @@ public class ValueAnalysisTransferRelation
       PointerAnalysisState pPointerState,
       ValueAnalysisState pState,
       CFAEdge pCfaEdge)
-      throws CPATransferException, AssertionError {
+      throws CPATransferException, AssertionError, InvalidConfigurationException {
     ValueAnalysisState newState = pState;
     if (pRightHandSide instanceof AFunctionCallExpression functionCallExpression) {
       AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
@@ -1499,7 +1510,7 @@ public class ValueAnalysisTransferRelation
       String pLeftHandVariable,
       Value pValue,
       CFAEdge pCfaEdge)
-      throws CPATransferException {
+      throws CPATransferException, InvalidConfigurationException {
 
     ValueAnalysisState newState = pValueState;
     boolean isPointerLhs = pLeftHandSide instanceof CPointerExpression;
@@ -1519,11 +1530,13 @@ public class ValueAnalysisTransferRelation
     Type type = pTargetType;
     boolean shouldAssign = false;
     boolean targetIsUnknown = target == null;
+
     if (targetIsUnknown && pLeftHandSide instanceof CPointerExpression pointerExpression) {
 
+      PointerTransferOptions pointerTransferOptions = new PointerTransferOptions(config);
       LocationSet targetLocations =
           PointerAnalysisTransferRelation.getReferencedLocations(
-              pointerExpression, pPointerInfo, false, pCfaEdge);
+              pointerExpression, pPointerInfo, false, pCfaEdge, pointerTransferOptions);
 
       if (targetLocations instanceof ExplicitLocationSet explicitTargetLocations
           && explicitTargetLocations.getSizeWithoutNull() == 1) {
@@ -1545,10 +1558,16 @@ public class ValueAnalysisTransferRelation
     if (valueIsUnknown && pRightHandSide instanceof CPointerExpression rhs) {
 
       CExpression addressExpression = rhs.getOperand();
+      PointerTransferOptions pointerTransferOptions = null;
+      try {
+        pointerTransferOptions = new PointerTransferOptions(config);
+      } catch (InvalidConfigurationException pE) {
+        throw new RuntimeException(pE);
+      }
 
       LocationSet valueLocations =
           PointerAnalysisTransferRelation.getReferencedLocations(
-              addressExpression, pPointerInfo, true, pCfaEdge);
+              addressExpression, pPointerInfo, true, pCfaEdge, pointerTransferOptions);
       if (valueLocations instanceof ExplicitLocationSet explicitValueLocations
           && explicitValueLocations.getSizeWithoutNull() == 1) {
         PointerTarget valuePointerTarget =

@@ -133,14 +133,14 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     }
   }
 
-  private static PointerTransferOptions getOptions() {
+  private PointerTransferOptions getOptions() {
     if (options == null) {
       throw new IllegalStateException("PointerTransferOptions must be initialized before use");
     }
     return options;
   }
 
-  private static PointerTransferOptions options;
+  private PointerTransferOptions options;
 
   public PointerAnalysisTransferRelation(LogManager pLogger, PointerTransferOptions pOptions) {
     logger = pLogger;
@@ -230,7 +230,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       if (isNullComparison) {
         CExpression pointerExpr =
             PointerUtils.isNullPointer(leftOperand) ? rightOperand : leftOperand;
-        LocationSet pointsTo = getReferencedLocations(pointerExpr, pState, true, pCFAEdge);
+        LocationSet pointsTo = getReferencedLocations(pointerExpr, pState, true, pCFAEdge, options);
 
         if (pointsTo.isTop()) {
           return pState;
@@ -245,8 +245,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         }
         return PointerAnalysisState.BOTTOM_STATE;
       } else {
-        LocationSet leftPointsTo = getReferencedLocations(leftOperand, pState, true, pCFAEdge);
-        LocationSet rightPointsTo = getReferencedLocations(rightOperand, pState, true, pCFAEdge);
+        LocationSet leftPointsTo =
+            getReferencedLocations(leftOperand, pState, true, pCFAEdge, options);
+        LocationSet rightPointsTo =
+            getReferencedLocations(rightOperand, pState, true, pCFAEdge, options);
 
         if (leftPointsTo.isTop() || rightPointsTo.isTop()) {
           return pState;
@@ -321,7 +323,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           new MemoryLocationPointer(MemoryLocationPointer.getMemoryLocation(formalParam));
       LocationSet referencedLocations =
           getReferencedLocations(
-              Objects.requireNonNull(actualParam), pState, true, pCFunctionCallEdge);
+              Objects.requireNonNull(actualParam), pState, true, pCFunctionCallEdge, options);
 
       newState =
           new PointerAnalysisState(
@@ -371,7 +373,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         rhsTargets = ExplicitLocationSet.from(newTargets, containsNull);
       }
 
-      LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge);
+      LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge, options);
       return handleAssignment(pState, lhsLocations, rhsTargets, pCfaEdge);
     }
     return pState;
@@ -388,7 +390,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     if (!(returnType instanceof CPointerType)) {
       return pState;
     }
-    LocationSet returnLocations = getReferencedLocations(returnExpression, pState, true, pCfaEdge);
+    LocationSet returnLocations =
+        getReferencedLocations(returnExpression, pState, true, pCfaEdge, options);
     if (returnLocations.isTop()) {
       return pState;
     }
@@ -441,7 +444,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
           heapLocation = createHeapLocation(pCfaEdge);
 
-          LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge);
+          LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge, options);
           LocationSet rhsSet = ExplicitLocationSet.from(heapLocation);
 
           return handleAssignment(pState, lhsLocations, rhsSet, pCfaEdge);
@@ -459,7 +462,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       throws CPATransferException {
     CExpression freedExpr = callExpr.getParameterExpressions().get(0);
 
-    LocationSet targets = getReferencedLocations(freedExpr, pState, true, pCfaEdge);
+    LocationSet targets = getReferencedLocations(freedExpr, pState, true, pCfaEdge, options);
 
     if (targets instanceof ExplicitLocationSet explicitTargets) {
       Set<PointerTarget> updatedTargets = new HashSet<>();
@@ -517,8 +520,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       PointerAnalysisState pState, CExpression pLhs, CRightHandSide pRhs, CCfaEdge pCfaEdge)
       throws CPATransferException {
 
-    LocationSet lhsLocations = getReferencedLocations(pLhs, pState, false, pCfaEdge);
-    LocationSet rhsTargets = getReferencedLocations(pRhs, pState, true, pCfaEdge);
+    LocationSet lhsLocations = getReferencedLocations(pLhs, pState, false, pCfaEdge, options);
+    LocationSet rhsTargets = getReferencedLocations(pRhs, pState, true, pCfaEdge, options);
     if (pLhs instanceof CFieldReference pCFieldReference) {
       CType baseType = pCFieldReference.getFieldOwner().getExpressionType().getCanonicalType();
 
@@ -622,7 +625,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     }
 
                     return getReferencedLocations(
-                        pInitializerExpression.getExpression(), pState, true, pCfaEdge);
+                        pInitializerExpression.getExpression(), pState, true, pCfaEdge, options);
                   }
 
                   @Override
@@ -654,7 +657,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       final CRightHandSide pExpression,
       final PointerAnalysisState pState,
       final boolean shouldDereference,
-      final CFAEdge pCfaEdge)
+      final CFAEdge pCfaEdge,
+      PointerTransferOptions pointerTransferOptions)
       throws CPATransferException {
 
     return pExpression.accept(
@@ -691,7 +695,11 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               throws CPATransferException {
             LocationSet operand =
                 getReferencedLocations(
-                    pPointerExpression.getOperand(), pState, shouldDereference, pCfaEdge);
+                    pPointerExpression.getOperand(),
+                    pState,
+                    shouldDereference,
+                    pCfaEdge,
+                    pointerTransferOptions);
             return dereference(operand);
           }
 
@@ -699,11 +707,20 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           public LocationSet visit(CUnaryExpression pUnaryExpression) throws CPATransferException {
             if (pUnaryExpression.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
               LocationSet operand =
-                  getReferencedLocations(pUnaryExpression.getOperand(), pState, false, pCfaEdge);
+                  getReferencedLocations(
+                      pUnaryExpression.getOperand(),
+                      pState,
+                      false,
+                      pCfaEdge,
+                      pointerTransferOptions);
               return addressOf(operand);
             }
             return getReferencedLocations(
-                pUnaryExpression.getOperand(), pState, shouldDereference, pCfaEdge);
+                pUnaryExpression.getOperand(),
+                pState,
+                shouldDereference,
+                pCfaEdge,
+                pointerTransferOptions);
           }
 
           @Override
@@ -718,11 +735,12 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
             String structType = baseType.toString();
 
-            StructHandlingStrategy strategy = getOptions().structHandlingStrategy;
+            StructHandlingStrategy strategy = pointerTransferOptions.structHandlingStrategy;
             String instanceName = null;
 
             if (pFieldReference.isPointerDereference()) {
-              LocationSet pointees = getReferencedLocations(owner, pState, true, pCfaEdge);
+              LocationSet pointees =
+                  getReferencedLocations(owner, pState, true, pCfaEdge, pointerTransferOptions);
               if (pointees instanceof ExplicitLocationSet explicit && explicit.getSize() == 1) {
                 for (PointerTarget target : explicit.getExplicitLocations()) {
                   if (target instanceof MemoryLocationPointer memPtr) {
@@ -771,7 +789,11 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           public LocationSet visit(CArraySubscriptExpression expr) throws CPATransferException {
             LocationSet base =
                 getReferencedLocations(
-                    expr.getArrayExpression(), pState, shouldDereference, pCfaEdge);
+                    expr.getArrayExpression(),
+                    pState,
+                    shouldDereference,
+                    pCfaEdge,
+                    pointerTransferOptions);
 
             if (base.isTop() || base.isBot()) return base;
             if (!(expr.getSubscriptExpression() instanceof CIntegerLiteralExpression idxExpr)) {
@@ -782,7 +804,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             if (base instanceof ExplicitLocationSet explicitBase) {
               LocationSet locationSet =
                   PointerArithmeticUtils.applyPointerArithmetic(
-                      explicitBase, offset, getOptions().isOffsetSensitive);
+                      explicitBase, offset, pointerTransferOptions.isOffsetSensitive);
 
               if (shouldDereference) {
                 return dereference(locationSet);
@@ -798,7 +820,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             if (PointerUtils.isNullPointer(expr)) {
               return ExplicitLocationSet.fromNull();
             }
-            return getReferencedLocations(expr.getOperand(), pState, shouldDereference, pCfaEdge);
+            return getReferencedLocations(
+                expr.getOperand(), pState, shouldDereference, pCfaEdge, pointerTransferOptions);
           }
 
           @Override
@@ -828,7 +851,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               CExpression pointerExpr = operand1IsPtr ? operand1 : operand2;
               CExpression offsetExpr = operand1IsPtr ? operand2 : operand1;
 
-              LocationSet base = getReferencedLocations(pointerExpr, pState, true, pCfaEdge);
+              LocationSet base =
+                  getReferencedLocations(
+                      pointerExpr, pState, true, pCfaEdge, pointerTransferOptions);
 
               if (offsetExpr instanceof CIntegerLiteralExpression intLit) {
                 long offset =
@@ -836,7 +861,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                         ? -intLit.getValue().longValue()
                         : intLit.getValue().longValue();
                 return PointerArithmeticUtils.applyPointerArithmetic(
-                    base, offset, getOptions().isOffsetSensitive);
+                    base, offset, pointerTransferOptions.isOffsetSensitive);
               }
 
               return LocationSetTop.INSTANCE;
@@ -912,7 +937,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             if (PointerUtils.isNullPointer(operand)) {
               return ExplicitLocationSet.fromNull();
             }
-            return getReferencedLocations(operand, pState, shouldDereference, pCfaEdge);
+            return getReferencedLocations(
+                operand, pState, shouldDereference, pCfaEdge, pointerTransferOptions);
           }
 
           private LocationSet dereference(LocationSet set) {

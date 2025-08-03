@@ -178,7 +178,6 @@ public class StructUnionHandler {
       case JUST_STRUCT ->
           ExplicitLocationSet.from(
               StructLocation.forStruct(pCfaEdge.getPredecessor().getFunctionName(), structType));
-      default -> LocationSetTop.INSTANCE;
     };
   }
 
@@ -203,7 +202,6 @@ public class StructUnionHandler {
       case JUST_STRUCT ->
           ExplicitLocationSet.from(
               StructLocation.forStruct(pCfaEdge.getPredecessor().getFunctionName(), structType));
-      default -> LocationSetTop.INSTANCE;
     };
   }
 }
