@@ -2219,13 +2219,26 @@ cpa.octagon.octagonLibrary = "INT"
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
+# Strategy for mapping heap allocations to symbolic heap locations: SINGLE,
+# PER_CALL, PER_LINE
+cpa.pointer.heapAllocationStrategy = SINGLE
+  enum:     [SINGLE, PER_CALL, PER_LINE]
+
+# Enable or disable offset-sensitive pointer analysis. When false, offsets in
+# pointer arithmetic are ignored.
+cpa.pointer.isOffsetSensitive = true
+
 # which merge operator to use for PointerAnalysisCPA
-cpa.pointer.merge = "JOIN"
+cpa.pointer.merge = "SEP"
   allowed values: [JOIN, SEP]
 
 # which stop operator to use for PointerAnalysisCPA
 cpa.pointer.stop = "SEP"
   allowed values: [JOIN, SEP]
+
+# Strategy for handling structs in pointer analysis
+cpa.pointer.structHandlingStrategy = STRUCT_INSTANCE
+  enum:     [JUST_STRUCT, STRUCT_INSTANCE, ALL_FIELDS]
 
 # which merge operator to use for PointerCPA
 cpa.pointer2.merge = "JOIN"
@@ -3784,6 +3797,10 @@ cpa.usage.writeAccessFunctions = {}
 # which merge operator to use for ValidVarsCPA
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# Able blacklisting for addressed variables to enable tracking through
+# pointer analysis
+cpa.value.ableAddressedVariableBlacklisting = false
 
 # restrict abstraction computations to branching points
 cpa.value.abstraction.alwaysAtBranch = false

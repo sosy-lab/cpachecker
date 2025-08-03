@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.pointer.util.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetTop;
-import org.sosy_lab.cpachecker.cpa.pointer.util.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysisState> {

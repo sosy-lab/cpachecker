@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.util;
 
+import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
@@ -20,6 +20,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions.StructHandlingStrategy;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.StructLocation;
 
 /**
  * Utility class for handling assignments involving unions and structs according to the selected
@@ -53,25 +58,15 @@ public class StructUnionHandler {
 
     if (lhsLocations instanceof ExplicitLocationSet explicitLhsLocations) {
       if (explicitLhsLocations.getSize() == 1) {
-        if (explicitLhsLocations.isNull()) {
-          logger.logf(
-              Level.WARNING,
-              "PointerAnalysis: Assignment to null at %s",
-              pCfaEdge.getFileLocation());
-          return PointerAnalysisState.BOTTOM_STATE;
+        Optional<PointerAnalysisState> specialCase =
+            PointerUtils.handleSpecialCasesForExplicitLocation(
+                pState, explicitLhsLocations, rhsTargets, pCfaEdge, logger);
+
+        if (specialCase.isPresent()) {
+          return specialCase.get();
         }
+
         PointerTarget lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();
-        if (lhsLocation instanceof InvalidLocation) {
-          logger.logf(
-              Level.WARNING,
-              "PointerAnalysis: Assignment to invalid location %s at %s",
-              lhsLocation,
-              pCfaEdge.getFileLocation());
-          return PointerAnalysisState.BOTTOM_STATE;
-        }
-        if (rhsTargets.isTop()) {
-          return PointerUtils.handleTopAssignmentCase(pState, lhsLocation);
-        }
 
         if (strategy == StructHandlingStrategy.JUST_STRUCT) {
           LocationSet existingSet = pState.getPointsToSet(lhsLocation);
@@ -108,25 +103,15 @@ public class StructUnionHandler {
 
     if (lhsLocations instanceof ExplicitLocationSet explicitLhsLocations) {
       if (explicitLhsLocations.getSize() == 1) {
-        if (explicitLhsLocations.isNull()) {
-          logger.logf(
-              Level.WARNING,
-              "PointerAnalysis: Assignment to null at %s",
-              pCfaEdge.getFileLocation());
-          return PointerAnalysisState.BOTTOM_STATE;
+        Optional<PointerAnalysisState> specialCase =
+            PointerUtils.handleSpecialCasesForExplicitLocation(
+                pState, explicitLhsLocations, rhsTargets, pCfaEdge, logger);
+
+        if (specialCase.isPresent()) {
+          return specialCase.get();
         }
+
         PointerTarget lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();
-        if (lhsLocation instanceof InvalidLocation) {
-          logger.logf(
-              Level.WARNING,
-              "PointerAnalysis: Assignment to invalid location %s at %s",
-              lhsLocation,
-              pCfaEdge.getFileLocation());
-          return PointerAnalysisState.BOTTOM_STATE;
-        }
-        if (rhsTargets.isTop()) {
-          return PointerUtils.handleTopAssignmentCase(pState, lhsLocation);
-        }
 
         if (strategy == StructHandlingStrategy.ALL_FIELDS) {
           return new PointerAnalysisState(

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.util;
+package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
@@ -15,18 +15,11 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class HeapLocation implements PointerTarget {
   private final String functionName;
   private final String identifier;
   private final @Nullable Long offset;
-
-  private HeapLocation(String pFunctionName, String pIdentifier) {
-    functionName = pFunctionName;
-    identifier = pIdentifier;
-    offset = 0L;
-  }
 
   private HeapLocation(String pFunctionName, String pIdentifier, Long pOffset) {
     functionName = pFunctionName;
@@ -36,13 +29,13 @@ public class HeapLocation implements PointerTarget {
 
   public static HeapLocation forAllocation(
       String pFunctionName, int pIndex, @Nullable Long pOffset) {
+    String finalIdentifier;
     if (pIndex == -1) {
-      String finalIdentifier = "heap_obj";
-      return new HeapLocation(pFunctionName, finalIdentifier, pOffset);
+      finalIdentifier = "heap_obj";
     } else {
-      String finalIdentifier = "heap_obj" + pIndex;
-      return new HeapLocation(pFunctionName, finalIdentifier, pOffset);
+      finalIdentifier = "heap_obj" + pIndex;
     }
+    return new HeapLocation(pFunctionName, finalIdentifier, pOffset);
   }
 
   public static HeapLocation forLineBasedAllocation(

@@ -6,9 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.util;
+package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
 
 import com.google.common.collect.ComparisonChain;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -52,5 +53,9 @@ public class MemoryLocationPointer implements PointerTarget {
   @Override
   public String toString() {
     return memoryLocation.toString();
+  }
+
+  public static MemoryLocation getMemoryLocation(AbstractSimpleDeclaration pDeclaration) {
+    return MemoryLocation.parseExtendedQualifiedName(pDeclaration.getQualifiedName());
   }
 }

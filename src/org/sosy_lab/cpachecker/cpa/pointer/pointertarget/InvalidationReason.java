@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.util;
+package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
 
 public enum InvalidationReason {
   UNKNOWN,

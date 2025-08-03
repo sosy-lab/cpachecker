@@ -10,6 +10,15 @@ package org.sosy_lab.cpachecker.cpa.pointer.util;
 
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidationReason;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.MemoryLocationPointer;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.StructLocation;
 
 public final class PointerArithmeticUtils {
 

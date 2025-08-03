@@ -6,14 +6,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.util;
+package org.sosy_lab.cpachecker.cpa.pointer.locationset;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Ordering;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 
 public class ExplicitLocationSet implements LocationSet {
 
@@ -145,7 +150,6 @@ public class ExplicitLocationSet implements LocationSet {
 
   @Override
   public boolean equals(Object pOther) {
-    // FIXME violates contract because it is not symmetric with LocationSetBot.equals()
     if (this == pOther) {
       return true;
     }
