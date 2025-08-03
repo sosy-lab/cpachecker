@@ -791,7 +791,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     pCfaEdge,
                     pointerTransferOptions);
 
-            if (base.isTop() || base.isBot()) return base;
+            if (base.isTop() || base.isBot()) {
+              return base;
+            }
             if (!(expr.getSubscriptExpression() instanceof CIntegerLiteralExpression idxExpr)) {
               return LocationSetTop.INSTANCE;
             }
@@ -952,14 +954,18 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             LocationSet result = LocationSetBot.INSTANCE;
             for (PointerTarget pt : explicitSet.getExplicitLocations()) {
               LocationSet target = pState.getPointsToSet(pt);
-              if (target.isTop() || target.isBot()) return target;
+              if (target.isTop() || target.isBot()) {
+                return target;
+              }
               result = result.addElements(target);
             }
             return result;
           }
 
           private LocationSet addressOf(LocationSet set) {
-            if (!(set instanceof ExplicitLocationSet explicit)) return LocationSetTop.INSTANCE;
+            if (!(set instanceof ExplicitLocationSet explicit)) {
+              return LocationSetTop.INSTANCE;
+            }
             return explicit;
           }
         });

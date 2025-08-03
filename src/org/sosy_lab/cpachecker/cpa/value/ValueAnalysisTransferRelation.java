@@ -753,12 +753,13 @@ public class ValueAnalysisTransferRelation
       memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
     }
 
-    if (options.ableAddressedVariableBlacklisting)
+    if (options.ableAddressedVariableBlacklisting) {
       if (addressedVariables.contains(decl.getQualifiedName())
           && declarationType instanceof CType) {
         ValueAnalysisState.addToBlacklist(memoryLocation);
         logger.logf(Level.INFO, "Blacklisting addressed variable: %s", decl.getQualifiedName());
       }
+    }
 
     if (init instanceof AInitializerExpression aInitializerExpression) {
       ExpressionValueVisitor evv = getVisitor();
