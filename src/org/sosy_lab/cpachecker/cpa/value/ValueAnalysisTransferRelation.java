@@ -1561,8 +1561,8 @@ public class ValueAnalysisTransferRelation
       PointerTransferOptions pointerTransferOptions = null;
       try {
         pointerTransferOptions = new PointerTransferOptions(config);
-      } catch (InvalidConfigurationException pE) {
-        throw new RuntimeException(pE);
+      } catch (InvalidConfigurationException noPointerTransferConfiguration) {
+        throw new RuntimeException(noPointerTransferConfiguration);
       }
 
       LocationSet valueLocations =

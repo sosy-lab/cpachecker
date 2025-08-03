@@ -18,7 +18,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -495,7 +494,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     return pState;
   }
 
-  @Nonnull
   private HeapLocation createHeapLocation(CCfaEdge pCfaEdge) {
     String functionName = pCfaEdge.getPredecessor().getFunctionName();
     HeapLocation heapLocation;
@@ -940,12 +938,16 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           }
 
           private LocationSet dereference(LocationSet set) {
-            if (set.isTop() || set.isBot()) return set;
+            if (set.isTop() || set.isBot()) {
+              return set;
+            }
             if (set.isNull()) {
               return ExplicitLocationSet.from(
                   InvalidLocation.forInvalidation(InvalidationReason.NULL_DEREFERENCE));
             }
-            if (!(set instanceof ExplicitLocationSet explicitSet)) return LocationSetTop.INSTANCE;
+            if (!(set instanceof ExplicitLocationSet explicitSet)) {
+              return LocationSetTop.INSTANCE;
+            }
 
             LocationSet result = LocationSetBot.INSTANCE;
             for (PointerTarget pt : explicitSet.getExplicitLocations()) {
