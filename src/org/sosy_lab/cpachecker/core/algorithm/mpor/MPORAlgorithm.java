@@ -57,6 +57,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO add shortFunctions Option (e.g. assume instead of __MPOR_SEQ__assume)
 
   @Option(
+      secure = true,
+      description = "allow writing pointer variables? false may help memory safety tasks.")
+  private boolean allowPointerWrites = true;
+
+  @Option(
       description =
           "merge statements between __VERIFIER_atomic_begin and __VERIFIER_atomic_end via gotos?"
               + " setting this to false does not model the input programs behavior correctly.")
@@ -333,6 +338,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     } else {
       options =
           new MPOROptions(
+              allowPointerWrites,
               atomicBlockMerge,
               bitVectorEncoding,
               bitVectorEvaluationPrune,

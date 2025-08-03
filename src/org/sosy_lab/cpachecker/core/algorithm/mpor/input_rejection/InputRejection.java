@@ -214,7 +214,7 @@ public class InputRejection {
       boolean pIsWrite, MPOROptions pOptions, CIdExpression pIdExpression, LogManager pLogger) {
 
     if (pIsWrite) {
-      if (pOptions.areBitVectorsEnabled()) {
+      if (!pOptions.allowPointerWrites) {
         if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.getType() instanceof CPointerType) {
             InputRejection.handleRejection(

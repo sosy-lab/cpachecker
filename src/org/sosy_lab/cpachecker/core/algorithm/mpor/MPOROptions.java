@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
  */
 public class MPOROptions {
 
+  public final boolean allowPointerWrites;
+
   public final boolean atomicBlockMerge;
 
   public final BitVectorEncoding bitVectorEncoding;
@@ -93,6 +95,7 @@ public class MPOROptions {
   public final boolean validatePc;
 
   public MPOROptions(
+      boolean pAllowPointerWrites,
       boolean pAtomicBlockMerge,
       BitVectorEncoding pBitVectorEncoding,
       boolean pBitVectorEvaluationPrune,
@@ -133,6 +136,7 @@ public class MPOROptions {
         equalFieldNames(),
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
 
+    allowPointerWrites = pAllowPointerWrites;
     atomicBlockMerge = pAtomicBlockMerge;
     bitVectorEncoding = pBitVectorEncoding;
     bitVectorEvaluationPrune = pBitVectorEvaluationPrune;
@@ -168,6 +172,7 @@ public class MPOROptions {
 
   /** Returns a test instance where only the program customization, not output, can be specified. */
   public static MPOROptions testInstance(
+      boolean pAllowPointerWrites,
       BitVectorEncoding pBitVectorEncoding,
       boolean pBitVectorEvaluationPrune,
       boolean pBitVectorReduction,
@@ -190,6 +195,7 @@ public class MPOROptions {
       boolean pSignedNondet) {
 
     return new MPOROptions(
+        pAllowPointerWrites,
         // always merge atomic blocks because not doing so may add additional interleavings
         true,
         pBitVectorEncoding,

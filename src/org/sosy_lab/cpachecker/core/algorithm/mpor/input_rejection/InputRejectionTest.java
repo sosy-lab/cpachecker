@@ -35,6 +35,7 @@ public class InputRejectionTest {
 
   private final MPOROptions defaultTestOptions =
       MPOROptions.testInstance(
+          true,
           BitVectorEncoding.NONE,
           false,
           false,
@@ -183,9 +184,10 @@ public class InputRejectionTest {
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/pointer-write.c");
     MPOROptions customOptions =
         MPOROptions.testInstance(
+            // do not allow pointer writes, so that this program is rejected
+            false,
             BitVectorEncoding.DECIMAL,
             false,
-            // bit vectors are enabled for these tests, so that pointer write is rejected
             true,
             false,
             false,
