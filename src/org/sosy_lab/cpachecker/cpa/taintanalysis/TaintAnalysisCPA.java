@@ -36,7 +36,7 @@ public class TaintAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
     super(
         DelegateAbstractDomain.getInstance(),
         new TaintAnalysisTransferRelation(
-            logger, 
+            logger,
             pCfa != null ? pCfa.getLoopStructure().orElse(null) : null,
             pCfa != null ? pCfa.getAstCfaRelation() : null));
   }
