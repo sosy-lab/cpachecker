@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -122,10 +123,10 @@ public class MPORSubstitution {
   private void handleGlobalVariableAccesses(
       CIdExpression pIdExpression,
       boolean pIsWrite,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pAccessedGlobalVariables) {
+      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<Set<CVariableDeclaration>> pAccessedGlobalVariables) {
 
-    // with bit vectors enabled, writing pointers (aliasing) is not allowed -> reject program
+    // writing pointers (aliasing) may not be allowed -> reject program
     InputRejection.checkPointerWrite(pIsWrite, options, pIdExpression, logger);
 
     // otherwise, if applicable, add declaration to global reads/writes
@@ -154,9 +155,9 @@ public class MPORSubstitution {
       final Optional<ThreadEdge> pCallContext,
       boolean pIsWrite,
       boolean pIsUnaryAmper,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pAccessedGlobalVariables,
-      ImmutableSet.Builder<CFunctionDeclaration> pAccessedFunctionPointers) {
+      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<Set<CVariableDeclaration>> pAccessedGlobalVariables,
+      Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
 
     checkArgument(
         !pIsWrite || pWrittenGlobalVariables.isPresent(),
@@ -183,7 +184,9 @@ public class MPORSubstitution {
       // operator '&', but the example tasks used only this expression, so we restrict it.
       if (pIsUnaryAmper) {
         if (declaration instanceof CFunctionDeclaration functionDeclaration) {
-          pAccessedFunctionPointers.add(functionDeclaration);
+          if (pAccessedFunctionPointers.isPresent()) {
+            pAccessedFunctionPointers.orElseThrow().add(functionDeclaration);
+          }
         }
       }
 
@@ -316,9 +319,9 @@ public class MPORSubstitution {
   CStatement substitute(
       CStatement pStatement,
       Optional<ThreadEdge> pCallContext,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pGlobalVariables,
-      ImmutableSet.Builder<CFunctionDeclaration> pAccessedFunctionPointers) {
+      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<Set<CVariableDeclaration>> pGlobalVariables,
+      Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
 
     FileLocation fileLocation = pStatement.getFileLocation();
 
@@ -429,9 +432,9 @@ public class MPORSubstitution {
   CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<ThreadEdge> pCallContext,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pGlobalVariables,
-      ImmutableSet.Builder<CFunctionDeclaration> pAccessedFunctionPointers) {
+      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<Set<CVariableDeclaration>> pGlobalVariables,
+      Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
 
     // substitute all parameters in the function call expression
     List<CExpression> parameters = new ArrayList<>();
@@ -469,9 +472,9 @@ public class MPORSubstitution {
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<ThreadEdge> pCallContext,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<ImmutableSet.Builder<CVariableDeclaration>> pGlobalVariables,
-      ImmutableSet.Builder<CFunctionDeclaration> pAccessedFunctionPointers) {
+      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<Set<CVariableDeclaration>> pGlobalVariables,
+      Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
       // return as-is if there is no expression to substitute

@@ -350,7 +350,7 @@ public class GhostVariableUtil {
                         false,
                         Optional.empty(),
                         Optional.empty(),
-                        ImmutableSet.builder())));
+                        Optional.empty())));
         assignments.add(parameterAssignment);
       }
       rAssignments.put(threadEdge, assignments.build());
@@ -383,7 +383,7 @@ public class GhostVariableUtil {
                           false,
                           Optional.empty(),
                           Optional.empty(),
-                          ImmutableSet.builder())));
+                          Optional.empty())));
           rAssignments.put(callContext, parameterAssignment);
         }
       }

@@ -211,11 +211,11 @@ public class InputRejection {
   //  then we can use an optional RightHandSide to replace the pIsWrite parameter?
   /** Public, because checking is done in {@link MPORSubstitution}. */
   public static void checkPointerWrite(
-      boolean pIsWrite, MPOROptions pOptions, CIdExpression pIdExpression, LogManager pLogger) {
+      boolean pIsWrite, MPOROptions pOptions, CIdExpression pWrittenVariable, LogManager pLogger) {
 
     if (pIsWrite) {
       if (!pOptions.allowPointerWrites) {
-        if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+        if (pWrittenVariable.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.getType() instanceof CPointerType) {
             InputRejection.handleRejection(
                 pLogger,

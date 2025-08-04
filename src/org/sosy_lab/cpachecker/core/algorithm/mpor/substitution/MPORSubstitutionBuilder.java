@@ -146,7 +146,7 @@ public class MPORSubstitutionBuilder {
                     false,
                     Optional.empty(),
                     Optional.empty(),
-                    ImmutableSet.builder()));
+                    Optional.empty()));
         CVariableDeclaration finalSub =
             substituteVariableDeclaration(variableDeclaration, initExprSub);
         rFinalSubstitutes.put(finalSub, idExpression);
@@ -343,7 +343,7 @@ public class MPORSubstitutionBuilder {
       CVariableDeclaration variableDeclaration = dummySubstitute.getKey();
       ImmutableMap.Builder<Optional<ThreadEdge>, CIdExpression> substitutes =
           ImmutableMap.builder();
-      ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
+      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
       for (var substitute : dummySubstitute.getValue().substitutes.entrySet()) {
         CInitializer initializer = variableDeclaration.getInitializer();
         // TODO handle CInitializerList
@@ -366,7 +366,7 @@ public class MPORSubstitutionBuilder {
                       false,
                       Optional.empty(),
                       Optional.of(accessedGlobalVariables),
-                      ImmutableSet.builder()));
+                      Optional.empty()));
           CVariableDeclaration finalSubstitute =
               substituteVariableDeclaration(substituteDeclaration, initializerSubstitute);
           substitutes.put(callContext, SeqExpressionBuilder.buildIdExpression(finalSubstitute));
@@ -376,7 +376,7 @@ public class MPORSubstitutionBuilder {
       }
       LocalVariableDeclarationSubstitute localSubstitute =
           new LocalVariableDeclarationSubstitute(
-              substitutes.buildOrThrow(), accessedGlobalVariables.build());
+              substitutes.buildOrThrow(), ImmutableSet.copyOf(accessedGlobalVariables));
       rFinalSubstitutes.put(variableDeclaration, localSubstitute);
     }
     return rFinalSubstitutes.buildOrThrow();

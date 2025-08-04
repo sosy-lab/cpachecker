@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -118,9 +120,9 @@ public class SubstituteEdgeBuilder {
       }
 
     } else if (cfaEdge instanceof CAssumeEdge assume) {
-      ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
-      ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
-      ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers = ImmutableSet.builder();
+      Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
+      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
+      Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
       CExpression substituteAssumption =
           pSubstitution.substitute(
               assume.getExpression(),
@@ -129,95 +131,94 @@ public class SubstituteEdgeBuilder {
               false,
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
-              accessedFunctionPointers);
+              Optional.of(accessedFunctionPointers));
       return Optional.of(
           new SubstituteEdge(
               substituteAssumeEdge(assume, substituteAssumption),
               pThreadEdge,
-              writtenGlobalVariables.build(),
-              accessedGlobalVariables.build(),
-              accessedFunctionPointers.build()));
+              ImmutableSet.copyOf(writtenGlobalVariables),
+              ImmutableSet.copyOf(accessedGlobalVariables),
+              ImmutableSet.copyOf(accessedFunctionPointers)));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
-      ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
-      ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
-      ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers = ImmutableSet.builder();
+      Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
+      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
+      Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
       CStatement substituteStatement =
           pSubstitution.substitute(
               statement.getStatement(),
               callContext,
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
-              accessedFunctionPointers);
+              Optional.of(accessedFunctionPointers));
       return Optional.of(
           new SubstituteEdge(
               substituteStatementEdge(statement, substituteStatement),
               pThreadEdge,
-              writtenGlobalVariables.build(),
-              accessedGlobalVariables.build(),
-              accessedFunctionPointers.build()));
+              ImmutableSet.copyOf(writtenGlobalVariables),
+              ImmutableSet.copyOf(accessedGlobalVariables),
+              ImmutableSet.copyOf(accessedFunctionPointers)));
 
     } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
       if (functionSummary.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
-        ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
-        ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
-        ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers =
-            ImmutableSet.builder();
+        Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
+        Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
+        Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
         CStatement substituteAssignment =
             pSubstitution.substitute(
                 assignment,
                 callContext,
                 Optional.of(writtenGlobalVariables),
                 Optional.of(accessedGlobalVariables),
-                accessedFunctionPointers);
+                Optional.of(accessedFunctionPointers));
         return Optional.of(
             new SubstituteEdge(
                 substituteFunctionSummaryEdge(functionSummary, substituteAssignment),
                 pThreadEdge,
-                writtenGlobalVariables.build(),
-                accessedGlobalVariables.build(),
-                accessedFunctionPointers.build()));
+                ImmutableSet.copyOf(writtenGlobalVariables),
+                ImmutableSet.copyOf(accessedGlobalVariables),
+                ImmutableSet.copyOf(accessedFunctionPointers)));
       }
 
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
       // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
-      ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
-      ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
-      ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers = ImmutableSet.builder();
+      Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
+      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
+      Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
       CStatement substituteFunctionCall =
           pSubstitution.substitute(
               functionCall.getFunctionCall(),
               callContext,
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
-              accessedFunctionPointers);
+              Optional.of(accessedFunctionPointers));
       return Optional.of(
           new SubstituteEdge(
               substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall),
               pThreadEdge,
-              writtenGlobalVariables.build(),
-              accessedGlobalVariables.build(),
-              accessedFunctionPointers.build()));
+              ImmutableSet.copyOf(writtenGlobalVariables),
+              ImmutableSet.copyOf(accessedGlobalVariables),
+              ImmutableSet.copyOf(accessedFunctionPointers)));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
-      ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
-      ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
-      ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers = ImmutableSet.builder();
+      Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
+      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
+      Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
       CReturnStatement substituteReturnStatement =
           pSubstitution.substitute(
               returnStatement.getReturnStatement(),
               callContext,
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
-              accessedFunctionPointers);
+              Optional.of(accessedFunctionPointers));
       return Optional.of(
           new SubstituteEdge(
               substituteReturnStatementEdge(returnStatement, substituteReturnStatement),
               pThreadEdge,
-              writtenGlobalVariables.build(),
-              accessedGlobalVariables.build(),
-              accessedFunctionPointers.build()));
+              ImmutableSet.copyOf(writtenGlobalVariables),
+              ImmutableSet.copyOf(accessedGlobalVariables),
+              ImmutableSet.copyOf(accessedFunctionPointers)));
     }
     return Optional.empty();
   }
