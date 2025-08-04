@@ -317,7 +317,7 @@ public class DssBlockAnalysis {
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     for (String successorId : violationConditions.keySet()) {
-      messages.addAll(analyzeViolationCondition(violationConditions.get(successorId), true));
+      messages.addAll(analyzeViolationCondition(violationConditions.get(successorId)));
     }
     return messages.build();
   }
@@ -337,7 +337,7 @@ public class DssBlockAnalysis {
       throw new IllegalArgumentException(
           "No violation condition found for sender ID: " + pSenderId);
     }
-    return analyzeViolationCondition(violation, false);
+    return analyzeViolationCondition(violation);
   }
 
   /**
@@ -351,8 +351,7 @@ public class DssBlockAnalysis {
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
-  public Collection<DssMessage> analyzeViolationCondition(
-      StateAndPrecision violation, boolean fromPrecondition)
+  public Collection<DssMessage> analyzeViolationCondition(StateAndPrecision violation)
       throws CPAException, InterruptedException, SolverException {
     prepareReachedSet();
     // debugPrecondition();

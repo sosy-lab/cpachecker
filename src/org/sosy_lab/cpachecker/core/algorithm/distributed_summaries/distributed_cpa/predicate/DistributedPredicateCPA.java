@@ -82,7 +82,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
                 pLogManager,
                 pShutdownNotifier,
                 pCFA,
-                AnalysisDirection.BACKWARD),
+                AnalysisDirection.FORWARD),
             predicateCPA,
             pNode.getPredecessorIds().isEmpty());
     combineOperator = new CombinePredicateStateOperator(predicateCPA);
