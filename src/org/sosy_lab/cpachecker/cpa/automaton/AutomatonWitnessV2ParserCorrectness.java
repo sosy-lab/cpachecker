@@ -103,11 +103,11 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
             CExpression invariantAsCExpression;
             try {
               invariantAsCExpression = invariant.accept(toCExpressionVisitor);
-            } catch (UnrecognizedCodeException pE) {
+            } catch (UnrecognizedCodeException e) {
               throw new WitnessParseException(
                   "Could not parse the invariant into a C-Expression: "
                       + invariant.toString().substring(0, 100),
-                  pE);
+                  e);
             }
 
             if (invariantType.equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())) {
