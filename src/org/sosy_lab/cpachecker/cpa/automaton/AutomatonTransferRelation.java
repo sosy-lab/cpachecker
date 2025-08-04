@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -318,7 +319,7 @@ public class AutomatonTransferRelation implements TransferRelation {
           }
 
           ImmutableList<CExpression> cAnalysisAssertions =
-              FluentIterable.from(analysisAssertions).transform(CExpression.class::cast).toList();
+              transformedImmutableListCopy(analysisAssertions, CExpression.class::cast);
 
           CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(machineModel, logger);
           for (CExpression assertion : cAnalysisAssertions) {
