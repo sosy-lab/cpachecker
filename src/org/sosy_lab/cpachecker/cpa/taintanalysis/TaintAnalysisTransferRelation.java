@@ -827,11 +827,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     } else if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignStmt) {
       // e.g., x = __VERIFIER_nondet_int();
       CLeftHandSide lhs = functionCallAssignStmt.getLeftHandSide();
-
-      // Maybe try to extract the expressions here outgoing from the line number, similar to what
-      // some other methods already do.
-      // Examples of this extraction can be found in the Utils class.
-
       CFunctionCallExpression rhs = functionCallAssignStmt.getRightHandSide();
       List<CExpression> parameters = rhs.getParameterExpressions();
 
