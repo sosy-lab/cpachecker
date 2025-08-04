@@ -87,7 +87,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   //  private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
-  private static final int MAX_ALLOWED_STATE_SUCCESSORS = 50;
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable AstCfaRelation astCfaRelation;
   private @Nullable ImmutableSet<IfElement> ifElements = ImmutableSet.of();
@@ -289,20 +288,14 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         conditionHolds = pCfaEdge.getTruthAssumption() == conditionHolds;
 
         if (conditionHolds) {
-          // do not generate new states when the state has more than one successor
-          if (pState.getSuccessors().size() <= MAX_ALLOWED_STATE_SUCCESSORS) {
-            // generate a new state when the condition holds
-            TaintAnalysisState newState =
-                generateNewState(pState, killedVars, generatedVars, values);
-            states.add(newState);
-          }
-        }
-      } else {
-        if (pState.getSuccessors().size() <= MAX_ALLOWED_STATE_SUCCESSORS) {
-          // generate a new state when cannot determine if the condition holds
+          // generate a new state when the condition holds
           TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
           states.add(newState);
         }
+      } else {
+        // generate a new state when cannot determine if the condition holds
+        TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
+        states.add(newState);
       }
     }
 
@@ -798,9 +791,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           checkInformationFlowViolation(
               pState, pCfaEdge, expectedPublicity, expressionIsTainted, exprToCheck);
 
-          if (pState.getSuccessors().size() < MAX_ALLOWED_STATE_SUCCESSORS || pState.isTarget()) {
-            newStates.add(generateNewState(pState, killedVars, generatedVars, values));
-          }
+          newStates.add(generateNewState(pState, killedVars, generatedVars, values));
         }
       } else {
         // E.g., calls to any function like f(param1, ..., paramN);, where the parameters
