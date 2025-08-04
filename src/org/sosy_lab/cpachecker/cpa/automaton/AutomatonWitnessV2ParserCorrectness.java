@@ -22,15 +22,18 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -95,6 +98,18 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
               continue;
             }
 
+            ToCExpressionVisitor toCExpressionVisitor =
+                new ToCExpressionVisitor(cfa.getMachineModel(), logger);
+            CExpression invariantAsCExpression;
+            try {
+              invariantAsCExpression = invariant.accept(toCExpressionVisitor);
+            } catch (UnrecognizedCodeException pE) {
+              throw new WitnessParseException(
+                  "Could not parse the invariant into a C-Expression: "
+                      + invariant.toString().substring(0, 100),
+                  pE);
+            }
+
             if (invariantType.equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())) {
               Optional<IterationElement> optionalIterationStructure =
                   astCfaRelation.getIterationStructureStartingAtColumn(column, line);
@@ -111,12 +126,14 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
                           new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow())),
                           entryStateId)
                       .withCandidateInvariants(invariant)
+                      .withAnalysisAssertion(invariantAsCExpression)
                       .build());
             } else if (invariantType.equals(InvariantRecordType.LOCATION_INVARIANT.getKeyword())) {
               transitions.add(
                   new AutomatonTransition.Builder(
                           new CheckCoversColumnAndLine(column, line), entryStateId)
                       .withCandidateInvariants(invariant)
+                      .withAnalysisAssertion(invariantAsCExpression)
                       .build());
             } else {
               throw new WitnessParseException(

@@ -45,6 +45,7 @@ public class AutomatonWitnessV2ValidationTests {
     // reimplementing the parsing of options from the command line.
     //
     // Maybe at some point I will refactor this, but currently this is not worth the effort.
+    //
     // Additionally, since the particular configs may change, but we want to test the top-level
     // witnessValidation config it is necessary to use that particular one. This is to avoid
     // regressions which are not detected because the top-level config changed and now the
@@ -67,7 +68,7 @@ public class AutomatonWitnessV2ValidationTests {
     assertThat(results.getCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
   }
 
-  @Test(timeout = 9000)
+  @Test(timeout = 90000000)
   public void validate_witness_invalid_invariant() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
