@@ -1043,28 +1043,18 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       boolean isCurrentlyTainted,
       CExpression firstArg) {
 
-    if (expectedPublicity == 1) {
-      if (isCurrentlyTainted) {
-        logger.logf(
-            Level.WARNING,
-            "Assertion violation at %s: Variable '%s' was expected to be public but is"
-                + " tainted.",
-            pCfaEdge.getFileLocation(),
-            firstArg.toASTString());
-        pState.setViolatesProperty();
-      }
-    }
+    boolean varShouldBePublic = expectedPublicity == 1;
 
-    if (expectedPublicity == 0) {
-      if (!isCurrentlyTainted) {
-        logger.logf(
-            Level.WARNING,
-            "Assertion violation at %s: Variable '%s' was expected to be tainted but is"
-                + " public.",
-            pCfaEdge.getFileLocation(),
-            firstArg.toASTString());
-        pState.setViolatesProperty();
-      }
+    if (varShouldBePublic == isCurrentlyTainted) {
+      logger.logf(
+          Level.WARNING,
+          "Information flow violation at %s: Variable '%s' was expected to be %s, but is %s",
+          pCfaEdge.getFileLocation(),
+          firstArg.toASTString(),
+          varShouldBePublic ? "public" : "tainted",
+          isCurrentlyTainted ? "tainted" : "public");
+
+      pState.setViolatesProperty();
     }
   }
 
