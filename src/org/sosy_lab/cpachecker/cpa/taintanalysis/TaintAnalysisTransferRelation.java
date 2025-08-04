@@ -670,29 +670,27 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             if (taintedVarsRHS) {
               if (!taintedVarsLHS) {
                 generatedVars.add(variableLHS);
-                values.put(variableLHS, rhs);
               }
             } else {
               killedVars.add(variableLHS);
-              values.put(variableLHS, rhs);
             }
           } else {
             if (!taintedVarsLHS) {
               generatedVars.add(variableLHS);
-              values.put(variableLHS, rhs);
             }
           }
         } else {
           if (taintedVarsRHS) {
             if (!taintedVarsLHS) {
               generatedVars.add(variableLHS);
-              values.put(variableLHS, rhs);
             }
           } else {
             killedVars.add(variableLHS);
-            values.put(variableLHS, rhs);
           }
         }
+
+        values.put(variableLHS, rhs);
+
       } else if (lhs instanceof CArraySubscriptExpression arraySubscriptLHS) {
         // If the LHS is an array element and the RHS contains a tainted variable,
         // mark the array variable as tainted
@@ -700,8 +698,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         if (arrayExpr instanceof CIdExpression arrayVariable) {
           if (taintedVarsRHS) {
             generatedVars.add(arrayVariable);
-            values.put(arrayVariable, rhs);
           }
+
+          values.put(arrayVariable, rhs);
           // here we don't sanitize the lhs when the rhs is clean,
           // because the array could have more tainted elements.
           // TODO: Sanitize array when all contained elements are untainted?
@@ -748,6 +747,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             "lhs is not an instance of CIdExpression or CArraySubscriptExpression or"
                 + " CPointerExpression");
       }
+
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
 
     } else if (pStatement instanceof CFunctionCallStatement functionCallStmt) {
@@ -769,10 +769,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
               if (varIsCurrentlyTainted == 1 && varMustBePublic == 1) {
                 killedVars.add(expr);
-                values.put(expr, expr);
               } else if (varIsCurrentlyTainted == 0 && varMustBePublic == 0) {
                 generatedVars.add(expr);
-                values.put(expr, expr);
               }
 
             } catch (CPATransferException e) {
