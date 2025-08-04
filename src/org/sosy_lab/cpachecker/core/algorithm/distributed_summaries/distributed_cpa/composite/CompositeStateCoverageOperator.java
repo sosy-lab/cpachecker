@@ -43,7 +43,7 @@ public class CompositeStateCoverageOperator implements CoverageOperator {
             dcpa.doesOperateOn(wrappedState1.getClass())
                 && dcpa.doesOperateOn(wrappedState2.getClass()),
             "Wrapped states must be compatible with the corresponding CPA.");
-        if (!(dcpa.getCoverageOperator().isSubsumed(wrappedState1, wrappedState2))) {
+        if (!dcpa.getCoverageOperator().isSubsumed(wrappedState1, wrappedState2)) {
           return false;
         }
       }
