@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionDeclaration
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionType;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
@@ -396,6 +397,16 @@ public final class PredicatePrecisionBootstrapper {
 
         for (PrecisionExchangeEntry precisionExchangeEntry : pExchangeSetEntry.getContent()) {
           PrecisionScope scope = precisionExchangeEntry.scope();
+          if (precisionExchangeEntry.type() != PrecisionType.PREDICATE) {
+            logger.log(
+                Level.WARNING,
+                "Witness file %s contains a precision exchange entry with type %s, "
+                    + "but only predicate precision is supported, ignoring it.",
+                pWitnessFile,
+                precisionExchangeEntry.type());
+            continue;
+          }
+
           if (scope instanceof GlobalPrecisionScope) {
 
             for (String predicateString : precisionExchangeEntry.values()) {

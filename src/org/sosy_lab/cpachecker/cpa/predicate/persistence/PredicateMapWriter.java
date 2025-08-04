@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionDeclaration
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionType;
 
 /**
  * This class writes a set of predicates to a file in the same format that is also used by {@link
@@ -245,6 +246,7 @@ public final class PredicateMapWriter {
           new PrecisionExchangeEntry(
               witnessExpressionType,
               new GlobalPrecisionScope(),
+              PrecisionType.PREDICATE,
               FluentIterable.from(pGlobal)
                   .transform(
                       pFormula ->
@@ -270,6 +272,7 @@ public final class PredicateMapWriter {
                   new PrecisionExchangeEntry(
                       witnessExpressionType,
                       new FunctionPrecisionScope(functionName),
+                      PrecisionType.PREDICATE,
                       FluentIterable.from(pFunction.get(functionName))
                           .transform(
                               pFormula ->
@@ -332,6 +335,7 @@ public final class PredicateMapWriter {
                 new PrecisionExchangeEntry(
                     witnessExpressionType,
                     new FunctionPrecisionScope(functionName),
+                    PrecisionType.PREDICATE,
                     FluentIterable.from(pLocation.get(cfaNode))
                         .transform(
                             pFormula ->
@@ -353,6 +357,7 @@ public final class PredicateMapWriter {
                 new PrecisionExchangeEntry(
                     witnessExpressionType,
                     precisionScope.orElseThrow(),
+                    PrecisionType.PREDICATE,
                     FluentIterable.from(pLocation.get(cfaNode))
                         .transform(
                             pFormula ->

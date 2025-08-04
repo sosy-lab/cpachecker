@@ -15,4 +15,5 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 public record PrecisionExchangeEntry(
     @JsonProperty("format") YAMLWitnessExpressionType format,
     @JsonProperty("scope") PrecisionScope scope,
+    @JsonProperty("type") PrecisionType type,
     @JsonProperty("values") List<String> values) {}
