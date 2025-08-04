@@ -31,14 +31,13 @@ public class TaintAnalysisTest {
 
   @Test
   public void testTaintByExternFunctionSafe() throws Exception {
-    TestResults results = runCPAchecker("taintByExternFunctionSafe.c", "c_function_notation_calls");
+    TestResults results = runCPAchecker("taintByExternFunctionSafe.c", "");
     results.assertIsSafe();
   }
 
   @Test
   public void testTaintByExternFunctionUnsafe() throws Exception {
-    TestResults results =
-        runCPAchecker("taintByExternFunctionUnsafe.c", "c_function_notation_calls");
+    TestResults results = runCPAchecker("taintByExternFunctionUnsafe.c", "");
     results.assertIsUnsafe();
   }
 
@@ -1226,9 +1225,15 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testEdgeTypes() throws Exception {
-    TestResults results = runCPAchecker("edgeTypes.c", "");
+  public void testTaintInUnreachableStatementSafe() throws Exception {
+    TestResults results = runCPAchecker("taintInUnreachableStatementSafe.c", "");
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testTaintInUnreachableStatementUnsafe() throws Exception {
+    TestResults results = runCPAchecker("taintInUnreachableStatementUnsafe.c", "");
+    results.assertIsUnsafe();
   }
 
   @Ignore
