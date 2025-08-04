@@ -102,8 +102,8 @@ public class ConstraintsSolver {
   @Option(
       secure = true,
       description =
-          "Whether to perform SAT checks only for the last added constraint. Redundant for"
-              + " incrementalSolverUsage=true.",
+          "Whether to perform SAT checks only for the last added constraint, as well as all constraints"
+              + " dependent on it",
       name = "minimalSatCheck")
   private boolean performMinimalSatCheck = false;
 

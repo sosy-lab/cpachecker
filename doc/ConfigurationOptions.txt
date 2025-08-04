@@ -1882,8 +1882,8 @@ cpa.constraints.lessOrEqualType = SUBSET
 cpa.constraints.mergeType = SEP
   enum:     [SEP, JOIN_FITTING_CONSTRAINT]
 
-# Whether to perform SAT checks only for the last added constraint. Redundant
-# for incrementalSolverUsage=true.
+# Whether to perform SAT checks only for the last added constraint, as well
+# as all constraints dependent on it
 cpa.constraints.minimalSatCheck = false
 
 # enable if variables from value precision should be considered in variable's
