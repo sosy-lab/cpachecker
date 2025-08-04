@@ -8,10 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -35,6 +40,24 @@ public class GlobalVariableFinder {
     return !findDirectGlobalVariablesByAccessType(
             pLabelBlockMap, pBlock, BitVectorAccessType.ACCESS)
         .isEmpty();
+  }
+
+  public static ImmutableMultimap<CVariableDeclaration, CVariableDeclaration> mapPointerAssignments(
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
+    // we map pointer variables to the global variables assigned to them
+    Multimap<CVariableDeclaration, CVariableDeclaration> rPointerAssignments =
+        ArrayListMultimap.create();
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+      if (!substituteEdge.pointerAssignment.isEmpty()) {
+        assert substituteEdge.pointerAssignment.size() == 1
+            : "a single edge can have only 0 or 1 pointer assignments";
+        Entry<CVariableDeclaration, CVariableDeclaration> entry =
+            substituteEdge.pointerAssignment.entrySet().iterator().next();
+        rPointerAssignments.put(entry.getKey(), entry.getValue());
+      }
+    }
+    return ImmutableMultimap.copyOf(rPointerAssignments);
   }
 
   /**

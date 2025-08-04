@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -26,7 +26,7 @@ public class SubstituteEdge {
 
   public final ThreadEdge threadEdge;
 
-  public final ImmutableSet<CExpressionAssignmentStatement> pointerAssignments;
+  public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> pointerAssignment;
 
   /** The set of global variable declarations that this edge accesses. */
   public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
@@ -44,17 +44,19 @@ public class SubstituteEdge {
   public SubstituteEdge(
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
-      ImmutableSet<CExpressionAssignmentStatement> pPointerAssignments,
+      ImmutableMap<CVariableDeclaration, CVariableDeclaration> pPointerAssignment,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
 
     checkArgument(
+        pPointerAssignment.size() <= 1, "a single edge can have either 0 or 1 pointer assignments");
+    checkArgument(
         pCfaEdge.equals(pThreadEdge.cfaEdge), "pCfaEdge and pThreadEdge cfaEdge must match");
 
     cfaEdge = pCfaEdge;
     threadEdge = pThreadEdge;
-    pointerAssignments = pPointerAssignments;
+    pointerAssignment = pPointerAssignment;
     writtenGlobalVariables = pWrittenGlobalVariables;
     accessedGlobalVariables = pAccessedGlobalVariables;
     readGlobalVariables =
@@ -64,6 +66,7 @@ public class SubstituteEdge {
 
   public ImmutableSet<CVariableDeclaration> getGlobalVariablesByAccessType(
       BitVectorAccessType pAccessType) {
+
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> accessedGlobalVariables;

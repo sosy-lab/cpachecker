@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -148,7 +149,7 @@ public class MPORSubstitution {
 
   private void handlePointerAssignment(
       CExpressionAssignmentStatement pAssignment,
-      Optional<Set<CExpressionAssignmentStatement>> pPointerAssignments) {
+      Optional<Map<CVariableDeclaration, CVariableDeclaration>> pPointerAssignments) {
 
     if (pPointerAssignments.isEmpty()) {
       return;
@@ -162,17 +163,16 @@ public class MPORSubstitution {
           if (rightHandSide instanceof CUnaryExpression unaryExpression) {
             if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
               if (unaryExpression.getOperand() instanceof CIdExpression rhsId) {
-                if (rhsId.getDeclaration() instanceof CVariableDeclaration) {
-                  pPointerAssignments.orElseThrow().add(pAssignment);
+                if (rhsId.getDeclaration() instanceof CVariableDeclaration rhsDeclaration) {
+                  pPointerAssignments.orElseThrow().put(lhsDeclaration, rhsDeclaration);
                 }
               }
             }
-          }
-          // id expression i.e. another pointer
-          if (rightHandSide instanceof CIdExpression rhsId) {
+            // id expression i.e. another pointer assigned to the pointer
+          } else if (rightHandSide instanceof CIdExpression rhsId) {
             if (rhsId.getDeclaration() instanceof CVariableDeclaration rhsDeclaration) {
               if (rhsDeclaration.getType() instanceof CPointerType) {
-                pPointerAssignments.orElseThrow().add(pAssignment);
+                pPointerAssignments.orElseThrow().put(lhsDeclaration, rhsDeclaration);
               }
             }
           }
@@ -191,7 +191,7 @@ public class MPORSubstitution {
       final Optional<ThreadEdge> pCallContext,
       boolean pIsWrite,
       boolean pIsUnaryAmper,
-      Optional<Set<CExpressionAssignmentStatement>> pPointerAssignments,
+      Optional<Map<CVariableDeclaration, CVariableDeclaration>> pPointerAssignments,
       Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<Set<CVariableDeclaration>> pAccessedGlobalVariables,
       Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
@@ -360,7 +360,7 @@ public class MPORSubstitution {
   CStatement substitute(
       CStatement pStatement,
       Optional<ThreadEdge> pCallContext,
-      Optional<Set<CExpressionAssignmentStatement>> pPointerAssignments,
+      Optional<Map<CVariableDeclaration, CVariableDeclaration>> pPointerAssignments,
       Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<Set<CVariableDeclaration>> pGlobalVariables,
       Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
@@ -482,7 +482,7 @@ public class MPORSubstitution {
   CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<ThreadEdge> pCallContext,
-      Optional<Set<CExpressionAssignmentStatement>> pPointerAssignments,
+      Optional<Map<CVariableDeclaration, CVariableDeclaration>> pPointerAssignments,
       Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<Set<CVariableDeclaration>> pGlobalVariables,
       Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
@@ -525,7 +525,7 @@ public class MPORSubstitution {
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<ThreadEdge> pCallContext,
-      Optional<Set<CExpressionAssignmentStatement>> pPointerAssignments,
+      Optional<Map<CVariableDeclaration, CVariableDeclaration>> pPointerAssignments,
       Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<Set<CVariableDeclaration>> pGlobalVariables,
       Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
