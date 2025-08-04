@@ -186,8 +186,7 @@ public class UCBRefinementManager {
     logger.log(Level.FINEST, "Calculate UCB predicates for the spurious trace suffix.");
 
     // We transform every wp into ucb in-place
-    List<BooleanFormula> ucbs = new ArrayList<>(wpres);
-    Collections.reverse(ucbs);
+    List<BooleanFormula> ucbs = new ArrayList<>(wpres.reversed());
 
     // WPs list does not contain the first (= false) and the last (= true) nodes,
     // while the pTrace contains the whole path, i.e. from the root to the error node

@@ -331,10 +331,11 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     for (StronglyConnectedComponent scc : SCCs) {
 
       shutdownNotifier.shutdownIfNecessary();
-      List<List<ARGState>> sscCycles = GraphUtils.retrieveSimpleCycles(scc.getNodes(), reached);
+      List<ImmutableList<ARGState>> sscCycles =
+          GraphUtils.retrieveSimpleCycles(scc.getNodes(), reached);
       logger.logf(Level.INFO, "Found %d cycle(s) in current SCC", sscCycles.size());
 
-      for (List<ARGState> cycle : sscCycles) {
+      for (ImmutableList<ARGState> cycle : sscCycles) {
         logger.logf(Level.INFO, "Analyzing cycle: %s\n", lazyPrintNodes(cycle));
         assert cycle.stream().anyMatch(ARGState::isTarget) : "Cycle does not contain a target";
 
