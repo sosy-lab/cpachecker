@@ -1249,4 +1249,16 @@ public class TaintAnalysisTest {
     TestResults results = runCPAchecker("entwurfUnsafe.c", "");
     results.assertIsUnsafe();
   }
+
+  @Test
+  public void testSameAssignmentBothBranchesSafe() throws Exception {
+    TestResults results = runCPAchecker("sameAssignmentBothBranchesSafe.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void sameAssignmentBothBranchesUnsafe() throws Exception {
+    TestResults results = runCPAchecker("sameAssignmentBothBranchesUnsafe.c", "");
+    results.assertIsUnsafe();
+  }
 }

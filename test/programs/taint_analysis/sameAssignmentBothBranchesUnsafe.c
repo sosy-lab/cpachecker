@@ -11,12 +11,13 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
     int x = __VERIFIER_nondet_int();
-    int y = 1;
-    int z = 1;
+    int y;
 
-    z = x < 0 ? y : z;
+    if (x) {
+      y = 1;
+    } else {
+      y = 1;
+    }
 
-    // Despite no tainted variable is assigned to z,
-    // it is expected to be tainted by implicit taint flow
-    __VERIFIER_is_public(z, 0);
+    __VERIFIER_is_public(y, 1);
 }
