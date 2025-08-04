@@ -213,6 +213,7 @@ public class InputRejection {
   public static void checkPointerWrite(
       boolean pIsWrite, MPOROptions pOptions, CIdExpression pWrittenVariable, LogManager pLogger) {
 
+    // if pAssignment is present, it is a write
     if (pIsWrite) {
       if (!pOptions.allowPointerWrites) {
         if (pWrittenVariable.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {

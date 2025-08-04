@@ -350,6 +350,7 @@ public class GhostVariableUtil {
                         false,
                         Optional.empty(),
                         Optional.empty(),
+                        Optional.empty(),
                         Optional.empty())));
         assignments.add(parameterAssignment);
       }
@@ -381,6 +382,7 @@ public class GhostVariableUtil {
                           callContext.callContext,
                           false,
                           false,
+                          Optional.empty(),
                           Optional.empty(),
                           Optional.empty(),
                           Optional.empty())));

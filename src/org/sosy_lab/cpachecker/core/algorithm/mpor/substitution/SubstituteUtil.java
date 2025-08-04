@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -52,6 +53,15 @@ public class SubstituteUtil {
       }
     }
     return false;
+  }
+
+  public static ImmutableList<CExpressionAssignmentStatement> getAllPointerAssignments(
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
+    return pSubstituteEdges.stream()
+        .flatMap(s -> s.pointerAssignments.stream())
+        .distinct() // ensure that each assignment present only once
+        .collect(ImmutableList.toImmutableList());
   }
 
   public static ImmutableList<CVariableDeclaration> getAllGlobalVariables(

@@ -12,7 +12,7 @@ int * pointer;
 int x = 42;
 void * start_routine(void * arg)
 {
-  // pointer aliasing -> not allowed when sequentializing with bit vectors
+  // pointer aliasing
   pointer = &x;
 }
 int main()

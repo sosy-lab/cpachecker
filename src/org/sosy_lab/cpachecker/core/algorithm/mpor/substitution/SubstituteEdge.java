@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -24,6 +25,8 @@ public class SubstituteEdge {
   public final CFAEdge cfaEdge;
 
   public final ThreadEdge threadEdge;
+
+  public final ImmutableSet<CExpressionAssignmentStatement> pointerAssignments;
 
   /** The set of global variable declarations that this edge accesses. */
   public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
@@ -41,6 +44,7 @@ public class SubstituteEdge {
   public SubstituteEdge(
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
+      ImmutableSet<CExpressionAssignmentStatement> pPointerAssignments,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
@@ -50,6 +54,7 @@ public class SubstituteEdge {
 
     cfaEdge = pCfaEdge;
     threadEdge = pThreadEdge;
+    pointerAssignments = pPointerAssignments;
     writtenGlobalVariables = pWrittenGlobalVariables;
     accessedGlobalVariables = pAccessedGlobalVariables;
     readGlobalVariables =
