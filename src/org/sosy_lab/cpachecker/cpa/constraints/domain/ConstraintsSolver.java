@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.IncrementalSolverUsage.NONE;
+import static org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverReuseMode.NO_SOLVER_REUSE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -87,10 +87,10 @@ public class ConstraintsSolver {
     }
   }
 
-  public enum IncrementalSolverUsage {
-    NONE,
-    FROM_TOP,
-    COMMON_PREFIX
+  public enum SolverReuseMode {
+    NO_SOLVER_REUSE,
+    REUSE_REMOVE_UNCOMMON_SUFFIXES,
+    REUSE_COMMON_PREFIX_OF_CONSTRAINTS
   }
 
   @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
@@ -117,7 +117,7 @@ public class ConstraintsSolver {
       secure = true,
       description =
           "Resolve definite assignments. Note: Currently not working properly. Might result in"
-              + " inefficient SMT solver usage with incrementalSolverUsage = false.",
+              + " inefficient SMT solver usage with solverReuseMode = false.",
       name = "resolveDefinites")
   private boolean resolveDefinites = false;
 
@@ -125,14 +125,14 @@ public class ConstraintsSolver {
       secure = true,
       description =
           "Whether to create a new, fresh solver instance for each SAT check with an SMT solver (=="
-              + " NONE), or try to reuse the solver and its previous results as far as possible"
-              + " (may be helpful/faster when formulas are built on top of each other often). This"
-              + " can be chosen from COMMON_PREFIX; which builds the solver from bottom to top with"
-              + " the longest existing prefix of common constraints, or FROM_TOP; which removes"
-              + " constraints from the top of the incremental prover stack until a common prefix is"
-              + " reached.",
-      name = "incrementalSolverUsage")
-  private IncrementalSolverUsage incrementalSolverUsage = IncrementalSolverUsage.COMMON_PREFIX;
+              + " NO_SOLVER_REUSE), or try to reuse the solver and its previous results as far as"
+              + " possible (may be helpful/faster when formulas are built on top of each other"
+              + " often). This can be chosen from REUSE_COMMON_PREFIX_OF_CONSTRAINTS; which builds"
+              + " the solver from bottom to top with the longest existing prefix of common"
+              + " constraints, or REUSE_REMOVE_UNCOMMON_SUFFIXES; which removes constraints from"
+              + " the top of the incremental prover stack until a common prefix is reached.",
+      name = "solverReuseMode")
+  private SolverReuseMode solverReuseMode = SolverReuseMode.REUSE_COMMON_PREFIX_OF_CONSTRAINTS;
 
   private final ConstraintsCache cache;
   private final Solver solver;
@@ -211,12 +211,12 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally, as far as possible, if option {@link
-   * #incrementalSolverUsage} is true. Incremental solving can improve computation time by re-using
+   * #solverReuseMode} is true. Incremental solving can improve computation time by re-using
    * information stored in the solver from previous computations. This effect is strongest when the
    * previously checked constraints are a true subset of the constraints in {@code
    * pConstraintsToCheck}. More information about incremental usage can be found in the description
-   * of {@link #checkUnsat}. If option {@link #incrementalSolverUsage} is false, this method behaves
-   * like {@link #checkUnsatWithFreshSolver(Constraint, String)}.
+   * of {@link #checkUnsat}. If option {@link #solverReuseMode} is false, this method behaves like
+   * {@link #checkUnsatWithFreshSolver(Constraint, String)}.
    *
    * @param pSingleConstraintToCheck the single constraint to check.
    * @param pFunctionName the name of the function scope of {@code pSingleConstraintToCheck}.
@@ -251,12 +251,12 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally, as far as possible, if option {@link
-   * #incrementalSolverUsage} is true. Incremental solving can improve computation time by re-using
+   * #solverReuseMode} is true. Incremental solving can improve computation time by re-using
    * information stored in the solver from previous computations. This effect is strongest when the
    * previously checked constraints are a true subset of the constraints in {@code
    * pConstraintsToCheck}. More information about incremental usage can be found in the description
-   * of {@link #checkUnsat}. If option {@link #incrementalSolverUsage} is false, this method behaves
-   * like {@link #checkUnsatWithFreshSolver(ConstraintsState, String)}.
+   * of {@link #checkUnsat}. If option {@link #solverReuseMode} is false, this method behaves like
+   * {@link #checkUnsatWithFreshSolver(ConstraintsState, String)}.
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
@@ -274,16 +274,16 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally as far as possible. If parameter {@code
-   * useFreshProver} is false and option {@link #incrementalSolverUsage} is true.
+   * useFreshProver} is false and option {@link #solverReuseMode} is true.
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
    * @param useFreshProver if true, uses a new {@link ProverEnvironment} for checking the
    *     constraints, that is closed after the method is finished, overwriting option {@link
-   *     #incrementalSolverUsage}. If false, will use option {@link #incrementalSolverUsage} to
-   *     determine reuse of the existing prover. Incremental solving can improve computation time by
-   *     re-using information stored in the solver from previous computations. This effect is
-   *     strongest when the previously checked constraints are a subset of the constraints in {@code
+   *     #solverReuseMode}. If false, will use option {@link #solverReuseMode} to determine reuse of
+   *     the existing prover. Incremental solving can improve computation time by re-using
+   *     information stored in the solver from previous computations. This effect is strongest when
+   *     the previously checked constraints are a subset of the constraints in {@code
    *     pConstraintsToCheck}.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
@@ -321,7 +321,7 @@ public class ConstraintsSolver {
       } else {
 
         stats.timeForProverPreparation.start();
-        if (useFreshProver || incrementalSolverUsage == NONE) {
+        if (useFreshProver || solverReuseMode == NO_SOLVER_REUSE) {
           // Non-Incremental
           stats.distinctFreshProversUsed.inc();
           try (ProverEnvironment prover =
@@ -429,9 +429,9 @@ public class ConstraintsSolver {
     AtomicInteger totalKeptRef = new AtomicInteger();
     AtomicInteger totalRemovedRef = new AtomicInteger();
 
-    if (incrementalSolverUsage == IncrementalSolverUsage.FROM_TOP) {
+    if (solverReuseMode == SolverReuseMode.REUSE_REMOVE_UNCOMMON_SUFFIXES) {
       buildProverStackFromTop(constraintsToCheck, totalKeptRef, totalRemovedRef);
-    } else if (incrementalSolverUsage == IncrementalSolverUsage.COMMON_PREFIX) {
+    } else if (solverReuseMode == SolverReuseMode.REUSE_COMMON_PREFIX_OF_CONSTRAINTS) {
       buildProverStackBasedOnCommonConstraints(constraintsToCheck, totalKeptRef, totalRemovedRef);
     }
 
