@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -258,7 +259,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
   private static Map<ARGState, ARGState> cloneARG(
       final Set<ARGState> reachedStates, final Predicate<AbstractState> keepStates) {
 
-    final Map<ARGState, ARGState> cloneMapping = new LinkedHashMap<>();
+    final SequencedMap<ARGState, ARGState> cloneMapping = new LinkedHashMap<>();
 
     for (AbstractState abstractState : Iterables.filter(reachedStates, keepStates)) {
       ARGState state = (ARGState) abstractState;

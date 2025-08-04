@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
@@ -44,7 +45,7 @@ public class AdditionalInfoExtractor {
     PathIterator rIterator = pPath.reverseFullPathIterator();
     ARGState lastArgState = rIterator.getAbstractState();
     UnmodifiableSMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
-    Set<Object> invalidChain = new LinkedHashSet<>(state.getInvalidChain());
+    SequencedSet<Object> invalidChain = new LinkedHashSet<>(state.getInvalidChain());
     String description = state.getErrorDescription();
     boolean isMemoryLeakError = state.hasMemoryLeaks();
     UnmodifiableSMGState prevSMGState = state;
@@ -65,7 +66,7 @@ public class AdditionalInfoExtractor {
       }
 
       isMemoryLeakError = false;
-      Set<Object> toCheck =
+      SequencedSet<Object> toCheck =
           extractAdditionalInfoFromInvalidChain(
               invalidChain, prevSMGState, visitedElems, smgState, edgeWithAdditionalInfo);
       invalidChain = toCheck;
@@ -80,13 +81,13 @@ public class AdditionalInfoExtractor {
    *
    * @return a set of more elements to be checked.
    */
-  private Set<Object> extractAdditionalInfoFromInvalidChain(
+  private SequencedSet<Object> extractAdditionalInfoFromInvalidChain(
       Collection<Object> invalidChain,
       UnmodifiableSMGState prevSMGState,
       Collection<Object> visitedElems,
       UnmodifiableSMGState smgState,
       CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo) {
-    Set<Object> toCheck = new LinkedHashSet<>();
+    SequencedSet<Object> toCheck = new LinkedHashSet<>();
     for (Object elem : invalidChain) {
       if (!visitedElems.contains(elem)) {
         if (!containsInvalidElement(smgState.getHeap(), elem)) {

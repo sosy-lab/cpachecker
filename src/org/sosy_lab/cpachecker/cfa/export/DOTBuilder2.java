@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -119,7 +120,7 @@ public final class DOTBuilder2 {
     // global state for all functions
     private final Map<Integer, Set<Integer>> comboNodes = new HashMap<>();
     private final Map<Integer, StringBuilder> comboNodesLabels = new HashMap<>();
-    private final Set<Integer> mergedNodes = new LinkedHashSet<>();
+    private final SequencedSet<Integer> mergedNodes = new LinkedHashSet<>();
     // every inner list has exactly two elements (from and to)
     private final Map<Integer, ImmutableList<Integer>> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;

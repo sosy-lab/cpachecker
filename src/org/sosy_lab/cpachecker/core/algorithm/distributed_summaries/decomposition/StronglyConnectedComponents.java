@@ -18,8 +18,9 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
@@ -39,10 +40,10 @@ public class StronglyConnectedComponents {
           pSuccessors) {
     stack = new ArrayDeque<>();
     successors = ArrayListMultimap.create();
-    Set<Edge> edges = new LinkedHashSet<>();
+    SequencedSet<Edge> edges = new LinkedHashSet<>();
     List<BlockNodeWithoutGraphInformation> waitlist = new ArrayList<>();
     waitlist.add(pStartNode);
-    Map<BlockNodeWithoutGraphInformation, Vertex> cache = new LinkedHashMap<>();
+    SequencedMap<BlockNodeWithoutGraphInformation, Vertex> cache = new LinkedHashMap<>();
     while (!waitlist.isEmpty()) {
       BlockNodeWithoutGraphInformation current = waitlist.remove(0);
       for (BlockNodeWithoutGraphInformation t : pSuccessors.apply(current)) {

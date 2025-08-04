@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -129,7 +130,7 @@ final class HappensBeforeEdgeTools {
         expr.toASTString(), node.getFunction().getFileLocation(), node, node, expr, false);
   }
 
-  private final Map<CFAEdge, CFAEdge> edgeCache = new LinkedHashMap<>();
+  private final SequencedMap<CFAEdge, CFAEdge> edgeCache = new LinkedHashMap<>();
   private final CExpressionCloner expCloner;
   private final int thredId;
   private final Map<String, Integer> mutableCssaCounters;

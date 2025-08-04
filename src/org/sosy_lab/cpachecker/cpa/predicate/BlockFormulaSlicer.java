@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -172,7 +173,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // we use a list for the next states,
     // but we also remove states from waitlist, when they are done,
     // so we need fast access to the states
-    final Set<ARGState> waitlist = new LinkedHashSet<>();
+    final SequencedSet<ARGState> waitlist = new LinkedHashSet<>();
 
     // special handling of first state
     s2v.put(end, importantVars);
@@ -511,7 +512,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // we use a list for the next states,
     // but we also remove states from waitlist, when they are done,
     // so we need fast access to the states
-    final Set<ARGState> waitlist = new LinkedHashSet<>();
+    final SequencedSet<ARGState> waitlist = new LinkedHashSet<>();
 
     // special handling of first state
     s2f.put(start, oldPf);

@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -118,10 +119,10 @@ public class AssignmentToPathAllocator {
     // Assignable Terms are needed, that's why we declare two maps of variables and functions. One
     // for the calculation of the SSAIndex, the other to save the references to the objects we want
     // to store in the concrete State, so we can avoid recreating those objects
-    final Map<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
-    final Map<LeftHandSide, Object> variables = new LinkedHashMap<>();
+    final SequencedMap<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
+    final SequencedMap<LeftHandSide, Object> variables = new LinkedHashMap<>();
     final SetMultimap<String, ValueAssignment> functionEnvironment = LinkedHashMultimap.create();
-    final Map<String, Map<Address, Object>> memory = new LinkedHashMap<>();
+    final SequencedMap<String, SequencedMap<Address, Object>> memory = new LinkedHashMap<>();
 
     int ssaMapIndex = 0;
 
@@ -395,10 +396,10 @@ public class AssignmentToPathAllocator {
   /** We need the variableEnvironment and functionEnvironment for their SSAIndeces. */
   private void createAssignments(
       ImmutableCollection<ValueAssignment> terms,
-      Map<String, ValueAssignment> variableEnvironment,
-      Map<LeftHandSide, Object> pVariables,
+      SequencedMap<String, ValueAssignment> variableEnvironment,
+      SequencedMap<LeftHandSide, Object> pVariables,
       Multimap<String, ValueAssignment> functionEnvironment,
-      Map<String, Map<Address, Object>> memory) {
+      SequencedMap<String, SequencedMap<Address, Object>> memory) {
 
     for (final ValueAssignment term : terms) {
       String name = term.getName();
@@ -461,10 +462,11 @@ public class AssignmentToPathAllocator {
   }
 
   private void addHeapValue(
-      Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
+      SequencedMap<String, SequencedMap<Address, Object>> memory,
+      ValueAssignment pFunctionAssignment) {
     String heapName = getName(pFunctionAssignment);
 
-    Map<Address, Object> heap = memory.get(heapName);
+    SequencedMap<Address, Object> heap = memory.get(heapName);
     if (heap == null) {
       heap = new LinkedHashMap<>();
       memory.put(heapName, heap);

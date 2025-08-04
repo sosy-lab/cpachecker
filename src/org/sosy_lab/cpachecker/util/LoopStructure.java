@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -131,8 +132,8 @@ public final class LoopStructure {
         return;
       }
 
-      Set<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
-      Set<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
+      SequencedSet<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
+      SequencedSet<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
 
       for (CFANode n : nodes) {
         CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);

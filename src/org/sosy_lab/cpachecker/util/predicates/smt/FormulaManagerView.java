@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -1983,7 +1984,7 @@ public class FormulaManagerView {
       // split each subformula to a set containing all subformulas of conjunction
       Set<BooleanFormula> conjunctionSet = bmgr.toConjunctionArgs(subformula, true);
       // this set contains all operands of current subformula
-      Set<BooleanFormula> operandsOfSubformula = new LinkedHashSet<>();
+      SequencedSet<BooleanFormula> operandsOfSubformula = new LinkedHashSet<>();
       listOfOperands.add(operandsOfSubformula);
       // iterate through all subformulas of a current conjunction
       for (BooleanFormula formulaInConjunctionSet : conjunctionSet) {
@@ -1998,7 +1999,8 @@ public class FormulaManagerView {
     }
 
     // set of mutual operands that are contained in all subformulas
-    final Set<BooleanFormula> mutualOperandsSet = new LinkedHashSet<>(listOfOperands.get(0));
+    final SequencedSet<BooleanFormula> mutualOperandsSet =
+        new LinkedHashSet<>(listOfOperands.get(0));
     for (Set<BooleanFormula> operands : listOfOperands) {
       mutualOperandsSet.retainAll(operands);
     }

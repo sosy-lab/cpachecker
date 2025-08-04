@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -176,7 +177,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
 
   /** get an iterable data structure from configuration options. Sadly there is no nicer way. */
   private static Map<String, String> configToMap(Configuration config) {
-    Map<String, String> mp = new LinkedHashMap<>();
+    SequencedMap<String, String> mp = new LinkedHashMap<>();
     for (String option : Splitter.on("\n").omitEmptyStrings().split(config.asPropertiesString())) {
       List<String> split = Splitter.on(" = ").splitToList(option);
       checkArgument(split.size() == 2, "unexpected option format: %s", option);

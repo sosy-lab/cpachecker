@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -27,7 +27,7 @@ public class SingleBlockDecomposition implements DssBlockDecomposition {
     CFANode lastNode = null;
     ImmutableSet.Builder<CFAEdge> edges = ImmutableSet.builder();
     List<CFANode> waitlist = new ArrayList<>();
-    Set<CFANode> seen = new LinkedHashSet<>();
+    SequencedSet<CFANode> seen = new LinkedHashSet<>();
     waitlist.add(cfa.getMainFunction());
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.remove(0);

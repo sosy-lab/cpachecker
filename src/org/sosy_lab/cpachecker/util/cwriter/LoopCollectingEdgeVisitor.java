@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,7 +56,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
   private final LoopStructure loopStructure;
   private final List<Pair<CFAEdge, ARGState>> cfaPath = new ArrayList<>();
   private final Deque<Loop> loopStack = new ArrayDeque<>();
-  private final Map<Loop, Set<ARGState>> relevantLoops = new LinkedHashMap<>();
+  private final SequencedMap<Loop, Set<ARGState>> relevantLoops = new LinkedHashMap<>();
   private final List<Loop> finishedLoops = new ArrayList<>();
   private boolean lastLoopFound = false;
 

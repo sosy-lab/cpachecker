@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
@@ -60,7 +61,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   private int interpolationCounter = 0;
 
   /** the predecessor relation of the states contained in this tree */
-  private final Map<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
+  private final SequencedMap<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
 
   /** the successor relation of the states contained in this tree */
   private final ListMultimap<ARGState, ARGState> successorRelation = LinkedListMultimap.create();
@@ -71,7 +72,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * <p>this has to be a linked hash map, because the ImpactRefiner has to iterate over this in
    * insertion-order
    */
-  private final Map<ARGState, I> interpolants = new LinkedHashMap<>();
+  private final SequencedMap<ARGState, I> interpolants = new LinkedHashMap<>();
 
   /** the root of the tree */
   private final ARGState root;

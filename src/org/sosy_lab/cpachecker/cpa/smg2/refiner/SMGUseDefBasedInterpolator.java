@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -167,7 +168,7 @@ public class SMGUseDefBasedInterpolator {
    */
   public Map<ARGState, SMGInterpolant> obtainInterpolantsAsMap() {
 
-    Map<ARGState, SMGInterpolant> interpolants = new LinkedHashMap<>();
+    SequencedMap<ARGState, SMGInterpolant> interpolants = new LinkedHashMap<>();
     for (Pair<ARGState, SMGInterpolant> itp : obtainInterpolants()) {
       interpolants.put(itp.getFirst(), itp.getSecond());
     }

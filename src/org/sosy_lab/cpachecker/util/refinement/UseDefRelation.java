@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -106,7 +107,7 @@ public class UseDefRelation {
 
   public Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
 
-    Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
+    SequencedMap<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
     Collection<ASimpleDeclaration> unresolvedUsesOnPath = new HashSet<>();
 
     PathIterator it = path.reverseFullPathIterator();

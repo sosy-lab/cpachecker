@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
@@ -421,7 +422,7 @@ public class ARGToCTranslator {
     for (ARGState child : childrenOfElement) {
       CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
 
-      Set<AExpression> conditions = new LinkedHashSet<>();
+      SequencedSet<AExpression> conditions = new LinkedHashSet<>();
       if (edgeToChild instanceof CAssumeEdge assumeEdge) {
         if (assumeEdge.getTruthAssumption()) {
           conditions.add(assumeEdge.getExpression());

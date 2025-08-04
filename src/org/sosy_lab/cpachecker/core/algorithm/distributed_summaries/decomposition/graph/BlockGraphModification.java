@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -329,7 +329,7 @@ public class BlockGraphModification {
       CFA pOriginal, CFA pInstrumented) {
     record NodePair(CFANode n1, CFANode n2) {}
 
-    Set<CFANode> covered = new LinkedHashSet<>();
+    SequencedSet<CFANode> covered = new LinkedHashSet<>();
     ImmutableMap.Builder<CFAEdge, CFAEdge> originalToInstrumentedEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFANode, CFANode> originalToInstrumentedNodes = ImmutableMap.builder();
 
@@ -346,7 +346,7 @@ public class BlockGraphModification {
       CFANode instrumentedNode = pair.n2();
       FluentIterable<CFAEdge> instrumentedOutgoing = CFAUtils.allLeavingEdges(instrumentedNode);
       FluentIterable<CFAEdge> originalOutgoing = CFAUtils.allLeavingEdges(originalNode);
-      Set<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
+      SequencedSet<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
       for (CFAEdge cfaEdge : originalOutgoing) {
         CFAEdge corresponding = findCorrespondingEdge(cfaEdge, instrumentedOutgoing);
         assertOrFail(

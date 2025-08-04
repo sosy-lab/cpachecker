@@ -16,6 +16,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
@@ -42,8 +44,8 @@ public class SMGMemoryPathCollector {
 
   public Set<SMGMemoryPath> getMemoryPaths() {
 
-    Set<SMGMemoryPath> result = new LinkedHashSet<>();
-    Set<SMGObject> reached = new LinkedHashSet<>();
+    SequencedSet<SMGMemoryPath> result = new LinkedHashSet<>();
+    SequencedSet<SMGObject> reached = new LinkedHashSet<>();
 
     getMemoryPathsFromGlobalVariables(result, reached);
     getMemoryPathsFromStack(result, reached);
@@ -53,8 +55,8 @@ public class SMGMemoryPathCollector {
 
   public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
 
-    Map<SMGObject, SMGMemoryPath> result = new LinkedHashMap<>();
-    Set<SMGObject> reached = new LinkedHashSet<>();
+    SequencedMap<SMGObject, SMGMemoryPath> result = new LinkedHashMap<>();
+    SequencedSet<SMGObject> reached = new LinkedHashSet<>();
 
     getHeapObjectMemoryPathsFromGlobalVariables(result, reached);
     getHeapObjectMemoryPathsFromStack(result, reached);

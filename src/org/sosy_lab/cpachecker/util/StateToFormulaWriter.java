@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Stream;
@@ -196,7 +197,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
       throws IOException {
 
     // (global) definitions used for predicates
-    final Set<String> definitions = new LinkedHashSet<>();
+    final SequencedSet<String> definitions = new LinkedHashSet<>();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)

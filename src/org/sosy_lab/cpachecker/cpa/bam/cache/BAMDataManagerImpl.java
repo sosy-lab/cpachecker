@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -66,7 +67,8 @@ public class BAMDataManagerImpl implements BAMDataManager {
   private final Multimap<AbstractState, AbstractState> reducedToNonReduced =
       LinkedHashMultimap.create();
 
-  private final Map<AbstractState, BlockExitData> expandedStateToBlockExit = new LinkedHashMap<>();
+  private final SequencedMap<AbstractState, BlockExitData> expandedStateToBlockExit =
+      new LinkedHashMap<>();
 
   private static class BlockExitData {
 

@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,7 +51,7 @@ public class PathExtractor implements Statistics {
   private boolean globalRefinement = false;
 
   /** keep log of feasible targets that were already found */
-  private final Set<ARGState> feasibleTargets = new LinkedHashSet<>();
+  private final SequencedSet<ARGState> feasibleTargets = new LinkedHashSet<>();
 
   private final LogManager logger;
 

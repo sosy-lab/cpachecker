@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -32,9 +33,9 @@ public class StaticCandidateProvider implements CandidateGenerator {
 
   private final Set<CandidateInvariant> allCandidates;
 
-  private final Set<CandidateInvariant> confirmedInvariants = new LinkedHashSet<>();
+  private final SequencedSet<CandidateInvariant> confirmedInvariants = new LinkedHashSet<>();
 
-  private final Set<CandidateInvariant> refutedInvariants = new LinkedHashSet<>();
+  private final SequencedSet<CandidateInvariant> refutedInvariants = new LinkedHashSet<>();
 
   private final NavigableSet<CandidateInvariant> candidates =
       new TreeSet<>(Comparator.comparingInt(order::get));

@@ -24,6 +24,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -327,7 +329,8 @@ public class SMGTransferRelation
     }
 
     SMGState initialNewState = state.copyOf();
-    Map<UnmodifiableSMGState, List<Pair<SMGRegion, SMGValue>>> valuesMap = new LinkedHashMap<>();
+    SequencedMap<UnmodifiableSMGState, List<Pair<SMGRegion, SMGValue>>> valuesMap =
+        new LinkedHashMap<>();
     List<Pair<SMGRegion, SMGValue>> initialValuesList = new ArrayList<>();
     valuesMap.put(initialNewState, initialValuesList);
     List<SMGState> newStates =
@@ -708,7 +711,7 @@ public class SMGTransferRelation
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String calledFunctionName = fileNameExpression.toASTString();
 
-      Set<SMGState> states = new LinkedHashSet<>();
+      SequencedSet<SMGState> states = new LinkedHashSet<>();
       states.add(state.copyOf());
 
       // check that we can safely read all args,

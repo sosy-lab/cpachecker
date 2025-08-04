@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -146,7 +147,7 @@ public class BDDPartitionOrderer {
    */
   private static class CFAUntilSplitCollector implements CFAVisitor {
 
-    private Set<CFAEdge> edges = new LinkedHashSet<>();
+    private SequencedSet<CFAEdge> edges = new LinkedHashSet<>();
 
     Set<CFAEdge> getEdges() {
       return edges;

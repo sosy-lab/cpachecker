@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
@@ -56,7 +57,7 @@ public class SMGInterpolationTree {
   private final ARGState root;
 
   /** the predecessor relation of the states contained in this tree */
-  private final Map<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
+  private final SequencedMap<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
 
   /** the successor relation of the states contained in this tree */
   private final ListMultimap<ARGState, ARGState> successorRelation = ArrayListMultimap.create();
