@@ -58,7 +58,7 @@ public class AutomatonWitnessV2ValidationTest {
                   pSpecificationFilePath.toString(),
                   "--config",
                   "config/witnessValidation.properties",
-                  "--no-output-files"
+                  "--no-output-files",
                 })
             .configuration();
 
