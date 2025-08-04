@@ -617,7 +617,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     boolean statementIsInLoop = false;
     boolean loopIsControlledByTaintedVars = false;
-    //      boolean lhsIsLoopIterationIndex = false;
 
     Optional<Loop> OptionalLoopOfCurrentStatement = getLoopForStatement(pCfaEdge.getPredecessor());
 
@@ -628,8 +627,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       loopIsControlledByTaintedVars =
           loopIsControlledByTaintedVars(loopOfCurrentStatement, taintedVariables);
-
-      //        lhsIsLoopIterationIndex = varIsLoopIterationIndex(lhs, loopOfCurrentStatement);
     }
 
     // Get the if structure for the condition edge if available
@@ -684,11 +681,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               generatedVars.add(variableLHS);
               values.put(variableLHS, rhs);
             }
-
-            // avoid that the index increases?
-            //            if (!lhsIsLoopIterationIndex) {
-            //              values.put(variableLHS, rhs);
-            //            }
           }
         } else {
           if (taintedVarsRHS) {
@@ -1053,34 +1045,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return result;
-  }
-
-  private boolean varIsLoopIterationIndex(CLeftHandSide pLhs, Loop pLoopOfCurrentStatement) {
-    return pLhs instanceof CIdExpression variableLHS
-        && getLoopIterationIndexes(pLoopOfCurrentStatement).contains(variableLHS);
-  }
-
-  private ImmutableSet<CExpression> getLoopIterationIndexes(Loop pLoopOfCurrentStatement) {
-
-    ImmutableSet.Builder<CExpression> loopIterationIndexBuilder = ImmutableSet.builder();
-
-    for (CFANode node : pLoopOfCurrentStatement.getLoopHeads()) {
-      for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-        CFAEdge edge = node.getEnteringEdge(i);
-        if (edge instanceof CStatementEdge pCStatementEdge) {
-          if (pCStatementEdge.getStatement()
-              instanceof CExpressionAssignmentStatement pCExpressionAssignmentStatement) {
-
-            Set<CIdExpression> lhsVarsAsCExpr =
-                TaintAnalysisUtils.getAllVarsAsCExpr(
-                    pCExpressionAssignmentStatement.getLeftHandSide());
-
-            loopIterationIndexBuilder.add(lhsVarsAsCExpr.iterator().next());
-          }
-        }
-      }
-    }
-    return loopIterationIndexBuilder.build();
   }
 
   private void checkInformationFlowViolation(
