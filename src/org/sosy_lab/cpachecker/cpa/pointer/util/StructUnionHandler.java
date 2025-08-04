@@ -61,7 +61,7 @@ public class StructUnionHandler {
                 pState, explicitLhsLocations, rhsTargets, pCfaEdge, logger);
 
         if (specialCase.isPresent()) {
-          return specialCase.get();
+          return specialCase.orElseThrow();
         }
 
         PointerTarget lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();
@@ -106,7 +106,7 @@ public class StructUnionHandler {
                 pState, explicitLhsLocations, rhsTargets, pCfaEdge, logger);
 
         if (specialCase.isPresent()) {
-          return specialCase.get();
+          return specialCase.orElseThrow();
         }
 
         PointerTarget lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();

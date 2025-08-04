@@ -113,10 +113,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         description =
             "Strategy for mapping heap allocations to symbolic heap locations: SINGLE, PER_CALL,"
                 + " PER_LINE")
-    private HeapAllocationStrategy heapAllocationStrategy = HeapAllocationStrategy.SINGLE;
+    private HeapAllocationStrategy heapAllocationStrategy = HeapAllocationStrategy.PER_CALL;
 
     @Option(secure = true, description = "Strategy for handling structs in pointer analysis")
-    private StructHandlingStrategy structHandlingStrategy = StructHandlingStrategy.STRUCT_INSTANCE;
+    private StructHandlingStrategy structHandlingStrategy = StructHandlingStrategy.ALL_FIELDS;
 
     @Option(
         secure = true,
@@ -128,13 +128,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     public PointerTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
-  }
-
-  private PointerTransferOptions getOptions() {
-    if (options == null) {
-      throw new IllegalStateException("PointerTransferOptions must be initialized before use");
-    }
-    return options;
   }
 
   private PointerTransferOptions options;
@@ -382,7 +375,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     if (expression.isEmpty()) {
       return pState;
     }
-    CExpression returnExpression = expression.get();
+    CExpression returnExpression = expression.orElseThrow();
     Type returnType = returnExpression.getExpressionType();
     if (!(returnType instanceof CPointerType)) {
       return pState;
@@ -497,7 +490,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
   private HeapLocation createHeapLocation(CCfaEdge pCfaEdge) {
     String functionName = pCfaEdge.getPredecessor().getFunctionName();
     HeapLocation heapLocation;
-    switch (getOptions().heapAllocationStrategy) {
+    switch (options.heapAllocationStrategy) {
       case SINGLE -> heapLocation = HeapLocation.forAllocation(functionName, -1, null);
       case PER_CALL ->
           heapLocation = HeapLocation.forAllocation(functionName, allocationCounter++, 0L);
@@ -526,20 +519,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       }
       if (StructUnionHandler.isUnion(baseType)) {
         return StructUnionHandler.handleUnionAssignment(
-            pState,
-            lhsLocations,
-            rhsTargets,
-            pCfaEdge,
-            getOptions().structHandlingStrategy,
-            logger);
+            pState, lhsLocations, rhsTargets, pCfaEdge, options.structHandlingStrategy, logger);
       } else if (StructUnionHandler.isStruct(baseType)) {
         return StructUnionHandler.handleStructAssignment(
-            pState,
-            lhsLocations,
-            rhsTargets,
-            pCfaEdge,
-            getOptions().structHandlingStrategy,
-            logger);
+            pState, lhsLocations, rhsTargets, pCfaEdge, options.structHandlingStrategy, logger);
       }
     }
     return handleAssignment(pState, lhsLocations, rhsTargets, pCfaEdge);
@@ -562,7 +545,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                 pState, explicitLhsLocations, rhsTargets, pCfaEdge, logger);
 
         if (specialCase.isPresent()) {
-          return specialCase.get();
+          return specialCase.orElseThrow();
         }
 
         PointerTarget lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();
