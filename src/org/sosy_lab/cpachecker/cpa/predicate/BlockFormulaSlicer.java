@@ -15,7 +15,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -185,8 +184,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
 
     while (!waitlist.isEmpty()) {
-      final ARGState current = Iterables.getFirst(waitlist, null);
-      waitlist.remove(current);
+      final ARGState current = waitlist.removeFirst();
 
       // already handled
       assert !s2v.containsKey(current);
@@ -523,8 +521,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
 
     while (!waitlist.isEmpty()) {
-      final ARGState current = Iterables.getFirst(waitlist, null);
-      waitlist.remove(current);
+      final ARGState current = waitlist.removeFirst();
 
       // already handled
       assert !s2f.containsKey(current);
