@@ -939,7 +939,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (optionalConditionNode.isPresent()) {
-      CFANode conditionNode = optionalConditionNode.get();
+      CFANode conditionNode = optionalConditionNode.orElseThrow();
       CFAEdge statementInConditionEdge = conditionNode.getLeavingEdge(0);
       if (statementInConditionEdge instanceof CAssumeEdge assumeEdge) {
         CExpression expr = assumeEdge.getExpression();
@@ -988,7 +988,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Loop outterLoop =
         getLoopForStatement(
                 loopOfCurrentStatement.getIncomingEdges().iterator().next().getPredecessor())
-            .get();
+            .orElseThrow();
 
     return loopIsControlledByTaintedVars(outterLoop, taintedVariables);
   }
