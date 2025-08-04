@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="Antlr4 parser generation" default="generate-antlr4-grammar"
+         basedir="./../../../../../../../../">
+    <!-- basedir should be the "CPAchecker" directory -->
+
+    <property name="k3.dir" location="src/org/sosy_lab/cpachecker/cfa/ast/k3/parser"/>
+    <property name="k3.generated.dir"
+              location="src/org/sosy_lab/cpachecker/cfa/ast/k3/parser/generated/"/>
+
+    <property name="parser.source" value="k3"/>
+
+    <target name="echos">
+        <echo>${dir.src}</echo>
+        <echo>${k3.generated.dir}</echo>
+        <echo>is antlr4 up to date? ${is.antlr4.uptodate}</echo>
+    </target>
+
+    <target name="clean" description="Delete generated files">
+        <delete dir="${k3.generated.dir}"/>
+    </target>
+
+    <path id="classpath.antlr4">
+        <pathelement location="./lib/java/build/antlr4.jar"/>
+        <pathelement location="./lib/java/build/antlr-runtime.jar"/>
+        <pathelement location="./lib/java/build/antlr4-runtime.jar"/>
+        <pathelement location="./lib/java/build/ST4.jar"/>
+    </path>
+
+    <uptodate srcfile="${k3.dir}/${parser.source}.g4" property="is.antlr4.parser.uptodate">
+        <compositemapper>
+            <mergemapper to="${k3.generated.dir}"/>
+            <mergemapper to="${k3.generated.dir}/${parser.source}BaseVisitor.java"/>
+            <mergemapper to="${k3.generated.dir}/${parser.source}Lexer.java"/>
+            <mergemapper to="${k3.generated.dir}/${parser.source}Lexer.interp"/>
+            <mergemapper to="${k3.generated.dir}/${parser.source}Lexer.tokens"/>
+            <mergemapper to="${k3.generated.dir}/${parser.source}Parser.java"/>
+            <mergemapper to="${k3.generated.dir}/${parser.source}Visitor.java"/>
+            <mergemapper to="${k3.generated.dir}/${parser.source}.interp"/>
+            <mergemapper to="${k3.generated.dir}/${parser.source}.tokens"/>
+        </compositemapper>
+    </uptodate>
+
+    <target name="generate-antlr4-parser" unless="is.antlr4.parser.uptodate">
+        <java classname="org.antlr.v4.Tool" fork="true" failonerror="true" dir="${k3.dir}">
+            <arg value="-o"/>
+            <arg value="generated"/>
+            <arg value="-package"/>
+            <arg value="org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated"/>
+            <arg value="-visitor"/>
+            <arg value="-no-listener"/>
+            <arg value="${parser.source}.g4"/>
+            <classpath>
+                <path refid="classpath.antlr4"/>
+            </classpath>
+        </java>
+        <property name="annotation"
+                  value="@javax.annotation.processing.Generated(&quot;Antlr&quot;)${line.separator}"/>
+        <replace file="${k3.generated.dir}/${parser.source}Parser.java" token="@SuppressWarnings"
+                 value="${annotation}@SuppressWarnings"/>
+        <echo message="Generated parser-files in ${k3.generated.dir}/*" level="info"/>
+    </target>
+
+    <target name="generate-antlr4-grammar" depends="generate-antlr4-parser"
+            description="Generate antlr4 parser">
+    </target>
+
+</project>
