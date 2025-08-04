@@ -23,13 +23,13 @@ public class ARGStateCoverageOperator implements CoverageOperator {
   }
 
   @Override
-  public boolean covers(AbstractState state1, AbstractState state2)
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     ARGState argState1 = (ARGState) state1;
     ARGState argState2 = (ARGState) state2;
     return wrapped
         .getCoverageOperator()
-        .covers(argState1.getWrappedState(), argState2.getWrappedState());
+        .isSubsumed(argState1.getWrappedState(), argState2.getWrappedState());
   }
 
   @Override

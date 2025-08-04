@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class LocationStateCoverageOperator implements CoverageOperator {
   @Override
-  public boolean covers(AbstractState state1, AbstractState state2)
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     LocationState locationState1 = (LocationState) state1;
     LocationState locationState2 = (LocationState) state2;

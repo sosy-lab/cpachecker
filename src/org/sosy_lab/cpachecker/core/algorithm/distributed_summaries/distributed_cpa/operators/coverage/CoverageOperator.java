@@ -20,7 +20,7 @@ public interface CoverageOperator {
    * @param state2 Second abstract state
    * @return Whether state1 <= state2
    */
-  boolean covers(AbstractState state1, AbstractState state2)
+  boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException;
 
   /**
@@ -32,8 +32,8 @@ public interface CoverageOperator {
 
   default boolean areStatesEqual(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
-    if (covers(state1, state2)) {
-      return isBasedOnEquality() || covers(state2, state1);
+    if (isSubsumed(state1, state2)) {
+      return isBasedOnEquality() || isSubsumed(state2, state1);
     }
     return false;
   }

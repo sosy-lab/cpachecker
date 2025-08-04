@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class FunctionPointerStateCoverageOperator implements CoverageOperator {
 
   @Override
-  public boolean covers(AbstractState state1, AbstractState state2)
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     FunctionPointerState functionPointerState1 = (FunctionPointerState) state1;
     FunctionPointerState functionPointerState2 = (FunctionPointerState) state2;

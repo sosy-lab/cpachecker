@@ -57,18 +57,19 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     checkArgument(
         pBlockCpa instanceof BlockCPA, "%s is no %s", pBlockCpa.getClass(), BlockCPA.class);
     blockCpa = pBlockCpa;
+    node = pNode;
+    blockStateSupplier =
+        location -> new BlockState(location, pNode, BlockStateType.INITIAL, Optional.empty());
+
     serializeOperator = new SerializeBlockStateOperator();
     deserializeOperator = new DeserializeBlockStateOperator(pNode);
     proceedOperator = new ProceedBlockStateOperator(pNode);
-    blockStateSupplier =
-        node -> new BlockState(node, pNode, BlockStateType.INITIAL, Optional.empty());
     verificationConditionOperator = new BlockViolationConditionOperator();
     coverageOperator = new BlockStateCoverageOperator();
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
     combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
-    node = pNode;
   }
 
   @Override

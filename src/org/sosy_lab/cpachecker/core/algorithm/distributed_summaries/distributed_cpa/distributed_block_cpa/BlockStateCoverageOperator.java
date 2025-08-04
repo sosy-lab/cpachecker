@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class BlockStateCoverageOperator implements CoverageOperator {
 
   @Override
-  public boolean covers(AbstractState state1, AbstractState state2)
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     BlockState blockState1 = (BlockState) state1;
     BlockState blockState2 = (BlockState) state2;

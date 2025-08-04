@@ -21,7 +21,7 @@ public class LessEqualCoverageOperator implements CoverageOperator {
   }
 
   @Override
-  public boolean covers(AbstractState state1, AbstractState state2)
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     return cpa.getAbstractDomain().isLessOrEqual(state1, state2);
   }

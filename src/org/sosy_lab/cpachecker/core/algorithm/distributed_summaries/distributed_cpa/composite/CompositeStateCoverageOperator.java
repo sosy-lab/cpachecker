@@ -26,7 +26,7 @@ public class CompositeStateCoverageOperator implements CoverageOperator {
   }
 
   @Override
-  public boolean covers(AbstractState state1, AbstractState state2)
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     CompositeState compositeState1 = (CompositeState) state1;
     CompositeState compositeState2 = (CompositeState) state2;
@@ -43,7 +43,7 @@ public class CompositeStateCoverageOperator implements CoverageOperator {
             dcpa.doesOperateOn(wrappedState1.getClass())
                 && dcpa.doesOperateOn(wrappedState2.getClass()),
             "Wrapped states must be compatible with the corresponding CPA.");
-        if (!(dcpa.getCoverageOperator().covers(wrappedState1, wrappedState2))) {
+        if (!(dcpa.getCoverageOperator().isSubsumed(wrappedState1, wrappedState2))) {
           return false;
         }
       }

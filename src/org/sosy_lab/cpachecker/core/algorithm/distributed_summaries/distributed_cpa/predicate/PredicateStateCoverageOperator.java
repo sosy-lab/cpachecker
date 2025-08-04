@@ -25,7 +25,7 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
   }
 
   @Override
-  public boolean covers(AbstractState state1, AbstractState state2)
+  public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     PredicateAbstractState predicateState1 = (PredicateAbstractState) state1;
     PredicateAbstractState predicateState2 = (PredicateAbstractState) state2;
@@ -41,7 +41,7 @@ public class PredicateStateCoverageOperator implements CoverageOperator {
       return false;
     }
     try {
-      return solver.implies(formula2, formula1);
+      return solver.implies(formula1, formula2);
     } catch (SolverException e) {
       throw new CPAException("Solver encountered an issue when calculating implication.", e);
     }
