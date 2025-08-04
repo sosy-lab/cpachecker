@@ -903,15 +903,5 @@ public class CPAMain {
 
   private CPAMain() {} // prevent instantiation
 
-  private static class Config {
-
-    private final Configuration configuration;
-
-    private final String outputPath;
-
-    Config(Configuration pConfiguration, String pOutputPath) {
-      configuration = pConfiguration;
-      outputPath = pOutputPath;
-    }
-  }
+  public record Config(Configuration configuration, String outputPath) {}
 }
