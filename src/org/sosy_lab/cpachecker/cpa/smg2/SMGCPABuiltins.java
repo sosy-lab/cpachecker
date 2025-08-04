@@ -17,8 +17,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -2169,7 +2169,7 @@ public class SMGCPABuiltins {
     // No Object is empty, but there might be edges in one when there are none in the other.
     // First filter out all edges not (partially) covered by the size given, then check if there are
     // edges covering the entire size argument.
-    SortedMap<BigInteger, SMGHasValueEdge> hvesObj1InSizeOrdered = new TreeMap<>();
+    NavigableMap<BigInteger, SMGHasValueEdge> hvesObj1InSizeOrdered = new TreeMap<>();
     for (SMGHasValueEdge hve : allHvesObj1) {
       BigInteger hveOffset = hve.getOffset();
       BigInteger hveOffsetPlusSize = hveOffset.add(hve.getSizeInBits());
@@ -2181,7 +2181,7 @@ public class SMGCPABuiltins {
       }
     }
 
-    SortedMap<BigInteger, SMGHasValueEdge> hvesObj2InSizeOrdered = new TreeMap<>();
+    NavigableMap<BigInteger, SMGHasValueEdge> hvesObj2InSizeOrdered = new TreeMap<>();
     for (SMGHasValueEdge hve : allHvesObj2) {
       BigInteger hveOffset = hve.getOffset();
       BigInteger hveOffsetPlusSize = hveOffset.add(hve.getSizeInBits());
