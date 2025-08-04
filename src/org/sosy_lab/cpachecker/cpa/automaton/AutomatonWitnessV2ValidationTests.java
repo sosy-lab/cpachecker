@@ -24,13 +24,12 @@ public class AutomatonWitnessV2ValidationTests {
   private String SPECIFICATION_PATH = "config/properties/";
 
   /**
-   * Tests if cpachecker can validate a given c software with given 2.0 witnesses
+   * Tests if CPAchecker can validate a given c software with given 2.0 witnesses
    *
-   * @param pFilename The filename of the Sourcecode to analyze
+   * @param pFilePath The filename of the Sourcecode to analyze
    * @param pExpectedVerdict The expected verdict of the analysis
    * @param pSpecificationFilePath The specification to use for the analysis
-   * @param pWitnessFilename The filename of the witness to validate
-   * @param pOverrideOptions Map of options to override in the configuration
+   * @param pWitnessFilePath The filename of the witness to validate
    * @throws Exception Gets thrown if the test fails
    */
   protected void performValidationTest(
