@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -20,6 +21,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -48,6 +50,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator stateCoverageOperator;
   private final CombineOperator combineOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -83,6 +86,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
             predicateCPA,
             pNode.getPredecessorIds().isEmpty());
     combineOperator = new CombinePredicateStateOperator(predicateCPA);
+    combinePrecisionOperator = new CombinePredicatePrecisionOperator();
   }
 
   @Override
@@ -93,6 +97,11 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
     return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
   }
 
   @Override
@@ -131,6 +140,15 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
         .getFormulaManager()
         .getBooleanFormulaManager()
         .isTrue(predicateAbstractState.getPathFormula().getFormula());
+  }
+
+  @Override
+  public AbstractState reset(AbstractState pAbstractState) {
+    Preconditions.checkArgument(
+        pAbstractState instanceof PredicateAbstractState,
+        "Expected PredicateAbstractState, but got %s",
+        pAbstractState.getClass().getSimpleName());
+    return pAbstractState;
   }
 
   @Override

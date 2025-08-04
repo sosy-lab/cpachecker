@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -19,26 +18,19 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 
 public class DeserializeCompositeStateOperator implements DeserializeOperator {
 
-  private final Map<
-          Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-      registered;
-  private final CompositeCPA compositeCPA;
+  private final List<ConfigurableProgramAnalysis> analyses;
   private final DssBlockAnalysisStatistics stats;
   private final BlockNode blockNode;
 
   public DeserializeCompositeStateOperator(
-      CompositeCPA pCompositeCPA,
-      Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-          pRegistered,
+      List<ConfigurableProgramAnalysis> pWrappedCPAs,
       BlockNode pBlockNode,
       DssBlockAnalysisStatistics pStats) {
-    compositeCPA = pCompositeCPA;
-    registered = pRegistered;
+    analyses = pWrappedCPAs;
     stats = pStats;
     blockNode = pBlockNode;
   }
@@ -48,19 +40,18 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
     try {
       stats.getDeserializationCount().inc();
       stats.getDeserializationTime().start();
-      List<AbstractState> states = new ArrayList<>();
-      for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
-        if (registered.containsKey(wrappedCPA.getClass())) {
-          DistributedConfigurableProgramAnalysis entry = registered.get(wrappedCPA.getClass());
-          states.add(entry.getDeserializeOperator().deserialize(pMessage));
+      ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
+      for (ConfigurableProgramAnalysis analysis : analyses) {
+        if (analysis instanceof DistributedConfigurableProgramAnalysis dcpa) {
+          states.add(dcpa.getDeserializeOperator().deserialize(pMessage));
         } else {
           states.add(
-              wrappedCPA.getInitialState(
+              analysis.getInitialState(
                   DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
                   StateSpacePartition.getDefaultPartition()));
         }
       }
-      return new CompositeState(states);
+      return new CompositeState(states.build());
     } finally {
       stats.getDeserializationTime().stop();
     }

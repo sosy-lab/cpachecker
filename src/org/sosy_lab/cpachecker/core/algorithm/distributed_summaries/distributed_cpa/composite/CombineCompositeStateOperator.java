@@ -9,12 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -24,60 +21,43 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CombineCompositeStateOperator implements CombineOperator {
 
-  private final Map<
-          Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-      registered;
+  private final List<ConfigurableProgramAnalysis> wrapped;
 
-  public CombineCompositeStateOperator(
-      Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-          pRegistered) {
-    registered = pRegistered;
+  public CombineCompositeStateOperator(List<ConfigurableProgramAnalysis> pWrapped) {
+    wrapped = pWrapped;
   }
 
   @Override
   public AbstractState combine(Collection<AbstractState> states)
       throws CPAException, InterruptedException {
-    Preconditions.checkArgument(!states.isEmpty(), "states cannot be empty");
+    Preconditions.checkArgument(!states.isEmpty(), "States cannot be empty");
     Preconditions.checkArgument(
         states.stream().allMatch(CompositeState.class::isInstance),
-        "All states must be of type CallstackState");
-
-    // we need the reference to know the ordering of states in the wrapped list.
-    CompositeState reference = (CompositeState) Iterables.get(states, 0);
-    Preconditions.checkNotNull(reference, "Reference composite state cannot be null");
-    if (states.size() == 1) {
-      return reference;
-    }
-
-    // find the collection of states per state class
-    Multimap<Class<? extends AbstractState>, AbstractState> statesPerClass =
-        ArrayListMultimap.create(states.size(), reference.getWrappedStates().size());
-    for (AbstractState state : states) {
-      CompositeState compositeState = (CompositeState) state;
-      for (AbstractState wrappedState : compositeState.getWrappedStates()) {
-        statesPerClass.put(wrappedState.getClass(), wrappedState);
+        "All states must be of type CompositeState");
+    Preconditions.checkArgument(
+        states.stream()
+            .allMatch(c -> ((CompositeState) c).getWrappedStates().size() == wrapped.size()),
+        "All states must have the same number of wrapped states");
+    ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
+    for (int i = 0; i < wrapped.size(); i++) {
+      ImmutableList.Builder<AbstractState> statesToCombine =
+          ImmutableList.builderWithExpectedSize(states.size());
+      for (AbstractState state : states) {
+        CompositeState compositeState = (CompositeState) state;
+        AbstractState wrappedState = compositeState.getWrappedStates().get(i);
+        statesToCombine.add(wrappedState);
+      }
+      if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        AbstractState combinedState = dcpa.getCombineOperator().combine(statesToCombine.build());
+        wrappedStates.add(combinedState);
+      } else {
+        // Alternatively, we could think of returning the initial state.
+        throw new CPAException(
+            "Wrapped analysis "
+                + wrapped.get(i).getClass().getSimpleName()
+                + " does not implement CombineOperator.");
       }
     }
-
-    // combine the grouped states
-    ImmutableList.Builder<AbstractState> combinedStates = ImmutableList.builder();
-    for (AbstractState wrappedState : reference.getWrappedStates()) {
-      boolean found = false;
-      for (DistributedConfigurableProgramAnalysis dcpa : registered.values()) {
-        if (dcpa.doesOperateOn(wrappedState.getClass())) {
-          found = true;
-          AbstractState combined =
-              dcpa.getCombineOperator().combine(statesPerClass.get(wrappedState.getClass()));
-          combinedStates.add(combined);
-          break;
-        }
-      }
-      if (!found) {
-        // TODO: is unsound if the wrapped state is not operated on by any registered CPA
-        // However, AutomatonStates are handled correctly here.
-        combinedStates.add(wrappedState);
-      }
-    }
-    return new CompositeState(combinedStates.build());
+    return new CompositeState(wrappedStates.build());
   }
 }

@@ -16,6 +16,7 @@ import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -52,6 +53,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   SerializePrecisionOperator getSerializePrecisionOperator();
 
   DeserializePrecisionOperator getDeserializePrecisionOperator();
+
+  CombinePrecisionOperator getCombinePrecisionOperator();
 
   /**
    * Operator that decides whether to proceed with an analysis based on the given message.
@@ -95,6 +98,14 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return {@code true} if the given abstract state is the most general block entry state,
    */
   boolean isMostGeneralBlockEntryState(AbstractState pAbstractState);
+
+  /**
+   * Reset the given abstract state to the initial value iff the abstract state is mutable.
+   *
+   * @param pAbstractState The abstract state to reset.
+   * @return the reset abstract state, or the same instance if it is immutable.
+   */
+  AbstractState reset(AbstractState pAbstractState);
 
   /**
    * Check whether this distributed CPA can work with {@code pClass}.

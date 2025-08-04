@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
-import java.util.Map;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA.zip;
+
+import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA.CpaAndState;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -20,16 +23,12 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class ProceedCompositeStateOperator implements ProceedOperator {
 
-  private final Map<
-          Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-      registered;
+  private final List<ConfigurableProgramAnalysis> wrapped;
   private final DssBlockAnalysisStatistics stats;
 
   public ProceedCompositeStateOperator(
-      Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-          pRegistered,
-      DssBlockAnalysisStatistics pStats) {
-    registered = pRegistered;
+      List<ConfigurableProgramAnalysis> pWrappedCpas, DssBlockAnalysisStatistics pStats) {
+    wrapped = pWrappedCpas;
     stats = pStats;
   }
 
@@ -38,12 +37,9 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
     stats.getProceedTime().start();
     CompositeState compositeState = (CompositeState) pState;
     DssMessageProcessing processing = DssMessageProcessing.proceed();
-    for (AbstractState wrappedState : compositeState.getWrappedStates()) {
-      for (DistributedConfigurableProgramAnalysis dcpa : registered.values()) {
-        if (dcpa.doesOperateOn(wrappedState.getClass())) {
-          processing = processing.merge(operator.apply(dcpa, wrappedState), true);
-          break;
-        }
+    for (CpaAndState cpaAndState : zip(wrapped, compositeState)) {
+      if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        processing = processing.merge(operator.apply(dcpa, cpaAndState.state()), true);
       }
     }
     stats.getProceedTime().stop();

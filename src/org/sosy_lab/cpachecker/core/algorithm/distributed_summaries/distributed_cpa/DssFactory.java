@@ -103,7 +103,7 @@ public class DssFactory {
           pShutdownNotifier);
     }
     if (pCPA instanceof LocationCPA locationCPA) {
-      return distribute(locationCPA, integerToNodeMap);
+      return distribute(locationCPA, pBlockNode, integerToNodeMap);
     }
     return null;
   }
@@ -114,8 +114,8 @@ public class DssFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      LocationCPA pLocationCPA, Map<Integer, CFANode> pNodeMap) {
-    return new DistributedLocationCPA(pLocationCPA, pNodeMap);
+      LocationCPA pLocationCPA, BlockNode pNode, Map<Integer, CFANode> pNodeMap) {
+    return new DistributedLocationCPA(pLocationCPA, pNode, pNodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

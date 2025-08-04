@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -76,6 +77,11 @@ public class DistributedARGCPA
   }
 
   @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return wrappedCPA.getCombinePrecisionOperator();
+  }
+
+  @Override
   public SerializePrecisionOperator getSerializePrecisionOperator() {
     return serializePrecisionOperator;
   }
@@ -103,6 +109,12 @@ public class DistributedARGCPA
     }
     throw new IllegalArgumentException(
         "DistributedARGCPA can only work on " + getAbstractStateClass());
+  }
+
+  @Override
+  public AbstractState reset(AbstractState pAbstractState) {
+    ARGState argState = (ARGState) pAbstractState;
+    return new ARGState(wrappedCPA.reset(argState.getWrappedState()), null);
   }
 
   @Override

@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -305,8 +307,11 @@ public class DssBlockAnalysis {
   public Collection<DssMessage> analyzePrecondition()
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (StateAndPrecision violation : violationConditions.values()) {
-      messages.addAll(analyzeViolationCondition(violation));
+    for (String successorId : violationConditions.keySet()) {
+      if (block.getLoopPredecessorIds().contains(successorId)) {
+        continue;
+      }
+      messages.addAll(analyzeViolationCondition(violationConditions.get(successorId)));
     }
     return messages.build();
   }
@@ -379,20 +384,25 @@ public class DssBlockAnalysis {
    * Resets all preconditions to their initial state, i.e., the ARGState is wrapped in a new
    * ARGState without any parent.
    */
-  private void resetArgStates() {
-    for (String predecessorId : ImmutableList.copyOf(preconditions.keySet())) {
-      Collection<StateAndPrecision> predecessorStatesAndPrecisions =
-          preconditions.get(predecessorId);
-      preconditions.removeAll(predecessorId);
-      for (StateAndPrecision stateAndPrecision : predecessorStatesAndPrecisions) {
-        if (stateAndPrecision.state() instanceof ARGState argState) {
-          preconditions.put(
-              predecessorId,
-              new StateAndPrecision(
-                  new ARGState(argState.getWrappedState(), null), stateAndPrecision.precision()));
-        }
-      }
+  private void resetStates() {
+    for (Entry<String, StateAndPrecision> entry : ImmutableList.copyOf(preconditions.entries())) {
+      preconditions.remove(entry.getKey(), entry.getValue());
+      preconditions.put(
+          entry.getKey(),
+          new StateAndPrecision(
+              dcpa.reset(entry.getValue().state()), entry.getValue().precision()));
     }
+  }
+
+  private void debugPrecondition() {
+    StringBuilder sb = new StringBuilder();
+    for (StateAndPrecision value : preconditions.values()) {
+      PredicateAbstractState p =
+          AbstractStates.extractStateByType(value.state(), PredicateAbstractState.class);
+      sb.append(p.getPathFormula().getFormula());
+      sb.append(" || ");
+    }
+    System.out.println(sb);
   }
 
   /**
@@ -402,21 +412,16 @@ public class DssBlockAnalysis {
    * @return combined precision if all preconditions are of type {@link AdjustablePrecision}, empty
    *     otherwise
    */
-  private Optional<Precision> combinePrecisionIfPossible() {
-    AdjustablePrecision combined = null;
-    for (StateAndPrecision stateAndPrecision : preconditions.values()) {
-      Precision precision = stateAndPrecision.precision();
-      if (precision instanceof AdjustablePrecision adjustablePrecision) {
-        if (combined == null) {
-          combined = adjustablePrecision;
-        } else {
-          combined = combined.add(adjustablePrecision);
-        }
-      } else {
-        return Optional.empty();
-      }
+  private Optional<Precision> combinePrecisionIfPossible() throws InterruptedException {
+    if (preconditions.isEmpty()) {
+      return Optional.empty();
     }
-    return Optional.ofNullable(combined);
+    return Optional.of(
+        dcpa.getCombinePrecisionOperator()
+            .combine(
+                FluentIterable.from(preconditions.values())
+                    .transform(StateAndPrecision::precision)
+                    .toList()));
   }
 
   /**
@@ -429,7 +434,13 @@ public class DssBlockAnalysis {
   private void prepareReachedSet() throws CPAException, InterruptedException {
     // clear stateful data structures
     reachedSet.clear();
-    resetArgStates();
+    resetStates();
+
+    if (block.getId().equals("L7")) {
+      debugPrecondition();
+      combinePrecisionIfPossible().ifPresent(System.out::println);
+      System.out.println();
+    }
 
     // prepare states to be added to the reached set
     Optional<Precision> combinedPrecision = combinePrecisionIfPossible();

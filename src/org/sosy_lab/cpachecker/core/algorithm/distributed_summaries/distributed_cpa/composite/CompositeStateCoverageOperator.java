@@ -9,8 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
+import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -20,14 +19,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CompositeStateCoverageOperator implements CoverageOperator {
 
-  private final Map<
-          Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-      registered;
+  private final List<ConfigurableProgramAnalysis> wrapped;
 
-  public CompositeStateCoverageOperator(
-      Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-          pRegistered) {
-    registered = pRegistered;
+  public CompositeStateCoverageOperator(List<ConfigurableProgramAnalysis> pWrapped) {
+    wrapped = pWrapped;
   }
 
   @Override
@@ -36,23 +31,23 @@ public class CompositeStateCoverageOperator implements CoverageOperator {
     CompositeState compositeState1 = (CompositeState) state1;
     CompositeState compositeState2 = (CompositeState) state2;
     Preconditions.checkArgument(
-        compositeState1.getWrappedStates().size() == compositeState2.getWrappedStates().size(),
+        compositeState1.getWrappedStates().size() == compositeState2.getWrappedStates().size()
+            && compositeState1.getWrappedStates().size() == wrapped.size(),
         "Composite states must have the same number of wrapped states for coverage check.");
-    ImmutableMap.Builder<Class<? extends AbstractState>, AbstractState> firstState =
-        ImmutableMap.builder();
-    for (AbstractState wrapped : compositeState1.getWrappedStates()) {
-      firstState.put(wrapped.getClass(), wrapped);
-    }
-    // TODO: ignores states of cpas that are not registered
-    Map<Class<? extends AbstractState>, AbstractState> firstStateMap = firstState.buildOrThrow();
-    for (AbstractState wrapped : compositeState2.getWrappedStates()) {
-      for (DistributedConfigurableProgramAnalysis dcpa : registered.values()) {
-        if (dcpa.doesOperateOn(wrapped.getClass())) {
-          if (!dcpa.getCoverageOperator().covers(firstStateMap.get(wrapped.getClass()), wrapped)) {
-            return false;
-          }
+    for (int i = 0; i < wrapped.size(); i++) {
+      AbstractState wrappedState1 = compositeState1.getWrappedStates().get(i);
+      AbstractState wrappedState2 = compositeState2.getWrappedStates().get(i);
+      ConfigurableProgramAnalysis wrappedAnalysis = wrapped.get(i);
+      if (wrappedAnalysis instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        Preconditions.checkState(
+            dcpa.doesOperateOn(wrappedState1.getClass())
+                && dcpa.doesOperateOn(wrappedState2.getClass()),
+            "Wrapped states must be compatible with the corresponding CPA.");
+        if (!(dcpa.getCoverageOperator().covers(wrappedState1, wrappedState2))) {
+          return false;
         }
       }
+      // TODO: Handle cases where the wrapped analysis does not implement CoverageOperator
     }
     return true;
   }

@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
+import com.google.common.base.Preconditions;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -43,6 +46,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final CombineOperator combineOperator;
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
 
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
@@ -64,6 +68,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
     combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
+    combinePrecisionOperator = new CombineSingletonPrecisionOperator();
   }
 
   @Override
@@ -100,6 +105,11 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
+  }
+
+  @Override
   public ProceedOperator getProceedOperator() {
     return ProceedOperator.always();
   }
@@ -117,6 +127,12 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     return true;
+  }
+
+  @Override
+  public AbstractState reset(AbstractState pAbstractState) {
+    Preconditions.checkArgument(pAbstractState instanceof CallstackState);
+    return pAbstractState;
   }
 
   @Override

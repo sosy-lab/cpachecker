@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -37,6 +40,7 @@ public class DistributedFunctionPointerCPA
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
   private final CombineOperator combineOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
 
   private final FunctionPointerCPA functionPointerCPA;
 
@@ -51,6 +55,7 @@ public class DistributedFunctionPointerCPA
             pParentCPA.getTransferRelation(), pParentCPA);
     coverageOperator = new FunctionPointerStateCoverageOperator();
     combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
+    combinePrecisionOperator = new CombineSingletonPrecisionOperator();
   }
 
   @Override
@@ -74,6 +79,11 @@ public class DistributedFunctionPointerCPA
   }
 
   @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
+  }
+
+  @Override
   public ProceedOperator getProceedOperator() {
     return ProceedOperator.always();
   }
@@ -91,6 +101,15 @@ public class DistributedFunctionPointerCPA
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     return true;
+  }
+
+  @Override
+  public AbstractState reset(AbstractState pAbstractState) {
+    Preconditions.checkArgument(
+        pAbstractState instanceof FunctionPointerState,
+        "Expected FunctionPointerState, but got %s",
+        pAbstractState.getClass().getSimpleName());
+    return pAbstractState;
   }
 
   @Override
