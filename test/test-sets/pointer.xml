@@ -45,18 +45,18 @@ SPDX-License-Identifier: Apache-2.0
     </rundefinition>
     <!-- relevant for RQ d -->
     <rundefinition name="valueAnalysis">
-        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.value.ValueAnalysisCPA,cpa.callstack.CallstackCPA</option>
+        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA, cpa.callstack.CallstackCPA</option>
     </rundefinition>
     <!-- relevant for RQ d -->
     <rundefinition name="valueAnalysis-and-new-pointerAnalysis">
-        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.pointer.PointerAnalysisCPA,cpa.value.ValueAnalysisCPA,cpa.callstack.CallstackCPA</option>
+        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.value.ValueAnalysisCPA, cpa.pointer.PointerAnalysisCPA,cpa.callstack.CallstackCPA</option>
     </rundefinition>
     <!-- relevant for RQ e -->
     <rundefinition name="old-pointerAnalysis">
-        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.pointer2.PointerCPA,cpa.callstack.CallstackCPA</option>
+        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA, cpa.pointer2.PointerCPA,cpa.callstack.CallstackCPA</option>
     </rundefinition>
     <!-- relevant for RQ e -->
     <rundefinition name="valueAnalysis-and-old-pointerAnalysis">
-        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.pointer2.PointerCPA,cpa.value.ValueAnalysisCPA,cpa.callstack.CallstackCPA</option>
+        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA,cpa.pointer2.PointerCPA,cpa.callstack.CallstackCPA</option>
     </rundefinition>
 </benchmark>
