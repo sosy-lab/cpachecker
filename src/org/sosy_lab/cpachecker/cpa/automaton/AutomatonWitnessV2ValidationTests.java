@@ -68,11 +68,51 @@ public class AutomatonWitnessV2ValidationTests {
     assertThat(results.getCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
   }
 
-  @Test(timeout = 90000000)
-  public void validate_witness_invalid_invariant() throws Exception {
+  @Test(timeout = 9000)
+  public void validate_witness_invalid_invariant_1() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
-    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2.yml");
+    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--1.yml");
     performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 9000)
+  public void validate_witness_invalid_invariant_2() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
+    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
+    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--2.yml");
+    performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 9000)
+  public void validate_witness_invalid_invariant_3() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
+    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
+    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--3.yml");
+    performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 9000)
+  public void validate_witness_invalid_invariant_4() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
+    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
+    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--4.yml");
+    performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 9000)
+  public void validate_witness_valid_invariant_1() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
+    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
+    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-valid-witness-v2--1.yml");
+    performValidationTest(inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 9000)
+  public void validate_witness_valid_invariant_2() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
+    Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
+    Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-valid-witness-v2--2.yml");
+    performValidationTest(inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
   }
 }
