@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.thread;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -193,7 +192,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     Map<String, ThreadStatus> tSet = state.getThreadSet();
 
     Optional<ThreadLabel> result =
-        Lists.reverse(order).stream()
+        order.reversed().stream()
             .filter(l -> l.getVarName().equals(jCall.getVariableName()))
             .findFirst();
     // Do not self-join

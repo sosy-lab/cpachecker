@@ -14,7 +14,6 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -196,7 +195,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
       lst.add(state);
       state = data.reducedState;
     }
-    return Lists.reverse(lst);
+    return lst.reversed();
   }
 
   /**

@@ -14,7 +14,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
@@ -206,7 +205,7 @@ enum CexTraceAnalysisDirection {
 
       ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
       for (List<Integer> indices : Multimaps.asMap(loopLevelsToIndexMap).values()) {
-        order.addAll(Lists.reverse(indices));
+        order.addAll(indices.reversed());
       }
       return order.build();
     }

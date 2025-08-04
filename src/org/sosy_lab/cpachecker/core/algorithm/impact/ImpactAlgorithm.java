@@ -13,7 +13,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -315,7 +314,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         x = x.getParent();
       }
     }
-    path = Lists.reverse(path);
+    path = path.reversed();
 
     // x is common ancestor
     // path is ]x; v] (path from x to v, excluding x, including v)
@@ -511,7 +510,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
     path.add(w); // root element
 
-    return Lists.reverse(path);
+    return path.reversed();
   }
 
   @Override

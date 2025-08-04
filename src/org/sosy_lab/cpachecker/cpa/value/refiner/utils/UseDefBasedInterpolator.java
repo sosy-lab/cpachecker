@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -105,7 +104,7 @@ public class UseDefBasedInterpolator {
       }
     }
 
-    return Lists.reverse(interpolants);
+    return interpolants.reversed();
   }
 
   /**

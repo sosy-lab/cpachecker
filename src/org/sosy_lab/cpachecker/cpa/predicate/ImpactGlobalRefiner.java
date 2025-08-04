@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -379,7 +378,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     } while (!itpStack.isEmpty());
     totalNumberOfAffectedStates += affectedStates.size();
 
-    affectedStates = Lists.reverse(affectedStates); // reverse so that they are in top-down order
+    affectedStates = affectedStates.reversed(); // reverse so that they are in top-down order
 
     finishRefinementOfPath(unreachableState, affectedStates, reached);
   }

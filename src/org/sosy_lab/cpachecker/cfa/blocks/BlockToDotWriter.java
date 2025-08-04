@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
@@ -98,7 +97,7 @@ public class BlockToDotWriter {
       // get the smallest block and then the smallest outer block, that contains it
       Block currentBlock = sortedBlocks.remove(sortedBlocks.size() - 1); // get the smallest block,
       for (Block possibleOuterBlock :
-          Lists.reverse(sortedBlocks)) { // order is important, smallest first
+          sortedBlocks.reversed()) { // order is important, smallest first
         // trick: we know, iff one node is contained in outer block, all nodes must be contained. So
         // we check only one.
         if (possibleOuterBlock.getNodes().contains(currentBlock.getNodes().iterator().next())) {

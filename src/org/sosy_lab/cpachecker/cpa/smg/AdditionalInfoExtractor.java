@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -73,7 +72,7 @@ public class AdditionalInfoExtractor {
       prevSMGState = smgState;
       pathWithExtendedInfo.add(edgeWithAdditionalInfo);
     }
-    return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
+    return CFAPathWithAdditionalInfo.of(pathWithExtendedInfo.reversed());
   }
 
   /**

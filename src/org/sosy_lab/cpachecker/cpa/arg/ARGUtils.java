@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -255,7 +254,7 @@ public class ARGUtils {
       return Optional.empty();
     }
 
-    return Optional.of(new ARGPath(Lists.reverse(states)));
+    return Optional.of(new ARGPath(states.reversed()));
   }
 
   public static ARGPath getOnePathFromTo(final Predicate<ARGState> pIsStart, final ARGState pEnd) {
@@ -321,7 +320,7 @@ public class ARGUtils {
         currentARGState = parentElement;
       }
     }
-    return new ARGPath(Lists.reverse(states));
+    return new ARGPath(states.reversed());
   }
 
   /**
@@ -1282,7 +1281,7 @@ public class ARGUtils {
       Preconditions.checkNotNull(curPath);
       // If there is no more to expand - add this path and continue
       if (curPath.get(curPath.size() - 1) == root) {
-        results.add(new ARGPath(Lists.reverse(curPath)));
+        results.add(new ARGPath(curPath.reversed()));
 
         continue;
       }

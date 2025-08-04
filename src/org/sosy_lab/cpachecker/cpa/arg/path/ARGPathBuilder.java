@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.arg.path;
 
-import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,7 +79,7 @@ public abstract class ARGPathBuilder {
     @Override
     public ARGPath build(ARGState pState) {
       states.add(pState);
-      ARGPath path = new ARGPath(Lists.reverse(states), Lists.reverse(edges));
+      ARGPath path = new ARGPath(states.reversed(), edges.reversed());
       states.remove(states.size() - 1);
       return path;
     }

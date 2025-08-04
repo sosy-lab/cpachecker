@@ -18,7 +18,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -92,7 +91,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
       // handle reached-sets from most inner reached-set to most-outer reached-set
       BackwardARGState currentCutState = cutState;
-      for (BackwardARGState callState : Lists.reverse(relevantCallStates)) {
+      for (BackwardARGState callState : relevantCallStates.reversed()) {
 
         logger.logf(
             Level.FINEST, "removing %s from reachedset with root %s", currentCutState, callState);
