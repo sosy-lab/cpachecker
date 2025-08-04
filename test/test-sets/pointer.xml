@@ -21,6 +21,50 @@ SPDX-License-Identifier: Apache-2.0
     <tasks name="Benchmarks">
         <include>../programs/benchmarks/memsafety-ext3/*.yml</include>
     </tasks>
-
+    <!-- relevant for RQ a,b,c,d -->
     <rundefinition name="pointerAnalysis-mostprecise"/>
+    <!-- relevant for RQ c -->
+    <rundefinition name="pointerAnalysis-offsetinsensitive">
+        <option name="--option">cpa.pointer.isOffsetSensitive=false</option>
+    </rundefinition>
+    <!-- relevant for RQ b -->
+    <rundefinition name="pointerAnalysis-instancesensitive">
+        <option name="--option">cpa.pointer.structHandlingStrategy=STRUCT_INSTANCE</option>
+    </rundefinition>
+    <!-- relevant for RQ b -->
+    <rundefinition name="pointerAnalysis-typesensitive">
+        <option name="--option">cpa.pointer.structHandlingStrategy=JUST_STRUCT</option>
+    </rundefinition>
+    <!-- relevant for RQ a -->
+    <rundefinition name="pointerAnalysis-bitpreciseheapallocation">
+        <option name="--option">cpa.pointer.heapAllocationStrategy=PER_LINE</option>
+    </rundefinition>
+    <!-- relevant for RQ a -->
+    <rundefinition name="pointerAnalysis-mostimpreciseheapallocation">
+        <option name="--option">cpa.pointer.heapAllocationStrategy=SINGLE</option>
+    </rundefinition>
+    <!-- relevant for RQ d -->
+    <rundefinition name="valueAnalysis">
+        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,
+            cpa.value.ValueAnalysisCPA, cpa.callstack.CallstackCPA
+        </option>
+    </rundefinition>
+    <!-- relevant for RQ d -->
+    <rundefinition name="valueAnalysis-and-new-pointerAnalysis">
+        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA,
+            cpa.pointer.PointerAnalysisCPA, cpa.value.ValueAnalysisCPA, cpa.callstack.CallstackCPA
+        </option>
+    </rundefinition>
+    <!-- relevant for RQ e -->
+    <rundefinition name="old-pointerAnalysis-old">
+        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA, cpa.pointer2.PointerCPA,
+            cpa.callstack.CallstackCPA
+        </option>
+    </rundefinition>
+    <!-- relevant for RQ e -->
+    <rundefinition name="valueAnalysis-and-old-pointerAnalysis">
+        <option name="--option">CompositeCPA.cpas=cpa.location.LocationCPA, cpa.pointer2.PointerCPA,
+            cpa.value.ValueAnalysisCPA, cpa.callstack.CallstackCPA
+        </option>
+    </rundefinition>
 </benchmark>
