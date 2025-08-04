@@ -40,6 +40,9 @@ public class ToCExpressionVisitor
     CExpression result = elements.get(0);
 
     for (CExpression expr : Iterables.skip(elements, 1)) {
+      // TODO: AFAIK this should be wrong, since the result of a binary AND operation must not
+      //   be the same as a boolean AND, e.g. 01 & 10 = 00, but 01 && 10 = true.
+      //   but I don't know how to fix this. Therefore I leave it as a comment.
       result = builder.buildBinaryExpression(result, expr, BinaryOperator.BINARY_AND);
     }
 
