@@ -67,7 +67,7 @@ public class AutomatonWitnessV2ValidationTest {
     assertThat(results.getCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
   }
 
-  @Test(timeout = 9000)
+  @Test(timeout = 3000)
   public void validate_witness_invalid_invariant_1() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
@@ -75,7 +75,7 @@ public class AutomatonWitnessV2ValidationTest {
     performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
-  @Test(timeout = 9000)
+  @Test(timeout = 3000)
   public void validate_witness_invalid_invariant_2() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
@@ -83,7 +83,7 @@ public class AutomatonWitnessV2ValidationTest {
     performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
-  @Test(timeout = 9000)
+  @Test(timeout = 3000)
   public void validate_witness_invalid_invariant_3() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
@@ -91,7 +91,7 @@ public class AutomatonWitnessV2ValidationTest {
     performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
-  @Test(timeout = 9000)
+  @Test(timeout = 3000)
   public void validate_witness_invalid_invariant_4() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
@@ -99,7 +99,7 @@ public class AutomatonWitnessV2ValidationTest {
     performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
-  @Test(timeout = 9000)
+  @Test(timeout = 3000)
   public void validate_witness_valid_invariant_1() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
@@ -107,7 +107,7 @@ public class AutomatonWitnessV2ValidationTest {
     performValidationTest(inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
   }
 
-  @Test(timeout = 9000)
+  @Test(timeout = 3000)
   public void validate_witness_valid_invariant_2() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
