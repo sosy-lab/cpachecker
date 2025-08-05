@@ -537,8 +537,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
         if (initializer instanceof CInitializerExpression initExpr) {
 
-          checkIfInitializerExpressionIsTainted(
-              pState, initExpr, generatedVars, variableLHS, killedVars, values);
+          handleTaintPropagationForDeclarationInitializer(
+              pState, initExpr, generatedVars, variableLHS, killedVars, values, pCfaEdge);
         }
 
         if (initializer instanceof CInitializerList initList) {
@@ -549,8 +549,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           for (CInitializer init : initializerList) {
             if (init instanceof CInitializerExpression initExpr) {
 
-              checkIfInitializerExpressionIsTainted(
-                  pState, initExpr, generatedVars, variableLHS, killedVars, values);
+              handleTaintPropagationForDeclarationInitializer(
+                  pState, initExpr, generatedVars, variableLHS, killedVars, values, pCfaEdge);
             }
           }
         }
@@ -585,27 +585,42 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return generateNewState(pState, killedVars, generatedVars, values);
   }
 
-  private static void checkIfInitializerExpressionIsTainted(
+  private void handleTaintPropagationForDeclarationInitializer(
       TaintAnalysisState pState,
       CInitializerExpression initializer,
       Set<CIdExpression> generatedVars,
       CIdExpression variableLHS,
       Set<CIdExpression> killedVars,
-      Map<CIdExpression, CExpression> values) {
+      Map<CIdExpression, CExpression> values,
+      CFAEdge pCfaEdge) {
+
+    Map<CIdExpression, CExpression> taintedVars = pState.getTaintedVariables();
+
+    StatementControlFlowInfo statementControlFlowInfo =
+        new StatementControlFlowInfo(pCfaEdge, taintedVars.keySet());
+    boolean statementIsInControlStructure = statementControlFlowInfo.statementIsInControlStructure;
+    boolean statementIsControlledByTaintedVars =
+        statementControlFlowInfo.statementIsControlledByTaintedVars;
 
     CExpression expr = initializer.getExpression();
 
-    boolean taintedVarsRHS =
+    boolean rhsIsTainted =
         TaintAnalysisUtils.getAllVarsAsCExpr(expr).stream()
-            .anyMatch(var -> pState.getTaintedVariables().containsKey(var));
+            .anyMatch(var -> taintedVars.containsKey(var));
 
-    if (taintedVarsRHS) {
-      generatedVars.add(variableLHS);
-      values.put(variableLHS, expr);
+    if (statementIsInControlStructure) {
+      if (statementIsControlledByTaintedVars || rhsIsTainted) {
+        generatedVars.add(variableLHS);
+      }
     } else {
-      killedVars.add(variableLHS);
-      values.put(variableLHS, expr);
+      if (rhsIsTainted) {
+        generatedVars.add(variableLHS);
+      } else {
+        killedVars.add(variableLHS);
+      }
     }
+
+    values.put(variableLHS, expr);
   }
 
   private ImmutableList<TaintAnalysisState> handleStatementEdge(
