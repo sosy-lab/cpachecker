@@ -18,5 +18,5 @@ int main() {
     z = y >= 0 ? (x ? y + 1: y - 1) : y;
 
     // t(z) = T
-    __VERIFIER_is_public(z, 0);
+    __VERIFIER_is_public(z, 1);
 }
