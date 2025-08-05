@@ -12,8 +12,8 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -42,8 +42,8 @@ public class GlobalVariableFinder {
         .isEmpty();
   }
 
-  public static ImmutableMultimap<CVariableDeclaration, CVariableDeclaration> mapPointerAssignments(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+  public static ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration>
+      mapPointerAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     // we map pointer variables to the global variables assigned to them
     Multimap<CVariableDeclaration, CVariableDeclaration> rPointerAssignments =
@@ -57,7 +57,7 @@ public class GlobalVariableFinder {
         rPointerAssignments.put(entry.getKey(), entry.getValue());
       }
     }
-    return ImmutableMultimap.copyOf(rPointerAssignments);
+    return ImmutableSetMultimap.copyOf(rPointerAssignments);
   }
 
   /**

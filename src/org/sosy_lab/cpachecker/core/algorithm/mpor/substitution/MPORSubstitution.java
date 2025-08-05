@@ -191,7 +191,6 @@ public class MPORSubstitution {
       final Optional<ThreadEdge> pCallContext,
       boolean pIsWrite,
       boolean pIsUnaryAmper,
-      Optional<Map<CVariableDeclaration, CVariableDeclaration>> pPointerAssignments,
       Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<Set<CVariableDeclaration>> pAccessedGlobalVariables,
       Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
@@ -232,7 +231,6 @@ public class MPORSubstitution {
               // binary expressions are never LHS in assignments -> no write
               false,
               pIsUnaryAmper,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
               pAccessedFunctionPointers);
@@ -243,7 +241,6 @@ public class MPORSubstitution {
               // binary expressions are never LHS in assignments -> no write
               false,
               pIsUnaryAmper,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
               pAccessedFunctionPointers);
@@ -266,7 +263,6 @@ public class MPORSubstitution {
               pCallContext,
               true,
               pIsUnaryAmper,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
               pAccessedFunctionPointers);
@@ -277,7 +273,6 @@ public class MPORSubstitution {
               pCallContext,
               false,
               pIsUnaryAmper,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
               pAccessedFunctionPointers);
@@ -294,7 +289,6 @@ public class MPORSubstitution {
               pCallContext,
               pIsWrite,
               pIsUnaryAmper,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
               pAccessedFunctionPointers);
@@ -318,7 +312,6 @@ public class MPORSubstitution {
               // unary expressions such as '&var' are never LHS in assignments -> no write
               false,
               unary.getOperator().equals(UnaryOperator.AMPER),
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
               pAccessedFunctionPointers),
@@ -333,7 +326,6 @@ public class MPORSubstitution {
               pCallContext,
               pIsWrite,
               pIsUnaryAmper,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
               pAccessedFunctionPointers));
@@ -348,7 +340,6 @@ public class MPORSubstitution {
               // cast expressions are never LHS -> no write
               pIsWrite,
               pIsUnaryAmper,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
               pAccessedFunctionPointers));
@@ -378,7 +369,6 @@ public class MPORSubstitution {
                 pCallContext,
                 false,
                 false,
-                pPointerAssignments,
                 pWrittenGlobalVariables,
                 pGlobalVariables,
                 pAccessedFunctionPointers);
@@ -401,7 +391,6 @@ public class MPORSubstitution {
                 pCallContext,
                 false,
                 false,
-                pPointerAssignments,
                 pWrittenGlobalVariables,
                 pGlobalVariables,
                 pAccessedFunctionPointers);
@@ -442,7 +431,6 @@ public class MPORSubstitution {
               pCallContext,
               true,
               false,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pGlobalVariables,
               pAccessedFunctionPointers);
@@ -456,7 +444,6 @@ public class MPORSubstitution {
                 pCallContext,
                 false,
                 false,
-                pPointerAssignments,
                 pWrittenGlobalVariables,
                 pGlobalVariables,
                 pAccessedFunctionPointers));
@@ -470,7 +457,6 @@ public class MPORSubstitution {
               pCallContext,
               false,
               false,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pGlobalVariables,
               pAccessedFunctionPointers));
@@ -496,7 +482,6 @@ public class MPORSubstitution {
               pCallContext,
               false,
               false,
-              pPointerAssignments,
               pWrittenGlobalVariables,
               pGlobalVariables,
               pAccessedFunctionPointers));
@@ -512,7 +497,6 @@ public class MPORSubstitution {
             false,
             Optional.empty(),
             Optional.empty(),
-            Optional.empty(),
             pAccessedFunctionPointers);
     return new CFunctionCallExpression(
         pFunctionCallExpression.getFileLocation(),
@@ -525,7 +509,6 @@ public class MPORSubstitution {
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<ThreadEdge> pCallContext,
-      Optional<Map<CVariableDeclaration, CVariableDeclaration>> pPointerAssignments,
       Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<Set<CVariableDeclaration>> pGlobalVariables,
       Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
@@ -544,7 +527,6 @@ public class MPORSubstitution {
                   pCallContext,
                   false,
                   false,
-                  pPointerAssignments,
                   pWrittenGlobalVariables,
                   pGlobalVariables,
                   pAccessedFunctionPointers)),

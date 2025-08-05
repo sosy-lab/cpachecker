@@ -137,7 +137,6 @@ public class SubstituteEdgeBuilder {
               callContext,
               false,
               false,
-              Optional.of(pointerAssignments),
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
               Optional.of(accessedFunctionPointers));
@@ -221,7 +220,6 @@ public class SubstituteEdgeBuilder {
               ImmutableSet.copyOf(accessedFunctionPointers)));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
-      Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments = new HashMap<>();
       Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
       Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
       Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
@@ -229,7 +227,6 @@ public class SubstituteEdgeBuilder {
           pSubstitution.substitute(
               returnStatement.getReturnStatement(),
               callContext,
-              Optional.of(pointerAssignments),
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
               Optional.of(accessedFunctionPointers));
@@ -237,7 +234,7 @@ public class SubstituteEdgeBuilder {
           new SubstituteEdge(
               substituteReturnStatementEdge(returnStatement, substituteReturnStatement),
               pThreadEdge,
-              ImmutableMap.copyOf(pointerAssignments),
+              ImmutableMap.of(),
               ImmutableSet.copyOf(writtenGlobalVariables),
               ImmutableSet.copyOf(accessedGlobalVariables),
               ImmutableSet.copyOf(accessedFunctionPointers)));
