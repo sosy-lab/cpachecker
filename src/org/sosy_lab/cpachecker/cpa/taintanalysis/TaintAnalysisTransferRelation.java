@@ -659,23 +659,17 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         // LHS
         if (statementControlFlowInfo.isCurrentStatementInControlStructure()) {
           if (statementControlFlowInfo.isCurrentStatementControlledByTaintedVars()) {
-            //            if (!taintedLHS) {
             generatedVars.add(variableLHS);
-            //            }
           } else {
             if (taintedRHS) {
-              //              if (!taintedLHS) {
               generatedVars.add(variableLHS);
-              //              }
             } else {
               killedVars.add(variableLHS);
             }
           }
         } else {
           if (taintedRHS) {
-            //            if (!taintedLHS) {
             generatedVars.add(variableLHS);
-            //            }
           } else {
             killedVars.add(variableLHS);
           }
