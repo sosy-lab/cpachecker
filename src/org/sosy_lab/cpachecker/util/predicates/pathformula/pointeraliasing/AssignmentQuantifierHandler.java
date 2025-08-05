@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.ResolvedPartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
@@ -290,10 +289,6 @@ class AssignmentQuantifierHandler {
 
       // conjunct the assignment formulas
       result = bfmgr.and(result, assignmentResult);
-      if (CtoFormulaConverter.additionalConstraint != null) {
-        result = bfmgr.and(result, CtoFormulaConverter.additionalConstraint);
-        CtoFormulaConverter.additionalConstraint = null;
-      }
     }
 
     return result;
