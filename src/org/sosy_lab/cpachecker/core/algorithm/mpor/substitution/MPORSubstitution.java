@@ -125,6 +125,7 @@ public class MPORSubstitution {
   private void handleGlobalVariableAccesses(
       CIdExpression pIdExpression,
       boolean pIsWrite,
+      boolean pIsPointerDereference,
       Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<Set<CVariableDeclaration>> pAccessedGlobalVariables) {
 
@@ -134,14 +135,19 @@ public class MPORSubstitution {
     // otherwise, if applicable, add declaration to global reads/writes
     if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.isGlobal()) {
-        // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
-        boolean isMutex =
-            PthreadObjectType.PTHREAD_MUTEX_T.equalsType(variableDeclaration.getType());
-        if (pAccessedGlobalVariables.isPresent()) {
-          pAccessedGlobalVariables.orElseThrow().add(variableDeclaration);
-        }
-        if (pWrittenGlobalVariables.isPresent() && (pIsWrite || isMutex)) {
-          pWrittenGlobalVariables.orElseThrow().add(variableDeclaration);
+        // exclude pointer dereferences, they are handled separately
+        if (!pIsPointerDereference) {
+          if (pAccessedGlobalVariables.isPresent()) {
+            pAccessedGlobalVariables.orElseThrow().add(variableDeclaration);
+          }
+          if (pWrittenGlobalVariables.isPresent()) {
+            // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
+            CType type = variableDeclaration.getType();
+            boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
+            if (pIsWrite || isMutex) {
+              pWrittenGlobalVariables.orElseThrow().add(variableDeclaration);
+            }
+          }
         }
       }
     }
@@ -211,6 +217,7 @@ public class MPORSubstitution {
       final CExpression pExpression,
       final Optional<ThreadEdge> pCallContext,
       boolean pIsWrite,
+      boolean pIsPointerDereference,
       boolean pIsUnaryAmper,
       Optional<Set<CVariableDeclaration>> pWrittenPointerDereferences,
       Optional<Set<CVariableDeclaration>> pAccessedPointerDereferences,
@@ -232,7 +239,11 @@ public class MPORSubstitution {
       CSimpleDeclaration declaration = idExpression.getDeclaration();
       if (isSubstitutable(declaration)) {
         handleGlobalVariableAccesses(
-            idExpression, pIsWrite, pWrittenGlobalVariables, pAccessedGlobalVariables);
+            idExpression,
+            pIsWrite,
+            pIsPointerDereference,
+            pWrittenGlobalVariables,
+            pAccessedGlobalVariables);
         return getVariableSubstitute(idExpression.getDeclaration(), pCallContext);
       }
       // when accessing function pointers e.g. &func. this is also possible without the unary amper
@@ -253,6 +264,7 @@ public class MPORSubstitution {
               pCallContext,
               // binary expressions are never LHS in assignments -> no write
               false,
+              false,
               pIsUnaryAmper,
               pWrittenPointerDereferences,
               pAccessedPointerDereferences,
@@ -264,6 +276,7 @@ public class MPORSubstitution {
               binary.getOperand2(),
               pCallContext,
               // binary expressions are never LHS in assignments -> no write
+              false,
               false,
               pIsUnaryAmper,
               pWrittenPointerDereferences,
@@ -289,6 +302,7 @@ public class MPORSubstitution {
               arrayExpression,
               pCallContext,
               true,
+              false,
               pIsUnaryAmper,
               pWrittenPointerDereferences,
               pAccessedPointerDereferences,
@@ -300,6 +314,7 @@ public class MPORSubstitution {
           substitute(
               subscriptExpression,
               pCallContext,
+              false,
               false,
               pIsUnaryAmper,
               pWrittenPointerDereferences,
@@ -319,6 +334,7 @@ public class MPORSubstitution {
               fieldReference.getFieldOwner(),
               pCallContext,
               pIsWrite,
+              pIsPointerDereference,
               pIsUnaryAmper,
               pWrittenPointerDereferences,
               pAccessedPointerDereferences,
@@ -344,6 +360,7 @@ public class MPORSubstitution {
               pCallContext,
               // unary expressions such as '&var' are never LHS in assignments -> no write
               false,
+              false,
               unary.getOperator().equals(UnaryOperator.AMPER),
               pWrittenPointerDereferences,
               pAccessedPointerDereferences,
@@ -362,6 +379,7 @@ public class MPORSubstitution {
               pointer.getOperand(),
               pCallContext,
               pIsWrite,
+              true,
               pIsUnaryAmper,
               pWrittenPointerDereferences,
               pAccessedPointerDereferences,
@@ -378,6 +396,7 @@ public class MPORSubstitution {
               pCallContext,
               // cast expressions are never LHS -> no write
               pIsWrite,
+              pIsPointerDereference,
               pIsUnaryAmper,
               pWrittenPointerDereferences,
               pAccessedPointerDereferences,
@@ -412,6 +431,7 @@ public class MPORSubstitution {
                 pCallContext,
                 false,
                 false,
+                false,
                 pWrittenPointerDereferences,
                 pAccessedPointerDereferences,
                 pWrittenGlobalVariables,
@@ -435,6 +455,7 @@ public class MPORSubstitution {
             substitute(
                 arraySubscriptExpression,
                 pCallContext,
+                false,
                 false,
                 false,
                 pWrittenPointerDereferences,
@@ -481,6 +502,7 @@ public class MPORSubstitution {
               pCallContext,
               true,
               false,
+              false,
               pWrittenPointerDereferences,
               pAccessedPointerDereferences,
               pWrittenGlobalVariables,
@@ -496,6 +518,7 @@ public class MPORSubstitution {
                 pCallContext,
                 false,
                 false,
+                false,
                 pWrittenPointerDereferences,
                 pAccessedPointerDereferences,
                 pWrittenGlobalVariables,
@@ -509,6 +532,7 @@ public class MPORSubstitution {
           substitute(
               expression.getExpression(),
               pCallContext,
+              false,
               false,
               false,
               pWrittenPointerDereferences,
@@ -539,6 +563,7 @@ public class MPORSubstitution {
               pCallContext,
               false,
               false,
+              false,
               pWrittenPointerDereferences,
               pAccessedPointerDereferences,
               pWrittenGlobalVariables,
@@ -552,6 +577,7 @@ public class MPORSubstitution {
         substitute(
             pFunctionCallExpression.getFunctionNameExpression(),
             pCallContext,
+            false,
             false,
             false,
             Optional.empty(),
@@ -588,6 +614,7 @@ public class MPORSubstitution {
               substitute(
                   expression,
                   pCallContext,
+                  false,
                   false,
                   false,
                   pWrittenPointerDereferences,

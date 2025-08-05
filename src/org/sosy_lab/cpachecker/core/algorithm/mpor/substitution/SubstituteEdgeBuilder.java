@@ -145,6 +145,7 @@ public class SubstituteEdgeBuilder {
               callContext,
               false,
               false,
+              false,
               Optional.of(writtenPointerDereferences),
               Optional.of(accessedPointerDereferences),
               Optional.of(writtenGlobalVariables),

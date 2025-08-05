@@ -52,6 +52,7 @@ public class PartialOrderReducer {
       return ConflictResolver.resolve(
           pOptions,
           withBitVectors,
+          pPointerAssignments,
           pBitVectorVariables.orElseThrow(),
           pPcVariables,
           pBinaryExpressionBuilder,
@@ -82,6 +83,7 @@ public class PartialOrderReducer {
       return ConflictResolver.resolve(
           pOptions,
           withBitVectors,
+          pPointerAssignments,
           pBitVectorVariables.orElseThrow(),
           pPcVariables,
           pBinaryExpressionBuilder,

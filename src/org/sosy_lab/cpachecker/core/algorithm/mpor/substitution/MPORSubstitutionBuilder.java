@@ -144,6 +144,7 @@ public class MPORSubstitutionBuilder {
                     Optional.empty(),
                     false,
                     false,
+                    false,
                     Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
@@ -364,6 +365,7 @@ public class MPORSubstitutionBuilder {
                   dummySubstitution.substitute(
                       initializerExpression.getExpression(),
                       callContext,
+                      false,
                       false,
                       false,
                       Optional.empty(),

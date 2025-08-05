@@ -348,6 +348,7 @@ public class GhostVariableUtil {
                         threadEdge.callContext,
                         false,
                         false,
+                        false,
                         Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
@@ -381,6 +382,7 @@ public class GhostVariableUtil {
                           // the inner call context is the context in which pthread_create is called
                           rightHandSide,
                           callContext.callContext,
+                          false,
                           false,
                           false,
                           Optional.empty(),

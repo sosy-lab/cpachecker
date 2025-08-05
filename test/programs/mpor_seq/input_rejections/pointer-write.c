@@ -30,5 +30,8 @@ int main()
   pthread_t t1;
   pthread_create(&t1, 0, start_routine, 0);
   pointer_a = &y;
+  *pointer_a = 42;
+  pointer_a = &x;
+  *pointer_a = 42 * 2;
   return 0;
 }
