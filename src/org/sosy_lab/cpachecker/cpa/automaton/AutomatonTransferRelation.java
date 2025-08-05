@@ -10,11 +10,9 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -32,8 +30,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -48,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
@@ -300,43 +295,6 @@ public class AutomatonTransferRelation implements TransferRelation {
           lSuccessors.add(lSuccessor);
         } else {
           // add nothing
-        }
-
-        ImmutableList<AExpression> analysisAssertions =
-            exprArgs.instantiateAssumptions(t.getAnalysisAssertions(edge, logger, machineModel));
-        if (!analysisAssertions.isEmpty()) {
-          // Now we need to handle the assertions for the analysis through the transition, we do
-          // this the same way in which we handle this for the OverflowCPA. By adding a successor
-          // state with the assertions as negated assumptions and marked as target. Therefore,
-          // whenever the special successor state is considered to be reachable there is a violation
-          // of the assertions.
-          if (FluentIterable.from(analysisAssertions).filter(CExpression.class).size()
-              != analysisAssertions.size()) {
-            logger.log(
-                Level.WARNING,
-                "The assertions of the transition are not C expressions, "
-                    + "this is not supported by the AutomatonCPA. The assertions will be ignored.");
-          }
-
-          ImmutableList<CExpression> cAnalysisAssertions =
-              transformedImmutableListCopy(analysisAssertions, CExpression.class::cast);
-
-          CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(machineModel, logger);
-          for (CExpression assertion : cAnalysisAssertions) {
-            lSuccessors.add(
-                AutomatonState.automatonStateFactory(
-                    newVars,
-                    AutomatonInternalState.ERROR,
-                    state.getOwningAutomaton(),
-                    ImmutableList.of(builder.negateExpressionAndSimplify(assertion)),
-                    ExpressionTrees.getTrue(),
-                    false,
-                    state.getMatches() + 1,
-                    state.getFailedMatches(),
-                    new AutomatonTargetInformation(
-                        state.getOwningAutomaton(), t, assertion.toParenthesizedASTString()),
-                    true));
-          }
         }
       }
       return lSuccessors.build();

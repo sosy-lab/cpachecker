@@ -68,13 +68,6 @@ class AutomatonTransition {
   private final AutomatonBoolExpr assertion;
 
   /**
-   * These set of assertions are checked in the analysis instead of the other assertions which are
-   * checked as an automaton bool expression. Therefore, they consist of AExpressions and correspond
-   * to normal `assert(expr)` statements in the C code.
-   */
-  private final ImmutableList<AExpression> analysisAssertions;
-
-  /**
    * Assumptions contain additional code fragments that can be evaluated in the analysis.
    * Assumptions do not directly influence the transfer-relation of the AutomatonCPA, but can
    * provide information for other CPAs (that can cut off the ARG by themselves by returning a
@@ -103,7 +96,6 @@ class AutomatonTransition {
   static class Builder {
     private AutomatonBoolExpr trigger;
     private List<AutomatonBoolExpr> assertions;
-    private List<AExpression> analysisAssertions;
     private List<AExpression> assumptions;
     private List<AutomatonAction> actions;
     private String followStateName;
@@ -115,7 +107,6 @@ class AutomatonTransition {
     Builder(AutomatonBoolExpr pTrigger, String pFollowStateName) {
       trigger = pTrigger;
       assertions = ImmutableList.of();
-      analysisAssertions = ImmutableList.of();
       assumptions = ImmutableList.of();
       actions = ImmutableList.of();
       followStateName = pFollowStateName;
@@ -131,12 +122,6 @@ class AutomatonTransition {
     @CanIgnoreReturnValue
     Builder withAssertion(AutomatonBoolExpr pAssertion) {
       assertions = ImmutableList.of(pAssertion);
-      return this;
-    }
-
-    @CanIgnoreReturnValue
-    Builder withAnalysisAssertion(AExpression pAssertion) {
-      analysisAssertions = ImmutableList.of(pAssertion);
       return this;
     }
 
@@ -180,7 +165,6 @@ class AutomatonTransition {
       return new AutomatonTransition(
           trigger,
           assertions,
-          analysisAssertions,
           assumptions,
           candidateInvariants,
           areDefaultCandidateInvariants,
@@ -195,7 +179,6 @@ class AutomatonTransition {
     this(
         b.trigger,
         b.assertions,
-        b.analysisAssertions,
         b.assumptions,
         b.candidateInvariants,
         b.areDefaultCandidateInvariants,
@@ -208,7 +191,6 @@ class AutomatonTransition {
   private AutomatonTransition(
       AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions,
-      List<AExpression> pAnalysisAssertions,
       List<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
       boolean pAreDefaultCandidateInvariants,
@@ -248,8 +230,6 @@ class AutomatonTransition {
       }
       assertion = lAssertion;
     }
-
-    analysisAssertions = ImmutableList.copyOf(pAnalysisAssertions);
   }
 
   @Override
@@ -266,7 +246,6 @@ class AutomatonTransition {
     return obj instanceof AutomatonTransition other
         && Objects.equals(actions, other.actions)
         && Objects.equals(assertion, other.assertion)
-        && Objects.equals(analysisAssertions, other.analysisAssertions)
         && Objects.equals(assumptions, other.assumptions)
         && Objects.equals(followStateName, other.followStateName)
         && Objects.equals(trigger, other.trigger)
@@ -407,21 +386,8 @@ class AutomatonTransition {
 
   public ImmutableList<AExpression> getAssumptions(
       CFAEdge pEdge, LogManager pLogger, MachineModel pMachineModel) {
-    return resolveAutomatonExpressions(pEdge, pLogger, pMachineModel, assumptions);
-  }
-
-  public ImmutableList<AExpression> getAnalysisAssertions(
-      CFAEdge pEdge, LogManager pLogger, MachineModel pMachineModel) {
-    return resolveAutomatonExpressions(pEdge, pLogger, pMachineModel, analysisAssertions);
-  }
-
-  private static ImmutableList<AExpression> resolveAutomatonExpressions(
-      CFAEdge pEdge,
-      LogManager pLogger,
-      MachineModel pMachineModel,
-      List<AExpression> pAExpressions) {
     ImmutableList.Builder<AExpression> builder = ImmutableList.builder();
-    for (AExpression assumption : pAExpressions) {
+    for (AExpression assumption : assumptions) {
       Optional<AExpression> resolved = tryResolve(assumption, pEdge, pLogger, pMachineModel);
       if (resolved.isPresent()) {
         builder.add(resolved.orElseThrow());
@@ -430,7 +396,7 @@ class AutomatonTransition {
     return builder.build();
   }
 
-  private static Optional<AExpression> tryResolve(
+  private Optional<AExpression> tryResolve(
       AExpression pAssumption, CFAEdge pEdge, LogManager pLogger, MachineModel pMachineModel) {
     CBinaryExpressionBuilder binExpBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
     Substitution substitution =

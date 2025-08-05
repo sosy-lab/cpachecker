@@ -44,7 +44,6 @@ public class AutomatonWitnessV2ValidationTest {
     // reimplementing the parsing of options from the command line.
     //
     // Maybe at some point I will refactor this, but currently this is not worth the effort.
-    //
     // Additionally, since the particular configs may change, but we want to test the top-level
     // witnessValidation config it is necessary to use that particular one. This is to avoid
     // regressions which are not detected because the top-level config changed and now the
