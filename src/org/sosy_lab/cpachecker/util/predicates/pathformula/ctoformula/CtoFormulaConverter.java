@@ -643,9 +643,10 @@ public class CtoFormulaConverter {
             fmgr.getFloatingPointFormulaManager()
                 .fromIeeeBitvector(
                     (BitvectorFormula) bvformula, (FloatingPointType) fromFormulaType);
+
+        // assignment() allows a value to be NaN etc.
         BooleanFormula additionalConstraint =
-            fmgr.getFloatingPointFormulaManager()
-                .equalWithFPSemantics(tmpFp, (FloatingPointFormula) formula);
+            fmgr.getFloatingPointFormulaManager().assignment(tmpFp, (FloatingPointFormula) formula);
 
         formula = bvformula;
         constraints.addConstraint(additionalConstraint);
