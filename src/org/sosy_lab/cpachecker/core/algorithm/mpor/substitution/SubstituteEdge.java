@@ -28,6 +28,12 @@ public class SubstituteEdge {
 
   public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> pointerAssignment;
 
+  /** The set of written pointer derefs, .e.g {@code *ptr = 42;} */
+  public final ImmutableSet<CVariableDeclaration> writtenPointerDereferences;
+
+  /** The set of accessed pointer derefs including reads, e.g. {@code var = 42 + *ptr;} */
+  public final ImmutableSet<CVariableDeclaration> accessedPointerDereferences;
+
   /** The set of global variable declarations that this edge accesses. */
   public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
 
@@ -45,6 +51,8 @@ public class SubstituteEdge {
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
       ImmutableMap<CVariableDeclaration, CVariableDeclaration> pPointerAssignment,
+      ImmutableSet<CVariableDeclaration> pWrittenPointerDereferences,
+      ImmutableSet<CVariableDeclaration> pAccessedPointerDereferences,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
@@ -57,6 +65,8 @@ public class SubstituteEdge {
     cfaEdge = pCfaEdge;
     threadEdge = pThreadEdge;
     pointerAssignment = pPointerAssignment;
+    writtenPointerDereferences = pWrittenPointerDereferences;
+    accessedPointerDereferences = pAccessedPointerDereferences;
     writtenGlobalVariables = pWrittenGlobalVariables;
     accessedGlobalVariables = pAccessedGlobalVariables;
     readGlobalVariables =

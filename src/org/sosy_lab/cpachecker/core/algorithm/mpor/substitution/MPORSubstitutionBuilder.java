@@ -146,6 +146,8 @@ public class MPORSubstitutionBuilder {
                     false,
                     Optional.empty(),
                     Optional.empty(),
+                    Optional.empty(),
+                    Optional.empty(),
                     Optional.empty()));
         CVariableDeclaration finalSub =
             substituteVariableDeclaration(variableDeclaration, initExprSub);
@@ -364,6 +366,8 @@ public class MPORSubstitutionBuilder {
                       callContext,
                       false,
                       false,
+                      Optional.empty(),
+                      Optional.empty(),
                       Optional.empty(),
                       Optional.of(accessedGlobalVariables),
                       Optional.empty()));

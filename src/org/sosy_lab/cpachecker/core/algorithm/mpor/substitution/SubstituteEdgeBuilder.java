@@ -64,6 +64,8 @@ public class SubstituteEdgeBuilder {
                       ImmutableMap.of(),
                       ImmutableSet.of(),
                       ImmutableSet.of(),
+                      ImmutableSet.of(),
+                      ImmutableSet.of(),
                       ImmutableSet.of()));
         }
       }
@@ -102,6 +104,8 @@ public class SubstituteEdgeBuilder {
                     pThreadEdge,
                     // TODO this requires handling, e.g. 'int * ptr = &x;'
                     ImmutableMap.of(),
+                    ImmutableSet.of(),
+                    ImmutableSet.of(),
                     // no global accesses needed, global declarations are outside main()
                     ImmutableSet.of(),
                     ImmutableSet.of(),
@@ -119,6 +123,8 @@ public class SubstituteEdgeBuilder {
                     // TODO this requires handling, e.g. 'int * ptr = &x;'
                     ImmutableMap.of(),
                     ImmutableSet.of(),
+                    ImmutableSet.of(),
+                    ImmutableSet.of(),
                     accessedGlobalVariables,
                     ImmutableSet.of()));
           }
@@ -128,6 +134,8 @@ public class SubstituteEdgeBuilder {
       // TODO try to create a single method here for all these edge types
     } else if (cfaEdge instanceof CAssumeEdge assume) {
       Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments = new HashMap<>();
+      Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
+      Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
       Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
       Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
       Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
@@ -137,6 +145,8 @@ public class SubstituteEdgeBuilder {
               callContext,
               false,
               false,
+              Optional.of(writtenPointerDereferences),
+              Optional.of(accessedPointerDereferences),
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
               Optional.of(accessedFunctionPointers));
@@ -145,12 +155,16 @@ public class SubstituteEdgeBuilder {
               substituteAssumeEdge(assume, substituteAssumption),
               pThreadEdge,
               ImmutableMap.copyOf(pointerAssignments),
+              ImmutableSet.copyOf(writtenPointerDereferences),
+              ImmutableSet.copyOf(accessedPointerDereferences),
               ImmutableSet.copyOf(writtenGlobalVariables),
               ImmutableSet.copyOf(accessedGlobalVariables),
               ImmutableSet.copyOf(accessedFunctionPointers)));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
       Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments = new HashMap<>();
+      Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
+      Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
       Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
       Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
       Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
@@ -159,6 +173,8 @@ public class SubstituteEdgeBuilder {
               statement.getStatement(),
               callContext,
               Optional.of(pointerAssignments),
+              Optional.of(writtenPointerDereferences),
+              Optional.of(accessedPointerDereferences),
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
               Optional.of(accessedFunctionPointers));
@@ -167,6 +183,8 @@ public class SubstituteEdgeBuilder {
               substituteStatementEdge(statement, substituteStatement),
               pThreadEdge,
               ImmutableMap.copyOf(pointerAssignments),
+              ImmutableSet.copyOf(writtenPointerDereferences),
+              ImmutableSet.copyOf(accessedPointerDereferences),
               ImmutableSet.copyOf(writtenGlobalVariables),
               ImmutableSet.copyOf(accessedGlobalVariables),
               ImmutableSet.copyOf(accessedFunctionPointers)));
@@ -175,6 +193,8 @@ public class SubstituteEdgeBuilder {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
       if (functionSummary.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
         Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments = new HashMap<>();
+        Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
+        Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
         Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
         Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
         Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
@@ -183,6 +203,8 @@ public class SubstituteEdgeBuilder {
                 assignment,
                 callContext,
                 Optional.of(pointerAssignments),
+                Optional.of(writtenPointerDereferences),
+                Optional.of(accessedPointerDereferences),
                 Optional.of(writtenGlobalVariables),
                 Optional.of(accessedGlobalVariables),
                 Optional.of(accessedFunctionPointers));
@@ -191,6 +213,8 @@ public class SubstituteEdgeBuilder {
                 substituteFunctionSummaryEdge(functionSummary, substituteAssignment),
                 pThreadEdge,
                 ImmutableMap.copyOf(pointerAssignments),
+                ImmutableSet.copyOf(writtenPointerDereferences),
+                ImmutableSet.copyOf(accessedPointerDereferences),
                 ImmutableSet.copyOf(writtenGlobalVariables),
                 ImmutableSet.copyOf(accessedGlobalVariables),
                 ImmutableSet.copyOf(accessedFunctionPointers)));
@@ -199,6 +223,8 @@ public class SubstituteEdgeBuilder {
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
       // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
       Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments = new HashMap<>();
+      Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
+      Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
       Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
       Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
       Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
@@ -207,6 +233,8 @@ public class SubstituteEdgeBuilder {
               functionCall.getFunctionCall(),
               callContext,
               Optional.of(pointerAssignments),
+              Optional.of(writtenPointerDereferences),
+              Optional.of(accessedPointerDereferences),
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
               Optional.of(accessedFunctionPointers));
@@ -215,11 +243,15 @@ public class SubstituteEdgeBuilder {
               substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall),
               pThreadEdge,
               ImmutableMap.copyOf(pointerAssignments),
+              ImmutableSet.copyOf(writtenPointerDereferences),
+              ImmutableSet.copyOf(accessedPointerDereferences),
               ImmutableSet.copyOf(writtenGlobalVariables),
               ImmutableSet.copyOf(accessedGlobalVariables),
               ImmutableSet.copyOf(accessedFunctionPointers)));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
+      Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
+      Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
       Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
       Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
       Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
@@ -227,6 +259,8 @@ public class SubstituteEdgeBuilder {
           pSubstitution.substitute(
               returnStatement.getReturnStatement(),
               callContext,
+              Optional.of(writtenPointerDereferences),
+              Optional.of(accessedPointerDereferences),
               Optional.of(writtenGlobalVariables),
               Optional.of(accessedGlobalVariables),
               Optional.of(accessedFunctionPointers));
@@ -235,6 +269,8 @@ public class SubstituteEdgeBuilder {
               substituteReturnStatementEdge(returnStatement, substituteReturnStatement),
               pThreadEdge,
               ImmutableMap.of(),
+              ImmutableSet.copyOf(writtenPointerDereferences),
+              ImmutableSet.copyOf(accessedPointerDereferences),
               ImmutableSet.copyOf(writtenGlobalVariables),
               ImmutableSet.copyOf(accessedGlobalVariables),
               ImmutableSet.copyOf(accessedFunctionPointers)));

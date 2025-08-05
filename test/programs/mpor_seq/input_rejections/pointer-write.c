@@ -17,6 +17,9 @@ void * start_routine(void * arg)
   pointer_a = &x;
   int * pointer_b;
   pointer_b = pointer_a;
+  int z = y + *pointer_b;
+  *pointer_a = 42;
+  *pointer_b = 42 + *pointer_a;
 }
 int main()
 {
