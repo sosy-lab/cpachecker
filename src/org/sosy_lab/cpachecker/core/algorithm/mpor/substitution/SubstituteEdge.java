@@ -57,6 +57,7 @@ public class SubstituteEdge {
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
 
+    // TODO maybe make it an optional single entry then? ...
     checkArgument(
         pPointerAssignment.size() <= 1, "a single edge can have either 0 or 1 pointer assignments");
     checkArgument(

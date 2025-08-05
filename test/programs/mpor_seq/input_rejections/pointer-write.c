@@ -20,6 +20,10 @@ void * start_routine(void * arg)
   int z = y + *pointer_b;
   *pointer_a = 42;
   *pointer_b = 42 + *pointer_a;
+  int * pointer_c;
+  pointer_c = pointer_b;
+  int * pointer_d;
+  pointer_d = &y;
 }
 int main()
 {

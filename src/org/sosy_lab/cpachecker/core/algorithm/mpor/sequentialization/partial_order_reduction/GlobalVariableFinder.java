@@ -8,18 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Multimap;
 import java.util.HashSet;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -42,22 +41,59 @@ public class GlobalVariableFinder {
         .isEmpty();
   }
 
+  /**
+   * Maps pointers {@code ptr} to the memory locations e.g. {@code &var} assigned to them based on
+   * {@code pSubstituteEdges}, including both global and local memory locations.
+   */
   public static ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration>
       mapPointerAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    // we map pointer variables to the global variables assigned to them
-    Multimap<CVariableDeclaration, CVariableDeclaration> rPointerAssignments =
-        ArrayListMultimap.create();
+    // step 1: map pointers to memory locations assigned to them, including other pointers
+    ImmutableSetMultimap.Builder<CVariableDeclaration, CVariableDeclaration> initialBuilder =
+        ImmutableSetMultimap.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       if (!substituteEdge.pointerAssignment.isEmpty()) {
-        assert substituteEdge.pointerAssignment.size() == 1
-            : "a single edge can have only 0 or 1 pointer assignments";
-        Entry<CVariableDeclaration, CVariableDeclaration> entry =
+        assert substituteEdge.pointerAssignment.size() <= 1
+            : "a single edge can have at most 1 pointer assignments";
+        Map.Entry<CVariableDeclaration, CVariableDeclaration> singleEntry =
             substituteEdge.pointerAssignment.entrySet().iterator().next();
-        rPointerAssignments.put(entry.getKey(), entry.getValue());
+        initialBuilder.put(singleEntry.getKey(), singleEntry.getValue());
       }
     }
-    return ImmutableSetMultimap.copyOf(rPointerAssignments);
+    ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> initialMap =
+        initialBuilder.build();
+    // step 2: update the map so that only non-pointer variables are in the values
+    ImmutableSetMultimap.Builder<CVariableDeclaration, CVariableDeclaration> rFinal =
+        ImmutableSetMultimap.builder();
+    for (var entry : initialMap.entries()) {
+      rFinal.putAll(
+          entry.getKey(), findAllAssignedVariables(entry.getKey(), initialMap, new HashSet<>()));
+    }
+    return rFinal.build();
+  }
+
+  private static ImmutableSet<CVariableDeclaration> findAllAssignedVariables(
+      CVariableDeclaration pPointer,
+      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      Set<CVariableDeclaration> pVisitedPointers) {
+
+    ImmutableSet.Builder<CVariableDeclaration> rLocations = ImmutableSet.builder();
+    if (pPointerAssignments.containsKey(pPointer)) {
+      for (CVariableDeclaration variableDeclaration : pPointerAssignments.get(pPointer)) {
+        if (variableDeclaration.getType() instanceof CPointerType) {
+          if (pVisitedPointers.add(pPointer)) {
+            // for pointers, recursively find all variables assigned to the pointer
+            rLocations.addAll(
+                findAllAssignedVariables(
+                    variableDeclaration, pPointerAssignments, pVisitedPointers));
+          }
+        } else {
+          // for non-pointer variables, just add the variable itself
+          rLocations.add(variableDeclaration);
+        }
+      }
+    }
+    return rLocations.build();
   }
 
   /**
