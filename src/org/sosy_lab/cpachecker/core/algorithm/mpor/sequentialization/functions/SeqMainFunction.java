@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -68,6 +69,8 @@ public class SeqMainFunction extends SeqFunction {
   /** The thread-specific clauses in the while loop. */
   private final ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> clauses;
 
+  private final ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pointerAssignments;
+
   // TODO make Optional
   private final CFunctionCallAssignmentStatement nextThreadAssignment;
 
@@ -92,6 +95,7 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
@@ -105,6 +109,7 @@ public class SeqMainFunction extends SeqFunction {
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(pSubstitutions);
     numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(numThreads);
     clauses = pClauses;
+    pointerAssignments = pPointerAssignments;
     bitVectorVariables = pBitVectorVariables;
     pcVariables = pPcVariables;
     threadSimulationVariables = pThreadSimulationVariables;
@@ -241,6 +246,7 @@ public class SeqMainFunction extends SeqFunction {
               firstBlock,
               labelClauseMap,
               labelBlockMap,
+              pointerAssignments,
               pBitVectorVariables.orElseThrow());
       rInitializations.addAll(
           LineOfCodeUtil.buildLinesOfCodeFromSeqAstNodes(bitVectorInitializations));

@@ -73,6 +73,7 @@ public class SeqThreadStatementClauseBuilder {
             pBitVectorVariables,
             pPcVariables,
             atomicBlocks,
+            SubstituteUtil.mapPointerAssignments(pSubstituteEdges.values()),
             pBinaryExpressionBuilder,
             pLogger);
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)

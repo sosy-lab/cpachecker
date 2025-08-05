@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqThreadStatementClause implements SeqStatement {
 
+  // TODO this is not used?
   private static int currentId = 0;
 
   /** This method is required, otherwise some checks fail. */
@@ -47,7 +48,6 @@ public class SeqThreadStatementClause implements SeqStatement {
   public final ImmutableList<SeqThreadStatementBlock> mergedBlocks;
 
   public SeqThreadStatementClause(boolean pIsLoopStart, SeqThreadStatementBlock pBlock) {
-
     id = getNewId();
     isLoopStart = pIsLoopStart;
     labelNumber = pBlock.getLabel().labelNumber;

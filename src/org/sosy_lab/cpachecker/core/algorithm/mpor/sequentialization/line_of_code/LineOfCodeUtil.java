@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_co
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
@@ -348,11 +350,14 @@ public class LineOfCodeUtil {
             pThreadSimulationVariables,
             pBinaryExpressionBuilder,
             pLogger);
+    ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pointerAssignments =
+        SubstituteUtil.mapPointerAssignments(pSubstituteEdges.values());
     SeqMainFunction mainFunction =
         new SeqMainFunction(
             pOptions,
             pSubstitutions,
             clauses,
+            pointerAssignments,
             pBitVectorVariables,
             pPcVariables,
             pThreadSimulationVariables,

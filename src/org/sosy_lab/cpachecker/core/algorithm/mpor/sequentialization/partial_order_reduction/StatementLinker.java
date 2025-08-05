@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -27,7 +29,8 @@ public class StatementLinker {
 
   /** Links commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
   protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> link(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rLinked =
         ImmutableMap.builder();
@@ -36,7 +39,7 @@ public class StatementLinker {
       // these clauses must not be directly reachable, and their labels are pruned later
       ImmutableSet.Builder<Integer> linkedTargetIds = ImmutableSet.builder();
       ImmutableList<SeqThreadStatementClause> linkedClauses =
-          linkCommutingClausesWithGotos(entry.getValue(), linkedTargetIds);
+          linkCommutingClausesWithGotos(entry.getValue(), pPointerAssignments, linkedTargetIds);
       ImmutableList<SeqThreadStatementClause> merged =
           mergeNotDirectlyReachableStatements(linkedClauses, linkedTargetIds.build());
       rLinked.put(entry.getKey(), merged);
@@ -48,6 +51,7 @@ public class StatementLinker {
 
   private static ImmutableList<SeqThreadStatementClause> linkCommutingClausesWithGotos(
       ImmutableList<SeqThreadStatementClause> pClauses,
+      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
       ImmutableSet.Builder<Integer> pLinkedTargetIds) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rNewClauses = ImmutableList.builder();
@@ -60,7 +64,8 @@ public class StatementLinker {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         newStatements.add(
-            linkStatements(statement, pLinkedTargetIds, labelClauseMap, labelBlockMap));
+            linkStatements(
+                statement, pLinkedTargetIds, labelClauseMap, labelBlockMap, pPointerAssignments));
       }
       SeqThreadStatementBlock newBlock = clause.block.cloneWithStatements(newStatements.build());
       ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
@@ -68,7 +73,12 @@ public class StatementLinker {
         ImmutableList.Builder<SeqThreadStatement> newMergedStatements = ImmutableList.builder();
         for (SeqThreadStatement mergedStatement : mergedBlock.statements) {
           newMergedStatements.add(
-              linkStatements(mergedStatement, pLinkedTargetIds, labelClauseMap, labelBlockMap));
+              linkStatements(
+                  mergedStatement,
+                  pLinkedTargetIds,
+                  labelClauseMap,
+                  labelBlockMap,
+                  pPointerAssignments));
         }
         newMergedBlocks.add(mergedBlock.cloneWithStatements(newMergedStatements.build()));
       }
@@ -86,12 +96,13 @@ public class StatementLinker {
       SeqThreadStatement pCurrentStatement,
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
+      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments) {
 
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-      if (isValidLink(pCurrentStatement, newTarget, pLabelBlockMap)) {
+      if (isValidLink(pCurrentStatement, newTarget, pLabelBlockMap, pPointerAssignments)) {
         pLinkedTargetIds.add(newTarget.id);
         return pCurrentStatement.cloneWithTargetGoto(newTarget.block.getLabel());
       }
@@ -105,7 +116,8 @@ public class StatementLinker {
   private static boolean isValidLink(
       SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget,
-      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
+      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments) {
 
     return pStatement.isLinkable()
         // do not link atomic blocks, this is handled by AtomicBlockMerger, unless atomic_end
@@ -115,7 +127,8 @@ public class StatementLinker {
         && !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
         // only consider global accesses if not ignored
         && !(!canIgnoreGlobal(pTarget)
-            && GlobalVariableFinder.hasGlobalAccess(pLabelBlockMap, pTarget.block));
+            && GlobalVariableFinder.hasGlobalAccess(
+                pLabelBlockMap, pPointerAssignments, pTarget.block));
   }
 
   /**
