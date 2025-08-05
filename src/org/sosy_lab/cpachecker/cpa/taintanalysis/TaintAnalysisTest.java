@@ -260,18 +260,42 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testTernaryOperatorSafe_implicitTaint() throws Exception {
     TestResults results = runCPAchecker("ternaryOperatorSafe_implicitTaint.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testTernaryOperatorUnsafe_implicitTaint() throws Exception {
     TestResults results =
         runCPAchecker("ternaryOperatorUnsafe_implicitTaint.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testNestedTernaryOperatorSafe_implicitTaint_1() throws Exception {
+    TestResults results = runCPAchecker("nestedTernaryOperatorSafe_implicitTaint_1.c", "c_infix_operators");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testNestedTernaryOperatorUnsafe_implicitTaint_1() throws Exception {
+    TestResults results =
+        runCPAchecker("nestedTernaryOperatorUnsafe_implicitTaint_1.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testNestedTernaryOperatorSafe_implicitTaint_2() throws Exception {
+    TestResults results = runCPAchecker("nestedTernaryOperatorSafe_implicitTaint_2.c", "c_infix_operators");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testNestedTernaryOperatorUnsafe_implicitTaint_2() throws Exception {
+    TestResults results =
+        runCPAchecker("nestedTernaryOperatorUnsafe_implicitTaint_2.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
@@ -1247,6 +1271,18 @@ public class TaintAnalysisTest {
   @Test
   public void testEntwurfUnsafe() throws Exception {
     TestResults results = runCPAchecker("entwurfUnsafe.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testImplicitDataFlowInIfStatementSafe() throws Exception {
+    TestResults results = runCPAchecker("implicitDataFlowInIfStatementSafe.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testImplicitDataFlowInIfStatementUnsafe() throws Exception {
+    TestResults results = runCPAchecker("implicitDataFlowInIfStatementUnsafe.c", "");
     results.assertIsUnsafe();
   }
 
