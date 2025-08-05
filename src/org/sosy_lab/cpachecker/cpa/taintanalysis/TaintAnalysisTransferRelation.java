@@ -943,7 +943,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     private final CFAEdge cfaEdge;
     private final Set<CIdExpression> taintedVariables;
     private Optional<Loop> optionalLoopOfCurrentStatement;
-    private Optional<IfElement> optionalIfStructureOfCurrentStatement;
+    private Set<Optional<IfElement>> optionalIfStructureOfCurrentStatement;
 
     private boolean isInTernaryExpression;
 
@@ -966,7 +966,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     private boolean isCurrentStatementInControlStructure() {
       return optionalLoopOfCurrentStatement.isPresent()
-          || optionalIfStructureOfCurrentStatement.isPresent()
+          || !optionalIfStructureOfCurrentStatement.isEmpty()
           || isInTernaryExpression;
     }
 
@@ -978,9 +978,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                   optionalLoopOfCurrentStatement.orElseThrow(), taintedVariables);
 
       boolean isIfElementControlledByTaintedVars =
-          optionalIfStructureOfCurrentStatement.isPresent()
+          !optionalIfStructureOfCurrentStatement.isEmpty()
               && conditionIsControlledByTaintedVariables(
-                  optionalIfStructureOfCurrentStatement.orElseThrow(), taintedVariables);
+                  optionalIfStructureOfCurrentStatement, taintedVariables);
 
       boolean isTernaryExpressionControlledByTaintedVars = false;
       if (isInTernaryExpression) {
@@ -1093,50 +1093,53 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       return result;
     }
 
-    private Optional<IfElement> getIfStructureOfCurrentStatement(FileLocation fileLocation) {
-
+    private Set<Optional<IfElement>> getIfStructureOfCurrentStatement(FileLocation fileLocation) {
+      Set<Optional<IfElement>> ifStructures = new HashSet<>();
       assert ifElements != null;
       for (IfElement ifElement : ifElements) {
         if (ifElement.getCompleteElement().location().getStartingLineNumber()
                 < fileLocation.getStartingLineNumber()
             && ifElement.getCompleteElement().location().getEndingLineNumber()
                 > fileLocation.getEndingLineNumber()) {
-          return Optional.of(ifElement);
+          ifStructures.add(Optional.of(ifElement));
         }
       }
-      return Optional.empty();
+      return ifStructures;
     }
 
     private boolean conditionIsControlledByTaintedVariables(
-        IfElement pIfElement, Set<CIdExpression> pTaintedVariables) {
+        Set<Optional<IfElement>> pIfElements, Set<CIdExpression> pTaintedVariables) {
 
-      assert astCfaRelation != null;
-      ASTElement conditionElement = pIfElement.getConditionElement();
+      for (Optional<IfElement> pIfElement : pIfElements) {
+        assert astCfaRelation != null;
+        ASTElement conditionElement = pIfElement.orElseThrow().getConditionElement();
 
-      int startingLineNumber = conditionElement.location().getStartingLineNumber();
-      int startColumnInLine = conditionElement.location().getStartColumnInLine();
+        int startingLineNumber = conditionElement.location().getStartingLineNumber();
+        int startColumnInLine = conditionElement.location().getStartColumnInLine();
 
-      // (lazy) initialize the tightest statement for starting
-      astCfaRelation.getTightestStatementForStarting(startingLineNumber, startColumnInLine);
+        // (lazy) initialize the tightest statement for starting
+        astCfaRelation.getTightestStatementForStarting(startingLineNumber, startColumnInLine);
 
-      Optional<CFANode> optionalConditionNode = Optional.empty();
-      for (int i = 0; i < startColumnInLine; i++) {
-        optionalConditionNode = astCfaRelation.getNodeForStatementLocation(startingLineNumber, i);
+        Optional<CFANode> optionalConditionNode = Optional.empty();
+        for (int i = 0; i < startColumnInLine; i++) {
+          optionalConditionNode = astCfaRelation.getNodeForStatementLocation(startingLineNumber, i);
+          if (optionalConditionNode.isPresent()) {
+            break;
+          }
+        }
+
         if (optionalConditionNode.isPresent()) {
-          break;
+          CFANode conditionNode = optionalConditionNode.orElseThrow();
+          CFAEdge statementInConditionEdge = conditionNode.getLeavingEdge(0);
+          if (statementInConditionEdge instanceof CAssumeEdge assumeEdge) {
+            CExpression expr = assumeEdge.getExpression();
+            Set<CIdExpression> varsAsCidExpr = TaintAnalysisUtils.getAllVarsAsCExpr(expr);
+            if (varsAsCidExpr.stream().anyMatch(pTaintedVariables::contains)) {
+              return true;
+            }
+          }
         }
       }
-
-      if (optionalConditionNode.isPresent()) {
-        CFANode conditionNode = optionalConditionNode.orElseThrow();
-        CFAEdge statementInConditionEdge = conditionNode.getLeavingEdge(0);
-        if (statementInConditionEdge instanceof CAssumeEdge assumeEdge) {
-          CExpression expr = assumeEdge.getExpression();
-          Set<CIdExpression> varsAsCidExpr = TaintAnalysisUtils.getAllVarsAsCExpr(expr);
-          return varsAsCidExpr.stream().anyMatch(pTaintedVariables::contains);
-        }
-      }
-
       return false;
     }
 
