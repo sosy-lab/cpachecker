@@ -50,7 +50,7 @@ public class SubstituteEdge {
   /** The list of parameters pointing to global variable declarations that this edge accesses. */
   // public final ImmutableList<CParameterDeclaration> globalParameterVariables;
 
-  public SubstituteEdge(
+  private SubstituteEdge(
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
       ImmutableMap<CVariableDeclaration, CVariableDeclaration> pPointerAssignment,
@@ -82,6 +82,51 @@ public class SubstituteEdge {
         Sets.symmetricDifference(writtenGlobalVariables, accessedGlobalVariables).immutableCopy();
     // functions
     accessedFunctionPointers = pAccessedFunctionPointers;
+  }
+
+  public static SubstituteEdge of(CFAEdge pCfaEdge, ThreadEdge pThreadEdge) {
+    return new SubstituteEdge(
+        pCfaEdge,
+        pThreadEdge,
+        ImmutableMap.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of());
+  }
+
+  public static SubstituteEdge of(
+      CFAEdge pCfaEdge,
+      ThreadEdge pThreadEdge,
+      ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables) {
+    return new SubstituteEdge(
+        pCfaEdge,
+        pThreadEdge,
+        ImmutableMap.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        pAccessedGlobalVariables,
+        ImmutableSet.of());
+  }
+
+  /**
+   * Creates a {@link SubstituteEdge} based on the {@link MPORSubstitutionTracker} in {@code
+   * pTracker}.
+   */
+  public static SubstituteEdge of(
+      CFAEdge pCfaEdge, ThreadEdge pThreadEdge, MPORSubstitutionTracker pTracker) {
+
+    return new SubstituteEdge(
+        pCfaEdge,
+        pThreadEdge,
+        pTracker.getPointerAssignments(),
+        pTracker.getWrittenPointerDereferences(),
+        pTracker.getAccessedPointerDereferences(),
+        pTracker.getWrittenGlobalVariables(),
+        pTracker.getWrittenPointerDereferences(),
+        pTracker.getAccessedFunctionPointers());
   }
 
   public ImmutableSet<CVariableDeclaration> getGlobalVariablesByAccessType(

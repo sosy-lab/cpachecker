@@ -349,10 +349,6 @@ public class GhostVariableUtil {
                         false,
                         false,
                         false,
-                        Optional.empty(),
-                        Optional.empty(),
-                        Optional.empty(),
-                        Optional.empty(),
                         Optional.empty())));
         assignments.add(parameterAssignment);
       }
@@ -385,10 +381,6 @@ public class GhostVariableUtil {
                           false,
                           false,
                           false,
-                          Optional.empty(),
-                          Optional.empty(),
-                          Optional.empty(),
-                          Optional.empty(),
                           Optional.empty())));
           rAssignments.put(callContext, parameterAssignment);
         }

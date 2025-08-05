@@ -145,10 +145,6 @@ public class MPORSubstitutionBuilder {
                     false,
                     false,
                     false,
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty(),
                     Optional.empty()));
         CVariableDeclaration finalSub =
             substituteVariableDeclaration(variableDeclaration, initExprSub);
@@ -346,7 +342,7 @@ public class MPORSubstitutionBuilder {
       CVariableDeclaration variableDeclaration = dummySubstitute.getKey();
       ImmutableMap.Builder<Optional<ThreadEdge>, CIdExpression> substitutes =
           ImmutableMap.builder();
-      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
+      MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
       for (var substitute : dummySubstitute.getValue().substitutes.entrySet()) {
         CInitializer initializer = variableDeclaration.getInitializer();
         // TODO handle CInitializerList
@@ -368,11 +364,7 @@ public class MPORSubstitutionBuilder {
                       false,
                       false,
                       false,
-                      Optional.empty(),
-                      Optional.empty(),
-                      Optional.empty(),
-                      Optional.of(accessedGlobalVariables),
-                      Optional.empty()));
+                      Optional.of(tracker)));
           CVariableDeclaration finalSubstitute =
               substituteVariableDeclaration(substituteDeclaration, initializerSubstitute);
           substitutes.put(callContext, SeqExpressionBuilder.buildIdExpression(finalSubstitute));
@@ -380,9 +372,10 @@ public class MPORSubstitutionBuilder {
           substitutes.put(substitute);
         }
       }
+      // TODO we need more information here than just accessed global variables
       LocalVariableDeclarationSubstitute localSubstitute =
           new LocalVariableDeclarationSubstitute(
-              substitutes.buildOrThrow(), ImmutableSet.copyOf(accessedGlobalVariables));
+              substitutes.buildOrThrow(), tracker.getAccessedGlobalVariables());
       rFinalSubstitutes.put(variableDeclaration, localSubstitute);
     }
     return rFinalSubstitutes.buildOrThrow();

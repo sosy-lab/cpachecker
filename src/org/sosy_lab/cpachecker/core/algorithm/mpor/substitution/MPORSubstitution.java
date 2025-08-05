@@ -15,10 +15,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -126,27 +124,25 @@ public class MPORSubstitution {
       CIdExpression pIdExpression,
       boolean pIsWrite,
       boolean pIsPointerDereference,
-      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<Set<CVariableDeclaration>> pAccessedGlobalVariables) {
+      Optional<MPORSubstitutionTracker> pTracker) {
 
     // writing pointers (aliasing) may not be allowed -> reject program
     InputRejection.checkPointerWrite(pIsWrite, options, pIdExpression, logger);
 
+    if (pTracker.isEmpty()) {
+      return;
+    }
     // otherwise, if applicable, add declaration to global reads/writes
     if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.isGlobal()) {
         // exclude pointer dereferences, they are handled separately
         if (!pIsPointerDereference) {
-          if (pAccessedGlobalVariables.isPresent()) {
-            pAccessedGlobalVariables.orElseThrow().add(variableDeclaration);
-          }
-          if (pWrittenGlobalVariables.isPresent()) {
-            // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
-            CType type = variableDeclaration.getType();
-            boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
-            if (pIsWrite || isMutex) {
-              pWrittenGlobalVariables.orElseThrow().add(variableDeclaration);
-            }
+          pTracker.orElseThrow().addAccessedGlobalVariable(variableDeclaration);
+          CType type = variableDeclaration.getType();
+          boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
+          // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
+          if (pIsWrite || isMutex) {
+            pTracker.orElseThrow().addWrittenGlobalVariable(variableDeclaration);
           }
         }
       }
@@ -154,10 +150,9 @@ public class MPORSubstitution {
   }
 
   private void handlePointerAssignment(
-      CExpressionAssignmentStatement pAssignment,
-      Optional<Map<CVariableDeclaration, CVariableDeclaration>> pPointerAssignments) {
+      CExpressionAssignmentStatement pAssignment, Optional<MPORSubstitutionTracker> pTracker) {
 
-    if (pPointerAssignments.isEmpty()) {
+    if (pTracker.isEmpty()) {
       return;
     }
     CLeftHandSide leftHandSide = pAssignment.getLeftHandSide();
@@ -170,7 +165,7 @@ public class MPORSubstitution {
             if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
               if (unaryExpression.getOperand() instanceof CIdExpression rhsId) {
                 if (rhsId.getDeclaration() instanceof CVariableDeclaration rhsDeclaration) {
-                  pPointerAssignments.orElseThrow().put(lhsDeclaration, rhsDeclaration);
+                  pTracker.orElseThrow().addPointerAssignment(lhsDeclaration, rhsDeclaration);
                 }
               }
             }
@@ -178,7 +173,7 @@ public class MPORSubstitution {
           } else if (rightHandSide instanceof CIdExpression rhsId) {
             if (rhsId.getDeclaration() instanceof CVariableDeclaration rhsDeclaration) {
               if (rhsDeclaration.getType() instanceof CPointerType) {
-                pPointerAssignments.orElseThrow().put(lhsDeclaration, rhsDeclaration);
+                pTracker.orElseThrow().addPointerAssignment(lhsDeclaration, rhsDeclaration);
               }
             }
           }
@@ -190,19 +185,15 @@ public class MPORSubstitution {
   private void handlePointerDereference(
       CPointerExpression pPointerExpression,
       boolean pIsWrite,
-      Optional<Set<CVariableDeclaration>> pWrittenPointerDereferences,
-      Optional<Set<CVariableDeclaration>> pAccessedPointerDereferences) {
+      Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pPointerExpression.getOperand() instanceof CIdExpression idExpression) {
       if (idExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-        if (pWrittenPointerDereferences.isPresent()) {
-          assert pAccessedPointerDereferences.isPresent()
-              : "if pointer dereference writes are tracked, accessed pointer dereference must also"
-                  + " be tracked";
+        if (pTracker.isPresent()) {
           if (pIsWrite) {
-            pWrittenPointerDereferences.orElseThrow().add(variableDeclaration);
+            pTracker.orElseThrow().addWrittenPointerDereference(variableDeclaration);
           }
-          pAccessedPointerDereferences.orElseThrow().add(variableDeclaration);
+          pTracker.orElseThrow().addAccessedPointerDereference(variableDeclaration);
         }
       }
     }
@@ -219,11 +210,7 @@ public class MPORSubstitution {
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsUnaryAmper,
-      Optional<Set<CVariableDeclaration>> pWrittenPointerDereferences,
-      Optional<Set<CVariableDeclaration>> pAccessedPointerDereferences,
-      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<Set<CVariableDeclaration>> pAccessedGlobalVariables,
-      Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
+      Optional<MPORSubstitutionTracker> pTracker) {
 
     // shortcut for optimization: never substitute pure int or strings
     if (pExpression instanceof CIntegerLiteralExpression) {
@@ -238,20 +225,15 @@ public class MPORSubstitution {
     if (pExpression instanceof CIdExpression idExpression) {
       CSimpleDeclaration declaration = idExpression.getDeclaration();
       if (isSubstitutable(declaration)) {
-        handleGlobalVariableAccesses(
-            idExpression,
-            pIsWrite,
-            pIsPointerDereference,
-            pWrittenGlobalVariables,
-            pAccessedGlobalVariables);
+        handleGlobalVariableAccesses(idExpression, pIsWrite, pIsPointerDereference, pTracker);
         return getVariableSubstitute(idExpression.getDeclaration(), pCallContext);
       }
       // when accessing function pointers e.g. &func. this is also possible without the unary amper
       // operator '&', but the example tasks used only this expression, so we restrict it.
       if (pIsUnaryAmper) {
         if (declaration instanceof CFunctionDeclaration functionDeclaration) {
-          if (pAccessedFunctionPointers.isPresent()) {
-            pAccessedFunctionPointers.orElseThrow().add(functionDeclaration);
+          if (pTracker.isPresent()) {
+            pTracker.orElseThrow().addAccessedFunctionPointer(functionDeclaration);
           }
         }
       }
@@ -266,11 +248,7 @@ public class MPORSubstitution {
               false,
               false,
               pIsUnaryAmper,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers);
+              pTracker);
       CExpression op2 =
           substitute(
               binary.getOperand2(),
@@ -279,11 +257,7 @@ public class MPORSubstitution {
               false,
               false,
               pIsUnaryAmper,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers);
+              pTracker);
       // only create a new expression if any operand was substituted (compare references)
       if (op1 != binary.getOperand1() || op2 != binary.getOperand2()) {
         try {
@@ -298,30 +272,10 @@ public class MPORSubstitution {
       CExpression arrayExpression = arraySubscript.getArrayExpression();
       CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
       CExpression arraySubstitute =
-          substitute(
-              arrayExpression,
-              pCallContext,
-              true,
-              false,
-              pIsUnaryAmper,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers);
+          substitute(arrayExpression, pCallContext, true, false, pIsUnaryAmper, pTracker);
       // the subscript is not a LHS in an assignment -> no write
       CExpression subscriptSubstitute =
-          substitute(
-              subscriptExpression,
-              pCallContext,
-              false,
-              false,
-              pIsUnaryAmper,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers);
+          substitute(subscriptExpression, pCallContext, false, false, pIsUnaryAmper, pTracker);
       // only create a new expression if any expr was substituted (compare references)
       if (arraySubstitute != arrayExpression || subscriptSubstitute != subscriptExpression) {
         return new CArraySubscriptExpression(
@@ -336,11 +290,7 @@ public class MPORSubstitution {
               pIsWrite,
               pIsPointerDereference,
               pIsUnaryAmper,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers);
+              pTracker);
       // only create a new expression if any expr was substituted (compare references)
       if (fieldOwnerSubstitute != fieldReference.getFieldOwner()) {
         return new CFieldReference(
@@ -362,30 +312,15 @@ public class MPORSubstitution {
               false,
               false,
               unary.getOperator().equals(UnaryOperator.AMPER),
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers),
+              pTracker),
           unary.getOperator());
 
     } else if (pExpression instanceof CPointerExpression pointer) {
-      handlePointerDereference(
-          pointer, pIsWrite, pWrittenPointerDereferences, pAccessedPointerDereferences);
+      handlePointerDereference(pointer, pIsWrite, pTracker);
       return new CPointerExpression(
           pointer.getFileLocation(),
           pointer.getExpressionType(),
-          substitute(
-              pointer.getOperand(),
-              pCallContext,
-              pIsWrite,
-              true,
-              pIsUnaryAmper,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers));
+          substitute(pointer.getOperand(), pCallContext, pIsWrite, true, pIsUnaryAmper, pTracker));
 
     } else if (pExpression instanceof CCastExpression cast) {
       return new CCastExpression(
@@ -398,11 +333,7 @@ public class MPORSubstitution {
               pIsWrite,
               pIsPointerDereference,
               pIsUnaryAmper,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers));
+              pTracker));
     }
 
     return pExpression;
@@ -411,12 +342,7 @@ public class MPORSubstitution {
   CStatement substitute(
       CStatement pStatement,
       Optional<ThreadEdge> pCallContext,
-      Optional<Map<CVariableDeclaration, CVariableDeclaration>> pPointerAssignments,
-      Optional<Set<CVariableDeclaration>> pWrittenPointerDereferences,
-      Optional<Set<CVariableDeclaration>> pAccessedPointerDereferences,
-      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<Set<CVariableDeclaration>> pAccessedGlobalVariables,
-      Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
+      Optional<MPORSubstitutionTracker> pTracker) {
 
     FileLocation fileLocation = pStatement.getFileLocation();
 
@@ -426,55 +352,21 @@ public class MPORSubstitution {
       CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
       if (leftHandSide instanceof CIdExpression idExpression) {
         CExpression substitute =
-            substitute(
-                idExpression,
-                pCallContext,
-                false,
-                false,
-                false,
-                pWrittenPointerDereferences,
-                pAccessedPointerDereferences,
-                pWrittenGlobalVariables,
-                pAccessedGlobalVariables,
-                pAccessedFunctionPointers);
+            substitute(idExpression, pCallContext, false, false, false, pTracker);
         if (substitute instanceof CIdExpression idExpressionSubstitute) {
           return new CFunctionCallAssignmentStatement(
               fileLocation,
               idExpressionSubstitute,
-              substitute(
-                  rightHandSide,
-                  pCallContext,
-                  pWrittenPointerDereferences,
-                  pAccessedPointerDereferences,
-                  pWrittenGlobalVariables,
-                  pAccessedGlobalVariables,
-                  pAccessedFunctionPointers));
+              substitute(rightHandSide, pCallContext, pTracker));
         }
       } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
         CExpression substitute =
-            substitute(
-                arraySubscriptExpression,
-                pCallContext,
-                false,
-                false,
-                false,
-                pWrittenPointerDereferences,
-                pAccessedPointerDereferences,
-                pWrittenGlobalVariables,
-                pAccessedGlobalVariables,
-                pAccessedFunctionPointers);
+            substitute(arraySubscriptExpression, pCallContext, false, false, false, pTracker);
         if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
           return new CFunctionCallAssignmentStatement(
               fileLocation,
               arraySubscriptExpressionSubstitute,
-              substitute(
-                  rightHandSide,
-                  pCallContext,
-                  pWrittenPointerDereferences,
-                  pAccessedPointerDereferences,
-                  pWrittenGlobalVariables,
-                  pAccessedGlobalVariables,
-                  pAccessedFunctionPointers));
+              substitute(rightHandSide, pCallContext, pTracker));
         }
       }
 
@@ -482,64 +374,26 @@ public class MPORSubstitution {
     } else if (pStatement instanceof CFunctionCallStatement functionCall) {
       return new CFunctionCallStatement(
           functionCall.getFileLocation(),
-          substitute(
-              functionCall.getFunctionCallExpression(),
-              pCallContext,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers));
+          substitute(functionCall.getFunctionCallExpression(), pCallContext, pTracker));
 
       // e.g. int x = 42;
     } else if (pStatement instanceof CExpressionAssignmentStatement assignment) {
-      handlePointerAssignment(assignment, pPointerAssignments);
+      handlePointerAssignment(assignment, pTracker);
       CLeftHandSide leftHandSide = assignment.getLeftHandSide();
       CExpression rightHandSide = assignment.getRightHandSide();
-      CExpression substitute =
-          substitute(
-              leftHandSide,
-              pCallContext,
-              true,
-              false,
-              false,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers);
+      CExpression substitute = substitute(leftHandSide, pCallContext, true, false, false, pTracker);
       if (substitute instanceof CLeftHandSide leftHandSideSubstitute) {
         return new CExpressionAssignmentStatement(
             fileLocation,
             leftHandSideSubstitute,
             // for the RHS, it's not a left hand side of an assignment
-            substitute(
-                rightHandSide,
-                pCallContext,
-                false,
-                false,
-                false,
-                pWrittenPointerDereferences,
-                pAccessedPointerDereferences,
-                pWrittenGlobalVariables,
-                pAccessedGlobalVariables,
-                pAccessedFunctionPointers));
+            substitute(rightHandSide, pCallContext, false, false, false, pTracker));
       }
 
     } else if (pStatement instanceof CExpressionStatement expression) {
       return new CExpressionStatement(
           fileLocation,
-          substitute(
-              expression.getExpression(),
-              pCallContext,
-              false,
-              false,
-              false,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pAccessedGlobalVariables,
-              pAccessedFunctionPointers));
+          substitute(expression.getExpression(), pCallContext, false, false, false, pTracker));
     }
 
     return pStatement;
@@ -548,27 +402,12 @@ public class MPORSubstitution {
   CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<ThreadEdge> pCallContext,
-      Optional<Set<CVariableDeclaration>> pWrittenPointerDereferences,
-      Optional<Set<CVariableDeclaration>> pAccessedPointerDereferences,
-      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<Set<CVariableDeclaration>> pGlobalVariables,
-      Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
+      Optional<MPORSubstitutionTracker> pTracker) {
 
     // substitute all parameters in the function call expression
     List<CExpression> parameters = new ArrayList<>();
     for (CExpression expression : pFunctionCallExpression.getParameterExpressions()) {
-      parameters.add(
-          substitute(
-              expression,
-              pCallContext,
-              false,
-              false,
-              false,
-              pWrittenPointerDereferences,
-              pAccessedPointerDereferences,
-              pWrittenGlobalVariables,
-              pGlobalVariables,
-              pAccessedFunctionPointers));
+      parameters.add(substitute(expression, pCallContext, false, false, false, pTracker));
     }
     // substitute the function name in case it is a variable storing a function pointer
     // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
@@ -580,11 +419,7 @@ public class MPORSubstitution {
             false,
             false,
             false,
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            pAccessedFunctionPointers);
+            pTracker);
     return new CFunctionCallExpression(
         pFunctionCallExpression.getFileLocation(),
         pFunctionCallExpression.getExpressionType(),
@@ -596,11 +431,7 @@ public class MPORSubstitution {
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<ThreadEdge> pCallContext,
-      Optional<Set<CVariableDeclaration>> pWrittenPointerDereferences,
-      Optional<Set<CVariableDeclaration>> pAccessedPointerDereferences,
-      Optional<Set<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<Set<CVariableDeclaration>> pGlobalVariables,
-      Optional<Set<CFunctionDeclaration>> pAccessedFunctionPointers) {
+      Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
       // return as-is if there is no expression to substitute
@@ -610,18 +441,7 @@ public class MPORSubstitution {
       // TODO it would be cleaner to also substitute the assignment...
       return new CReturnStatement(
           pReturnStatement.getFileLocation(),
-          Optional.of(
-              substitute(
-                  expression,
-                  pCallContext,
-                  false,
-                  false,
-                  false,
-                  pWrittenPointerDereferences,
-                  pAccessedPointerDereferences,
-                  pWrittenGlobalVariables,
-                  pGlobalVariables,
-                  pAccessedFunctionPointers)),
+          Optional.of(substitute(expression, pCallContext, false, false, false, pTracker)),
           pReturnStatement.asAssignment());
     }
   }

@@ -11,17 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -58,15 +54,7 @@ public class SubstituteEdgeBuilder {
               threadEdge,
               substitute.isPresent()
                   ? substitute.orElseThrow()
-                  : new SubstituteEdge(
-                      cfaEdge,
-                      threadEdge,
-                      ImmutableMap.of(),
-                      ImmutableSet.of(),
-                      ImmutableSet.of(),
-                      ImmutableSet.of(),
-                      ImmutableSet.of(),
-                      ImmutableSet.of()));
+                  : SubstituteEdge.of(cfaEdge, threadEdge));
         }
       }
     }
@@ -98,183 +86,71 @@ public class SubstituteEdgeBuilder {
             CVariableDeclaration declarationSubstitute =
                 pSubstitution.getLocalVariableDeclarationSubstitute(
                     variableDeclaration, callContext);
-            return Optional.of(
-                new SubstituteEdge(
-                    substituteDeclarationEdge(declarationEdge, declarationSubstitute),
-                    pThreadEdge,
-                    // TODO this requires handling, e.g. 'int * ptr = &x;'
-                    ImmutableMap.of(),
-                    ImmutableSet.of(),
-                    ImmutableSet.of(),
-                    // no global accesses needed, global declarations are outside main()
-                    ImmutableSet.of(),
-                    ImmutableSet.of(),
-                    ImmutableSet.of()));
+            CDeclarationEdge substituteDeclarationEdge =
+                substituteDeclarationEdge(declarationEdge, declarationSubstitute);
+            // TODO declarations like 'int * ptr = &x;' require tracking
+            return Optional.of(SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge));
           } else {
             CVariableDeclaration declarationSubstitute =
                 pSubstitution.getLocalVariableDeclarationSubstitute(
                     variableDeclaration, callContext);
             ImmutableSet<CVariableDeclaration> accessedGlobalVariables =
                 pSubstitution.getGlobalVariablesUsedInLocalVariableDeclaration(variableDeclaration);
+            CDeclarationEdge substituteDeclarationEdge =
+                substituteDeclarationEdge(declarationEdge, declarationSubstitute);
+            // TODO declarations like 'int * ptr = &x;' require tracking
             return Optional.of(
-                new SubstituteEdge(
-                    substituteDeclarationEdge(declarationEdge, declarationSubstitute),
-                    pThreadEdge,
-                    // TODO this requires handling, e.g. 'int * ptr = &x;'
-                    ImmutableMap.of(),
-                    ImmutableSet.of(),
-                    ImmutableSet.of(),
-                    ImmutableSet.of(),
-                    accessedGlobalVariables,
-                    ImmutableSet.of()));
+                SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge, accessedGlobalVariables));
           }
         }
       }
 
       // TODO try to create a single method here for all these edge types
     } else if (cfaEdge instanceof CAssumeEdge assume) {
-      Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments = new HashMap<>();
-      Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
-      Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
-      Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
-      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
-      Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
+      MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
       CExpression substituteAssumption =
           pSubstitution.substitute(
-              assume.getExpression(),
-              callContext,
-              false,
-              false,
-              false,
-              Optional.of(writtenPointerDereferences),
-              Optional.of(accessedPointerDereferences),
-              Optional.of(writtenGlobalVariables),
-              Optional.of(accessedGlobalVariables),
-              Optional.of(accessedFunctionPointers));
-      return Optional.of(
-          new SubstituteEdge(
-              substituteAssumeEdge(assume, substituteAssumption),
-              pThreadEdge,
-              ImmutableMap.copyOf(pointerAssignments),
-              ImmutableSet.copyOf(writtenPointerDereferences),
-              ImmutableSet.copyOf(accessedPointerDereferences),
-              ImmutableSet.copyOf(writtenGlobalVariables),
-              ImmutableSet.copyOf(accessedGlobalVariables),
-              ImmutableSet.copyOf(accessedFunctionPointers)));
+              assume.getExpression(), callContext, false, false, false, Optional.of(tracker));
+      CAssumeEdge substituteAssumeEdge = substituteAssumeEdge(assume, substituteAssumption);
+      return Optional.of(SubstituteEdge.of(substituteAssumeEdge, pThreadEdge, tracker));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
-      Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments = new HashMap<>();
-      Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
-      Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
-      Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
-      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
-      Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
+      MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
       CStatement substituteStatement =
-          pSubstitution.substitute(
-              statement.getStatement(),
-              callContext,
-              Optional.of(pointerAssignments),
-              Optional.of(writtenPointerDereferences),
-              Optional.of(accessedPointerDereferences),
-              Optional.of(writtenGlobalVariables),
-              Optional.of(accessedGlobalVariables),
-              Optional.of(accessedFunctionPointers));
-      return Optional.of(
-          new SubstituteEdge(
-              substituteStatementEdge(statement, substituteStatement),
-              pThreadEdge,
-              ImmutableMap.copyOf(pointerAssignments),
-              ImmutableSet.copyOf(writtenPointerDereferences),
-              ImmutableSet.copyOf(accessedPointerDereferences),
-              ImmutableSet.copyOf(writtenGlobalVariables),
-              ImmutableSet.copyOf(accessedGlobalVariables),
-              ImmutableSet.copyOf(accessedFunctionPointers)));
+          pSubstitution.substitute(statement.getStatement(), callContext, Optional.of(tracker));
+      CStatementEdge substituteStatementEdge =
+          substituteStatementEdge(statement, substituteStatement);
+      return Optional.of(SubstituteEdge.of(substituteStatementEdge, pThreadEdge, tracker));
 
     } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
       if (functionSummary.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
-        Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments = new HashMap<>();
-        Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
-        Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
-        Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
-        Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
-        Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
+        MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
         CStatement substituteAssignment =
-            pSubstitution.substitute(
-                assignment,
-                callContext,
-                Optional.of(pointerAssignments),
-                Optional.of(writtenPointerDereferences),
-                Optional.of(accessedPointerDereferences),
-                Optional.of(writtenGlobalVariables),
-                Optional.of(accessedGlobalVariables),
-                Optional.of(accessedFunctionPointers));
-        return Optional.of(
-            new SubstituteEdge(
-                substituteFunctionSummaryEdge(functionSummary, substituteAssignment),
-                pThreadEdge,
-                ImmutableMap.copyOf(pointerAssignments),
-                ImmutableSet.copyOf(writtenPointerDereferences),
-                ImmutableSet.copyOf(accessedPointerDereferences),
-                ImmutableSet.copyOf(writtenGlobalVariables),
-                ImmutableSet.copyOf(accessedGlobalVariables),
-                ImmutableSet.copyOf(accessedFunctionPointers)));
+            pSubstitution.substitute(assignment, callContext, Optional.of(tracker));
+        CFunctionSummaryEdge substituteFunctionSummaryEdge =
+            substituteFunctionSummaryEdge(functionSummary, substituteAssignment);
+        return Optional.of(SubstituteEdge.of(substituteFunctionSummaryEdge, pThreadEdge, tracker));
       }
 
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
       // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
-      Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments = new HashMap<>();
-      Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
-      Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
-      Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
-      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
-      Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
+      MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
       CStatement substituteFunctionCall =
           pSubstitution.substitute(
-              functionCall.getFunctionCall(),
-              callContext,
-              Optional.of(pointerAssignments),
-              Optional.of(writtenPointerDereferences),
-              Optional.of(accessedPointerDereferences),
-              Optional.of(writtenGlobalVariables),
-              Optional.of(accessedGlobalVariables),
-              Optional.of(accessedFunctionPointers));
-      return Optional.of(
-          new SubstituteEdge(
-              substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall),
-              pThreadEdge,
-              ImmutableMap.copyOf(pointerAssignments),
-              ImmutableSet.copyOf(writtenPointerDereferences),
-              ImmutableSet.copyOf(accessedPointerDereferences),
-              ImmutableSet.copyOf(writtenGlobalVariables),
-              ImmutableSet.copyOf(accessedGlobalVariables),
-              ImmutableSet.copyOf(accessedFunctionPointers)));
+              functionCall.getFunctionCall(), callContext, Optional.of(tracker));
+      CFunctionCallEdge substituteFunctionCallEdge =
+          substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall);
+      return Optional.of(SubstituteEdge.of(substituteFunctionCallEdge, pThreadEdge, tracker));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
-      Set<CVariableDeclaration> writtenPointerDereferences = new HashSet<>();
-      Set<CVariableDeclaration> accessedPointerDereferences = new HashSet<>();
-      Set<CVariableDeclaration> writtenGlobalVariables = new HashSet<>();
-      Set<CVariableDeclaration> accessedGlobalVariables = new HashSet<>();
-      Set<CFunctionDeclaration> accessedFunctionPointers = new HashSet<>();
+      MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
       CReturnStatement substituteReturnStatement =
           pSubstitution.substitute(
-              returnStatement.getReturnStatement(),
-              callContext,
-              Optional.of(writtenPointerDereferences),
-              Optional.of(accessedPointerDereferences),
-              Optional.of(writtenGlobalVariables),
-              Optional.of(accessedGlobalVariables),
-              Optional.of(accessedFunctionPointers));
-      return Optional.of(
-          new SubstituteEdge(
-              substituteReturnStatementEdge(returnStatement, substituteReturnStatement),
-              pThreadEdge,
-              ImmutableMap.of(),
-              ImmutableSet.copyOf(writtenPointerDereferences),
-              ImmutableSet.copyOf(accessedPointerDereferences),
-              ImmutableSet.copyOf(writtenGlobalVariables),
-              ImmutableSet.copyOf(accessedGlobalVariables),
-              ImmutableSet.copyOf(accessedFunctionPointers)));
+              returnStatement.getReturnStatement(), callContext, Optional.of(tracker));
+      CReturnStatementEdge substituteReturnStatementEdge =
+          substituteReturnStatementEdge(returnStatement, substituteReturnStatement);
+      return Optional.of(SubstituteEdge.of(substituteReturnStatementEdge, pThreadEdge, tracker));
     }
     return Optional.empty();
   }
