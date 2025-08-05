@@ -1305,8 +1305,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   protected @Nullable Formula makeValueReinterpretation(
-      CType pFromType, CType pToType, Formula pFormula) {
-    return super.makeValueReinterpretation(pFromType, pToType, pFormula);
+      CType pFromType, CType pToType, Formula pFormula, Constraints constraints) {
+    return super.makeValueReinterpretation(pFromType, pToType, pFormula, constraints);
   }
 
   /** {@inheritDoc} */

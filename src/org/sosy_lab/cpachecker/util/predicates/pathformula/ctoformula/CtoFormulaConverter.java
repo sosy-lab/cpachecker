@@ -588,15 +588,13 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  @Nullable public static BooleanFormula additionalConstraint = null;
-
   /**
    * Create a formula that reinterprets the raw bit values as a different type. Returns {@code null}
    * if this is not implemented for the given types. Returns the original formula if no
    * reinterpretation was necessary.
    */
   protected @Nullable Formula makeValueReinterpretation(
-      final CType pFromType, final CType pToType, Formula formula) {
+      final CType pFromType, final CType pToType, Formula formula, Constraints constraints) {
     // This results in a signed type for pointers, but we only use its size, so this is irrelevant.
     CType fromType = handlePointerAndEnumAsInt(pFromType);
     CType toType = handlePointerAndEnumAsInt(pToType);
@@ -645,10 +643,12 @@ public class CtoFormulaConverter {
             fmgr.getFloatingPointFormulaManager()
                 .fromIeeeBitvector(
                     (BitvectorFormula) bvformula, (FloatingPointType) fromFormulaType);
-        additionalConstraint =
+        BooleanFormula additionalConstraint =
             fmgr.getFloatingPointFormulaManager()
                 .equalWithFPSemantics(tmpFp, (FloatingPointFormula) formula);
+
         formula = bvformula;
+        constraints.addConstraint(additionalConstraint);
       }
 
       if (sourceSize > targetSize) {
@@ -681,8 +681,9 @@ public class CtoFormulaConverter {
    * size. Useful for converting floats to bitvectors. Returns {@code null} if this is not
    * implemented for the given types.
    *
-   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula)}, this function
-   * returns the original formula if it was already a bitvector formula, not {@code null}.
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula, Constraints)},
+   * this function returns the original formula if it was already a bitvector formula, not {@code
+   * null}.
    */
   protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
       final CType pFromType, Formula formula) {
@@ -704,8 +705,9 @@ public class CtoFormulaConverter {
    * converting floating-point values represented in bitvectors back to float. Returns {@code null}
    * if this is not implemented for the given types.
    *
-   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula)}, this function
-   * returns the original formula if {@code pToType} is represented by bitvector, not {@code null}.
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula, Constraints)},
+   * this function returns the original formula if {@code pToType} is represented by bitvector, not
+   * {@code null}.
    */
   protected @Nullable Formula makeValueReinterpretationFromBitvector(
       final CType pToType, BitvectorFormula formula) {
