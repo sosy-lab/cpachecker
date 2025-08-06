@@ -27,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -675,7 +674,6 @@ public class CtoFormulaConverter {
    *
    * <p><a href="https://smt-lib.org/theories-FloatingPoint.shtml">Source in SMTLib2 standard</a>
    */
-  @Nonnull
   private Formula toIeeeBitvectorFallback(
       Formula formula,
       Constraints constraints,
