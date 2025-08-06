@@ -526,7 +526,7 @@ class AssignmentFormulaHandler {
       case REINTERPRET -> {
         // reinterpret rhs from rhs type to lhs type
         final @Nullable Formula reinterpretedFormula =
-            conv.makeValueReinterpretation(resolved.type(), toType, rhsFormula, constraints);
+            conv.makeValueReinterpretation(resolved.type(), toType, rhsFormula, constraints, ssa);
         // makeValueReinterpretation returns null if reintepretation was not possible, throw in that
         // case
         if (reinterpretedFormula == null) {

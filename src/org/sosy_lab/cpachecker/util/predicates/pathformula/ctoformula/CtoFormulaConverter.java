@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -594,7 +595,11 @@ public class CtoFormulaConverter {
    * reinterpretation was necessary.
    */
   protected @Nullable Formula makeValueReinterpretation(
-      final CType pFromType, final CType pToType, Formula formula, Constraints constraints) {
+      final CType pFromType,
+      final CType pToType,
+      Formula formula,
+      Constraints constraints,
+      SSAMapBuilder pSsa) {
     // This results in a signed type for pointers, but we only use its size, so this is irrelevant.
     CType fromType = handlePointerAndEnumAsInt(pFromType);
     CType toType = handlePointerAndEnumAsInt(pToType);
@@ -627,29 +632,13 @@ public class CtoFormulaConverter {
       int targetSize = ((BitvectorType) toFormulaType).getSize();
 
       try {
+        // Note: All fp.to_* functions are unspecified for NaN and infinity input values.
         formula =
             fmgr.getFloatingPointFormulaManager().toIeeeBitvector((FloatingPointFormula) formula);
       } catch (UnsupportedOperationException e) {
-        // TODO: this is experimental, badly coded, and NOT ready to be merged!!!!!
-        // Better: use makeValueReinterpretation() reversely
-        boolean escaped = formula.toString().startsWith("|") && formula.toString().endsWith("|");
-        Formula bvformula =
-            efmgr.makeVariable(
-                ((BitvectorType) toFormulaType).getSize(),
-                escaped
-                    ? formula.toString().subSequence(1, formula.toString().length() - 1) + "_as_BV"
-                    : formula + "_as_BV");
-        FloatingPointFormula tmpFp =
-            fmgr.getFloatingPointFormulaManager()
-                .fromIeeeBitvector(
-                    (BitvectorFormula) bvformula, (FloatingPointType) fromFormulaType);
-
-        // assignment() allows a value to be NaN etc.
-        BooleanFormula additionalConstraint =
-            fmgr.getFloatingPointFormulaManager().assignment(tmpFp, (FloatingPointFormula) formula);
-
-        formula = bvformula;
-        constraints.addConstraint(additionalConstraint);
+        formula =
+            toIeeeBitvectorFallback(
+                formula, constraints, pSsa, toType, (FloatingPointType) fromFormulaType);
       }
 
       if (sourceSize > targetSize) {
@@ -678,13 +667,52 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * Fallback for toIeeeBitvector() based on the reversed operation using fromIeeeBitvector() with:
+   *
+   * <p>(declare-fun b () (_ BitVec m))
+   *
+   * <p>(assert (= ((_ to_fp eb sb) b) f))
+   *
+   * <p><a href="https://smt-lib.org/theories-FloatingPoint.shtml">Source in SMTLib2 standard</a>
+   */
+  @Nonnull
+  private Formula toIeeeBitvectorFallback(
+      Formula formula,
+      Constraints constraints,
+      SSAMapBuilder pSsa,
+      CType toType,
+      FloatingPointType fromFormulaType) {
+    boolean escapedName = formula.toString().startsWith("|") && formula.toString().endsWith("|");
+    String nameAddition = "_fp_to_ieee_bitvector";
+    String name =
+        escapedName
+            ? formula.toString().subSequence(1, formula.toString().length() - 1) + nameAddition
+            : formula + nameAddition;
+    Formula bvformula = makeNondet(name, toType, pSsa, constraints);
+
+    FloatingPointFormula fromIeeeBitvector =
+        fmgr.getFloatingPointFormulaManager()
+            .fromIeeeBitvector((BitvectorFormula) bvformula, fromFormulaType);
+
+    // assignment() allows a value to be NaN etc.
+    // Note: All fp.to_* functions are unspecified for NaN and infinity input values!
+    BooleanFormula additionalConstraint =
+        fmgr.getFloatingPointFormulaManager()
+            .assignment(fromIeeeBitvector, (FloatingPointFormula) formula);
+
+    formula = bvformula;
+    constraints.addConstraint(additionalConstraint);
+    return formula;
+  }
+
+  /**
    * Create a formula that reinterprets the raw bit values as a bitvector formula with the same
    * size. Useful for converting floats to bitvectors. Returns {@code null} if this is not
    * implemented for the given types.
    *
-   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula, Constraints)},
-   * this function returns the original formula if it was already a bitvector formula, not {@code
-   * null}.
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula, Constraints,
+   * SSAMapBuilder)}, this function returns the original formula if it was already a bitvector
+   * formula, not {@code null}.
    */
   protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
       final CType pFromType, Formula formula) {
@@ -706,9 +734,9 @@ public class CtoFormulaConverter {
    * converting floating-point values represented in bitvectors back to float. Returns {@code null}
    * if this is not implemented for the given types.
    *
-   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula, Constraints)},
-   * this function returns the original formula if {@code pToType} is represented by bitvector, not
-   * {@code null}.
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula, Constraints,
+   * SSAMapBuilder)}, this function returns the original formula if {@code pToType} is represented
+   * by bitvector, not {@code null}.
    */
   protected @Nullable Formula makeValueReinterpretationFromBitvector(
       final CType pToType, BitvectorFormula formula) {
