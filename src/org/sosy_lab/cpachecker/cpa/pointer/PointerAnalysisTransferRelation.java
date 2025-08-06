@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -455,34 +456,20 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     LocationSet targets = getReferencedLocations(freedExpr, pState, true, pCfaEdge, options);
 
     if (targets instanceof ExplicitLocationSet explicitTargets) {
-      Set<PointerTarget> updatedTargets = new HashSet<>();
+      PersistentMap<PointerTarget, LocationSet> newPointsToMap = pState.getPointsToMap();
       for (PointerTarget pt : explicitTargets.getExplicitLocations()) {
         if (pt instanceof HeapLocation) {
-          updatedTargets.add(InvalidLocation.forInvalidation(InvalidationReason.FREED));
+          PointerTarget invalid = InvalidLocation.forInvalidation(InvalidationReason.FREED);
+          newPointsToMap = newPointsToMap.putAndCopy(pt, ExplicitLocationSet.from(invalid));
         } else {
           logger.logf(
               Level.WARNING,
-              "PointerAnalysis: free() called on non-heap object at %s: %s",
-              pCfaEdge.getFileLocation(),
-              freedExpr.toASTString());
-          updatedTargets.add(pt);
+              "free() called on non-heap object: %s at %s",
+              pt,
+              pCfaEdge.getFileLocation());
         }
       }
-      ExplicitLocationSet newSet =
-          (ExplicitLocationSet)
-              ExplicitLocationSet.from(updatedTargets, explicitTargets.containsNull());
-
-      if (freedExpr instanceof CIdExpression idExpr) {
-        PointerTarget target =
-            new MemoryLocationPointer(MemoryLocation.forDeclaration(idExpr.getDeclaration()));
-        return new PointerAnalysisState(pState.getPointsToMap().putAndCopy(target, newSet));
-      } else {
-        logger.logf(
-            Level.INFO,
-            "PointerAnalysis: free() called on non-CIdExpression at %s: %s",
-            pCfaEdge.getFileLocation(),
-            freedExpr.toASTString());
-      }
+      return new PointerAnalysisState(newPointsToMap);
     }
     return pState;
   }
@@ -679,7 +666,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     shouldDereference,
                     pCfaEdge,
                     pointerTransferOptions);
-            return dereference(operand);
+            if (shouldDereference) {
+              return dereference(operand);
+            }
+            return operand;
           }
 
           @Override
