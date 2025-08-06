@@ -1906,21 +1906,15 @@ cpa.constraints.removeTrivial = false
 # result in inefficient SMT solver usage with solverReuseMode = false.
 cpa.constraints.resolveDefinites = false
 
+# Whether to create a new, fresh solver instance for each SAT check with an
+# SMT solver (=false), or try to reuse the solver and its previous
+# constraints and results as far as possible (may be helpful/faster when
+# formulas are built on top of each other often).
+cpa.constraints.reusePreviousConstraintsOnSolver = true
+
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
-
-# Whether to create a new, fresh solver instance for each SAT check with an
-# SMT solver (== NO_SOLVER_REUSE), or try to reuse the solver and its
-# previous results as far as possible (may be helpful/faster when formulas
-# are built on top of each other often). This can be chosen from
-# REUSE_COMMON_PREFIX_OF_CONSTRAINTS; which builds the solver from bottom to
-# top with the longest existing prefix of common constraints, or
-# REUSE_REMOVE_UNCOMMON_SUFFIXES; which removes constraints from the top of
-# the incremental prover stack until a common prefix is reached.
-cpa.constraints.solverReuseMode = REUSE_COMMON_PREFIX_OF_CONSTRAINTS
-  enum:     [NO_SOLVER_REUSE, REUSE_REMOVE_UNCOMMON_SUFFIXES,
-             REUSE_COMMON_PREFIX_OF_CONSTRAINTS]
 
 # Export the trace-abtraction automaton to a file in dot-format.
 cpa.dca.refiner.dotExport = false
