@@ -6,4 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
