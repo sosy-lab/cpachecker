@@ -110,7 +110,7 @@ public class ConstraintsSolver {
       secure = true,
       description =
           "Resolve definite assignments. Note: Currently not working properly. Might result in"
-              + " inefficient SMT solver usage with solverReuseMode = false.",
+              + " inefficient SMT solver usage with reuseSolver = true.",
       name = "resolveDefinites")
   private boolean resolveDefinites = false;
 
@@ -121,8 +121,8 @@ public class ConstraintsSolver {
               + "(=false), or try to reuse the solver and its previous constraints and results as "
               + "far as possible (may be helpful/faster when formulas are built on top of each "
               + "other often).",
-      name = "reusePreviousConstraintsOnSolver")
-  private boolean reusePreviousConstraintsOnSolver = true;
+      name = "reuseSolver")
+  private boolean reuseSolver = true;
 
   private final ConstraintsCache cache;
   private final Solver solver;
@@ -201,11 +201,11 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally, as far as possible, if option {@link
-   * #reusePreviousConstraintsOnSolver} is true. Incremental solving can improve computation time by
+   * #reuseSolver} is true. Incremental solving can improve computation time by
    * re-using information stored in the solver from previous computations. This effect is strongest
    * when the previously checked constraints are a true subset of the constraints in {@code
    * pConstraintsToCheck}. More information about incremental usage can be found in the description
-   * of {@link #checkUnsat}. If option {@link #reusePreviousConstraintsOnSolver} is false, this
+   * of {@link #checkUnsat}. If option {@link #reuseSolver} is false, this
    * method behaves like {@link #checkUnsatWithFreshSolver(Constraint, String)}.
    *
    * @param pSingleConstraintToCheck the single constraint to check.
@@ -241,11 +241,11 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally, as far as possible, if option {@link
-   * #reusePreviousConstraintsOnSolver} is true. Incremental solving can improve computation time by
+   * #reuseSolver} is true. Incremental solving can improve computation time by
    * re-using information stored in the solver from previous computations. This effect is strongest
    * when the previously checked constraints are a true subset of the constraints in {@code
    * pConstraintsToCheck}. More information about incremental usage can be found in the description
-   * of {@link #checkUnsat}. If option {@link #reusePreviousConstraintsOnSolver} is false, this
+   * of {@link #checkUnsat}. If option {@link #reuseSolver} is false, this
    * method behaves like {@link #checkUnsatWithFreshSolver(ConstraintsState, String)}.
    *
    * @param pConstraintsToCheck the constraints to check.
@@ -264,14 +264,14 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally as far as possible. If parameter {@code
-   * useFreshProver} is false and option {@link #reusePreviousConstraintsOnSolver} is true.
+   * useFreshProver} is false and option {@link #reuseSolver} is true.
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
    * @param useFreshProver if true, uses a new {@link ProverEnvironment} for checking the
    *     constraints, that is closed after the method is finished, overwriting option {@link
-   *     #reusePreviousConstraintsOnSolver}. If false, will use option {@link
-   *     #reusePreviousConstraintsOnSolver} to determine reuse of the existing prover. Incremental
+   *     #reuseSolver}. If false, will use option {@link
+   *     #reuseSolver} to determine reuse of the existing prover. Incremental
    *     solving can improve computation time by re-using information stored in the solver from
    *     previous computations. This effect is strongest when the previously checked constraints are
    *     a subset of the constraints in {@code pConstraintsToCheck}.
@@ -311,7 +311,7 @@ public class ConstraintsSolver {
       } else {
 
         stats.timeForProverPreparation.start();
-        if (useFreshProver || !reusePreviousConstraintsOnSolver) {
+        if (useFreshProver || !reuseSolver) {
           // Non-Incremental
           stats.distinctFreshProversUsed.inc();
           try (ProverEnvironment prover =

@@ -1903,14 +1903,14 @@ cpa.constraints.removeOutdated = true
 cpa.constraints.removeTrivial = false
 
 # Resolve definite assignments. Note: Currently not working properly. Might
-# result in inefficient SMT solver usage with solverReuseMode = false.
+# result in inefficient SMT solver usage with reuseSolver = true.
 cpa.constraints.resolveDefinites = false
 
 # Whether to create a new, fresh solver instance for each SAT check with an
 # SMT solver (=false), or try to reuse the solver and its previous
 # constraints and results as far as possible (may be helpful/faster when
 # formulas are built on top of each other often).
-cpa.constraints.reusePreviousConstraintsOnSolver = true
+cpa.constraints.reuseSolver = true
 
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
