@@ -680,13 +680,8 @@ public class CtoFormulaConverter {
       SSAMapBuilder pSsa,
       CType toType,
       FloatingPointType fromFormulaType) {
-    boolean escapedName = formula.toString().startsWith("|") && formula.toString().endsWith("|");
-    String nameAddition = "_fp_to_ieee_bitvector";
-    String name =
-        escapedName
-            ? formula.toString().subSequence(1, formula.toString().length() - 1) + nameAddition
-            : formula + nameAddition;
-    Formula bvformula = makeNondet(name, toType, pSsa, constraints);
+    String nondetName = "__fp_to_ieee_bitvector_" + toType;
+    Formula bvformula = makeNondet(nondetName, toType, pSsa, constraints);
 
     FloatingPointFormula fromIeeeBitvector =
         fmgr.getFloatingPointFormulaManager()
