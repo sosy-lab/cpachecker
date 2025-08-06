@@ -146,12 +146,6 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
       }
     }
 
-    for (PointerTarget source : pOtherState.pointsToMap.keySet()) {
-      if (!pointsToMap.containsKey(source)) {
-        LocationSet otherTargets = pOtherState.getPointsToSet(source);
-        joinedMap = joinedMap.putAndCopy(source, otherTargets);
-      }
-    }
     if (joinedMap.equals(this.pointsToMap)) {
       return this;
     }
