@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -106,8 +107,12 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.MemoryLocationPointer;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
@@ -200,15 +205,8 @@ public class ValueAnalysisTransferRelation
                 + " and this can produce wrong results.")
     private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
 
-    @Option(
-        secure = true,
-        description =
-            "Able blacklisting for addressed variables to enable tracking through pointer analysis")
+    @Option(secure = true, description = "Able blacklisting for addressed variables")
     private boolean ableAddressedVariableBlacklisting = false;
-
-    public boolean isAbleAddressedVariableBlacklisting() {
-      return ableAddressedVariableBlacklisting;
-    }
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -1376,6 +1374,35 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
+      } else if (ae instanceof PointerState pointerState) {
+
+        CFAEdge edge = pCfaEdge;
+
+        ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
+        ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
+        Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
+        String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
+
+        result.clear();
+
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
+          ValueAnalysisState newState =
+              strengthenWithPointerInformation(
+                  stateToStrengthen,
+                  pointerState,
+                  rightHandSide,
+                  leftHandType,
+                  leftHandSide,
+                  leftHandVariable,
+                  UnknownValue.getInstance());
+
+          newState = handleModf(rightHandSide, pointerState, newState);
+
+          result.add(newState);
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       } else if (ae instanceof PointerAnalysisState pointerState) {
         result.clear();
 
@@ -1389,7 +1416,7 @@ public class ValueAnalysisTransferRelation
 
           try {
             ValueAnalysisState newState =
-                strengthenWithPointerInformation(
+                strengthenWithPointerAnalysisState(
                     stateToStrengthen,
                     pointerState,
                     rightHandSide,
@@ -1398,11 +1425,10 @@ public class ValueAnalysisTransferRelation
                     leftHandVariable,
                     UnknownValue.getInstance(),
                     pCfaEdge);
-            newState = handleModf(rightHandSide, pointerState, newState, pCfaEdge);
             result.add(newState);
           } catch (InvalidConfigurationException e) {
             logger.logUserException(
-                Level.WARNING,
+                Level.CONFIG,
                 e,
                 "Could not read pointer config in value analysis; skip this state ");
           }
@@ -1440,11 +1466,8 @@ public class ValueAnalysisTransferRelation
    * @throws UnrecognizedCodeException if the C code involved is not recognized.
    */
   private ValueAnalysisState handleModf(
-      ARightHandSide pRightHandSide,
-      PointerAnalysisState pPointerState,
-      ValueAnalysisState pState,
-      CFAEdge pCfaEdge)
-      throws CPATransferException, AssertionError, InvalidConfigurationException {
+      ARightHandSide pRightHandSide, PointerState pPointerState, ValueAnalysisState pState)
+      throws UnrecognizedCodeException, AssertionError {
     ValueAnalysisState newState = pState;
     if (pRightHandSide instanceof AFunctionCallExpression functionCallExpression) {
       AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
@@ -1491,8 +1514,7 @@ public class ValueAnalysisTransferRelation
                         target.getExpressionType(),
                         target,
                         null,
-                        new NumericValue(integralPartValue),
-                        pCfaEdge);
+                        new NumericValue(integralPartValue));
               }
             }
           }
@@ -1504,6 +1526,111 @@ public class ValueAnalysisTransferRelation
 
   private ValueAnalysisState strengthenWithPointerInformation(
       ValueAnalysisState pValueState,
+      PointerState pPointerInfo,
+      ARightHandSide pRightHandSide,
+      Type pTargetType,
+      ALeftHandSide pLeftHandSide,
+      String pLeftHandVariable,
+      Value pValue)
+      throws UnrecognizedCodeException {
+
+    ValueAnalysisState newState = pValueState;
+
+    Value value = pValue;
+    MemoryLocation target = null;
+    if (pLeftHandVariable != null) {
+      target = MemoryLocation.parseExtendedQualifiedName(pLeftHandVariable);
+    }
+    Type type = pTargetType;
+    boolean shouldAssign = false;
+
+    if (target == null && pLeftHandSide instanceof CPointerExpression pointerExpression) {
+      org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet directLocation =
+          PointerTransferRelation.asLocations(pointerExpression, pPointerInfo);
+
+      if (!(directLocation instanceof ExplicitLocationSet)) {
+        CExpression addressExpression = pointerExpression.getOperand();
+        org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet indirectLocation =
+            PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+        if ((indirectLocation
+                instanceof
+                org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet explicitSet)
+            && (explicitSet.getSize() == 1)) {
+          MemoryLocation variable = explicitSet.iterator().next();
+          directLocation = pPointerInfo.getPointsToSet(variable);
+        }
+      }
+      if (directLocation
+          instanceof
+          org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet explicitDirectLocation) {
+        Iterator<MemoryLocation> locationIterator = explicitDirectLocation.iterator();
+        MemoryLocation otherVariable = locationIterator.next();
+        if (!locationIterator.hasNext()) {
+          target = otherVariable;
+          if (type == null && pValueState.contains(target)) {
+            type = pValueState.getTypeForMemoryLocation(target);
+          }
+          shouldAssign = true;
+        }
+      }
+    }
+
+    if (!value.isExplicitlyKnown() && pRightHandSide instanceof CPointerExpression rhs) {
+      if (target == null) {
+        return pValueState;
+      }
+
+      CExpression addressExpression = rhs.getOperand();
+
+      org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet fullSet =
+          PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+
+      if ((fullSet
+              instanceof org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet explicitSet)
+          && (explicitSet.getSize() == 1)) {
+        MemoryLocation variable = explicitSet.iterator().next();
+        CType variableType = rhs.getExpressionType().getCanonicalType();
+        org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet pointsToSet =
+            pPointerInfo.getPointsToSet(variable);
+
+        if (pointsToSet
+            instanceof
+            org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet explicitPointsToSet) {
+          Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
+          MemoryLocation otherVariableLocation = pointsToIterator.next();
+          if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {
+
+            ValueAndType valueAndType = pValueState.getValueAndTypeFor(otherVariableLocation);
+            Type otherVariableType = valueAndType.getType();
+            if (otherVariableType != null) {
+              Value otherVariableValue = valueAndType.getValue();
+              if (otherVariableValue != null) {
+                if (variableType.equals(otherVariableType)
+                    || (variableType.equals(CNumericTypes.FLOAT)
+                        && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
+                        && otherVariableValue.isExplicitlyKnown()
+                        && Long.valueOf(0)
+                            .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
+                  value = otherVariableValue;
+                  shouldAssign = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (target != null && type != null && shouldAssign) {
+      newState = ValueAnalysisState.copyOf(pValueState);
+      newState.assignConstant(target, value, type);
+    }
+
+    return newState;
+  }
+
+  private ValueAnalysisState strengthenWithPointerAnalysisState(
+      ValueAnalysisState pValueState,
       PointerAnalysisState pPointerInfo,
       ARightHandSide pRightHandSide,
       Type pTargetType,
@@ -1514,7 +1641,9 @@ public class ValueAnalysisTransferRelation
       throws CPATransferException, InvalidConfigurationException {
 
     ValueAnalysisState newState = pValueState;
-    boolean isPointerLhs = pLeftHandSide instanceof CPointerExpression;
+    boolean isPointerLhs =
+        pLeftHandSide instanceof CPointerExpression
+            || pLeftHandSide instanceof CArraySubscriptExpression;
     boolean isPointerRhs = pRightHandSide instanceof CPointerExpression;
     boolean isFunctionCallWithoutAssignment = pLeftHandVariable == null && pLeftHandSide == null;
     boolean hasPointerInvolvement = isPointerLhs || isPointerRhs || isFunctionCallWithoutAssignment;
@@ -1532,22 +1661,88 @@ public class ValueAnalysisTransferRelation
     boolean shouldAssign = false;
     boolean targetIsUnknown = target == null;
 
-    if (targetIsUnknown && pLeftHandSide instanceof CPointerExpression pointerExpression) {
-
+    if (targetIsUnknown
+        && pLeftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
       PointerTransferOptions pointerTransferOptions = new PointerTransferOptions(config);
-      LocationSet targetLocations =
+      CExpression baseExpr = arraySubscriptExpression.getArrayExpression();
+      LocationSet baseLocations =
+          PointerAnalysisTransferRelation.getReferencedLocations(
+              baseExpr, pPointerInfo, false, pCfaEdge, pointerTransferOptions);
+
+      if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
+          && explicitBaseLocations.getSizeWithoutNull() == 1) {
+
+        PointerTarget basePointerTarget =
+            explicitBaseLocations.getExplicitLocations().iterator().next();
+
+        LocationSet heapTarget = pPointerInfo.getPointsToSet(basePointerTarget);
+
+        if (heapTarget instanceof ExplicitLocationSet heapBaseLocations
+            && heapBaseLocations.getSizeWithoutNull() == 1) {
+          PointerTarget heapBase = heapBaseLocations.getExplicitLocations().iterator().next();
+          if (heapBase instanceof HeapLocation heapLocation) {
+            LocationSet heapTargetLocations = pPointerInfo.getPointsToSet(heapLocation);
+            if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
+                && explicitHeapTargetLocations.getSizeWithoutNull() == 1) {
+              PointerTarget heapPointerTarget =
+                  explicitHeapTargetLocations.getExplicitLocations().iterator().next();
+              if (heapPointerTarget instanceof InvalidLocation) {
+                logger.logf(
+                    Level.SEVERE, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
+                return null;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (targetIsUnknown && pLeftHandSide instanceof CPointerExpression pointerExpression) {
+      PointerTransferOptions pointerTransferOptions = new PointerTransferOptions(config);
+      LocationSet baseLocations =
           PointerAnalysisTransferRelation.getReferencedLocations(
               pointerExpression, pPointerInfo, false, pCfaEdge, pointerTransferOptions);
 
-      if (targetLocations instanceof ExplicitLocationSet explicitTargetLocations
-          && explicitTargetLocations.getSizeWithoutNull() == 1) {
-        PointerTarget pointerTarget =
-            explicitTargetLocations.getExplicitLocations().iterator().next();
-        if (pointerTarget instanceof MemoryLocationPointer targetMemoryLocationPointer) {
-          target = targetMemoryLocationPointer.getMemoryLocation();
-          targetIsUnknown = target == null;
-          type = pointerExpression.getExpressionType().getCanonicalType();
-          shouldAssign = true;
+      if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
+          && explicitBaseLocations.getSizeWithoutNull() == 1) {
+        PointerTarget basePointerTarget =
+            explicitBaseLocations.getExplicitLocations().iterator().next();
+
+        LocationSet pointerTargets = pPointerInfo.getPointsToSet(basePointerTarget);
+
+        if (pointerTargets instanceof ExplicitLocationSet explicitPointerTargets
+            && explicitPointerTargets.getSizeWithoutNull() == 1) {
+          PointerTarget pointerTarget =
+              explicitPointerTargets.getExplicitLocations().iterator().next();
+          if (pointerTarget instanceof MemoryLocationPointer targetMemoryLocation) {
+            target = targetMemoryLocation.getMemoryLocation();
+            targetIsUnknown = target == null;
+            type = pointerExpression.getExpressionType().getCanonicalType();
+            shouldAssign = true;
+          }
+          if (pointerTarget instanceof HeapLocation heapLocation) {
+            LocationSet heapTargetLocations = pPointerInfo.getPointsToSet(heapLocation);
+            if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
+                && explicitHeapTargetLocations.getSizeWithoutNull() == 1) {
+              PointerTarget heapPointerTarget =
+                  explicitHeapTargetLocations.getExplicitLocations().iterator().next();
+              if (heapPointerTarget instanceof MemoryLocationPointer heapMemoryLocationPointer) {
+                target = heapMemoryLocationPointer.getMemoryLocation();
+                targetIsUnknown = target == null;
+                type = pointerExpression.getExpressionType().getCanonicalType();
+                shouldAssign = true;
+              }
+              if (heapPointerTarget instanceof InvalidLocation) {
+                logger.logf(
+                    Level.INFO, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
+                return null;
+              }
+            }
+          }
+          if (pointerTarget instanceof InvalidLocation) {
+            logger.logf(Level.INFO, "Use-of-invalid detected at %s", pCfaEdge.getFileLocation());
+            return null;
+          }
         }
       }
     }
