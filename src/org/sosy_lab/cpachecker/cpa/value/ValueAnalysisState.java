@@ -20,6 +20,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -413,18 +414,45 @@ public final class ValueAnalysisState
     // if any one constant's value of the other element differs from the constant's value in this
     // element
 
-    // the simple way
-    // if (other.constantsMap.entrySet().containsAll(constantsMap.entrySet())) {
-    //   return true;
-    // }
+    if (constantsMap == other.constantsMap) {
+      return true;
+    }
 
-    // the tolerant way: ignore all type information. TODO really correct?
-    for (Entry<MemoryLocation, ValueAndType> otherEntry : other.constantsMap.entrySet()) {
-      MemoryLocation key = otherEntry.getKey();
-      Value otherValue = otherEntry.getValue().getValue();
-      ValueAndType thisValueAndType = constantsMap.get(key);
-      if (thisValueAndType == null || !otherValue.equals(thisValueAndType.getValue())) {
+    Iterator<Entry<MemoryLocation, ValueAndType>> otherMapIter =
+        other.constantsMap.entrySet().iterator();
+    Iterator<Entry<MemoryLocation, ValueAndType>> thisMapIter = constantsMap.entrySet().iterator();
+
+    Entry<MemoryLocation, ValueAndType> otherEntry = null;
+    Entry<MemoryLocation, ValueAndType> thisEntry;
+
+    while ((otherEntry != null || otherMapIter.hasNext()) && thisMapIter.hasNext()) {
+
+      if (otherEntry == null) {
+        otherEntry = otherMapIter.next();
+      }
+
+      thisEntry = thisMapIter.next();
+
+      int comp = otherEntry.getKey().compareTo(thisEntry.getKey());
+
+      // All entries from other need to be in this
+      // otherEntry > thisEntry => forwards this iterator until this catches up with other iterator
+      if (comp < 0) {
+        // otherEntry < thisEntry => otherEntry not in this iterator
         return false;
+
+      } else if (comp == 0) {
+        // otherEntry == thisEntry
+        ValueAndType otherValueAndType = otherEntry.getValue();
+        ValueAndType thisValueAndType = thisEntry.getValue();
+
+        if (!otherValueAndType.getValue().equals(thisValueAndType.getValue())) {
+          // the tolerant way: ignore all type information. TODO really correct?
+          return false;
+        }
+
+        // forward both iterators
+        otherEntry = null;
       }
     }
 
