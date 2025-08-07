@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
@@ -106,9 +107,20 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
           expression = ((CCastExpression) expression).getOperand();
           stop = false;
         }
+      } else {
+        if (((CCastExpression) expression).getOperand().getExpressionType().getCanonicalType()
+                instanceof CPointerType
+            && ((CType) expression.getExpressionType()).getCanonicalType()
+                instanceof CSimpleType simType
+            && simType.getType().isIntegerType()
+            && (getMachineModel().getSizeofPtr() < getMachineModel().getSizeof(simType)
+                || (getMachineModel().getSizeofPtr() == getMachineModel().getSizeof(simType)
+                    && !getMachineModel().isSigned(simType)))) {
+          expression = ((CCastExpression) expression).getOperand();
+          stop = false;
+        }
       }
     }
-
     return expression;
   }
 
