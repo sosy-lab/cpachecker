@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
@@ -121,9 +120,8 @@ public class StatementLinker {
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments) {
 
     return pStatement.isLinkable()
-        // do not link atomic blocks, this is handled by AtomicBlockMerger, unless atomic_end
-        && (!(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
-            || pStatement instanceof SeqAtomicEndStatement)
+        // do not link atomic blocks, this is handled by AtomicBlockMerger
+        && !(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
         // thread synchronization statements must be directly reachable (via pc) -> no linking
         && !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
         // only consider global accesses if not ignored
