@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -125,5 +126,15 @@ public class SubstituteUtil {
       }
     }
     return rLocations.build();
+  }
+
+  public static ImmutableSet<CParameterDeclaration> findAllMainFunctionArgs(
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
+    ImmutableSet.Builder<CParameterDeclaration> rArgs = ImmutableSet.builder();
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+      rArgs.addAll(substituteEdge.accessedMainFunctionArgs);
+    }
+    return rArgs.build();
   }
 }

@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
@@ -25,6 +26,8 @@ public class SubstituteEdge {
   public final CFAEdge cfaEdge;
 
   public final ThreadEdge threadEdge;
+
+  public final ImmutableSet<CParameterDeclaration> accessedMainFunctionArgs;
 
   public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> pointerAssignment;
 
@@ -46,13 +49,10 @@ public class SubstituteEdge {
 
   public final ImmutableSet<CFunctionDeclaration> accessedFunctionPointers;
 
-  // TODO parameters are a bit trickier due to passed on parameters
-  /** The list of parameters pointing to global variable declarations that this edge accesses. */
-  // public final ImmutableList<CParameterDeclaration> globalParameterVariables;
-
   private SubstituteEdge(
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
+      ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
       ImmutableMap<CVariableDeclaration, CVariableDeclaration> pPointerAssignment,
       ImmutableSet<CVariableDeclaration> pWrittenPointerDereferences,
       ImmutableSet<CVariableDeclaration> pAccessedPointerDereferences,
@@ -68,6 +68,8 @@ public class SubstituteEdge {
 
     cfaEdge = pCfaEdge;
     threadEdge = pThreadEdge;
+    // main function args
+    accessedMainFunctionArgs = pAccessedMainFunctionArgs;
     // pointers
     pointerAssignment = pPointerAssignment;
     writtenPointerDereferences = pWrittenPointerDereferences;
@@ -88,27 +90,12 @@ public class SubstituteEdge {
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
+        ImmutableSet.of(),
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
-        ImmutableSet.of());
-  }
-
-  public static SubstituteEdge of(
-      CFAEdge pCfaEdge,
-      ThreadEdge pThreadEdge,
-      ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables) {
-
-    return new SubstituteEdge(
-        pCfaEdge,
-        pThreadEdge,
-        ImmutableMap.of(),
-        ImmutableSet.of(),
-        ImmutableSet.of(),
-        ImmutableSet.of(),
-        pAccessedGlobalVariables,
         ImmutableSet.of());
   }
 
@@ -122,6 +109,7 @@ public class SubstituteEdge {
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
+        pTracker.getAccessedMainFunctionArgs(),
         pTracker.getPointerAssignments(),
         pTracker.getWrittenPointerDereferences(),
         pTracker.getAccessedPointerDereferences(),

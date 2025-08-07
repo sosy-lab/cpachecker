@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -82,25 +81,23 @@ public class SubstituteEdgeBuilder {
         CDeclaration declaration = declarationEdge.getDeclaration();
         // we only substitute variables, not functions or types
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
+          MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
           if (declaration.isGlobal()) {
             CVariableDeclaration declarationSubstitute =
                 pSubstitution.getLocalVariableDeclarationSubstitute(
-                    variableDeclaration, callContext);
+                    variableDeclaration, callContext, Optional.of(tracker));
             CDeclarationEdge substituteDeclarationEdge =
                 substituteDeclarationEdge(declarationEdge, declarationSubstitute);
             // TODO declarations like 'int * ptr = &x;' require tracking
-            return Optional.of(SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge));
+            return Optional.of(SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge, tracker));
           } else {
             CVariableDeclaration declarationSubstitute =
                 pSubstitution.getLocalVariableDeclarationSubstitute(
-                    variableDeclaration, callContext);
-            ImmutableSet<CVariableDeclaration> accessedGlobalVariables =
-                pSubstitution.getGlobalVariablesUsedInLocalVariableDeclaration(variableDeclaration);
+                    variableDeclaration, callContext, Optional.of(tracker));
             CDeclarationEdge substituteDeclarationEdge =
                 substituteDeclarationEdge(declarationEdge, declarationSubstitute);
             // TODO declarations like 'int * ptr = &x;' require tracking
-            return Optional.of(
-                SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge, accessedGlobalVariables));
+            return Optional.of(SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge, tracker));
           }
         }
       }

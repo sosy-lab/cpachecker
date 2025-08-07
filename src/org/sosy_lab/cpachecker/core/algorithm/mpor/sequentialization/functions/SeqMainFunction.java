@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -144,7 +145,7 @@ public class SeqMainFunction extends SeqFunction {
     rBody.addAll(buildBitVectorInitializations(clauses, bitVectorVariables));
 
     // add main function argument non-deterministic assignments
-    rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, logger));
+    rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, clauses, logger));
 
     // --- loop starts here ---
     SeqSingleControlExpression loopHead = buildLoopHead(options, binaryExpressionBuilder);
@@ -257,24 +258,37 @@ public class SeqMainFunction extends SeqFunction {
    * = __VERIFIER_nondet_int;}
    */
   private ImmutableList<LineOfCode> buildMainFunctionArgNondetAssignments(
-      MPORSubstitution pMainSubstitution, LogManager pLogger) {
+      MPORSubstitution pMainSubstitution,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      LogManager pLogger) {
 
+    // first extract all accesses to main function arguments
+    ImmutableSet<SubstituteEdge> allSubstituteEdges =
+        SeqThreadStatementClauseUtil.collectAllSubstituteEdges(pClauses);
+    ImmutableSet<CParameterDeclaration> accessedMainFunctionArgs =
+        SubstituteUtil.findAllMainFunctionArgs(allSubstituteEdges);
+
+    // then add main function arg nondet assignments, if necessary
     ImmutableList.Builder<LineOfCode> rMainArgAssignments = ImmutableList.builder();
-    for (CIdExpression mainArg : pMainSubstitution.mainFunctionArgSubstitutes.values()) {
-      CType mainArgType = mainArg.getExpressionType();
-      Optional<CFunctionCallExpression> verifierNondet =
-          VerifierNondetFunctionType.buildVerifierNondetByType(mainArgType);
-      if (verifierNondet.isPresent()) {
-        CFunctionCallAssignmentStatement assignment =
-            SeqStatementBuilder.buildFunctionCallAssignmentStatement(
-                mainArg, verifierNondet.orElseThrow());
-        rMainArgAssignments.add(LineOfCode.of(assignment.toASTString()));
-      } else {
-        pLogger.log(
-            Level.WARNING,
-            "could not find __VERIFIER_nondet function "
-                + "for the following main function argument type: "
-                + mainArgType.toASTString(""));
+    for (var entry : pMainSubstitution.mainFunctionArgSubstitutes.entrySet()) {
+      // add assignment only if necessary, i.e. if it is accessed later (nondet is expensive)
+      if (accessedMainFunctionArgs.contains(entry.getKey())) {
+        CIdExpression mainArgSubstitute = entry.getValue();
+        CType mainArgType = mainArgSubstitute.getExpressionType();
+        Optional<CFunctionCallExpression> verifierNondet =
+            VerifierNondetFunctionType.buildVerifierNondetByType(mainArgType);
+        if (verifierNondet.isPresent()) {
+          CFunctionCallAssignmentStatement assignment =
+              SeqStatementBuilder.buildFunctionCallAssignmentStatement(
+                  mainArgSubstitute, verifierNondet.orElseThrow());
+          rMainArgAssignments.add(LineOfCode.of(assignment.toASTString()));
+        } else {
+          pLogger.log(
+              Level.WARNING,
+              "could not find __VERIFIER_nondet function "
+                  + "for the following main function argument type: "
+                  + mainArgType.toASTString(""));
+        }
       }
     }
     return rMainArgAssignments.build();

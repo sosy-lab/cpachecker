@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -226,7 +225,7 @@ public class MPORSubstitution {
       CSimpleDeclaration declaration = idExpression.getDeclaration();
       if (isSubstitutable(declaration)) {
         handleGlobalVariableAccesses(idExpression, pIsWrite, pIsPointerDereference, pTracker);
-        return getVariableSubstitute(idExpression.getDeclaration(), pCallContext);
+        return getVariableSubstitute(idExpression.getDeclaration(), pCallContext, pTracker);
       }
       // when accessing function pointers e.g. &func. this is also possible without the unary amper
       // operator '&', but the example tasks used only this expression, so we restrict it.
@@ -448,7 +447,9 @@ public class MPORSubstitution {
 
   /** Returns the global, local or param {@link CIdExpression} substitute of pSimpleDeclaration. */
   private CIdExpression getVariableSubstitute(
-      CSimpleDeclaration pSimpleDeclaration, Optional<ThreadEdge> pCallContext) {
+      CSimpleDeclaration pSimpleDeclaration,
+      Optional<ThreadEdge> pCallContext,
+      Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localSubstitutes.containsKey(variableDeclaration)) {
@@ -468,6 +469,9 @@ public class MPORSubstitution {
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       if (pCallContext.isEmpty()) {
         // no call context -> main function argument
+        if (pTracker.isPresent()) {
+          pTracker.orElseThrow().addAccessedMainFunctionArg(parameterDeclaration);
+        }
         return mainFunctionArgSubstitutes.get(parameterDeclaration);
       }
       // normal function called within thread, including start_routines, always have call context
@@ -516,19 +520,12 @@ public class MPORSubstitution {
   }
 
   public CVariableDeclaration getLocalVariableDeclarationSubstitute(
-      CVariableDeclaration pLocalDeclaration, Optional<ThreadEdge> pCallContext) {
+      CVariableDeclaration pLocalDeclaration,
+      Optional<ThreadEdge> pCallContext,
+      Optional<MPORSubstitutionTracker> pTracker) {
 
-    CIdExpression idExpression = getVariableSubstitute(pLocalDeclaration, pCallContext);
+    CIdExpression idExpression = getVariableSubstitute(pLocalDeclaration, pCallContext, pTracker);
     return (CVariableDeclaration) idExpression.getDeclaration();
-  }
-
-  public ImmutableSet<CVariableDeclaration> getGlobalVariablesUsedInLocalVariableDeclaration(
-      CVariableDeclaration pLocalDeclaration) {
-
-    checkArgument(
-        localSubstitutes.containsKey(pLocalDeclaration),
-        "could not find pLocalDeclaration substitute");
-    return Objects.requireNonNull(localSubstitutes.get(pLocalDeclaration)).accessedGlobalVariables;
   }
 
   public <T extends CSimpleDeclaration> T castTo(

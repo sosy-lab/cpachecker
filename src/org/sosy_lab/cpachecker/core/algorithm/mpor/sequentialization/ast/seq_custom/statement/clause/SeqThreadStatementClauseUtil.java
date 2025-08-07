@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -45,6 +46,25 @@ public class SeqThreadStatementClauseUtil {
       rAllTargetPc.add(pStatement.getTargetPc().orElseThrow());
     }
     return rAllTargetPc.build();
+  }
+
+  public static ImmutableSet<SubstituteEdge> collectAllSubstituteEdges(
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
+
+    ImmutableSet.Builder<SubstituteEdge> rEdges = ImmutableSet.builder();
+    for (var entry : pClauses.entrySet()) {
+      for (SeqThreadStatementClause clause : entry.getValue()) {
+        for (SeqThreadStatement statement : clause.block.statements) {
+          rEdges.addAll(statement.getSubstituteEdges());
+        }
+        for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
+          for (SeqThreadStatement mergedStatement : mergedBlock.getStatements()) {
+            rEdges.addAll(mergedStatement.getSubstituteEdges());
+          }
+        }
+      }
+    }
+    return rEdges.build();
   }
 
   public static CExpression getStatementExpressionByEncoding(

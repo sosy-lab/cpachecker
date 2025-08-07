@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 
 /**
@@ -25,17 +26,47 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 public class MPORSubstitutionTracker {
 
   public final boolean isImmutable;
+
+  /**
+   * The set of accessed main function arguments, used to decide whether to assign them
+   * non-deterministically. The nondet assignment is expensive for some verifiers (e.g. CBMC) and
+   * should only be done if needed.
+   */
+  private final Set<CParameterDeclaration> accessedMainFunctionArgs;
+
+  /** Pointer assignments of the form {@code ptr = &var;} i.e. updates to the address. */
   private final Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments;
+
+  /**
+   * Accessed pointer dereferences e.g. of the form {@code x = *ptr;}. Contains both reads and
+   * writes.
+   */
   private final Set<CVariableDeclaration> accessedPointerDereferences;
+
+  /** Read pointer dereferences e.g. of the form {@code x = *ptr;}. */
   private final Set<CVariableDeclaration> readPointerDereferences;
+
+  /** Written pointer dereferences e.g. of the form {@code *ptr = x;}. */
   private final Set<CVariableDeclaration> writtenPointerDereferences;
+
+  /**
+   * Accessed global variables e.g. of the form {@code x++;} where {@code x} is a global variable.
+   * Contains both reads and writes.
+   */
   private final Set<CVariableDeclaration> accessedGlobalVariables;
+
+  /** Read global variables e.g. of the form {@code if (x == 0) ...}. */
   private final Set<CVariableDeclaration> readGlobalVariables;
+
+  /** Written global variables e.g. of the form {@code x = 42;}. */
   private final Set<CVariableDeclaration> writtenGlobalVariables;
+
+  /** All accessed function pointers. */
   private final Set<CFunctionDeclaration> accessedFunctionPointers;
 
   private MPORSubstitutionTracker() {
     isImmutable = false;
+    accessedMainFunctionArgs = new HashSet<>();
     pointerAssignments = new HashMap<>();
     accessedPointerDereferences = new HashSet<>();
     readPointerDereferences = new HashSet<>();
@@ -47,6 +78,7 @@ public class MPORSubstitutionTracker {
   }
 
   private MPORSubstitutionTracker(
+      ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
       ImmutableMap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
       ImmutableSet<CVariableDeclaration> pAccessedPointerDereferences,
       ImmutableSet<CVariableDeclaration> pWrittenPointerDereferences,
@@ -55,6 +87,9 @@ public class MPORSubstitutionTracker {
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
 
     isImmutable = true;
+
+    accessedMainFunctionArgs = pAccessedMainFunctionArgs;
+
     pointerAssignments = pPointerAssignments;
 
     accessedPointerDereferences = pAccessedPointerDereferences;
@@ -77,6 +112,7 @@ public class MPORSubstitutionTracker {
 
   public MPORSubstitutionTracker toImmutableCopy() {
     return new MPORSubstitutionTracker(
+        ImmutableSet.copyOf(accessedMainFunctionArgs),
         ImmutableMap.copyOf(pointerAssignments),
         ImmutableSet.copyOf(accessedPointerDereferences),
         ImmutableSet.copyOf(writtenPointerDereferences),
@@ -86,6 +122,10 @@ public class MPORSubstitutionTracker {
   }
 
   // add methods ===================================================================================
+
+  public void addAccessedMainFunctionArg(CParameterDeclaration pParameterDeclaration) {
+    accessedMainFunctionArgs.add(pParameterDeclaration);
+  }
 
   public void addPointerAssignment(
       CVariableDeclaration pLeftHandSide, CVariableDeclaration pRightHandSide) {
@@ -114,6 +154,13 @@ public class MPORSubstitutionTracker {
   }
 
   // getters =======================================================================================
+
+  public ImmutableSet<CParameterDeclaration> getAccessedMainFunctionArgs() {
+    if (accessedMainFunctionArgs instanceof ImmutableSet<CParameterDeclaration> immutableSet) {
+      return immutableSet;
+    }
+    return ImmutableSet.copyOf(accessedMainFunctionArgs);
+  }
 
   public ImmutableMap<CVariableDeclaration, CVariableDeclaration> getPointerAssignments() {
     if (pointerAssignments
