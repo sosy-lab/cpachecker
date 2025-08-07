@@ -154,6 +154,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       secure = true,
+      description = "assign K only when the respective thread is active i.e. lazily?"
+          + " may slow down or improve performance, depending on the verifier.")
+  private boolean kAssignLazy;
+
+  @Option(
+      secure = true,
       description =
           "bound K to the number of statements in a thread simulation via assumptions?"
               + " may slow down or improve performance, depending on the verifier.")
@@ -333,6 +339,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       pConfiguration.inject(this);
     }
 
+    // the options are not null when unit testing
     if (pOptions != null) {
       options = pOptions;
     } else {
@@ -353,6 +360,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               formatStyle,
               inputFunctionDeclarations,
               inputTypeDeclarations,
+              kAssignLazy,
               kBound,
               kIgnoreZeroReduction,
               license,

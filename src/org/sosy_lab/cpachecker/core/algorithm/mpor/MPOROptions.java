@@ -60,6 +60,8 @@ public class MPOROptions {
 
   public final boolean inputTypeDeclarations;
 
+  public final boolean kAssignLazy;
+
   public final boolean kBound;
 
   public final boolean kIgnoreZeroReduction;
@@ -110,6 +112,7 @@ public class MPOROptions {
       ClangFormatStyle pFormatStyle,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
+      boolean pKAssignLazy,
       boolean pKBound,
       boolean pKIgnoreZeroReduction,
       boolean pLicense,
@@ -151,6 +154,7 @@ public class MPOROptions {
     formatStyle = pFormatStyle;
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
+    kAssignLazy = pKAssignLazy;
     kBound = pKBound;
     kIgnoreZeroReduction = pKIgnoreZeroReduction;
     license = pLicense;
@@ -182,6 +186,7 @@ public class MPOROptions {
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pInputFunctionDeclarations,
+      boolean pKAssignLazy,
       boolean pKBound,
       boolean pKIgnoreZeroReduction,
       boolean pLicense,
@@ -214,6 +219,7 @@ public class MPOROptions {
         pInputFunctionDeclarations,
         // always include type declarations at the moment, excluding them is unsafe
         true,
+        pKAssignLazy,
         pKBound,
         pKIgnoreZeroReduction,
         pLicense,

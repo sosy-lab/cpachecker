@@ -322,6 +322,10 @@ analysis.algorithm.MPOR.inputFunctionDeclarations = false
 # size
 analysis.algorithm.MPOR.inputTypeDeclarations = true
 
+# assign K only when the respective thread is active i.e. lazily? may slow
+# down or improve performance, depending on the verifier.
+analysis.algorithm.MPOR.kAssignLazy = no default value
+
 # bound K to the number of statements in a thread simulation via assumptions?
 # may slow down or improve performance, depending on the verifier.
 analysis.algorithm.MPOR.kBound = no default value
