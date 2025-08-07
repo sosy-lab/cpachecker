@@ -154,8 +154,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       secure = true,
-      description = "assign K only when the respective thread is active i.e. lazily?"
-          + " may slow down or improve performance, depending on the verifier.")
+      description =
+          "assign K only when the respective thread is active i.e. lazily?"
+              + " may slow down or improve performance, depending on the verifier.")
   private boolean kAssignLazy;
 
   @Option(

@@ -113,7 +113,7 @@ public class NondeterministicSimulationUtil {
   // r and K statements/expressions ================================================================
 
   /** Returns the expression for {@code K = __VERIFIER_nondet_{int, uint}()} */
-  static CFunctionCallAssignmentStatement buildKNondetAssignment(
+  public static CFunctionCallAssignmentStatement buildKNondetAssignment(
       MPOROptions pOptions, CIdExpression pKVariable) {
 
     return SeqStatementBuilder.buildFunctionCallAssignmentStatement(

@@ -185,8 +185,6 @@ public class SeqMainFunction extends SeqFunction {
         rBody.add(LineOfCode.of(SeqComment.ACTIVE_THREAD_COUNT));
       }
       rBody.add(LineOfCode.of(countAssumption.orElseThrow().toASTString()));
-      // TODO add assumption that ensures that at least one thread executes at least one statement:
-      //  assume(K > 0 || K' > 0 || ...); -> also need separate K variables for each thread then
     }
 
     // add all thread simulation control flow statements
