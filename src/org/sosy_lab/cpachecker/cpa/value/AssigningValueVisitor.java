@@ -80,19 +80,12 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
   private AExpression unwrap(AExpression expression) {
     // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
-    CSimpleType expType;
-    CSimpleType castType;
     boolean stop = false;
-    while (!stop && expression instanceof CCastExpression) {
+    while (!stop && expression instanceof CCastExpression castExpr) {
       stop = true;
-      // expression.getExpressionType() instanceof CType because expression CCastExpression
-      if (((CType) expression.getExpressionType()).getCanonicalType() instanceof CSimpleType
-          && ((CCastExpression) expression).getOperand().getExpressionType().getCanonicalType()
-              instanceof CSimpleType) {
-        castType = (CSimpleType) ((CType) expression.getExpressionType()).getCanonicalType();
-        expType =
-            (CSimpleType)
-                ((CCastExpression) expression).getOperand().getExpressionType().getCanonicalType();
+      if (castExpr.getExpressionType().getCanonicalType() instanceof CSimpleType castType
+          && castExpr.getOperand().getExpressionType().getCanonicalType()
+              instanceof CSimpleType expType) {
         if ((expType.getType().isIntegerType()
                 && castType.getType().isIntegerType()
                 && (expType.getType() == CBasicType.BOOL
@@ -108,15 +101,13 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
           stop = false;
         }
       } else {
-        if (((CCastExpression) expression).getOperand().getExpressionType().getCanonicalType()
-                instanceof CPointerType
-            && ((CType) expression.getExpressionType()).getCanonicalType()
-                instanceof CSimpleType simType
+        if (castExpr.getOperand().getExpressionType().getCanonicalType() instanceof CPointerType
+            && castExpr.getExpressionType().getCanonicalType() instanceof CSimpleType simType
             && simType.getType().isIntegerType()
             && (getMachineModel().getSizeofPtr() < getMachineModel().getSizeof(simType)
                 || (getMachineModel().getSizeofPtr() == getMachineModel().getSizeof(simType)
                     && !getMachineModel().isSigned(simType)))) {
-          expression = ((CCastExpression) expression).getOperand();
+          expression = castExpr.getOperand();
           stop = false;
         }
       }
@@ -227,10 +218,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       return pValue;
     }
 
-    if (pOriginalType.getCanonicalType() instanceof CSimpleType
-        && pCastType.getCanonicalType() instanceof CSimpleType) {
-      CSimpleType origType = (CSimpleType) pOriginalType.getCanonicalType();
-      CSimpleType castType = (CSimpleType) pCastType.getCanonicalType();
+    if (pOriginalType.getCanonicalType() instanceof CSimpleType origType
+        && pCastType.getCanonicalType() instanceof CSimpleType castType) {
 
       if (origType.getType().isFloatingPointType()) { // orig type floating point
         Preconditions.checkArgument(castType.getType().isFloatingPointType());
