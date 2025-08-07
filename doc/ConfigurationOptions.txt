@@ -4656,9 +4656,11 @@ parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 # name and arguments, but won't be expanded by a shell. The source file name
 # will be appended to this string. Clang needs to print the output to stdout.
 parser.clang = "clang-" + LlvmUtils.extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout"
+parser.clang = no default value
 
 # Whether to dump the results of the preprocessor to disk.
 parser.clang.dumpResults = true
+parser.clang.dumpResults = no default value
 
 # Whether to collect ACSL annotations if present
 parser.collectACSLAnnotations = false
