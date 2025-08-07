@@ -295,7 +295,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Map<CIdExpression, ArrayList<CExpression>> evaluatedValuesWithMultipleMapping =
         pState.getEvaluatedValues();
 
-    Set<Map<CIdExpression, CExpression>> mapsWithSingleValueMapping = new HashSet<>();
+    Set<Map<CIdExpression, ArrayList<CExpression>>> mapsWithSingleValueMapping = new HashSet<>();
     Collection<TaintAnalysisState> states = new HashSet<>();
 
     int numberOfMergedStates = 0;
@@ -305,7 +305,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     for (int i = 0; i < numberOfMergedStates; i++) {
 
-      Map<CIdExpression, CExpression> singleValueMap = new HashMap<>();
+      Map<CIdExpression, ArrayList<CExpression>> singleValueMap = new HashMap<>();
 
       for (Map.Entry<CIdExpression, ArrayList<CExpression>> entry :
           evaluatedValuesWithMultipleMapping.entrySet()) {
@@ -317,7 +317,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         for (CExpression value : values) {
           // Use the ith element if it exists
           if (index == i) {
-            singleValueMap.put(variable, value);
+            ArrayList<CExpression> valueList = new ArrayList<>();
+            valueList.add(value);
+            singleValueMap.put(variable, valueList);
             break;
           }
           index++;
@@ -332,8 +334,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       mapsWithSingleValueMapping.add(singleValueMap);
     }
 
-    for (Map<CIdExpression, CExpression> map : mapsWithSingleValueMapping) {
-      states.add(generateNewState(pState, new HashSet<>(), new HashSet<>(), map));
+    for (Map<CIdExpression, ArrayList<CExpression>> map : mapsWithSingleValueMapping) {
+      TaintAnalysisState reconstructedState =
+          new TaintAnalysisState(pState.getTaintedVariables(), pState.getUntaintedVariables(), map);
+      states.add(reconstructedState);
     }
     return states;
   }
