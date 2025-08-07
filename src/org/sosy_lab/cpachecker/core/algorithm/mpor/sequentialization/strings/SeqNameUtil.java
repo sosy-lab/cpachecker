@@ -22,12 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public class SeqNameUtil {
 
-  private static int variableId = 0;
-
-  private static String createVariableId() {
-    return SeqSyntax.UNDERSCORE + variableId++ + SeqSyntax.UNDERSCORE;
-  }
-
   public static String buildThreadKVariable(int pThreadId) {
     return SeqToken.K + pThreadId;
   }
@@ -48,7 +42,7 @@ public class SeqNameUtil {
 
     checkArgument(pVariableDeclaration.isGlobal(), "variable declaration must be global");
     return buildGlobalVariablePrefix(pOptions)
-        + createVariableId()
+        + SeqSyntax.UNDERSCORE
         + pVariableDeclaration.getName();
   }
 
@@ -64,7 +58,7 @@ public class SeqNameUtil {
             ? pFunctionName.orElseThrow() + SeqSyntax.UNDERSCORE
             : SeqSyntax.EMPTY_STRING;
     String prefix = buildLocalVariablePrefix(pOptions, functionName, pThreadId, pCallContext);
-    return prefix + createVariableId() + pVariableDeclaration.getName();
+    return prefix + SeqSyntax.UNDERSCORE + pVariableDeclaration.getName();
   }
 
   private static String buildGlobalVariablePrefix(MPOROptions pOptions) {
@@ -101,7 +95,7 @@ public class SeqNameUtil {
         + SeqSyntax.UNDERSCORE
         + (pOptions.shortVariableNames ? SeqToken.C : SeqToken.CALL)
         + pCallNumber
-        + createVariableId()
+        + SeqSyntax.UNDERSCORE
         + pParameterDeclaration.getName();
   }
 
@@ -118,7 +112,7 @@ public class SeqNameUtil {
       MPOROptions pOptions, CParameterDeclaration pMainFunctionArgDeclaration) {
 
     return (pOptions.shortVariableNames ? SeqToken.M : SeqToken.MAIN_FUNCTION_ARG)
-        + createVariableId()
+        + SeqSyntax.UNDERSCORE
         + pMainFunctionArgDeclaration.getName();
   }
 
@@ -135,7 +129,7 @@ public class SeqNameUtil {
         + SeqSyntax.UNDERSCORE
         + (pOptions.shortVariableNames ? SeqToken.T : SeqToken.THREAD)
         + pThreadId
-        + createVariableId()
+        + SeqSyntax.UNDERSCORE
         + pStartRoutineArgDeclaration.getName();
   }
 
@@ -144,7 +138,7 @@ public class SeqNameUtil {
         + SeqSyntax.UNDERSCORE
         + (pOptions.shortVariableNames ? SeqToken.T : SeqToken.THREAD)
         + pThreadId
-        + createVariableId()
+        + SeqSyntax.UNDERSCORE
         + SeqToken.return_value;
   }
 
