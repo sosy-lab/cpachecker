@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -68,7 +69,7 @@ public class SeqMainFunction extends SeqFunction {
   private final CIdExpression numThreadsVariable;
 
   /** The thread-specific clauses in the while loop. */
-  private final ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> clauses;
+  private final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
   private final ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pointerAssignments;
 
@@ -95,7 +96,7 @@ public class SeqMainFunction extends SeqFunction {
   public SeqMainFunction(
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
@@ -222,7 +223,7 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   private ImmutableList<LineOfCode> buildBitVectorInitializations(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       Optional<BitVectorVariables> pBitVectorVariables)
       throws UnrecognizedCodeException {
 
@@ -230,14 +231,14 @@ public class SeqMainFunction extends SeqFunction {
       return ImmutableList.of();
     }
     ImmutableList.Builder<LineOfCode> rInitializations = ImmutableList.builder();
-    for (var entry : pClauses.entrySet()) {
-      MPORThread thread = entry.getKey();
+    for (MPORThread thread : pClauses.keySet()) {
+      ImmutableList<SeqThreadStatementClause> currentClauses = pClauses.get(thread);
       SeqThreadStatementBlock firstBlock =
-          SeqThreadStatementClauseUtil.getFirstBlock(entry.getValue());
+          SeqThreadStatementClauseUtil.getFirstBlock(currentClauses);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToClause(entry.getValue());
+          SeqThreadStatementClauseUtil.mapLabelNumberToClause(currentClauses);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToBlock(entry.getValue());
+          SeqThreadStatementClauseUtil.mapLabelNumberToBlock(currentClauses);
       ImmutableList<SeqBitVectorAssignmentStatement> bitVectorInitializations =
           BitVectorInjector.buildBitVectorAssignmentsByReduction(
               options,
@@ -259,7 +260,7 @@ public class SeqMainFunction extends SeqFunction {
    */
   private ImmutableList<LineOfCode> buildMainFunctionArgNondetAssignments(
       MPORSubstitution pMainSubstitution,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       LogManager pLogger) {
 
     // first extract all accesses to main function arguments

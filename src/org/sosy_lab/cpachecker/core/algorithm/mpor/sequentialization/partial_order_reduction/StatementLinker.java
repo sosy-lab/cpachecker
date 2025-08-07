@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -28,23 +29,23 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 public class StatementLinker {
 
   /** Links commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
-  protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> link(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+  protected static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> link(
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments) {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rLinked =
-        ImmutableMap.builder();
-    for (var entry : pClauses.entrySet()) {
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rLinked =
+        ImmutableListMultimap.builder();
+    for (MPORThread thread : pClauses.keySet()) {
       // collect IDs of targets that result in valid links.
       // these clauses must not be directly reachable, and their labels are pruned later
       ImmutableSet.Builder<Integer> linkedTargetIds = ImmutableSet.builder();
       ImmutableList<SeqThreadStatementClause> linkedClauses =
-          linkCommutingClausesWithGotos(entry.getValue(), pPointerAssignments, linkedTargetIds);
+          linkCommutingClausesWithGotos(pClauses.get(thread), pPointerAssignments, linkedTargetIds);
       ImmutableList<SeqThreadStatementClause> merged =
           mergeNotDirectlyReachableStatements(linkedClauses, linkedTargetIds.build());
-      rLinked.put(entry.getKey(), merged);
+      rLinked.putAll(thread, merged);
     }
-    return rLinked.buildOrThrow();
+    return rLinked.build();
   }
 
   // Inject Gotos ==================================================================================

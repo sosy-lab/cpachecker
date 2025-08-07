@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Optional;
@@ -45,7 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseBuilder {
 
-  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> buildClauses(
+  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> buildClauses(
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
@@ -57,17 +58,17 @@ public class SeqThreadStatementClauseBuilder {
       throws UnrecognizedCodeException {
 
     // initialize clauses from ThreadCFAs
-    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> initialClauses =
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initialClauses =
         initClauses(
             pOptions, pSubstitutions, pSubstituteEdges, pPcVariables, pThreadSimulationVariables);
     // if enabled, prune clauses so that no clause has only pc writes
-    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> prunedClauses =
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> prunedClauses =
         pOptions.pruneEmptyStatements ? SeqPruner.pruneClauses(initialClauses) : initialClauses;
     // ensure that atomic blocks are not interleaved by adding direct gotos
-    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> atomicBlocks =
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> atomicBlocks =
         pOptions.atomicBlockMerge ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
     // if enabled, apply partial order reduction and reduce number of clauses
-    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reducedClauses =
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
         PartialOrderReducer.reduce(
             pOptions,
             pBitVectorVariables,
@@ -77,7 +78,7 @@ public class SeqThreadStatementClauseBuilder {
             pBinaryExpressionBuilder,
             pLogger);
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
-    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> consecutiveLabels =
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
         pOptions.consecutiveLabels
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(reducedClauses)
             : reducedClauses;
@@ -88,7 +89,7 @@ public class SeqThreadStatementClauseBuilder {
   }
 
   /** Maps threads to the case clauses they potentially execute. */
-  private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> initClauses(
+  private static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initClauses(
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
@@ -96,8 +97,8 @@ public class SeqThreadStatementClauseBuilder {
       ThreadSimulationVariables pThreadSimulationVariables)
       throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rClauses =
-        ImmutableMap.builder();
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
+        ImmutableListMultimap.builder();
     for (MPORSubstitution substitution : pSubstitutions) {
       MPORThread thread = substitution.thread;
       ImmutableList.Builder<SeqThreadStatementClause> clauses = ImmutableList.builder();
@@ -116,10 +117,10 @@ public class SeqThreadStatementClauseBuilder {
               coveredNodes,
               pSubstituteEdges,
               ghostVariables));
-      rClauses.put(thread, clauses.build());
+      rClauses.putAll(thread, clauses.build());
     }
     // TODO add optional pc validation here
-    return reorderClauses(rClauses.buildOrThrow());
+    return reorderClauses(rClauses.build());
   }
 
   /**
@@ -127,21 +128,21 @@ public class SeqThreadStatementClauseBuilder {
    * start at label {@code 0}. This may not be given by default if a start_routine starts with a
    * function call.
    */
-  private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reorderClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses)
+  private static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reorderClauses(
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses)
       throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rReordered =
-        ImmutableMap.builder();
-    for (var entry : pClauses.entrySet()) {
-      ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rReordered =
+        ImmutableListMultimap.builder();
+    for (MPORThread thread : pClauses.keySet()) {
+      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       SeqThreadStatementClause first = clauses.get(0);
       SeqThreadStatementClause nonBlank =
           SeqPruner.recursivelyFindNonBlankClause(Optional.empty(), first, labelClauseMap);
       if (SeqThreadStatementClauseUtil.isConsecutiveLabelPath(first, nonBlank, labelClauseMap)) {
-        rReordered.put(entry); // put case clauses as they were
+        rReordered.putAll(thread, clauses); // put case clauses as they were
       } else {
         ImmutableList.Builder<SeqThreadStatementClause> reordered = ImmutableList.builder();
         // add nonBlank, then add all other case clauses as they were
@@ -150,10 +151,10 @@ public class SeqThreadStatementClauseBuilder {
             clauses.stream()
                 .filter(c -> !c.equals(nonBlank))
                 .collect(ImmutableList.toImmutableList()));
-        rReordered.put(entry.getKey(), reordered.build());
+        rReordered.putAll(thread, reordered.build());
       }
     }
-    return rReordered.buildOrThrow();
+    return rReordered.build();
   }
 
   /** Builds the case clauses for the single thread {@code pThread}. */

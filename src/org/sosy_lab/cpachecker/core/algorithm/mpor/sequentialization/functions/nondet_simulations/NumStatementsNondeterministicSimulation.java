@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -63,7 +64,7 @@ public class NumStatementsNondeterministicSimulation {
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -76,7 +77,7 @@ public class NumStatementsNondeterministicSimulation {
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CExpressionAssignmentStatement pRReset,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -86,10 +87,9 @@ public class NumStatementsNondeterministicSimulation {
       rLines.addAll(buildKAssignments(pOptions, pClauses, pBinaryExpressionBuilder));
       rLines.add(buildKSumAssumption(pClauses.keySet(), pBinaryExpressionBuilder));
     }
-    for (var entry : pClauses.entrySet()) {
-      MPORThread thread = entry.getKey();
+    for (MPORThread thread : pClauses.keySet()) {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(pClauses.keySet(), thread);
-      ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
+      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
 
       // create "if (pc != 0 ...)" condition
       SeqExpression ifCondition =
@@ -137,17 +137,16 @@ public class NumStatementsNondeterministicSimulation {
 
   private static ImmutableList<LineOfCode> buildKAssignments(
       MPOROptions pOptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pThreads,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rAssignments = ImmutableList.builder();
-    for (var entry : pThreads.entrySet()) {
-      MPORThread thread = entry.getKey();
+    for (MPORThread thread : pClauses.keySet()) {
       CIdExpression kVariable = thread.getKVariable().orElseThrow();
       rAssignments.addAll(
           buildSingleKAssignment(
-              pOptions, kVariable, entry.getValue().size(), pBinaryExpressionBuilder));
+              pOptions, kVariable, pClauses.get(thread).size(), pBinaryExpressionBuilder));
     }
     return rAssignments.build();
   }

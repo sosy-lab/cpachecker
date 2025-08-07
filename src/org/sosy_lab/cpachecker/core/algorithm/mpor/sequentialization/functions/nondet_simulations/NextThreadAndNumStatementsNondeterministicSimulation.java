@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -42,7 +43,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
   static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
       PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -65,7 +66,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
   private static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
       PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CFunctionCallAssignmentStatement pKNondet,
       CFunctionCallStatement pKGreaterZeroAssumption,
       CExpressionAssignmentStatement pRReset,
@@ -99,15 +100,14 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
           CFunctionCallAssignmentStatement pKNondet,
           CFunctionCallStatement pKGreaterZeroAssumption,
           CExpressionAssignmentStatement pRReset,
-          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+          ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
           throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
         ImmutableMap.builder();
-    for (var entry : pClauses.entrySet()) {
-      MPORThread thread = entry.getKey();
-      ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
+    for (MPORThread thread : pClauses.keySet()) {
+      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       rStatements.put(
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               pOptions.controlEncodingThread,

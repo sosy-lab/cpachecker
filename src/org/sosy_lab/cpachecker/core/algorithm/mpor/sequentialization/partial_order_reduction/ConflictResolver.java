@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -36,9 +37,9 @@ public class ConflictResolver {
 
   // Public Interface ==============================================================================
 
-  static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> resolve(
+  static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> resolve(
       MPOROptions pOptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
       BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
@@ -52,20 +53,19 @@ public class ConflictResolver {
           "conflictReduction is enabled, but the program does not contain any global variables.");
       return pClauses; // no global variables -> no conflict resolving needed
     }
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rResolved =
-        ImmutableMap.builder();
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rResolved =
+        ImmutableListMultimap.builder();
     ImmutableSet<MPORThread> allThreads = pClauses.keySet();
-    for (var entry : pClauses.entrySet()) {
-      MPORThread activeThread = entry.getKey();
+    for (MPORThread activeThread : pClauses.keySet()) {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(allThreads, activeThread);
-      ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
+      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(activeThread);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses);
-      rResolved.put(
+      rResolved.putAll(
           activeThread,
           addConflictOrdersToClauses(
               pOptions,
-              entry.getValue(),
+              pClauses.get(activeThread),
               activeThread,
               otherThreads,
               labelBlockMap,
@@ -74,7 +74,7 @@ public class ConflictResolver {
               pPcVariables,
               pBinaryExpressionBuilder));
     }
-    return rResolved.buildOrThrow();
+    return rResolved.build();
   }
 
   // Private =======================================================================================

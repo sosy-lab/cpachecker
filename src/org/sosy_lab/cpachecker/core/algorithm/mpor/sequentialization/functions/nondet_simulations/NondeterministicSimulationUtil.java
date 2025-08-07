@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,7 +48,7 @@ public class NondeterministicSimulationUtil {
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 

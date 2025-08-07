@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Objects;
@@ -27,20 +28,19 @@ public class AtomicBlockMerger {
    * Builds atomic blocks for {@code pClauses} by adding {@code goto} statements when encountering
    * an atomic_begin, until an atomic_end is encountered.
    */
-  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> merge(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
+  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> merge(
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rWithBlocks =
-        ImmutableMap.builder();
-    for (var entry : pClauses.entrySet()) {
-      MPORThread thread = entry.getKey();
-      ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rWithBlocks =
+        ImmutableListMultimap.builder();
+    for (MPORThread thread : pClauses.keySet()) {
+      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses);
       ImmutableList<SeqThreadStatementClause> withGotos = injectAtomicGotos(clauses, labelBlockMap);
-      rWithBlocks.put(thread, mergeAtomicBlocks(withGotos));
+      rWithBlocks.putAll(thread, mergeAtomicBlocks(withGotos));
     }
-    return rWithBlocks.buildOrThrow();
+    return rWithBlocks.build();
   }
 
   private static ImmutableList<SeqThreadStatementClause> injectAtomicGotos(

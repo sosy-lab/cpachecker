@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -45,10 +46,10 @@ public class BitVectorInjector {
 
   // Public Interfaces =============================================================================
 
-  static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> injectWithEvaluations(
+  static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> injectWithEvaluations(
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -64,10 +65,10 @@ public class BitVectorInjector {
         pLogger);
   }
 
-  static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> injectWithoutEvaluations(
+  static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> injectWithoutEvaluations(
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -86,11 +87,11 @@ public class BitVectorInjector {
   // Private =======================================================================================
   // TODO rename the methods, the names are not very concise
 
-  private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> inject(
+  private static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> inject(
       MPOROptions pOptions,
       boolean pAddEvaluation,
       BitVectorVariables pBitVectorVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -102,18 +103,17 @@ public class BitVectorInjector {
           "bit vectors are enabled, but the program does not contain any global variables.");
       return pClauses; // no global variables -> no bit vectors needed
     }
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rInjected =
-        ImmutableMap.builder();
-    for (var entry : pClauses.entrySet()) {
-      MPORThread activeThread = entry.getKey();
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rInjected =
+        ImmutableListMultimap.builder();
+    for (MPORThread activeThread : pClauses.keySet()) {
       ImmutableSet<MPORThread> otherThreads =
           MPORUtil.withoutElement(pClauses.keySet(), activeThread);
-      ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
+      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(activeThread);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses);
-      rInjected.put(
+      rInjected.putAll(
           activeThread,
           injectBitVectors(
               pOptions,
@@ -127,7 +127,7 @@ public class BitVectorInjector {
               pPointerAssignments,
               pBinaryExpressionBuilder));
     }
-    return rInjected.buildOrThrow();
+    return rInjected.build();
   }
 
   private static ImmutableList<SeqThreadStatementClause> injectBitVectors(

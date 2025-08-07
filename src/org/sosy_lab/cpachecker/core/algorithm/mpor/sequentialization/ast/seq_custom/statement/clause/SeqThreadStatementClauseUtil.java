@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
@@ -49,11 +50,11 @@ public class SeqThreadStatementClauseUtil {
   }
 
   public static ImmutableSet<SubstituteEdge> collectAllSubstituteEdges(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     ImmutableSet.Builder<SubstituteEdge> rEdges = ImmutableSet.builder();
-    for (var entry : pClauses.entrySet()) {
-      for (SeqThreadStatementClause clause : entry.getValue()) {
+    for (MPORThread thread : pClauses.keySet()) {
+      for (SeqThreadStatementClause clause : pClauses.get(thread)) {
         for (SeqThreadStatement statement : clause.block.statements) {
           rEdges.addAll(statement.getSubstituteEdges());
         }
@@ -141,16 +142,16 @@ public class SeqThreadStatementClauseUtil {
    * <p>This function also recursively searches for all target {@code pc} and adjusts them
    * accordingly.
    */
-  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>>
+  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause>
       cloneWithConsecutiveLabelNumbers(
-          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
+          ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rConsecutiveLabels =
-        ImmutableMap.builder();
-    for (var entry : pClauses.entrySet()) {
-      rConsecutiveLabels.put(entry.getKey(), cloneWithConsecutiveLabelNumbers(entry.getValue()));
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rConsecutiveLabels =
+        ImmutableListMultimap.builder();
+    for (MPORThread thread : pClauses.keySet()) {
+      rConsecutiveLabels.putAll(thread, cloneWithConsecutiveLabelNumbers(pClauses.get(thread)));
     }
-    return rConsecutiveLabels.buildOrThrow();
+    return rConsecutiveLabels.build();
   }
 
   // Including Blocks ==============================================================================

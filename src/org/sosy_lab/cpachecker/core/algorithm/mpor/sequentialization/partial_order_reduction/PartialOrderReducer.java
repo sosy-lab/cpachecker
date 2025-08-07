@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
@@ -28,20 +27,20 @@ public class PartialOrderReducer {
    * Applies a Partial Order Reduction based on the settings in {@code pOptions}, or returns {@code
    * pClauses} as is if disabled.
    */
-  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reduce(
+  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reduce(
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
     if (pOptions.linkReduction && pOptions.bitVectorReduction && pOptions.conflictReduction) {
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
           StatementLinker.link(pClauses, pPointerAssignments);
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> withBitVectors =
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectors =
           BitVectorInjector.injectWithEvaluations(
               pOptions,
               pBitVectorVariables.orElseThrow(),
@@ -59,7 +58,7 @@ public class PartialOrderReducer {
           pLogger);
 
     } else if (pOptions.linkReduction && pOptions.bitVectorReduction) {
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
           StatementLinker.link(pClauses, pPointerAssignments);
       return BitVectorInjector.injectWithEvaluations(
           pOptions,
@@ -70,9 +69,9 @@ public class PartialOrderReducer {
           pLogger);
 
     } else if (pOptions.linkReduction && pOptions.conflictReduction) {
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
           StatementLinker.link(pClauses, pPointerAssignments);
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> withBitVectors =
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectors =
           BitVectorInjector.injectWithoutEvaluations(
               pOptions,
               pBitVectorVariables.orElseThrow(),

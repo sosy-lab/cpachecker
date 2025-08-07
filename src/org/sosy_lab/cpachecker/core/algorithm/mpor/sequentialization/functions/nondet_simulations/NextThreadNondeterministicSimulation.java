@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -34,7 +35,7 @@ public class NextThreadNondeterministicSimulation {
   static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
       PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -51,14 +52,13 @@ public class NextThreadNondeterministicSimulation {
       buildInnerMultiControlStatements(
           MPOROptions pOptions,
           PcVariables pPcVariables,
-          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+          ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
           throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
         ImmutableMap.builder();
-    for (var entry : pClauses.entrySet()) {
-      MPORThread thread = entry.getKey();
+    for (MPORThread thread : pClauses.keySet()) {
       CLeftHandSide expression = pPcVariables.getPcLeftHandSide(thread.id);
       Optional<CFunctionCallStatement> assumption =
           NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
@@ -67,7 +67,7 @@ public class NextThreadNondeterministicSimulation {
           SeqThreadStatementClauseUtil.mapExpressionToClause(
               pOptions,
               pPcVariables.getPcLeftHandSide(thread.id),
-              entry.getValue(),
+              pClauses.get(thread),
               pBinaryExpressionBuilder);
 
       CExpression clauseExpression =

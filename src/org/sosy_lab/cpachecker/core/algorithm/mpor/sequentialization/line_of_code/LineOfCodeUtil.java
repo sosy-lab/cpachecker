@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_co
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
@@ -340,7 +341,7 @@ public class LineOfCodeUtil {
     SeqAssumeFunction assume = new SeqAssumeFunction(pBinaryExpressionBuilder);
     rFunctionDefinitions.addAll(assume.buildDefinition());
     // create clauses in main method
-    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> clauses =
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses =
         SeqThreadStatementClauseBuilder.buildClauses(
             pOptions,
             pSubstitutions,

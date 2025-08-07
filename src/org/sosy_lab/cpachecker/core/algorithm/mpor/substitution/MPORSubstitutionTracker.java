@@ -34,7 +34,7 @@ public class MPORSubstitutionTracker {
    */
   private final Set<CParameterDeclaration> accessedMainFunctionArgs;
 
-  /** Pointer assignments of the form {@code ptr = &var;} i.e. updates to the address. */
+  /** Pointer assignments updates to the address. */
   private final Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments;
 
   /**

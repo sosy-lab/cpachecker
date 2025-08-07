@@ -13,6 +13,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Objects;
@@ -35,23 +36,22 @@ public class SeqPruner {
   //  due to short circuit evaluation
   //  -> identify assume edges that map to the same input expression and merge into single case
 
-  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pruneClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses)
+  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pruneClauses(
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses)
       throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rPruned =
-        ImmutableMap.builder();
-    for (var entry : pClauses.entrySet()) {
-      ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rPruned =
+        ImmutableListMultimap.builder();
+    for (MPORThread thread : pClauses.keySet()) {
+      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       if (isPrunable(clauses)) {
-        MPORThread thread = entry.getKey();
         // if all case clauses are prunable then we want to include only the thread termination case
         //  e.g. goblint-regression/13-privatized_66-mine-W-init_true.i (t_fun exits immediately)
         if (allPrunable(clauses)) {
           // TODO we should check that there are not multiple thread exits when all are prunable
           SeqThreadStatementClause threadExit = getThreadExitClause(clauses);
           // ensure that the single thread exit case clause has label INIT_PC
-          rPruned.put(
+          rPruned.putAll(
               thread,
               ImmutableList.of(
                   threadExit.labelNumber == Sequentialization.INIT_PC
@@ -59,13 +59,13 @@ public class SeqPruner {
                       : threadExit.cloneWithBlock(
                           threadExit.block.cloneWithLabelNumber(Sequentialization.INIT_PC))));
         } else {
-          rPruned.put(thread, pruneSingleThreadClauses(clauses));
+          rPruned.putAll(thread, pruneSingleThreadClauses(clauses));
         }
       }
     }
     // the initial pc are (often) not targeted here, we update them later to INIT_PC
     //  -> no validation of cases here
-    return rPruned.buildOrThrow();
+    return rPruned.build();
   }
 
   private static ImmutableList<SeqThreadStatementClause> pruneSingleThreadClauses(

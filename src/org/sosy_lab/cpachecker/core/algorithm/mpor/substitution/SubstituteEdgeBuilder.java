@@ -102,7 +102,6 @@ public class SubstituteEdgeBuilder {
         }
       }
 
-      // TODO try to create a single method here for all these edge types
     } else if (cfaEdge instanceof CAssumeEdge assume) {
       MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
       CExpression substituteAssumption =

@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -101,16 +102,14 @@ public class SeqValidator {
    *
    * Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
-  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> validateClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
-      LogManager pLogger) {
+  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> validateClauses(
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses, LogManager pLogger) {
 
     // TODO validate that if there is a ThreadJoin, MutexLock etc. that it MUST be the
     //  first statement in the clause so that total strict orders can be enforced
 
-    for (var entry : pClauses.entrySet()) {
-      MPORThread thread = entry.getKey();
-      ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
+    for (MPORThread thread : pClauses.keySet()) {
+      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
       ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(clauses);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
