@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -138,17 +140,27 @@ public class UseDefBasedInterpolator {
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
     PersistentMap<MemoryLocation, ValueAndType> useDefInterpolant =
         PathCopyingPersistentTreeMap.of();
+    int itpSize = 0;
+    int globals = 0;
 
     for (ASimpleDeclaration use : uses) {
 
       for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(use)) {
+        itpSize++;
+        if (!memoryLocation.isOnFunctionStack()) {
+          globals++;
+        }
         useDefInterpolant =
             useDefInterpolant.putAndCopy(
                 memoryLocation, new ValueAndType(UnknownValue.getInstance(), null));
       }
     }
 
-    return new ValueAnalysisInterpolant(useDefInterpolant);
+    // TODO: replace with assertion once tested, as size() can be expensive in
+    // PathCopyingPersistentTreeMap.
+    //  Reason: i don't know if elements are unique above.
+    checkState(useDefInterpolant.size() == itpSize);
+    return new ValueAnalysisInterpolant(useDefInterpolant, itpSize, globals);
   }
 
   /**

@@ -111,6 +111,11 @@ public final class ValueAnalysisState
    */
   private PersistentMap<MemoryLocation, ValueAndType> constantsMap;
 
+  private int constantsMapSize;
+
+  /** Number of global constants in constantsMap */
+  private int numberOfGlobalConstants;
+
   /**
    * hashCode needs to be updated with every change of {@link #constantsMap}.
    *
@@ -122,20 +127,26 @@ public final class ValueAnalysisState
   private final @Nullable MachineModel machineModel;
 
   public ValueAnalysisState(MachineModel pMachineModel) {
-    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of());
+    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of(), 0, 0);
   }
 
   public ValueAnalysisState(
       Optional<MachineModel> pMachineModel,
-      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
-    this(pMachineModel.orElse(null), pConstantsMap);
+      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap,
+      int pConstantsMapSize,
+      int pNumberOfGlobalConstants) {
+    this(pMachineModel.orElse(null), pConstantsMap, pConstantsMapSize, pNumberOfGlobalConstants);
   }
 
   private ValueAnalysisState(
       @Nullable MachineModel pMachineModel,
-      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
+      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap,
+      int pConstantsMapSize,
+      int pNumberOfGlobalConstants) {
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
+    constantsMapSize = pConstantsMapSize;
+    numberOfGlobalConstants = pNumberOfGlobalConstants;
     hashCode = constantsMap.hashCode();
   }
 
@@ -143,6 +154,8 @@ public final class ValueAnalysisState
     machineModel = state.machineModel;
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
+    constantsMapSize = state.constantsMapSize;
+    numberOfGlobalConstants = state.numberOfGlobalConstants;
     assert hashCode == constantsMap.hashCode();
   }
 
@@ -178,6 +191,11 @@ public final class ValueAnalysisState
     ValueAndType oldValueAndType = constantsMap.get(pMemLoc);
     if (oldValueAndType != null) {
       hashCode -= (pMemLoc.hashCode() ^ oldValueAndType.hashCode());
+    } else {
+      constantsMapSize++;
+      if (!pMemLoc.isOnFunctionStack()) {
+        numberOfGlobalConstants++;
+      }
     }
     constantsMap = constantsMap.putAndCopy(pMemLoc, valueAndType);
     hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
@@ -247,12 +265,17 @@ public final class ValueAnalysisState
 
     ValueAndType value = constantsMap.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
+    constantsMapSize--;
+    if (!pMemoryLocation.isOnFunctionStack()) {
+      numberOfGlobalConstants--;
+    }
     hashCode -= (pMemoryLocation.hashCode() ^ value.hashCode());
 
     PersistentMap<MemoryLocation, ValueAndType> valueAssignment = PathCopyingPersistentTreeMap.of();
     valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
 
-    return new ValueAnalysisInformation(valueAssignment);
+    return new ValueAnalysisInformation(
+        valueAssignment, 1, pMemoryLocation.isOnFunctionStack() ? 0 : 1);
   }
 
   @Override
@@ -347,24 +370,16 @@ public final class ValueAnalysisState
    */
   @Override
   public int getSize() {
-    return constantsMap.size();
+    return constantsMapSize;
   }
 
   /**
-   * This method determines the number of global variables contained in this state.
+   * This method returns the number of global variables contained in this state.
    *
-   * @return the number of global variables contained in this state
+   * @return the number of global variables contained in this state.
    */
   int getNumberOfGlobalVariables() {
-    int numberOfGlobalVariables = 0;
-
-    for (MemoryLocation variableName : constantsMap.keySet()) {
-      if (!variableName.isOnFunctionStack()) {
-        numberOfGlobalVariables++;
-      }
-    }
-
-    return numberOfGlobalVariables;
+    return numberOfGlobalConstants;
   }
 
   /**
@@ -375,22 +390,30 @@ public final class ValueAnalysisState
    */
   @Override
   public ValueAnalysisState join(ValueAnalysisState reachedState) {
+    // TODO: add == of maps case
     PersistentMap<MemoryLocation, ValueAndType> newConstantsMap = PathCopyingPersistentTreeMap.of();
 
+    int newConstantsMapSize = 0;
+    int newGlobalsSize = 0;
     for (Entry<MemoryLocation, ValueAndType> otherEntry : reachedState.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
       ValueAndType value = otherEntry.getValue();
 
       if (Objects.equals(value, constantsMap.get(key))) {
+        newConstantsMapSize++;
+        if (!key.isOnFunctionStack()) {
+          newGlobalsSize++;
+        }
         newConstantsMap = newConstantsMap.putAndCopy(key, value);
       }
     }
 
     // return the reached state if both maps are equal
-    if (newConstantsMap.size() == reachedState.constantsMap.size()) {
+    if (newConstantsMapSize == reachedState.constantsMapSize) {
       return reachedState;
     } else {
-      return new ValueAnalysisState(machineModel, newConstantsMap);
+      return new ValueAnalysisState(
+          machineModel, newConstantsMap, newConstantsMapSize, newGlobalsSize);
     }
   }
 
@@ -406,7 +429,7 @@ public final class ValueAnalysisState
   public boolean isLessOrEqual(ValueAnalysisState other) {
 
     // also, this element is not less or equal than the other element, if it contains less elements
-    if (constantsMap.size() < other.constantsMap.size()) {
+    if (constantsMapSize < other.constantsMapSize) {
       return false;
     }
 
@@ -492,7 +515,7 @@ public final class ValueAnalysisState
       sb.append(">\n");
     }
 
-    return sb.append("] size->  ").append(constantsMap.size()).toString();
+    return sb.append("] size->  ").append(constantsMapSize).toString();
   }
 
   /**
@@ -772,11 +795,11 @@ public final class ValueAnalysisState
    * @return the value-analysis interpolant reflecting the value assignment of this state
    */
   public ValueAnalysisInterpolant createInterpolant() {
-    return new ValueAnalysisInterpolant(constantsMap);
+    return new ValueAnalysisInterpolant(constantsMap, constantsMapSize, numberOfGlobalConstants);
   }
 
   public ValueAnalysisInformation getInformation() {
-    return new ValueAnalysisInformation(constantsMap);
+    return new ValueAnalysisInformation(constantsMap, constantsMapSize, numberOfGlobalConstants);
   }
 
   /**

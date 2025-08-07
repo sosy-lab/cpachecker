@@ -21,16 +21,35 @@ public final class ValueAnalysisInformation {
 
   private final PersistentMap<MemoryLocation, ValueAndType> assignments;
 
-  ValueAnalysisInformation(final PersistentMap<MemoryLocation, ValueAndType> pAssignments) {
+  private final int assignmentsSize;
+
+  private final int numberOfGlobalConstantsInAssignment;
+
+  ValueAnalysisInformation(
+      final PersistentMap<MemoryLocation, ValueAndType> pAssignments,
+      int pAssignmentsSize,
+      int pNumberOfGlobalConstants) {
     assignments = pAssignments;
+    assignmentsSize = pAssignmentsSize;
+    numberOfGlobalConstantsInAssignment = pNumberOfGlobalConstants;
   }
 
   private ValueAnalysisInformation() {
     assignments = PathCopyingPersistentTreeMap.of();
+    assignmentsSize = 0;
+    numberOfGlobalConstantsInAssignment = 0;
   }
 
   public PersistentMap<MemoryLocation, ValueAndType> getAssignments() {
     return assignments;
+  }
+
+  public int getAssignmentsSize() {
+    return assignmentsSize;
+  }
+
+  public int getNumberOfGlobalConstantsInAssignment() {
+    return numberOfGlobalConstantsInAssignment;
   }
 
   @Override

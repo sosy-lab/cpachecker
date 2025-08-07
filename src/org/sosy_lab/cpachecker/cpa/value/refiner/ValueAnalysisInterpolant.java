@@ -35,15 +35,21 @@ public final class ValueAnalysisInterpolant
   /** the variable assignment of the interpolant */
   private final @Nullable PersistentMap<MemoryLocation, ValueAndType> assignment;
 
+  private int assignmentsSize = 0;
+
+  private int numberOfGlobalConstantsInAssignment = 0;
+
   /** the interpolant representing "true" */
   public static final ValueAnalysisInterpolant TRUE = new ValueAnalysisInterpolant();
 
   /** the interpolant representing "false" */
-  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant(null);
+  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant(null, 0, 0);
 
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
   private ValueAnalysisInterpolant() {
     assignment = PathCopyingPersistentTreeMap.of();
+    assignmentsSize = 0;
+    numberOfGlobalConstantsInAssignment = 0;
   }
 
   /**
@@ -51,8 +57,13 @@ public final class ValueAnalysisInterpolant
    *
    * @param pAssignment the variable assignment to be represented by the interpolant
    */
-  public ValueAnalysisInterpolant(PersistentMap<MemoryLocation, ValueAndType> pAssignment) {
+  public ValueAnalysisInterpolant(
+      PersistentMap<MemoryLocation, ValueAndType> pAssignment,
+      int pAssignmentsSize,
+      int pNumberOfGlobalConstants) {
     assignment = pAssignment;
+    assignmentsSize = pAssignmentsSize;
+    numberOfGlobalConstantsInAssignment = pNumberOfGlobalConstants;
   }
 
   /**
@@ -84,10 +95,18 @@ public final class ValueAnalysisInterpolant
     // add other itp mapping - one by one for now, to check for correctness
     // newAssignment.putAll(other.assignment);
     PersistentMap<MemoryLocation, ValueAndType> newAssignment = assignment;
+    int newAssignmentsSize = assignmentsSize;
+    int newNumberOfGlobalConstantsInAssignment = numberOfGlobalConstantsInAssignment;
     for (Entry<MemoryLocation, ValueAndType> entry : other.assignment.entrySet()) {
+      // TODO: the complexity of this can be improved
       if (newAssignment.containsKey(entry.getKey())) {
         assert entry.getValue().equals(other.assignment.get(entry.getKey()))
             : "interpolants mismatch in " + entry.getKey();
+      } else {
+        newAssignmentsSize++;
+        if (!entry.getKey().isOnFunctionStack()) {
+          newNumberOfGlobalConstantsInAssignment++;
+        }
       }
       newAssignment = newAssignment.putAndCopy(entry.getKey(), entry.getValue());
 
@@ -96,7 +115,8 @@ public final class ValueAnalysisInterpolant
           : "interpolants mismatch in " + entry.getKey();
     }
 
-    return new ValueAnalysisInterpolant(newAssignment);
+    return new ValueAnalysisInterpolant(
+        newAssignment, newAssignmentsSize, newNumberOfGlobalConstantsInAssignment);
   }
 
   @Override
@@ -147,7 +167,8 @@ public final class ValueAnalysisInterpolant
     if (assignment == null) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
-      return new ValueAnalysisState(Optional.empty(), assignment);
+      return new ValueAnalysisState(
+          Optional.empty(), assignment, assignmentsSize, numberOfGlobalConstantsInAssignment);
     }
   }
 
@@ -171,6 +192,7 @@ public final class ValueAnalysisInterpolant
 
     boolean strengthened = false;
 
+    // TODO: can we improve the complexity of this?
     for (Entry<MemoryLocation, ValueAndType> itp : assignment.entrySet()) {
       if (!valueState.contains(itp.getKey())) {
         valueState.assignConstant(
@@ -210,13 +232,21 @@ public final class ValueAnalysisInterpolant
     }
 
     PersistentMap<MemoryLocation, ValueAndType> weakenedAssignments = assignment;
+    int newAssignmentsSize = assignmentsSize;
+    int newNumberOfGlobalConstantsInAssignment = numberOfGlobalConstantsInAssignment;
+    // TODO: the traversal/removal complexity can most likely be improved
     for (MemoryLocation current : assignment.keySet()) {
       if (!toRetain.contains(current.getExtendedQualifiedName())) {
+        newAssignmentsSize--;
+        if (!current.isOnFunctionStack()) {
+          newNumberOfGlobalConstantsInAssignment--;
+        }
         weakenedAssignments = weakenedAssignments.removeAndCopy(current);
       }
     }
 
-    return new ValueAnalysisInterpolant(weakenedAssignments);
+    return new ValueAnalysisInterpolant(
+        weakenedAssignments, newAssignmentsSize, newNumberOfGlobalConstantsInAssignment);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null

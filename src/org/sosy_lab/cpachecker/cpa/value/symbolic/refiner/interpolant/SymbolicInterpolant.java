@@ -43,7 +43,11 @@ public final class SymbolicInterpolant
       final ValueAnalysisInformation pValueInfo, final ConstraintsInformation pConstraints) {
     checkNotNull(pValueInfo);
     checkNotNull(pConstraints);
-    valueInterpolant = new ValueAnalysisInterpolant(pValueInfo.getAssignments());
+    valueInterpolant =
+        new ValueAnalysisInterpolant(
+            pValueInfo.getAssignments(),
+            pValueInfo.getAssignmentsSize(),
+            pValueInfo.getNumberOfGlobalConstantsInAssignment());
     constraintsInformation = pConstraints;
   }
 
