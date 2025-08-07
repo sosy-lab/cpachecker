@@ -1144,6 +1144,26 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       return result;
     }
 
+    private boolean loopConditionIsNull() {
+
+      if (optionalLoopOfCurrentStatement.isPresent()) {
+        for (CFANode node : optionalLoopOfCurrentStatement.orElseThrow().getLoopHeads()) {
+          for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+
+            // the leaving edges of the loop head are the loop conditions
+            CFAEdge edge = node.getLeavingEdge(i);
+
+            if (edge instanceof CAssumeEdge assumeEdge) {
+              return TaintAnalysisUtils.evaluateExpression(
+                      assumeEdge.getExpression(), evaluatedValues)
+                  == null;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
     private boolean loopIterationIndexIsControlledByTaintedVars(
         Loop pLoopOfCurrentStatement, Set<CIdExpression> pTaintedVariables) {
       boolean result = false;
@@ -1262,6 +1282,38 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
 
       return targetAssignment.getRightHandSide().equals(idExpression);
+    }
+
+    private boolean lhsIsLoopIterationIndex(CLeftHandSide pLhs) {
+      if (optionalLoopOfCurrentStatement.isPresent()) {
+        Loop pLoopOfCurrentStatement = optionalLoopOfCurrentStatement.orElseThrow();
+        return pLhs instanceof CIdExpression variableLHS
+            && getLoopIterationIndexes(pLoopOfCurrentStatement).contains(variableLHS);
+      }
+      return false;
+    }
+
+    private ImmutableSet<CExpression> getLoopIterationIndexes(Loop pLoopOfCurrentStatement) {
+
+      ImmutableSet.Builder<CExpression> loopIterationIndexBuilder = ImmutableSet.builder();
+
+      for (CFANode node : pLoopOfCurrentStatement.getLoopHeads()) {
+        for (int i = 0; i < node.getNumEnteringEdges(); i++) {
+          CFAEdge edge = node.getEnteringEdge(i);
+          if (edge instanceof CStatementEdge pCStatementEdge) {
+            if (pCStatementEdge.getStatement()
+                instanceof CExpressionAssignmentStatement pCExpressionAssignmentStatement) {
+
+              Set<CIdExpression> lhsVarsAsCExpr =
+                  TaintAnalysisUtils.getAllVarsAsCExpr(
+                      pCExpressionAssignmentStatement.getLeftHandSide());
+
+              loopIterationIndexBuilder.add(lhsVarsAsCExpr.iterator().next());
+            }
+          }
+        }
+      }
+      return loopIterationIndexBuilder.build();
     }
   }
 }
