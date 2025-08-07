@@ -1284,10 +1284,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       return targetAssignment.getRightHandSide().equals(idExpression);
     }
 
-    private boolean lhsIsLoopIterationIndex(CLeftHandSide pLhs) {
+    private boolean varIsLoopIterationIndex(CExpression pCExpression) {
       if (optionalLoopOfCurrentStatement.isPresent()) {
         Loop pLoopOfCurrentStatement = optionalLoopOfCurrentStatement.orElseThrow();
-        return pLhs instanceof CIdExpression variableLHS
+        return pCExpression instanceof CIdExpression variableLHS
             && getLoopIterationIndexes(pLoopOfCurrentStatement).contains(variableLHS);
       }
       return false;
