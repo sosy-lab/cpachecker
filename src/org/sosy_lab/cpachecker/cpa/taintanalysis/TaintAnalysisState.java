@@ -10,8 +10,11 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -36,72 +39,53 @@ public class TaintAnalysisState
   @Serial private static final long serialVersionUID = -7715698130795640052L;
 
   private boolean violatesProperty = false;
-  private final Map<CIdExpression, CExpression> taintedVariables = new HashMap<>();
-  private final Map<CIdExpression, CExpression> untaintedVariables = new HashMap<>();
+  private final Set<CIdExpression> taintedVariables = new HashSet<>();
+  private final Set<CIdExpression> untaintedVariables = new HashSet<>();
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
-  private Set<TaintAnalysisState> predecessors = new HashSet<>();
-  private final Set<TaintAnalysisState> successors = new HashSet<>();
+  private final Map<CIdExpression, ArrayList<CExpression>> evaluatedValues = new HashMap<>();
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
-    for (CIdExpression expr : pElements) {
-      this.taintedVariables.put(expr, null);
-    }
+    this.taintedVariables.addAll(pElements);
   }
 
   public TaintAnalysisState(
-      Map<CIdExpression, CExpression> pTaintedVariables,
-      Map<CIdExpression, CExpression> pUntaintedVariables,
-      Set<TaintAnalysisState> pPredecessors) {
-    this.taintedVariables.putAll(pTaintedVariables);
-    this.untaintedVariables.putAll(pUntaintedVariables);
-    this.predecessors = pPredecessors;
-    for (TaintAnalysisState predecessor : pPredecessors) {
-      predecessor.addSuccessor(this);
-    }
+      Set<CIdExpression> pTaintedVariables,
+      Set<CIdExpression> pUntaintedVariables,
+      Map<CIdExpression, ArrayList<CExpression>> pEvaluatedValues) {
+    this.taintedVariables.addAll(pTaintedVariables);
+    this.untaintedVariables.addAll(pUntaintedVariables);
+    this.evaluatedValues.putAll(pEvaluatedValues);
   }
 
-  public Set<TaintAnalysisState> getPredecessors() {
-    return predecessors;
+  public Map<CIdExpression, ArrayList<CExpression>> getEvaluatedValues() {
+    return evaluatedValues;
   }
 
-  public void setPredecessors(Set<TaintAnalysisState> pPredecessors) {
-    predecessors = pPredecessors;
-  }
-
-  public Set<TaintAnalysisState> getSuccessors() {
-    return successors;
-  }
-
-  public void addSuccessor(TaintAnalysisState pSuccessor) {
-    successors.add(pSuccessor);
-  }
-
-  public Map<CIdExpression, CExpression> getTaintedVariables() {
+  public Set<CIdExpression> getTaintedVariables() {
     return taintedVariables;
   }
 
-  public Map<CIdExpression, CExpression> getUntaintedVariables() {
+  public Set<CIdExpression> getUntaintedVariables() {
     return untaintedVariables;
   }
 
+  /**
+   * Determines whether the current TaintAnalysisState is less than or equal to another
+   * TaintAnalysisState in the lattice by checking if all tainted variables in the current state are
+   * also contained in the tainted variables of the other state.
+   *
+   * @param other the TaintAnalysisState to compare against
+   * @return {@code true} if all tainted variables of the current state are contained in the other
+   *     state's tainted variables, otherwise {@code false}
+   */
   @Override
   public boolean isLessOrEqual(TaintAnalysisState other) {
-    // Verify that all tainted variables in "this" exist in "other" with the same values
-    boolean otherContainsThisTainted =
-        other.getTaintedVariables().keySet().containsAll(this.taintedVariables.keySet());
-
-    // Verify that all untainted variables in "this" exist in "other" with the same values
-    boolean otherContainsThisUntainted =
-        other.getUntaintedVariables().keySet().containsAll(this.untaintedVariables.keySet());
-
-    boolean otherContainsThisPredecessors = other.getPredecessors().containsAll(this.predecessors);
-
-    return otherContainsThisTainted && otherContainsThisUntainted && otherContainsThisPredecessors;
+    return other.getTaintedVariables().containsAll(this.taintedVariables);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(taintedVariables);
+    return Objects.hash(taintedVariables, untaintedVariables);
   }
 
   /**
@@ -129,11 +113,7 @@ public class TaintAnalysisState
 
   @Override
   public String toDOTLabel() {
-    return "{tainted: "
-        + this.taintedVariables.keySet()
-        + ", untainted: "
-        + this.untaintedVariables.keySet()
-        + "}";
+    return "{tainted: " + this.taintedVariables + ", untainted: " + this.untaintedVariables + "}";
   }
 
   @Override
@@ -145,32 +125,122 @@ public class TaintAnalysisState
       return this;
     }
 
-    Map<CIdExpression, CExpression> joinedTaintedVars = new HashMap<>(this.taintedVariables);
-    Map<CIdExpression, CExpression> joinedUntaintedVars = new HashMap<>(this.untaintedVariables);
+    // Join the taint status
+    Set<CIdExpression> joinedTaintedVars = new HashSet<>(this.taintedVariables);
+    joinedTaintedVars.addAll(pOther.getTaintedVariables());
 
-    // Add all tainted variables from the other state
-    joinedTaintedVars.putAll(pOther.getTaintedVariables());
+    Set<CIdExpression> joinedUntaintedVars = new HashSet<>();
 
-    // Add the rest of the untainted variables from the other state that are not in the
-    // joinedTaintedVars map or in this untainted variables map.
-    for (Map.Entry<CIdExpression, CExpression> entry : pOther.getUntaintedVariables().entrySet()) {
-      CIdExpression untaintedVar = entry.getKey();
-      if (!joinedTaintedVars.containsKey(untaintedVar)
-          && !this.untaintedVariables.containsKey(untaintedVar)) {
-        joinedUntaintedVars.put(untaintedVar, pOther.getUntaintedVariables().get(untaintedVar));
+    for (CIdExpression untaintedVar : this.untaintedVariables) {
+      if (!joinedTaintedVars.contains(untaintedVar)) {
+        joinedUntaintedVars.add(untaintedVar);
       }
     }
 
-    Set<TaintAnalysisState> joinPredecessors = new HashSet<>(this.getPredecessors());
-    joinPredecessors.addAll(pOther.getPredecessors());
+    for (CIdExpression untaintedVar : pOther.getUntaintedVariables()) {
+      if (!joinedTaintedVars.contains(untaintedVar)) {
+        joinedUntaintedVars.add(untaintedVar);
+      }
+    }
+
+    Set<CIdExpression> allVars = new HashSet<>(joinedTaintedVars);
+    allVars.addAll(joinedUntaintedVars);
+
+    // join the variable to evaluated values mapping:
+    Map<CIdExpression, ArrayList<CExpression>> joinEvaluatedValues = new HashMap<>();
+
+    if (this.evaluatedValues == pOther.evaluatedValues) {
+      joinEvaluatedValues = this.evaluatedValues;
+
+    } else {
+      int maxNumberOfMappedValuesInThisEvaluatedValues =
+          this.evaluatedValues.values().stream().mapToInt(List::size).max().orElse(0);
+
+      int maxNumberOfMappedValuesInOtherEvaluatedValues =
+          pOther.evaluatedValues.values().stream().mapToInt(List::size).max().orElse(0);
+
+      boolean thisEvaluatedVarsHasSimpleMapping = maxNumberOfMappedValuesInThisEvaluatedValues <= 1;
+      boolean otherEvaluatedVarsHasSimpleMapping =
+          maxNumberOfMappedValuesInOtherEvaluatedValues <= 1;
+
+      boolean eachVariableIsMappedToTheSameValue =
+          isEachVariableMappedToTheSameValue(allVars, this.evaluatedValues, pOther.evaluatedValues);
+
+      boolean performFullJoinOfEvaluatedValues =
+          thisEvaluatedVarsHasSimpleMapping
+              && otherEvaluatedVarsHasSimpleMapping
+              && eachVariableIsMappedToTheSameValue;
+
+      if (performFullJoinOfEvaluatedValues) {
+
+        for (CIdExpression var : allVars) {
+          if (this.evaluatedValues.containsKey(var) && pOther.evaluatedValues.containsKey(var)) {
+            joinEvaluatedValues.put(var, this.evaluatedValues.get(var));
+          } else if (this.evaluatedValues.containsKey(var)
+              && !pOther.evaluatedValues.containsKey(var)) {
+            joinEvaluatedValues.put(var, this.evaluatedValues.get(var));
+          } else if (pOther.evaluatedValues.containsKey(var)
+              && !this.evaluatedValues.containsKey(var)) {
+            joinEvaluatedValues.put(var, pOther.evaluatedValues.get(var));
+          } else {
+            throw new IllegalStateException(
+                "At this point the variable must be contained in at least one map");
+          }
+        }
+
+        for (ArrayList<CExpression> values : joinEvaluatedValues.values()) {
+          if (values.size() > 1) {
+            throw new AssertionError("At this point the values should be mapped to a single value");
+          }
+        }
+
+      } else {
+        int numberOfStatesToMerge =
+            maxNumberOfMappedValuesInThisEvaluatedValues
+                + maxNumberOfMappedValuesInOtherEvaluatedValues;
+
+        for (CIdExpression var : allVars) {
+
+          List<CExpression> thisValues =
+              this.evaluatedValues.getOrDefault(
+                  var,
+                  new ArrayList<>(
+                      Collections.nCopies(maxNumberOfMappedValuesInThisEvaluatedValues, null)));
+
+          List<CExpression> otherValues =
+              pOther.evaluatedValues.getOrDefault(
+                  var,
+                  new ArrayList<>(
+                      Collections.nCopies(maxNumberOfMappedValuesInOtherEvaluatedValues, null)));
+
+          ArrayList<CExpression> mergedValues = new ArrayList<>(numberOfStatesToMerge);
+          mergedValues.addAll(thisValues);
+          mergedValues.addAll(otherValues);
+
+          joinEvaluatedValues.put(var, mergedValues);
+        }
+      }
+    }
 
     TaintAnalysisState joinedState =
-        new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, joinPredecessors);
-
-    joinedState.getSuccessors().addAll(this.successors);
-    joinedState.getSuccessors().addAll(pOther.getSuccessors());
+        new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, joinEvaluatedValues);
 
     return joinedState;
+  }
+
+  private boolean isEachVariableMappedToTheSameValue(
+      Set<CIdExpression> allVars,
+      Map<CIdExpression, ArrayList<CExpression>> pThisEvaluatedValues,
+      Map<CIdExpression, ArrayList<CExpression>> pOtherEvaluatedValues) {
+
+    for (CIdExpression var : allVars) {
+      if (pThisEvaluatedValues.containsKey(var) && pOtherEvaluatedValues.containsKey(var)) {
+        if (!pThisEvaluatedValues.get(var).equals(pOtherEvaluatedValues.get(var))) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   @Override

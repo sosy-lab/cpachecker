@@ -72,9 +72,7 @@ public class TaintAnalysisUtils {
 
   @Nullable
   public static CExpression evaluateExpression(
-      CExpression expression,
-      Map<CIdExpression, CExpression> taintedVariables,
-      Map<CIdExpression, CExpression> untaintedVariables) {
+      CExpression expression, Map<CIdExpression, CExpression> evaluatedValues) {
 
     // TODO: Use visitor (?)
     if (expression instanceof CLiteralExpression literalExpression) {
@@ -85,23 +83,16 @@ public class TaintAnalysisUtils {
     } else if (expression instanceof CIdExpression idExpression) {
 
       // Look up the value of the variable in the tainted and untainted maps.
-      return evaluateExpression(
-          taintedVariables.getOrDefault(idExpression, untaintedVariables.get(idExpression)),
-          taintedVariables,
-          untaintedVariables);
+      return evaluateExpression(evaluatedValues.getOrDefault(idExpression, null), evaluatedValues);
 
     } else if (expression instanceof CBinaryExpression binaryExpression) {
 
       // Evaluate recursively
       CLiteralExpression operand1 =
-          (CLiteralExpression)
-              evaluateExpression(
-                  binaryExpression.getOperand1(), taintedVariables, untaintedVariables);
+          (CLiteralExpression) evaluateExpression(binaryExpression.getOperand1(), evaluatedValues);
 
       CLiteralExpression operand2 =
-          (CLiteralExpression)
-              evaluateExpression(
-                  binaryExpression.getOperand2(), taintedVariables, untaintedVariables);
+          (CLiteralExpression) evaluateExpression(binaryExpression.getOperand2(), evaluatedValues);
 
       return computeBinaryOperation(operand1, operand2, binaryExpression.getOperator());
 
@@ -111,7 +102,7 @@ public class TaintAnalysisUtils {
 
     } else if (expression instanceof CCastExpression castExpression) {
       // For cast expressions, evaluate the inner expression
-      return evaluateExpression(castExpression.getOperand(), taintedVariables, untaintedVariables);
+      return evaluateExpression(castExpression.getOperand(), evaluatedValues);
     }
 
     return null;
