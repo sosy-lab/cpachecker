@@ -100,6 +100,7 @@ public class SubstituteEdge {
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables) {
+
     return new SubstituteEdge(
         pCfaEdge,
         pThreadEdge,
@@ -125,7 +126,7 @@ public class SubstituteEdge {
         pTracker.getWrittenPointerDereferences(),
         pTracker.getAccessedPointerDereferences(),
         pTracker.getWrittenGlobalVariables(),
-        pTracker.getWrittenPointerDereferences(),
+        pTracker.getAccessedGlobalVariables(),
         pTracker.getAccessedFunctionPointers());
   }
 
