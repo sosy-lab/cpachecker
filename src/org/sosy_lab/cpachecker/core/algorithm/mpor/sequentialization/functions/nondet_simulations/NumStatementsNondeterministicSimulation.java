@@ -88,8 +88,16 @@ public class NumStatementsNondeterministicSimulation {
       rLines.add(buildKSumAssumption(pClauses.keySet(), pBinaryExpressionBuilder));
     }
     for (MPORThread thread : pClauses.keySet()) {
+      CIdExpression kVariable = thread.getKVariable().orElseThrow();
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(pClauses.keySet(), thread);
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
+
+      // K' > 0
+      CBinaryExpression kGreaterZero =
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              thread.getKVariable().orElseThrow(),
+              SeqIntegerLiteralExpression.INT_0,
+              BinaryOperator.GREATER_THAN);
 
       // create "if (pc != 0 ...)" condition
       SeqExpression ifCondition =
@@ -97,6 +105,7 @@ public class NumStatementsNondeterministicSimulation {
               pOptions,
               thread,
               otherThreads,
+              kGreaterZero,
               pBitVectorVariables,
               pPcVariables,
               pBinaryExpressionBuilder);
@@ -104,15 +113,35 @@ public class NumStatementsNondeterministicSimulation {
       rLines.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
 
       if (pOptions.kAssignLazy) {
+        // add the K = nondet assignment for this thread
         rLines.addAll(
-            buildSingleKAssignment(
-                pOptions,
-                thread.getKVariable().orElseThrow(),
-                clauses.size(),
-                pBinaryExpressionBuilder));
+            buildSingleKAssignment(pOptions, kVariable, clauses.size(), pBinaryExpressionBuilder));
         SeqExpression lazyIfCondition =
             buildKZeroExpression(
-                pOptions, thread, otherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+                pOptions,
+                thread,
+                otherThreads,
+                kGreaterZero,
+                pBitVectorVariables,
+                pBinaryExpressionBuilder);
+
+        // for finite loops, assume K0 > 0 in the first loop iteration (similar to Lazy-CSeq)
+        if (pOptions.loopIterations > 0) {
+          if (thread.isMain()) {
+            CBinaryExpression iEqualsZeroCondition =
+                pBinaryExpressionBuilder.buildBinaryExpression(
+                    SeqIdExpression.I, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+            SeqIfExpression iEqualsZeroExpression = new SeqIfExpression(iEqualsZeroCondition);
+            rLines.add(
+                LineOfCode.of(
+                    SeqStringUtil.appendCurlyBracketRight(iEqualsZeroExpression.toASTString())));
+            rLines.add(
+                LineOfCode.of(SeqAssumptionBuilder.buildAssumption(kGreaterZero).toASTString()));
+            rLines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
+          }
+        }
+
+        // if (K > 0) ...
         SeqIfExpression lazyIfExpression = new SeqIfExpression(lazyIfCondition);
         rLines.add(
             LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(lazyIfExpression.toASTString())));
@@ -202,6 +231,7 @@ public class NumStatementsNondeterministicSimulation {
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
+      CBinaryExpression pKGreaterZero,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -220,6 +250,7 @@ public class NumStatementsNondeterministicSimulation {
               pOptions,
               pActiveThread,
               pOtherThreads,
+              pKGreaterZero,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
       return new SeqLogicalAndExpression(new CToSeqExpression(pcUnequalExitPc), kZeroExpression);
@@ -230,15 +261,10 @@ public class NumStatementsNondeterministicSimulation {
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
+      CBinaryExpression pKGreaterZero,
       Optional<BitVectorVariables> pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
-
-    CBinaryExpression kGreaterZero =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            pActiveThread.getKVariable().orElseThrow(),
-            SeqIntegerLiteralExpression.INT_0,
-            BinaryOperator.GREATER_THAN);
 
     if (pOptions.kIgnoreZeroReduction) {
       // if enabled, add bit vector evaluation: "K > 0 || {bitvector_evaluation}"
@@ -250,9 +276,9 @@ public class NumStatementsNondeterministicSimulation {
               pBitVectorVariables.orElseThrow(),
               pBinaryExpressionBuilder);
       return new SeqLogicalOrExpression(
-          new CToSeqExpression(kGreaterZero), bitVectorEvaluationExpression);
+          new CToSeqExpression(pKGreaterZero), bitVectorEvaluationExpression);
     } else {
-      return new CToSeqExpression(kGreaterZero);
+      return new CToSeqExpression(pKGreaterZero);
     }
   }
 
