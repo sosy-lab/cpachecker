@@ -201,12 +201,12 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally, as far as possible, if option {@link
-   * #reuseSolver} is true. Incremental solving can improve computation time by
-   * re-using information stored in the solver from previous computations. This effect is strongest
-   * when the previously checked constraints are a true subset of the constraints in {@code
-   * pConstraintsToCheck}. More information about incremental usage can be found in the description
-   * of {@link #checkUnsat}. If option {@link #reuseSolver} is false, this
-   * method behaves like {@link #checkUnsatWithFreshSolver(Constraint, String)}.
+   * #reuseSolver} is true. Incremental solving can improve computation time by re-using information
+   * stored in the solver from previous computations. This effect is strongest when the previously
+   * checked constraints are a true subset of the constraints in {@code pConstraintsToCheck}. More
+   * information about incremental usage can be found in the description of {@link #checkUnsat}. If
+   * option {@link #reuseSolver} is false, this method behaves like {@link
+   * #checkUnsatWithFreshSolver(Constraint, String)}.
    *
    * @param pSingleConstraintToCheck the single constraint to check.
    * @param pFunctionName the name of the function scope of {@code pSingleConstraintToCheck}.
@@ -241,12 +241,12 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally, as far as possible, if option {@link
-   * #reuseSolver} is true. Incremental solving can improve computation time by
-   * re-using information stored in the solver from previous computations. This effect is strongest
-   * when the previously checked constraints are a true subset of the constraints in {@code
-   * pConstraintsToCheck}. More information about incremental usage can be found in the description
-   * of {@link #checkUnsat}. If option {@link #reuseSolver} is false, this
-   * method behaves like {@link #checkUnsatWithFreshSolver(ConstraintsState, String)}.
+   * #reuseSolver} is true. Incremental solving can improve computation time by re-using information
+   * stored in the solver from previous computations. This effect is strongest when the previously
+   * checked constraints are a true subset of the constraints in {@code pConstraintsToCheck}. More
+   * information about incremental usage can be found in the description of {@link #checkUnsat}. If
+   * option {@link #reuseSolver} is false, this method behaves like {@link
+   * #checkUnsatWithFreshSolver(ConstraintsState, String)}.
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
@@ -270,11 +270,11 @@ public class ConstraintsSolver {
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
    * @param useFreshProver if true, uses a new {@link ProverEnvironment} for checking the
    *     constraints, that is closed after the method is finished, overwriting option {@link
-   *     #reuseSolver}. If false, will use option {@link
-   *     #reuseSolver} to determine reuse of the existing prover. Incremental
-   *     solving can improve computation time by re-using information stored in the solver from
-   *     previous computations. This effect is strongest when the previously checked constraints are
-   *     a subset of the constraints in {@code pConstraintsToCheck}.
+   *     #reuseSolver}. If false, will use option {@link #reuseSolver} to determine reuse of the
+   *     existing prover. Incremental solving can improve computation time by re-using information
+   *     stored in the solver from previous computations. This effect is strongest when the
+   *     previously checked constraints are a subset of the constraints in {@code
+   *     pConstraintsToCheck}.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
    */
