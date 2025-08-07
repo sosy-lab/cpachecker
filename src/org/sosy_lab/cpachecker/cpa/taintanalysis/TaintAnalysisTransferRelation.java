@@ -643,6 +643,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         }
       } else {
         killedVars.add(variableLHS);
+        values.put(variableLHS, null);
       }
     }
 
@@ -696,6 +697,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     if (statementIsInControlStructure) {
       if (statementIsControlledByTaintedVars || rhsIsTainted) {
         generatedVars.add(variableLHS);
+      } else {
+        killedVars.add(variableLHS);
       }
     } else {
       if (rhsIsTainted) {
@@ -926,6 +929,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         } else {
           killedVars.add(variableLHS);
         }
+
+        // Only extern defined functions land here, so the evaluated value is always `null`
+        values.put(variableLHS, null);
       } else if (lhs instanceof CPointerExpression pointerLHS) {
 
         CExpression pointer = pointerLHS.getOperand();
@@ -941,6 +947,15 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                 if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
                   if (savedPointer.equals(idPointerExpr)) {
                     generatedVars.add(mappedValueAsIdExpr);
+                    break;
+                  }
+                }
+              }
+            } else {
+              if (taintedVariables.contains(savedPointer)) {
+                if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
+                  if (savedPointer.equals(idPointerExpr)) {
+                    killedVars.add(mappedValueAsIdExpr);
                     break;
                   }
                 }
