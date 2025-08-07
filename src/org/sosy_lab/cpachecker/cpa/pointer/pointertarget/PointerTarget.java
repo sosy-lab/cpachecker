@@ -8,4 +8,5 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
 
-public interface PointerTarget extends Comparable<PointerTarget> {}
+public sealed interface PointerTarget extends Comparable<PointerTarget>
+    permits HeapLocation, InvalidLocation, MemoryLocationPointer, NullLocation, StructLocation {}

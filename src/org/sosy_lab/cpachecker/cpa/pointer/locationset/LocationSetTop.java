@@ -11,27 +11,21 @@ package org.sosy_lab.cpachecker.cpa.pointer.locationset;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 
-public class LocationSetTop implements LocationSet {
-
-  public static final LocationSetTop INSTANCE = new LocationSetTop();
+public enum LocationSetTop implements LocationSet {
+  INSTANCE;
 
   @Override
-  public boolean mayPointTo(PointerTarget pTarget) {
+  public boolean contains(PointerTarget pTarget) {
     return true;
   }
 
   @Override
-  public LocationSet addElements(Set<PointerTarget> pTargets) {
+  public LocationSet withPointerTargets(LocationSet pElements) {
     return this;
   }
 
   @Override
-  public LocationSet addElements(LocationSet pElements) {
-    return this;
-  }
-
-  @Override
-  public LocationSet addElements(Set<PointerTarget> pLocations, boolean pContainsNull) {
+  public LocationSet withPointerTargets(Set<PointerTarget> pLocations) {
     return this;
   }
 
@@ -46,39 +40,23 @@ public class LocationSetTop implements LocationSet {
   }
 
   @Override
-  public boolean isNull() {
+  public boolean containsAllNulls() {
     return false;
   }
 
   @Override
-  public boolean containsNull() {
+  public boolean containsAnyNull() {
     return true;
   }
 
   @Override
-  public boolean containsAll(LocationSet pElements) {
+  public boolean containsAll(LocationSet locationSetToCheck) {
+    // We are on the top, so we contain all other sets.
     return true;
   }
 
   @Override
   public String toString() {
     return Character.toString('\u22A4');
-  }
-
-  @Override
-  public int compareTo(LocationSet pOther) {
-    // Special-case compareTo implementation for pointer analysis lattice.
-    // TOP is defined as greater than all other LocationSets.
-    return this.equals(pOther) ? 0 : 1;
-  }
-
-  @Override
-  public boolean equals(Object pObj) {
-    return pObj instanceof LocationSetTop;
-  }
-
-  @Override
-  public int hashCode() {
-    return Integer.MAX_VALUE;
   }
 }

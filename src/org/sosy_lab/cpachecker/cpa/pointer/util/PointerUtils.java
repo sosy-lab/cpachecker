@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBot;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBuilder;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
@@ -91,7 +92,7 @@ public final class PointerUtils {
       LocationSet rhsTargets,
       CCfaEdge pCfaEdge,
       LogManager plogger) {
-    if (explicitLhsLocations.isNull()) {
+    if (explicitLhsLocations.containsAllNulls()) {
       plogger.logf(
           Level.WARNING, "PointerAnalysis: Assignment to null at %s", pCfaEdge.getFileLocation());
       return Optional.of(PointerAnalysisState.BOTTOM_STATE);
@@ -146,15 +147,15 @@ public final class PointerUtils {
     for (MemoryLocation loc : pLocations) {
       locations.add(new MemoryLocationPointer(loc));
     }
-    return ExplicitLocationSet.from(locations);
+    return LocationSetBuilder.withPointerTargets(locations);
   }
 
   public static boolean hasCommonLocation(ExplicitLocationSet pSet1, ExplicitLocationSet pSet2) {
-    if (pSet1.containsNull() && pSet2.containsNull()) {
+    if (pSet1.containsAnyNull() && pSet2.containsAnyNull()) {
       return true;
     }
     for (PointerTarget loc : pSet1.getExplicitLocations()) {
-      if (pSet2.mayPointTo(loc)) {
+      if (pSet2.contains(loc)) {
         return true;
       }
     }

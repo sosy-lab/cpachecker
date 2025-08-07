@@ -10,20 +10,22 @@ package org.sosy_lab.cpachecker.cpa.pointer;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBuilder;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysisState> {
+public final class PointerAnalysisState implements LatticeAbstractState<PointerAnalysisState> {
 
   private final boolean isBottom;
   public static final PointerAnalysisState BOTTOM_STATE = new PointerAnalysisState(true);
-  private final PersistentMap<PointerTarget, LocationSet> pointsToMap;
+  private final PersistentMap<PointerTarget, @NonNull LocationSet> pointsToMap;
 
   public PointerAnalysisState(boolean pBottom) {
     isBottom = pBottom;
@@ -35,7 +37,7 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
     pointsToMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public PointerAnalysisState(PersistentMap<PointerTarget, LocationSet> pPointsToMap) {
+  public PointerAnalysisState(PersistentMap<PointerTarget, @NonNull LocationSet> pPointsToMap) {
     isBottom = false;
     pointsToMap = pPointsToMap;
   }
@@ -45,12 +47,10 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
   }
 
   public LocationSet getPointsToSet(PointerTarget pSource) {
-    LocationSet pointsToSet = pointsToMap.get(pSource);
-    if (pointsToSet == null) {
-      return LocationSetTop.INSTANCE;
-    }
-    if (pointsToSet.isNull()) {
-      return ExplicitLocationSet.fromNull();
+    LocationSet pointsToSet = pointsToMap.getOrDefault(pSource, LocationSetTop.INSTANCE);
+
+    if (pointsToSet.containsAllNulls()) {
+      return LocationSetBuilder.withNullLocation();
     }
     return pointsToSet;
   }
@@ -137,11 +137,10 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
       LocationSet thisTargets = getPointsToSet(source);
       LocationSet otherTargets = pOtherState.getPointsToSet(source);
 
-      LocationSet joinedTargets;
       if (thisTargets.isTop() || otherTargets.isTop()) {
         joinedMap = joinedMap.removeAndCopy(source);
       } else {
-        joinedTargets = thisTargets.addElements(otherTargets);
+        LocationSet joinedTargets = thisTargets.withPointerTargets(otherTargets);
         joinedMap = joinedMap.putAndCopy(source, joinedTargets);
       }
     }

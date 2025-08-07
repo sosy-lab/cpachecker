@@ -8,102 +8,55 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.locationset;
 
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Ordering;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.NullLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 
-public class ExplicitLocationSet implements LocationSet {
+public record ExplicitLocationSet(SortedSet<PointerTarget> sortedPointerTargets)
+    implements LocationSet {
 
-  private final SortedSet<PointerTarget> explicitSet;
-  private final boolean containsNull;
-
-  private ExplicitLocationSet(Set<PointerTarget> pLocations) {
-    assert !pLocations.isEmpty() : "set should not be empty";
-    explicitSet = ImmutableSortedSet.copyOf(pLocations);
-    containsNull = false;
-  }
-
-  private ExplicitLocationSet(Set<PointerTarget> pLocations, boolean pContainsNull) {
-    assert (!pLocations.isEmpty() || pContainsNull) : "set should not be empty";
-    explicitSet = ImmutableSortedSet.copyOf(pLocations);
-    containsNull = pContainsNull;
-  }
-
-  private ExplicitLocationSet(boolean pContainsNull) {
-    explicitSet = ImmutableSortedSet.of();
-    containsNull = pContainsNull;
+  public ExplicitLocationSet {
+    java.util.Objects.requireNonNull(sortedPointerTargets, "sortedPointerTargets must not be null");
+    Preconditions.checkArgument(!sortedPointerTargets.isEmpty());
   }
 
   @Override
-  public boolean mayPointTo(PointerTarget pLocation) {
-    return explicitSet.contains(pLocation);
+  public boolean contains(PointerTarget pLocation) {
+    return sortedPointerTargets.contains(pLocation);
   }
 
   @Override
-  public LocationSet addElements(LocationSet pElements) {
+  public LocationSet withPointerTargets(LocationSet pElements) {
     if (pElements == this) {
       return this;
     }
     if (pElements instanceof ExplicitLocationSet explicitLocationSet) {
-      return addElements(explicitLocationSet.explicitSet, explicitLocationSet.containsNull);
+      return withPointerTargets(explicitLocationSet.sortedPointerTargets);
     }
-    return pElements.addElements(this.getExplicitLocations(), this.containsNull);
+    return pElements.withPointerTargets(this.getExplicitLocations());
   }
 
   @Override
-  public LocationSet addElements(Set<PointerTarget> pLocations) {
-    if (explicitSet.containsAll(pLocations)) {
+  public LocationSet withPointerTargets(Set<PointerTarget> pLocations) {
+    if (sortedPointerTargets.containsAll(pLocations)) {
       return this;
     }
-    ImmutableSet.Builder<PointerTarget> builder = ImmutableSet.builder();
-    builder.addAll(explicitSet);
-    builder.addAll(pLocations);
-    return new ExplicitLocationSet(builder.build(), containsNull);
-  }
+    SortedSet<PointerTarget> pointerTargets =
+        ImmutableSortedSet.<PointerTarget>naturalOrder()
+            .addAll(sortedPointerTargets)
+            .addAll(pLocations)
+            .build();
 
-  @Override
-  public LocationSet addElements(Set<PointerTarget> pLocations, boolean pContainsNull) {
-    if (explicitSet.containsAll(pLocations) && containsNull == pContainsNull) {
-      return this;
-    }
-    ImmutableSet.Builder<PointerTarget> builder = ImmutableSet.builder();
-    builder.addAll(explicitSet);
-    builder.addAll(pLocations);
-    boolean newContainsNull = containsNull || pContainsNull;
-    return new ExplicitLocationSet(builder.build(), newContainsNull);
-  }
-
-  public static LocationSet from(PointerTarget pLocation) {
-    return new ExplicitLocationSet(ImmutableSet.of(pLocation));
-  }
-
-  public static LocationSet from(Set<PointerTarget> pLocations) {
-    if (pLocations.isEmpty()) {
-      return LocationSetBot.INSTANCE;
-    }
-    return new ExplicitLocationSet(pLocations);
-  }
-
-  public static LocationSet from(Set<PointerTarget> pLocations, boolean pContainsNull) {
-    if (pLocations.isEmpty() && !pContainsNull) {
-      return LocationSetBot.INSTANCE;
-    }
-    return new ExplicitLocationSet(pLocations, pContainsNull);
-  }
-
-  public static LocationSet fromNull() {
-    return new ExplicitLocationSet(true);
+    return new ExplicitLocationSet(pointerTargets);
   }
 
   @Override
   public boolean isBot() {
-    return explicitSet.isEmpty() && !containsNull;
+    return false;
   }
 
   @Override
@@ -112,38 +65,31 @@ public class ExplicitLocationSet implements LocationSet {
   }
 
   @Override
-  public boolean isNull() {
-    return containsNull && explicitSet.isEmpty();
+  public boolean containsAllNulls() {
+    return sortedPointerTargets.stream().allMatch(target -> target instanceof NullLocation);
   }
 
   @Override
-  public boolean containsNull() {
-    return containsNull;
+  public boolean containsAnyNull() {
+    return sortedPointerTargets.stream().anyMatch(target -> target instanceof NullLocation);
   }
 
   @Override
-  public boolean containsAll(LocationSet pElements) {
-    if (pElements == this) {
+  public boolean containsAll(LocationSet locationSetToCheck) {
+    if (locationSetToCheck == this) {
       return true;
     }
-    if (pElements instanceof ExplicitLocationSet explicitLocationSet) {
-      boolean containsAllElements = explicitSet.containsAll(explicitLocationSet.explicitSet);
-      boolean containsRequiredNull = !explicitLocationSet.containsNull || containsNull;
-      return containsAllElements && containsRequiredNull;
+    if (locationSetToCheck instanceof ExplicitLocationSet explicitLocationSetToCheck) {
+      return sortedPointerTargets.containsAll(explicitLocationSetToCheck.sortedPointerTargets);
     }
-    return pElements.containsAll(this);
+    return locationSetToCheck.containsAll(this);
   }
 
   @Override
   public String toString() {
-    List<String> elements = new ArrayList<>();
-    if (containsNull) {
-      elements.add("NULL");
-    }
-    for (Object o : explicitSet) {
-      elements.add(o.toString());
-    }
-    return "[" + String.join(", ", elements) + "]";
+    return sortedPointerTargets.stream()
+        .map(Object::toString)
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
   @Override
@@ -159,58 +105,21 @@ public class ExplicitLocationSet implements LocationSet {
   }
 
   private boolean equalsToOtherLocationSet(LocationSet otherLocationSet) {
-    if (otherLocationSet.isTop()) {
-      return false;
-    }
     if (otherLocationSet.isBot()) {
       return isBot();
     }
     if (otherLocationSet instanceof ExplicitLocationSet otherExplicitLocationSet) {
-      return (explicitSet.equals(otherExplicitLocationSet.explicitSet)
-          && containsNull == otherExplicitLocationSet.containsNull);
+      return sortedPointerTargets.equals(otherExplicitLocationSet.sortedPointerTargets);
     }
 
     return false;
   }
 
-  @Override
-  public int hashCode() {
-    return 31 * explicitSet.hashCode() + Boolean.hashCode(containsNull);
-  }
-
   public int getSize() {
-    return explicitSet.size() + (containsNull ? 1 : 0);
+    return sortedPointerTargets.size();
   }
 
-  public int getSizeWithoutNull() {
-    return explicitSet.size();
-  }
-
-  public Set<PointerTarget> getExplicitLocations() {
-    return explicitSet;
-  }
-
-  @Override
-  public int compareTo(LocationSet pSetToCompare) {
-    // This compareTo implementation combines special-case ordering of BOT and TOP
-    // with ComparisonChain for internal field comparison of ExplicitLocationSets.
-    // This structure is necessary due to lattice semantics of LocationSet.
-    if (this.equals(pSetToCompare)) {
-      return 0;
-    }
-    if (pSetToCompare instanceof LocationSetBot) {
-      return 1;
-    } else if (pSetToCompare instanceof LocationSetTop) {
-      return -1;
-    } else if (pSetToCompare instanceof ExplicitLocationSet explicitSetToCompare) {
-      return ComparisonChain.start()
-          .compare(Boolean.compare(containsNull, explicitSetToCompare.containsNull), 0)
-          .compare(
-              explicitSet, explicitSetToCompare.explicitSet, Ordering.natural().lexicographical())
-          .result();
-    } else {
-      throw new AssertionError(
-          "Unexpected implementation of LocationSet: " + pSetToCompare.getClass());
-    }
+  public SortedSet<PointerTarget> getExplicitLocations() {
+    return sortedPointerTargets;
   }
 }

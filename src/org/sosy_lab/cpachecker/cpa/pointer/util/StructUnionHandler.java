@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions.StructHandlingStrategy;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBuilder;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.StructLocation;
 
@@ -72,7 +73,7 @@ public class StructUnionHandler {
             return new PointerAnalysisState(
                 pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
           }
-          LocationSet mergedSet = existingSet.addElements(rhsTargets);
+          LocationSet mergedSet = existingSet.withPointerTargets(rhsTargets);
           return new PointerAnalysisState(
               pState.getPointsToMap().putAndCopy(lhsLocation, mergedSet));
         } else {
@@ -120,7 +121,7 @@ public class StructUnionHandler {
             return new PointerAnalysisState(
                 pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
           }
-          LocationSet mergedSet = existingSet.addElements(rhsTargets);
+          LocationSet mergedSet = existingSet.withPointerTargets(rhsTargets);
           return new PointerAnalysisState(
               pState.getPointsToMap().putAndCopy(lhsLocation, mergedSet));
         }
@@ -155,7 +156,7 @@ public class StructUnionHandler {
 
       if (shouldMerge) {
         LocationSet existingSet = updatedState.getPointsToSet(loc);
-        LocationSet mergedSet = existingSet.addElements(pRhsTargets);
+        LocationSet mergedSet = existingSet.withPointerTargets(pRhsTargets);
         updatedState =
             new PointerAnalysisState(updatedState.getPointsToMap().putAndCopy(loc, mergedSet));
       } else {
@@ -170,11 +171,11 @@ public class StructUnionHandler {
       StructHandlingStrategy strategy, String structType, String instanceName, CFAEdge pCfaEdge) {
     return switch (strategy) {
       case ALL_FIELDS, STRUCT_INSTANCE ->
-          ExplicitLocationSet.from(
+          LocationSetBuilder.withPointerLocation(
               StructLocation.forStructInstance(
                   pCfaEdge.getPredecessor().getFunctionName(), structType, instanceName));
       case JUST_STRUCT ->
-          ExplicitLocationSet.from(
+          LocationSetBuilder.withPointerLocation(
               StructLocation.forStruct(pCfaEdge.getPredecessor().getFunctionName(), structType));
     };
   }
@@ -187,18 +188,18 @@ public class StructUnionHandler {
       CFAEdge pCfaEdge) {
     return switch (strategy) {
       case STRUCT_INSTANCE ->
-          ExplicitLocationSet.from(
+          LocationSetBuilder.withPointerLocation(
               StructLocation.forStructInstance(
                   pCfaEdge.getPredecessor().getFunctionName(), structType, instanceName));
       case ALL_FIELDS ->
-          ExplicitLocationSet.from(
+          LocationSetBuilder.withPointerLocation(
               StructLocation.forField(
                   pCfaEdge.getPredecessor().getFunctionName(),
                   structType,
                   instanceName,
                   fieldName));
       case JUST_STRUCT ->
-          ExplicitLocationSet.from(
+          LocationSetBuilder.withPointerLocation(
               StructLocation.forStruct(pCfaEdge.getPredecessor().getFunctionName(), structType));
     };
   }

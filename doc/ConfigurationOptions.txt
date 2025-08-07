@@ -2221,7 +2221,7 @@ cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
 # Strategy for mapping heap allocations to symbolic heap locations: SINGLE,
 # PER_CALL, PER_LINE
-cpa.pointer.heapAllocationStrategy = SINGLE
+cpa.pointer.heapAllocationStrategy = PER_CALL
   enum:     [SINGLE, PER_CALL, PER_LINE]
 
 # Enable or disable offset-sensitive pointer analysis. When false, offsets in
@@ -2237,7 +2237,7 @@ cpa.pointer.stop = "SEP"
   allowed values: [JOIN, SEP]
 
 # Strategy for handling structs in pointer analysis
-cpa.pointer.structHandlingStrategy = STRUCT_INSTANCE
+cpa.pointer.structHandlingStrategy = ALL_FIELDS
   enum:     [JUST_STRUCT, STRUCT_INSTANCE, ALL_FIELDS]
 
 # which merge operator to use for PointerCPA

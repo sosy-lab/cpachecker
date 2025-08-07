@@ -205,8 +205,15 @@ public class ValueAnalysisTransferRelation
                 + " and this can produce wrong results.")
     private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
 
-    @Option(secure = true, description = "Able blacklisting for addressed variables")
+    @Option(
+        secure = true,
+        description =
+            "Able blacklisting for addressed variables to enable tracking through pointer analysis")
     private boolean ableAddressedVariableBlacklisting = false;
+
+    public boolean ableAddressedVariableBlacklisting() {
+      return ableAddressedVariableBlacklisting;
+    }
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -751,12 +758,11 @@ public class ValueAnalysisTransferRelation
       memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
     }
 
-    if (options.ableAddressedVariableBlacklisting) {
-      if (addressedVariables.contains(decl.getQualifiedName())
-          && declarationType instanceof CType) {
-        ValueAnalysisState.addToBlacklist(memoryLocation);
-        logger.logf(Level.INFO, "Blacklisting addressed variable: %s", decl.getQualifiedName());
-      }
+    if (options.ableAddressedVariableBlacklisting
+        && addressedVariables.contains(decl.getQualifiedName())
+        && declarationType instanceof CType) {
+      ValueAnalysisState.addToBlacklist(memoryLocation);
+      logger.logf(Level.CONFIG, "Blacklisting addressed variable: %s", decl.getQualifiedName());
     }
 
     if (init instanceof AInitializerExpression aInitializerExpression) {
@@ -1548,7 +1554,8 @@ public class ValueAnalysisTransferRelation
       org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet directLocation =
           PointerTransferRelation.asLocations(pointerExpression, pPointerInfo);
 
-      if (!(directLocation instanceof ExplicitLocationSet)) {
+      if (!(directLocation
+          instanceof org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet)) {
         CExpression addressExpression = pointerExpression.getOperand();
         org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet indirectLocation =
             PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
@@ -1670,7 +1677,7 @@ public class ValueAnalysisTransferRelation
               baseExpr, pPointerInfo, false, pCfaEdge, pointerTransferOptions);
 
       if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
-          && explicitBaseLocations.getSizeWithoutNull() == 1) {
+          && explicitBaseLocations.getSize() == 1) {
 
         PointerTarget basePointerTarget =
             explicitBaseLocations.getExplicitLocations().iterator().next();
@@ -1678,12 +1685,12 @@ public class ValueAnalysisTransferRelation
         LocationSet heapTarget = pPointerInfo.getPointsToSet(basePointerTarget);
 
         if (heapTarget instanceof ExplicitLocationSet heapBaseLocations
-            && heapBaseLocations.getSizeWithoutNull() == 1) {
+            && heapBaseLocations.getSize() == 1) {
           PointerTarget heapBase = heapBaseLocations.getExplicitLocations().iterator().next();
           if (heapBase instanceof HeapLocation heapLocation) {
             LocationSet heapTargetLocations = pPointerInfo.getPointsToSet(heapLocation);
             if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
-                && explicitHeapTargetLocations.getSizeWithoutNull() == 1) {
+                && explicitHeapTargetLocations.getSize() == 1) {
               PointerTarget heapPointerTarget =
                   explicitHeapTargetLocations.getExplicitLocations().iterator().next();
               if (heapPointerTarget instanceof InvalidLocation) {
@@ -1696,7 +1703,6 @@ public class ValueAnalysisTransferRelation
         }
       }
     }
-
     if (targetIsUnknown && pLeftHandSide instanceof CPointerExpression pointerExpression) {
       PointerTransferOptions pointerTransferOptions = new PointerTransferOptions(config);
       LocationSet baseLocations =
@@ -1704,14 +1710,14 @@ public class ValueAnalysisTransferRelation
               pointerExpression, pPointerInfo, false, pCfaEdge, pointerTransferOptions);
 
       if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
-          && explicitBaseLocations.getSizeWithoutNull() == 1) {
+          && explicitBaseLocations.getSize() == 1) {
         PointerTarget basePointerTarget =
             explicitBaseLocations.getExplicitLocations().iterator().next();
 
         LocationSet pointerTargets = pPointerInfo.getPointsToSet(basePointerTarget);
 
         if (pointerTargets instanceof ExplicitLocationSet explicitPointerTargets
-            && explicitPointerTargets.getSizeWithoutNull() == 1) {
+            && explicitPointerTargets.getSize() == 1) {
           PointerTarget pointerTarget =
               explicitPointerTargets.getExplicitLocations().iterator().next();
           if (pointerTarget instanceof MemoryLocationPointer targetMemoryLocation) {
@@ -1723,7 +1729,7 @@ public class ValueAnalysisTransferRelation
           if (pointerTarget instanceof HeapLocation heapLocation) {
             LocationSet heapTargetLocations = pPointerInfo.getPointsToSet(heapLocation);
             if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
-                && explicitHeapTargetLocations.getSizeWithoutNull() == 1) {
+                && explicitHeapTargetLocations.getSize() == 1) {
               PointerTarget heapPointerTarget =
                   explicitHeapTargetLocations.getExplicitLocations().iterator().next();
               if (heapPointerTarget instanceof MemoryLocationPointer heapMemoryLocationPointer) {
@@ -1765,7 +1771,7 @@ public class ValueAnalysisTransferRelation
           PointerAnalysisTransferRelation.getReferencedLocations(
               addressExpression, pPointerInfo, true, pCfaEdge, pointerTransferOptions);
       if (valueLocations instanceof ExplicitLocationSet explicitValueLocations
-          && explicitValueLocations.getSizeWithoutNull() == 1) {
+          && explicitValueLocations.getSize() == 1) {
         PointerTarget valuePointerTarget =
             explicitValueLocations.getExplicitLocations().iterator().next();
         if (valuePointerTarget instanceof MemoryLocationPointer valueMemoryLocationPointer) {

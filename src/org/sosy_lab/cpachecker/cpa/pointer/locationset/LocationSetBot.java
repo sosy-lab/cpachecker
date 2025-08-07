@@ -11,27 +11,21 @@ package org.sosy_lab.cpachecker.cpa.pointer.locationset;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 
-public class LocationSetBot implements LocationSet {
-
-  public static final LocationSetBot INSTANCE = new LocationSetBot();
+public enum LocationSetBot implements LocationSet {
+  INSTANCE;
 
   @Override
-  public boolean mayPointTo(PointerTarget pTarget) {
+  public boolean contains(PointerTarget pTarget) {
     return false;
   }
 
   @Override
-  public LocationSet addElements(Set<PointerTarget> pTargets) {
-    return ExplicitLocationSet.from(pTargets);
+  public LocationSet withPointerTargets(Set<PointerTarget> pLocations) {
+    return LocationSetBuilder.withPointerTargets(pLocations);
   }
 
   @Override
-  public LocationSet addElements(Set<PointerTarget> pLocations, boolean pContainsNull) {
-    return ExplicitLocationSet.from(pLocations, pContainsNull);
-  }
-
-  @Override
-  public LocationSet addElements(LocationSet pElements) {
+  public LocationSet withPointerTargets(LocationSet pElements) {
     return pElements;
   }
 
@@ -46,39 +40,22 @@ public class LocationSetBot implements LocationSet {
   }
 
   @Override
-  public boolean isNull() {
+  public boolean containsAllNulls() {
     return false;
   }
 
   @Override
-  public boolean containsAll(LocationSet pElements) {
-    return pElements.isBot();
+  public boolean containsAll(LocationSet locationSetToCheck) {
+    return locationSetToCheck.isBot();
   }
 
   @Override
   public String toString() {
-    return Character.toString('\u22A5');
+    return "⊥";
   }
 
   @Override
-  public boolean containsNull() {
+  public boolean containsAnyNull() {
     return false;
-  }
-
-  @Override
-  public int compareTo(LocationSet pOther) {
-    // Special-case compareTo implementation for pointer analysis lattice.
-    // BOT is defined as less than all other LocationSets.
-    return this.equals(pOther) ? 0 : -1;
-  }
-
-  @Override
-  public boolean equals(Object pObj) {
-    return pObj instanceof LocationSetBot;
-  }
-
-  @Override
-  public int hashCode() {
-    return 0;
   }
 }

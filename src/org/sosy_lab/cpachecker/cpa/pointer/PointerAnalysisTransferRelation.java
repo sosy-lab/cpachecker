@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.Point
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBot;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBuilder;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
@@ -229,8 +230,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         if (pointsTo instanceof ExplicitLocationSet explicitPointsTo) {
           boolean mustBeEqualToNull = (isEqualsOperator == pTruthAssumption);
 
-          if ((mustBeEqualToNull && explicitPointsTo.containsNull())
-              || (!mustBeEqualToNull && (explicitPointsTo.getSizeWithoutNull() > 0))) {
+          if ((mustBeEqualToNull && explicitPointsTo.containsAnyNull())
+              || (!mustBeEqualToNull && !explicitPointsTo.containsAllNulls())) {
             return pState;
           }
         }
@@ -350,7 +351,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       LocationSet rhsTargets = pState.getPointsToSet(returnVarPointer);
       if (rhsTargets instanceof ExplicitLocationSet explicitSet) {
         Set<PointerTarget> newTargets = new HashSet<>();
-        boolean containsNull = explicitSet.containsNull();
 
         String callerFunctionName = pCfaEdge.getSummaryEdge().getPredecessor().getFunctionName();
         for (PointerTarget target : explicitSet.getExplicitLocations()) {
@@ -361,7 +361,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           }
         }
 
-        rhsTargets = ExplicitLocationSet.from(newTargets, containsNull);
+        rhsTargets = LocationSetBuilder.withPointerTargets(newTargets);
       }
 
       LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge, options);
@@ -436,7 +436,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           heapLocation = createHeapLocation(pCfaEdge);
 
           LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge, options);
-          LocationSet rhsSet = ExplicitLocationSet.from(heapLocation);
+          LocationSet rhsSet = LocationSetBuilder.withPointerLocation(heapLocation);
 
           return handleAssignment(pState, lhsLocations, rhsSet, pCfaEdge);
         }
@@ -460,7 +460,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       for (PointerTarget pt : explicitTargets.getExplicitLocations()) {
         if (pt instanceof HeapLocation) {
           PointerTarget invalid = InvalidLocation.forInvalidation(InvalidationReason.FREED);
-          newPointsToMap = newPointsToMap.putAndCopy(pt, ExplicitLocationSet.from(invalid));
+          newPointsToMap =
+              newPointsToMap.putAndCopy(pt, LocationSetBuilder.withPointerLocation(invalid));
         } else {
           logger.logf(
               Level.WARNING,
@@ -558,7 +559,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         continue;
       }
       LocationSet existingSet = updatedState.getPointsToSet(loc);
-      LocationSet mergedSet = existingSet.addElements(pRhsTargets);
+      LocationSet mergedSet = existingSet.withPointerTargets(pRhsTargets);
       updatedState =
           new PointerAnalysisState(updatedState.getPointsToMap().putAndCopy(loc, mergedSet));
     }
@@ -636,7 +637,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             CSimpleDeclaration declaration = pIdExpression.getDeclaration();
             if (pIdExpression.getExpressionType().getCanonicalType() instanceof CArrayType) {
               MemoryLocation arrayBase = MemoryLocation.forDeclaration(declaration);
-              return ExplicitLocationSet.from(
+              return LocationSetBuilder.withPointerLocation(
                   new MemoryLocationPointer(arrayBase.withAddedOffset(0)));
             }
             if (declaration != null) {
@@ -720,8 +721,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     break;
                   }
                 }
-                if (explicit.isNull()) {
-                  return ExplicitLocationSet.from(
+                if (explicit.containsAllNulls()) {
+                  return LocationSetBuilder.withPointerLocation(
                       InvalidLocation.forInvalidation(InvalidationReason.NULL_DEREFERENCE));
                 }
               }
@@ -789,7 +790,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           @Override
           public LocationSet visit(CCastExpression expr) throws CPATransferException {
             if (PointerUtils.isNullPointer(expr)) {
-              return ExplicitLocationSet.fromNull();
+              return LocationSetBuilder.withNullLocation();
             }
             return getReferencedLocations(
                 expr.getOperand(), pState, shouldDereference, pCfaEdge, pointerTransferOptions);
@@ -838,7 +839,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               return LocationSetTop.INSTANCE;
             }
             if (operand1IsPtr || operand2IsPtr) {
-              return ExplicitLocationSet.from(
+              return LocationSetBuilder.withPointerLocation(
                   InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
             }
             return LocationSetBot.INSTANCE;
@@ -864,7 +865,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             // TODO create StringLiteralLocation
             String literal = pStringLiteralExpression.getContentWithoutNullTerminator();
             MemoryLocation stringLoc = MemoryLocation.forIdentifier("__string_literal_" + literal);
-            return ExplicitLocationSet.from(new MemoryLocationPointer(stringLoc));
+            return LocationSetBuilder.withPointerLocation(new MemoryLocationPointer(stringLoc));
           }
 
           @Override
@@ -884,8 +885,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           }
 
           @Override
-          public LocationSet visit(CFunctionCallExpression pFunctionCallExpression)
-              throws CPATransferException {
+          public LocationSet visit(CFunctionCallExpression pFunctionCallExpression) {
             CFunctionDeclaration decl = pFunctionCallExpression.getDeclaration();
             if (decl != null) {
               CType returnType = decl.getType().getReturnType().getCanonicalType();
@@ -906,7 +906,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               throws CPATransferException {
             CRightHandSide operand = complexCastExpression.getOperand();
             if (PointerUtils.isNullPointer(operand)) {
-              return ExplicitLocationSet.fromNull();
+              return LocationSetBuilder.withNullLocation();
             }
             return getReferencedLocations(
                 operand, pState, shouldDereference, pCfaEdge, pointerTransferOptions);
@@ -916,8 +916,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             if (set.isTop() || set.isBot()) {
               return set;
             }
-            if (set.isNull()) {
-              return ExplicitLocationSet.from(
+            if (set.containsAllNulls()) {
+              return LocationSetBuilder.withPointerLocation(
                   InvalidLocation.forInvalidation(InvalidationReason.NULL_DEREFERENCE));
             }
             if (!(set instanceof ExplicitLocationSet explicitSet)) {
@@ -930,7 +930,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               if (target.isTop() || target.isBot()) {
                 return target;
               }
-              result = result.addElements(target);
+              result = result.withPointerTargets(target);
             }
             return result;
           }

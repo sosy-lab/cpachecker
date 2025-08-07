@@ -15,7 +15,7 @@ import com.google.common.collect.ComparisonChain;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class MemoryLocationPointer implements PointerTarget {
+public final class MemoryLocationPointer implements PointerTarget {
   private final MemoryLocation memoryLocation;
 
   public MemoryLocationPointer(MemoryLocation pMemoryLocation) {

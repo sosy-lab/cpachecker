@@ -16,7 +16,7 @@ import com.google.common.collect.Ordering;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public class HeapLocation implements PointerTarget {
+public final class HeapLocation implements PointerTarget {
   private final String functionName;
   private final String identifier;
   private final @Nullable Long offset;

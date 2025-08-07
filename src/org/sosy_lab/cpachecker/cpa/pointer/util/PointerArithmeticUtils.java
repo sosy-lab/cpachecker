@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.util;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBuilder;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
@@ -30,8 +31,8 @@ public final class PointerArithmeticUtils {
       return pBaseLocations;
     }
 
-    if (pBaseLocations.isNull()) {
-      return ExplicitLocationSet.from(
+    if (pBaseLocations.containsAllNulls()) {
+      return LocationSetBuilder.withPointerLocation(
           InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
     }
 
@@ -39,11 +40,12 @@ public final class PointerArithmeticUtils {
       return LocationSetTop.INSTANCE;
     }
 
-    Set<PointerTarget> resultTargets = new HashSet<>();
-    for (PointerTarget target : explicitSet.getExplicitLocations()) {
-      resultTargets.add(applyOffsetToTarget(target, pOffset, pIsOffsetSensitive));
-    }
-    return ExplicitLocationSet.from(resultTargets, explicitSet.containsNull());
+    Set<PointerTarget> resultTargets =
+        explicitSet.getExplicitLocations().stream()
+            .map(target -> applyOffsetToTarget(target, pOffset, pIsOffsetSensitive))
+            .collect(Collectors.toSet());
+
+    return LocationSetBuilder.withPointerTargets(resultTargets);
   }
 
   private static PointerTarget applyOffsetToTarget(
@@ -57,6 +59,7 @@ public final class PointerArithmeticUtils {
     if (target instanceof HeapLocation heapLoc) {
       return applyOffsetToHeapLocation(heapLoc, offset, pIsOffsetSensitive);
     }
+    // We cannot apply pointer arithmetic to null target, so we proceed with invalidation.
     return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
   }
 
