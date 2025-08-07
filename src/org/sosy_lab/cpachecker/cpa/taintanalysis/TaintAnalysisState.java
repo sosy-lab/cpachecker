@@ -80,12 +80,21 @@ public class TaintAnalysisState
    */
   @Override
   public boolean isLessOrEqual(TaintAnalysisState other) {
-    return other.getTaintedVariables().containsAll(this.taintedVariables);
+
+    if (!other.getTaintedVariables().containsAll(this.taintedVariables)) {
+      return false;
+    }
+
+    if (!other.getEvaluatedValues().entrySet().containsAll(this.evaluatedValues.entrySet())) {
+      return false;
+    }
+
+    return true;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(taintedVariables, untaintedVariables);
+    return Objects.hash(taintedVariables, untaintedVariables, evaluatedValues);
   }
 
   /**
@@ -103,7 +112,8 @@ public class TaintAnalysisState
     }
     return obj instanceof TaintAnalysisState other
         && Objects.equals(taintedVariables, other.taintedVariables)
-        && Objects.equals(untaintedVariables, other.untaintedVariables);
+        && Objects.equals(untaintedVariables, other.untaintedVariables)
+        && Objects.equals(evaluatedValues, other.evaluatedValues);
   }
 
   @Override
