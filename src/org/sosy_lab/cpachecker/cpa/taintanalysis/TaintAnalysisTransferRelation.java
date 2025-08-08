@@ -166,7 +166,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    Map<CIdExpression, ArrayList<CExpression>> newEvaluatedValues = new HashMap<>();
+    Map<CIdExpression, List<CExpression>> newEvaluatedValues = new HashMap<>();
     for (Entry<CIdExpression, CExpression> entry : evaluatedValues.entrySet()) {
       CIdExpression var = entry.getKey();
       CExpression value = entry.getValue();
@@ -292,11 +292,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private Map<CIdExpression, CExpression> extractOneToOneMappings(
-      Map<CIdExpression, ArrayList<CExpression>> evaluatedValuesWithMultipleMapping) {
+      Map<CIdExpression, List<CExpression>> evaluatedValuesWithMultipleMapping) {
 
     Map<CIdExpression, CExpression> oneToOneMappings = new HashMap<>();
 
-    for (Map.Entry<CIdExpression, ArrayList<CExpression>> entry :
+    for (Map.Entry<CIdExpression, List<CExpression>> entry :
         evaluatedValuesWithMultipleMapping.entrySet()) {
 
       CIdExpression key = entry.getKey();

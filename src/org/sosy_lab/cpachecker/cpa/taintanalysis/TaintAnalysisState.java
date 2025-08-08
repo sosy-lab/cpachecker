@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,7 +43,7 @@ public class TaintAnalysisState
   private final Set<CIdExpression> taintedVariables = new HashSet<>();
   private final Set<CIdExpression> untaintedVariables = new HashSet<>();
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
-  private final Map<CIdExpression, ArrayList<CExpression>> evaluatedValues = new HashMap<>();
+  private final Map<CIdExpression, List<CExpression>> evaluatedValues = new HashMap<>();
   private final Set<TaintAnalysisState> predecessors = new HashSet<>();
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
@@ -52,7 +53,6 @@ public class TaintAnalysisState
   public TaintAnalysisState(
       Set<CIdExpression> pTaintedVariables,
       Set<CIdExpression> pUntaintedVariables,
-      Map<CIdExpression, ArrayList<CExpression>> pEvaluatedValues) {
       Map<CIdExpression, List<CExpression>> pEvaluatedValues,
       Set<TaintAnalysisState> pPredecessors) {
     this.taintedVariables.addAll(pTaintedVariables);
@@ -61,7 +61,7 @@ public class TaintAnalysisState
     this.predecessors.addAll(pPredecessors);
   }
 
-  public Map<CIdExpression, ArrayList<CExpression>> getEvaluatedValues() {
+  public Map<CIdExpression, List<CExpression>> getEvaluatedValues() {
     return evaluatedValues;
   }
 
@@ -178,7 +178,7 @@ public class TaintAnalysisState
     allVars.addAll(joinedUntaintedVars);
 
     // join the variable to evaluated values mapping:
-    Map<CIdExpression, ArrayList<CExpression>> joinEvaluatedValues = new HashMap<>();
+    Map<CIdExpression, List<CExpression>> joinEvaluatedValues = new HashMap<>();
 
     if (this.evaluatedValues == pOther.evaluatedValues) {
       joinEvaluatedValues = this.evaluatedValues;
@@ -219,7 +219,7 @@ public class TaintAnalysisState
           }
         }
 
-        for (ArrayList<CExpression> values : joinEvaluatedValues.values()) {
+        for (List<CExpression> values : joinEvaluatedValues.values()) {
           if (values.size() > 1) {
             throw new AssertionError("At this point the values should be mapped to a single value");
           }
@@ -266,8 +266,8 @@ public class TaintAnalysisState
 
   private boolean isEachVariableMappedToTheSameValue(
       Set<CIdExpression> allVars,
-      Map<CIdExpression, ArrayList<CExpression>> pThisEvaluatedValues,
-      Map<CIdExpression, ArrayList<CExpression>> pOtherEvaluatedValues) {
+      Map<CIdExpression, List<CExpression>> pThisEvaluatedValues,
+      Map<CIdExpression, List<CExpression>> pOtherEvaluatedValues) {
 
     for (CIdExpression var : allVars) {
       if (pThisEvaluatedValues.containsKey(var) && pOtherEvaluatedValues.containsKey(var)) {
