@@ -105,7 +105,10 @@ public class TaintAnalysisUtils {
     for (Map<CIdExpression, List<CExpression>> map : mapsWithSingleValueMapping) {
       TaintAnalysisState reconstructedState =
           new TaintAnalysisState(
-              pState.getTaintedVariables(), pState.getUntaintedVariables(), map, ImmutableSet.of(pState));
+              pState.getTaintedVariables(),
+              pState.getUntaintedVariables(),
+              map,
+              ImmutableSet.of(pState));
       if (pState.isTarget()) {
         reconstructedState.setViolatesProperty();
       }
