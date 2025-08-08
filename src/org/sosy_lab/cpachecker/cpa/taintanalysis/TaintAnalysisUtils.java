@@ -10,6 +10,11 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -44,6 +49,59 @@ public class TaintAnalysisUtils {
     // Initialize and invoke the visitor
     CollectCIdExpressionsVisitor visitor = new CollectCIdExpressionsVisitor();
     return pExpression.accept(visitor);
+  }
+
+  public static Collection<TaintAnalysisState> getStatesWithSingeValueMapping(
+      TaintAnalysisState pState) {
+
+    Map<CIdExpression, List<CExpression>> evaluatedValuesWithMultipleMapping =
+        pState.getEvaluatedValues();
+
+    Set<Map<CIdExpression, List<CExpression>>> mapsWithSingleValueMapping = new HashSet<>();
+    Collection<TaintAnalysisState> states = new HashSet<>();
+
+    int numberOfMergedStates = 0;
+    for (List<CExpression> mappedValues : evaluatedValuesWithMultipleMapping.values()) {
+      numberOfMergedStates = Math.max(numberOfMergedStates, mappedValues.size());
+    }
+
+    for (int i = 0; i < numberOfMergedStates; i++) {
+
+      Map<CIdExpression, List<CExpression>> singleValueMap = new HashMap<>();
+
+      for (Map.Entry<CIdExpression, List<CExpression>> entry :
+          evaluatedValuesWithMultipleMapping.entrySet()) {
+
+        CIdExpression variable = entry.getKey();
+        List<CExpression> values = entry.getValue();
+
+        int index = 0;
+        for (CExpression value : values) {
+          // Use the ith element if it exists
+          if (index == i) {
+            ArrayList<CExpression> valueList = new ArrayList<>();
+            valueList.add(value);
+            singleValueMap.put(variable, valueList);
+            break;
+          }
+          index++;
+        }
+
+        if (!singleValueMap.containsKey(variable)) {
+          throw new IllegalStateException(
+              "At this point the variable " + variable + " should exist");
+        }
+      }
+
+      mapsWithSingleValueMapping.add(singleValueMap);
+    }
+
+    for (Map<CIdExpression, List<CExpression>> map : mapsWithSingleValueMapping) {
+      TaintAnalysisState reconstructedState =
+          new TaintAnalysisState(pState.getTaintedVariables(), pState.getUntaintedVariables(), map);
+      states.add(reconstructedState);
+    }
+    return states;
   }
 
   public static CIdExpression getCidExpressionForCVarDec(CVariableDeclaration pDec) {
