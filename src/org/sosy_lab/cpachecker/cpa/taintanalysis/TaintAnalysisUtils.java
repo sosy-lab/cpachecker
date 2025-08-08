@@ -104,6 +104,9 @@ public class TaintAnalysisUtils {
       TaintAnalysisState reconstructedState =
           new TaintAnalysisState(
               pState.getTaintedVariables(), pState.getUntaintedVariables(), map, Set.of(pState));
+      if (pState.isTarget()) {
+        reconstructedState.setViolatesProperty();
+      }
       states.add(reconstructedState);
     }
     return states;

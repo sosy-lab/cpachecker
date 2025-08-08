@@ -190,105 +190,107 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
 
-    TaintAnalysisState state =
+    TaintAnalysisState incomingState =
         AbstractStates.extractStateByType(abstractState, TaintAnalysisState.class);
 
-    if (Objects.isNull(state)) {
+    if (Objects.isNull(incomingState)) {
       throw new CPATransferException("state has the wrong format");
     }
 
-    boolean hasMappedValuesWithMoreThanOneElement =
-        state.getEvaluatedValues().values().stream()
-            .anyMatch(mappedValues -> mappedValues.size() > 1);
+    Collection<TaintAnalysisState> extractedStates =
+        TaintAnalysisUtils.getStatesWithSingeValueMapping(incomingState);
+    Collection<TaintAnalysisState> newStates = new ArrayList<>();
 
-    if (hasMappedValuesWithMoreThanOneElement) {
-      return TaintAnalysisUtils.getStatesWithSingeValueMapping(state);
+    for (TaintAnalysisState state : extractedStates) {
+
+      evaluatedValues = extractOneToOneMappings(state.getEvaluatedValues());
+
+      switch (cfaEdge.getEdgeType()) {
+        case AssumeEdge -> {
+          if (cfaEdge instanceof CAssumeEdge assumption) {
+            newStates.addAll(
+                Collections.checkedList(
+                    handleAssumption(state, assumption, assumption.getExpression()),
+                    TaintAnalysisState.class));
+          } else {
+            throw new AssertionError("unknown edge");
+          }
+        }
+        case FunctionCallEdge -> {
+          if (cfaEdge instanceof CFunctionCallEdge fnkCall) {
+            final CFunctionEntryNode succ = fnkCall.getSuccessor();
+            final String calledFunctionName = succ.getFunctionName();
+
+            newStates.add(
+                handleFunctionCallEdge(
+                    state,
+                    fnkCall,
+                    fnkCall.getArguments(),
+                    succ.getFunctionParameters(),
+                    calledFunctionName));
+          } else {
+            throw new AssertionError("unknown edge");
+          }
+        }
+        case FunctionReturnEdge -> {
+          if (cfaEdge instanceof CFunctionReturnEdge fnkReturnEdge) {
+            final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
+            final CFunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
+
+            newStates.add(
+                handleFunctionReturnEdge(
+                    state,
+                    fnkReturnEdge,
+                    summaryEdge,
+                    summaryEdge.getExpression(),
+                    callerFunctionName));
+          } else {
+            throw new AssertionError("unknown edge");
+          }
+        }
+        case DeclarationEdge -> {
+          if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+            newStates.add(handleDeclarationEdge(state, declarationEdge));
+          } else {
+            throw new AssertionError("unknown edge");
+          }
+        }
+        case StatementEdge -> {
+          if (cfaEdge instanceof CStatementEdge statementEdge) {
+
+            newStates.addAll(
+                Collections.checkedList(
+                    handleStatementEdge(state, statementEdge), TaintAnalysisState.class));
+          } else {
+            throw new AssertionError("unknown edge");
+          }
+        }
+        case ReturnStatementEdge -> {
+          // this statement is a function return, e.g. return (a);
+          // note that this is different from return edge,
+          // this is a statement edge, which leads the function to the
+          // last node of its CFA, where return edge is from that last node
+          // to the return site of the caller function
+          if (cfaEdge instanceof CReturnStatementEdge returnEdge) {
+            newStates.add(handleReturnStatementEdge(state, returnEdge));
+          } else {
+            throw new AssertionError("unknown edge");
+          }
+        }
+        case BlankEdge -> {
+          newStates.add(handleBlankEdge(state, (BlankEdge) cfaEdge));
+        }
+        case CallToReturnEdge -> {
+          if (cfaEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
+            newStates.add(handleFunctionSummaryEdge(state, cFunctionSummaryEdge));
+          } else {
+            throw new AssertionError("unknown edge");
+          }
+        }
+        default -> throw new UnrecognizedCFAEdgeException(cfaEdge);
+      }
     }
-
-    evaluatedValues = extractOneToOneMappings(state.getEvaluatedValues());
-
-    switch (cfaEdge.getEdgeType()) {
-      case AssumeEdge -> {
-        if (cfaEdge instanceof CAssumeEdge assumption) {
-          return Collections.checkedList(
-              handleAssumption(state, assumption, assumption.getExpression()),
-              TaintAnalysisState.class);
-        } else {
-          throw new AssertionError("unknown edge");
-        }
-      }
-      case FunctionCallEdge -> {
-        if (cfaEdge instanceof CFunctionCallEdge fnkCall) {
-          final CFunctionEntryNode succ = fnkCall.getSuccessor();
-          final String calledFunctionName = succ.getFunctionName();
-
-          return Collections.singleton(
-              handleFunctionCallEdge(
-                  state,
-                  fnkCall,
-                  fnkCall.getArguments(),
-                  succ.getFunctionParameters(),
-                  calledFunctionName));
-        } else {
-          throw new AssertionError("unknown edge");
-        }
-      }
-      case FunctionReturnEdge -> {
-        if (cfaEdge instanceof CFunctionReturnEdge fnkReturnEdge) {
-          final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
-          final CFunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-
-          return Collections.singleton(
-              handleFunctionReturnEdge(
-                  state,
-                  fnkReturnEdge,
-                  summaryEdge,
-                  summaryEdge.getExpression(),
-                  callerFunctionName));
-        } else {
-          throw new AssertionError("unknown edge");
-        }
-      }
-      case DeclarationEdge -> {
-        if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
-          return Collections.singleton(handleDeclarationEdge(state, declarationEdge));
-        } else {
-          throw new AssertionError("unknown edge");
-        }
-      }
-      case StatementEdge -> {
-        if (cfaEdge instanceof CStatementEdge statementEdge) {
-
-          return Collections.checkedList(
-              handleStatementEdge(state, statementEdge), TaintAnalysisState.class);
-        } else {
-          throw new AssertionError("unknown edge");
-        }
-      }
-      case ReturnStatementEdge -> {
-        // this statement is a function return, e.g. return (a);
-        // note that this is different from return edge,
-        // this is a statement edge, which leads the function to the
-        // last node of its CFA, where return edge is from that last node
-        // to the return site of the caller function
-        if (cfaEdge instanceof CReturnStatementEdge returnEdge) {
-          return Collections.singleton(handleReturnStatementEdge(state, returnEdge));
-        } else {
-          throw new AssertionError("unknown edge");
-        }
-      }
-      case BlankEdge -> {
-        return Collections.singleton(handleBlankEdge(state, (BlankEdge) cfaEdge));
-      }
-      case CallToReturnEdge -> {
-        if (cfaEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
-          return Collections.singleton(handleFunctionSummaryEdge(state, cFunctionSummaryEdge));
-        } else {
-          throw new AssertionError("unknown edge");
-        }
-      }
-      default -> throw new UnrecognizedCFAEdgeException(cfaEdge);
-    }
+    return newStates;
   }
 
   private Map<CIdExpression, CExpression> extractOneToOneMappings(

@@ -103,7 +103,6 @@ public class TaintAnalysisState
         return false;
       }
     }
-
     return true;
   }
 
