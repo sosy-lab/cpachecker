@@ -224,7 +224,7 @@ public class ExpressionBehaviorVisitor
         sideEffects.add(sideEffect);
       }
     } else { // treat all accesses to fields of global structs as accesses to the entire variable,
-             // to preserve soundness under aliasing.
+      // to preserve soundness under aliasing.
       // g.cache
       if (fieldOwner instanceof CIdExpression idExpr
           && idExpr.getDeclaration() instanceof CVariableDeclaration decl
