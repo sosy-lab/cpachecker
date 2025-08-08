@@ -625,9 +625,9 @@ public class UnseqBehaviorAnalysisTransferRelation
   /**
    * Analyze a C initializer list to detect unsequenced side-effect conflicts.
    *
-   * <p>This method collects side effects from all expressions used in the initializer list
-   * (including nested lists and designated initializers), and checks all top-level initializer
-   * expressions for pairwise conflicts.
+   * <p>This method collects side effects from all expressions used in the initializer structure,
+   * including those in nested lists and designated initializers. It then performs pairwise conflict
+   * detection over all collected expressions
    *
    * @param initList the top-level initializer list to analyze
    * @param edge the CFA edge where the initializer appears

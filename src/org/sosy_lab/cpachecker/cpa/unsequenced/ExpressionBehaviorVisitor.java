@@ -223,15 +223,14 @@ public class ExpressionBehaviorVisitor
                 pointerLoc, accessType, cfaEdge, SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
         sideEffects.add(sideEffect);
       }
-    } else { // treat all accesses to fields of global structs as accesses to the entire variable, to preserve soundness under aliasing.
+    } else { // treat all accesses to fields of global structs as accesses to the entire variable,
+             // to preserve soundness under aliasing.
       // g.cache
       if (fieldOwner instanceof CIdExpression idExpr
           && idExpr.getDeclaration() instanceof CVariableDeclaration decl
           && decl.isGlobal()) {
 
-        MemoryLocation fieldLoc =
-            MemoryLocation.fromQualifiedName(
-                decl.getQualifiedName());
+        MemoryLocation fieldLoc = MemoryLocation.fromQualifiedName(decl.getQualifiedName());
         SideEffectInfo sideEffect =
             new SideEffectInfo(fieldLoc, accessType, cfaEdge, SideEffectKind.GLOBAL_VARIABLE);
         sideEffects.add(sideEffect);
