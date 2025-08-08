@@ -714,7 +714,15 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           }
         }
 
-        values.put(variableLHS, rhs);
+        if (!statementControlFlowInfo.loopConditionIsNull()) {
+          values.put(variableLHS, rhs);
+        } else {
+          if (!statementControlFlowInfo.varIsLoopIterationIndex(variableLHS)) {
+            if (!(rhs instanceof CBinaryExpression)) {
+              values.put(variableLHS, rhs);
+            }
+          }
+        }
 
       } else if (lhs instanceof CArraySubscriptExpression arraySubscriptLHS) {
         // If the LHS is an array element and the RHS contains a tainted variable,
