@@ -658,6 +658,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           CIdExpression paramIdExpr = TaintAnalysisUtils.getCidExpressionForCParDec(paramDec);
           // taint arguments passed to the main function
           generatedVars.add(paramIdExpr);
+          values.put(paramIdExpr, null);
         }
       }
     }
