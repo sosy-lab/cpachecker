@@ -93,16 +93,15 @@ public class TaintAnalysisState
       return false;
     }
 
-    if (this.taintedVariables.isEmpty() && other.taintedVariables.isEmpty()) {
-      Collection<TaintAnalysisState> thisSplitStates =
-          TaintAnalysisUtils.getStatesWithSingeValueMapping(this);
-      Collection<TaintAnalysisState> otherSplitStates =
-          TaintAnalysisUtils.getStatesWithSingeValueMapping(other);
+    Collection<TaintAnalysisState> thisSplitStates =
+        TaintAnalysisUtils.getStatesWithSingeValueMapping(this);
+    Collection<TaintAnalysisState> otherSplitStates =
+        TaintAnalysisUtils.getStatesWithSingeValueMapping(other);
 
-      if (!otherSplitStates.containsAll(thisSplitStates)) {
-        return false;
-      }
+    if (!otherSplitStates.containsAll(thisSplitStates)) {
+      return false;
     }
+
     return true;
   }
 
