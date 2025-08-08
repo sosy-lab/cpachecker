@@ -78,7 +78,7 @@ public class BlockState
 
   @Override
   public @Nullable Object getPartitionKey() {
-    return this;
+    return blockNode;
   }
 
   @Override

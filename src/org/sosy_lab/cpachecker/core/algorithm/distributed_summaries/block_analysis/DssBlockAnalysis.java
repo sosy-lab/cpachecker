@@ -316,8 +316,8 @@ public class DssBlockAnalysis {
   public Collection<DssMessage> analyzePrecondition()
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (String successorId : violationConditions.keySet()) {
-      messages.addAll(analyzeViolationCondition(violationConditions.get(successorId)));
+    for (StateAndPrecision stateAndPrecision : violationConditions.values()) {
+      messages.addAll(analyzeViolationCondition(stateAndPrecision));
     }
     return messages.build();
   }
@@ -400,22 +400,6 @@ public class DssBlockAnalysis {
               dcpa.reset(entry.getValue().state()), entry.getValue().precision()));
     }
   }
-
-  /*private void debugPrecondition() throws InterruptedException {
-    if (block.getId().equals("L7")) {
-      StringBuilder sb = new StringBuilder();
-      for (AbstractState state : reachedSet.asCollection()) {
-        PredicateAbstractState p =
-            AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-        sb.append(p.getPathFormula().getFormula());
-        sb.append(" || ");
-      }
-      sb.append("\n");
-      combinePrecisionIfPossible().ifPresent(sb::append);
-      sb.append("\n");
-      System.out.println(sb);
-    }
-  }*/
 
   /**
    * Combines all preconditions into single precision if all precisions are from type

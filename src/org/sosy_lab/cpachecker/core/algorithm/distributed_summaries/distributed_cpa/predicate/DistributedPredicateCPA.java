@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -60,7 +59,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      Map<Integer, CFANode> pIdToNodeMap)
+      ImmutableMap<Integer, CFANode> pIdToNodeMap)
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
@@ -68,10 +67,9 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
-    ImmutableMap<Integer, CFANode> threadSafeCopy = ImmutableMap.copyOf(pIdToNodeMap);
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
-            predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), threadSafeCopy::get);
+            predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), pIdToNodeMap::get);
     proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
     stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
     verificationConditionOperator =
@@ -82,7 +80,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
                 pLogManager,
                 pShutdownNotifier,
                 pCFA,
-                AnalysisDirection.FORWARD),
+                AnalysisDirection.BACKWARD),
             predicateCPA,
             pNode.getPredecessorIds().isEmpty());
     combineOperator = new CombinePredicateStateOperator(predicateCPA);

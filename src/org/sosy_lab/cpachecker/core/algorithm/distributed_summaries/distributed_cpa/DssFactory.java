@@ -126,7 +126,7 @@ public class DssFactory {
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      Map<Integer, CFANode> pIntegerCFANodeMap)
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap)
       throws InvalidConfigurationException {
     return new DistributedPredicateCPA(
         pPredicateCPA,
