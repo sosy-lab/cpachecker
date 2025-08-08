@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -66,7 +68,7 @@ public class TaintAnalysisUtils {
     }
 
     if (numberOfMergedStates <= 1) {
-      return List.of(pState);
+      return ImmutableList.of(pState);
     }
 
     for (int i = 0; i < numberOfMergedStates; i++) {
@@ -103,7 +105,7 @@ public class TaintAnalysisUtils {
     for (Map<CIdExpression, List<CExpression>> map : mapsWithSingleValueMapping) {
       TaintAnalysisState reconstructedState =
           new TaintAnalysisState(
-              pState.getTaintedVariables(), pState.getUntaintedVariables(), map, Set.of(pState));
+              pState.getTaintedVariables(), pState.getUntaintedVariables(), map, ImmutableSet.of(pState));
       if (pState.isTarget()) {
         reconstructedState.setViolatesProperty();
       }

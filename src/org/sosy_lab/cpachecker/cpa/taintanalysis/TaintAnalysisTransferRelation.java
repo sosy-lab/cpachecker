@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -178,7 +177,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return new TaintAnalysisState(
-        newTaintedVars, newUntaintedVars, newEvaluatedValues, Set.of(pState));
+        newTaintedVars, newUntaintedVars, newEvaluatedValues, ImmutableSet.of(pState));
   }
 
   /**
@@ -287,7 +286,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             throw new AssertionError("unknown edge");
           }
         }
-        default -> throw new UnrecognizedCFAEdgeException(cfaEdge);
       }
     }
     return newStates;
