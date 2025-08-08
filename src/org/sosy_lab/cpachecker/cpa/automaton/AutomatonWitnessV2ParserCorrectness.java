@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -154,6 +155,7 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
             transitions.add(
                 new AutomatonTransition.Builder(
                         passTransitionWhenCheckSucceeds, AutomatonInternalState.ERROR)
+                    .withTargetInformation(new StringExpression("invalid invariant"))
                     .withAssumptions(ImmutableList.of(negatedInvariantAsCExpression))
                     .build());
           }
