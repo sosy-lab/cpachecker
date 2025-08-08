@@ -85,7 +85,14 @@ public class TaintAnalysisState
   @Override
   public boolean isLessOrEqual(TaintAnalysisState other) {
 
+    boolean allPredecessorsViolateProperty =
+        this.predecessors.stream().allMatch(p -> p.violatesProperty)
+            && other.predecessors.stream().allMatch(p -> p.violatesProperty);
+
     if (this.precedes(other)) {
+      if (allPredecessorsViolateProperty) {
+        other.setViolatesProperty();
+      }
       return true;
     }
 
@@ -102,6 +109,9 @@ public class TaintAnalysisState
       return false;
     }
 
+    if (allPredecessorsViolateProperty) {
+      other.setViolatesProperty();
+    }
     return true;
   }
 
