@@ -43,6 +43,7 @@ public class TaintAnalysisState
   private final Set<CIdExpression> untaintedVariables = new HashSet<>();
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
   private final Map<CIdExpression, ArrayList<CExpression>> evaluatedValues = new HashMap<>();
+  private final Set<TaintAnalysisState> predecessors = new HashSet<>();
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
     this.taintedVariables.addAll(pElements);
@@ -52,9 +53,12 @@ public class TaintAnalysisState
       Set<CIdExpression> pTaintedVariables,
       Set<CIdExpression> pUntaintedVariables,
       Map<CIdExpression, ArrayList<CExpression>> pEvaluatedValues) {
+      Map<CIdExpression, List<CExpression>> pEvaluatedValues,
+      Set<TaintAnalysisState> pPredecessors) {
     this.taintedVariables.addAll(pTaintedVariables);
     this.untaintedVariables.addAll(pUntaintedVariables);
     this.evaluatedValues.putAll(pEvaluatedValues);
+    this.predecessors.addAll(pPredecessors);
   }
 
   public Map<CIdExpression, ArrayList<CExpression>> getEvaluatedValues() {
@@ -81,6 +85,10 @@ public class TaintAnalysisState
   @Override
   public boolean isLessOrEqual(TaintAnalysisState other) {
 
+    if (this.precedes(other)) {
+      return true;
+    }
+
     if (!other.getTaintedVariables().containsAll(this.taintedVariables)) {
       return false;
     }
@@ -90,6 +98,19 @@ public class TaintAnalysisState
     }
 
     return true;
+  }
+
+  private boolean precedes(TaintAnalysisState pOther) {
+    if (pOther.predecessors.contains(this)) {
+      return true;
+    } else {
+      for (TaintAnalysisState predecessor : pOther.predecessors) {
+        if (this.precedes(predecessor)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   @Override
@@ -232,8 +253,13 @@ public class TaintAnalysisState
       }
     }
 
+    Set<TaintAnalysisState> joinedPredecessors = new HashSet<>();
+    joinedPredecessors.add(this);
+    joinedPredecessors.add(pOther);
+
     TaintAnalysisState joinedState =
-        new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, joinEvaluatedValues);
+        new TaintAnalysisState(
+            joinedTaintedVars, joinedUntaintedVars, joinEvaluatedValues, joinedPredecessors);
 
     return joinedState;
   }

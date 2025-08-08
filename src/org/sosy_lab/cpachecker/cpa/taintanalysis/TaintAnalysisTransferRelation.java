@@ -177,7 +177,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       newEvaluatedValues.put(var, valueList);
     }
 
-    return new TaintAnalysisState(newTaintedVars, newUntaintedVars, newEvaluatedValues);
+    return new TaintAnalysisState(
+        newTaintedVars, newUntaintedVars, newEvaluatedValues, Set.of(pState));
   }
 
   /**

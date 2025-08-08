@@ -102,7 +102,8 @@ public class TaintAnalysisUtils {
 
     for (Map<CIdExpression, List<CExpression>> map : mapsWithSingleValueMapping) {
       TaintAnalysisState reconstructedState =
-          new TaintAnalysisState(pState.getTaintedVariables(), pState.getUntaintedVariables(), map);
+          new TaintAnalysisState(
+              pState.getTaintedVariables(), pState.getUntaintedVariables(), map, Set.of(pState));
       states.add(reconstructedState);
     }
     return states;
