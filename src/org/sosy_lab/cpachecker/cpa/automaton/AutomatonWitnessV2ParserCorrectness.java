@@ -150,14 +150,16 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
                     .withAssumptions(ImmutableList.of(invariantAsCExpression))
                     .build());
 
-            // Add a transition which checks if the invariant holds at this location and goes to
-            // an error state if it does not
-            transitions.add(
-                new AutomatonTransition.Builder(
-                        passTransitionWhenCheckSucceeds, AutomatonInternalState.ERROR)
-                    .withTargetInformation(new StringExpression("invalid invariant"))
-                    .withAssumptions(ImmutableList.of(negatedInvariantAsCExpression))
-                    .build());
+            if (checkInvariantsHoldForEveryPath) {
+              // Add a transition which checks if the invariant holds at this location and goes to
+              // an error state if it does not
+              transitions.add(
+                  new AutomatonTransition.Builder(
+                          passTransitionWhenCheckSucceeds, AutomatonInternalState.ERROR)
+                      .withTargetInformation(new StringExpression("invalid invariant"))
+                      .withAssumptions(ImmutableList.of(negatedInvariantAsCExpression))
+                      .build());
+            }
           }
         }
         automatonName = invariantSetEntry.metadata.getUuid();
