@@ -65,6 +65,10 @@ public class TaintAnalysisUtils {
       numberOfMergedStates = Math.max(numberOfMergedStates, mappedValues.size());
     }
 
+    if (numberOfMergedStates <= 1) {
+      return List.of(pState);
+    }
+
     for (int i = 0; i < numberOfMergedStates; i++) {
 
       Map<CIdExpression, List<CExpression>> singleValueMap = new HashMap<>();
