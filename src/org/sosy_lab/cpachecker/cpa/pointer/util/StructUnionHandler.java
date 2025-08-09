@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -28,19 +29,48 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
  */
 public class StructUnionHandler {
 
-  public static boolean isStruct(Type pType) {
-    return pType instanceof CType cType
-        && cType.getCanonicalType() instanceof CComplexType complexType
+  public static boolean isStruct(CType cType) {
+    return cType.getCanonicalType() instanceof CComplexType complexType
         && complexType.getKind() == ComplexTypeKind.STRUCT;
   }
 
-  public static boolean isUnion(Type pType) {
-    return pType instanceof CType cType
-        && cType.getCanonicalType() instanceof CComplexType complexType
+  public static boolean isUnion(CType cType) {
+    return cType.getCanonicalType() instanceof CComplexType complexType
         && complexType.getKind() == ComplexTypeKind.UNION;
   }
 
-  public static PointerAnalysisState handleUnionAssignment(
+  /**
+   * Handle an assignment to a field whose owner type is either a struct or a union.
+   *
+   * <p>Dispatches to the appropriate strategy-specific implementation based on {@code baseType}. If
+   * {@code baseType} is neither struct nor union, this method is a no-op and returns {@code
+   * pState}.
+   */
+  public static PointerAnalysisState handleAssignmentForStructOrUnionType(
+      PointerAnalysisState pState,
+      CType baseType,
+      LocationSet lhsLocations,
+      LocationSet rhsTargets,
+      CCfaEdge pCfaEdge,
+      StructHandlingStrategy strategy,
+      LogManager logger) {
+    checkArgument(
+        isStruct(baseType) || isUnion(baseType),
+        "Expected struct or union baseType, got: %s",
+        baseType);
+
+    if (isUnion(baseType)) {
+      return handleAssignmentForUnionType(
+          pState, lhsLocations, rhsTargets, pCfaEdge, strategy, logger);
+    }
+    if (isStruct(baseType)) {
+      return handleAssignmentForStructType(
+          pState, lhsLocations, rhsTargets, pCfaEdge, strategy, logger);
+    }
+    return pState;
+  }
+
+  private static PointerAnalysisState handleAssignmentForUnionType(
       PointerAnalysisState pState,
       LocationSet lhsLocations,
       LocationSet rhsTargets,
@@ -89,7 +119,7 @@ public class StructUnionHandler {
     return pState;
   }
 
-  public static PointerAnalysisState handleStructAssignment(
+  private static PointerAnalysisState handleAssignmentForStructType(
       PointerAnalysisState pState,
       LocationSet lhsLocations,
       LocationSet rhsTargets,

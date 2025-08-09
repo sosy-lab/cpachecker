@@ -498,13 +498,17 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
       while (baseType instanceof CPointerType ptrType) {
         baseType = ptrType.getType().getCanonicalType();
-      }
-      if (StructUnionHandler.isUnion(baseType)) {
-        return StructUnionHandler.handleUnionAssignment(
-            pState, lhsLocations, rhsTargets, pCfaEdge, options.structHandlingStrategy, logger);
-      } else if (StructUnionHandler.isStruct(baseType)) {
-        return StructUnionHandler.handleStructAssignment(
-            pState, lhsLocations, rhsTargets, pCfaEdge, options.structHandlingStrategy, logger);
+
+        if (StructUnionHandler.isUnion(baseType) || StructUnionHandler.isStruct(baseType)) {
+          return StructUnionHandler.handleAssignmentForStructOrUnionType(
+              pState,
+              baseType,
+              lhsLocations,
+              rhsTargets,
+              pCfaEdge,
+              options.structHandlingStrategy,
+              logger);
+        }
       }
     }
     return handleAssignment(pState, lhsLocations, rhsTargets, pCfaEdge);
