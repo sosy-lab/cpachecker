@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.location;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
@@ -21,6 +22,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public record HeapLocation(
     @NonNull String functionName, @NonNull String identifier, @Nullable Long offset)
     implements PointerLocation {
+  private static final String HEAP_PREFIX = "heap_obj";
 
   public HeapLocation(String functionName, String identifier, Long offset) {
     this.functionName = checkNotNull(functionName);
@@ -28,15 +30,16 @@ public record HeapLocation(
     this.offset = offset;
   }
 
-  public static HeapLocation forAllocation(
-      String pFunctionName, int pIndex, @Nullable Long pOffset) {
-    String finalIdentifier;
-    if (pIndex == -1) {
-      finalIdentifier = "heap_obj";
-    } else {
-      finalIdentifier = "heap_obj" + pIndex;
-    }
-    return new HeapLocation(pFunctionName, finalIdentifier, pOffset);
+  /** Single logical heap object (no per-call index). */
+  public static HeapLocation forSingleAllocation(String functionName, @Nullable Long offset) {
+    return new HeapLocation(functionName, HEAP_PREFIX, offset);
+  }
+
+  /** Per-call (or generally indexed) heap object. */
+  public static HeapLocation forIndexedAllocation(
+      String functionName, int index, @Nullable Long offset) {
+    checkArgument(index >= 0, "index must be >= 0 for indexed allocations (was %s)", index);
+    return new HeapLocation(functionName, HEAP_PREFIX + index, offset);
   }
 
   public static HeapLocation forLineBasedAllocation(

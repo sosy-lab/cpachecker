@@ -46,6 +46,6 @@ public record PointerAnalysisMemoryLocation(MemoryLocation memoryLocation)
   }
 
   public static MemoryLocation getMemoryLocation(AbstractSimpleDeclaration pDeclaration) {
-    return MemoryLocation.parseExtendedQualifiedName(pDeclaration.getQualifiedName());
+    return MemoryLocation.forDeclaration(pDeclaration);
   }
 }

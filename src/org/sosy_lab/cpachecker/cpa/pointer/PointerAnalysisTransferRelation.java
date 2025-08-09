@@ -72,15 +72,15 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions.StructHandlingStrategy;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidationReason;
 import org.sosy_lab.cpachecker.cpa.pointer.location.PointerAnalysisMemoryLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.cpa.pointer.util.PointerArithmeticUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.StructUnionHandler;
@@ -310,7 +310,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       }
 
       PointerAnalysisMemoryLocation paramLocationPointer =
-          new PointerAnalysisMemoryLocation(PointerAnalysisMemoryLocation.getMemoryLocation(formalParam));
+          new PointerAnalysisMemoryLocation(
+              PointerAnalysisMemoryLocation.getMemoryLocation(formalParam));
       LocationSet referencedLocations =
           getReferencedLocations(
               Objects.requireNonNull(actualParam), pState, true, pCFunctionCallEdge, options);
@@ -322,10 +323,13 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParameters).skip(limit)) {
       PointerAnalysisMemoryLocation paramLocationPointer =
-          new PointerAnalysisMemoryLocation(PointerAnalysisMemoryLocation.getMemoryLocation(formalParam));
+          new PointerAnalysisMemoryLocation(
+              PointerAnalysisMemoryLocation.getMemoryLocation(formalParam));
       newState =
           new PointerAnalysisState(
-              newState.getPointsToMap().putAndCopy(paramLocationPointer, LocationSetFactory.withBot()));
+              newState
+                  .getPointsToMap()
+                  .putAndCopy(paramLocationPointer, LocationSetFactory.withBot()));
     }
 
     return newState;
@@ -341,7 +345,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         logger.log(Level.INFO, "Return edge with assignment, but no return variable: " + pCfaEdge);
         return pState;
       }
-      PointerAnalysisMemoryLocation returnVarPointer = new PointerAnalysisMemoryLocation(returnVar.orElseThrow());
+      PointerAnalysisMemoryLocation returnVarPointer =
+          new PointerAnalysisMemoryLocation(returnVar.orElseThrow());
       CExpression lhs = callAssignment.getLeftHandSide();
       if (!(lhs.getExpressionType() instanceof CPointerType)) {
         return pState;
@@ -393,7 +398,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                 new PointerAnalysisState(
                     pState
                         .getPointsToMap()
-                        .putAndCopy(new PointerAnalysisMemoryLocation(memoryLocation), returnLocations)))
+                        .putAndCopy(
+                            new PointerAnalysisMemoryLocation(memoryLocation), returnLocations)))
         .orElse(pState);
   }
 
@@ -477,9 +483,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     String functionName = pCfaEdge.getPredecessor().getFunctionName();
     HeapLocation heapLocation;
     switch (options.heapAllocationStrategy) {
-      case SINGLE -> heapLocation = HeapLocation.forAllocation(functionName, -1, null);
+      case SINGLE -> heapLocation = HeapLocation.forSingleAllocation(functionName, null);
       case PER_CALL ->
-          heapLocation = HeapLocation.forAllocation(functionName, allocationCounter++, 0L);
+          heapLocation = HeapLocation.forIndexedAllocation(functionName, allocationCounter++, 0L);
       case PER_LINE -> {
         int line = pCfaEdge.getFileLocation().getStartingLineInOrigin();
         heapLocation = HeapLocation.forLineBasedAllocation(functionName, line, 0L);
@@ -534,7 +540,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           return specialCase.orElseThrow();
         }
 
-        PointerLocation lhsLocation = explicitLhsLocations.sortedPointerLocations().iterator().next();
+        PointerLocation lhsLocation =
+            explicitLhsLocations.sortedPointerLocations().iterator().next();
 
         return new PointerAnalysisState(
             pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
@@ -861,7 +868,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             // TODO create StringLiteralLocation
             String literal = pStringLiteralExpression.getContentWithoutNullTerminator();
             MemoryLocation stringLoc = MemoryLocation.forIdentifier("__string_literal_" + literal);
-            return LocationSetFactory.withPointerLocation(new PointerAnalysisMemoryLocation(stringLoc));
+            return LocationSetFactory.withPointerLocation(
+                new PointerAnalysisMemoryLocation(stringLoc));
           }
 
           @Override
@@ -890,7 +898,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                 return LocationSetFactory.withBot();
               }
               MemoryLocation functionReturnLocation = MemoryLocation.forDeclaration(decl);
-              PointerAnalysisMemoryLocation returnPtr = new PointerAnalysisMemoryLocation(functionReturnLocation);
+              PointerAnalysisMemoryLocation returnPtr =
+                  new PointerAnalysisMemoryLocation(functionReturnLocation);
               return pState.getPointsToSet(returnPtr);
             } else {
               return LocationSetFactory.withTop();
