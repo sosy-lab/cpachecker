@@ -15,9 +15,8 @@ import com.google.common.collect.ComparisonChain;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public record PointerAnalysisMemoryLocation(MemoryLocation memoryLocation)
-    implements PointerLocation {
-  public PointerAnalysisMemoryLocation {
+public record DeclaredVariableLocation(MemoryLocation memoryLocation) implements PointerLocation {
+  public DeclaredVariableLocation {
     checkNotNull(memoryLocation);
   }
 
@@ -28,7 +27,7 @@ public record PointerAnalysisMemoryLocation(MemoryLocation memoryLocation)
   @Override
   public int compareTo(PointerLocation pOther) {
     // Compare using ComparisonChain if same type; fallback to type-based comparison otherwise.
-    return (pOther instanceof PointerAnalysisMemoryLocation other)
+    return (pOther instanceof DeclaredVariableLocation other)
         ? ComparisonChain.start().compare(this.memoryLocation, other.memoryLocation).result()
         : compareByType(this, pOther);
   }
@@ -36,7 +35,7 @@ public record PointerAnalysisMemoryLocation(MemoryLocation memoryLocation)
   @Override
   public boolean equals(Object pOther) {
     return this == pOther
-        || (pOther instanceof PointerAnalysisMemoryLocation other
+        || (pOther instanceof DeclaredVariableLocation other
             && memoryLocation.equals(other.memoryLocation));
   }
 

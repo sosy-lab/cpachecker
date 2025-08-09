@@ -109,7 +109,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.PointerAnalysisMemoryLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -1715,7 +1715,7 @@ public class ValueAnalysisTransferRelation
             && explicitPointerTargets.getSize() == 1) {
           PointerLocation pointerLocation =
               explicitPointerTargets.sortedPointerLocations().iterator().next();
-          if (pointerLocation instanceof PointerAnalysisMemoryLocation targetMemoryLocation) {
+          if (pointerLocation instanceof DeclaredVariableLocation targetMemoryLocation) {
             target = targetMemoryLocation.memoryLocation();
             targetIsUnknown = target == null;
             type = pointerExpression.getExpressionType().getCanonicalType();
@@ -1727,8 +1727,8 @@ public class ValueAnalysisTransferRelation
                 && explicitHeapTargetLocations.getSize() == 1) {
               PointerLocation heapPointerLocation =
                   explicitHeapTargetLocations.sortedPointerLocations().iterator().next();
-              if (heapPointerLocation instanceof PointerAnalysisMemoryLocation pHeapPointerAnalysisMemoryLocation) {
-                target = pHeapPointerAnalysisMemoryLocation.memoryLocation();
+              if (heapPointerLocation instanceof DeclaredVariableLocation pHeapDeclaredVariableLocation) {
+                target = pHeapDeclaredVariableLocation.memoryLocation();
                 targetIsUnknown = target == null;
                 type = pointerExpression.getExpressionType().getCanonicalType();
                 shouldAssign = true;
@@ -1769,11 +1769,11 @@ public class ValueAnalysisTransferRelation
           && explicitValueLocations.getSize() == 1) {
         PointerLocation valuePointerLocation =
             explicitValueLocations.sortedPointerLocations().iterator().next();
-        if (valuePointerLocation instanceof PointerAnalysisMemoryLocation pValuePointerAnalysisMemoryLocation) {
+        if (valuePointerLocation instanceof DeclaredVariableLocation pValueDeclaredVariableLocation) {
           CType rhsType = rhs.getExpressionType().getCanonicalType();
-          if (pValueState.contains(pValuePointerAnalysisMemoryLocation.memoryLocation())) {
+          if (pValueState.contains(pValueDeclaredVariableLocation.memoryLocation())) {
             ValueAndType valueAndType =
-                pValueState.getValueAndTypeFor(pValuePointerAnalysisMemoryLocation.memoryLocation());
+                pValueState.getValueAndTypeFor(pValueDeclaredVariableLocation.memoryLocation());
             Type valueType = valueAndType.getType();
             if (valueType != null) {
               Value otherValue = valueAndType.getValue();

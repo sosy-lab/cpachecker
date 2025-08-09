@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidationReason;
-import org.sosy_lab.cpachecker.cpa.pointer.location.PointerAnalysisMemoryLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 
@@ -52,7 +52,7 @@ public final class PointerArithmeticUtils {
     if (target instanceof InvalidLocation || target instanceof StructLocation) {
       return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
     }
-    if (target instanceof PointerAnalysisMemoryLocation memPtr) {
+    if (target instanceof DeclaredVariableLocation memPtr) {
       return applyOffsetToMemoryLocation(memPtr, offset, pIsOffsetSensitive);
     }
     if (target instanceof HeapLocation heapLoc) {
@@ -63,7 +63,7 @@ public final class PointerArithmeticUtils {
   }
 
   private static PointerLocation applyOffsetToMemoryLocation(
-      PointerAnalysisMemoryLocation memPtr, long offset, boolean pIsOffsetSensitive) {
+      DeclaredVariableLocation memPtr, long offset, boolean pIsOffsetSensitive) {
     if (offset == 0) {
       return memPtr;
     }
@@ -77,7 +77,7 @@ public final class PointerArithmeticUtils {
       return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
     }
     if (pIsOffsetSensitive) {
-      return new PointerAnalysisMemoryLocation(memPtr.memoryLocation().withAddedOffset(offset));
+      return new DeclaredVariableLocation(memPtr.memoryLocation().withAddedOffset(offset));
     } else {
       return memPtr;
     }

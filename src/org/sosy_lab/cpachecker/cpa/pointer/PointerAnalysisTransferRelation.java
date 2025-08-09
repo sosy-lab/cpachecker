@@ -75,7 +75,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.Point
 import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidationReason;
-import org.sosy_lab.cpachecker.cpa.pointer.location.PointerAnalysisMemoryLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
@@ -309,9 +309,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         continue;
       }
 
-      PointerAnalysisMemoryLocation paramLocationPointer =
-          new PointerAnalysisMemoryLocation(
-              PointerAnalysisMemoryLocation.getMemoryLocation(formalParam));
+      DeclaredVariableLocation paramLocationPointer =
+          new DeclaredVariableLocation(
+              DeclaredVariableLocation.getMemoryLocation(formalParam));
       LocationSet referencedLocations =
           getReferencedLocations(
               Objects.requireNonNull(actualParam), pState, true, pCFunctionCallEdge, options);
@@ -322,9 +322,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     }
 
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParameters).skip(limit)) {
-      PointerAnalysisMemoryLocation paramLocationPointer =
-          new PointerAnalysisMemoryLocation(
-              PointerAnalysisMemoryLocation.getMemoryLocation(formalParam));
+      DeclaredVariableLocation paramLocationPointer =
+          new DeclaredVariableLocation(
+              DeclaredVariableLocation.getMemoryLocation(formalParam));
       newState =
           new PointerAnalysisState(
               newState
@@ -345,8 +345,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         logger.log(Level.INFO, "Return edge with assignment, but no return variable: " + pCfaEdge);
         return pState;
       }
-      PointerAnalysisMemoryLocation returnVarPointer =
-          new PointerAnalysisMemoryLocation(returnVar.orElseThrow());
+      DeclaredVariableLocation returnVarPointer =
+          new DeclaredVariableLocation(returnVar.orElseThrow());
       CExpression lhs = callAssignment.getLeftHandSide();
       if (!(lhs.getExpressionType() instanceof CPointerType)) {
         return pState;
@@ -399,7 +399,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     pState
                         .getPointsToMap()
                         .putAndCopy(
-                            new PointerAnalysisMemoryLocation(memoryLocation), returnLocations)))
+                            new DeclaredVariableLocation(memoryLocation), returnLocations)))
         .orElse(pState);
   }
 
@@ -613,8 +613,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         if (pointsToSet.isTop()) {
           return pState;
         }
-        PointerAnalysisMemoryLocation pointerLocation =
-            new PointerAnalysisMemoryLocation(MemoryLocation.forDeclaration(declaration));
+        DeclaredVariableLocation pointerLocation =
+            new DeclaredVariableLocation(MemoryLocation.forDeclaration(declaration));
         return new PointerAnalysisState(
             pState.getPointsToMap().putAndCopy(pointerLocation, pointsToSet));
       }
@@ -641,7 +641,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             if (pIdExpression.getExpressionType().getCanonicalType() instanceof CArrayType) {
               MemoryLocation arrayBase = MemoryLocation.forDeclaration(declaration);
               return LocationSetFactory.withPointerLocation(
-                  new PointerAnalysisMemoryLocation(arrayBase.withAddedOffset(0)));
+                  new DeclaredVariableLocation(arrayBase.withAddedOffset(0)));
             }
             if (declaration != null) {
               location = MemoryLocation.forDeclaration(declaration);
@@ -716,7 +716,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                   getReferencedLocations(owner, pState, true, pCfaEdge, pointerTransferOptions);
               if (pointees instanceof ExplicitLocationSet explicit && explicit.getSize() == 1) {
                 for (PointerLocation target : explicit.sortedPointerLocations()) {
-                  if (target instanceof PointerAnalysisMemoryLocation memPtr) {
+                  if (target instanceof DeclaredVariableLocation memPtr) {
                     instanceName = memPtr.memoryLocation().getIdentifier();
                     break;
                   } else if (target instanceof StructLocation structLoc) {
@@ -869,7 +869,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             String literal = pStringLiteralExpression.getContentWithoutNullTerminator();
             MemoryLocation stringLoc = MemoryLocation.forIdentifier("__string_literal_" + literal);
             return LocationSetFactory.withPointerLocation(
-                new PointerAnalysisMemoryLocation(stringLoc));
+                new DeclaredVariableLocation(stringLoc));
           }
 
           @Override
@@ -898,8 +898,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                 return LocationSetFactory.withBot();
               }
               MemoryLocation functionReturnLocation = MemoryLocation.forDeclaration(decl);
-              PointerAnalysisMemoryLocation returnPtr =
-                  new PointerAnalysisMemoryLocation(functionReturnLocation);
+              DeclaredVariableLocation returnPtr =
+                  new DeclaredVariableLocation(functionReturnLocation);
               return pState.getPointsToSet(returnPtr);
             } else {
               return LocationSetFactory.withTop();

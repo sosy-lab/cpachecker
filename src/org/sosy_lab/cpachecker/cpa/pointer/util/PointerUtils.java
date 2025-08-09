@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.PointerAnalysisMemoryLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -60,7 +60,7 @@ public final class PointerUtils {
     if (pTarget instanceof HeapLocation) {
       return true;
     }
-    if (pTarget instanceof PointerAnalysisMemoryLocation ptr) {
+    if (pTarget instanceof DeclaredVariableLocation ptr) {
       return !ptr.isLocalVariable()
           || ptr.memoryLocation().getFunctionName().equals(currentFunctionName);
     }
@@ -139,7 +139,7 @@ public final class PointerUtils {
     }
     Set<PointerLocation> locations = new HashSet<>();
     for (MemoryLocation loc : pLocations) {
-      locations.add(new PointerAnalysisMemoryLocation(loc));
+      locations.add(new DeclaredVariableLocation(loc));
     }
     return LocationSetFactory.withPointerTargets(locations);
   }
