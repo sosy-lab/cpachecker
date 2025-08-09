@@ -8,15 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
-import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public final class PointerAnalysisState implements LatticeAbstractState<PointerAnalysisState> {
@@ -37,6 +39,13 @@ public final class PointerAnalysisState implements LatticeAbstractState<PointerA
 
   public PointerAnalysisState(PersistentMap<PointerLocation, @NonNull LocationSet> pPointsToMap) {
     isBottom = false;
+
+    checkNotNull(pPointsToMap, "pointsToMap must not be null");
+    pPointsToMap.forEach(
+        (pointerLocation, pLocationSet) ->
+            checkNotNull(
+                pLocationSet, "pointsToMap contains null value for key %s", pointerLocation));
+
     pointsToMap = pPointsToMap;
   }
 

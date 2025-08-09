@@ -80,7 +80,10 @@ public class StructUnionHandler {
         }
       } else {
         return addElementsToAmbiguousLocations(
-            pState, explicitLhsLocations, rhsTargets, strategy, true);
+            pState,
+            explicitLhsLocations,
+            rhsTargets,
+            strategy == StructHandlingStrategy.JUST_STRUCT);
       }
     }
     return pState;
@@ -126,7 +129,10 @@ public class StructUnionHandler {
         }
       } else {
         return addElementsToAmbiguousLocations(
-            pState, explicitLhsLocations, rhsTargets, strategy, false);
+            pState,
+            explicitLhsLocations,
+            rhsTargets,
+            strategy != StructHandlingStrategy.ALL_FIELDS);
       }
     }
     return pState;
@@ -136,22 +142,18 @@ public class StructUnionHandler {
       PointerAnalysisState pState,
       ExplicitLocationSet pLhsLocations,
       LocationSet pRhsTargets,
-      StructHandlingStrategy strategy,
-      boolean isUnion) {
-
+      boolean shouldMerge) {
     Set<PointerLocation> locations = pLhsLocations.sortedPointerLocations();
+
     PointerAnalysisState updatedState = pState;
 
     for (PointerLocation loc : locations) {
       if (pRhsTargets.isTop()) {
         if (updatedState.getPointsToMap().containsKey(loc)) {
-          updatedState = new PointerAnalysisState(pState.getPointsToMap().removeAndCopy(loc));
+          updatedState = new PointerAnalysisState(updatedState.getPointsToMap().removeAndCopy(loc));
         }
         continue;
       }
-      boolean mergeTargetsOfUnions = isUnion && strategy == StructHandlingStrategy.JUST_STRUCT;
-      boolean mergeTargetsOfStructs = !isUnion && strategy != StructHandlingStrategy.ALL_FIELDS;
-      boolean shouldMerge = mergeTargetsOfUnions || mergeTargetsOfStructs;
 
       if (shouldMerge) {
         LocationSet existingSet = updatedState.getPointsToSet(loc);
