@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.location;
 
-import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
+import static org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocationComparator.compareByType;
 
 import com.google.common.collect.ComparisonChain;
 

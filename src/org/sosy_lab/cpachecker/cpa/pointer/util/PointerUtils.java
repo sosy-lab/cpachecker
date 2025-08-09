@@ -70,11 +70,6 @@ public final class PointerUtils {
     return true;
   }
 
-  /** Compares two PointerTarget objects of different types by their class names. */
-  public static int compareByType(PointerLocation a, PointerLocation b) {
-    return a.getClass().getName().compareTo(b.getClass().getName());
-  }
-
   public static PointerAnalysisState handleTopAssignmentCase(
       PointerAnalysisState pState, PointerLocation lhsLocation) {
     if (pState.getPointsToMap().containsKey(lhsLocation)) {

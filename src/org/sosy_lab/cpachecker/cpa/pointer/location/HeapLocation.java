@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.pointer.location;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
+import static org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocationComparator.compareByType;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
