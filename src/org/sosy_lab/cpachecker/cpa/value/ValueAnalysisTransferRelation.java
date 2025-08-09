@@ -207,13 +207,8 @@ public class ValueAnalysisTransferRelation
 
     @Option(
         secure = true,
-        description =
-            "Able blacklisting for addressed variables to enable tracking through pointer analysis")
-    private boolean ableAddressedVariableBlacklisting = false;
-
-    public boolean ableAddressedVariableBlacklisting() {
-      return ableAddressedVariableBlacklisting;
-    }
+        description = "Blacklist addressed variables to avoid using of pointer analysis ")
+    private boolean blacklistAddressedVariable = false;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -758,7 +753,7 @@ public class ValueAnalysisTransferRelation
       memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
     }
 
-    if (options.ableAddressedVariableBlacklisting
+    if (options.blacklistAddressedVariable
         && addressedVariables.contains(decl.getQualifiedName())
         && declarationType instanceof CType) {
       ValueAnalysisState.addToBlacklist(memoryLocation);
@@ -1695,7 +1690,7 @@ public class ValueAnalysisTransferRelation
                   explicitHeapTargetLocations.getExplicitLocations().iterator().next();
               if (heapPointerTarget instanceof InvalidLocation) {
                 logger.logf(
-                    Level.SEVERE, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
+                    Level.CONFIG, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
                 return null;
               }
             }
@@ -1740,13 +1735,13 @@ public class ValueAnalysisTransferRelation
               }
               if (heapPointerTarget instanceof InvalidLocation) {
                 logger.logf(
-                    Level.INFO, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
+                    Level.CONFIG, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
                 return null;
               }
             }
           }
           if (pointerTarget instanceof InvalidLocation) {
-            logger.logf(Level.INFO, "Use-of-invalid detected at %s", pCfaEdge.getFileLocation());
+            logger.logf(Level.CONFIG, "Use-of-invalid detected at %s", pCfaEdge.getFileLocation());
             return null;
           }
         }
