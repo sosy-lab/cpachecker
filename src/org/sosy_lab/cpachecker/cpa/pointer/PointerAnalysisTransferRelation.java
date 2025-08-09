@@ -540,29 +540,11 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         return new PointerAnalysisState(
             pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
       } else {
-        return addElementsToAmbiguousLocations(pState, explicitLhsLocations, rhsTargets);
+        return StructUnionHandler.addElementsToAmbiguousLocations(
+            pState, explicitLhsLocations, rhsTargets);
       }
     }
     return pState;
-  }
-
-  private PointerAnalysisState addElementsToAmbiguousLocations(
-      PointerAnalysisState pState, ExplicitLocationSet pLhsLocations, LocationSet pRhsTargets) {
-    Set<PointerLocation> locations = pLhsLocations.sortedPointerLocations();
-    PointerAnalysisState updatedState = pState;
-    for (PointerLocation loc : locations) {
-      if (pRhsTargets.isTop()) {
-        if (updatedState.getPointsToMap().containsKey(loc)) {
-          updatedState = new PointerAnalysisState(pState.getPointsToMap().removeAndCopy(loc));
-        }
-        continue;
-      }
-      LocationSet existingSet = updatedState.getPointsToSet(loc);
-      LocationSet mergedSet = existingSet.withPointerTargets(pRhsTargets);
-      updatedState =
-          new PointerAnalysisState(updatedState.getPointsToMap().putAndCopy(loc, mergedSet));
-    }
-    return updatedState;
   }
 
   private PointerAnalysisState handleDeclarationEdge(

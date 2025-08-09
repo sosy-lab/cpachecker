@@ -109,11 +109,7 @@ public class StructUnionHandler {
               pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
         }
       } else {
-        return addElementsToAmbiguousLocations(
-            pState,
-            explicitLhsLocations,
-            rhsTargets,
-            strategy == StructHandlingStrategy.JUST_STRUCT);
+        return addElementsToAmbiguousLocations(pState, explicitLhsLocations, rhsTargets);
       }
     }
     return pState;
@@ -158,21 +154,14 @@ public class StructUnionHandler {
               pState.getPointsToMap().putAndCopy(lhsLocation, mergedSet));
         }
       } else {
-        return addElementsToAmbiguousLocations(
-            pState,
-            explicitLhsLocations,
-            rhsTargets,
-            strategy != StructHandlingStrategy.ALL_FIELDS);
+        return addElementsToAmbiguousLocations(pState, explicitLhsLocations, rhsTargets);
       }
     }
     return pState;
   }
 
-  private static PointerAnalysisState addElementsToAmbiguousLocations(
-      PointerAnalysisState pState,
-      ExplicitLocationSet pLhsLocations,
-      LocationSet pRhsTargets,
-      boolean shouldMerge) {
+  public static PointerAnalysisState addElementsToAmbiguousLocations(
+      PointerAnalysisState pState, ExplicitLocationSet pLhsLocations, LocationSet pRhsTargets) {
     Set<PointerLocation> locations = pLhsLocations.sortedPointerLocations();
 
     PointerAnalysisState updatedState = pState;
@@ -185,15 +174,10 @@ public class StructUnionHandler {
         continue;
       }
 
-      if (shouldMerge) {
-        LocationSet existingSet = updatedState.getPointsToSet(loc);
-        LocationSet mergedSet = existingSet.withPointerTargets(pRhsTargets);
-        updatedState =
-            new PointerAnalysisState(updatedState.getPointsToMap().putAndCopy(loc, mergedSet));
-      } else {
-        updatedState =
-            new PointerAnalysisState(updatedState.getPointsToMap().putAndCopy(loc, pRhsTargets));
-      }
+      LocationSet existingSet = updatedState.getPointsToSet(loc);
+      LocationSet mergedSet = existingSet.withPointerTargets(pRhsTargets);
+      updatedState =
+          new PointerAnalysisState(updatedState.getPointsToMap().putAndCopy(loc, mergedSet));
     }
     return updatedState;
   }
