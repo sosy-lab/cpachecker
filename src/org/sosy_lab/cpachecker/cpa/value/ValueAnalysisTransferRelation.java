@@ -1675,19 +1675,19 @@ public class ValueAnalysisTransferRelation
           && explicitBaseLocations.getSize() == 1) {
 
         PointerTarget basePointerTarget =
-            explicitBaseLocations.getExplicitLocations().iterator().next();
+            explicitBaseLocations.sortedPointerTargets().iterator().next();
 
         LocationSet heapTarget = pPointerInfo.getPointsToSet(basePointerTarget);
 
         if (heapTarget instanceof ExplicitLocationSet heapBaseLocations
             && heapBaseLocations.getSize() == 1) {
-          PointerTarget heapBase = heapBaseLocations.getExplicitLocations().iterator().next();
+          PointerTarget heapBase = heapBaseLocations.sortedPointerTargets().iterator().next();
           if (heapBase instanceof HeapLocation heapLocation) {
             LocationSet heapTargetLocations = pPointerInfo.getPointsToSet(heapLocation);
             if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
                 && explicitHeapTargetLocations.getSize() == 1) {
               PointerTarget heapPointerTarget =
-                  explicitHeapTargetLocations.getExplicitLocations().iterator().next();
+                  explicitHeapTargetLocations.sortedPointerTargets().iterator().next();
               if (heapPointerTarget instanceof InvalidLocation) {
                 logger.logf(
                     Level.CONFIG, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
@@ -1707,16 +1707,16 @@ public class ValueAnalysisTransferRelation
       if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
           && explicitBaseLocations.getSize() == 1) {
         PointerTarget basePointerTarget =
-            explicitBaseLocations.getExplicitLocations().iterator().next();
+            explicitBaseLocations.sortedPointerTargets().iterator().next();
 
         LocationSet pointerTargets = pPointerInfo.getPointsToSet(basePointerTarget);
 
         if (pointerTargets instanceof ExplicitLocationSet explicitPointerTargets
             && explicitPointerTargets.getSize() == 1) {
           PointerTarget pointerTarget =
-              explicitPointerTargets.getExplicitLocations().iterator().next();
+              explicitPointerTargets.sortedPointerTargets().iterator().next();
           if (pointerTarget instanceof MemoryLocationPointer targetMemoryLocation) {
-            target = targetMemoryLocation.getMemoryLocation();
+            target = targetMemoryLocation.memoryLocation();
             targetIsUnknown = target == null;
             type = pointerExpression.getExpressionType().getCanonicalType();
             shouldAssign = true;
@@ -1726,9 +1726,9 @@ public class ValueAnalysisTransferRelation
             if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
                 && explicitHeapTargetLocations.getSize() == 1) {
               PointerTarget heapPointerTarget =
-                  explicitHeapTargetLocations.getExplicitLocations().iterator().next();
+                  explicitHeapTargetLocations.sortedPointerTargets().iterator().next();
               if (heapPointerTarget instanceof MemoryLocationPointer heapMemoryLocationPointer) {
-                target = heapMemoryLocationPointer.getMemoryLocation();
+                target = heapMemoryLocationPointer.memoryLocation();
                 targetIsUnknown = target == null;
                 type = pointerExpression.getExpressionType().getCanonicalType();
                 shouldAssign = true;
@@ -1768,12 +1768,12 @@ public class ValueAnalysisTransferRelation
       if (valueLocations instanceof ExplicitLocationSet explicitValueLocations
           && explicitValueLocations.getSize() == 1) {
         PointerTarget valuePointerTarget =
-            explicitValueLocations.getExplicitLocations().iterator().next();
+            explicitValueLocations.sortedPointerTargets().iterator().next();
         if (valuePointerTarget instanceof MemoryLocationPointer valueMemoryLocationPointer) {
           CType rhsType = rhs.getExpressionType().getCanonicalType();
-          if (pValueState.contains(valueMemoryLocationPointer.getMemoryLocation())) {
+          if (pValueState.contains(valueMemoryLocationPointer.memoryLocation())) {
             ValueAndType valueAndType =
-                pValueState.getValueAndTypeFor(valueMemoryLocationPointer.getMemoryLocation());
+                pValueState.getValueAndTypeFor(valueMemoryLocationPointer.memoryLocation());
             Type valueType = valueAndType.getType();
             if (valueType != null) {
               Value otherValue = valueAndType.getValue();

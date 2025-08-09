@@ -12,13 +12,7 @@ import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByTyp
 
 import com.google.common.collect.ComparisonChain;
 
-public final class InvalidLocation implements PointerTarget {
-
-  private final InvalidationReason reason;
-
-  private InvalidLocation(InvalidationReason pReason) {
-    reason = pReason;
-  }
+public record InvalidLocation(InvalidationReason reason) implements PointerTarget {
 
   public static InvalidLocation forInvalidation(InvalidationReason pReason) {
     return new InvalidLocation(pReason);
@@ -32,11 +26,6 @@ public final class InvalidLocation implements PointerTarget {
   @Override
   public boolean equals(Object pOther) {
     return this == pOther || (pOther instanceof InvalidLocation other && reason == other.reason);
-  }
-
-  @Override
-  public int hashCode() {
-    return reason.hashCode();
   }
 
   @Override

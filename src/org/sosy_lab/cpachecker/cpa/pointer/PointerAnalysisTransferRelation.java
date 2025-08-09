@@ -74,9 +74,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions.StructHandlingStrategy;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBot;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBuilder;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidationReason;
@@ -327,7 +325,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           new MemoryLocationPointer(MemoryLocationPointer.getMemoryLocation(formalParam));
       newState =
           new PointerAnalysisState(
-              newState.getPointsToMap().putAndCopy(paramLocationPointer, LocationSetBot.INSTANCE));
+              newState.getPointsToMap().putAndCopy(paramLocationPointer, LocationSetFactory.withBot()));
     }
 
     return newState;
@@ -353,7 +351,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         Set<PointerTarget> newTargets = new HashSet<>();
 
         String callerFunctionName = pCfaEdge.getSummaryEdge().getPredecessor().getFunctionName();
-        for (PointerTarget target : explicitSet.getExplicitLocations()) {
+        for (PointerTarget target : explicitSet.sortedPointerTargets()) {
           if (PointerUtils.isValidFunctionReturn(target, callerFunctionName)) {
             newTargets.add(target);
           } else {
@@ -361,7 +359,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           }
         }
 
-        rhsTargets = LocationSetBuilder.withPointerTargets(newTargets);
+        rhsTargets = LocationSetFactory.withPointerTargets(newTargets);
       }
 
       LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge, options);
@@ -436,7 +434,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           heapLocation = createHeapLocation(pCfaEdge);
 
           LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge, options);
-          LocationSet rhsSet = LocationSetBuilder.withPointerLocation(heapLocation);
+          LocationSet rhsSet = LocationSetFactory.withPointerLocation(heapLocation);
 
           return handleAssignment(pState, lhsLocations, rhsSet, pCfaEdge);
         }
@@ -457,11 +455,11 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
     if (targets instanceof ExplicitLocationSet explicitTargets) {
       PersistentMap<PointerTarget, LocationSet> newPointsToMap = pState.getPointsToMap();
-      for (PointerTarget pt : explicitTargets.getExplicitLocations()) {
+      for (PointerTarget pt : explicitTargets.sortedPointerTargets()) {
         if (pt instanceof HeapLocation) {
           PointerTarget invalid = InvalidLocation.forInvalidation(InvalidationReason.FREED);
           newPointsToMap =
-              newPointsToMap.putAndCopy(pt, LocationSetBuilder.withPointerLocation(invalid));
+              newPointsToMap.putAndCopy(pt, LocationSetFactory.withPointerLocation(invalid));
         } else {
           logger.logf(
               Level.WARNING,
@@ -536,7 +534,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           return specialCase.orElseThrow();
         }
 
-        PointerTarget lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();
+        PointerTarget lhsLocation = explicitLhsLocations.sortedPointerTargets().iterator().next();
 
         return new PointerAnalysisState(
             pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
@@ -549,7 +547,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
   private PointerAnalysisState addElementsToAmbiguousLocations(
       PointerAnalysisState pState, ExplicitLocationSet pLhsLocations, LocationSet pRhsTargets) {
-    Set<PointerTarget> locations = pLhsLocations.getExplicitLocations();
+    Set<PointerTarget> locations = pLhsLocations.sortedPointerTargets();
     PointerAnalysisState updatedState = pState;
     for (PointerTarget loc : locations) {
       if (pRhsTargets.isTop()) {
@@ -588,7 +586,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                       throws CPATransferException {
                     if (pInitializerExpression.getExpression()
                         instanceof CIntegerLiteralExpression) {
-                      return LocationSetTop.INSTANCE;
+                      return LocationSetFactory.withTop();
                     }
 
                     return getReferencedLocations(
@@ -596,15 +594,13 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                   }
 
                   @Override
-                  public LocationSet visit(CInitializerList pInitializerList)
-                      throws CPATransferException {
-                    return LocationSetTop.INSTANCE;
+                  public LocationSet visit(CInitializerList pInitializerList) {
+                    return LocationSetFactory.withTop();
                   }
 
                   @Override
-                  public LocationSet visit(CDesignatedInitializer pCStructInitializerPart)
-                      throws CPATransferException {
-                    return LocationSetTop.INSTANCE;
+                  public LocationSet visit(CDesignatedInitializer pCStructInitializerPart) {
+                    return LocationSetFactory.withTop();
                   }
                 });
         if (pointsToSet.isTop()) {
@@ -637,7 +633,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             CSimpleDeclaration declaration = pIdExpression.getDeclaration();
             if (pIdExpression.getExpressionType().getCanonicalType() instanceof CArrayType) {
               MemoryLocation arrayBase = MemoryLocation.forDeclaration(declaration);
-              return LocationSetBuilder.withPointerLocation(
+              return LocationSetFactory.withPointerLocation(
                   new MemoryLocationPointer(arrayBase.withAddedOffset(0)));
             }
             if (declaration != null) {
@@ -712,9 +708,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               LocationSet pointees =
                   getReferencedLocations(owner, pState, true, pCfaEdge, pointerTransferOptions);
               if (pointees instanceof ExplicitLocationSet explicit && explicit.getSize() == 1) {
-                for (PointerTarget target : explicit.getExplicitLocations()) {
+                for (PointerTarget target : explicit.sortedPointerTargets()) {
                   if (target instanceof MemoryLocationPointer memPtr) {
-                    instanceName = memPtr.getMemoryLocation().getIdentifier();
+                    instanceName = memPtr.memoryLocation().getIdentifier();
                     break;
                   } else if (target instanceof StructLocation structLoc) {
                     instanceName = structLoc.getInstanceScope();
@@ -722,7 +718,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                   }
                 }
                 if (explicit.containsAllNulls()) {
-                  return LocationSetBuilder.withPointerLocation(
+                  return LocationSetFactory.withPointerLocation(
                       InvalidLocation.forInvalidation(InvalidationReason.NULL_DEREFERENCE));
                 }
               }
@@ -733,10 +729,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             }
 
             if (instanceName == null) {
-              return LocationSetTop.INSTANCE;
+              return LocationSetFactory.withTop();
             }
 
-            LocationSet baseLocation = LocationSetTop.INSTANCE;
+            LocationSet baseLocation = LocationSetFactory.withTop();
             if (StructUnionHandler.isUnion(baseType)) {
               baseLocation =
                   StructUnionHandler.getUnionLocation(strategy, structType, instanceName, pCfaEdge);
@@ -769,7 +765,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               return base;
             }
             if (!(expr.getSubscriptExpression() instanceof CIntegerLiteralExpression idxExpr)) {
-              return LocationSetTop.INSTANCE;
+              return LocationSetFactory.withTop();
             }
 
             long offset = idxExpr.getValue().longValue();
@@ -784,13 +780,13 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                 return locationSet;
               }
             }
-            return LocationSetTop.INSTANCE;
+            return LocationSetFactory.withTop();
           }
 
           @Override
           public LocationSet visit(CCastExpression expr) throws CPATransferException {
             if (PointerUtils.isNullPointer(expr)) {
-              return LocationSetBuilder.withNullLocation();
+              return LocationSetFactory.withNullLocation();
             }
             return getReferencedLocations(
                 expr.getOperand(), pState, shouldDereference, pCfaEdge, pointerTransferOptions);
@@ -802,7 +798,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             CBinaryExpression.BinaryOperator operator = pBinaryExpression.getOperator();
             if (operator != CBinaryExpression.BinaryOperator.PLUS
                 && operator != CBinaryExpression.BinaryOperator.MINUS) {
-              return LocationSetBot.INSTANCE;
+              return LocationSetFactory.withBot();
             }
 
             CExpression operand1 = pBinaryExpression.getOperand1();
@@ -836,28 +832,28 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     base, offset, pointerTransferOptions.isOffsetSensitive);
               }
 
-              return LocationSetTop.INSTANCE;
+              return LocationSetFactory.withTop();
             }
             if (operand1IsPtr || operand2IsPtr) {
-              return LocationSetBuilder.withPointerLocation(
+              return LocationSetFactory.withPointerLocation(
                   InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
             }
-            return LocationSetBot.INSTANCE;
+            return LocationSetFactory.withBot();
           }
 
           @Override
           public LocationSet visit(CCharLiteralExpression pCharLiteralExpression) {
-            return LocationSetBot.INSTANCE;
+            return LocationSetFactory.withBot();
           }
 
           @Override
           public LocationSet visit(CFloatLiteralExpression pFloatLiteralExpression) {
-            return LocationSetBot.INSTANCE;
+            return LocationSetFactory.withBot();
           }
 
           @Override
           public LocationSet visit(CIntegerLiteralExpression pIntegerLiteralExpression) {
-            return LocationSetBot.INSTANCE;
+            return LocationSetFactory.withBot();
           }
 
           @Override
@@ -865,17 +861,17 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             // TODO create StringLiteralLocation
             String literal = pStringLiteralExpression.getContentWithoutNullTerminator();
             MemoryLocation stringLoc = MemoryLocation.forIdentifier("__string_literal_" + literal);
-            return LocationSetBuilder.withPointerLocation(new MemoryLocationPointer(stringLoc));
+            return LocationSetFactory.withPointerLocation(new MemoryLocationPointer(stringLoc));
           }
 
           @Override
           public LocationSet visit(CTypeIdExpression pTypeIdExpression) {
-            return LocationSetBot.INSTANCE;
+            return LocationSetFactory.withBot();
           }
 
           @Override
           public LocationSet visit(CImaginaryLiteralExpression PLiteralExpression) {
-            return LocationSetBot.INSTANCE;
+            return LocationSetFactory.withBot();
           }
 
           @Override
@@ -891,13 +887,13 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               CType returnType = decl.getType().getReturnType().getCanonicalType();
 
               if (!(returnType instanceof CPointerType)) {
-                return LocationSetBot.INSTANCE;
+                return LocationSetFactory.withBot();
               }
               MemoryLocation functionReturnLocation = MemoryLocation.forDeclaration(decl);
               MemoryLocationPointer returnPtr = new MemoryLocationPointer(functionReturnLocation);
               return pState.getPointsToSet(returnPtr);
             } else {
-              return LocationSetTop.INSTANCE;
+              return LocationSetFactory.withTop();
             }
           }
 
@@ -906,7 +902,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               throws CPATransferException {
             CRightHandSide operand = complexCastExpression.getOperand();
             if (PointerUtils.isNullPointer(operand)) {
-              return LocationSetBuilder.withNullLocation();
+              return LocationSetFactory.withNullLocation();
             }
             return getReferencedLocations(
                 operand, pState, shouldDereference, pCfaEdge, pointerTransferOptions);
@@ -917,15 +913,15 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               return set;
             }
             if (set.containsAllNulls()) {
-              return LocationSetBuilder.withPointerLocation(
+              return LocationSetFactory.withPointerLocation(
                   InvalidLocation.forInvalidation(InvalidationReason.NULL_DEREFERENCE));
             }
             if (!(set instanceof ExplicitLocationSet explicitSet)) {
-              return LocationSetTop.INSTANCE;
+              return LocationSetFactory.withTop();
             }
 
-            LocationSet result = LocationSetBot.INSTANCE;
-            for (PointerTarget pt : explicitSet.getExplicitLocations()) {
+            LocationSet result = LocationSetFactory.withBot();
+            for (PointerTarget pt : explicitSet.sortedPointerTargets()) {
               LocationSet target = pState.getPointsToSet(pt);
               if (target.isTop() || target.isBot()) {
                 return target;
@@ -937,7 +933,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
           private LocationSet addressOf(LocationSet set) {
             if (!(set instanceof ExplicitLocationSet explicit)) {
-              return LocationSetTop.INSTANCE;
+              return LocationSetFactory.withTop();
             }
             return explicit;
           }

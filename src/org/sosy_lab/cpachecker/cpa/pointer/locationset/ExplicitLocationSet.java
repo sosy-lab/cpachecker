@@ -16,11 +16,11 @@ import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.NullLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 
-public record ExplicitLocationSet(SortedSet<PointerTarget> sortedPointerTargets)
+public record ExplicitLocationSet(ImmutableSortedSet<PointerTarget> sortedPointerTargets)
     implements LocationSet {
 
   public ExplicitLocationSet {
-    java.util.Objects.requireNonNull(sortedPointerTargets, "sortedPointerTargets must not be null");
+    Preconditions.checkNotNull(sortedPointerTargets);
     Preconditions.checkArgument(!sortedPointerTargets.isEmpty());
   }
 
@@ -37,7 +37,7 @@ public record ExplicitLocationSet(SortedSet<PointerTarget> sortedPointerTargets)
     if (pElements instanceof ExplicitLocationSet explicitLocationSet) {
       return withPointerTargets(explicitLocationSet.sortedPointerTargets);
     }
-    return pElements.withPointerTargets(this.getExplicitLocations());
+    return pElements.withPointerTargets(this.sortedPointerTargets());
   }
 
   @Override
@@ -45,7 +45,7 @@ public record ExplicitLocationSet(SortedSet<PointerTarget> sortedPointerTargets)
     if (sortedPointerTargets.containsAll(pLocations)) {
       return this;
     }
-    SortedSet<PointerTarget> pointerTargets =
+    ImmutableSortedSet<PointerTarget> pointerTargets =
         ImmutableSortedSet.<PointerTarget>naturalOrder()
             .addAll(sortedPointerTargets)
             .addAll(pLocations)
@@ -117,9 +117,5 @@ public record ExplicitLocationSet(SortedSet<PointerTarget> sortedPointerTargets)
 
   public int getSize() {
     return sortedPointerTargets.size();
-  }
-
-  public SortedSet<PointerTarget> getExplicitLocations() {
-    return sortedPointerTargets;
   }
 }

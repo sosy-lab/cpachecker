@@ -10,13 +10,12 @@ package org.sosy_lab.cpachecker.cpa.pointer.locationset;
 
 import com.google.common.collect.ImmutableSortedSet;
 import java.util.Set;
-import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.NullLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 
-public class LocationSetBuilder {
+public class LocationSetFactory {
   public static ExplicitLocationSet withPointerLocation(PointerTarget pLocation) {
-    SortedSet<PointerTarget> build =
+    ImmutableSortedSet<PointerTarget> build =
         ImmutableSortedSet.<PointerTarget>naturalOrder().add(pLocation).build();
 
     return new ExplicitLocationSet(build);
@@ -24,12 +23,32 @@ public class LocationSetBuilder {
 
   public static LocationSet withPointerTargets(Set<PointerTarget> pLocations) {
     if (pLocations.isEmpty()) {
-      return LocationSetBot.INSTANCE;
+      return withBot();
     }
     return new ExplicitLocationSet(ImmutableSortedSet.copyOf(pLocations));
   }
 
   public static LocationSet withNullLocation() {
     return new ExplicitLocationSet(ImmutableSortedSet.of(new NullLocation()));
+  }
+
+  public static LocationSet withTop() {
+    return LocationSetTop.INSTANCE;
+  }
+
+  public static LocationSet withBot() {
+    return LocationSetBot.INSTANCE;
+  }
+
+  static LocationSet ofTargets(Set<PointerTarget> targets) {
+    if (targets == null || targets.isEmpty()) {
+      return withBot();
+    }
+    // Keep explicit representation
+    return new ExplicitLocationSet(com.google.common.collect.ImmutableSortedSet.copyOf(targets));
+  }
+
+  static LocationSet ofPointer(PointerTarget target) {
+    return ofTargets(java.util.Collections.singleton(target));
   }
 }

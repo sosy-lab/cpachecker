@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.pointer.locationset;
 
+import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 

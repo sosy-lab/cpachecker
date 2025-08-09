@@ -14,10 +14,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBuilder;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -47,10 +45,10 @@ public final class PointerAnalysisState implements LatticeAbstractState<PointerA
   }
 
   public LocationSet getPointsToSet(PointerTarget pSource) {
-    LocationSet pointsToSet = pointsToMap.getOrDefault(pSource, LocationSetTop.INSTANCE);
+    LocationSet pointsToSet = pointsToMap.getOrDefault(pSource, LocationSetFactory.withTop());
 
     if (pointsToSet.containsAllNulls()) {
-      return LocationSetBuilder.withNullLocation();
+      return LocationSetFactory.withNullLocation();
     }
     return pointsToSet;
   }

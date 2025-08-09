@@ -14,38 +14,43 @@ import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByTyp
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public final class StructLocation implements PointerTarget {
+public record StructLocation(
+    @Nullable String functionName,
+    String structType,
+    @Nullable String instanceName,
+    @Nullable String fieldName)
+    implements PointerTarget {
 
-  private final @Nullable String functionName;
-  private final String structType;
-  private final @Nullable String instanceName;
-  private final @Nullable String fieldName;
-
-  private StructLocation(
-      @Nullable String pFunctionName,
-      String pStructType,
-      @Nullable String pInstanceName,
-      @Nullable String pFieldName) {
-    checkNotNull(pStructType);
-    functionName = pFunctionName;
-    structType = pStructType;
-    instanceName = pInstanceName;
-    fieldName = pFieldName;
+  public StructLocation(
+      @Nullable String functionName,
+      @NonNull String structType,
+      @Nullable String instanceName,
+      @Nullable String fieldName) {
+    checkNotNull(structType);
+    this.functionName = functionName;
+    this.structType = structType;
+    this.instanceName = instanceName;
+    this.fieldName = fieldName;
   }
 
-  public static StructLocation forStruct(@Nullable String functionName, String structType) {
+  public static StructLocation forStruct(
+      @Nullable String functionName, @NonNull String structType) {
     return new StructLocation(functionName, structType, null, null);
   }
 
   public static StructLocation forStructInstance(
-      @Nullable String functionName, String structType, String instanceName) {
+      @Nullable String functionName, @NonNull String structType, String instanceName) {
     return new StructLocation(functionName, structType, instanceName, null);
   }
 
   public static StructLocation forField(
-      @Nullable String functionName, String structType, String instanceName, String fieldName) {
+      @Nullable String functionName,
+      @NonNull String structType,
+      String instanceName,
+      String fieldName) {
     return new StructLocation(functionName, structType, instanceName, fieldName);
   }
 
@@ -77,11 +82,6 @@ public final class StructLocation implements PointerTarget {
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(functionName, structType, instanceName, fieldName);
-  }
-
-  @Override
   public String toString() {
     return getCanonicalName();
   }
@@ -100,9 +100,5 @@ public final class StructLocation implements PointerTarget {
 
   public boolean isOnFunctionStack() {
     return functionName != null;
-  }
-
-  public @Nullable String getFunctionName() {
-    return functionName;
   }
 }

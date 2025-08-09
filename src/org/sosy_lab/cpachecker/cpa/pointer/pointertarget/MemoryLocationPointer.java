@@ -15,16 +15,9 @@ import com.google.common.collect.ComparisonChain;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public final class MemoryLocationPointer implements PointerTarget {
-  private final MemoryLocation memoryLocation;
-
-  public MemoryLocationPointer(MemoryLocation pMemoryLocation) {
-    checkNotNull(pMemoryLocation);
-    memoryLocation = pMemoryLocation;
-  }
-
-  public MemoryLocation getMemoryLocation() {
-    return memoryLocation;
+public record MemoryLocationPointer(MemoryLocation memoryLocation) implements PointerTarget {
+  public MemoryLocationPointer {
+    checkNotNull(memoryLocation);
   }
 
   public boolean isNotLocalVariable() {
@@ -44,11 +37,6 @@ public final class MemoryLocationPointer implements PointerTarget {
     return this == pOther
         || (pOther instanceof MemoryLocationPointer other
             && memoryLocation.equals(other.memoryLocation));
-  }
-
-  @Override
-  public int hashCode() {
-    return memoryLocation.hashCode();
   }
 
   @Override

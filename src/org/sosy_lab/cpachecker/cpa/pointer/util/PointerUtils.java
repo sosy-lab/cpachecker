@@ -25,9 +25,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBot;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBuilder;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.MemoryLocationPointer;
@@ -64,11 +62,10 @@ public final class PointerUtils {
     }
     if (pTarget instanceof MemoryLocationPointer ptr) {
       return ptr.isNotLocalVariable()
-          || ptr.getMemoryLocation().getFunctionName().equals(currentFunctionName);
+          || ptr.memoryLocation().getFunctionName().equals(currentFunctionName);
     }
     if (pTarget instanceof StructLocation structLoc) {
-      return !structLoc.isOnFunctionStack()
-          || currentFunctionName.equals(structLoc.getFunctionName());
+      return !structLoc.isOnFunctionStack() || currentFunctionName.equals(structLoc.functionName());
     }
     return true;
   }
@@ -88,29 +85,31 @@ public final class PointerUtils {
 
   public static Optional<PointerAnalysisState> handleSpecialCasesForExplicitLocation(
       PointerAnalysisState pState,
-      ExplicitLocationSet explicitLhsLocations,
+      LocationSet pLocationSet,
       LocationSet rhsTargets,
       CCfaEdge pCfaEdge,
       LogManager plogger) {
-    if (explicitLhsLocations.containsAllNulls()) {
+    if (pLocationSet.containsAllNulls()) {
       plogger.logf(
           Level.WARNING, "PointerAnalysis: Assignment to null at %s", pCfaEdge.getFileLocation());
       return Optional.of(PointerAnalysisState.BOTTOM_STATE);
     }
 
-    PointerTarget lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();
+    if (pLocationSet instanceof ExplicitLocationSet pExplicitLocationSet) {
+      PointerTarget lhsLocation = pExplicitLocationSet.sortedPointerTargets().iterator().next();
 
-    if (lhsLocation instanceof InvalidLocation) {
-      plogger.logf(
-          Level.WARNING,
-          "PointerAnalysis: Assignment to invalid location %s at %s",
-          lhsLocation,
-          pCfaEdge.getFileLocation());
-      return Optional.of(PointerAnalysisState.BOTTOM_STATE);
-    }
+      if (lhsLocation instanceof InvalidLocation) {
+        plogger.logf(
+            Level.WARNING,
+            "PointerAnalysis: Assignment to invalid location %s at %s",
+            lhsLocation,
+            pCfaEdge.getFileLocation());
+        return Optional.of(PointerAnalysisState.BOTTOM_STATE);
+      }
 
-    if (rhsTargets.isTop()) {
-      return Optional.of(PointerUtils.handleTopAssignmentCase(pState, lhsLocation));
+      if (rhsTargets.isTop()) {
+        return Optional.of(PointerUtils.handleTopAssignmentCase(pState, lhsLocation));
+      }
     }
 
     return Optional.empty();
@@ -138,23 +137,23 @@ public final class PointerUtils {
 
   public static LocationSet toLocationSet(Set<MemoryLocation> pLocations) {
     if (pLocations == null) {
-      return LocationSetTop.INSTANCE;
+      return LocationSetFactory.withTop();
     }
     if (pLocations.isEmpty()) {
-      return LocationSetBot.INSTANCE;
+      return LocationSetFactory.withBot();
     }
     Set<PointerTarget> locations = new HashSet<>();
     for (MemoryLocation loc : pLocations) {
       locations.add(new MemoryLocationPointer(loc));
     }
-    return LocationSetBuilder.withPointerTargets(locations);
+    return LocationSetFactory.withPointerTargets(locations);
   }
 
-  public static boolean hasCommonLocation(ExplicitLocationSet pSet1, ExplicitLocationSet pSet2) {
+  public static boolean hasCommonLocation(ExplicitLocationSet pSet1, LocationSet pSet2) {
     if (pSet1.containsAnyNull() && pSet2.containsAnyNull()) {
       return true;
     }
-    for (PointerTarget loc : pSet1.getExplicitLocations()) {
+    for (PointerTarget loc : pSet1.sortedPointerTargets()) {
       if (pSet2.contains(loc)) {
         return true;
       }

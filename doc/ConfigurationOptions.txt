@@ -3798,10 +3798,6 @@ cpa.usage.writeAccessFunctions = {}
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
-# Able blacklisting for addressed variables to enable tracking through
-# pointer analysis
-cpa.value.ableAddressedVariableBlacklisting = false
-
 # restrict abstraction computations to branching points
 cpa.value.abstraction.alwaysAtBranch = false
 
@@ -3837,6 +3833,9 @@ cpa.value.allowedUnsupportedFunctions = {}
 
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
+
+# Blacklist addressed variables to avoid using of pointer analysis 
+cpa.value.blacklistAddressedVariable = false
 
 # configure when to export loop invariants
 cpa.value.exportLoopInvariants = IF_TRUE

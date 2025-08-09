@@ -8,23 +8,24 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public final class HeapLocation implements PointerTarget {
-  private final String functionName;
-  private final String identifier;
-  private final @Nullable Long offset;
+public record HeapLocation(
+    @NonNull String functionName, @NonNull String identifier, @Nullable Long offset)
+    implements PointerTarget {
 
-  private HeapLocation(String pFunctionName, String pIdentifier, Long pOffset) {
-    functionName = pFunctionName;
-    identifier = pIdentifier;
-    offset = pOffset;
+  public HeapLocation(String functionName, String identifier, Long offset) {
+    this.functionName = checkNotNull(functionName);
+    this.identifier = checkNotNull(identifier);
+    this.offset = offset;
   }
 
   public static HeapLocation forAllocation(
@@ -68,11 +69,6 @@ public final class HeapLocation implements PointerTarget {
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(identifier, functionName, offset);
-  }
-
-  @Override
   public String toString() {
     String heapName = functionName + "::" + identifier;
     if (offset == null) {
@@ -81,7 +77,12 @@ public final class HeapLocation implements PointerTarget {
     return heapName + "/" + offset;
   }
 
-  public boolean isReference() {
+  /**
+   * Offset have only heap locations where we track each allocation separately.
+   *
+   * @return true if this heap location has an offset, false otherwise.
+   */
+  public boolean hasOffset() {
     return offset != null;
   }
 

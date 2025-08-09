@@ -12,8 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetBuilder;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetTop;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidationReason;
@@ -32,20 +31,20 @@ public final class PointerArithmeticUtils {
     }
 
     if (pBaseLocations.containsAllNulls()) {
-      return LocationSetBuilder.withPointerLocation(
+      return LocationSetFactory.withPointerLocation(
           InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
     }
 
-    if (!(pBaseLocations instanceof ExplicitLocationSet explicitSet)) {
-      return LocationSetTop.INSTANCE;
+    if (pBaseLocations instanceof ExplicitLocationSet pExplicitLocationSet) {
+      Set<PointerTarget> resultTargets =
+          pExplicitLocationSet.sortedPointerTargets().stream()
+              .map(target -> applyOffsetToTarget(target, pOffset, pIsOffsetSensitive))
+              .collect(Collectors.toSet());
+
+      return LocationSetFactory.withPointerTargets(resultTargets);
     }
 
-    Set<PointerTarget> resultTargets =
-        explicitSet.getExplicitLocations().stream()
-            .map(target -> applyOffsetToTarget(target, pOffset, pIsOffsetSensitive))
-            .collect(Collectors.toSet());
-
-    return LocationSetBuilder.withPointerTargets(resultTargets);
+    return LocationSetFactory.withTop();
   }
 
   private static PointerTarget applyOffsetToTarget(
@@ -69,16 +68,16 @@ public final class PointerArithmeticUtils {
       return memPtr;
     }
 
-    if (!memPtr.getMemoryLocation().isReference()) {
+    if (!memPtr.memoryLocation().isReference()) {
       return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
     }
 
-    long newOffset = memPtr.getMemoryLocation().getOffset() + offset;
+    long newOffset = memPtr.memoryLocation().getOffset() + offset;
     if (newOffset < 0) {
       return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
     }
     if (pIsOffsetSensitive) {
-      return new MemoryLocationPointer(memPtr.getMemoryLocation().withAddedOffset(offset));
+      return new MemoryLocationPointer(memPtr.memoryLocation().withAddedOffset(offset));
     } else {
       return memPtr;
     }
@@ -90,7 +89,7 @@ public final class PointerArithmeticUtils {
       return heapLoc;
     }
 
-    if (heapLoc.isReference()) {
+    if (heapLoc.hasOffset()) {
       long newOffset = heapLoc.getOffset() + offset;
       if (newOffset < 0) {
         return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);

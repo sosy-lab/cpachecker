@@ -21,7 +21,7 @@ public enum LocationSetBot implements LocationSet {
 
   @Override
   public LocationSet withPointerTargets(Set<PointerTarget> pLocations) {
-    return LocationSetBuilder.withPointerTargets(pLocations);
+    return LocationSetFactory.withPointerTargets(pLocations);
   }
 
   @Override
