@@ -266,7 +266,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             if (explicitLeftPointsTo.equals(explicitRightPointsTo)) {
               return pState;
             }
-            if (!PointerUtils.hasCommonLocation(explicitLeftPointsTo, explicitRightPointsTo)) {
+            if (!explicitLeftPointsTo.hasCommonLocation(explicitRightPointsTo)) {
               return PointerAnalysisState.BOTTOM_STATE;
             }
           }
@@ -355,7 +355,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
         String callerFunctionName = pCfaEdge.getSummaryEdge().getPredecessor().getFunctionName();
         for (PointerLocation target : explicitSet.sortedPointerLocations()) {
-          if (PointerUtils.isValidFunctionReturn(target, callerFunctionName)) {
+          if (target.isValidFunctionReturn(callerFunctionName)) {
             newTargets.add(target);
           } else {
             newTargets.add(new InvalidLocation(InvalidationReason.LOCAL_SCOPE_EXPIRED));
@@ -645,7 +645,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             } else {
               location = MemoryLocation.forIdentifier(pIdExpression.getName());
             }
-            LocationSet base = PointerUtils.toLocationSet(location);
+
+            LocationSet base =
+                LocationSetFactory.withPointerTarget(new DeclaredVariableLocation(location));
 
             if (shouldDereference) {
               CType type = pIdExpression.getExpressionType().getCanonicalType();

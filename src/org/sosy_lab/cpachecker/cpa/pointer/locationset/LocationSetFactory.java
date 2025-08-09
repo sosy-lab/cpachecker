@@ -28,6 +28,10 @@ public class LocationSetFactory {
     return new ExplicitLocationSet(ImmutableSortedSet.copyOf(pLocations));
   }
 
+  public static LocationSet withPointerTarget(PointerLocation pLocation) {
+    return new ExplicitLocationSet(ImmutableSortedSet.of(pLocation));
+  }
+
   public static LocationSet withNullLocation() {
     return new ExplicitLocationSet(ImmutableSortedSet.of(new NullLocation()));
   }

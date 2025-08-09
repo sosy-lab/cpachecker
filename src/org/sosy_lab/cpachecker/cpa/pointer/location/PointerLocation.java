@@ -9,4 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.pointer.location;
 
 public sealed interface PointerLocation extends Comparable<PointerLocation>
-    permits HeapLocation, InvalidLocation, DeclaredVariableLocation, NullLocation, StructLocation {}
+    permits HeapLocation, InvalidLocation, DeclaredVariableLocation, NullLocation, StructLocation {
+  default boolean isValidFunctionReturn(String callerFunctionName) {
+    return true;
+  }
+}

@@ -16,4 +16,9 @@ public sealed interface StructLocation extends PointerLocation
   String getQualifiedName();
 
   String getFunctionName();
+
+  @Override
+  default boolean isValidFunctionReturn(String callerFunctionName) {
+    return !isOnFunctionStack() || callerFunctionName.equals(getFunctionName());
+  }
 }

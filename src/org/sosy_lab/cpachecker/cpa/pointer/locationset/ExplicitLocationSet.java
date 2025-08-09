@@ -117,4 +117,16 @@ public record ExplicitLocationSet(ImmutableSortedSet<PointerLocation> sortedPoin
   public int getSize() {
     return sortedPointerLocations.size();
   }
+
+  public boolean hasCommonLocation(LocationSet pSet2) {
+    if (containsAnyNull() && pSet2.containsAnyNull()) {
+      return true;
+    }
+    for (PointerLocation loc : sortedPointerLocations()) {
+      if (pSet2.contains(loc)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

@@ -47,4 +47,9 @@ public record DeclaredVariableLocation(MemoryLocation memoryLocation) implements
   public static MemoryLocation getMemoryLocation(AbstractSimpleDeclaration pDeclaration) {
     return MemoryLocation.forDeclaration(pDeclaration);
   }
+
+  @Override
+  public boolean isValidFunctionReturn(String callerFunctionName) {
+    return !isLocalVariable() || memoryLocation().getFunctionName().equals(callerFunctionName);
+  }
 }
