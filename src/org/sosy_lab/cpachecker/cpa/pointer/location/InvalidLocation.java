@@ -6,13 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
+package org.sosy_lab.cpachecker.cpa.pointer.location;
 
 import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
 
 import com.google.common.collect.ComparisonChain;
 
-public record InvalidLocation(InvalidationReason reason) implements PointerTarget {
+public record InvalidLocation(InvalidationReason reason) implements PointerLocation {
 
   public static InvalidLocation forInvalidation(InvalidationReason pReason) {
     return new InvalidLocation(pReason);
@@ -29,7 +29,7 @@ public record InvalidLocation(InvalidationReason reason) implements PointerTarge
   }
 
   @Override
-  public int compareTo(PointerTarget pOther) {
+  public int compareTo(PointerLocation pOther) {
     // Compare using ComparisonChain if same type; fallback to type-based comparison otherwise.
     return (pOther instanceof InvalidLocation other)
         ? ComparisonChain.start().compare(this.reason.name(), other.reason.name()).result()

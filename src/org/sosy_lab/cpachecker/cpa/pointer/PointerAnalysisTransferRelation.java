@@ -75,12 +75,12 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.Point
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidationReason;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.MemoryLocationPointer;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.StructLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidationReason;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerAnalysisMemoryLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.util.PointerArithmeticUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils;
 import org.sosy_lab.cpachecker.cpa.pointer.util.StructUnionHandler;
@@ -309,8 +309,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         continue;
       }
 
-      MemoryLocationPointer paramLocationPointer =
-          new MemoryLocationPointer(MemoryLocationPointer.getMemoryLocation(formalParam));
+      PointerAnalysisMemoryLocation paramLocationPointer =
+          new PointerAnalysisMemoryLocation(PointerAnalysisMemoryLocation.getMemoryLocation(formalParam));
       LocationSet referencedLocations =
           getReferencedLocations(
               Objects.requireNonNull(actualParam), pState, true, pCFunctionCallEdge, options);
@@ -321,8 +321,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     }
 
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParameters).skip(limit)) {
-      MemoryLocationPointer paramLocationPointer =
-          new MemoryLocationPointer(MemoryLocationPointer.getMemoryLocation(formalParam));
+      PointerAnalysisMemoryLocation paramLocationPointer =
+          new PointerAnalysisMemoryLocation(PointerAnalysisMemoryLocation.getMemoryLocation(formalParam));
       newState =
           new PointerAnalysisState(
               newState.getPointsToMap().putAndCopy(paramLocationPointer, LocationSetFactory.withBot()));
@@ -341,17 +341,17 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         logger.log(Level.INFO, "Return edge with assignment, but no return variable: " + pCfaEdge);
         return pState;
       }
-      MemoryLocationPointer returnVarPointer = new MemoryLocationPointer(returnVar.orElseThrow());
+      PointerAnalysisMemoryLocation returnVarPointer = new PointerAnalysisMemoryLocation(returnVar.orElseThrow());
       CExpression lhs = callAssignment.getLeftHandSide();
       if (!(lhs.getExpressionType() instanceof CPointerType)) {
         return pState;
       }
       LocationSet rhsTargets = pState.getPointsToSet(returnVarPointer);
       if (rhsTargets instanceof ExplicitLocationSet explicitSet) {
-        Set<PointerTarget> newTargets = new HashSet<>();
+        Set<PointerLocation> newTargets = new HashSet<>();
 
         String callerFunctionName = pCfaEdge.getSummaryEdge().getPredecessor().getFunctionName();
-        for (PointerTarget target : explicitSet.sortedPointerTargets()) {
+        for (PointerLocation target : explicitSet.sortedPointerLocations()) {
           if (PointerUtils.isValidFunctionReturn(target, callerFunctionName)) {
             newTargets.add(target);
           } else {
@@ -393,7 +393,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                 new PointerAnalysisState(
                     pState
                         .getPointsToMap()
-                        .putAndCopy(new MemoryLocationPointer(memoryLocation), returnLocations)))
+                        .putAndCopy(new PointerAnalysisMemoryLocation(memoryLocation), returnLocations)))
         .orElse(pState);
   }
 
@@ -454,10 +454,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     LocationSet targets = getReferencedLocations(freedExpr, pState, true, pCfaEdge, options);
 
     if (targets instanceof ExplicitLocationSet explicitTargets) {
-      PersistentMap<PointerTarget, LocationSet> newPointsToMap = pState.getPointsToMap();
-      for (PointerTarget pt : explicitTargets.sortedPointerTargets()) {
+      PersistentMap<PointerLocation, LocationSet> newPointsToMap = pState.getPointsToMap();
+      for (PointerLocation pt : explicitTargets.sortedPointerLocations()) {
         if (pt instanceof HeapLocation) {
-          PointerTarget invalid = InvalidLocation.forInvalidation(InvalidationReason.FREED);
+          PointerLocation invalid = InvalidLocation.forInvalidation(InvalidationReason.FREED);
           newPointsToMap =
               newPointsToMap.putAndCopy(pt, LocationSetFactory.withPointerLocation(invalid));
         } else {
@@ -534,7 +534,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           return specialCase.orElseThrow();
         }
 
-        PointerTarget lhsLocation = explicitLhsLocations.sortedPointerTargets().iterator().next();
+        PointerLocation lhsLocation = explicitLhsLocations.sortedPointerLocations().iterator().next();
 
         return new PointerAnalysisState(
             pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
@@ -547,9 +547,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
   private PointerAnalysisState addElementsToAmbiguousLocations(
       PointerAnalysisState pState, ExplicitLocationSet pLhsLocations, LocationSet pRhsTargets) {
-    Set<PointerTarget> locations = pLhsLocations.sortedPointerTargets();
+    Set<PointerLocation> locations = pLhsLocations.sortedPointerLocations();
     PointerAnalysisState updatedState = pState;
-    for (PointerTarget loc : locations) {
+    for (PointerLocation loc : locations) {
       if (pRhsTargets.isTop()) {
         if (updatedState.getPointsToMap().containsKey(loc)) {
           updatedState = new PointerAnalysisState(pState.getPointsToMap().removeAndCopy(loc));
@@ -606,8 +606,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         if (pointsToSet.isTop()) {
           return pState;
         }
-        MemoryLocationPointer pointerLocation =
-            new MemoryLocationPointer(MemoryLocation.forDeclaration(declaration));
+        PointerAnalysisMemoryLocation pointerLocation =
+            new PointerAnalysisMemoryLocation(MemoryLocation.forDeclaration(declaration));
         return new PointerAnalysisState(
             pState.getPointsToMap().putAndCopy(pointerLocation, pointsToSet));
       }
@@ -634,7 +634,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             if (pIdExpression.getExpressionType().getCanonicalType() instanceof CArrayType) {
               MemoryLocation arrayBase = MemoryLocation.forDeclaration(declaration);
               return LocationSetFactory.withPointerLocation(
-                  new MemoryLocationPointer(arrayBase.withAddedOffset(0)));
+                  new PointerAnalysisMemoryLocation(arrayBase.withAddedOffset(0)));
             }
             if (declaration != null) {
               location = MemoryLocation.forDeclaration(declaration);
@@ -708,8 +708,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               LocationSet pointees =
                   getReferencedLocations(owner, pState, true, pCfaEdge, pointerTransferOptions);
               if (pointees instanceof ExplicitLocationSet explicit && explicit.getSize() == 1) {
-                for (PointerTarget target : explicit.sortedPointerTargets()) {
-                  if (target instanceof MemoryLocationPointer memPtr) {
+                for (PointerLocation target : explicit.sortedPointerLocations()) {
+                  if (target instanceof PointerAnalysisMemoryLocation memPtr) {
                     instanceName = memPtr.memoryLocation().getIdentifier();
                     break;
                   } else if (target instanceof StructLocation structLoc) {
@@ -861,7 +861,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             // TODO create StringLiteralLocation
             String literal = pStringLiteralExpression.getContentWithoutNullTerminator();
             MemoryLocation stringLoc = MemoryLocation.forIdentifier("__string_literal_" + literal);
-            return LocationSetFactory.withPointerLocation(new MemoryLocationPointer(stringLoc));
+            return LocationSetFactory.withPointerLocation(new PointerAnalysisMemoryLocation(stringLoc));
           }
 
           @Override
@@ -890,7 +890,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                 return LocationSetFactory.withBot();
               }
               MemoryLocation functionReturnLocation = MemoryLocation.forDeclaration(decl);
-              MemoryLocationPointer returnPtr = new MemoryLocationPointer(functionReturnLocation);
+              PointerAnalysisMemoryLocation returnPtr = new PointerAnalysisMemoryLocation(functionReturnLocation);
               return pState.getPointsToSet(returnPtr);
             } else {
               return LocationSetFactory.withTop();
@@ -921,7 +921,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             }
 
             LocationSet result = LocationSetFactory.withBot();
-            for (PointerTarget pt : explicitSet.sortedPointerTargets()) {
+            for (PointerLocation pt : explicitSet.sortedPointerLocations()) {
               LocationSet target = pState.getPointsToSet(pt);
               if (target.isTop() || target.isBot()) {
                 return target;

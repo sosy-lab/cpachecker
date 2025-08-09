@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
+package org.sosy_lab.cpachecker.cpa.pointer.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
@@ -22,7 +22,7 @@ public record StructLocation(
     String structType,
     @Nullable String instanceName,
     @Nullable String fieldName)
-    implements PointerTarget {
+    implements PointerLocation {
 
   public StructLocation(
       @Nullable String functionName,
@@ -55,7 +55,7 @@ public record StructLocation(
   }
 
   @Override
-  public int compareTo(PointerTarget pOther) {
+  public int compareTo(PointerLocation pOther) {
     // Custom type check required for comparing different PointerTarget subclasses.
     // Fallback to type-based comparison for heterogeneous comparisons.
     if (!(pOther instanceof StructLocation other)) {

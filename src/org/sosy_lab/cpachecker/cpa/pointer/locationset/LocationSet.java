@@ -1,8 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.pointer.locationset;
 
-import java.util.Collections;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 
 /**
  * A set of abstract memory locations (i.e., pointer targets) that a symbolic pointer may refer to.
@@ -24,7 +23,7 @@ public sealed interface LocationSet permits ExplicitLocationSet, LocationSetBot,
    * @param pLocations The set of pointer targets to include.
    * @return A new LocationSet containing the combined information.
    */
-  LocationSet withPointerTargets(Set<PointerTarget> pLocations);
+  LocationSet withPointerTargets(Set<PointerLocation> pLocations);
 
   /**
    * Returns a new {@link LocationSet} that merges the contents of this set and another.
@@ -68,10 +67,10 @@ public sealed interface LocationSet permits ExplicitLocationSet, LocationSetBot,
   /**
    * Determines whether this location set contains the given target.
    *
-   * @param pLocation The {@link PointerTarget} to check for membership.
+   * @param pLocation The {@link PointerLocation} to check for membership.
    * @return {@code true} if this set contains the given location, {@code false} otherwise.
    */
-  boolean contains(PointerTarget pLocation);
+  boolean contains(PointerLocation pLocation);
 
   /**
    * Checks whether all elements in the given {@link LocationSet} are contained in this one.

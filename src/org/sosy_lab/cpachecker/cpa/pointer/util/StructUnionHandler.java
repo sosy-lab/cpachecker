@@ -22,8 +22,8 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.Point
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.StructLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 
 /**
  * Utility class for handling assignments involving unions and structs according to the selected
@@ -65,7 +65,7 @@ public class StructUnionHandler {
           return specialCase.orElseThrow();
         }
 
-        PointerTarget lhsLocation = explicitLhsLocations.sortedPointerTargets().iterator().next();
+        PointerLocation lhsLocation = explicitLhsLocations.sortedPointerLocations().iterator().next();
 
         if (strategy == StructHandlingStrategy.JUST_STRUCT) {
           LocationSet existingSet = pState.getPointsToSet(lhsLocation);
@@ -110,7 +110,7 @@ public class StructUnionHandler {
           return specialCase.orElseThrow();
         }
 
-        PointerTarget lhsLocation = explicitLhsLocations.sortedPointerTargets().iterator().next();
+        PointerLocation lhsLocation = explicitLhsLocations.sortedPointerLocations().iterator().next();
 
         if (strategy == StructHandlingStrategy.ALL_FIELDS) {
           return new PointerAnalysisState(
@@ -140,10 +140,10 @@ public class StructUnionHandler {
       StructHandlingStrategy strategy,
       boolean isUnion) {
 
-    Set<PointerTarget> locations = pLhsLocations.sortedPointerTargets();
+    Set<PointerLocation> locations = pLhsLocations.sortedPointerLocations();
     PointerAnalysisState updatedState = pState;
 
-    for (PointerTarget loc : locations) {
+    for (PointerLocation loc : locations) {
       if (pRhsTargets.isTop()) {
         if (updatedState.getPointsToMap().containsKey(loc)) {
           updatedState = new PointerAnalysisState(pState.getPointsToMap().removeAndCopy(loc));

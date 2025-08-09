@@ -9,18 +9,18 @@
 package org.sosy_lab.cpachecker.cpa.pointer.locationset;
 
 import java.util.Set;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 
 public enum LocationSetBot implements LocationSet {
   INSTANCE;
 
   @Override
-  public boolean contains(PointerTarget pTarget) {
+  public boolean contains(PointerLocation pTarget) {
     return false;
   }
 
   @Override
-  public LocationSet withPointerTargets(Set<PointerTarget> pLocations) {
+  public LocationSet withPointerTargets(Set<PointerLocation> pLocations) {
     return LocationSetFactory.withPointerTargets(pLocations);
   }
 

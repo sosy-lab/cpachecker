@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
+package org.sosy_lab.cpachecker.cpa.pointer.location;
 
 import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
 
@@ -16,9 +16,9 @@ import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByTyp
  * <p>All instances of {@code NullLocation} are considered equal. Comparison and hashing are
  * implemented accordingly.
  */
-public final class NullLocation implements PointerTarget {
+public final class NullLocation implements PointerLocation {
   @Override
-  public int compareTo(PointerTarget pOther) {
+  public int compareTo(PointerLocation pOther) {
     return (pOther instanceof NullLocation) ? 0 : compareByType(this, pOther);
   }
 

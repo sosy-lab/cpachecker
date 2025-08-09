@@ -11,22 +11,21 @@ package org.sosy_lab.cpachecker.cpa.pointer.locationset;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.stream.Collectors;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.NullLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer.location.NullLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 
-public record ExplicitLocationSet(ImmutableSortedSet<PointerTarget> sortedPointerTargets)
+public record ExplicitLocationSet(ImmutableSortedSet<PointerLocation> sortedPointerLocations)
     implements LocationSet {
 
   public ExplicitLocationSet {
-    Preconditions.checkNotNull(sortedPointerTargets);
-    Preconditions.checkArgument(!sortedPointerTargets.isEmpty());
+    Preconditions.checkNotNull(sortedPointerLocations);
+    Preconditions.checkArgument(!sortedPointerLocations.isEmpty());
   }
 
   @Override
-  public boolean contains(PointerTarget pLocation) {
-    return sortedPointerTargets.contains(pLocation);
+  public boolean contains(PointerLocation pLocation) {
+    return sortedPointerLocations.contains(pLocation);
   }
 
   @Override
@@ -35,23 +34,23 @@ public record ExplicitLocationSet(ImmutableSortedSet<PointerTarget> sortedPointe
       return this;
     }
     if (pElements instanceof ExplicitLocationSet explicitLocationSet) {
-      return withPointerTargets(explicitLocationSet.sortedPointerTargets);
+      return withPointerTargets(explicitLocationSet.sortedPointerLocations);
     }
-    return pElements.withPointerTargets(this.sortedPointerTargets());
+    return pElements.withPointerTargets(this.sortedPointerLocations());
   }
 
   @Override
-  public LocationSet withPointerTargets(Set<PointerTarget> pLocations) {
-    if (sortedPointerTargets.containsAll(pLocations)) {
+  public LocationSet withPointerTargets(Set<PointerLocation> pLocations) {
+    if (sortedPointerLocations.containsAll(pLocations)) {
       return this;
     }
-    ImmutableSortedSet<PointerTarget> pointerTargets =
-        ImmutableSortedSet.<PointerTarget>naturalOrder()
-            .addAll(sortedPointerTargets)
+    ImmutableSortedSet<PointerLocation> pointerLocations =
+        ImmutableSortedSet.<PointerLocation>naturalOrder()
+            .addAll(sortedPointerLocations)
             .addAll(pLocations)
             .build();
 
-    return new ExplicitLocationSet(pointerTargets);
+    return new ExplicitLocationSet(pointerLocations);
   }
 
   @Override
@@ -66,12 +65,12 @@ public record ExplicitLocationSet(ImmutableSortedSet<PointerTarget> sortedPointe
 
   @Override
   public boolean containsAllNulls() {
-    return sortedPointerTargets.stream().allMatch(target -> target instanceof NullLocation);
+    return sortedPointerLocations.stream().allMatch(target -> target instanceof NullLocation);
   }
 
   @Override
   public boolean containsAnyNull() {
-    return sortedPointerTargets.stream().anyMatch(target -> target instanceof NullLocation);
+    return sortedPointerLocations.stream().anyMatch(target -> target instanceof NullLocation);
   }
 
   @Override
@@ -80,14 +79,14 @@ public record ExplicitLocationSet(ImmutableSortedSet<PointerTarget> sortedPointe
       return true;
     }
     if (locationSetToCheck instanceof ExplicitLocationSet explicitLocationSetToCheck) {
-      return sortedPointerTargets.containsAll(explicitLocationSetToCheck.sortedPointerTargets);
+      return sortedPointerLocations.containsAll(explicitLocationSetToCheck.sortedPointerLocations);
     }
     return locationSetToCheck.containsAll(this);
   }
 
   @Override
   public String toString() {
-    return sortedPointerTargets.stream()
+    return sortedPointerLocations.stream()
         .map(Object::toString)
         .collect(Collectors.joining(", ", "[", "]"));
   }
@@ -109,13 +108,13 @@ public record ExplicitLocationSet(ImmutableSortedSet<PointerTarget> sortedPointe
       return isBot();
     }
     if (otherLocationSet instanceof ExplicitLocationSet otherExplicitLocationSet) {
-      return sortedPointerTargets.equals(otherExplicitLocationSet.sortedPointerTargets);
+      return sortedPointerLocations.equals(otherExplicitLocationSet.sortedPointerLocations);
     }
 
     return false;
   }
 
   public int getSize() {
-    return sortedPointerTargets.size();
+    return sortedPointerLocations.size();
   }
 }

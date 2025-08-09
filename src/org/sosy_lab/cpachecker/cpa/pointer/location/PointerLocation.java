@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
+package org.sosy_lab.cpachecker.cpa.pointer.location;
 
-public sealed interface PointerTarget extends Comparable<PointerTarget>
-    permits HeapLocation, InvalidLocation, MemoryLocationPointer, NullLocation, StructLocation {}
+public sealed interface PointerLocation extends Comparable<PointerLocation>
+    permits HeapLocation, InvalidLocation, PointerAnalysisMemoryLocation, NullLocation, StructLocation {}

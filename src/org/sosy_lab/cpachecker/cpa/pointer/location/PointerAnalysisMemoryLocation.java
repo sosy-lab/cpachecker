@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
+package org.sosy_lab.cpachecker.cpa.pointer.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
@@ -15,19 +15,20 @@ import com.google.common.collect.ComparisonChain;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public record MemoryLocationPointer(MemoryLocation memoryLocation) implements PointerTarget {
-  public MemoryLocationPointer {
+public record PointerAnalysisMemoryLocation(MemoryLocation memoryLocation)
+    implements PointerLocation {
+  public PointerAnalysisMemoryLocation {
     checkNotNull(memoryLocation);
   }
 
-  public boolean isNotLocalVariable() {
-    return !memoryLocation.getQualifiedName().contains("::");
+  public boolean isLocalVariable() {
+    return memoryLocation.getQualifiedName().contains("::");
   }
 
   @Override
-  public int compareTo(PointerTarget pOther) {
+  public int compareTo(PointerLocation pOther) {
     // Compare using ComparisonChain if same type; fallback to type-based comparison otherwise.
-    return (pOther instanceof MemoryLocationPointer other)
+    return (pOther instanceof PointerAnalysisMemoryLocation other)
         ? ComparisonChain.start().compare(this.memoryLocation, other.memoryLocation).result()
         : compareByType(this, pOther);
   }
@@ -35,7 +36,7 @@ public record MemoryLocationPointer(MemoryLocation memoryLocation) implements Po
   @Override
   public boolean equals(Object pOther) {
     return this == pOther
-        || (pOther instanceof MemoryLocationPointer other
+        || (pOther instanceof PointerAnalysisMemoryLocation other
             && memoryLocation.equals(other.memoryLocation));
   }
 

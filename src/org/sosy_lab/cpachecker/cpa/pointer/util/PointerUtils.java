@@ -26,11 +26,11 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.MemoryLocationPointer;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.StructLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerAnalysisMemoryLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public final class PointerUtils {
@@ -56,12 +56,12 @@ public final class PointerUtils {
     return Optional.empty();
   }
 
-  public static boolean isValidFunctionReturn(PointerTarget pTarget, String currentFunctionName) {
+  public static boolean isValidFunctionReturn(PointerLocation pTarget, String currentFunctionName) {
     if (pTarget instanceof HeapLocation) {
       return true;
     }
-    if (pTarget instanceof MemoryLocationPointer ptr) {
-      return ptr.isNotLocalVariable()
+    if (pTarget instanceof PointerAnalysisMemoryLocation ptr) {
+      return !ptr.isLocalVariable()
           || ptr.memoryLocation().getFunctionName().equals(currentFunctionName);
     }
     if (pTarget instanceof StructLocation structLoc) {
@@ -71,12 +71,12 @@ public final class PointerUtils {
   }
 
   /** Compares two PointerTarget objects of different types by their class names. */
-  public static int compareByType(PointerTarget a, PointerTarget b) {
+  public static int compareByType(PointerLocation a, PointerLocation b) {
     return a.getClass().getName().compareTo(b.getClass().getName());
   }
 
   public static PointerAnalysisState handleTopAssignmentCase(
-      PointerAnalysisState pState, PointerTarget lhsLocation) {
+      PointerAnalysisState pState, PointerLocation lhsLocation) {
     if (pState.getPointsToMap().containsKey(lhsLocation)) {
       return new PointerAnalysisState(pState.getPointsToMap().removeAndCopy(lhsLocation));
     }
@@ -96,7 +96,7 @@ public final class PointerUtils {
     }
 
     if (pLocationSet instanceof ExplicitLocationSet pExplicitLocationSet) {
-      PointerTarget lhsLocation = pExplicitLocationSet.sortedPointerTargets().iterator().next();
+      PointerLocation lhsLocation = pExplicitLocationSet.sortedPointerLocations().iterator().next();
 
       if (lhsLocation instanceof InvalidLocation) {
         plogger.logf(
@@ -142,9 +142,9 @@ public final class PointerUtils {
     if (pLocations.isEmpty()) {
       return LocationSetFactory.withBot();
     }
-    Set<PointerTarget> locations = new HashSet<>();
+    Set<PointerLocation> locations = new HashSet<>();
     for (MemoryLocation loc : pLocations) {
-      locations.add(new MemoryLocationPointer(loc));
+      locations.add(new PointerAnalysisMemoryLocation(loc));
     }
     return LocationSetFactory.withPointerTargets(locations);
   }
@@ -153,7 +153,7 @@ public final class PointerUtils {
     if (pSet1.containsAnyNull() && pSet2.containsAnyNull()) {
       return true;
     }
-    for (PointerTarget loc : pSet1.sortedPointerTargets()) {
+    for (PointerLocation loc : pSet1.sortedPointerLocations()) {
       if (pSet2.contains(loc)) {
         return true;
       }

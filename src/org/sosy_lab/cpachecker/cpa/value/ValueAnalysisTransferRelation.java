@@ -107,10 +107,10 @@ import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.HeapLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.InvalidLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.MemoryLocationPointer;
-import org.sosy_lab.cpachecker.cpa.pointer.pointertarget.PointerTarget;
+import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerAnalysisMemoryLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
@@ -1674,21 +1674,21 @@ public class ValueAnalysisTransferRelation
       if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
           && explicitBaseLocations.getSize() == 1) {
 
-        PointerTarget basePointerTarget =
-            explicitBaseLocations.sortedPointerTargets().iterator().next();
+        PointerLocation basePointerLocation =
+            explicitBaseLocations.sortedPointerLocations().iterator().next();
 
-        LocationSet heapTarget = pPointerInfo.getPointsToSet(basePointerTarget);
+        LocationSet heapTarget = pPointerInfo.getPointsToSet(basePointerLocation);
 
         if (heapTarget instanceof ExplicitLocationSet heapBaseLocations
             && heapBaseLocations.getSize() == 1) {
-          PointerTarget heapBase = heapBaseLocations.sortedPointerTargets().iterator().next();
+          PointerLocation heapBase = heapBaseLocations.sortedPointerLocations().iterator().next();
           if (heapBase instanceof HeapLocation heapLocation) {
             LocationSet heapTargetLocations = pPointerInfo.getPointsToSet(heapLocation);
             if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
                 && explicitHeapTargetLocations.getSize() == 1) {
-              PointerTarget heapPointerTarget =
-                  explicitHeapTargetLocations.sortedPointerTargets().iterator().next();
-              if (heapPointerTarget instanceof InvalidLocation) {
+              PointerLocation heapPointerLocation =
+                  explicitHeapTargetLocations.sortedPointerLocations().iterator().next();
+              if (heapPointerLocation instanceof InvalidLocation) {
                 logger.logf(
                     Level.CONFIG, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
                 return null;
@@ -1706,41 +1706,41 @@ public class ValueAnalysisTransferRelation
 
       if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
           && explicitBaseLocations.getSize() == 1) {
-        PointerTarget basePointerTarget =
-            explicitBaseLocations.sortedPointerTargets().iterator().next();
+        PointerLocation basePointerLocation =
+            explicitBaseLocations.sortedPointerLocations().iterator().next();
 
-        LocationSet pointerTargets = pPointerInfo.getPointsToSet(basePointerTarget);
+        LocationSet pointerTargets = pPointerInfo.getPointsToSet(basePointerLocation);
 
         if (pointerTargets instanceof ExplicitLocationSet explicitPointerTargets
             && explicitPointerTargets.getSize() == 1) {
-          PointerTarget pointerTarget =
-              explicitPointerTargets.sortedPointerTargets().iterator().next();
-          if (pointerTarget instanceof MemoryLocationPointer targetMemoryLocation) {
+          PointerLocation pointerLocation =
+              explicitPointerTargets.sortedPointerLocations().iterator().next();
+          if (pointerLocation instanceof PointerAnalysisMemoryLocation targetMemoryLocation) {
             target = targetMemoryLocation.memoryLocation();
             targetIsUnknown = target == null;
             type = pointerExpression.getExpressionType().getCanonicalType();
             shouldAssign = true;
           }
-          if (pointerTarget instanceof HeapLocation heapLocation) {
+          if (pointerLocation instanceof HeapLocation heapLocation) {
             LocationSet heapTargetLocations = pPointerInfo.getPointsToSet(heapLocation);
             if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
                 && explicitHeapTargetLocations.getSize() == 1) {
-              PointerTarget heapPointerTarget =
-                  explicitHeapTargetLocations.sortedPointerTargets().iterator().next();
-              if (heapPointerTarget instanceof MemoryLocationPointer heapMemoryLocationPointer) {
-                target = heapMemoryLocationPointer.memoryLocation();
+              PointerLocation heapPointerLocation =
+                  explicitHeapTargetLocations.sortedPointerLocations().iterator().next();
+              if (heapPointerLocation instanceof PointerAnalysisMemoryLocation pHeapPointerAnalysisMemoryLocation) {
+                target = pHeapPointerAnalysisMemoryLocation.memoryLocation();
                 targetIsUnknown = target == null;
                 type = pointerExpression.getExpressionType().getCanonicalType();
                 shouldAssign = true;
               }
-              if (heapPointerTarget instanceof InvalidLocation) {
+              if (heapPointerLocation instanceof InvalidLocation) {
                 logger.logf(
                     Level.CONFIG, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
                 return null;
               }
             }
           }
-          if (pointerTarget instanceof InvalidLocation) {
+          if (pointerLocation instanceof InvalidLocation) {
             logger.logf(Level.CONFIG, "Use-of-invalid detected at %s", pCfaEdge.getFileLocation());
             return null;
           }
@@ -1767,13 +1767,13 @@ public class ValueAnalysisTransferRelation
               addressExpression, pPointerInfo, true, pCfaEdge, pointerTransferOptions);
       if (valueLocations instanceof ExplicitLocationSet explicitValueLocations
           && explicitValueLocations.getSize() == 1) {
-        PointerTarget valuePointerTarget =
-            explicitValueLocations.sortedPointerTargets().iterator().next();
-        if (valuePointerTarget instanceof MemoryLocationPointer valueMemoryLocationPointer) {
+        PointerLocation valuePointerLocation =
+            explicitValueLocations.sortedPointerLocations().iterator().next();
+        if (valuePointerLocation instanceof PointerAnalysisMemoryLocation pValuePointerAnalysisMemoryLocation) {
           CType rhsType = rhs.getExpressionType().getCanonicalType();
-          if (pValueState.contains(valueMemoryLocationPointer.memoryLocation())) {
+          if (pValueState.contains(pValuePointerAnalysisMemoryLocation.memoryLocation())) {
             ValueAndType valueAndType =
-                pValueState.getValueAndTypeFor(valueMemoryLocationPointer.memoryLocation());
+                pValueState.getValueAndTypeFor(pValuePointerAnalysisMemoryLocation.memoryLocation());
             Type valueType = valueAndType.getType();
             if (valueType != null) {
               Value otherValue = valueAndType.getValue();

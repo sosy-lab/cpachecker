@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.pointertarget;
+package org.sosy_lab.cpachecker.cpa.pointer.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -20,7 +20,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public record HeapLocation(
     @NonNull String functionName, @NonNull String identifier, @Nullable Long offset)
-    implements PointerTarget {
+    implements PointerLocation {
 
   public HeapLocation(String functionName, String identifier, Long offset) {
     this.functionName = checkNotNull(functionName);
@@ -45,7 +45,7 @@ public record HeapLocation(
   }
 
   @Override
-  public int compareTo(PointerTarget pOther) {
+  public int compareTo(PointerLocation pOther) {
     // Custom type check required for comparing different PointerTarget subclasses.
     // Fallback to type-based comparison for heterogeneous comparisons.
     if (!(pOther instanceof HeapLocation other)) {
