@@ -14,10 +14,6 @@ import com.google.common.collect.ComparisonChain;
 
 public record InvalidLocation(InvalidationReason reason) implements PointerLocation {
 
-  public static InvalidLocation forInvalidation(InvalidationReason pReason) {
-    return new InvalidLocation(pReason);
-  }
-
   @Override
   public String toString() {
     return "invalid<" + reason + ">";

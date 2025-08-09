@@ -32,7 +32,7 @@ public final class PointerArithmeticUtils {
 
     if (pBaseLocations.containsAllNulls()) {
       return LocationSetFactory.withPointerLocation(
-          InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
+          new InvalidLocation(InvalidationReason.POINTER_ARITHMETIC));
     }
 
     if (pBaseLocations instanceof ExplicitLocationSet pExplicitLocationSet) {
@@ -50,7 +50,7 @@ public final class PointerArithmeticUtils {
   private static PointerLocation applyOffsetToTarget(
       PointerLocation target, long offset, boolean pIsOffsetSensitive) {
     if (target instanceof InvalidLocation || target instanceof StructLocation) {
-      return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
+      return new InvalidLocation(InvalidationReason.POINTER_ARITHMETIC);
     }
     if (target instanceof DeclaredVariableLocation memPtr) {
       return applyOffsetToMemoryLocation(memPtr, offset, pIsOffsetSensitive);
@@ -59,7 +59,7 @@ public final class PointerArithmeticUtils {
       return applyOffsetToHeapLocation(heapLoc, offset, pIsOffsetSensitive);
     }
     // We cannot apply pointer arithmetic to null target, so we proceed with invalidation.
-    return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
+    return new InvalidLocation(InvalidationReason.POINTER_ARITHMETIC);
   }
 
   private static PointerLocation applyOffsetToMemoryLocation(
@@ -69,12 +69,12 @@ public final class PointerArithmeticUtils {
     }
 
     if (!memPtr.memoryLocation().isReference()) {
-      return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
+      return new InvalidLocation(InvalidationReason.POINTER_ARITHMETIC);
     }
 
     long newOffset = memPtr.memoryLocation().getOffset() + offset;
     if (newOffset < 0) {
-      return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
+      return new InvalidLocation(InvalidationReason.POINTER_ARITHMETIC);
     }
     if (pIsOffsetSensitive) {
       return new DeclaredVariableLocation(memPtr.memoryLocation().withAddedOffset(offset));
@@ -92,7 +92,7 @@ public final class PointerArithmeticUtils {
     if (heapLoc.hasOffset()) {
       long newOffset = heapLoc.getOffset() + offset;
       if (newOffset < 0) {
-        return InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC);
+        return new InvalidLocation(InvalidationReason.POINTER_ARITHMETIC);
       }
       if (pIsOffsetSensitive) {
         return heapLoc.withAddedOffset(offset);

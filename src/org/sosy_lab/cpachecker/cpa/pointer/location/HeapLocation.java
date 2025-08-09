@@ -30,12 +30,12 @@ public record HeapLocation(
     this.offset = offset;
   }
 
-  /** Single logical heap object (no per-call index). */
+  /** Single logical heap object. */
   public static HeapLocation forSingleAllocation(String functionName, @Nullable Long offset) {
     return new HeapLocation(functionName, HEAP_PREFIX, offset);
   }
 
-  /** Per-call (or generally indexed) heap object. */
+  /** Per-call heap object. */
   public static HeapLocation forIndexedAllocation(
       String functionName, int index, @Nullable Long offset) {
     checkArgument(index >= 0, "index must be >= 0 for indexed allocations (was %s)", index);

@@ -358,7 +358,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           if (PointerUtils.isValidFunctionReturn(target, callerFunctionName)) {
             newTargets.add(target);
           } else {
-            newTargets.add(InvalidLocation.forInvalidation(InvalidationReason.LOCAL_SCOPE_EXPIRED));
+            newTargets.add(new InvalidLocation(InvalidationReason.LOCAL_SCOPE_EXPIRED));
           }
         }
 
@@ -460,7 +460,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       PersistentMap<PointerLocation, LocationSet> newPointsToMap = pState.getPointsToMap();
       for (PointerLocation pt : explicitTargets.sortedPointerLocations()) {
         if (pt instanceof HeapLocation) {
-          PointerLocation invalid = InvalidLocation.forInvalidation(InvalidationReason.FREED);
+          PointerLocation invalid = new InvalidLocation(InvalidationReason.FREED);
           newPointsToMap =
               newPointsToMap.putAndCopy(pt, LocationSetFactory.withPointerLocation(invalid));
         } else {
@@ -721,7 +721,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                 }
                 if (explicit.containsAllNulls()) {
                   return LocationSetFactory.withPointerLocation(
-                      InvalidLocation.forInvalidation(InvalidationReason.NULL_DEREFERENCE));
+                      new InvalidLocation(InvalidationReason.NULL_DEREFERENCE));
                 }
               }
             } else {
@@ -838,7 +838,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             }
             if (operand1IsPtr || operand2IsPtr) {
               return LocationSetFactory.withPointerLocation(
-                  InvalidLocation.forInvalidation(InvalidationReason.POINTER_ARITHMETIC));
+                  new InvalidLocation(InvalidationReason.POINTER_ARITHMETIC));
             }
             return LocationSetFactory.withBot();
           }
@@ -917,7 +917,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             }
             if (set.containsAllNulls()) {
               return LocationSetFactory.withPointerLocation(
-                  InvalidLocation.forInvalidation(InvalidationReason.NULL_DEREFERENCE));
+                  new InvalidLocation(InvalidationReason.NULL_DEREFERENCE));
             }
             if (!(set instanceof ExplicitLocationSet explicitSet)) {
               return LocationSetFactory.withTop();
