@@ -193,9 +193,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       description =
+          "when the loopIterations are finite and the number of statements as the sole "
+              + " nondeterminismSource, the last loop iteration only executes the main thread.")
+  private boolean loopFiniteMainThreadEnd = false;
+
+  @Option(
+      description =
           "the number of loop iterations to perform thread simulations. use 0 for an infinite loop"
               + " (while (1)). any number other than 0 is unsound, because the entire state space"
-              + " is not searched.")
+              + " is not searched. when finite with the number of statements as the "
+              + " nondeterminismSource, the search always ends on the main thread.")
   private int loopIterations = 0;
 
   @Option(
@@ -366,6 +373,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               kIgnoreZeroReduction,
               license,
               linkReduction,
+              loopFiniteMainThreadEnd,
               loopIterations,
               nondeterminismSource,
               outputMetadata,

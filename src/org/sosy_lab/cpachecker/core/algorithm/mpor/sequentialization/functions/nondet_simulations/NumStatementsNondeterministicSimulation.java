@@ -237,12 +237,12 @@ public class NumStatementsNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CBinaryExpression pcUnequalExitPc =
-        SeqExpressionBuilder.buildPcUnequalExitPc(
-            pPcVariables.getPcLeftHandSide(pActiveThread.id), pBinaryExpressionBuilder);
+    SeqExpression leftHandSide =
+        buildIfConditionLeftHandSideExpression(
+            pOptions, pActiveThread, pPcVariables, pBinaryExpressionBuilder);
     // for lazy assignments (i.e. after if), just need if (pc != 0)
     if (pOptions.kAssignLazy) {
-      return new CToSeqExpression(pcUnequalExitPc);
+      return leftHandSide;
     } else {
       // for other assignments (i.e. before if), need if (pc != 0 && K > 0 ...)
       SeqExpression kZeroExpression =
@@ -253,8 +253,31 @@ public class NumStatementsNondeterministicSimulation {
               pKGreaterZero,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
-      return new SeqLogicalAndExpression(new CToSeqExpression(pcUnequalExitPc), kZeroExpression);
+      return new SeqLogicalAndExpression(leftHandSide, kZeroExpression);
     }
+  }
+
+  private static SeqExpression buildIfConditionLeftHandSideExpression(
+      MPOROptions pOptions,
+      MPORThread pActiveThread,
+      PcVariables pPcVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CBinaryExpression pcUnequalExitPc =
+        SeqExpressionBuilder.buildPcUnequalExitPc(
+            pPcVariables.getPcLeftHandSide(pActiveThread.id), pBinaryExpressionBuilder);
+    if (pOptions.loopIterations > 0 && pOptions.loopFiniteMainThreadEnd) {
+      if (!pActiveThread.isMain()) {
+        CBinaryExpression iNotLastIteration =
+            pBinaryExpressionBuilder.buildBinaryExpression(
+                SeqIdExpression.I,
+                SeqExpressionBuilder.buildIntegerLiteralExpression(pOptions.loopIterations),
+                BinaryOperator.NOT_EQUALS);
+        return new SeqLogicalAndExpression(pcUnequalExitPc, iNotLastIteration);
+      }
+    }
+    return new CToSeqExpression(pcUnequalExitPc);
   }
 
   private static SeqExpression buildKZeroExpression(

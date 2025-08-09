@@ -70,6 +70,8 @@ public class MPOROptions {
 
   public final boolean linkReduction;
 
+  public final boolean loopFiniteMainThreadEnd;
+
   public final int loopIterations;
 
   public final NondeterminismSource nondeterminismSource;
@@ -117,6 +119,7 @@ public class MPOROptions {
       boolean pKIgnoreZeroReduction,
       boolean pLicense,
       boolean pLinkReduction,
+      boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
       NondeterminismSource pNondeterminismSource,
       boolean pOutputMetadata,
@@ -159,6 +162,7 @@ public class MPOROptions {
     kIgnoreZeroReduction = pKIgnoreZeroReduction;
     license = pLicense;
     linkReduction = pLinkReduction;
+    loopFiniteMainThreadEnd = pLoopFiniteMainThreadEnd;
     loopIterations = pLoopIterations;
     nondeterminismSource = pNondeterminismSource;
     outputMetadata = pOutputMetadata;
@@ -191,6 +195,7 @@ public class MPOROptions {
       boolean pKIgnoreZeroReduction,
       boolean pLicense,
       boolean pLinkReduction,
+      boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
       NondeterminismSource pNondeterminismSource,
       ReductionMode pReductionMode,
@@ -224,6 +229,7 @@ public class MPOROptions {
         pKIgnoreZeroReduction,
         pLicense,
         pLinkReduction,
+        pLoopFiniteMainThreadEnd,
         pLoopIterations,
         pNondeterminismSource,
         false,
@@ -310,6 +316,7 @@ public class MPOROptions {
     }
   }
 
+  // TODO need more warnings here
   /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
   void handleOptionWarnings(LogManager pLogger) {
     if (!linkReduction && bitVectorReduction) {
