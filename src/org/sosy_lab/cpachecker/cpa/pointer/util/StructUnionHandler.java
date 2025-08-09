@@ -19,8 +19,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions.StructHandlingStrategy;
+import org.sosy_lab.cpachecker.cpa.pointer.location.FieldScopeStructLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.InstanceScopeStructLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.TypeScopeStructLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
@@ -174,11 +176,11 @@ public class StructUnionHandler {
     return switch (strategy) {
       case ALL_FIELDS, STRUCT_INSTANCE ->
           LocationSetFactory.withPointerLocation(
-              StructLocation.forStructInstance(
+              new InstanceScopeStructLocation(
                   pCfaEdge.getPredecessor().getFunctionName(), structType, instanceName));
       case JUST_STRUCT ->
           LocationSetFactory.withPointerLocation(
-              StructLocation.forStruct(pCfaEdge.getPredecessor().getFunctionName(), structType));
+              new TypeScopeStructLocation(pCfaEdge.getPredecessor().getFunctionName(), structType));
     };
   }
 
@@ -191,18 +193,18 @@ public class StructUnionHandler {
     return switch (strategy) {
       case STRUCT_INSTANCE ->
           LocationSetFactory.withPointerLocation(
-              StructLocation.forStructInstance(
+              new InstanceScopeStructLocation(
                   pCfaEdge.getPredecessor().getFunctionName(), structType, instanceName));
       case ALL_FIELDS ->
           LocationSetFactory.withPointerLocation(
-              StructLocation.forField(
+              new FieldScopeStructLocation(
                   pCfaEdge.getPredecessor().getFunctionName(),
                   structType,
                   instanceName,
                   fieldName));
       case JUST_STRUCT ->
           LocationSetFactory.withPointerLocation(
-              StructLocation.forStruct(pCfaEdge.getPredecessor().getFunctionName(), structType));
+              new TypeScopeStructLocation(pCfaEdge.getPredecessor().getFunctionName(), structType));
     };
   }
 }

@@ -310,8 +310,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       }
 
       DeclaredVariableLocation paramLocationPointer =
-          new DeclaredVariableLocation(
-              DeclaredVariableLocation.getMemoryLocation(formalParam));
+          new DeclaredVariableLocation(DeclaredVariableLocation.getMemoryLocation(formalParam));
       LocationSet referencedLocations =
           getReferencedLocations(
               Objects.requireNonNull(actualParam), pState, true, pCFunctionCallEdge, options);
@@ -323,8 +322,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParameters).skip(limit)) {
       DeclaredVariableLocation paramLocationPointer =
-          new DeclaredVariableLocation(
-              DeclaredVariableLocation.getMemoryLocation(formalParam));
+          new DeclaredVariableLocation(DeclaredVariableLocation.getMemoryLocation(formalParam));
       newState =
           new PointerAnalysisState(
               newState
@@ -398,8 +396,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                 new PointerAnalysisState(
                     pState
                         .getPointsToMap()
-                        .putAndCopy(
-                            new DeclaredVariableLocation(memoryLocation), returnLocations)))
+                        .putAndCopy(new DeclaredVariableLocation(memoryLocation), returnLocations)))
         .orElse(pState);
   }
 
@@ -706,7 +703,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               baseType = ptrType.getType().getCanonicalType();
             }
 
-
             StructHandlingStrategy strategy = pointerTransferOptions.structHandlingStrategy;
             String instanceName = null;
 
@@ -719,7 +715,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                     instanceName = memPtr.memoryLocation().getIdentifier();
                     break;
                   } else if (target instanceof StructLocation structLoc) {
-                    instanceName = structLoc.getInstanceScope();
+                    instanceName = structLoc.getQualifiedName();
                     break;
                   }
                 }
@@ -867,8 +863,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             // TODO create StringLiteralLocation
             String literal = pStringLiteralExpression.getContentWithoutNullTerminator();
             MemoryLocation stringLoc = MemoryLocation.forIdentifier("__string_literal_" + literal);
-            return LocationSetFactory.withPointerLocation(
-                new DeclaredVariableLocation(stringLoc));
+            return LocationSetFactory.withPointerLocation(new DeclaredVariableLocation(stringLoc));
           }
 
           @Override

@@ -23,14 +23,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
+import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
-import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public final class PointerUtils {
@@ -65,7 +65,8 @@ public final class PointerUtils {
           || ptr.memoryLocation().getFunctionName().equals(currentFunctionName);
     }
     if (pTarget instanceof StructLocation structLoc) {
-      return !structLoc.isOnFunctionStack() || currentFunctionName.equals(structLoc.functionName());
+      return !structLoc.isOnFunctionStack()
+          || currentFunctionName.equals(structLoc.getFunctionName());
     }
     return true;
   }
