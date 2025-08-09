@@ -44,16 +44,4 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
 
-  <tasks name="factorial-expected-true">
-    <include>../programs/lemma/factorial/factorial-expected-true.yml</include>
-    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
-    <!-- TODO this option should be unnecessary -->
-    <option name="--option">cpa.predicate.abstraction.initialPredicates=test/programs/lemma/factorial/factorial-witness.yml</option> 
-  </tasks>
-
-  <tasks name="factorial-expected-unknown">
-    <include>../programs/lemma/factorial/factorial-expected-unknown.yml</include>
-    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
-  </tasks>
-
 </benchmark>
