@@ -118,7 +118,7 @@ class MemoryManipulationFunctionHandler {
   CExpression handleMemoryAssignmentFunction(
       final String functionName, final CFunctionCallExpression functionCall)
       throws UnrecognizedCodeException, InterruptedException {
-    // all of the functions have exactly three arguments
+    // all the functions have exactly three arguments
     // the first and third argument is the same for all functions
     final List<CExpression> arguments = functionCall.getParameterExpressions();
     verify(arguments.size() == 3);
@@ -332,11 +332,10 @@ class MemoryManipulationFunctionHandler {
     // we need to know the element size, ensure we have a pointer first
 
     final CType adjustedPointerLikeType = CTypes.adjustFunctionOrArrayType(pointerLikeType);
-    if (!(adjustedPointerLikeType instanceof CPointerType)) {
+    if (!(adjustedPointerLikeType instanceof CPointerType pointerType)) {
       throw new UnrecognizedCodeException(
           "Expected type to be pointer-like in byte-size to element-size conversion", edge);
     }
-    final CPointerType pointerType = (CPointerType) adjustedPointerLikeType;
 
     // take the byte size of the underlying type
     final CType underlyingType = pointerType.getType().getCanonicalType();

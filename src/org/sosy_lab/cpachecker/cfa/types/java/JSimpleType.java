@@ -35,7 +35,7 @@ public enum JSimpleType implements JType {
 
   private final String code;
 
-  private JSimpleType(String pCode) {
+  JSimpleType(String pCode) {
     code = pCode;
   }
 

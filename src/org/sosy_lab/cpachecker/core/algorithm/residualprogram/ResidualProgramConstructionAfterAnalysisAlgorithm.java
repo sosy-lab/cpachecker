@@ -91,8 +91,8 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     cfa = pCfa;
     innerAlgorithm = pAlgorithm;
 
-    if (innerAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) innerAlgorithm).collectStatistics(stats);
+    if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(stats);
     }
   }
 

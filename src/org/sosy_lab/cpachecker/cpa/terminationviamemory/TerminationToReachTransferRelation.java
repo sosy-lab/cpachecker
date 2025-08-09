@@ -117,8 +117,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
 
   private LocationState getLocationState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
-      if (state instanceof LocationState) {
-        return (LocationState) state;
+      if (state instanceof LocationState locationState) {
+        return locationState;
       }
     }
     throw new UnsupportedOperationException("TransferRelation requires location information.");
@@ -126,8 +126,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
 
   private PredicateAbstractState getPredicateState(Iterable<AbstractState> otherStates) {
     for (AbstractState state : otherStates) {
-      if (state instanceof PredicateAbstractState) {
-        return (PredicateAbstractState) state;
+      if (state instanceof PredicateAbstractState predicateAbstractState) {
+        return predicateAbstractState;
       }
     }
     throw new UnsupportedOperationException("TransferRelation requires path information.");

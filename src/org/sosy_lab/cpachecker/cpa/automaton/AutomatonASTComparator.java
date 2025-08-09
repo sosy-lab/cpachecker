@@ -411,7 +411,7 @@ class AutomatonASTComparator {
 
     private final int number;
 
-    public NumberedJokerMatcher(int pNumber) {
+    NumberedJokerMatcher(int pNumber) {
       number = pNumber;
     }
 

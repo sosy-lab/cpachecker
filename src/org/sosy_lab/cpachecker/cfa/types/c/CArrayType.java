@@ -79,8 +79,8 @@ public final class CArrayType extends AArrayType implements CType {
 
   /** Return the length of this array if statically known and small enough for an int. */
   public OptionalInt getLengthAsInt() {
-    return length instanceof CIntegerLiteralExpression
-        ? OptionalInt.of(((CIntegerLiteralExpression) length).getValue().intValueExact())
+    return length instanceof CIntegerLiteralExpression cIntegerLiteralExpression
+        ? OptionalInt.of(cIntegerLiteralExpression.getValue().intValueExact())
         : OptionalInt.empty();
   }
 

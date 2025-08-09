@@ -290,7 +290,7 @@ public final class SSAMap implements Serializable {
     this(vars, freshValueProvider, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
   }
 
-  /** Returns a SSAMapBuilder that is initialized with the current SSAMap. */
+  /** Returns an SSAMapBuilder that is initialized with the current SSAMap. */
   public SSAMapBuilder builder() {
     return new SSAMapBuilder(this);
   }

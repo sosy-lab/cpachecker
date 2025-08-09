@@ -341,14 +341,12 @@ class AssignmentQuantifierHandler {
 
         CExpression baseUnderlying = base.getOperand();
 
-        if (!(baseUnderlying instanceof CIntegerLiteralExpression)) {
+        if (!(baseUnderlying instanceof CIntegerLiteralExpression setValueLiteral)) {
           throw new UnrecognizedCodeException(
               "Non-literal byte repeat value not supported for bitfields", edge);
         }
 
         // determine the value of literal
-        final CIntegerLiteralExpression setValueLiteral =
-            (CIntegerLiteralExpression) baseUnderlying;
 
         // make sure it is either all-zeros or all-ones
         int unsignedCharAllOnes =
@@ -452,7 +450,7 @@ class AssignmentQuantifierHandler {
    * calls {@link #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula, boolean)}
    * recursively.
    *
-   * @param assignment The the simple partial slice assignment to quantify.
+   * @param assignment the simple partial slice assignment to quantify.
    * @param nextVariablesToQuantify Remaining variables that need to be quantified, without the one
    *     to currently encode. Each variable which still needs to be quantified, except the one to
    *     currently encode, must appear in this list exactly once.

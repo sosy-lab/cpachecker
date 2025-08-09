@@ -267,14 +267,14 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.ALL, "The following errors appeared in the analysis:", errors);
       List<CPAException> cpaExceptions = new ArrayList<>();
       for (Throwable toThrow : errors) {
-        if (toThrow instanceof Error) { // something very serious
-          addSuppressedAndThrow((Error) toThrow, errors);
-        } else if (toThrow instanceof RuntimeException) { // something less serious
-          addSuppressedAndThrow((RuntimeException) toThrow, errors);
-        } else if (toThrow instanceof InterruptedException) {
-          addSuppressedAndThrow((InterruptedException) toThrow, errors);
-        } else if (toThrow instanceof CPAException) {
-          cpaExceptions.add((CPAException) toThrow);
+        if (toThrow instanceof Error error) { // something very serious
+          addSuppressedAndThrow(error, errors);
+        } else if (toThrow instanceof RuntimeException runtimeException) { // something less serious
+          addSuppressedAndThrow(runtimeException, errors);
+        } else if (toThrow instanceof InterruptedException interruptedException) {
+          addSuppressedAndThrow(interruptedException, errors);
+        } else if (toThrow instanceof CPAException cPAException) {
+          cpaExceptions.add(cPAException);
         } else {
           // here, we add one suppressed too much, but that should be irrelevant
           addSuppressedAndThrow(new UnexpectedCheckedException("ParallelBAM", toThrow), errors);

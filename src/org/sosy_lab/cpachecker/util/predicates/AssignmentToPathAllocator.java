@@ -114,8 +114,8 @@ public class AssignmentToPathAllocator {
         ImmutableList.builderWithExpectedSize(pPath.getInnerEdges().size());
     ImmutableMap<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
 
-    // Its too inefficient to recreate every assignment from scratch, but the ssaIndex of the
-    // Assignable Terms are needed, thats why we declare two maps of variables and functions. One
+    // It's too inefficient to recreate every assignment from scratch, but the ssaIndex of the
+    // Assignable Terms are needed, that's why we declare two maps of variables and functions. One
     // for the calculation of the SSAIndex, the other to save the references to the objects we want
     // to store in the concrete State, so we can avoid recreating those objects
     final Map<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
@@ -187,7 +187,7 @@ public class AssignmentToPathAllocator {
 
     private final Multimap<String, ValueAssignment> uninterpretedFunctions;
 
-    public PredicateAnalysisConcreteExpressionEvaluator(
+    PredicateAnalysisConcreteExpressionEvaluator(
         Multimap<String, ValueAssignment> pUninterpretedFunction) {
       uninterpretedFunctions = pUninterpretedFunction;
     }
@@ -212,15 +212,10 @@ public class AssignmentToPathAllocator {
         String opString = binExp.getOperator().getOperator();
 
         switch (binExp.getOperator()) {
-          case MULTIPLY:
-          // $FALL-THROUGH$
-          case MODULO:
-          // $FALL-THROUGH$
-          case DIVIDE:
-            opString = "_" + opString;
-            break;
-          default:
+          case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
+          default -> {
             // default
+          }
         }
 
         return typeName + "_" + opString + "_";
@@ -295,11 +290,11 @@ public class AssignmentToPathAllocator {
 
     private Value asValue(Object pValue) {
 
-      if (!(pValue instanceof Number)) {
+      if (!(pValue instanceof Number number)) {
         return Value.UnknownValue.getInstance();
       }
 
-      return new NumericValue((Number) pValue);
+      return new NumericValue(number);
     }
 
     @Override
@@ -542,7 +537,7 @@ public class AssignmentToPathAllocator {
   }
 
   /*
-   * Allocate the assignable terms with a SSAIndex in the given model
+   * Allocate the assignable terms with an SSAIndex in the given model
    * to the position in the path they were first used. The result of this
    * allocation is used to determine the model at each edge of the path.
    *
@@ -623,7 +618,7 @@ public class AssignmentToPathAllocator {
     private final ImmutableSet<ValueAssignment> constants;
     private final ImmutableSet<ValueAssignment> ufFunctionsWithoutSSAIndex;
 
-    public AssignableTermsInPath(
+    AssignableTermsInPath(
         ImmutableSetMultimap<Integer, ValueAssignment> pAssignableTermsAtPosition,
         ImmutableSet<ValueAssignment> pConstants,
         ImmutableSet<ValueAssignment> pUfFunctionsWithoutSSAIndex) {
@@ -633,16 +628,16 @@ public class AssignmentToPathAllocator {
       ufFunctionsWithoutSSAIndex = pUfFunctionsWithoutSSAIndex;
     }
 
-    public ImmutableSetMultimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
+    ImmutableSetMultimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
       return assignableTermsAtPosition;
     }
 
-    public ImmutableSet<ValueAssignment> getConstants() {
+    ImmutableSet<ValueAssignment> getConstants() {
       return constants;
     }
 
     @SuppressWarnings("unused")
-    public ImmutableSet<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
+    ImmutableSet<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
       return ufFunctionsWithoutSSAIndex;
     }
 

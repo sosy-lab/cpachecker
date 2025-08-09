@@ -113,7 +113,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   /**
-   * Add a object to the heap.
+   * Add an object to the heap.
    *
    * <p>Keeps consistency: no
    *
@@ -136,7 +136,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    * <p>Keeps consistency: no
    *
    * <p>With checks: throws {@link IllegalArgumentException} when asked to add an object already
-   * present, or an global object with a label identifying different object
+   * present, or a global object with a label identifying different object
    *
    * @param pObject Object to add
    */
@@ -161,7 +161,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    *
    * @param pObject Object to add
    *     <p>TODO: [SCOPES] Scope visibility vs. stack frame issues: handle cases where a variable is
-   *     visible but is is allowed to override (inner blocks) TODO: Consistency check (allow):
+   *     visible but it is allowed to override (inner blocks) TODO: Consistency check (allow):
    *     different objects with same label inside a frame, but in different block TODO: Test for
    *     this consistency check
    *     <p>TODO: Shall we need an extension for putting objects to upper frames?
@@ -231,7 +231,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
      * TODO: Refactor into generic methods for obtaining reachable/unreachable
      * subSMGs
      *
-     * TODO: Perhaps introduce a SubSMG class which would be a SMG tied
+     * TODO: Perhaps introduce a SubSMG class which would be an SMG tied
      * to a certain (Clang)SMG and guaranteed to be a subset of it?
      */
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects().asSet(), seen));
@@ -587,7 +587,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  /** Remove all values and every edge from the smg. */
+  /** Remove all values and every edge from the SMG. */
   public void clearValues() {
     clearValuesHvePte();
   }

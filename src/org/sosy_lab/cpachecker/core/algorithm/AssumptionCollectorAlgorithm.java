@@ -223,7 +223,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         //        exceptionStates.add(state.getStatetId());
 
         // remove state
-        // remove it's parents from waitlist (CPAAlgorithm re-added them)
+        // remove its parents from waitlist (CPAAlgorithm re-added them)
         // and create assumptions for the parents
 
         // we have to do this for the parents and not for the errorState itself,
@@ -668,31 +668,20 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
-        case '\r':
-          appendTo.append("\\r");
-          break;
-        case '\n':
-          appendTo.append("\\n");
-          break;
-        case '\"':
-          appendTo.append("\\\"");
-          break;
-        case '\\':
-          appendTo.append("\\\\");
-          break;
-        case '`':
-          break;
-        default:
-          appendTo.append(c);
-          break;
+        case '\r' -> appendTo.append("\\r");
+        case '\n' -> appendTo.append("\\n");
+        case '\"' -> appendTo.append("\\\"");
+        case '\\' -> appendTo.append("\\\\");
+        case '`' -> {}
+        default -> appendTo.append(c);
       }
     }
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (innerAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) innerAlgorithm).collectStatistics(pStatsCollection);
+    if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }

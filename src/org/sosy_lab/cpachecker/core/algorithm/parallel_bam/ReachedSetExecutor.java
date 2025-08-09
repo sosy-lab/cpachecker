@@ -96,7 +96,7 @@ class ReachedSetExecutor {
 
   /**
    * This variable is shared across all threads and counts the number of currently scheduled, but
-   * not yet running jobs. It is used to automatically shutdown the thread pool as soon as all jobs
+   * not yet running jobs. It is used to automatically shut down the thread pool as soon as all jobs
    * are done.
    */
   private final AtomicInteger scheduledJobs;
@@ -109,8 +109,8 @@ class ReachedSetExecutor {
   /**
    * This set contains all sub-reached-sets that have to be finished before the current one. The
    * state is unique and belongs to the current reached-set (but not its watlist). We removed the
-   * state from the waitlist temporary until the sub-RSE is finished, and re-add it afterwards to be
-   * analyzed again, such the the computed block abstraction can be applied.
+   * state from the waitlist temporary until the sub-RSE is finished, and re-add it afterward to be
+   * analyzed again, such the computed block abstraction can be applied.
    *
    * <p>Synchronized access guaranteed by only instance-local access in the current {@link
    * ReachedSetExecutor}!
@@ -254,8 +254,8 @@ class ReachedSetExecutor {
 
       if (bamcpa.doesBreakForMissingBlock()) {
         AbstractState lastState = rs.getLastState();
-        if (lastState instanceof MissingBlockAbstractionState) {
-          handleMissingBlock((MissingBlockAbstractionState) lastState);
+        if (lastState instanceof MissingBlockAbstractionState missingBlockAbstractionState) {
+          handleMissingBlock(missingBlockAbstractionState);
         }
       } else {
         // create local copy of important states, because RS will be modified later.
@@ -346,7 +346,7 @@ class ReachedSetExecutor {
       // thus we can clean up and avoid a (small) memory-leak
       reachedSetMapping.remove(rs);
       stats.executionCounter.insertValue(execCounter);
-      // no need to wait for this#waitingTask, we assume a error-free exit after this point.
+      // no need to wait for this#waitingTask, we assume an error-free exit after this point.
 
       if (scheduledJobs.get() == 0 && reachedSetMapping.isEmpty()) {
         logger.logf(level, "%s :: all RSEs finished, shutdown threadpool", this);
@@ -512,7 +512,7 @@ class ReachedSetExecutor {
     }
 
     // check whether we already have a matching RSE.
-    // If an old RSE is available, ignore the newly created one. Otherwise use the new one.
+    // If an old RSE is available, ignore the newly created one. Otherwise, use the new one.
     ReachedSetExecutor subRse =
         reachedSetMapping.computeIfAbsent(
             newRs,
@@ -579,7 +579,7 @@ class ReachedSetExecutor {
     @Override
     public Void apply(Throwable e) {
       // if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
-      // pool will shutdown on forced termination after timeout and throw lots of them.
+      // pool will shut down on forced termination after timeout and throw lots of them.
       // we could ignore those exceptions.
       // }
 

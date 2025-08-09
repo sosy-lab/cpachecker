@@ -572,7 +572,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         // TODO unify with initial predicate precision instead of replacement?
         initialPrecision =
             Precisions.replaceByType(
-                initialPrecision, predPrec, precision -> precision instanceof PredicatePrecision);
+                initialPrecision, predPrec, PredicatePrecision.class::isInstance);
       }
 
       // build initial state which should be restricted to recurrent set
@@ -625,8 +625,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         for (AbstractState compState : AbstractStates.asIterable(stateWithoutSucc)) {
 
           // check that no terminating states are reached
-          if (compState instanceof LocationState) {
-            if (((LocationState) compState).getLocationNode().getNumLeavingEdges() == 0) {
+          if (compState instanceof LocationState locationState) {
+            if (locationState.getLocationNode().getNumLeavingEdges() == 0) {
               // assume that analysis removed such infeasible successors, thus this state is
               // feasible
               logger.log(
@@ -636,9 +636,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
             }
 
             // check if callstack state may be the reason why no successors exists
-          } else if (compState instanceof CallstackState) {
+          } else if (compState instanceof CallstackState callstackState) {
 
-            if (((CallstackState) compState).getDepth() == 0) {
+            if (callstackState.getDepth() == 0) {
               if (AbstractStates.extractLocation(stateWithoutSucc) instanceof FunctionExitNode) {
                 // at end of function no successors exist, likely because callstack CPA does not
                 // know the correct successor
@@ -749,10 +749,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       List<AbstractState> initialCandidate = new ArrayList<>(succ.size());
       for (AbstractState successor : succ) {
         for (AbstractState innerState : AbstractStates.asIterable(successor)) {
-          if (innerState instanceof AutomatonState
-              && ((AutomatonState) innerState)
-                  .getInternalStateName()
-                  .equals(pStemEndCycleStart.getName())) {
+          if (innerState instanceof AutomatonState automatonState
+              && automatonState.getInternalStateName().equals(pStemEndCycleStart.getName())) {
             initialCandidate.add(successor);
           }
         }
@@ -854,12 +852,12 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               return false;
             }
 
-            if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression)) {
+            if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression cBinaryExpression)) {
               logger.log(
                   Level.INFO, "Found a disallowed assumption. Only support binary assumptions.");
               return false;
             } else {
-              assumption = (CBinaryExpression) amState.getAssumptions().get(0);
+              assumption = cBinaryExpression;
             }
 
             if (!(assumption.getOperator() == BinaryOperator.EQUALS)) {
@@ -875,11 +873,13 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
             for (ARGState parent : argState.getParents()) {
               edge = parent.getEdgeToChild(argState);
               switch (edge.getEdgeType()) {
-                case StatementEdge:
+                case StatementEdge -> {
                   CStatement stmt = ((CStatementEdge) edge).getStatement();
-                  if (stmt instanceof CFunctionCallAssignmentStatement) {
+                  if (stmt
+                      instanceof
+                      CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
                     // external function call
-                    assigned = ((CFunctionCallAssignmentStatement) stmt).getLeftHandSide();
+                    assigned = cFunctionCallAssignmentStatement.getLeftHandSide();
                     if (!assumption.getOperand1().equals(assigned)
                         && !assumption.getOperand2().equals(assigned)) {
                       logger.log(
@@ -892,11 +892,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                     logger.log(Level.INFO, "Found an assumption for a deterministic edge.");
                     return false;
                   }
-                  break;
-                case DeclarationEdge:
+                }
+                case DeclarationEdge -> {
                   CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-                  if (decl instanceof CVariableDeclaration
-                      && ((CVariableDeclaration) decl).getInitializer() == null) {
+                  if (decl instanceof CVariableDeclaration cVariableDeclaration
+                      && cVariableDeclaration.getInitializer() == null) {
 
                     // check that assumption only affects declared variable
                     if (!decl.getName().equals(assumption.getOperand1().toASTString())
@@ -913,10 +913,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                         "Found an unallowed assumption for a declaration with initializer.");
                     return false;
                   }
-                  break;
-                default:
+                }
+                default -> {
                   logger.log(Level.INFO, "Found an assumption for a deterministic statement");
                   return false;
+                }
               }
             }
           }

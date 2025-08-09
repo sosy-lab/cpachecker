@@ -75,14 +75,24 @@ public class SMGOptions {
       secure = true,
       toUppercase = true,
       name = "handleUnknownFunctions",
-      description = "Sets how unknown functions are handled.")
+      description =
+          "Sets how unknown functions are handled. Strict: Unknown functions cause a stop in the"
+              + " analysis except for known and handled functions or functions defined in option"
+              + " safeUnknownFunctions, which are handled as SAFE. ASSUME_SAFE: unknown functions"
+              + " are assumed to be safe. No input into the function is checked for validity and"
+              + " the result is a UNKNOWN value (which may itself violate memorysafety etc.)."
+              + " ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and"
+              + " may cause memory based errors. Returned values are unknown, but in a valid new"
+              + " memory section that can be freed normally. Functions allocating external memory"
+              + " and returning their address can be defined with option"
+              + " externalAllocationFunction. externalAllocationSize.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
 
   @Option(
       secure = true,
       description =
           "Which unknown function are always considered as safe functions, "
-              + "i.e., free of memory-related side-effects?")
+              + "i.e., free of memory-related side effects?")
   private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
 
   @Option(
@@ -241,13 +251,15 @@ public class SMGOptions {
   @Option(
       secure = true,
       name = "externalAllocationFunction",
-      description = "Functions which indicate on external allocated memory")
+      description =
+          "Functions which return externally allocated memory with bit size defined by option"
+              + " externalAllocationSize")
   private ImmutableSet<String> externalAllocationFunction = ImmutableSet.of("ext_allocation");
 
   @Option(
       secure = true,
       name = "externalAllocationSize",
-      description = "Default size of externally allocated memory")
+      description = "Default bit size of externally allocated memory")
   private int externalAllocationSize = Integer.MAX_VALUE;
 
   @Option(

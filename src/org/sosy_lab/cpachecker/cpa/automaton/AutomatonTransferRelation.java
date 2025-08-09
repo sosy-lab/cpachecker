@@ -151,8 +151,8 @@ public class AutomatonTransferRelation implements TransferRelation {
       return ImmutableSet.of(state);
     }
 
-    if (precision instanceof AutomatonPrecision) {
-      if (!((AutomatonPrecision) precision).isEnabled()) {
+    if (precision instanceof AutomatonPrecision automatonPrecision) {
+      if (!automatonPrecision.isEnabled()) {
         if (state.isTarget()) {
           // do not create transition from target states
           return ImmutableSet.of();
@@ -170,8 +170,8 @@ public class AutomatonTransferRelation implements TransferRelation {
     int failedMatches = 0;
     boolean nonDetState = state.getInternalState().isNonDetState();
 
-    // these transitions cannot be evaluated until last, because they might have sideeffects on
-    // other CPAs (dont want to execute them twice)
+    // these transitions cannot be evaluated until last, because they might have side effects on
+    // other CPAs (don't want to execute them twice)
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
     List<Pair<AutomatonTransition, Map<Integer, AAstNode>>> transitionsToBeTaken =
@@ -328,11 +328,11 @@ public class AutomatonTransferRelation implements TransferRelation {
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
-    if (pElement instanceof AutomatonUnknownState) {
+    if (pElement instanceof AutomatonUnknownState automatonUnknownState) {
       totalStrengthenTime.start();
       Collection<AutomatonState> successors =
           strengthenAutomatonUnknownState(
-              (AutomatonUnknownState) pElement, pOtherElements, pCfaEdge, pPrecision);
+              automatonUnknownState, pOtherElements, pCfaEdge, pPrecision);
       totalStrengthenTime.stop();
       assert !from(successors).anyMatch(instanceOf(AutomatonUnknownState.class));
       return successors;

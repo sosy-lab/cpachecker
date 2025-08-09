@@ -76,7 +76,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /*
    * 2 lists with different lengths X, with a pointer somewhere,  -> X+ -> 0, should be equal only if the pointer is at a comparable location (examples are last and first)
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void SLLDifferentLengthSomePointerLessOrEqualTest()
@@ -141,7 +141,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /*
    * 2 lists with different lengths X, with a pointer somewhere,  -> X+ -> 0, should be equal only if the pointer is at a comparable location (examples are last and first)
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void DLLDifferentLengthSomePointerLessOrEqualTest()
@@ -206,7 +206,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /*
    * 2 lists with different lengths X, with a first and last pointer,  -> X+ -> 0, should be equal
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void SLLDifferentLengthFstAndLstPointerLessOrEqualTest()
@@ -247,7 +247,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /*
    * 2 lists with different lengths X, with a first and last pointer,  -> X+ -> 0, should be equal
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void DLLDifferentLengthFstAndLstPointerLessOrEqualTest()
@@ -290,7 +290,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    *
    * @throws SMGException never thrown
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void concreteAndAbstractedListLessOrEqualTest() throws SMGException, SMGSolverException {
@@ -392,7 +392,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    *
    * @throws SMGException never thrown.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void concreteAndAbstractedListWSublistLessOrEqualTest()
@@ -815,7 +815,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    *
    * @throws SMGException never thrown
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void abstractedListWSublistLessOrEqualTest() throws SMGException, SMGSolverException {
@@ -1052,7 +1052,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               new NumericValue(pointerSizeInBits),
               new NumericValue(-1),
               null,
-              dummyCDAEdge);
+              dummyCFAEdge);
 
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
@@ -1151,7 +1151,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * We have a list, we check the next components' existence, then we move the current pointer to
    * the next and free the prev segment. The resulting list should be covered by the previous.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void testSLLNextPointerFreeLoopEquality() throws CPAException, InterruptedException {
@@ -1342,7 +1342,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * We have a list, we check the next components' existence, then we move the current pointer to
    * the next and free the prev segment. The resulting list should be covered by the previous.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void testDLLNextPointerFreeLoopEquality() throws CPAException, InterruptedException {
@@ -1523,7 +1523,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * We have a list, we check the next components' existence, then we move the current pointer to
    * the next and free the prev segment. The resulting list should be covered by the previous.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside of the list
+  // TODO: fix test for non-abstraction of regions w pointers from outside the list
   @Ignore
   @Test
   public void testDLLPrevPointerFreeLoopEquality() throws CPAException, InterruptedException {

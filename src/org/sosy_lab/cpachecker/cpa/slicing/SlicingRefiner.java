@@ -514,22 +514,19 @@ public class SlicingRefiner implements Refiner {
   }
 
   private ARGState getRefinementRoot(final ARGPath pPath, final Collection<CFAEdge> relevantEdges) {
-    switch (restartStrategy) {
-      case PIVOT:
+    return switch (restartStrategy) {
+      case PIVOT -> {
         PathIterator iterator = pPath.fullPathIterator();
         while (iterator.hasNext()) {
           if (relevantEdges.contains(iterator.getOutgoingEdge())) {
-            return iterator.getNextAbstractState();
+            yield iterator.getNextAbstractState();
           }
           iterator.advance();
         }
         throw new AssertionError("Infeasible target path has empty program slice");
-      case ROOT:
-        // use first state after ARG root as refinement root
-        return pPath.asStatesList().get(1);
-      default:
-        throw new AssertionError("Unhandled restart strategy: " + restartStrategy);
-    }
+      }
+      case ROOT -> pPath.asStatesList().get(1); // use first state after ARG root as refinement root
+    };
   }
 
   private static SlicingPrecision extractSlicingPrecision(
@@ -550,11 +547,11 @@ public class SlicingRefiner implements Refiner {
       precision = pPrecision;
     }
 
-    public ARGState getState() {
+    ARGState getState() {
       return state;
     }
 
-    public SlicingPrecision getPrecision() {
+    SlicingPrecision getPrecision() {
       return precision;
     }
   }
@@ -570,11 +567,11 @@ public class SlicingRefiner implements Refiner {
       precisions = pPrecisions;
     }
 
-    public boolean hasSliceChanged() {
+    boolean hasSliceChanged() {
       return sliceChanged;
     }
 
-    public Set<StateSlicingPrecision> getStatePrecisions() {
+    Set<StateSlicingPrecision> getStatePrecisions() {
       return precisions;
     }
   }

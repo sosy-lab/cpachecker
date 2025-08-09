@@ -107,7 +107,7 @@ public class BDDPartitionOrderer {
     }
   }
 
-  /** returns a ordered list of partitions, so that the BDD stays small. */
+  /** returns an ordered list of partitions, so that the BDD stays small. */
   public List<Partition> getOrderedPartitions() {
 
     // TODO use some "Minimum Linear Arrangement Algorithm"?
@@ -148,7 +148,7 @@ public class BDDPartitionOrderer {
 
     private Set<CFAEdge> edges = new LinkedHashSet<>();
 
-    public Set<CFAEdge> getEdges() {
+    Set<CFAEdge> getEdges() {
       return edges;
     }
 
@@ -179,7 +179,7 @@ public class BDDPartitionOrderer {
 
     private Collection<CAssumeEdge> assumptions = new ArrayList<>();
 
-    public Collection<CAssumeEdge> getAssumptions() {
+    Collection<CAssumeEdge> getAssumptions() {
       return assumptions;
     }
 

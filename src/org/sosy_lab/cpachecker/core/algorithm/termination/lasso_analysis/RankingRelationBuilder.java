@@ -138,16 +138,16 @@ public class RankingRelationBuilder {
   private RankingRelation fromRankingFunction(
       Set<CVariableDeclaration> pRelevantVariables, RankingFunction rankingFunction)
       throws UnrecognizedCodeException, RankingRelationException {
-    if (rankingFunction instanceof LinearRankingFunction) {
-      AffineFunction function = ((LinearRankingFunction) rankingFunction).getComponent();
+    if (rankingFunction instanceof LinearRankingFunction linearRankingFunction) {
+      AffineFunction function = linearRankingFunction.getComponent();
       return fromAffineFunction(pRelevantVariables, function);
 
-    } else if (rankingFunction instanceof LexicographicRankingFunction) {
-      return fromLexicographicRankingFunction(
-          (LexicographicRankingFunction) rankingFunction, pRelevantVariables);
+    } else if (rankingFunction
+        instanceof LexicographicRankingFunction lexicographicRankingFunction) {
+      return fromLexicographicRankingFunction(lexicographicRankingFunction, pRelevantVariables);
 
-    } else if (rankingFunction instanceof NestedRankingFunction) {
-      return fromNestedRankingFunction((NestedRankingFunction) rankingFunction, pRelevantVariables);
+    } else if (rankingFunction instanceof NestedRankingFunction nestedRankingFunction) {
+      return fromNestedRankingFunction(nestedRankingFunction, pRelevantVariables);
 
     } else {
       throw new UnsupportedOperationException(rankingFunction.getName());
@@ -447,19 +447,19 @@ public class RankingRelationBuilder {
       primedFormulaSummands = pPrimedFormulaSummands;
     }
 
-    public Optional<CExpression> getPrimedExpression() {
+    Optional<CExpression> getPrimedExpression() {
       return primedExpression;
     }
 
-    public Optional<CExpression> getUnprimedExpression() {
+    Optional<CExpression> getUnprimedExpression() {
       return unprimedExpression;
     }
 
-    public NumeralFormula getPrimedFormula() {
+    NumeralFormula getPrimedFormula() {
       return sum(primedFormulaSummands);
     }
 
-    public NumeralFormula getUnprimedFormula() {
+    NumeralFormula getUnprimedFormula() {
       return sum(unprimedFormulaSummands);
     }
 

@@ -215,17 +215,20 @@ public class WitnessExporterTest {
     // Trigger statistics so that the witness is written to the file
     results.getCheckerResult().writeOutputFiles();
 
-    switch (pExpected) {
-      case TRUE:
+    return switch (pExpected) {
+      case TRUE -> {
         results.assertIsSafe();
-        return WitnessType.CORRECTNESS_WITNESS;
-      case FALSE:
+        yield WitnessType.CORRECTNESS_WITNESS;
+      }
+      case FALSE -> {
         results.assertIsUnsafe();
-        return WitnessType.VIOLATION_WITNESS;
-      default:
+        yield WitnessType.VIOLATION_WITNESS;
+      }
+      default -> {
         assertWithMessage("Cannot determine expected result.").fail();
         throw new AssertionError("Unreachable code.");
-    }
+      }
+    };
   }
 
   private static String getInvGenFile(TempCompressedFilePath pWitnessPath) throws IOException {
@@ -263,19 +266,18 @@ public class WitnessExporterTest {
     final String validationConfigFile;
     String specification = pSpecification;
     switch (witnessType) {
-      case CORRECTNESS_WITNESS:
+      case CORRECTNESS_WITNESS -> {
         validationConfigFile = "correctnessWitnessValidation.properties";
         overrideOptions.put(
             "invariantGeneration.kInduction.invariantsAutomatonFile",
             witnessPath.uncompressedFilePath.toString());
-        break;
-      case VIOLATION_WITNESS:
+      }
+      case VIOLATION_WITNESS -> {
         validationConfigFile = "violationWitnessValidation.properties";
         specification =
             Joiner.on(',').join(specification, witnessPath.compressedFilePath.toString());
-        break;
-      default:
-        throw new AssertionError("Unsupported witness type " + witnessType);
+      }
+      default -> throw new AssertionError("Unsupported witness type " + witnessType);
     }
     Configuration validationConfig =
         getProperties(validationConfigFile, overrideOptions, specification);
@@ -283,14 +285,9 @@ public class WitnessExporterTest {
     TestResults results = CPATestRunner.run(validationConfig, pFilePath);
 
     switch (pExpected) {
-      case TRUE:
-        results.assertIsSafe();
-        break;
-      case FALSE:
-        results.assertIsUnsafe();
-        break;
-      default:
-        assertWithMessage("Cannot determine expected result.").fail();
+      case TRUE -> results.assertIsSafe();
+      case FALSE -> results.assertIsUnsafe();
+      default -> assertWithMessage("Cannot determine expected result.").fail();
     }
   }
 
@@ -312,7 +309,7 @@ public class WitnessExporterTest {
 
     private final Path compressedFilePath;
 
-    public TempCompressedFilePath(String pPrefix, String pSuffix) throws IOException {
+    TempCompressedFilePath(String pPrefix, String pSuffix) throws IOException {
       String compressedSuffix = ".gz";
       compressedFilePath =
           TempFile.builder()
@@ -342,8 +339,8 @@ public class WitnessExporterTest {
       if (this == pOther) {
         return true;
       }
-      return pOther instanceof TempCompressedFilePath
-          && compressedFilePath.equals(((TempCompressedFilePath) pOther).compressedFilePath);
+      return pOther instanceof TempCompressedFilePath other
+          && compressedFilePath.equals(other.compressedFilePath);
     }
 
     @Override
@@ -370,18 +367,18 @@ public class WitnessExporterTest {
     }
 
     @CanIgnoreReturnValue
-    public WitnessTester forSpecification(String pSpecificationFile) {
+    WitnessTester forSpecification(String pSpecificationFile) {
       specificationFile = Objects.requireNonNull(pSpecificationFile);
       return this;
     }
 
     @CanIgnoreReturnValue
-    public WitnessTester addOverrideOption(String pOptionName, String pOptionValue) {
+    WitnessTester addOverrideOption(String pOptionName, String pOptionValue) {
       overrideOptionsBuilder.put(pOptionName, pOptionValue);
       return this;
     }
 
-    public void performTest() throws Exception {
+    void performTest() throws Exception {
       WitnessExporterTest.performTest(
           programFile,
           specificationFile,

@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * Implementation of {@link Scope} for the global scope (i.e., outside of functions). Allows to
+ * Implementation of {@link Scope} for the global scope (i.e., outside functions). Allows to
  * register functions, types and global variables.
  */
 class GlobalScope extends AbstractScope {
@@ -162,8 +162,7 @@ class GlobalScope extends AbstractScope {
 
   public @Nullable CTypeDefDeclaration lookupTypedefForTypename(final String name) {
     for (CTypeDefDeclaration d : typedefs.values()) {
-      if (d.getType() instanceof CComplexType
-          && ((CComplexType) d.getType()).getName().equals(name)) {
+      if (d.getType() instanceof CComplexType cComplexType && cComplexType.getName().equals(name)) {
         return d;
       }
     }
@@ -392,10 +391,10 @@ class GlobalScope extends AbstractScope {
         // to the same that that is renamed currently
         // we need to put in the elaborated renamed type, otherwise there will be
         // infinite recursion in the types toASTString method, what we don't want
-        if (decl.getType() instanceof CPointerType) {
+        if (decl.getType() instanceof CPointerType cPointerType) {
           newMembers.add(
               new CCompositeTypeMemberDeclaration(
-                  createPointerField((CPointerType) decl.getType(), oldType, renamedElaboratedType),
+                  createPointerField(cPointerType, oldType, renamedElaboratedType),
                   decl.getName()));
 
           // this member cannot be self referencing as it is no pointer
@@ -429,10 +428,10 @@ class GlobalScope extends AbstractScope {
       }
       return renamedEnumType;
 
-    } else if (oldType instanceof CElaboratedType) {
+    } else if (oldType instanceof CElaboratedType cElaboratedType) {
       CComplexType renamedRealType = null;
-      if (((CElaboratedType) oldType).getRealType() != null) {
-        renamedRealType = createRenamedType(((CElaboratedType) oldType).getRealType());
+      if (cElaboratedType.getRealType() != null) {
+        renamedRealType = createRenamedType(cElaboratedType.getRealType());
       }
       return new CElaboratedType(
           oldType.isConst(),
@@ -449,11 +448,11 @@ class GlobalScope extends AbstractScope {
 
   /** This method creates the CType for a referenced field of a CCompositeType. */
   private CType createPointerField(CPointerType oldType, CType eqType, CType newType) {
-    if (oldType.getType() instanceof CPointerType) {
+    if (oldType.getType() instanceof CPointerType cPointerType) {
       return new CPointerType(
           oldType.isConst(),
           oldType.isVolatile(),
-          createPointerField((CPointerType) oldType.getType(), eqType, newType));
+          createPointerField(cPointerType, eqType, newType));
     } else {
       if (oldType.getType().getCanonicalType().equals(eqType.getCanonicalType())) {
         return new CPointerType(oldType.isConst(), oldType.isVolatile(), newType);

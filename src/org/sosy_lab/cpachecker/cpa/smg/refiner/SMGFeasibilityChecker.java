@@ -68,7 +68,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
       ARGPath pPath, UnmodifiableSMGState pStartingPoint, SMGPrecision pPrecision)
       throws CPAException, InterruptedException {
 
-    // We don't want sideffects of smg transfer relation for smg state propagating.
+    // We don't want side effects of SMG transfer relation for SMG state propagating.
     SMGState start = pStartingPoint.copyOf();
     Collection<SMGState> next = new ArrayList<>();
     next.add(start);
@@ -230,40 +230,40 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
       lastPosition = pLastPosition;
     }
 
-    public ReachabilityResult(PathPosition pLastPosition) {
+    ReachabilityResult(PathPosition pLastPosition) {
       isReachable = false;
       lastStates = null;
       lastEdge = null;
       lastPosition = pLastPosition;
     }
 
-    public boolean isReachable() {
+    boolean isReachable() {
       return isReachable;
     }
 
-    public Collection<SMGState> getLastState() {
+    Collection<SMGState> getLastState() {
       assert isReachable
           : "Getting the last state of the path is only supported if the last state is reachable.";
       return lastStates;
     }
 
-    public CFAEdge getLastEdge() {
+    CFAEdge getLastEdge() {
       assert isReachable
           : "Getting the last edge of the path is only supported if the last state is reachable.";
       return lastEdge;
     }
 
     @SuppressWarnings("unused")
-    public PathPosition getLastPosition() {
+    PathPosition getLastPosition() {
       return lastPosition;
     }
 
-    public static ReachabilityResult isReachable(
+    static ReachabilityResult isReachable(
         Collection<SMGState> lastStates, CFAEdge lastEdge, PathPosition pLastPosition) {
       return new ReachabilityResult(lastStates, lastEdge, pLastPosition);
     }
 
-    public static ReachabilityResult isNotReachable(PathPosition pLastPosition) {
+    static ReachabilityResult isNotReachable(PathPosition pLastPosition) {
       return new ReachabilityResult(pLastPosition);
     }
   }

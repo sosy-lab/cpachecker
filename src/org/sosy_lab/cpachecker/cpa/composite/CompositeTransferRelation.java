@@ -229,14 +229,14 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
    * function pointer.
    *
    * @param edge the edge to inspect
-   * @return whether or not this edge contains a function call or not.
+   * @return whether this edge contains a function call or not.
    */
   private boolean containsFunctionCall(CFAEdge edge) {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge) edge;
 
-      if ((statementEdge.getStatement() instanceof CFunctionCall)) {
-        CFunctionCall call = ((CFunctionCall) statementEdge.getStatement());
+      if ((statementEdge.getStatement() instanceof CFunctionCall call)) {
+
         CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
 
         // declaration == null -> functionPointer
@@ -351,7 +351,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         }
 
         final int predIndex =
-            Iterables.indexOf(strengthenedState, x -> x instanceof PredicateAbstractState);
+            Iterables.indexOf(strengthenedState, PredicateAbstractState.class::isInstance);
         Preconditions.checkState(
             predIndex >= 0, "cartesian product should ensure that predicates do not vanish!");
         AbstractState predElement = strengthenedState.get(predIndex);
@@ -402,25 +402,23 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       List<Collection<? extends AbstractState>> allComponentsSuccessors, int resultCount) {
     Collection<List<AbstractState>> allResultingElements;
     switch (resultCount) {
-      case 0:
-        // at least one CPA decided that there is no successor
-        allResultingElements = ImmutableSet.of();
-        break;
-
-      case 1:
+      case 0 ->
+          // at least one CPA decided that there is no successor
+          allResultingElements = ImmutableSet.of();
+      case 1 -> {
         List<AbstractState> resultingElements = new ArrayList<>(allComponentsSuccessors.size());
         for (Collection<? extends AbstractState> componentSuccessors : allComponentsSuccessors) {
           resultingElements.add(Iterables.getOnlyElement(componentSuccessors));
         }
         allResultingElements = Collections.singleton(resultingElements);
-        break;
-
-      default:
+      }
+      default -> {
         // create cartesian product of all componentSuccessors and store the result in
         // allResultingElements
         List<AbstractState> initialPrefix = ImmutableList.of();
         allResultingElements = new ArrayList<>(resultCount);
         createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
+      }
     }
 
     assert resultCount == allResultingElements.size();
@@ -548,8 +546,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     for (TransferRelation tr : transferRelations) {
       if (pType.isAssignableFrom(tr.getClass())) {
         return pType.cast(tr);
-      } else if (tr instanceof WrapperTransferRelation) {
-        T result = ((WrapperTransferRelation) tr).retrieveWrappedTransferRelation(pType);
+      } else if (tr instanceof WrapperTransferRelation wrapperTransferRelation) {
+        T result = wrapperTransferRelation.retrieveWrappedTransferRelation(pType);
         if (result != null) {
           return result;
         }
