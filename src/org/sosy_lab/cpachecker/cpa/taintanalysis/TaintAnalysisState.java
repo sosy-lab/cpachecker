@@ -259,7 +259,7 @@ public class TaintAnalysisState
                   new ArrayList<>(
                       Collections.nCopies(maxNumberOfMappedValuesInOtherEvaluatedValues, null)));
 
-          ArrayList<CExpression> mergedValues = new ArrayList<>(numberOfStatesToMerge);
+          List<CExpression> mergedValues = new ArrayList<>(numberOfStatesToMerge);
           mergedValues.addAll(thisValues);
           mergedValues.addAll(otherValues);
 

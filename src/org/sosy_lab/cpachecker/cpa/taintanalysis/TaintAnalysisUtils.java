@@ -85,7 +85,7 @@ public class TaintAnalysisUtils {
         for (CExpression value : values) {
           // Use the ith element if it exists
           if (index == i) {
-            ArrayList<CExpression> valueList = new ArrayList<>();
+            List<CExpression> valueList = new ArrayList<>();
             valueList.add(value);
             singleValueMap.put(variable, valueList);
             break;

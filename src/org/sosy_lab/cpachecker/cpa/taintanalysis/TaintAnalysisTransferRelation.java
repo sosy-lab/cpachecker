@@ -170,7 +170,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CIdExpression var = entry.getKey();
       CExpression value = entry.getValue();
 
-      ArrayList<CExpression> valueList = new ArrayList<>();
+      List<CExpression> valueList = new ArrayList<>();
       valueList.add(value);
 
       newEvaluatedValues.put(var, valueList);
