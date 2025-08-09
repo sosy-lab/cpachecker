@@ -19,11 +19,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions.StructHandlingStrategy;
+import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
-import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 
 /**
  * Utility class for handling assignments involving unions and structs according to the selected
@@ -65,7 +65,8 @@ public class StructUnionHandler {
           return specialCase.orElseThrow();
         }
 
-        PointerLocation lhsLocation = explicitLhsLocations.sortedPointerLocations().iterator().next();
+        PointerLocation lhsLocation =
+            explicitLhsLocations.sortedPointerLocations().iterator().next();
 
         if (strategy == StructHandlingStrategy.JUST_STRUCT) {
           LocationSet existingSet = pState.getPointsToSet(lhsLocation);
@@ -110,7 +111,8 @@ public class StructUnionHandler {
           return specialCase.orElseThrow();
         }
 
-        PointerLocation lhsLocation = explicitLhsLocations.sortedPointerLocations().iterator().next();
+        PointerLocation lhsLocation =
+            explicitLhsLocations.sortedPointerLocations().iterator().next();
 
         if (strategy == StructHandlingStrategy.ALL_FIELDS) {
           return new PointerAnalysisState(
@@ -168,7 +170,7 @@ public class StructUnionHandler {
   }
 
   public static LocationSet getUnionLocation(
-      StructHandlingStrategy strategy, Type structType, String instanceName, CFAEdge pCfaEdge) {
+      StructHandlingStrategy strategy, CType structType, String instanceName, CFAEdge pCfaEdge) {
     return switch (strategy) {
       case ALL_FIELDS, STRUCT_INSTANCE ->
           LocationSetFactory.withPointerLocation(
@@ -182,7 +184,7 @@ public class StructUnionHandler {
 
   public static LocationSet getStructLocation(
       StructHandlingStrategy strategy,
-      Type structType,
+      CType structType,
       String instanceName,
       String fieldName,
       CFAEdge pCfaEdge) {
@@ -204,4 +206,3 @@ public class StructUnionHandler {
     };
   }
 }
-

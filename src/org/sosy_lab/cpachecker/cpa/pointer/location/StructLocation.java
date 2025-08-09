@@ -15,27 +15,27 @@ import com.google.common.collect.Ordering;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public record StructLocation(
     @Nullable String functionName,
-    @NonNull Type structType,
+    @NonNull CType structType,
     @Nullable String instanceName,
     @Nullable String fieldName)
     implements PointerLocation {
 
-  public static StructLocation forStruct(@Nullable String functionName, @NonNull Type structType) {
+  public static StructLocation forStruct(@Nullable String functionName, @NonNull CType structType) {
     return new StructLocation(functionName, structType, null, null);
   }
 
   public static StructLocation forStructInstance(
-      @Nullable String functionName, @NonNull Type structType, String instanceName) {
+      @Nullable String functionName, @NonNull CType structType, String instanceName) {
     return new StructLocation(functionName, structType, instanceName, null);
   }
 
   public static StructLocation forField(
       @Nullable String functionName,
-      @NonNull Type structType,
+      @NonNull CType structType,
       String instanceName,
       String fieldName) {
     return new StructLocation(functionName, structType, instanceName, fieldName);
