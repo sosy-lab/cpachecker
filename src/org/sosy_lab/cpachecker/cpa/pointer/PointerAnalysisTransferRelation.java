@@ -72,10 +72,10 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions.StructHandlingStrategy;
+import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidationReason;
-import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
@@ -706,7 +706,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               baseType = ptrType.getType().getCanonicalType();
             }
 
-            String structType = baseType.toString();
 
             StructHandlingStrategy strategy = pointerTransferOptions.structHandlingStrategy;
             String instanceName = null;
@@ -742,12 +741,12 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             LocationSet baseLocation = LocationSetFactory.withTop();
             if (StructUnionHandler.isUnion(baseType)) {
               baseLocation =
-                  StructUnionHandler.getUnionLocation(strategy, structType, instanceName, pCfaEdge);
+                  StructUnionHandler.getUnionLocation(strategy, baseType, instanceName, pCfaEdge);
 
             } else if (StructUnionHandler.isStruct(baseType)) {
               baseLocation =
                   StructUnionHandler.getStructLocation(
-                      strategy, structType, instanceName, fieldName, pCfaEdge);
+                      strategy, baseType, instanceName, fieldName, pCfaEdge);
             }
             if (shouldDereference
                 && (strategy == StructHandlingStrategy.STRUCT_INSTANCE

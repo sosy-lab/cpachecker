@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.location;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocationComparator.compareByType;
 
 import com.google.common.collect.ComparisonChain;
@@ -16,39 +15,27 @@ import com.google.common.collect.Ordering;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public record StructLocation(
     @Nullable String functionName,
-    String structType,
+    @NonNull Type structType,
     @Nullable String instanceName,
     @Nullable String fieldName)
     implements PointerLocation {
 
-  public StructLocation(
-      @Nullable String functionName,
-      @NonNull String structType,
-      @Nullable String instanceName,
-      @Nullable String fieldName) {
-    checkNotNull(structType);
-    this.functionName = functionName;
-    this.structType = structType;
-    this.instanceName = instanceName;
-    this.fieldName = fieldName;
-  }
-
-  public static StructLocation forStruct(
-      @Nullable String functionName, @NonNull String structType) {
+  public static StructLocation forStruct(@Nullable String functionName, @NonNull Type structType) {
     return new StructLocation(functionName, structType, null, null);
   }
 
   public static StructLocation forStructInstance(
-      @Nullable String functionName, @NonNull String structType, String instanceName) {
+      @Nullable String functionName, @NonNull Type structType, String instanceName) {
     return new StructLocation(functionName, structType, instanceName, null);
   }
 
   public static StructLocation forField(
       @Nullable String functionName,
-      @NonNull String structType,
+      @NonNull Type structType,
       String instanceName,
       String fieldName) {
     return new StructLocation(functionName, structType, instanceName, fieldName);
@@ -63,7 +50,7 @@ public record StructLocation(
     }
     return ComparisonChain.start()
         .compare(functionName, other.functionName, Ordering.natural().nullsFirst())
-        .compare(structType, other.structType)
+        .compare(structType.toString(), other.structType.toString())
         .compare(instanceName, other.instanceName, Ordering.natural().nullsFirst())
         .compare(fieldName, other.fieldName, Ordering.natural().nullsFirst())
         .result();
@@ -86,12 +73,12 @@ public record StructLocation(
     return getCanonicalName();
   }
 
-  public String getStructScope() {
-    return isOnFunctionStack() ? (functionName + "::" + structType) : structType;
-  }
-
   public String getInstanceScope() {
     return instanceName != null ? (getStructScope() + " " + instanceName) : getStructScope();
+  }
+
+  private String getStructScope() {
+    return isOnFunctionStack() ? (functionName + "::" + structType) : structType.toString();
   }
 
   public String getCanonicalName() {

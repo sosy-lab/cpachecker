@@ -168,7 +168,7 @@ public class StructUnionHandler {
   }
 
   public static LocationSet getUnionLocation(
-      StructHandlingStrategy strategy, String structType, String instanceName, CFAEdge pCfaEdge) {
+      StructHandlingStrategy strategy, Type structType, String instanceName, CFAEdge pCfaEdge) {
     return switch (strategy) {
       case ALL_FIELDS, STRUCT_INSTANCE ->
           LocationSetFactory.withPointerLocation(
@@ -182,7 +182,7 @@ public class StructUnionHandler {
 
   public static LocationSet getStructLocation(
       StructHandlingStrategy strategy,
-      String structType,
+      Type structType,
       String instanceName,
       String fieldName,
       CFAEdge pCfaEdge) {
