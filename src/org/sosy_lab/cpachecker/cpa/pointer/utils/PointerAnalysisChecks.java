@@ -6,11 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.util;
+package org.sosy_lab.cpachecker.cpa.pointer.utils;
 
 import java.util.Optional;
-import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -18,17 +16,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
-import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public final class PointerUtils {
+public final class PointerAnalysisChecks {
 
-  private PointerUtils() {}
+  private PointerAnalysisChecks() {}
 
   public static boolean isFreeFunction(CExpression pExpression) {
     return getFunctionName(pExpression).map("free"::equals).orElse(false);
@@ -46,46 +38,6 @@ public final class PointerUtils {
     if (pExpression instanceof CIdExpression idExpr) {
       return Optional.of(idExpr.getName());
     }
-    return Optional.empty();
-  }
-
-  public static PointerAnalysisState handleTopAssignmentCase(
-      PointerAnalysisState pState, PointerLocation lhsLocation) {
-    if (pState.getPointsToMap().containsKey(lhsLocation)) {
-      return new PointerAnalysisState(pState.getPointsToMap().removeAndCopy(lhsLocation));
-    }
-    return pState;
-  }
-
-  public static Optional<PointerAnalysisState> handleSpecialCasesForExplicitLocation(
-      PointerAnalysisState pState,
-      LocationSet pLocationSet,
-      LocationSet rhsTargets,
-      CCfaEdge pCfaEdge,
-      LogManager plogger) {
-    if (pLocationSet.containsAllNulls()) {
-      plogger.logf(
-          Level.WARNING, "PointerAnalysis: Assignment to null at %s", pCfaEdge.getFileLocation());
-      return Optional.of(PointerAnalysisState.BOTTOM_STATE);
-    }
-
-    if (pLocationSet instanceof ExplicitLocationSet pExplicitLocationSet) {
-      PointerLocation lhsLocation = pExplicitLocationSet.sortedPointerLocations().iterator().next();
-
-      if (lhsLocation instanceof InvalidLocation) {
-        plogger.logf(
-            Level.WARNING,
-            "PointerAnalysis: Assignment to invalid location %s at %s",
-            lhsLocation,
-            pCfaEdge.getFileLocation());
-        return Optional.of(PointerAnalysisState.BOTTOM_STATE);
-      }
-
-      if (rhsTargets.isTop()) {
-        return Optional.of(PointerUtils.handleTopAssignmentCase(pState, lhsLocation));
-      }
-    }
-
     return Optional.empty();
   }
 

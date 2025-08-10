@@ -43,16 +43,4 @@ public class LocationSetFactory {
   public static LocationSet withBot() {
     return LocationSetBot.INSTANCE;
   }
-
-  static LocationSet ofTargets(Set<PointerLocation> targets) {
-    if (targets == null || targets.isEmpty()) {
-      return withBot();
-    }
-    // Keep explicit representation
-    return new ExplicitLocationSet(com.google.common.collect.ImmutableSortedSet.copyOf(targets));
-  }
-
-  static LocationSet ofPointer(PointerLocation target) {
-    return ofTargets(java.util.Collections.singleton(target));
-  }
 }

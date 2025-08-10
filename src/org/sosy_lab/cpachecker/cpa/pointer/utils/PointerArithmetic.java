@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.util;
+package org.sosy_lab.cpachecker.cpa.pointer.utils;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -20,11 +20,11 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 
-public final class PointerArithmeticUtils {
+public final class PointerArithmetic {
 
-  private PointerArithmeticUtils() {}
+  private PointerArithmetic() {}
 
-  public static LocationSet applyPointerArithmetic(
+  public static LocationSet applyOffset(
       LocationSet pBaseLocations, long pOffset, boolean pIsOffsetSensitive) {
     if (pBaseLocations.isTop() || pBaseLocations.isBot()) {
       return pBaseLocations;

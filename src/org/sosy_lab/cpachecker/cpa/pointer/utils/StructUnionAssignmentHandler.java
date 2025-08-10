@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.pointer.util;
+package org.sosy_lab.cpachecker.cpa.pointer.utils;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -24,10 +24,15 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 
 /**
- * Utility class for handling assignments involving unions and structs according to the selected
- * StructHandlingStrategy.
+ * Implements the logic for pointer assignments involving C structs and unions.
+ *
+ * <p>The behavior is highly dependent on the chosen {@link StructHandlingStrategy}, which allows
+ * for a trade-off between analysis precision and performance. This handler dispatches to the
+ * appropriate logic based on the aggregate type and the configured strategy. It also correctly
+ * distinguishes between **strong updates** (where the LHS location is known precisely) and **weak
+ * updates** (where the LHS is ambiguous and could be one of several locations).
  */
-public class StructUnionHandler {
+public class StructUnionAssignmentHandler {
 
   public static boolean isStruct(CType cType) {
     return cType.getCanonicalType() instanceof CComplexType complexType
@@ -40,11 +45,20 @@ public class StructUnionHandler {
   }
 
   /**
-   * Handle an assignment to a field whose owner type is either a struct or a union.
+   * Handles an assignment to a field of a struct or a union.
    *
-   * <p>Dispatches to the appropriate strategy-specific implementation based on {@code baseType}. If
-   * {@code baseType} is neither struct nor union, this method is a no-op and returns {@code
-   * pState}.
+   * <p>This is the main entry point for this handler. It acts as a dispatcher, delegating to more
+   * specific methods based on whether the {@code baseType} is a struct or a union, and applies the
+   * logic defined by the given {@code strategy}.
+   *
+   * @param pState The current pointer analysis state.
+   * @param baseType The type of the aggregate owner (must be a struct or union).
+   * @param lhsLocations The set of possible locations for the LHS field.
+   * @param rhsTargets The set of locations the RHS points to.
+   * @param pCfaEdge The current CFA edge, used for logging.
+   * @param strategy The configured {@link StructHandlingStrategy} to apply.
+   * @param logger The logger for reporting warnings.
+   * @return The updated {@link PointerAnalysisState}.
    */
   public static PointerAnalysisState handleAssignmentForStructOrUnionType(
       PointerAnalysisState pState,
@@ -84,16 +98,16 @@ public class StructUnionHandler {
 
     if (lhsLocations instanceof ExplicitLocationSet explicitLhsLocations) {
       if (explicitLhsLocations.getSize() == 1) {
-        Optional<PointerAnalysisState> specialCase =
-            PointerUtils.handleSpecialCasesForExplicitLocation(
-                pState, explicitLhsLocations, rhsTargets, pCfaEdge, logger);
-
-        if (specialCase.isPresent()) {
-          return specialCase.orElseThrow();
-        }
-
         PointerLocation lhsLocation =
             explicitLhsLocations.sortedPointerLocations().iterator().next();
+
+        Optional<PointerAnalysisState> edgeCaseStateOptional =
+            AssignmentHandler.handleAssignmentEdgeCases(
+                pState, lhsLocation, rhsTargets, pCfaEdge, logger);
+
+        if (edgeCaseStateOptional.isPresent()) {
+          return edgeCaseStateOptional.get();
+        }
 
         if (strategy == StructHandlingStrategy.JUST_STRUCT) {
           LocationSet existingSet = pState.getPointsToSet(lhsLocation);
@@ -109,7 +123,7 @@ public class StructUnionHandler {
               pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
         }
       } else {
-        return addElementsToAmbiguousLocations(pState, explicitLhsLocations, rhsTargets);
+        return performWeakUpdate(pState, explicitLhsLocations, rhsTargets);
       }
     }
     return pState;
@@ -129,16 +143,16 @@ public class StructUnionHandler {
 
     if (lhsLocations instanceof ExplicitLocationSet explicitLhsLocations) {
       if (explicitLhsLocations.getSize() == 1) {
-        Optional<PointerAnalysisState> specialCase =
-            PointerUtils.handleSpecialCasesForExplicitLocation(
-                pState, explicitLhsLocations, rhsTargets, pCfaEdge, logger);
-
-        if (specialCase.isPresent()) {
-          return specialCase.orElseThrow();
-        }
-
         PointerLocation lhsLocation =
             explicitLhsLocations.sortedPointerLocations().iterator().next();
+
+        Optional<PointerAnalysisState> edgeCaseStateOptional =
+            AssignmentHandler.handleAssignmentEdgeCases(
+                pState, lhsLocation, rhsTargets, pCfaEdge, logger);
+
+        if (edgeCaseStateOptional.isPresent()) {
+          return edgeCaseStateOptional.get();
+        }
 
         if (strategy == StructHandlingStrategy.ALL_FIELDS) {
           return new PointerAnalysisState(
@@ -154,13 +168,26 @@ public class StructUnionHandler {
               pState.getPointsToMap().putAndCopy(lhsLocation, mergedSet));
         }
       } else {
-        return addElementsToAmbiguousLocations(pState, explicitLhsLocations, rhsTargets);
+        return performWeakUpdate(pState, explicitLhsLocations, rhsTargets);
       }
     }
     return pState;
   }
 
-  public static PointerAnalysisState addElementsToAmbiguousLocations(
+  /**
+   * Performs a **weak update** on the points-to map.
+   *
+   * <p>A weak update is necessary when the LHS of an assignment is ambiguous and could refer to one
+   * of several possible memory locations. Instead of replacing the points-to set of a single
+   * location (a strong update), we must merge the new information into the points-to sets of all
+   * potential LHS locations.
+   *
+   * @param pState The current analysis state.
+   * @param pLhsLocations The explicit set of possible LHS locations to update.
+   * @param pRhsTargets The new targets from the RHS to be merged into the points-to sets.
+   * @return The new analysis state after the weak update.
+   */
+  public static PointerAnalysisState performWeakUpdate(
       PointerAnalysisState pState, ExplicitLocationSet pLhsLocations, LocationSet pRhsTargets) {
     Set<PointerLocation> locations = pLhsLocations.sortedPointerLocations();
 

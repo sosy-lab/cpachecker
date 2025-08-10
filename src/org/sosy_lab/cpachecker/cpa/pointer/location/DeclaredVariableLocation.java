@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.pointer.location;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocationComparator.compareByType;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -50,6 +51,7 @@ public record DeclaredVariableLocation(MemoryLocation memoryLocation) implements
 
   @Override
   public boolean isValidFunctionReturn(String callerFunctionName) {
+    Preconditions.checkNotNull(callerFunctionName);
     return !isLocalVariable() || memoryLocation().getFunctionName().equals(callerFunctionName);
   }
 }

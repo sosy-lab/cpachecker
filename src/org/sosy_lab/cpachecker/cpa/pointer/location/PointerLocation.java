@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.location;
 
+import com.google.common.base.Preconditions;
+
 public sealed interface PointerLocation extends Comparable<PointerLocation>
     permits HeapLocation, InvalidLocation, DeclaredVariableLocation, NullLocation, StructLocation {
   default boolean isValidFunctionReturn(String callerFunctionName) {
+    Preconditions.checkNotNull(callerFunctionName);
     return true;
   }
 }

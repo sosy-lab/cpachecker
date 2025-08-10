@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.location;
 
+import com.google.common.base.Preconditions;
+
 public sealed interface StructLocation extends PointerLocation
     permits FieldScopeStructLocation, InstanceScopeStructLocation, TypeScopeStructLocation {
 
@@ -19,6 +21,7 @@ public sealed interface StructLocation extends PointerLocation
 
   @Override
   default boolean isValidFunctionReturn(String callerFunctionName) {
+    Preconditions.checkNotNull(callerFunctionName);
     return !isOnFunctionStack() || callerFunctionName.equals(getFunctionName());
   }
 }
