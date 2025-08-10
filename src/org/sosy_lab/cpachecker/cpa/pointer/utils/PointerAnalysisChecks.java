@@ -12,7 +12,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -21,25 +20,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public final class PointerAnalysisChecks {
 
   private PointerAnalysisChecks() {}
-
-  public static boolean isFreeFunction(CExpression pExpression) {
-    return getFunctionName(pExpression).map("free"::equals).orElse(false);
-  }
-
-  public static boolean isMallocFunction(CExpression pExpression) {
-    return getFunctionName(pExpression).map("malloc"::equals).orElse(false);
-  }
-
-  public static boolean isNondetPointerReturn(CExpression pExpression) {
-    return getFunctionName(pExpression).map("__VERIFIER_nondet_pointer"::equals).orElse(false);
-  }
-
-  private static Optional<String> getFunctionName(CExpression pExpression) {
-    if (pExpression instanceof CIdExpression idExpr) {
-      return Optional.of(idExpr.getName());
-    }
-    return Optional.empty();
-  }
 
   public static boolean isNullPointer(CExpression pExpression) {
     if (pExpression instanceof CCastExpression castExpression) {

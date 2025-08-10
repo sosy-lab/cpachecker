@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.cpa.pointer.utils.AssignmentHandler;
-import org.sosy_lab.cpachecker.cpa.pointer.utils.PointerAnalysisChecks;
 import org.sosy_lab.cpachecker.cpa.pointer.utils.StructUnionAssignmentHandler;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -79,7 +78,9 @@ public final class StatementEdgeHandler implements TransferRelationEdgeHandler<C
     if (pCfaEdge.getStatement() instanceof CFunctionCallStatement callStatement) {
       CFunctionCallExpression callExpr = callStatement.getFunctionCallExpression();
 
-      if (PointerAnalysisChecks.isFreeFunction(callExpr.getFunctionNameExpression())) {
+      FunctionType type = FunctionType.fromExpression(callExpr.getFunctionNameExpression());
+
+      if (type == FunctionType.FREE) {
         return handleDeallocation(pState, pCfaEdge, callExpr);
       }
     }
@@ -90,29 +91,37 @@ public final class StatementEdgeHandler implements TransferRelationEdgeHandler<C
         return pState;
       }
       if (assignment instanceof CFunctionCallAssignmentStatement callAssignment) {
-        CExpression lhs = callAssignment.getLeftHandSide();
-        if (PointerAnalysisChecks.isNondetPointerReturn(
-            callAssignment.getFunctionCallExpression().getFunctionNameExpression())) {
-          // if (isNondetPointerReturn(rhs.getFunctionNameExpression())) {
-          // We don't consider summary edges, so if we encounter a function call assignment edge,
-          // this means that the called function is not defined.
-          // If the function returns a non-deterministic pointer,
-          // handle it that way.
-          // Do not add to pointsToMap, since ⊤ is not explicitly tracked in this implementation.
-          // By default, all pointers that are not present in pointsToMap are assumed to point to
-          // Top.
-          return pState;
-        }
-        if (PointerAnalysisChecks.isMallocFunction(
-            callAssignment.getFunctionCallExpression().getFunctionNameExpression())) {
-          HeapLocation heapLocation;
+        CFunctionCallExpression callExpr = callAssignment.getFunctionCallExpression();
+        FunctionType funcType = FunctionType.fromExpression(callExpr.getFunctionNameExpression());
 
-          heapLocation = createHeapLocation(pCfaEdge);
-
-          LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge, options);
-          LocationSet rhsSet = LocationSetFactory.withPointerLocation(heapLocation);
-
-          return handleAssignment(pState, lhsLocations, rhsSet, pCfaEdge);
+        switch (funcType) {
+          case MALLOC -> {
+            HeapLocation heapLocation = createHeapLocation(pCfaEdge);
+            LocationSet lhsLocations =
+                getReferencedLocations(
+                    callAssignment.getLeftHandSide(), pState, false, pCfaEdge, options);
+            LocationSet rhsSet = LocationSetFactory.withPointerLocation(heapLocation);
+            return handleAssignment(pState, lhsLocations, rhsSet, pCfaEdge);
+          }
+          case NON_DETERMINISTIC_POINTER -> {
+            // We don't consider summary edges, so if we encounter a function call assignment edge,
+            // this means that the called function is not defined.
+            // If the function returns a non-deterministic pointer,
+            // handle it that way.
+            // Do not add to pointsToMap, since ⊤ is not explicitly tracked in this implementation.
+            // By default, all pointers that are not present in pointsToMap are assumed to point to
+            // Top.
+            return pState;
+          }
+          case FREE ->
+              logger.log(
+                  Level.SEVERE,
+                  "Function 'free' used in assignment context, which is invalid C. Edge: %s",
+                  pCfaEdge.getDescription());
+          case UNKNOWN -> {
+            // This is a regular function call assignment (e.g., p = some_func()).
+            // It will be handled by the general-purpose assignment logic below.
+          }
         }
       }
 
