@@ -103,14 +103,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation;
-import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.HeapLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
-import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.PointerLocation;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.transfer.PointerTransferOptions;
+import org.sosy_lab.cpachecker.cpa.pointer.utils.ReferenceLocationsResolver;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
@@ -1668,7 +1668,7 @@ public class ValueAnalysisTransferRelation
       PointerTransferOptions pointerTransferOptions = new PointerTransferOptions(config);
       CExpression baseExpr = arraySubscriptExpression.getArrayExpression();
       LocationSet baseLocations =
-          PointerAnalysisTransferRelation.getReferencedLocations(
+          ReferenceLocationsResolver.getReferencedLocations(
               baseExpr, pPointerInfo, false, pCfaEdge, pointerTransferOptions);
 
       if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
@@ -1701,7 +1701,7 @@ public class ValueAnalysisTransferRelation
     if (targetIsUnknown && pLeftHandSide instanceof CPointerExpression pointerExpression) {
       PointerTransferOptions pointerTransferOptions = new PointerTransferOptions(config);
       LocationSet baseLocations =
-          PointerAnalysisTransferRelation.getReferencedLocations(
+          ReferenceLocationsResolver.getReferencedLocations(
               pointerExpression, pPointerInfo, false, pCfaEdge, pointerTransferOptions);
 
       if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
@@ -1727,7 +1727,8 @@ public class ValueAnalysisTransferRelation
                 && explicitHeapTargetLocations.getSize() == 1) {
               PointerLocation heapPointerLocation =
                   explicitHeapTargetLocations.sortedPointerLocations().iterator().next();
-              if (heapPointerLocation instanceof DeclaredVariableLocation pHeapDeclaredVariableLocation) {
+              if (heapPointerLocation
+                  instanceof DeclaredVariableLocation pHeapDeclaredVariableLocation) {
                 target = pHeapDeclaredVariableLocation.memoryLocation();
                 targetIsUnknown = target == null;
                 type = pointerExpression.getExpressionType().getCanonicalType();
@@ -1763,13 +1764,14 @@ public class ValueAnalysisTransferRelation
       }
 
       LocationSet valueLocations =
-          PointerAnalysisTransferRelation.getReferencedLocations(
+          ReferenceLocationsResolver.getReferencedLocations(
               addressExpression, pPointerInfo, true, pCfaEdge, pointerTransferOptions);
       if (valueLocations instanceof ExplicitLocationSet explicitValueLocations
           && explicitValueLocations.getSize() == 1) {
         PointerLocation valuePointerLocation =
             explicitValueLocations.sortedPointerLocations().iterator().next();
-        if (valuePointerLocation instanceof DeclaredVariableLocation pValueDeclaredVariableLocation) {
+        if (valuePointerLocation
+            instanceof DeclaredVariableLocation pValueDeclaredVariableLocation) {
           CType rhsType = rhs.getExpressionType().getCanonicalType();
           if (pValueState.contains(pValueDeclaredVariableLocation.memoryLocation())) {
             ValueAndType valueAndType =
