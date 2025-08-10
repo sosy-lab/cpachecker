@@ -42,6 +42,7 @@ public class SubstituteUtil {
     return pSubstitutions.stream().filter(s -> s.thread.isMain()).findAny().orElseThrow();
   }
 
+  /** Function and Type declarations are placed outside {@code main()}. */
   public static boolean isExcludedDeclarationEdge(
       MPOROptions pOptions, CDeclarationEdge pDeclarationEdge) {
 

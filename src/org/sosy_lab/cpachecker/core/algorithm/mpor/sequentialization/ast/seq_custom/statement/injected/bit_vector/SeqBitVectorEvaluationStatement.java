@@ -45,6 +45,7 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
       // no evaluation due to no global accesses -> just goto
       return gotoStatement.toASTString();
     } else {
+      // TODO build an assumption instead (and don't negate evaluation expression)
       SeqIfExpression ifExpression = new SeqIfExpression(evaluationExpression);
       CFunctionCallStatement abortCall =
           SeqStatementBuilder.buildFunctionCallStatement(SeqFunctionCallExpressions.ABORT);

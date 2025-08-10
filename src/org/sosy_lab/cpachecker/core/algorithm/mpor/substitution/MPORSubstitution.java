@@ -148,6 +148,27 @@ public class MPORSubstitution {
     }
   }
 
+  private void handleGlobalVariableAccessedInLocalVariableDeclaration(
+      LocalVariableDeclarationSubstitute pLocalSubstitute,
+      Optional<MPORSubstitutionTracker> pTracker) {
+
+    if (pTracker.isEmpty()) {
+      return;
+    }
+    for (CVariableDeclaration globalVariable : pLocalSubstitute.accessedGlobalVariables) {
+      pTracker.orElseThrow().addAccessedGlobalVariable(globalVariable);
+    }
+  }
+
+  private void handleAccessedMainFunctionArg(
+      CParameterDeclaration pMainFunctionArg, Optional<MPORSubstitutionTracker> pTracker) {
+
+    if (pTracker.isEmpty()) {
+      return;
+    }
+    pTracker.orElseThrow().addAccessedMainFunctionArg(pMainFunctionArg);
+  }
+
   private void handlePointerAssignment(
       CExpressionAssignmentStatement pAssignment, Optional<MPORSubstitutionTracker> pTracker) {
 
@@ -457,6 +478,7 @@ public class MPORSubstitution {
             Objects.requireNonNull(localSubstitutes.get(variableDeclaration));
         ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes =
             Objects.requireNonNull(localSubstitute.substitutes);
+        handleGlobalVariableAccessedInLocalVariableDeclaration(localSubstitute, pTracker);
         return Objects.requireNonNull(substitutes.get(pCallContext));
       } else {
         checkArgument(
@@ -469,14 +491,11 @@ public class MPORSubstitution {
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       if (pCallContext.isEmpty()) {
         // no call context -> main function argument
-        if (pTracker.isPresent()) {
-          pTracker.orElseThrow().addAccessedMainFunctionArg(parameterDeclaration);
-        }
+        handleAccessedMainFunctionArg(parameterDeclaration, pTracker);
         return mainFunctionArgSubstitutes.get(parameterDeclaration);
       }
       // normal function called within thread, including start_routines, always have call context
       ThreadEdge callContext = pCallContext.orElseThrow();
-
       if (parameterSubstitutes.containsKey(callContext)) {
         return getParameterSubstituteByCallContext(callContext, parameterDeclaration);
 
