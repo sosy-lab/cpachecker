@@ -251,9 +251,6 @@ public class UnseqBehaviorAnalysisTransferRelation
         new HashMap<>(newState.getTmpToOriginalExprMap());
     mergedFunctionCallStack.pop();
 
-    ExpressionBehaviorVisitor visitor =
-        new ExpressionBehaviorVisitor(newState, funReturnEdge, AccessType.READ, logger);
-
     if (summaryExpr instanceof CFunctionCallAssignmentStatement assignStmt) {
       CExpression lhs = assignStmt.getLeftHandSide();
       CFunctionCallExpression rhs = assignStmt.getRightHandSide();
