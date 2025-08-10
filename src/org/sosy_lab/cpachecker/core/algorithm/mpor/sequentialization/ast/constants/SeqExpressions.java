@@ -23,11 +23,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqParameterDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqExpressions {
 
   public static class SeqFunctionCallExpressions {
+
+    public static final CFunctionCallExpression ABORT =
+        SeqExpressionBuilder.buildFunctionCallExpression(
+            SeqVoidType.VOID,
+            SeqIdExpression.ABORT,
+            ImmutableList.of(),
+            SeqFunctionDeclaration.ABORT);
 
     public static final CFunctionCallExpression VERIFIER_NONDET_INT =
         SeqExpressionBuilder.buildFunctionCallExpression(

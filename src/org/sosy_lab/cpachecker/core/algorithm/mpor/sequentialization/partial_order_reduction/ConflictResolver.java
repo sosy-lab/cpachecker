@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -92,9 +91,9 @@ public class ConflictResolver {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    Builder<SeqThreadStatementClause> rWithOrders = ImmutableList.builder();
+    ImmutableList.Builder<SeqThreadStatementClause> rWithOrders = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
+      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock mergedBlock : clause.getBlocks()) {
         newBlocks.add(
             addConflictOrdersToBlock(

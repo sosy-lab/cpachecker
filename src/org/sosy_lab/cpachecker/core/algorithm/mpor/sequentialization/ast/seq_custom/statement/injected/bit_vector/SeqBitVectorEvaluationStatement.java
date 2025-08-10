@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqFunctionCallExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
@@ -38,13 +41,16 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
   public String toASTString() throws UnrecognizedCodeException {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
     if (evaluationExpression.isEmpty()) {
+      // TODO still needed?
       // no evaluation due to no global accesses -> just goto
       return gotoStatement.toASTString();
     } else {
       SeqIfExpression ifExpression = new SeqIfExpression(evaluationExpression);
+      CFunctionCallStatement abortCall =
+          SeqStatementBuilder.buildFunctionCallStatement(SeqFunctionCallExpressions.ABORT);
       return ifExpression.toASTString()
           + SeqSyntax.SPACE
-          + SeqStringUtil.wrapInCurlyBracketsInwards(gotoStatement.toASTString());
+          + SeqStringUtil.wrapInCurlyBracketsInwards(abortCall.toASTString());
     }
   }
 
