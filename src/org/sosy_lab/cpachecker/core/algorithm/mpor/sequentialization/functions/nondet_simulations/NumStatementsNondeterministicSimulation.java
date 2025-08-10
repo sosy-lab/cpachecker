@@ -365,24 +365,13 @@ public class NumStatementsNondeterministicSimulation {
 
     ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      // first inject into block
-      SeqThreadStatementBlock newBlock =
-          injectCountAndRoundGotoIntoBlock(
-              clause.block, countIncrement, countDecrement, rSmallerK, rIncrement, labelClauseMap);
-      // then inject into merged blocks
-      ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        newMergedBlocks.add(
+      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
+      for (SeqThreadStatementBlock block : clause.getBlocks()) {
+        newBlocks.add(
             injectCountAndRoundGotoIntoBlock(
-                mergedBlock,
-                countIncrement,
-                countDecrement,
-                rSmallerK,
-                rIncrement,
-                labelClauseMap));
+                block, countIncrement, countDecrement, rSmallerK, rIncrement, labelClauseMap));
       }
-      updatedClauses.add(
-          clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
+      updatedClauses.add(clause.cloneWithBlocks(newBlocks.build()));
     }
     return updatedClauses.build();
   }

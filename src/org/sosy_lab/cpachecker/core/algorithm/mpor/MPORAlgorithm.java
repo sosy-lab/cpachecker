@@ -383,6 +383,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               loopFiniteMainThreadEnd,
               loopIterations,
               nondeterminismSource,
+              noUpwardGoto,
               outputMetadata,
               outputPath,
               overwriteFiles,

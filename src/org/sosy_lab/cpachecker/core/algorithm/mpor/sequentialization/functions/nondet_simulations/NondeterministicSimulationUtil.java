@@ -181,7 +181,7 @@ public class NondeterministicSimulationUtil {
     SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(pTargetPc));
     SeqRoundGotoStatement roundGoto =
         new SeqRoundGotoStatement(
-            pRSmallerK, pRIncrement, Objects.requireNonNull(target).block.getLabel());
+            pRSmallerK, pRIncrement, Objects.requireNonNull(target).getFirstBlock().getLabel());
     return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
   }
 

@@ -141,7 +141,7 @@ public class GlobalVariableFinder {
       int targetNumber = pStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause targetClause =
           Objects.requireNonNull(pLabelClauseMap.get(targetNumber));
-      return targetClause.block.getStatements();
+      return targetClause.getFirstBlock().getStatements();
     }
     return ImmutableList.of();
   }

@@ -145,25 +145,13 @@ public class BitVectorInjector {
 
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      SeqThreadStatementBlock newBlock =
-          injectBitVectorsIntoBlock(
-              pOptions,
-              pAddEvaluation,
-              clause.block,
-              pActiveThread,
-              pOtherThreads,
-              pBitVectorVariables,
-              pLabelClauseMap,
-              pLabelBlockMap,
-              pPointerAssignments,
-              pBinaryExpressionBuilder);
-      ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        newMergedBlocks.add(
+      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
+      for (SeqThreadStatementBlock block : clause.getBlocks()) {
+        newBlocks.add(
             injectBitVectorsIntoBlock(
                 pOptions,
                 pAddEvaluation,
-                mergedBlock,
+                block,
                 pActiveThread,
                 pOtherThreads,
                 pBitVectorVariables,
@@ -172,7 +160,7 @@ public class BitVectorInjector {
                 pPointerAssignments,
                 pBinaryExpressionBuilder));
       }
-      rInjected.add(clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
+      rInjected.add(clause.cloneWithBlocks(newBlocks.build()));
     }
     return rInjected.build();
   }
@@ -244,7 +232,7 @@ public class BitVectorInjector {
                     pOtherThreads,
                     pLabelBlockMap,
                     pPointerAssignments,
-                    newTarget.block,
+                    newTarget.getFirstBlock(),
                     pBitVectorVariables,
                     pBinaryExpressionBuilder);
             newInjected.add(evaluationStatement);
@@ -254,7 +242,7 @@ public class BitVectorInjector {
               buildBitVectorAssignmentsByReduction(
                   pOptions,
                   pActiveThread,
-                  newTarget.block,
+                  newTarget.getFirstBlock(),
                   pLabelClauseMap,
                   pLabelBlockMap,
                   pPointerAssignments,

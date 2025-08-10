@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -287,6 +288,23 @@ public final class MPORUtil {
   public static <T> ImmutableSet<T> withoutElement(ImmutableSet<T> pElements, T pElementToRemove) {
     if (pElements.contains(pElementToRemove)) {
       return ImmutableSet.copyOf(Sets.difference(pElements, ImmutableSet.of(pElementToRemove)));
+    }
+    return pElements;
+  }
+
+  /**
+   * Returns a new {@link ImmutableList} containing all pElements from the given list except the
+   * specified element.
+   *
+   * <p>If the element is not present in the original list, the original list is returned unchanged.
+   */
+  public static <T> ImmutableList<T> withoutElement(
+      ImmutableList<T> pElements, T pElementToRemove) {
+    if (pElements.contains(pElementToRemove)) {
+      ImmutableList<T> toRemove = ImmutableList.of(pElementToRemove);
+      return pElements.stream()
+          .filter(e -> !toRemove.contains(e))
+          .collect(ImmutableList.toImmutableList());
     }
     return pElements;
   }

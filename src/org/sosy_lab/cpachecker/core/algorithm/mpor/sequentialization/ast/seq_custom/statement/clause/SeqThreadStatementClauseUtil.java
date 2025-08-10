@@ -36,7 +36,7 @@ public class SeqThreadStatementClauseUtil {
   public static SeqThreadStatementBlock getFirstBlock(
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
-    return pClauses.get(0).block;
+    return pClauses.get(0).getFirstBlock();
   }
 
   /** Searches for all target {@code pc} in {@code pStatement}. */
@@ -55,12 +55,9 @@ public class SeqThreadStatementClauseUtil {
     ImmutableSet.Builder<SubstituteEdge> rEdges = ImmutableSet.builder();
     for (MPORThread thread : pClauses.keySet()) {
       for (SeqThreadStatementClause clause : pClauses.get(thread)) {
-        for (SeqThreadStatement statement : clause.block.statements) {
-          rEdges.addAll(statement.getSubstituteEdges());
-        }
-        for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-          for (SeqThreadStatement mergedStatement : mergedBlock.getStatements()) {
-            rEdges.addAll(mergedStatement.getSubstituteEdges());
+        for (SeqThreadStatementBlock block : clause.getBlocks()) {
+          for (SeqThreadStatement statement : block.getStatements()) {
+            rEdges.addAll(statement.getSubstituteEdges());
           }
         }
       }
@@ -128,7 +125,7 @@ public class SeqThreadStatementClauseUtil {
 
     ImmutableMap.Builder<Integer, SeqThreadStatementBlock> rMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      for (SeqThreadStatementBlock block : clause.getAllBlocks()) {
+      for (SeqThreadStatementBlock block : clause.getBlocks()) {
         rMap.put(block.getLabel().labelNumber, block);
       }
     }
@@ -163,33 +160,18 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap<Integer, Integer> labelBlockMap = mapBlockLabelNumberToIndex(pClauses);
     ImmutableMap<Integer, Integer> labelClauseMap = mapClauseLabelNumberToIndex(pClauses);
     for (SeqThreadStatementClause clause : pClauses) {
-      ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : clause.block.getStatements()) {
-        newStatements.add(replaceTargetPc(statement, labelBlockMap, labelClauseMap));
-      }
-      ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        ImmutableList.Builder<SeqThreadStatement> newMergedStatements = ImmutableList.builder();
-        for (SeqThreadStatement mergedStatement : mergedBlock.getStatements()) {
-          newMergedStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
+      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
+      for (SeqThreadStatementBlock block : clause.getBlocks()) {
+        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+        for (SeqThreadStatement mergedStatement : block.getStatements()) {
+          newStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
-        int mergeBlockIndex =
-            Objects.requireNonNull(labelBlockMap.get(mergedBlock.getLabel().labelNumber));
-        newMergedBlocks.add(
-            mergedBlock
-                .cloneWithLabelNumber(mergeBlockIndex)
-                .cloneWithStatements(newMergedStatements.build()));
+        int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().labelNumber));
+        newBlocks.add(
+            block.cloneWithLabelNumber(blockIndex).cloneWithStatements(newStatements.build()));
       }
-      int blockIndex =
-          Objects.requireNonNull(labelBlockMap.get(clause.block.getLabel().labelNumber));
-      SeqThreadStatementBlock newBlock =
-          clause.block.cloneWithLabelNumber(blockIndex).cloneWithStatements(newStatements.build());
       int clauseIndex = Objects.requireNonNull(labelClauseMap.get(clause.labelNumber));
-      rNewClauses.add(
-          clause
-              .cloneWithLabelNumber(clauseIndex)
-              .cloneWithBlock(newBlock)
-              .cloneWithMergedBlocks(newMergedBlocks.build()));
+      rNewClauses.add(clause.cloneWithLabelNumber(clauseIndex).cloneWithBlocks(newBlocks.build()));
     }
     return rNewClauses.build();
   }
@@ -200,9 +182,8 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
     int index = Sequentialization.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
-      rLabelToIndex.put(clause.block.getLabel().labelNumber, index++);
-      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        rLabelToIndex.put(mergedBlock.getLabel().labelNumber, index++);
+      for (SeqThreadStatementBlock block : clause.getBlocks()) {
+        rLabelToIndex.put(block.getLabel().labelNumber, index++);
       }
     }
     return rLabelToIndex.buildOrThrow();
@@ -286,7 +267,7 @@ public class SeqThreadStatementClauseUtil {
     if (pCurrent.equals(pTarget)) {
       return true;
     } else {
-      SeqThreadStatement firstStatement = pCurrent.block.getFirstStatement();
+      SeqThreadStatement firstStatement = pCurrent.getFirstBlock().getFirstStatement();
       SeqThreadStatementClause next =
           pLabelClauseMap.get(firstStatement.getTargetPc().orElseThrow());
       assert next != null : "could not find target case clause";

@@ -191,19 +191,13 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
     ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      // first inject into block
-      SeqThreadStatementBlock newBlock =
-          NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-              clause.block, rSmallerK, rIncrement, labelClauseMap);
-      // then inject into merged blocks
-      ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        newMergedBlocks.add(
+      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
+      for (SeqThreadStatementBlock block : clause.getBlocks()) {
+        newBlocks.add(
             NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-                mergedBlock, rSmallerK, rIncrement, labelClauseMap));
+                block, rSmallerK, rIncrement, labelClauseMap));
       }
-      updatedClauses.add(
-          clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
+      updatedClauses.add(clause.cloneWithBlocks(newBlocks.build()));
     }
     return updatedClauses.build();
   }

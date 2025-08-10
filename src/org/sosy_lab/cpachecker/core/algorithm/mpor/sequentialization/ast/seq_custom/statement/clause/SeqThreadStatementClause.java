@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -37,22 +38,17 @@ public class SeqThreadStatementClause implements SeqStatement {
 
   public final int labelNumber;
 
-  // TODO why not merge block and mergedBlocks into just blocks? should make for better architecture
-
-  /** The case block e.g. {@code fib(42); break;} */
-  public final SeqThreadStatementBlock block;
-
   /**
-   * The list of merged blocks, that are not directly reachable due to linking and atomic merging.
+   * The block e.g. {@code T0_0: fib(42); break;} and merged blocks that directly reachable due to
+   * linking and atomic merging.
    */
-  public final ImmutableList<SeqThreadStatementBlock> mergedBlocks;
+  private final ImmutableList<SeqThreadStatementBlock> blocks;
 
   public SeqThreadStatementClause(boolean pIsLoopStart, SeqThreadStatementBlock pBlock) {
     id = getNewId();
     isLoopStart = pIsLoopStart;
     labelNumber = pBlock.getLabel().labelNumber;
-    block = pBlock;
-    mergedBlocks = ImmutableList.of();
+    blocks = ImmutableList.of(pBlock);
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
@@ -66,43 +62,69 @@ public class SeqThreadStatementClause implements SeqStatement {
     id = pId;
     isLoopStart = pIsLoopStart;
     labelNumber = pLabelNumber;
-    block = pBlock;
-    mergedBlocks = pMergedBlocks;
+    blocks = elementAndList(pBlock, pMergedBlocks);
   }
 
-  public ImmutableList<SeqThreadStatementBlock> getAllBlocks() {
-    return elementAndList(block, mergedBlocks);
+  /** Private constructor, only used during cloning process to keep the same id. */
+  private SeqThreadStatementClause(
+      int pId,
+      boolean pIsLoopStart,
+      int pLabelNumber,
+      ImmutableList<SeqThreadStatementBlock> pBlocks) {
+
+    id = pId;
+    isLoopStart = pIsLoopStart;
+    labelNumber = pLabelNumber;
+    blocks = pBlocks;
+  }
+
+  public SeqThreadStatementBlock getFirstBlock() {
+    return blocks.get(0);
+  }
+
+  public ImmutableList<SeqThreadStatementBlock> getMergedBlocks() {
+    return MPORUtil.withoutElement(blocks, getFirstBlock());
+  }
+
+  public ImmutableList<SeqThreadStatementBlock> getBlocks() {
+    return blocks;
   }
 
   public ImmutableList<SeqThreadStatement> getAllStatements() {
     ImmutableList.Builder<SeqThreadStatement> rAll = ImmutableList.builder();
-    rAll.addAll(block.getStatements());
-    for (SeqThreadStatementBlock mergedBlock : mergedBlocks) {
-      rAll.addAll(mergedBlock.getStatements());
+    for (SeqThreadStatementBlock block : blocks) {
+      rAll.addAll(block.getStatements());
     }
     return rAll.build();
   }
 
-  public SeqThreadStatementClause cloneWithBlock(SeqThreadStatementBlock pBlock) {
-    return new SeqThreadStatementClause(id, isLoopStart, labelNumber, pBlock, mergedBlocks);
+  public SeqThreadStatementClause cloneWithFirstBlock(SeqThreadStatementBlock pBlock) {
+    return new SeqThreadStatementClause(id, isLoopStart, labelNumber, pBlock, getMergedBlocks());
   }
 
   public SeqThreadStatementClause cloneWithMergedBlocks(
       ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
-    return new SeqThreadStatementClause(id, isLoopStart, labelNumber, block, pMergedBlocks);
+    return new SeqThreadStatementClause(
+        id, isLoopStart, labelNumber, getFirstBlock(), pMergedBlocks);
+  }
+
+  public SeqThreadStatementClause cloneWithBlocks(
+      ImmutableList<SeqThreadStatementBlock> pAllBlocks) {
+
+    return new SeqThreadStatementClause(id, isLoopStart, labelNumber, pAllBlocks);
   }
 
   public SeqThreadStatementClause cloneWithLabelNumber(int pLabelNumber) {
-    return new SeqThreadStatementClause(id, isLoopStart, pLabelNumber, block, mergedBlocks);
+    return new SeqThreadStatementClause(id, isLoopStart, pLabelNumber, blocks);
   }
 
   /**
-   * Returns true if all statements in the {@link SeqThreadStatementBlock} are blank, i.e. they only
-   * update a pc.
+   * Returns true if all statements in the first {@link SeqThreadStatementBlock} are blank, i.e.
+   * they only update a pc.
    */
   public boolean onlyWritesPc() {
-    for (SeqThreadStatement statement : block.getStatements()) {
+    for (SeqThreadStatement statement : getFirstBlock().getStatements()) {
       if (!statement.onlyWritesPc()) {
         return false;
       }
@@ -113,9 +135,8 @@ public class SeqThreadStatementClause implements SeqStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder rString = new StringBuilder();
-    rString.append(block.toASTString());
-    for (SeqThreadStatementBlock mergedBlock : mergedBlocks) {
-      rString.append(mergedBlock.toASTString());
+    for (SeqThreadStatementBlock block : blocks) {
+      rString.append(block.toASTString());
     }
     return rString.toString();
   }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -91,22 +92,11 @@ public class ConflictResolver {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqThreadStatementClause> rWithOrders = ImmutableList.builder();
+    Builder<SeqThreadStatementClause> rWithOrders = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      SeqThreadStatementBlock newBlock =
-          addConflictOrdersToBlock(
-              pOptions,
-              clause.block,
-              pActiveThread,
-              pOtherThreads,
-              pLabelBlockMap,
-              pPointerAssignments,
-              pBitVectorVariables,
-              pPcVariables,
-              pBinaryExpressionBuilder);
-      ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        newMergedBlocks.add(
+      Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
+      for (SeqThreadStatementBlock mergedBlock : clause.getBlocks()) {
+        newBlocks.add(
             addConflictOrdersToBlock(
                 pOptions,
                 mergedBlock,
@@ -118,8 +108,7 @@ public class ConflictResolver {
                 pPcVariables,
                 pBinaryExpressionBuilder));
       }
-      rWithOrders.add(
-          clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
+      rWithOrders.add(clause.cloneWithBlocks(newBlocks.build()));
     }
     return rWithOrders.build();
   }

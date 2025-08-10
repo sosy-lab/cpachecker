@@ -50,12 +50,13 @@ public class AtomicBlockMerger {
     ImmutableList.Builder<SeqThreadStatementClause> rWithGotos = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      // at this stage, mergedBlocks is empty, we only require the main block
-      for (SeqThreadStatement statement : clause.block.getStatements()) {
+      // at this stage, mergedBlocks is empty, we only require the first block
+      SeqThreadStatementBlock firstBlock = clause.getFirstBlock();
+      for (SeqThreadStatement statement : firstBlock.getStatements()) {
         newStatements.add(injectAtomicGotosIntoStatement(statement, pLabelBlockMap));
       }
-      SeqThreadStatementBlock newBlock = clause.block.cloneWithStatements(newStatements.build());
-      rWithGotos.add(clause.cloneWithBlock(newBlock));
+      SeqThreadStatementBlock newBlock = firstBlock.cloneWithStatements(newStatements.build());
+      rWithGotos.add(clause.cloneWithFirstBlock(newBlock));
     }
     return rWithGotos.build();
   }
@@ -90,7 +91,7 @@ public class AtomicBlockMerger {
           int exclusiveTo = findFirstExclusiveIndexNotInAtomicBlock(i, pClauses, visited);
           // start at i + 1 so that atomic_begin is not inside mergedBlocks, but block itself
           ImmutableList<SeqThreadStatementBlock> newMergedBlocks =
-              collectAllBlocksAndMergedBlocks(i + 1, exclusiveTo, pClauses);
+              collectAllBlocksFromTo(i + 1, exclusiveTo, pClauses);
           rMerged.add(clause.cloneWithMergedBlocks(newMergedBlocks));
         } else {
           rMerged.add(clause);
@@ -109,12 +110,12 @@ public class AtomicBlockMerger {
     Optional<SeqThreadStatementClause> next =
         nextIndex < pClauses.size() ? Optional.of(pClauses.get(nextIndex)) : Optional.empty();
     // always allowed when starting atomic block or starting in atomic block
-    return pClause.block.startsAtomicBlock()
-        || pClause.block.startsInAtomicBlock()
+    return pClause.getFirstBlock().startsAtomicBlock()
+        || pClause.getFirstBlock().startsInAtomicBlock()
         // allowed if the next statement starts in an atomic block, regardless of previous statement
         // this can happen e.g. with atomic_ends that are reached conditionally
         // -> multiple paths that may not be consecutive in pClauses
-        || (next.isPresent() && next.orElseThrow().block.startsInAtomicBlock());
+        || (next.isPresent() && next.orElseThrow().getFirstBlock().startsInAtomicBlock());
   }
 
   private static int findFirstExclusiveIndexNotInAtomicBlock(
@@ -125,7 +126,7 @@ public class AtomicBlockMerger {
     for (int i = pFrom; i < pClauses.size(); i++) {
       SeqThreadStatementClause clause = pClauses.get(i);
       // if not in first, consider whether clause starts in atomic block
-      if (i != pFrom && !clause.block.startsInAtomicBlock()) {
+      if (i != pFrom && !clause.getFirstBlock().startsInAtomicBlock()) {
         return i;
       }
       pVisited.add(clause);
@@ -133,16 +134,15 @@ public class AtomicBlockMerger {
     return pClauses.size(); // if the rest is atomic block, return last index (exclusive)
   }
 
-  private static ImmutableList<SeqThreadStatementBlock> collectAllBlocksAndMergedBlocks(
+  private static ImmutableList<SeqThreadStatementBlock> collectAllBlocksFromTo(
       int pFrom, // inclusive
       int pTo, // exclusive
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableList.Builder<SeqThreadStatementBlock> rCollected = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses.subList(pFrom, pTo)) {
-      rCollected.add(clause.block);
-      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        rCollected.add(mergedBlock);
+      for (SeqThreadStatementBlock block : clause.getBlocks()) {
+        rCollected.add(block);
       }
     }
     return rCollected.build();

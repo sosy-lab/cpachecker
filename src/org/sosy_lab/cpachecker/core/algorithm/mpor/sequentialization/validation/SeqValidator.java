@@ -154,7 +154,7 @@ public class SeqValidator {
         // check if the labels case clause is a loop head -> it is targeted with goto, not target pc
         SeqThreadStatementClause clause = pLabelClauseMap.get(pLabelPc);
         assert clause != null;
-        SeqThreadStatement firstStatement = clause.block.getFirstStatement();
+        SeqThreadStatement firstStatement = clause.getFirstBlock().getFirstStatement();
         // TODO test if this can be removed now?
         if (SeqThreadStatementUtil.startsInAtomicBlock(firstStatement)) {
           return; // for statements in atomic blocks, the label pcs may not be targets due to gotos

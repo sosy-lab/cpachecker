@@ -61,29 +61,17 @@ public class StatementLinker {
         SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses);
 
     for (SeqThreadStatementClause clause : pClauses) {
-      ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : clause.block.getStatements()) {
-        newStatements.add(
-            linkStatements(
-                statement, pLinkedTargetIds, labelClauseMap, labelBlockMap, pPointerAssignments));
-      }
-      SeqThreadStatementBlock newBlock = clause.block.cloneWithStatements(newStatements.build());
-      ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        ImmutableList.Builder<SeqThreadStatement> newMergedStatements = ImmutableList.builder();
-        for (SeqThreadStatement mergedStatement : mergedBlock.statements) {
-          newMergedStatements.add(
+      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
+      for (SeqThreadStatementBlock block : clause.getBlocks()) {
+        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+        for (SeqThreadStatement statement : block.statements) {
+          newStatements.add(
               linkStatements(
-                  mergedStatement,
-                  pLinkedTargetIds,
-                  labelClauseMap,
-                  labelBlockMap,
-                  pPointerAssignments));
+                  statement, pLinkedTargetIds, labelClauseMap, labelBlockMap, pPointerAssignments));
         }
-        newMergedBlocks.add(mergedBlock.cloneWithStatements(newMergedStatements.build()));
+        newBlocks.add(block.cloneWithStatements(newStatements.build()));
       }
-      rNewClauses.add(
-          clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
+      rNewClauses.add(clause.cloneWithBlocks(newBlocks.build()));
     }
     return rNewClauses.build();
   }
@@ -104,7 +92,7 @@ public class StatementLinker {
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       if (isValidLink(pCurrentStatement, newTarget, pLabelBlockMap, pPointerAssignments)) {
         pLinkedTargetIds.add(newTarget.id);
-        return pCurrentStatement.cloneWithTargetGoto(newTarget.block.getLabel());
+        return pCurrentStatement.cloneWithTargetGoto(newTarget.getFirstBlock().getLabel());
       }
     }
     return pCurrentStatement;
@@ -119,15 +107,16 @@ public class StatementLinker {
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments) {
 
+    SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
     return pStatement.isLinkable()
         // do not link atomic blocks, this is handled by AtomicBlockMerger
-        && !(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
+        && !(targetBlock.startsAtomicBlock() || targetBlock.startsInAtomicBlock())
         // thread synchronization statements must be directly reachable (via pc) -> no linking
         && !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
         // only consider global accesses if not ignored
         && !(!canIgnoreGlobal(pTarget)
             && GlobalVariableFinder.hasGlobalAccess(
-                pLabelBlockMap, pPointerAssignments, pTarget.block));
+                pLabelBlockMap, pPointerAssignments, targetBlock));
   }
 
   /**
@@ -139,7 +128,7 @@ public class StatementLinker {
     //  what if there are other global accesses?
     // TODO only holds without pthread_mutex_trylock (i.e. unlock does not guarantee commute
     //  anymore) -> remove if adding pthread_mutex_trylock support
-    if (pTarget.block.getFirstStatement() instanceof SeqMutexUnlockStatement) {
+    if (pTarget.getFirstBlock().getFirstStatement() instanceof SeqMutexUnlockStatement) {
       return true;
     }
     return false;
@@ -156,11 +145,10 @@ public class StatementLinker {
       SeqThreadStatementClause clause = pClauses.get(i);
       // if i == 0, then add clause even if it is not directly reachable, otherwise it is pruned
       if (i != 0 && pLinkedTargetIds.contains(clause.id)) {
-        temporary.add(0, clause.block);
-        temporary.addAll(0, clause.mergedBlocks);
+        temporary.addAll(0, clause.getBlocks());
       } else {
         // still need all mergedBlocks here
-        temporary.addAll(0, clause.mergedBlocks);
+        temporary.addAll(0, clause.getMergedBlocks());
         SeqThreadStatementClause mergedClause =
             clause.cloneWithMergedBlocks(ImmutableList.copyOf(temporary));
         rMerged.add(0, mergedClause);
