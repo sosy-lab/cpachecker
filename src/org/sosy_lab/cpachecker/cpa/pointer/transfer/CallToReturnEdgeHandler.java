@@ -11,6 +11,10 @@ package org.sosy_lab.cpachecker.cpa.pointer.transfer;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 
+/**
+ * Handles edges skipping function bodies, e.g., for external functions without a CFA. It preserves
+ * the current pointer state because no explicit points-to modifications are modeled.
+ */
 public final class CallToReturnEdgeHandler implements TransferRelationEdgeHandler<AbstractCFAEdge> {
   @Override
   public PointerAnalysisState handleEdge(PointerAnalysisState pState, AbstractCFAEdge pCfaEdge) {

@@ -22,6 +22,10 @@ import org.sosy_lab.cpachecker.cpa.pointer.utils.PointerAnalysisChecks;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+/**
+ * Processes return statements inside functions. For pointer return values, it records the returned
+ * points-to set into the synthetic return variable so it can be passed back to the caller.
+ */
 public final class ReturnStatementEdgeHandler
     implements TransferRelationEdgeHandler<CReturnStatementEdge> {
 

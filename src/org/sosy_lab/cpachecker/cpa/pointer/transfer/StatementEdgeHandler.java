@@ -40,6 +40,22 @@ import org.sosy_lab.cpachecker.cpa.pointer.utils.PointerAnalysisChecks;
 import org.sosy_lab.cpachecker.cpa.pointer.utils.StructUnionAssignmentHandler;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+/**
+ * Handles pointer-related operations for transitions, which represent statements such as
+ * assignments, function calls, and expressions in the CFA.
+ *
+ * <p>Supports the following cases:
+ *
+ * <ul>
+ *   <li>Pointer assignments, including assignments to struct and union fields.
+ *   <li>Heap allocations (e.g., {@code malloc}), creating new symbolic heap locations according to
+ *       the configured heap allocation strategy.
+ *   <li>Deallocations (e.g., {@code free}), marking the corresponding heap locations as invalid to
+ *       prevent further dereferences.
+ *   <li>Propagation or update of points-to sets for left-hand and right-hand side expressions,
+ *       including special handling for struct/union assignments via dedicated assignment handlers.
+ * </ul>
+ */
 public final class StatementEdgeHandler implements TransferRelationEdgeHandler<CStatementEdge> {
   private final LogManager logger;
 

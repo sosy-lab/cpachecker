@@ -21,6 +21,11 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.utils.PointerAnalysisChecks;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+/**
+ * Processes AssumeEdge conditions (e.g., if statements) to refine pointer state based on pointer
+ * equality/inequality and null-comparisons. It narrows possible points-to sets or detects
+ * contradictions that make the state infeasible (returning BOTTOM_STATE).
+ */
 public final class AssumeEdgeHandler implements TransferRelationEdgeHandler<AssumeEdge> {
   private final PointerTransferOptions pOptions;
 

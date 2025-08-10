@@ -27,6 +27,11 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+/**
+ * Processes pointer variable declarations, resolving any initializer expression into points-to
+ * targets. Updates the state so that newly declared pointers have the correct initial points-to set
+ * or remain unchanged if uninitialized.
+ */
 public final class DeclarationEdgeHandler implements TransferRelationEdgeHandler<CDeclarationEdge> {
   private PointerTransferOptions options;
 

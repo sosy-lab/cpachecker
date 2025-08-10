@@ -35,6 +35,12 @@ import org.sosy_lab.cpachecker.cpa.pointer.utils.StructUnionAssignmentHandler;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+/**
+ * Handles transitions from a function back to its caller. Transfers the returned pointer value from
+ * the callee’s return variable to the caller’s left-hand side variable at the call site. During
+ * this process, any pointer targets that are no longer valid due to the callee’s scope ending are
+ * replaced with invalid locations to prevent dangling references.
+ */
 public final class FunctionReturnEdgeHandler
     implements TransferRelationEdgeHandler<CFunctionReturnEdge> {
   private final LogManager logger;

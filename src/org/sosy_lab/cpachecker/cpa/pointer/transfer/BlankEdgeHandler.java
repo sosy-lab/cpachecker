@@ -11,6 +11,10 @@ package org.sosy_lab.cpachecker.cpa.pointer.transfer;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 
+/**
+ * Handles no-operation edges such as comments or synthetic transitions. It leaves the pointer state
+ * unchanged since they have no semantic effect.
+ */
 public final class BlankEdgeHandler implements TransferRelationEdgeHandler<AbstractCFAEdge> {
   @Override
   public PointerAnalysisState handleEdge(PointerAnalysisState pState, AbstractCFAEdge pCfaEdge) {

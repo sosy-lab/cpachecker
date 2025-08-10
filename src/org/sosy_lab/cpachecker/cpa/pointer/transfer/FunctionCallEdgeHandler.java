@@ -25,6 +25,11 @@ import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
+/**
+ * Handles transitions into a callee. It maps actual pointer arguments at the call site to the
+ * callee’s formal parameters. The handler updates the state so parameter pointers refer to the same
+ * targets as the passed arguments.
+ */
 public final class FunctionCallEdgeHandler
     implements TransferRelationEdgeHandler<CFunctionCallEdge> {
   private PointerTransferOptions options;
