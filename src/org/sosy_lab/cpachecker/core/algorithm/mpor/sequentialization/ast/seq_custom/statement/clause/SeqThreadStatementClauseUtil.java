@@ -297,4 +297,13 @@ public class SeqThreadStatementClauseUtil {
       }
     }
   }
+
+  // No Upward Goto ================================================================================
+
+  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> ensureNoUpwardGoto(
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
+
+    // TODO
+    return pClauses;
+  }
 }

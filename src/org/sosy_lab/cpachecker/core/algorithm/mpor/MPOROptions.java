@@ -76,6 +76,8 @@ public class MPOROptions {
 
   public final NondeterminismSource nondeterminismSource;
 
+  public final boolean noUpwardGoto;
+
   public final boolean outputMetadata;
 
   public final String outputPath;
@@ -122,6 +124,7 @@ public class MPOROptions {
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
       NondeterminismSource pNondeterminismSource,
+      boolean pNoUpwardGoto,
       boolean pOutputMetadata,
       String pOutputPath,
       boolean pOverwriteFiles,
@@ -165,6 +168,7 @@ public class MPOROptions {
     loopFiniteMainThreadEnd = pLoopFiniteMainThreadEnd;
     loopIterations = pLoopIterations;
     nondeterminismSource = pNondeterminismSource;
+    noUpwardGoto = pNoUpwardGoto;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
@@ -198,6 +202,7 @@ public class MPOROptions {
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
       NondeterminismSource pNondeterminismSource,
+      boolean pNoUpwardGoto,
       ReductionMode pReductionMode,
       boolean pScalarPc,
       boolean pSequentializationErrors,
@@ -232,6 +237,7 @@ public class MPOROptions {
         pLoopFiniteMainThreadEnd,
         pLoopIterations,
         pNondeterminismSource,
+        pNoUpwardGoto,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,

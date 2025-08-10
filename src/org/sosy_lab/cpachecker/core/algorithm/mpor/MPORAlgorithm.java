@@ -215,6 +215,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "removes upward goto, i.e. jumping to a LOC higher up in the program, by reordering"
+              + " statements. only works for if-else constructs, not loops.")
+  private boolean noUpwardGoto = true;
+
+  @Option(
+      secure = true,
+      description =
           "add an additional .yml file with metadata such as input file(s) and algorithm options?")
   private boolean outputMetadata = true;
 

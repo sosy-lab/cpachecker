@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -74,6 +75,15 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   public ImmutableList<SeqThreadStatement> getStatements() {
     return statements;
+  }
+
+  public boolean isLoopStart() {
+    for (SeqThreadStatement statement : statements) {
+      if (statement instanceof SeqAssumeStatement assumeStatement) {
+        return assumeStatement.isLoopStart;
+      }
+    }
+    return false;
   }
 
   public SeqThreadStatementBlock cloneWithLabelNumber(int pLabelNumber) {

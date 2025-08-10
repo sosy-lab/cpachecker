@@ -213,8 +213,9 @@ public class SeqThreadStatementBuilder {
       // use else ... for last (= second) assume edge
       expression = new SeqElseExpression();
     }
+    boolean isLoopStart = pAssumeEdge.getPredecessor().isLoopStart();
     return new SeqAssumeStatement(
-        expression, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+        isLoopStart, expression, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqLocalVariableDeclarationWithInitializerStatement

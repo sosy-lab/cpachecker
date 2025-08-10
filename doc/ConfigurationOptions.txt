@@ -354,6 +354,10 @@ analysis.algorithm.MPOR.loopFiniteMainThreadEnd = false
 # thread.
 analysis.algorithm.MPOR.loopIterations = 0
 
+# removes upward goto, i.e. jumping to a LOC higher up in the program, by
+# reordering statements. only works for if-else constructs, not loops.
+analysis.algorithm.MPOR.noUpwardGoto = true
+
 # the source(s) of nondeterminism in the sequentialization. may slow down or
 # improve performance, depending on the verifier.
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS

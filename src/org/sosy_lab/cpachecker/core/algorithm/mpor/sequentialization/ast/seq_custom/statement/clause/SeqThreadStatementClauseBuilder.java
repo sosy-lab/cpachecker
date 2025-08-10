@@ -77,11 +77,16 @@ public class SeqThreadStatementClauseBuilder {
             SubstituteUtil.mapPointerAssignments(pSubstituteEdges.values()),
             pBinaryExpressionBuilder,
             pLogger);
+    // if enabled, ensure that no upward goto exist
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noUpwardGoto =
+        pOptions.noUpwardGoto
+            ? SeqThreadStatementClauseUtil.ensureNoUpwardGoto(reducedClauses)
+            : reducedClauses;
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
         pOptions.consecutiveLabels
-            ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(reducedClauses)
-            : reducedClauses;
+            ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noUpwardGoto)
+            : noUpwardGoto;
     // if enabled, ensure that all label and target pc are valid
     return pOptions.validatePc
         ? SeqValidator.validateClauses(consecutiveLabels, pLogger)
@@ -125,7 +130,7 @@ public class SeqThreadStatementClauseBuilder {
 
   /**
    * Reorders the given {@link SeqThreadStatementClause}s so that the first non-blank is at the
-   * start at label {@code 0}. This may not be given by default if a start_routine starts with a
+   * start at label {@code 1}. This may not be given by default if a start_routine starts with a
    * function call.
    */
   private static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reorderClauses(
