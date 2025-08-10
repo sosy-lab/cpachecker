@@ -223,6 +223,15 @@ public class UnseqBehaviorAnalysisTransferRelation
       }
     }
 
+    // to detect unseq behavior between arguments,like int c = foo(f1(), f2());, foo(f1(), f2());,
+    // return foo(f1(), f2());
+    ExpressionBehaviorVisitor visitor =
+        new ExpressionBehaviorVisitor(newState, callEdge, AccessType.READ, logger);
+    ExpressionAnalysisSummary summary = callEdge.getFunctionCallExpression().accept(visitor);
+    mergeConflicts(
+        mergedConflicts,
+        detectCrossArgumentConflicts(summary.sideEffectsPerSubExpr(), callEdge, newState));
+
     return new UnseqBehaviorAnalysisState(
         UnseqUtils.toImmutableSideEffectsMap(mergedSideEffects),
         ImmutableList.copyOf(mergedFunctionCallStack),
@@ -248,13 +257,6 @@ public class UnseqBehaviorAnalysisTransferRelation
     if (summaryExpr instanceof CFunctionCallAssignmentStatement assignStmt) {
       CExpression lhs = assignStmt.getLeftHandSide();
       CFunctionCallExpression rhs = assignStmt.getRightHandSide();
-
-      // to detect unseq behavior between arguments,like int c = foo(f1(), f2());
-      // and return foo(f1(), f2());
-      ExpressionAnalysisSummary summary = rhs.accept(visitor);
-      mergeConflicts(
-          mergedConflicts,
-          detectCrossArgumentConflicts(summary.sideEffectsPerSubExpr(), funReturnEdge, newState));
 
       if (lhs instanceof CIdExpression tmpVar) { // map tmp name and function name
         String tmpName = tmpVar.getDeclaration().getQualifiedName();
