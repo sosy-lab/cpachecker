@@ -146,6 +146,13 @@ public final class ValueAnalysisState
         pConstantsMapSize,
         pNumberOfGlobalConstants,
         pNumberOfSymbolicConstants);
+    assert pConstantsMap.entrySet().stream()
+            .filter(e -> e.getValue().getValue() instanceof SymbolicValue)
+            .count()
+        == pNumberOfSymbolicConstants;
+    assert pConstantsMap.entrySet().stream().filter(e -> !e.getKey().isOnFunctionStack()).count()
+        == pNumberOfGlobalConstants;
+    assert pConstantsMap.size() == pConstantsMapSize;
   }
 
   private ValueAnalysisState(
@@ -158,10 +165,10 @@ public final class ValueAnalysisState
     constantsMap = checkNotNull(pConstantsMap);
     assert constantsMap.size() == pConstantsMapSize;
     constantsMapSize = pConstantsMapSize;
-    assert constantsMap.entrySet().stream().filter(e -> !e.getKey().isOnFunctionStack()).count()
+    assert pConstantsMap.entrySet().stream().filter(e -> !e.getKey().isOnFunctionStack()).count()
         == pNumberOfGlobalConstants;
     numberOfGlobalConstants = pNumberOfGlobalConstants;
-    assert constantsMap.entrySet().stream()
+    assert pConstantsMap.entrySet().stream()
             .filter(e -> e.getValue().getValue() instanceof SymbolicValue)
             .count()
         == pNumberOfSymbolicConstants;
@@ -175,13 +182,16 @@ public final class ValueAnalysisState
     hashCode = state.hashCode;
     constantsMapSize = state.constantsMapSize;
     numberOfGlobalConstants = state.numberOfGlobalConstants;
-    assert constantsMap.entrySet().stream()
-        .filter(e -> e.getValue().getValue() instanceof SymbolicValue)
-        .count()
+    numberOfSymbolicConstants = state.numberOfSymbolicConstants;
+    assert state.constantsMap.entrySet().stream()
+            .filter(e -> e.getValue().getValue() instanceof SymbolicValue)
+            .count()
         == state.numberOfSymbolicConstants;
-    assert constantsMap.entrySet().stream().filter(e -> !e.getKey().isOnFunctionStack()).count()
+    assert state.constantsMap.entrySet().stream()
+            .filter(e -> !e.getKey().isOnFunctionStack())
+            .count()
         == state.numberOfGlobalConstants;
-    assert constantsMap.size() == state.constantsMapSize;
+    assert state.constantsMap.size() == state.constantsMapSize;
     assert hashCode == constantsMap.hashCode();
   }
 
@@ -215,9 +225,9 @@ public final class ValueAnalysisState
 
     ValueAndType valueAndType = new ValueAndType(checkNotNull(valueToAdd), pType);
     ValueAndType oldValueAndType = constantsMap.get(pMemLoc);
+    boolean newIsSymbolic = valueAndType.getValue() instanceof SymbolicValue;
     if (oldValueAndType != null) {
       hashCode -= (pMemLoc.hashCode() ^ oldValueAndType.hashCode());
-      boolean newIsSymbolic = valueAndType.getValue() instanceof SymbolicValue;
       boolean oldIsSymbolic = oldValueAndType.getValue() instanceof SymbolicValue;
       if (newIsSymbolic && !oldIsSymbolic) {
         numberOfSymbolicConstants++;
@@ -229,7 +239,7 @@ public final class ValueAnalysisState
       if (!pMemLoc.isOnFunctionStack()) {
         numberOfGlobalConstants++;
       }
-      if (valueAndType.getValue() instanceof SymbolicValue) {
+      if (newIsSymbolic) {
         numberOfSymbolicConstants++;
       }
     }
