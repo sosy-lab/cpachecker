@@ -1128,35 +1128,30 @@ public class SMGCPAValueVisitor
       SMGState currentState = valueAndState.getState();
       Value value = valueAndState.getValue();
 
+      ValueAndSMGState newValueAndState;
       if (value instanceof SymbolicValue) {
-        builder.add(
+        newValueAndState =
             ValueAndSMGState.of(
                 createSymbolicExpression(value, operandType, unaryOperator, returnType),
-                currentState));
-        continue;
+                currentState);
       } else if (!value.isNumericValue()) {
         logger.logf(
             Level.FINE,
             "Returned unknown due to invalid argument %s for unary operator %s.",
             value,
             unaryOperator);
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
-        continue;
+        newValueAndState = ValueAndSMGState.ofUnknownValue(currentState);
+      } else {
+        final NumericValue numericValue = (NumericValue) value;
+        final NumericValue newValue =
+            switch (unaryOperator) {
+              case MINUS -> numericValue.negate();
+              case TILDE -> new NumericValue(~numericValue.longValue());
+              default -> throw new AssertionError("Unknown unary operator: " + unaryOperator);
+            };
+        newValueAndState = ValueAndSMGState.of(newValue, currentState);
       }
-
-      final NumericValue numericValue = (NumericValue) value;
-      switch (unaryOperator) {
-        case MINUS -> {
-          builder.add(ValueAndSMGState.of(numericValue.negate(), currentState));
-          continue;
-        }
-        case TILDE -> {
-          builder.add(
-              ValueAndSMGState.of(new NumericValue(~numericValue.longValue()), currentState));
-          continue;
-        }
-        default -> throw new AssertionError("Unknown unary operator: " + unaryOperator);
-      }
+      builder.add(newValueAndState);
     }
     return builder.build();
   }
