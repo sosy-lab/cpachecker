@@ -318,11 +318,12 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
   private boolean specificationContainsMemSafety() {
     Set<Property> properties = getSpecification().getProperties();
-    return properties.stream().anyMatch(p ->
-        p == CommonVerificationProperty.VALID_FREE ||
-            p == CommonVerificationProperty.VALID_DEREF ||
-            p == CommonVerificationProperty.VALID_MEMTRACK
-    );
+    return properties.stream()
+        .anyMatch(
+            p ->
+                p == CommonVerificationProperty.VALID_FREE
+                    || p == CommonVerificationProperty.VALID_DEREF
+                    || p == CommonVerificationProperty.VALID_MEMTRACK);
   }
 
   private static WaypointRecord defaultTargetWaypoint(CFAEdge pEdge) {
@@ -383,8 +384,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // TODO: Maybe move Method to Counterexample or other more suitable Class
     return pSMGAdditionalInfo != null
         && pSMGAdditionalInfo.getLevel() == SMGAdditionalInfo.Level.ERROR
-        && (pSMGAdditionalInfo.getValue().startsWith("Invalid read of memory object") ||
-            pSMGAdditionalInfo.getValue().startsWith("Null pointer dereference"));
+        && (pSMGAdditionalInfo.getValue().startsWith("Invalid read of memory object")
+            || pSMGAdditionalInfo.getValue().startsWith("Null pointer dereference"));
   }
 
   private boolean isMemtrackError(SMGAdditionalInfo pSMGAdditionalInfo) {
@@ -394,20 +395,25 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         && pSMGAdditionalInfo.getValue().startsWith("Memory leak");
   }
 
-  private Entry<CFAEdge, Multimap<ConvertingTags, SMGAdditionalInfo>> getErrorEdgeAndSMGInfo(Map<CFAEdge, Multimap<ConvertingTags, Object>> additionalInfo) {
+  private Entry<CFAEdge, Multimap<ConvertingTags, SMGAdditionalInfo>> getErrorEdgeAndSMGInfo(
+      Map<CFAEdge, Multimap<ConvertingTags, Object>> additionalInfo) {
     return additionalInfo.entrySet().stream()
-        .map(entry -> {
-          Multimap<ConvertingTags, SMGAdditionalInfo> filteredMap =
-              entry.getValue().entries().stream()
-                  .filter(e -> e.getValue() instanceof SMGAdditionalInfo)
-                  .collect(Multimaps.toMultimap(
-                      Map.Entry::getKey,
-                      e -> (SMGAdditionalInfo) e.getValue(),
-                      MultimapBuilder.hashKeys().arrayListValues()::build));
-          return Map.entry(entry.getKey(), filteredMap);
-        })
-        .filter(e -> e.getValue().values().stream()
-            .anyMatch(info -> info.getLevel() == SMGAdditionalInfo.Level.ERROR))
+        .map(
+            entry -> {
+              Multimap<ConvertingTags, SMGAdditionalInfo> filteredMap =
+                  entry.getValue().entries().stream()
+                      .filter(e -> e.getValue() instanceof SMGAdditionalInfo)
+                      .collect(
+                          Multimaps.toMultimap(
+                              Map.Entry::getKey,
+                              e -> (SMGAdditionalInfo) e.getValue(),
+                              MultimapBuilder.hashKeys().arrayListValues()::build));
+              return Map.entry(entry.getKey(), filteredMap);
+            })
+        .filter(
+            e ->
+                e.getValue().values().stream()
+                    .anyMatch(info -> info.getLevel() == SMGAdditionalInfo.Level.ERROR))
         .findFirst()
         .orElse(null);
   }
@@ -443,22 +449,28 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     List<CFAEdge> potentialErrorEdges = new ArrayList<>();
 
-    List<CFAEdge> edgesThatExplicitlyUseExpression =
-      filterEdgesUsingExpression(edges, expression);
+    List<CFAEdge> edgesThatExplicitlyUseExpression = filterEdgesUsingExpression(edges, expression);
 
     List<CFAEdge> edgesThatInexplicitlyUseExpression =
-      findAssignmentsOfExpressions(edges, expression);
+        findAssignmentsOfExpressions(edges, expression);
 
-    //Variable set to NULL
+    // Variable set to NULL
     for (CFAEdge edge : edgesThatExplicitlyUseExpression) {
-      Pattern pattern = Pattern.compile("(?<![A-Za-z0-9_])" + Pattern.quote(expression) + "\\s*=\\s*NULL(?![A-Za-z0-9_])");
+      Pattern pattern =
+          Pattern.compile(
+              "(?<![A-Za-z0-9_])" + Pattern.quote(expression) + "\\s*=\\s*NULL(?![A-Za-z0-9_])");
       if (pattern.matcher(edge.getRawStatement()).find()) {
         potentialErrorEdges.add(edge);
         continue;
       }
 
-      pattern = Pattern.compile("(?<![A-Za-z0-9_])" + Pattern.quote(expression) + "\\s*=\\s*" + Pattern.quote("(void *)0"));
-      if(pattern.matcher(edge.toString()).find()){
+      pattern =
+          Pattern.compile(
+              "(?<![A-Za-z0-9_])"
+                  + Pattern.quote(expression)
+                  + "\\s*=\\s*"
+                  + Pattern.quote("(void *)0"));
+      if (pattern.matcher(edge.toString()).find()) {
         potentialErrorEdges.add(edge);
         continue;
       }
@@ -467,13 +479,18 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   private List<CFAEdge> filterEdgesUsingExpression(List<CFAEdge> edges, String expression) {
-    String exprPattern = "(" + Pattern.quote(expression) + "|" + Pattern.quote("*" + expression) + ")";
+    String exprPattern =
+        "(" + Pattern.quote(expression) + "|" + Pattern.quote("*" + expression) + ")";
     Pattern pattern = Pattern.compile("(?<![A-Za-z0-9_])" + exprPattern + "(?![A-Za-z0-9_])");
 
-    List<CFAEdge> edgesThatUseExpression = edges.stream().filter(edge -> {
-      String rawStatement = edge.getRawStatement();
-      return rawStatement != null && pattern.matcher(rawStatement).find();
-    }).toList();
+    List<CFAEdge> edgesThatUseExpression =
+        edges.stream()
+            .filter(
+                edge -> {
+                  String rawStatement = edge.getRawStatement();
+                  return rawStatement != null && pattern.matcher(rawStatement).find();
+                })
+            .toList();
 
     return edgesThatUseExpression;
   }
@@ -494,7 +511,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       Set<String> newWatchesThisEdge = new HashSet<>();
       Set<String> removeWatchesThisEdge = new HashSet<>();
       for (String watch : watchList) {
-        Pattern pattern = Pattern.compile("(?<![A-Za-z0-9_])(" + Pattern.quote(watch) + "|" + Pattern.quote("*" + watch) + ")(?![A-Za-z0-9_])");
+        Pattern pattern =
+            Pattern.compile(
+                "(?<![A-Za-z0-9_])("
+                    + Pattern.quote(watch)
+                    + "|"
+                    + Pattern.quote("*" + watch)
+                    + ")(?![A-Za-z0-9_])");
         if (!pattern.matcher(rawStatement).find()) {
           continue;
         }
@@ -503,12 +526,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         pattern = Pattern.compile("=\\s*" + Pattern.quote(watch) + "(?![A-Za-z0-9_])");
 
         if (pattern.matcher(rawStatement).find()) {
-          Matcher leftPatternMatcher = Pattern.compile("([A-Za-z0-9_*]+)\\s*=").matcher(rawStatement);
+          Matcher leftPatternMatcher =
+              Pattern.compile("([A-Za-z0-9_*]+)\\s*=").matcher(rawStatement);
           if (leftPatternMatcher.find()) {
             newWatchesThisEdge.add(leftPatternMatcher.group(1));
           }
         }
-        Matcher leftPatternMatcher = Pattern.compile("(?<![A-Za-z0-9_])" + watch + "\\s*=").matcher(rawStatement);
+        Matcher leftPatternMatcher =
+            Pattern.compile("(?<![A-Za-z0-9_])" + watch + "\\s*=").matcher(rawStatement);
         if (leftPatternMatcher.find() && !watch.equals(pExpression)) {
           removeWatchesThisEdge.add(watch);
         }
@@ -520,7 +545,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return returnList;
   }
 
-
   /**
    * Export the given counterexample to the path as a Witness version 2.0
    *
@@ -531,14 +555,15 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
     AstCfaRelation astCFARelation = getASTStructure();
 
-    List<CFAEdge> potentialCausesForDereference =
-        getPotentialCausesForDereference(pCex);
+    List<CFAEdge> potentialCausesForDereference = getPotentialCausesForDereference(pCex);
     String expression = null;
-    for (SMGAdditionalInfo info : getErrorEdgeAndSMGInfo(pCex.getAdditionalInfoAsMap()).getValue().values()) {
+    for (SMGAdditionalInfo info :
+        getErrorEdgeAndSMGInfo(pCex.getAdditionalInfoAsMap()).getValue().values()) {
       if (info.getValue().startsWith("Expression: ")) {
         expression = info.getValue().substring("Expression: ".length());
         if (expression.startsWith("*")) {
-          // If the expression starts with a star, we need to remove it, since \\valid checks the pointer not the contents
+          // If the expression starts with a star, we need to remove it, since \\valid checks the
+          // pointer not the contents
           // expression in the witness format
           expression = expression.substring(1);
         }
@@ -592,18 +617,20 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         }
 
         if (specificationContainsMemSafety()) {
-          //VALID-FREE handling
+          // VALID-FREE handling
           if (CFAUtils.isFreeStatement(edge)) {
             CFunctionCallExpression functionCall =
-                ((CFunctionCallStatement) ((CStatementEdge) edge).getStatement()).getFunctionCallExpression();
-            statement = addAssumptions(statement,
-                "!\\valid(" + functionCall.getParameterExpressions().get(0).toString() + ")");
+                ((CFunctionCallStatement) ((CStatementEdge) edge).getStatement())
+                    .getFunctionCallExpression();
+            statement =
+                addAssumptions(
+                    statement,
+                    "!\\valid(" + functionCall.getParameterExpressions().get(0).toString() + ")");
           }
 
-          //VALID-DEREF handling
+          // VALID-DEREF handling
           if (potentialCausesForDereference.contains(edge)) {
-            statement = addAssumptions(statement,
-                "!\\valid(" + expression + ")");
+            statement = addAssumptions(statement, "!\\valid(" + expression + ")");
           }
         }
 
