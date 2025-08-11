@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
@@ -367,6 +368,21 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     }
 
     return defaultTargetWaypoint(pEdge);
+  }
+
+  private boolean isDereferencingError(SMGAdditionalInfo pSMGAdditionalInfo) {
+    // TODO: Maybe move Method to Counterexample or other more suitable Class
+    return pSMGAdditionalInfo != null
+        && pSMGAdditionalInfo.getLevel() == SMGAdditionalInfo.Level.ERROR
+        && (pSMGAdditionalInfo.getValue().startsWith("Invalid read of memory object") ||
+            pSMGAdditionalInfo.getValue().startsWith("Null pointer dereference"));
+  }
+
+  private boolean isMemtrackError(SMGAdditionalInfo pSMGAdditionalInfo) {
+    // TODO: Maybe move Method to Counterexample or other more suitable Class
+    return pSMGAdditionalInfo != null
+        && pSMGAdditionalInfo.getLevel() == SMGAdditionalInfo.Level.ERROR
+        && pSMGAdditionalInfo.getValue().startsWith("Memory leak");
   }
 
   /**
