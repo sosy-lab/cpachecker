@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
-import org.sosy_lab.cpachecker.cpa.pointer.transfer.PointerTransferOptions;
 import org.sosy_lab.cpachecker.cpa.pointer.StructHandlingStrategy;
 import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.location.InvalidLocation;
@@ -44,15 +43,16 @@ import org.sosy_lab.cpachecker.cpa.pointer.location.StructLocation;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.locationset.LocationSetFactory;
+import org.sosy_lab.cpachecker.cpa.pointer.transfer.PointerTransferOptions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public final class ReferenceLocationsResolver {
   public static LocationSet getReferencedLocations(
-      final CRightHandSide pExpression,
-      final PointerAnalysisState pState,
-      final boolean shouldDereference,
-      final CFAEdge pCfaEdge,
+      CRightHandSide pExpression,
+      PointerAnalysisState pState,
+      boolean shouldDereference,
+      CFAEdge pCfaEdge,
       PointerTransferOptions pointerTransferOptions)
       throws CPATransferException {
 

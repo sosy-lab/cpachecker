@@ -34,7 +34,7 @@ public final class FunctionCallEdgeHandler
     implements TransferRelationEdgeHandler<CFunctionCallEdge> {
   private PointerTransferOptions options;
 
-  public FunctionCallEdgeHandler(final PointerTransferOptions pOptions) {
+  public FunctionCallEdgeHandler(PointerTransferOptions pOptions) {
     options = pOptions;
   }
 
