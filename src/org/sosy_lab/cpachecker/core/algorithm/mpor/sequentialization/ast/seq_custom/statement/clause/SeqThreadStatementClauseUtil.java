@@ -8,12 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -284,7 +291,120 @@ public class SeqThreadStatementClauseUtil {
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> ensureNoUpwardGoto(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    // TODO
-    return pClauses;
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rNoUpwardGoto =
+        ImmutableListMultimap.builder();
+    for (MPORThread thread : pClauses.keySet()) {
+      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
+      ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap = mapLabelNumberToBlock(clauses);
+      // create set to track which blocks were placed already
+      Set<SeqThreadStatementBlock> allOrderedBlocks = new HashSet<>();
+      ImmutableList.Builder<SeqThreadStatementClause> newClauses = ImmutableList.builder();
+      for (SeqThreadStatementClause clause : clauses) {
+        newClauses.add(reorderBlocksForClause(clause, labelBlockMap, allOrderedBlocks));
+      }
+      rNoUpwardGoto.putAll(thread, newClauses.build());
+    }
+    return rNoUpwardGoto.build();
+  }
+
+  private static SeqThreadStatementClause reorderBlocksForClause(
+      SeqThreadStatementClause pClause,
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      Set<SeqThreadStatementBlock> pAllOrderedBlocks) {
+
+    // create list to keep track of new, reordered blocks
+    List<SeqThreadStatementBlock> foundOrder = new ArrayList<>();
+    // create graph used for dependency checking
+    ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> blockGraph =
+        ArrayListMultimap.create();
+    recursivelyCreateBlockGraph(
+        pClause.getFirstBlock(), blockGraph, pLabelBlockMap, new HashSet<>());
+    recursivelyReorderBlocks(blockGraph, foundOrder, pAllOrderedBlocks);
+    return pClause.cloneWithBlocks(ImmutableList.copyOf(foundOrder));
+  }
+
+  private static void recursivelyCreateBlockGraph(
+      SeqThreadStatementBlock pCurrentBlock,
+      ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pGraph,
+      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      Set<SeqThreadStatementBlock> pVisited) {
+
+    for (SeqThreadStatement statement : pCurrentBlock.getStatements()) {
+      if (statement.getTargetGoto().isPresent()) {
+        int targetNumber = statement.getTargetGoto().orElseThrow().labelNumber;
+        SeqThreadStatementBlock target = pLabelBlockMap.get(targetNumber);
+        assert target != null : "target could not be found in map";
+        // prevent jump to loop start, otherwise infinite recursion
+        if (!target.isLoopStart()) {
+          pGraph.get(pCurrentBlock).add(target);
+          // visit only once to prevent infinite recursion
+          if (pVisited.add(target)) {
+            recursivelyCreateBlockGraph(target, pGraph, pLabelBlockMap, pVisited);
+          }
+        }
+      }
+    }
+  }
+
+  private static void recursivelyReorderBlocks(
+      ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pBlockGraph,
+      List<SeqThreadStatementBlock> pFoundOrder,
+      Set<SeqThreadStatementBlock> pAllOrderedBlocks) {
+
+    // first collect and sort blocks with no targeting blocks (= zero in degree)
+    ImmutableList<SeqThreadStatementBlock> zeroInDegreeBlocks = getZeroInDegreeBlocks(pBlockGraph);
+    ImmutableList<SeqThreadStatementBlock> sortedDescending =
+        sortByLabelNumberDescending(zeroInDegreeBlocks);
+    for (SeqThreadStatementBlock block : sortedDescending) {
+      tryAddToFoundOrder(block, pFoundOrder, pAllOrderedBlocks);
+    }
+    for (SeqThreadStatementBlock block : sortedDescending) {
+      for (SeqThreadStatementBlock target : pBlockGraph.get(block)) {
+        if (!pBlockGraph.keySet().contains(target)) {
+          // if any target is not a key i.e. does not target another block -> add
+          tryAddToFoundOrder(target, pFoundOrder, pAllOrderedBlocks);
+        }
+      }
+      // remove "used" block
+      pBlockGraph.removeAll(block);
+    }
+    // if there are still blocks in the graph, continue recursive reordering
+    if (!pBlockGraph.keySet().isEmpty()) {
+      recursivelyReorderBlocks(pBlockGraph, pFoundOrder, pAllOrderedBlocks);
+    }
+  }
+
+  /** Returns the set of zero in-degree blocks i.e. blocks without any incoming edge. */
+  private static ImmutableList<SeqThreadStatementBlock> getZeroInDegreeBlocks(
+      final ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pBlockGraph) {
+
+    List<SeqThreadStatementBlock> allBlocks = new ArrayList<>(pBlockGraph.keySet());
+    for (SeqThreadStatementBlock block : pBlockGraph.keySet()) {
+      // remove all blocks that are targeted by any block
+      pBlockGraph.get(block).forEach(allBlocks::remove);
+    }
+    return ImmutableList.copyOf(allBlocks);
+  }
+
+  private static ImmutableList<SeqThreadStatementBlock> sortByLabelNumberDescending(
+      ImmutableList<SeqThreadStatementBlock> pBlocks) {
+
+    return pBlocks.stream()
+        .sorted(
+            Comparator.comparingInt((SeqThreadStatementBlock block) -> block.getLabel().labelNumber)
+                .reversed())
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  private static void tryAddToFoundOrder(
+      SeqThreadStatementBlock pBlock,
+      List<SeqThreadStatementBlock> pFoundOrder,
+      Set<SeqThreadStatementBlock> pAllOrderedBlocks) {
+
+    if (!pFoundOrder.contains(pBlock)) {
+      if (pAllOrderedBlocks.add(pBlock)) {
+        pFoundOrder.add(pBlock);
+      }
+    }
   }
 }

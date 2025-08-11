@@ -64,7 +64,7 @@ public class StatementLinker {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement statement : block.statements) {
+        for (SeqThreadStatement statement : block.getStatements()) {
           newStatements.add(
               linkStatements(
                   statement, pLinkedTargetIds, labelClauseMap, labelBlockMap, pPointerAssignments));

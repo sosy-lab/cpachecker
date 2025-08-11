@@ -35,7 +35,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
    */
   private final SeqBlockLabelStatement label;
 
-  public final ImmutableList<SeqThreadStatement> statements;
+  private final ImmutableList<SeqThreadStatement> statements;
 
   /** The thread executing this block. */
   private final MPORThread thread;
