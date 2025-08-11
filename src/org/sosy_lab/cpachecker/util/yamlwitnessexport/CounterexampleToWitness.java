@@ -531,6 +531,20 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
     AstCfaRelation astCFARelation = getASTStructure();
 
+    List<CFAEdge> potentialCausesForDereference =
+        getPotentialCausesForDereference(pCex);
+    String expression = null;
+    for (SMGAdditionalInfo info : getErrorEdgeAndSMGInfo(pCex.getAdditionalInfoAsMap()).getValue().values()) {
+      if (info.getValue().startsWith("Expression: ")) {
+        expression = info.getValue().substring("Expression: ".length());
+        if (expression.startsWith("*")) {
+          // If the expression starts with a star, we need to remove it, since \\valid checks the pointer not the contents
+          // expression in the witness format
+          expression = expression.substring(1);
+        }
+      }
+    }
+
     ImmutableListMultimap.Builder<CFAEdge, String> edgeToAssumptionsBuilder =
         new ImmutableListMultimap.Builder<>();
     Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
@@ -584,6 +598,12 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                 ((CFunctionCallStatement) ((CStatementEdge) edge).getStatement()).getFunctionCallExpression();
             statement = addAssumptions(statement,
                 "!\\valid(" + functionCall.getParameterExpressions().get(0).toString() + ")");
+          }
+
+          //VALID-DEREF handling
+          if (potentialCausesForDereference.contains(edge)) {
+            statement = addAssumptions(statement,
+                "!\\valid(" + expression + ")");
           }
         }
 
