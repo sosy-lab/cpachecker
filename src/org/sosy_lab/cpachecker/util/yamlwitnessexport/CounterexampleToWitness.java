@@ -13,11 +13,15 @@ import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -45,6 +49,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -383,6 +388,24 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return pSMGAdditionalInfo != null
         && pSMGAdditionalInfo.getLevel() == SMGAdditionalInfo.Level.ERROR
         && pSMGAdditionalInfo.getValue().startsWith("Memory leak");
+  }
+
+  private Entry<CFAEdge, Multimap<ConvertingTags, SMGAdditionalInfo>> getErrorEdgeAndSMGInfo(Map<CFAEdge, Multimap<ConvertingTags, Object>> additionalInfo) {
+    return additionalInfo.entrySet().stream()
+        .map(entry -> {
+          Multimap<ConvertingTags, SMGAdditionalInfo> filteredMap =
+              entry.getValue().entries().stream()
+                  .filter(e -> e.getValue() instanceof SMGAdditionalInfo)
+                  .collect(Multimaps.toMultimap(
+                      Map.Entry::getKey,
+                      e -> (SMGAdditionalInfo) e.getValue(),
+                      MultimapBuilder.hashKeys().arrayListValues()::build));
+          return Map.entry(entry.getKey(), filteredMap);
+        })
+        .filter(e -> e.getValue().values().stream()
+            .anyMatch(info -> info.getLevel() == SMGAdditionalInfo.Level.ERROR))
+        .findFirst()
+        .orElse(null);
   }
 
   /**
