@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 
 public class VariableClassification {
 
+  private final Set<String> allVariables;
+
   private final boolean hasRelevantNonIntAddVars;
 
   private final Set<String> intBoolVars;
@@ -86,7 +88,8 @@ public class VariableClassification {
       Set<Partition> pIntAddPartitions,
       Table<CFAEdge, Integer, Partition> pEdgeToPartitions,
       Multiset<String> pAssumedVariables,
-      Multiset<String> pAssignedVariables) {
+      Multiset<String> pAssignedVariables,
+      Set<String> pAllVariables) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
@@ -103,6 +106,7 @@ public class VariableClassification {
     edgeToPartitions = ImmutableTable.copyOf(pEdgeToPartitions);
     assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
     assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
+    allVariables = ImmutableSet.copyOf(pAllVariables);
   }
 
   @VisibleForTesting
@@ -123,7 +127,8 @@ public class VariableClassification {
         ImmutableSet.of(),
         ImmutableTable.of(),
         ImmutableMultiset.of(),
-        ImmutableMultiset.of());
+        ImmutableMultiset.of(),
+        ImmutableSet.of());
   }
 
   public boolean hasRelevantNonIntAddVars() {
@@ -195,6 +200,11 @@ public class VariableClassification {
    */
   public Set<String> getIntEqualVars() {
     return intEqualVars;
+  }
+
+  /** Returns the set of all variable names in the CFA. */
+  public Set<String> getAllVariables() {
+    return allVariables;
   }
 
   /**

@@ -39,7 +39,7 @@ public abstract class VariableTrackingPrecision implements Precision {
       Optional<VariableClassification> vc,
       Class<? extends ConfigurableProgramAnalysis> cpaClass)
       throws InvalidConfigurationException {
-    return new ConfigurablePrecision(config, vc, cpaClass);
+    return ConfigurablePrecision.of(config, vc, cpaClass);
   }
 
   /**
