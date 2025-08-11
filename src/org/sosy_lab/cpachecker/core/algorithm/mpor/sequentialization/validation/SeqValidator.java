@@ -27,6 +27,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -122,6 +123,24 @@ public class SeqValidator {
       }
     }
     return pClauses;
+  }
+
+  /** Returns {@code true} if the two collections contain the exact same blocks, in any order. */
+  public static boolean validateEqualBlocks(
+      ImmutableSet<SeqThreadStatementBlock> pBlocksA,
+      ImmutableSet<SeqThreadStatementBlock> pBlocksB) {
+
+    // short circuit: check for equal length
+    if (pBlocksA.size() != pBlocksB.size()) {
+      return false;
+    }
+    // otherwise check if B contains all elements from A
+    for (SeqThreadStatementBlock blockA : pBlocksA) {
+      if (!pBlocksB.contains(blockA)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Maps origin pcs n in {@code case n} to the set of target pcs m {@code pc[t_id] = m}. */
