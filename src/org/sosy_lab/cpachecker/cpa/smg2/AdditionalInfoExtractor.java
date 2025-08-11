@@ -59,9 +59,12 @@ public class AdditionalInfoExtractor {
         // Move memory leak on return edge
         if (!isMemoryLeakError && errorInfos != null && !errorInfos.isEmpty()) {
           // We assume that there is only 1 error info per state (as the SV-COMP rules dictate)
-          edgeWithAdditionalInfo.addInfo(
-              SMGConvertingTags.NOTE,
-              SMGAdditionalInfo.of(errorInfos.get(0).getErrorDescription(), Level.ERROR));
+          for (SMGErrorInfo errorInfo : errorInfos) {
+            edgeWithAdditionalInfo.addInfo(
+                SMGConvertingTags.NOTE,
+                SMGAdditionalInfo.of(errorInfo.getErrorDescription(), Level.ERROR)
+            );
+          }
           errorInfos = null;
         }
 
