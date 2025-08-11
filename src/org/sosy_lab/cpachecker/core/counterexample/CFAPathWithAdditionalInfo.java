@@ -146,16 +146,16 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     return result.buildOrThrow();
   }
 
-  public Map<CFAEdge, Multimap<ConvertingTags, SMGAdditionalInfo>> getAdditionalInfoAsMap() {
+  public Map<CFAEdge, Multimap<ConvertingTags, Object>> getAdditionalInfoAsMap() {
     return pathInfo.stream()
         .collect(
             ImmutableMap.toImmutableMap(
                 CFAEdgeWithAdditionalInfo::getCFAEdge,
                 e -> {
-                  Multimap<ConvertingTags, SMGAdditionalInfo> map = MultimapBuilder.hashKeys().hashSetValues().build();
+                  Multimap<ConvertingTags, Object> map = MultimapBuilder.hashKeys().hashSetValues().build();
                   e.getInfos().forEach(entry -> {
                     if (entry.getValue() instanceof SMGAdditionalInfo) {
-                      map.put(entry.getKey(), (SMGAdditionalInfo) entry.getValue());
+                      map.put(entry.getKey(), entry.getValue());
                     }
                   });
                   return map;

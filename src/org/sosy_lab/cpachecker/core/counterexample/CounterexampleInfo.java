@@ -227,7 +227,7 @@ public class CounterexampleInfo extends AbstractAppender {
         : additionalInfo.getAdditionalInfoMapping(targetPath);
   }
 
-  public Map<CFAEdge, Multimap<ConvertingTags, SMGAdditionalInfo>> getAdditionalInfoAsMap() {
+  public Map<CFAEdge, Multimap<ConvertingTags, Object>> getAdditionalInfoAsMap() {
     return additionalInfo.isEmpty()
            ? ImmutableMap.of()
            : additionalInfo.getAdditionalInfoAsMap();
