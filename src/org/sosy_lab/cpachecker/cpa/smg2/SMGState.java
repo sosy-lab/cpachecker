@@ -2402,6 +2402,34 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
+  /**
+   * Error for dereferencing unknown pointer {@link Value} when reading. I.e. int bla = *value; with
+   * value being unknown.
+   *
+   * @param unknownAddress the {@link Value} that is unknown to the memory model and was tried to be
+   *     dereferenced.
+   * @return A new {@link SMGState} with the error info.
+   */
+  public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress, CExpression unknownObjectExpr) {
+    String errorMSG = "Unknown value pointer dereference for value: " + unknownAddress + ".";
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(unknownAddress));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+
+    //Add info dereferenced object
+    SMGErrorInfo expressionNameInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage("Expression: " + unknownObjectExpr.toASTString());
+
+    return copyWithNewErrorInfo(ImmutableList.of(newErrorInfo, expressionNameInfo));
+  }
+
+
   public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress, CFAEdge edge) {
     String errorMSG =
         "Unknown value pointer dereference for value: " + unknownAddress + " at " + edge;
@@ -2599,6 +2627,36 @@ public class SMGState
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  /**
+   * I.e. int bla = *pointer; With pointer failing to dereference because its pointing to 0.
+   *
+   * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject, CExpression nullObjectExpr) {
+    // getValueForSMGValue(pValue)
+    // Get the SMGValue and Value that lead to this null pointer dereference
+    String errorMSG =
+        "Null pointer dereference on read of object with the intent to read it: "
+            + nullObject
+            + ".";
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(nullObject));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+
+    //Add info dereferenced object
+    SMGErrorInfo expressionNameInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage("Expression: " + nullObjectExpr.toASTString());
+
+    return copyWithNewErrorInfo(ImmutableList.of(newErrorInfo, expressionNameInfo));
   }
 
   /**

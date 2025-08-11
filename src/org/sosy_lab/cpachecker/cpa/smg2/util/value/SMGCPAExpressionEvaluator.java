@@ -825,7 +825,7 @@ public class SMGCPAExpressionEvaluator {
         SMGState errorState =
             maybeTargetAndOffset
                 .getSMGState()
-                .withUnknownPointerDereferenceWhenReading(pointerValueToDeref);
+                .withUnknownPointerDereferenceWhenReading(pointerValueToDeref, exprReading);
 
         returnBuilder.add(
             ValueAndSMGState.ofUnknownValue(
@@ -839,7 +839,7 @@ public class SMGCPAExpressionEvaluator {
 
       // The object may be null if no such object exists, check and log if 0
       if (object.isZero()) {
-        SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
+        SMGState errorState = pState.withNullPointerDereferenceWhenReading(object, exprReading);
         returnBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 errorState, "Returned unknown value due to null-pointer dereference."));

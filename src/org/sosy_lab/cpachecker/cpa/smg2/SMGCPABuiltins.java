@@ -585,7 +585,7 @@ public class SMGCPABuiltins {
             }
             if (address.isUnknown()) {
               // Deref unknown value fails always
-              currentState = currentState.withUnknownPointerDereferenceWhenReading(address);
+              currentState = currentState.withUnknownPointerDereferenceWhenReading(address, param);
             } else {
               List<SMGStateAndOptionalSMGObjectAndOffset> deref =
                   currentState.dereferencePointer(address);
