@@ -400,21 +400,6 @@ public class SeqThreadStatementClauseUtil {
     return ImmutableList.copyOf(allBlocks);
   }
 
-  private static int getInDegreeForBlock(
-      SeqThreadStatementBlock pBlock,
-      final ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pBlockGraph) {
-
-    int rInDegree = 0;
-    for (SeqThreadStatementBlock block : pBlockGraph.keySet()) {
-      for (SeqThreadStatementBlock target : pBlockGraph.get(block)) {
-        if (target.equals(pBlock)) {
-          rInDegree++;
-        }
-      }
-    }
-    return rInDegree;
-  }
-
   private static ImmutableList<SeqThreadStatementBlock> sortByLabelNumberDescending(
       ImmutableList<SeqThreadStatementBlock> pBlocks) {
 
