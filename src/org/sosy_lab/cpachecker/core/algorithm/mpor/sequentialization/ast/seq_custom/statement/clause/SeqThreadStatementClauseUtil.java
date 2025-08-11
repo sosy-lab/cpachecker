@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -298,17 +299,17 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap = mapLabelNumberToBlock(clauses);
       // create set to track which blocks were placed already
-      Set<SeqThreadStatementBlock> allOrderedBlocks = new HashSet<>();
+      Set<SeqThreadStatementBlock> visited = new HashSet<>();
       ImmutableList.Builder<SeqThreadStatementClause> newClauses = ImmutableList.builder();
       for (SeqThreadStatementClause clause : clauses) {
         Optional<SeqThreadStatementClause> reorderedClause =
-            reorderBlocksForClause(clause, labelBlockMap, allOrderedBlocks);
+            reorderBlocksForClause(clause, labelBlockMap, visited);
         if (reorderedClause.isPresent()) {
           newClauses.add(reorderedClause.orElseThrow());
         }
       }
       assert SeqValidator.validateEqualBlocks(
-              ImmutableSet.copyOf(allOrderedBlocks), ImmutableSet.copyOf(labelBlockMap.values()))
+              ImmutableSet.copyOf(visited), ImmutableSet.copyOf(labelBlockMap.values()))
           : "blocks must be equal before and after reordering";
       rNoUpwardGoto.putAll(thread, newClauses.build());
     }
@@ -318,12 +319,12 @@ public class SeqThreadStatementClauseUtil {
   private static Optional<SeqThreadStatementClause> reorderBlocksForClause(
       SeqThreadStatementClause pClause,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      Set<SeqThreadStatementBlock> pAllOrderedBlocks) {
+      Set<SeqThreadStatementBlock> pVisited) {
 
-    // if there are no target goto, return clause unchanged
-    if (noTargetGoto(pClause.getBlocks())) {
-      pAllOrderedBlocks.addAll(pClause.getBlocks());
-      return Optional.of(pClause);
+    // if there are no target goto in first block, clone clause with only that block
+    if (noTargetGoto(pClause.getFirstBlock())) {
+      pVisited.add(pClause.getFirstBlock());
+      return Optional.of(pClause.cloneWithBlocks(ImmutableList.of(pClause.getFirstBlock())));
     }
     // create list to keep track of new, reordered blocks
     List<SeqThreadStatementBlock> foundOrder = new ArrayList<>();
@@ -332,7 +333,7 @@ public class SeqThreadStatementClauseUtil {
         ArrayListMultimap.create();
     recursivelyCreateBlockGraph(
         pClause.getFirstBlock(), blockGraph, pLabelBlockMap, new HashSet<>());
-    recursivelyReorderBlocks(blockGraph, foundOrder, pAllOrderedBlocks);
+    recursivelyReorderBlocks(blockGraph, foundOrder, pVisited);
     if (foundOrder.isEmpty()) {
       return Optional.empty();
     } else {
@@ -363,20 +364,20 @@ public class SeqThreadStatementClauseUtil {
   private static void recursivelyReorderBlocks(
       ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pBlockGraph,
       List<SeqThreadStatementBlock> pFoundOrder,
-      Set<SeqThreadStatementBlock> pAllOrderedBlocks) {
+      Set<SeqThreadStatementBlock> pVisited) {
 
     // first collect and sort blocks with no targeting blocks (= zero in degree)
     ImmutableList<SeqThreadStatementBlock> zeroInDegreeBlocks = getZeroInDegreeBlocks(pBlockGraph);
     ImmutableList<SeqThreadStatementBlock> sortedDescending =
         sortByLabelNumberDescending(zeroInDegreeBlocks);
     for (SeqThreadStatementBlock block : sortedDescending) {
-      tryAddToFoundOrder(block, pFoundOrder, pAllOrderedBlocks);
+      tryAddToFoundOrder(block, pFoundOrder, pVisited);
     }
     for (SeqThreadStatementBlock block : sortedDescending) {
       for (SeqThreadStatementBlock target : pBlockGraph.get(block)) {
         if (!pBlockGraph.keySet().contains(target)) {
           // if any target is not a key i.e. does not target another block -> add
-          tryAddToFoundOrder(target, pFoundOrder, pAllOrderedBlocks);
+          tryAddToFoundOrder(target, pFoundOrder, pVisited);
         }
       }
       // remove "used" block
@@ -384,7 +385,7 @@ public class SeqThreadStatementClauseUtil {
     }
     // if there are still blocks in the graph, continue recursive reordering
     if (!pBlockGraph.keySet().isEmpty()) {
-      recursivelyReorderBlocks(pBlockGraph, pFoundOrder, pAllOrderedBlocks);
+      recursivelyReorderBlocks(pBlockGraph, pFoundOrder, pVisited);
     }
   }
 
@@ -409,12 +410,10 @@ public class SeqThreadStatementClauseUtil {
         pBlocks);
   }
 
-  private static boolean noTargetGoto(ImmutableList<SeqThreadStatementBlock> pBlocks) {
-    for (SeqThreadStatementBlock block : pBlocks) {
-      for (SeqThreadStatement statement : block.getStatements()) {
-        if (statement.getTargetGoto().isPresent()) {
-          return false;
-        }
+  private static boolean noTargetGoto(SeqThreadStatementBlock pBlock) {
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
+      if (statement.getTargetGoto().isPresent()) {
+        return false;
       }
     }
     return true;
@@ -423,11 +422,11 @@ public class SeqThreadStatementClauseUtil {
   private static void tryAddToFoundOrder(
       SeqThreadStatementBlock pBlock,
       List<SeqThreadStatementBlock> pFoundOrder,
-      Set<SeqThreadStatementBlock> pAllOrderedBlocks) {
+      Set<SeqThreadStatementBlock> pVisited) {
 
     if (!pFoundOrder.contains(pBlock)) {
       // only add blocks once to orders to prevent duplication. also implicitly handles loops
-      if (pAllOrderedBlocks.add(pBlock)) {
+      if (pVisited.add(pBlock)) {
         pFoundOrder.add(pBlock);
       }
     }
