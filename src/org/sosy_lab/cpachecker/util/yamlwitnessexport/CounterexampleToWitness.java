@@ -194,7 +194,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
 
       return ImmutableList.of(assumptionWaypoint.orElseThrow());
-    } else if (CFAUtils.isFreeStatement(pEdge) && specificationContainsMemSafety()) {
+    } else if (pEdgeToAssumptions.get(pEdge).stream().anyMatch(s -> s.contains("\\valid("))) {
       Optional<WaypointRecord> assumptionWaypoint =
           handleAssumptionWhenAtPossibleLocation(
               pEdge, pEdgeToAssumptions, pEdgeToCurrentExpressionIndex, pAstCFARelation);
