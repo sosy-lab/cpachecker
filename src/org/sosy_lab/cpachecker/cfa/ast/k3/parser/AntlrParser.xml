@@ -17,7 +17,7 @@
     <property name="k3.generated.dir"
               location="src/org/sosy_lab/cpachecker/cfa/ast/k3/parser/generated/"/>
 
-    <property name="parser.source" value="k3"/>
+    <property name="parser.source" value="K3"/>
 
     <target name="echos">
         <echo>${dir.src}</echo>

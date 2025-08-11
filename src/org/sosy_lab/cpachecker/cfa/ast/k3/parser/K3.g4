@@ -16,8 +16,7 @@ RPAREN: ')' ;
 
 IDENT: [a-zA-Z_] [a-zA-Z_0-9]* ;
 
-SYM :
-    | '+'
+SYM : '+'
     | '='
     | '/'
     | '*'
@@ -77,22 +76,22 @@ sort: IDENT;
 
 tagName: IDENT;
 
-functionName: IDENT;
+procedureName: IDENT;
 
 label: IDENT;
 
 term
-    : LPAREN (SYM | IDENT) term* RPAREN
-    | variable
+    : LPAREN (SYM | IDENT) term* RPAREN                         # ApplicationTerm
+    | variable                                                  # VariableTerm
     ;
 
 statement
     : LPAREN 'assume' term RPAREN                               # AssumeStatement
-    | LPAREN 'assign' LPAREN (IDENT term)+ RPAREN RPAREN        # AssignStatement
+    | LPAREN 'assign' LPAREN (LPAREN IDENT term RPAREN)+ RPAREN RPAREN        # AssignStatement
     | LPAREN 'sequence' statement+ RPAREN                       # SequenceStatement
     | LPAREN '!' statement attribute+ RPAREN                    # AnnotatedStatement
     | LPAREN 'call'
-            functionName
+            procedureName
             LPAREN term* RPAREN
             LPAREN variable* RPAREN
         RPAREN                                                  # CallStatement
@@ -125,22 +124,22 @@ value
     ;
 
 attribute
-    : ':tag' tagName
-    | property
+    : ':tag' tagName                                            # TagAttribute
+    | property                                                  # TagProperty
     ;
 
 // TODO: This currently does not support the LTL tag
 property
-    : ':assert' relationalTerm
-    | ':live'
-    | ':not-live'
-    | ':ghost' LPAREN variable+ RPAREN
-    | ':requires' term
-    | ':ensures' relationalTerm
-    | ':invariant' relationalTerm
-    | ':decreases' term
-    | ':decreases' LPAREN term+ RPAREN
-    | ':modifies' LPAREN variable+ RPAREN
+    : ':assert' relationalTerm                                  # AssertProperty
+    | ':live'                                                   # LiveProperty
+    | ':not-live'                                               # NotLiveProperty
+    | ':ghost' LPAREN variable+ RPAREN                          # GhostProperty
+    | ':requires' term                                          # RequiresTerm
+    | ':ensures' relationalTerm                                 # EnsuresTerm
+    | ':invariant' relationalTerm                               # InvariantTerm
+    | ':decreases' term                                         # DecreasesTerm
+    | ':decreases' LPAREN term+ RPAREN                          # DecreasesProperty
+    | ':modifies' LPAREN variable+ RPAREN                       # ModifiesProperty
     ;
 
 relationalTerm
@@ -155,7 +154,7 @@ procDeclarationArguments
 command
     : LPAREN 'declare-var' variable sort RPAREN                 # DeclareVar
     | LPAREN
-          'define-proc' functionName
+          'define-proc' procedureName
             LPAREN procDeclarationArguments RPAREN
             LPAREN procDeclarationArguments RPAREN
             LPAREN procDeclarationArguments RPAREN
@@ -163,7 +162,7 @@ command
       RPAREN                                                    # DefineProc
     | LPAREN 'annotate-tag' tagName attribute+ RPAREN           # AnnotateTag
     | LPAREN 'select-trace' trace RPAREN                        # SelectTrace
-    | LPAREN 'verify-call' functionName
+    | LPAREN 'verify-call' procedureName
             LPAREN term* RPAREN
       RPAREN                                                    # VerifyCall
     | LPAREN 'get-proof' RPAREN                                 # GetProof

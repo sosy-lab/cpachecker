@@ -6,7 +6,7 @@
 ;
 ; SPDX-License-Identifier: Apache-2.0
 
-(declare-var x Int)
-(declare-var y Int)
-(define-proc f1 ((x Int) (y Int)) () () (sequence (assume (= x y)) (! (assume true) :assert (= x y))))
-(verify-call f1 (x y))
+(declare-var w Int)
+(declare-var z Int)
+(define-proc f1 ((x Int) (y Int)) () () (sequence (assume (= x y)) (! (assume (= x y)) :assert (= x y))))
+(verify-call f1 (w z))

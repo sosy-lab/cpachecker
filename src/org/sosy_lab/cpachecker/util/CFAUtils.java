@@ -102,6 +102,16 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertTag;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3IDTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -1147,6 +1157,56 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(JClassLiteralExpression pJClassLiteralExpression)
         throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3VariableDeclaration pK3VariableDeclaration) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3ProcedureDeclaration pK3ProcedureDeclaration) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3ParameterDeclaration pK3ParameterDeclaration) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3SymbolApplicationTerm pK3SymbolApplicationTerm) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3IDTerm pK3IDTerm) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3SequenceStatement pK3SequenceStatement) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3AssumeStatement pK3AssumeStatement) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3AssignmentStatement pK3AssignmentStatement) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3TagReference pK3TagReference) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3AssertTag pK3AssertTag) {
       return ImmutableList.of();
     }
   }

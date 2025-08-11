@@ -2,25 +2,19 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.c;
+package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3AstNodeVisitor;
 
-public sealed interface CAstNode extends AAstNode
-    permits CDesignator,
-        CInitializer,
-        CReturnStatement,
-        CRightHandSide,
-        CSimpleDeclaration,
-        CStatement {
+public interface K3AstNode extends AAstNode {
 
-  <R, X extends Exception> R accept(CAstNodeVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise
@@ -34,7 +28,7 @@ public sealed interface CAstNode extends AAstNode
           X2 extends Exception,
           X3 extends Exception,
           V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2> & K3AstNodeVisitor<R3, X3>>
-      R accept_(V pV) throws X1 {
+      R accept_(V pV) throws X3 {
     return accept(pV);
   }
 }
