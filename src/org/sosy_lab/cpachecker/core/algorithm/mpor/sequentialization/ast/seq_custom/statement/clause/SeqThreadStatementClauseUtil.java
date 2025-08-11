@@ -351,8 +351,8 @@ public class SeqThreadStatementClauseUtil {
         int targetNumber = statement.getTargetGoto().orElseThrow().labelNumber;
         SeqThreadStatementBlock target = pLabelBlockMap.get(targetNumber);
         assert target != null : "target could not be found in map";
-        // loop starts are added, but only once to prevent infinite recursion
-        if (!target.isLoopStart() || pVisited.add(target)) {
+        // add targets only once to prevent infinite recursion (e.g. with loops)
+        if (pVisited.add(target)) {
           pGraph.get(pCurrentBlock).add(target);
           recursivelyCreateBlockGraph(target, pGraph, pLabelBlockMap, pVisited);
         }
