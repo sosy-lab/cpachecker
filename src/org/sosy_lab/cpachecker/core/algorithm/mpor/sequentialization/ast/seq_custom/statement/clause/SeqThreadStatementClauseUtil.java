@@ -351,9 +351,9 @@ public class SeqThreadStatementClauseUtil {
         int targetNumber = statement.getTargetGoto().orElseThrow().labelNumber;
         SeqThreadStatementBlock target = pLabelBlockMap.get(targetNumber);
         assert target != null : "target could not be found in map";
-        pGraph.get(pCurrentBlock).add(target);
-        // visit only once to prevent infinite recursion
-        if (pVisited.add(target)) {
+        // loop starts are added, but only once to prevent infinite recursion
+        if (!target.isLoopStart() || pVisited.add(target)) {
+          pGraph.get(pCurrentBlock).add(target);
           recursivelyCreateBlockGraph(target, pGraph, pLabelBlockMap, pVisited);
         }
       }
@@ -400,6 +400,21 @@ public class SeqThreadStatementClauseUtil {
     return ImmutableList.copyOf(allBlocks);
   }
 
+  private static int getInDegreeForBlock(
+      SeqThreadStatementBlock pBlock,
+      final ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pBlockGraph) {
+
+    int rInDegree = 0;
+    for (SeqThreadStatementBlock block : pBlockGraph.keySet()) {
+      for (SeqThreadStatementBlock target : pBlockGraph.get(block)) {
+        if (target.equals(pBlock)) {
+          rInDegree++;
+        }
+      }
+    }
+    return rInDegree;
+  }
+
   private static ImmutableList<SeqThreadStatementBlock> sortByLabelNumberDescending(
       ImmutableList<SeqThreadStatementBlock> pBlocks) {
 
@@ -424,7 +439,7 @@ public class SeqThreadStatementClauseUtil {
       Set<SeqThreadStatementBlock> pVisited) {
 
     if (!pFoundOrder.contains(pBlock)) {
-      // only add blocks once to orders to prevent duplication. also implicitly handles loops
+      // only add blocks once to orders to prevent duplication
       if (pVisited.add(pBlock)) {
         pFoundOrder.add(pBlock);
       }
