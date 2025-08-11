@@ -18,13 +18,17 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathTemplate;
@@ -407,6 +411,115 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         .findFirst()
         .orElse(null);
   }
+
+  private List<CFAEdge> getPotentialCausesForDereference(CounterexampleInfo pCex) {
+    if (!specificationContainsMemSafety()) {
+      return null;
+    }
+    Entry<CFAEdge, Multimap<ConvertingTags, SMGAdditionalInfo>> errorEdgeAndInfo =
+        getErrorEdgeAndSMGInfo(pCex.getAdditionalInfoAsMap());
+    if (!errorEdgeAndInfo.getValue().values().stream().anyMatch(this::isDereferencingError)) {
+      return null;
+    }
+
+    List<CFAEdge> edges =
+        pCex.getTargetPath()
+            .getFullPath()
+            .subList(0, pCex.getTargetPath().getFullPath().size() - 1);
+
+    String expression = null;
+    for (SMGAdditionalInfo info : errorEdgeAndInfo.getValue().values()) {
+      if (info.getValue().startsWith("Expression: ")) {
+        expression = info.getValue().substring("Expression: ".length());
+      }
+    }
+    if (expression == null) {
+      return null;
+    }
+
+    if (expression.startsWith("*")) {
+      expression = expression.substring(1);
+    }
+
+    List<CFAEdge> potentialErrorEdges = new ArrayList<>();
+
+    List<CFAEdge> edgesThatExplicitlyUseExpression =
+      filterEdgesUsingExpression(edges, expression);
+
+    List<CFAEdge> edgesThatInexplicitlyUseExpression =
+      findAssignmentsOfExpressions(edges, expression);
+
+    //Variable set to NULL
+    for (CFAEdge edge : edgesThatExplicitlyUseExpression) {
+      Pattern pattern = Pattern.compile("(?<![A-Za-z0-9_])" + Pattern.quote(expression) + "\\s*=\\s*NULL(?![A-Za-z0-9_])");
+      if (pattern.matcher(edge.getRawStatement()).find()) {
+        potentialErrorEdges.add(edge);
+        continue;
+      }
+
+      pattern = Pattern.compile("(?<![A-Za-z0-9_])" + Pattern.quote(expression) + "\\s*=\\s*" + Pattern.quote("(void *)0"));
+      if(pattern.matcher(edge.toString()).find()){
+        potentialErrorEdges.add(edge);
+        continue;
+      }
+    }
+    return potentialErrorEdges;
+  }
+
+  private List<CFAEdge> filterEdgesUsingExpression(List<CFAEdge> edges, String expression) {
+    String exprPattern = "(" + Pattern.quote(expression) + "|" + Pattern.quote("*" + expression) + ")";
+    Pattern pattern = Pattern.compile("(?<![A-Za-z0-9_])" + exprPattern + "(?![A-Za-z0-9_])");
+
+    List<CFAEdge> edgesThatUseExpression = edges.stream().filter(edge -> {
+      String rawStatement = edge.getRawStatement();
+      return rawStatement != null && pattern.matcher(rawStatement).find();
+    }).toList();
+
+    return edgesThatUseExpression;
+  }
+
+  private List<CFAEdge> findAssignmentsOfExpressions(List<CFAEdge> pEdges, String pExpression) {
+
+    Set<String> watchList = new HashSet<>();
+    watchList.add(pExpression);
+
+    List<CFAEdge> returnList = new ArrayList<>();
+
+    for (CFAEdge edge : pEdges) {
+      String rawStatement = edge.getRawStatement();
+      if (rawStatement == null) {
+        continue;
+      }
+
+      Set<String> newWatchesThisEdge = new HashSet<>();
+      Set<String> removeWatchesThisEdge = new HashSet<>();
+      for (String watch : watchList) {
+        Pattern pattern = Pattern.compile("(?<![A-Za-z0-9_])(" + Pattern.quote(watch) + "|" + Pattern.quote("*" + watch) + ")(?![A-Za-z0-9_])");
+        if (!pattern.matcher(rawStatement).find()) {
+          continue;
+        }
+        returnList.add(edge);
+
+        pattern = Pattern.compile("=\\s*" + Pattern.quote(watch) + "(?![A-Za-z0-9_])");
+
+        if (pattern.matcher(rawStatement).find()) {
+          Matcher leftPatternMatcher = Pattern.compile("([A-Za-z0-9_*]+)\\s*=").matcher(rawStatement);
+          if (leftPatternMatcher.find()) {
+            newWatchesThisEdge.add(leftPatternMatcher.group(1));
+          }
+        }
+        Matcher leftPatternMatcher = Pattern.compile("(?<![A-Za-z0-9_])" + watch + "\\s*=").matcher(rawStatement);
+        if (leftPatternMatcher.find() && !watch.equals(pExpression)) {
+          removeWatchesThisEdge.add(watch);
+        }
+      }
+      watchList.removeAll(removeWatchesThisEdge);
+      watchList.addAll(newWatchesThisEdge);
+    }
+
+    return returnList;
+  }
+
 
   /**
    * Export the given counterexample to the path as a Witness version 2.0
