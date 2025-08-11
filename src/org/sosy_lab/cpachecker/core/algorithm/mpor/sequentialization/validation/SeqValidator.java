@@ -132,28 +132,11 @@ public class SeqValidator {
 
     // short circuit: check for equal length
     if (pBlocksA.size() != pBlocksB.size()) {
-      // return false;
+      return false;
     }
     // otherwise check if B contains all elements from A
     for (SeqThreadStatementBlock blockA : pBlocksA) {
       if (!pBlocksB.contains(blockA)) {
-        try {
-          System.out.println("missing block");
-          System.out.println(blockA.toASTString());
-        } catch (Exception e) {
-          throw new IllegalArgumentException();
-        }
-        return false;
-      }
-    }
-    for (SeqThreadStatementBlock blockB : pBlocksB) {
-      if (!pBlocksA.contains(blockB)) {
-        try {
-          System.out.println("missing block");
-          System.out.println(blockB.toASTString());
-        } catch (Exception e) {
-          throw new IllegalArgumentException();
-        }
         return false;
       }
     }

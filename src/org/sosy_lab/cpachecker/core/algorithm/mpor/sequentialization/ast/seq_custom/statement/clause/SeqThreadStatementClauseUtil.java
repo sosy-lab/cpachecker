@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -310,7 +309,7 @@ public class SeqThreadStatementClauseUtil {
       }
       assert SeqValidator.validateEqualBlocks(
               ImmutableSet.copyOf(visited), ImmutableSet.copyOf(labelBlockMap.values()))
-          : "blocks must be equal before and after reordering";
+          : "block sets must be equal before and after reordering";
       rNoUpwardGoto.putAll(thread, newClauses.build());
     }
     return rNoUpwardGoto.build();
