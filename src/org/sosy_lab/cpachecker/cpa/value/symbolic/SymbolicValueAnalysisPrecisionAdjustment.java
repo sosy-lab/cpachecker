@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -83,11 +82,7 @@ public class SymbolicValueAnalysisPrecisionAdjustment implements PrecisionAdjust
   }
 
   private int getSymbolicValueCount(ValueAnalysisState pState) {
-    // it's safe to cast to int here because we will never have that many program variables
-    return (int)
-        pState.getConstants().stream()
-            .filter(e -> e.getValue().getValue() instanceof SymbolicValue)
-            .count();
+    return pState.getNumberOfSymbolicVariables();
   }
 
   public static class SymbolicStatistics implements Statistics {

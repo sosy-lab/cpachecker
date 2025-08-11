@@ -47,7 +47,8 @@ public final class SymbolicInterpolant
         new ValueAnalysisInterpolant(
             pValueInfo.getAssignments(),
             pValueInfo.getAssignmentsSize(),
-            pValueInfo.getNumberOfGlobalConstantsInAssignment());
+            pValueInfo.getNumberOfGlobalConstantsInAssignment(),
+            pValueInfo.getNumberOfSymbolicConstantsInAssignment());
     constraintsInformation = pConstraints;
   }
 

@@ -116,6 +116,10 @@ public final class ValueAnalysisState
   /** Number of global constants in constantsMap */
   private int numberOfGlobalConstants;
 
+  // TODO: disable when symEx not running?
+  /** Only needed for Symbolic Execution */
+  private int numberOfSymbolicConstants;
+
   /**
    * hashCode needs to be updated with every change of {@link #constantsMap}.
    *
@@ -127,26 +131,41 @@ public final class ValueAnalysisState
   private final @Nullable MachineModel machineModel;
 
   public ValueAnalysisState(MachineModel pMachineModel) {
-    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of(), 0, 0);
+    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of(), 0, 0, 0);
   }
 
   public ValueAnalysisState(
       Optional<MachineModel> pMachineModel,
       PersistentMap<MemoryLocation, ValueAndType> pConstantsMap,
       int pConstantsMapSize,
-      int pNumberOfGlobalConstants) {
-    this(pMachineModel.orElse(null), pConstantsMap, pConstantsMapSize, pNumberOfGlobalConstants);
+      int pNumberOfGlobalConstants,
+      int pNumberOfSymbolicConstants) {
+    this(
+        pMachineModel.orElse(null),
+        pConstantsMap,
+        pConstantsMapSize,
+        pNumberOfGlobalConstants,
+        pNumberOfSymbolicConstants);
   }
 
   private ValueAnalysisState(
       @Nullable MachineModel pMachineModel,
       PersistentMap<MemoryLocation, ValueAndType> pConstantsMap,
       int pConstantsMapSize,
-      int pNumberOfGlobalConstants) {
+      int pNumberOfGlobalConstants,
+      int pNumberOfSymbolicConstants) {
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
+    assert constantsMap.size() == pConstantsMapSize;
     constantsMapSize = pConstantsMapSize;
+    assert constantsMap.entrySet().stream().filter(e -> !e.getKey().isOnFunctionStack()).count()
+        == pNumberOfGlobalConstants;
     numberOfGlobalConstants = pNumberOfGlobalConstants;
+    assert constantsMap.entrySet().stream()
+            .filter(e -> e.getValue().getValue() instanceof SymbolicValue)
+            .count()
+        == pNumberOfSymbolicConstants;
+    numberOfSymbolicConstants = pNumberOfSymbolicConstants;
     hashCode = constantsMap.hashCode();
   }
 
@@ -156,6 +175,13 @@ public final class ValueAnalysisState
     hashCode = state.hashCode;
     constantsMapSize = state.constantsMapSize;
     numberOfGlobalConstants = state.numberOfGlobalConstants;
+    assert constantsMap.entrySet().stream()
+        .filter(e -> e.getValue().getValue() instanceof SymbolicValue)
+        .count()
+        == state.numberOfSymbolicConstants;
+    assert constantsMap.entrySet().stream().filter(e -> !e.getKey().isOnFunctionStack()).count()
+        == state.numberOfGlobalConstants;
+    assert constantsMap.size() == state.constantsMapSize;
     assert hashCode == constantsMap.hashCode();
   }
 
@@ -191,10 +217,20 @@ public final class ValueAnalysisState
     ValueAndType oldValueAndType = constantsMap.get(pMemLoc);
     if (oldValueAndType != null) {
       hashCode -= (pMemLoc.hashCode() ^ oldValueAndType.hashCode());
+      boolean newIsSymbolic = valueAndType.getValue() instanceof SymbolicValue;
+      boolean oldIsSymbolic = oldValueAndType.getValue() instanceof SymbolicValue;
+      if (newIsSymbolic && !oldIsSymbolic) {
+        numberOfSymbolicConstants++;
+      } else if (oldIsSymbolic && !newIsSymbolic) {
+        numberOfSymbolicConstants--;
+      }
     } else {
       constantsMapSize++;
       if (!pMemLoc.isOnFunctionStack()) {
         numberOfGlobalConstants++;
+      }
+      if (valueAndType.getValue() instanceof SymbolicValue) {
+        numberOfSymbolicConstants++;
       }
     }
     constantsMap = constantsMap.putAndCopy(pMemLoc, valueAndType);
@@ -269,13 +305,19 @@ public final class ValueAnalysisState
     if (!pMemoryLocation.isOnFunctionStack()) {
       numberOfGlobalConstants--;
     }
+    if (value.getValue() instanceof SymbolicValue) {
+      numberOfSymbolicConstants--;
+    }
     hashCode -= (pMemoryLocation.hashCode() ^ value.hashCode());
 
     PersistentMap<MemoryLocation, ValueAndType> valueAssignment = PathCopyingPersistentTreeMap.of();
     valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
 
     return new ValueAnalysisInformation(
-        valueAssignment, 1, pMemoryLocation.isOnFunctionStack() ? 0 : 1);
+        valueAssignment,
+        1,
+        pMemoryLocation.isOnFunctionStack() ? 0 : 1,
+        value.getValue() instanceof SymbolicValue ? 1 : 0);
   }
 
   @Override
@@ -383,6 +425,15 @@ public final class ValueAnalysisState
   }
 
   /**
+   * This method returns the number of symbolic variables contained in this state.
+   *
+   * @return the number of symbolic variables contained in this state.
+   */
+  public int getNumberOfSymbolicVariables() {
+    return numberOfSymbolicConstants;
+  }
+
+  /**
    * This element joins this element with another element.
    *
    * @param reachedState the other element to join with this element
@@ -395,6 +446,7 @@ public final class ValueAnalysisState
 
     int newConstantsMapSize = 0;
     int newGlobalsSize = 0;
+    int newSymbolicsSize = 0;
     for (Entry<MemoryLocation, ValueAndType> otherEntry : reachedState.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
       ValueAndType value = otherEntry.getValue();
@@ -403,6 +455,9 @@ public final class ValueAnalysisState
         newConstantsMapSize++;
         if (!key.isOnFunctionStack()) {
           newGlobalsSize++;
+        }
+        if (value.getValue() instanceof SymbolicValue) {
+          newSymbolicsSize++;
         }
         newConstantsMap = newConstantsMap.putAndCopy(key, value);
       }
@@ -413,7 +468,7 @@ public final class ValueAnalysisState
       return reachedState;
     } else {
       return new ValueAnalysisState(
-          machineModel, newConstantsMap, newConstantsMapSize, newGlobalsSize);
+          machineModel, newConstantsMap, newConstantsMapSize, newGlobalsSize, newSymbolicsSize);
     }
   }
 
@@ -795,11 +850,13 @@ public final class ValueAnalysisState
    * @return the value-analysis interpolant reflecting the value assignment of this state
    */
   public ValueAnalysisInterpolant createInterpolant() {
-    return new ValueAnalysisInterpolant(constantsMap, constantsMapSize, numberOfGlobalConstants);
+    return new ValueAnalysisInterpolant(
+        constantsMap, constantsMapSize, numberOfGlobalConstants, numberOfSymbolicConstants);
   }
 
   public ValueAnalysisInformation getInformation() {
-    return new ValueAnalysisInformation(constantsMap, constantsMapSize, numberOfGlobalConstants);
+    return new ValueAnalysisInformation(
+        constantsMap, constantsMapSize, numberOfGlobalConstants, numberOfSymbolicConstants);
   }
 
   /**

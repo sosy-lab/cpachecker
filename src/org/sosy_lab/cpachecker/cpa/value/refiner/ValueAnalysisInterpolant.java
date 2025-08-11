@@ -22,6 +22,7 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -35,21 +36,24 @@ public final class ValueAnalysisInterpolant
   /** the variable assignment of the interpolant */
   private final @Nullable PersistentMap<MemoryLocation, ValueAndType> assignment;
 
-  private int assignmentsSize = 0;
+  private final int assignmentsSize;
 
-  private int numberOfGlobalConstantsInAssignment = 0;
+  private final int numberOfGlobalConstantsInAssignment;
+
+  private final int numberOfSymbolicConstants;
 
   /** the interpolant representing "true" */
   public static final ValueAnalysisInterpolant TRUE = new ValueAnalysisInterpolant();
 
   /** the interpolant representing "false" */
-  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant(null, 0, 0);
+  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant(null, 0, 0, 0);
 
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
   private ValueAnalysisInterpolant() {
     assignment = PathCopyingPersistentTreeMap.of();
     assignmentsSize = 0;
     numberOfGlobalConstantsInAssignment = 0;
+    numberOfSymbolicConstants = 0;
   }
 
   /**
@@ -60,10 +64,12 @@ public final class ValueAnalysisInterpolant
   public ValueAnalysisInterpolant(
       PersistentMap<MemoryLocation, ValueAndType> pAssignment,
       int pAssignmentsSize,
-      int pNumberOfGlobalConstants) {
+      int pNumberOfGlobalConstants,
+      int pNumberOfSymbolicConstants) {
     assignment = pAssignment;
     assignmentsSize = pAssignmentsSize;
     numberOfGlobalConstantsInAssignment = pNumberOfGlobalConstants;
+    numberOfSymbolicConstants = pNumberOfSymbolicConstants;
   }
 
   /**
@@ -97,6 +103,7 @@ public final class ValueAnalysisInterpolant
     PersistentMap<MemoryLocation, ValueAndType> newAssignment = assignment;
     int newAssignmentsSize = assignmentsSize;
     int newNumberOfGlobalConstantsInAssignment = numberOfGlobalConstantsInAssignment;
+    int newNumberOfSymbolicConstantsInAssignment = numberOfSymbolicConstants;
     for (Entry<MemoryLocation, ValueAndType> entry : other.assignment.entrySet()) {
       // TODO: the complexity of this can be improved
       if (newAssignment.containsKey(entry.getKey())) {
@@ -107,6 +114,9 @@ public final class ValueAnalysisInterpolant
         if (!entry.getKey().isOnFunctionStack()) {
           newNumberOfGlobalConstantsInAssignment++;
         }
+        if (entry.getValue().getValue() instanceof SymbolicValue) {
+          newNumberOfSymbolicConstantsInAssignment++;
+        }
       }
       newAssignment = newAssignment.putAndCopy(entry.getKey(), entry.getValue());
 
@@ -116,7 +126,10 @@ public final class ValueAnalysisInterpolant
     }
 
     return new ValueAnalysisInterpolant(
-        newAssignment, newAssignmentsSize, newNumberOfGlobalConstantsInAssignment);
+        newAssignment,
+        newAssignmentsSize,
+        newNumberOfGlobalConstantsInAssignment,
+        newNumberOfSymbolicConstantsInAssignment);
   }
 
   @Override
@@ -168,7 +181,11 @@ public final class ValueAnalysisInterpolant
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
       return new ValueAnalysisState(
-          Optional.empty(), assignment, assignmentsSize, numberOfGlobalConstantsInAssignment);
+          Optional.empty(),
+          assignment,
+          assignmentsSize,
+          numberOfGlobalConstantsInAssignment,
+          numberOfSymbolicConstants);
     }
   }
 
@@ -234,19 +251,26 @@ public final class ValueAnalysisInterpolant
     PersistentMap<MemoryLocation, ValueAndType> weakenedAssignments = assignment;
     int newAssignmentsSize = assignmentsSize;
     int newNumberOfGlobalConstantsInAssignment = numberOfGlobalConstantsInAssignment;
+    int newNumberOfSymbolicConstantsInAssignment = numberOfSymbolicConstants;
     // TODO: the traversal/removal complexity can most likely be improved
-    for (MemoryLocation current : assignment.keySet()) {
-      if (!toRetain.contains(current.getExtendedQualifiedName())) {
+    for (Entry<MemoryLocation, ValueAndType> current : assignment.entrySet()) {
+      if (!toRetain.contains(current.getKey().getExtendedQualifiedName())) {
         newAssignmentsSize--;
-        if (!current.isOnFunctionStack()) {
+        if (!current.getKey().isOnFunctionStack()) {
           newNumberOfGlobalConstantsInAssignment--;
         }
-        weakenedAssignments = weakenedAssignments.removeAndCopy(current);
+        if (current.getValue().getValue() instanceof SymbolicValue) {
+          newNumberOfSymbolicConstantsInAssignment--;
+        }
+        weakenedAssignments = weakenedAssignments.removeAndCopy(current.getKey());
       }
     }
 
     return new ValueAnalysisInterpolant(
-        weakenedAssignments, newAssignmentsSize, newNumberOfGlobalConstantsInAssignment);
+        weakenedAssignments,
+        newAssignmentsSize,
+        newNumberOfGlobalConstantsInAssignment,
+        newNumberOfSymbolicConstantsInAssignment);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null

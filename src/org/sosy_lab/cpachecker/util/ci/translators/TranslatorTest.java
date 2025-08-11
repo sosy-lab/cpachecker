@@ -74,7 +74,7 @@ public class TranslatorTest {
     Truth.assertThat(constantsMap).hasSize(4);
 
     ValueAnalysisState vStateTest =
-        new ValueAnalysisState(Optional.of(machineModel), constantsMap, 4, 2);
+        new ValueAnalysisState(Optional.of(machineModel), constantsMap, 4, 2, 0);
     Truth.assertThat(vStateTest.getConstants()).isNotEmpty();
     ValueRequirementsTranslator vReqTransTest =
         new ValueRequirementsTranslator(LogManager.createTestLogManager());

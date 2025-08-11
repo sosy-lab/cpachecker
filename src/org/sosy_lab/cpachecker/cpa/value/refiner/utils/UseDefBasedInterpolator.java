@@ -160,7 +160,7 @@ public class UseDefBasedInterpolator {
     // PathCopyingPersistentTreeMap.
     //  Reason: i don't know if elements are unique above.
     checkState(useDefInterpolant.size() == itpSize);
-    return new ValueAnalysisInterpolant(useDefInterpolant, itpSize, globals);
+    return new ValueAnalysisInterpolant(useDefInterpolant, itpSize, globals, 0);
   }
 
   /**

@@ -25,19 +25,24 @@ public final class ValueAnalysisInformation {
 
   private final int numberOfGlobalConstantsInAssignment;
 
+  private final int numberOfSymbolicConstantsInAssignment;
+
   ValueAnalysisInformation(
       final PersistentMap<MemoryLocation, ValueAndType> pAssignments,
       int pAssignmentsSize,
-      int pNumberOfGlobalConstants) {
+      int pNumberOfGlobalConstants,
+      int pNumberOfSymbolicConstants) {
     assignments = pAssignments;
     assignmentsSize = pAssignmentsSize;
     numberOfGlobalConstantsInAssignment = pNumberOfGlobalConstants;
+    numberOfSymbolicConstantsInAssignment = pNumberOfSymbolicConstants;
   }
 
   private ValueAnalysisInformation() {
     assignments = PathCopyingPersistentTreeMap.of();
     assignmentsSize = 0;
     numberOfGlobalConstantsInAssignment = 0;
+    numberOfSymbolicConstantsInAssignment = 0;
   }
 
   public PersistentMap<MemoryLocation, ValueAndType> getAssignments() {
@@ -50,6 +55,10 @@ public final class ValueAnalysisInformation {
 
   public int getNumberOfGlobalConstantsInAssignment() {
     return numberOfGlobalConstantsInAssignment;
+  }
+
+  public int getNumberOfSymbolicConstantsInAssignment() {
+    return numberOfSymbolicConstantsInAssignment;
   }
 
   @Override
