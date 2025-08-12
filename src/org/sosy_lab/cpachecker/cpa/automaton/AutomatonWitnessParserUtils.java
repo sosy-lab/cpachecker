@@ -149,13 +149,13 @@ public class AutomatonWitnessParserUtils {
     } else if (FluentIterable.from(entries)
         .allMatch(
             e ->
-                (e instanceof ViolationSequenceEntry
-                        && ((ViolationSequenceEntry) e)
+                (e instanceof ViolationSequenceEntry violationSequenceEntry
+                        && violationSequenceEntry
                             .getMetadata()
                             .getFormatVersion()
                             .equals("2.0"))
-                    || (e instanceof InvariantSetEntry
-                        && ((InvariantSetEntry) e)
+                    || (e instanceof InvariantSetEntry invariantSetEntry
+                        && invariantSetEntry
                             .getMetadata()
                             .getFormatVersion()
                             .equals("2.0")))) {
@@ -163,13 +163,13 @@ public class AutomatonWitnessParserUtils {
     } else if (FluentIterable.from(entries)
         .allMatch(
             e ->
-                (e instanceof ViolationSequenceEntry
-                        && ((ViolationSequenceEntry) e)
+                (e instanceof ViolationSequenceEntry violationSequenceEntry
+                        && violationSequenceEntry
                             .getMetadata()
                             .getFormatVersion()
                             .equals("2.1"))
-                    || (e instanceof InvariantSetEntry
-                        && ((InvariantSetEntry) e)
+                    || (e instanceof InvariantSetEntry invariantSetEntry
+                        && invariantSetEntry
                             .getMetadata()
                             .getFormatVersion()
                             .equals("2.1")))) {
