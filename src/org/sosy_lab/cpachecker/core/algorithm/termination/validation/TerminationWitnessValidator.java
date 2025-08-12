@@ -90,6 +90,7 @@ public class TerminationWitnessValidator implements Algorithm {
       final ImmutableSet<Path> pWitnessPath,
       final Specification pSpecification)
       throws InvalidConfigurationException {
+    pConfig.inject(this);
     cfa = pCfa;
     config = pConfig;
     logger = pLogger;
