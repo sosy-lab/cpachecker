@@ -114,13 +114,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
     builder.append("while(" + loopCondition + ") {\n");
     // Initialize the variables from the transition invariant
-    for (Entry<String, Formula> variable : mapNamesToVariables.entrySet()) {
-      if (variable.getKey().contains("__PREV")) {
+    for (String variable : mapNamesToVariables.keySet()) {
+      if (variable.contains("__PREV")) {
         builder.append(
-            TransitionInvariantUtils.removeFunctionFromVarsName(variable.getKey())
+            TransitionInvariantUtils.removeFunctionFromVarsName(variable)
                 + " = "
                 + TransitionInvariantUtils.removeFunctionFromVarsName(
-                    variable.getKey().replace("__PREV", ""))
+                    variable.replace("__PREV", ""))
                 + ";\n");
       }
     }
