@@ -338,7 +338,8 @@ public class CPAMain {
    *
    * @return A Configuration object, the output directory, and the specification properties.
    */
-  private static Config createConfiguration(String[] args)
+  @VisibleForTesting
+  public static Config createConfiguration(String[] args)
       throws InvalidConfigurationException,
           InvalidCmdlineArgumentException,
           IOException,
@@ -903,15 +904,5 @@ public class CPAMain {
 
   private CPAMain() {} // prevent instantiation
 
-  private static class Config {
-
-    private final Configuration configuration;
-
-    private final String outputPath;
-
-    Config(Configuration pConfiguration, String pOutputPath) {
-      configuration = pConfiguration;
-      outputPath = pOutputPath;
-    }
-  }
+  public record Config(Configuration configuration, String outputPath) {}
 }

@@ -5447,6 +5447,10 @@ witness.automatonDumpFile = no default value
 # witness.invariantsSpecificationAutomaton)
 witness.checkInvariantViolations = true
 
+# When the witness is used as an automaton, check that the invariants hold
+# for every path in the program
+witness.checkInvariantsHoldForEveryPath = true
+
 # Check that the value of the programhash field of the witness matches the
 # SHA-256 hash value computed for the source code.
 witness.checkProgramHash = true

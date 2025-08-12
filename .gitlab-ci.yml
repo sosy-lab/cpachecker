@@ -30,7 +30,7 @@ variables:
 
 auto-update-dependencies:
   stage: deploy
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
   before_script:
     - apt-get update
     - apt-get install -y --no-install-recommends git xmlstarlet openssh-client
