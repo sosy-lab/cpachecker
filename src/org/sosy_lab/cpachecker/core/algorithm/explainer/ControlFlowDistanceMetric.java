@@ -284,7 +284,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
       return null;
     }
     // Get the last branch of the counterexample - the one closer to the Error -
-    CFAEdge lastBranch = pBranchesCE.get(pBranchesCE.size() - 1);
+    CFAEdge lastBranch = pBranchesCE.getLast();
     for (CFAEdge pCFAEdge : pBranchesCE) {
       if (pCFAEdge.getPredecessor().getNumLeavingEdges() == 0) {
         continue;

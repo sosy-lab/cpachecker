@@ -82,7 +82,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
 
   public Map<Loop, Set<ARGState>> getRelevantLoops() {
     ListIterator<Pair<CFAEdge, ARGState>> cfaIterator = cfaPath.listIterator(cfaPath.size());
-    CFAEdge edge = cfaPath.get(cfaPath.size() - 1).getFirst();
+    CFAEdge edge = cfaPath.getLast().getFirst();
     ARGState state = cfaPath.get(cfaPath.size() - 2).getSecond();
 
     // Creates the initial loopStack, as seen from the error state's location

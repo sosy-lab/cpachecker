@@ -1392,7 +1392,7 @@ class ASTConverter {
     for (CFieldReference field : fields) {
       BigInteger offset = machineModel.getFieldOffsetInBits(structType, field.getFieldName());
       sumOffset = sumOffset.add(offset);
-      CFieldReference lastField = fields.get(fields.size() - 1);
+      CFieldReference lastField = fields.getLast();
       if (!field.equals(lastField)) {
         final CType fieldType = field.getExpressionType().getCanonicalType();
         if (!(fieldType instanceof CCompositeType cCompositeType)) {

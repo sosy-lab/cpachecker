@@ -1280,14 +1280,14 @@ public class ARGUtils {
       List<ARGState> curPath = paths.remove(paths.size() - 1);
       Preconditions.checkNotNull(curPath);
       // If there is no more to expand - add this path and continue
-      if (curPath.get(curPath.size() - 1) == root) {
+      if (curPath.getLast() == root) {
         results.add(new ARGPath(curPath.reversed()));
 
         continue;
       }
 
       // Add all parents of currently first state on the current path
-      for (ARGState parentElement : curPath.get(curPath.size() - 1).getParents()) {
+      for (ARGState parentElement : curPath.getLast().getParents()) {
         ImmutableList.Builder<ARGState> tmp =
             ImmutableList.builderWithExpectedSize(curPath.size() + 1);
         tmp.addAll(curPath);

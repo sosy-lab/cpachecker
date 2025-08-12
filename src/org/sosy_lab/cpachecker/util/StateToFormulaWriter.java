@@ -248,7 +248,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
     List<String> lines = LINE_SPLITTER.splitToList(fmgr.dumpFormula(predicate).toString());
 
     // Get the predicate from the last line
-    String predString = lines.get(lines.size() - 1);
+    String predString = lines.getLast();
 
     // Check that the dump format is correct
     if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {

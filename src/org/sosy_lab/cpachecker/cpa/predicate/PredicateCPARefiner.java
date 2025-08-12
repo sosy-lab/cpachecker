@@ -567,7 +567,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
     //    : "PredicateCPARefiner expects abstraction states to have only one parent, but at least
     // one state has more.";
 
-    assert Objects.equals(pPath.getLastState(), result.get(result.size() - 1));
+    assert Objects.equals(pPath.getLastState(), result.getLast());
     return result;
   }
 

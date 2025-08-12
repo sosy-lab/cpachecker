@@ -594,7 +594,7 @@ public class ARGToCTranslator {
         assert !(innerEdge instanceof CFunctionCallEdge || innerEdge instanceof CFunctionReturnEdge)
             : "Unexpected edge " + innerEdge + " in dynmaic multi edge";
         if (innerEdge instanceof CReturnStatementEdge returnEdge) {
-          assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
+          assert (innerEdges.getLast() == innerEdge);
 
           String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
           String returnVar;
@@ -1075,8 +1075,7 @@ public class ARGToCTranslator {
     DeclarationInfo fromFunctionReturn() {
       checkState(!calleeFunDecInfos.isEmpty());
       return new DeclarationInfo(
-          calleeFunDecInfos.get(calleeFunDecInfos.size() - 1),
-          calleeFunDecInfos.subList(0, calleeFunDecInfos.size() - 1));
+          calleeFunDecInfos.getLast(), calleeFunDecInfos.subList(0, calleeFunDecInfos.size() - 1));
     }
   }
 }

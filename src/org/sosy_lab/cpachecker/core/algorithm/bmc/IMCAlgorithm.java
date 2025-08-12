@@ -950,7 +950,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Checking fixed point of the reachability vector");
 
     if (impactLikeCovering) {
-      BooleanFormula lastImage = reachVector.get(reachVector.size() - 1);
+      BooleanFormula lastImage = reachVector.getLast();
       for (int i = 0; i < reachVector.size() - 1; ++i) {
         BooleanFormula imageAtI = reachVector.get(i);
         if (solver.implies(lastImage, imageAtI)) {

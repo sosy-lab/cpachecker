@@ -823,7 +823,7 @@ public class ReportGenerator {
         edgeLabel.append("Lines ");
         edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
         edgeLabel.append(" - ");
-        edgeLabel.append(edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(edges.getLast().getFileLocation().getStartingLineInOrigin());
         edgeLabel.append(":");
         argEdge.put("lines", edgeLabel.substring(6));
       } else {

@@ -385,7 +385,7 @@ public class SymbolicValueAnalysisRefiner
       currentState = nextState;
     }
 
-    currentState = stateSequence.get(stateSequence.size() - 1).getFirst();
+    currentState = stateSequence.getLast().getFirst();
     ConstraintsState finalConstraints = currentState.getConstraintsState();
 
     List<ValueAssignment> assignments = finalConstraints.getModel();

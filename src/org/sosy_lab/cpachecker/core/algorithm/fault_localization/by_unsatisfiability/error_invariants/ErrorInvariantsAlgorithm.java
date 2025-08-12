@@ -273,7 +273,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         if (i + 1 < abstractTrace.size()) {
           next = (TraceAtom) abstractTrace.get(i + 1);
         } else {
-          next = allSelectors.get(allSelectors.size() - 1);
+          next = allSelectors.getLast();
         }
         Set<FaultContribution> contributions = new HashSet<>();
         for (int j = allSelectors.indexOf(prev); j < allSelectors.indexOf(next); j++) {

@@ -546,7 +546,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public BigInteger getUpperBound() {
-    return intervals.get(intervals.size() - 1).getUpperBound();
+    return intervals.getLast().getUpperBound();
   }
 
   /**

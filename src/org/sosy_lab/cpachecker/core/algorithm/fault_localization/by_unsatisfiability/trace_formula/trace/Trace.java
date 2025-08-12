@@ -65,7 +65,7 @@ public class Trace extends ForwardingList<TraceAtom> {
       latestSSAMap = SSAMap.emptySSAMap();
       initialSSAMap = SSAMap.emptySSAMap();
     } else {
-      latestSSAMap = pEntries.get(pEntries.size() - 1).ssaMap;
+      latestSSAMap = pEntries.getLast().ssaMap;
       initialSSAMap = calculateInitialSsaMap(pEntries);
     }
     entries =

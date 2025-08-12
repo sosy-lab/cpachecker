@@ -151,8 +151,7 @@ public final class DOTBuilder2 {
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
           || (currentComboEdge != null
-              && !predecessor.equals(
-                  currentComboEdge.get(currentComboEdge.size() - 1).getSuccessor()))
+              && !predecessor.equals(currentComboEdge.getLast().getSuccessor()))
           || (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge)
           || (edge.getEdgeType() == CFAEdgeType.AssumeEdge)) {
         // no, it does not
@@ -249,7 +248,7 @@ public final class DOTBuilder2 {
           outb.append(comboToDot(combo));
 
           CFAEdge first = combo.get(0);
-          CFAEdge last = combo.get(combo.size() - 1);
+          CFAEdge last = combo.getLast();
 
           outb.append(first.getPredecessor().getNodeNumber());
           outb.append(" -> ");
@@ -318,7 +317,7 @@ public final class DOTBuilder2 {
       if (combo.size() > 20) {
         // edge too long, dotty won't be able to handle it
         // 20 is just a guess
-        CFAEdge last = combo.get(combo.size() - 1);
+        CFAEdge last = combo.getLast();
         int lastNo = last.getPredecessor().getNodeNumber();
 
         sb.append("\"Long linear chain of edges between nodes ");

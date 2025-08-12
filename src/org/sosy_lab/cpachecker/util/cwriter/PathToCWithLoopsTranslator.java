@@ -274,8 +274,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
             .toList();
 
     // we do not go into a loop that has to be uprolled, so just continue normally
-    if (loopsAfter.isEmpty()
-        || !loopsInPathToRecreate.get(loopsAfter.get(loopsAfter.size() - 1)).contains(state)) {
+    if (loopsAfter.isEmpty() || !loopsInPathToRecreate.get(loopsAfter.getLast()).contains(state)) {
       return processSimpleWithLoop(pCFAEdge, currentBlock, "").trim();
     } else {
       return recreateLoop(pCFAEdge, currentBlock, loopsAfter).getFirst();
@@ -422,9 +421,9 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
 
     // this should be already handled by the handledEdges check at the beginning
     // of the processEdge method
-    assert loopsAfter.get(loopsAfter.size() - 1).getIncomingEdges().contains(pCFAEdge);
+    assert loopsAfter.getLast().getIncomingEdges().contains(pCFAEdge);
 
-    Loop loop = loopsAfter.get(loopsAfter.size() - 1);
+    Loop loop = loopsAfter.getLast();
 
     // create necessary mappings
     String labelStayInLoop = createFreshLabelForLoop(pCFAEdge, loop);
@@ -649,7 +648,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       return;
     }
 
-    Loop newInnerLoop = newLoops.get(newLoops.size() - 1);
+    Loop newInnerLoop = newLoops.getLast();
     if (newInnerLoop.getIncomingEdges().contains(onlyEdge)) {
       String newLabel = createFreshLabelForLoop(onlyEdge, newInnerLoop);
       wholeLoopString.append(newLabel + ": ;\n");

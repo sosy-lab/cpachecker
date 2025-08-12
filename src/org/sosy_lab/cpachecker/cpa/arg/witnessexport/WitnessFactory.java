@@ -1833,7 +1833,7 @@ class WitnessFactory implements EdgeAppender {
     }
     while (!waitlist.isEmpty()) {
       List<CFANode> current = waitlist.pop();
-      CFANode currentNode = current.get(current.size() - 1);
+      CFANode currentNode = current.getLast();
       Boolean memoized = loopProximityMemo.get(currentNode);
       if (memoized != null && !memoized) {
         continue;

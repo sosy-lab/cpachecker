@@ -150,7 +150,7 @@ public class STBridges {
     }
     while (!paths.isEmpty()) {
       List<CFAEdge> currentPath = paths.removeFirst();
-      CFAEdge lastEdge = currentPath.get(currentPath.size() - 1);
+      CFAEdge lastEdge = currentPath.getLast();
       CFANode lastNode = lastEdge.getSuccessor();
       if (lastNode.equals(exitNode)) {
         return currentPath;

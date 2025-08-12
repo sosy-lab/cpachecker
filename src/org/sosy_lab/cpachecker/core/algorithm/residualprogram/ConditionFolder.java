@@ -83,7 +83,7 @@ public abstract class ConditionFolder {
         if (loopStack.isEmpty()) {
           l = null;
         } else {
-          l = loopStack.get(loopStack.size() - 1);
+          l = loopStack.getLast();
         }
 
         for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
@@ -110,7 +110,7 @@ public abstract class ConditionFolder {
             if (succLoopStack.isEmpty()) {
               lsucc = null;
             } else {
-              lsucc = succLoopStack.get(succLoopStack.size() - 1);
+              lsucc = succLoopStack.getLast();
             }
           }
 
