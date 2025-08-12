@@ -3,7 +3,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2024 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -29,11 +29,11 @@ For bug tracking, we use [GitLab](https://gitlab.com/sosy-lab/software/cpachecke
 Develop CPAchecker from within Eclipse
 --------------------------------------
 
-0. Install a Java 17 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
+0. Install a Java 21 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
 
-1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.22, with JDT.
+1. Install [Eclipse](http://www.eclipse.org/) with at least version 2023-09 (4.29), with JDT.
    If you have more than one Java version installed,
-   make sure to start Eclipse with Java 17 or newer.
+   make sure to start Eclipse with Java 21 or newer.
 
 2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
@@ -56,9 +56,9 @@ Develop CPAchecker from within Eclipse
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
 4. If Eclipse complains about a missing JDK
-   (`Unbound classpath container: 'JRE System Library [JavaSE-17]'`),
+   (`Unbound classpath container: 'JRE System Library [JavaSE-21]'`),
    go to Window -> Preferences -> Java -> Installed JREs,
-   click the "Search" button and select the path where your Java 17 installation
+   click the "Search" button and select the path where your Java 21 installation
    can be found (on Ubuntu `/usr/lib/jvm` will do).
 
 5. In order to run CPAchecker, use one of the supplied launch configurations

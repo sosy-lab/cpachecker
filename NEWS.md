@@ -8,6 +8,11 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 4.1
+----------------------------
+* Java 21 or later is required now.
+
+
 Changes from CPAchecker 4.0 to CPAchecker 4.1
 ---------------------------------------------
 * CPAchecker 4.1 is the last release that works on Java 17,
