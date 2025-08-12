@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -83,5 +84,15 @@ public class SeqThreadStatementUtil {
         .addAll(pStatement.getInjectedStatements())
         .addAll(pAppendedInjectedStatements)
         .build();
+  }
+
+  public static Optional<Integer> tryGetTargetPcOrGotoNumber(SeqThreadStatement pStatement) {
+    if (pStatement.getTargetPc().isPresent()) {
+      return pStatement.getTargetPc();
+
+    } else if (pStatement.getTargetGoto().isPresent()) {
+      return Optional.of(pStatement.getTargetGoto().orElseThrow().labelNumber);
+    }
+    return Optional.empty();
   }
 }

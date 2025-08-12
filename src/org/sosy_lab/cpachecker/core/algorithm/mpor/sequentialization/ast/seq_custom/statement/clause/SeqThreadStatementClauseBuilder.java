@@ -242,8 +242,7 @@ public class SeqThreadStatementClauseBuilder {
         buildBlockLabelStatement(pOptions, pThread.id, labelPc);
     SeqThreadStatementBlock block =
         new SeqThreadStatementBlock(pOptions, blockLabelStatement, statements.build(), pThread);
-    SeqThreadStatementClause clause =
-        new SeqThreadStatementClause(pThreadNode.cfaNode.isLoopStart(), block);
+    SeqThreadStatementClause clause = new SeqThreadStatementClause(block);
     return Optional.of(clause);
   }
 

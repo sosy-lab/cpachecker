@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -127,8 +128,8 @@ public class SeqValidator {
 
   /** Returns {@code true} if the two collections contain the exact same blocks, in any order. */
   public static boolean validateEqualBlocks(
-      ImmutableSet<SeqThreadStatementBlock> pBlocksA,
-      ImmutableSet<SeqThreadStatementBlock> pBlocksB) {
+      ImmutableCollection<SeqThreadStatementBlock> pBlocksA,
+      ImmutableCollection<SeqThreadStatementBlock> pBlocksB) {
 
     // short circuit: check for equal length
     if (pBlocksA.size() != pBlocksB.size()) {
