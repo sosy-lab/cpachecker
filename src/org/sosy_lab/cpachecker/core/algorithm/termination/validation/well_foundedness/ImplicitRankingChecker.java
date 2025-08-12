@@ -87,10 +87,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     builder.append("int main() { \n");
 
     // Initialize the variables from the transition invariant
-    for (Entry<String, Formula> variable : mapNamesToVariables.entrySet()) {
+    for (String variable : mapNamesToVariables.keySet()) {
       builder.append(
           TransitionInvariantUtils.removeFunctionFromVarsName(
-                  scope.lookupVariable(variable.getKey()).toString())
+                  scope.lookupVariable(variable).toString())
               + "\n");
     }
 
@@ -105,10 +105,10 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     loopCondition = loopCondition + " && " + String.join(" && ", exitConditions);
     for (BooleanFormula invariant : pSupportingInvariants) {
       loopCondition = loopCondition + " && " + converter.formulaToCExpression(invariant);
-      for (Entry<String, Formula> variable : fmgr.extractVariables(invariant).entrySet()) {
+      for (String variable : fmgr.extractVariables(invariant).keySet()) {
         builder.append(
             TransitionInvariantUtils.removeFunctionFromVarsName(
-                    scope.lookupVariable(variable.getKey()).toString())
+                    scope.lookupVariable(variable).toString())
                 + "\n");
       }
     }
@@ -125,13 +125,13 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       }
     }
     // Reset the original variables
-    for (Entry<String, Formula> variable : mapNamesToVariables.entrySet()) {
-      if (!variable.getKey().contains("__PREV")) {
+    for (String variable : mapNamesToVariables.keySet()) {
+      if (!variable.contains("__PREV")) {
         builder.append(
-            TransitionInvariantUtils.removeFunctionFromVarsName(variable.getKey())
+            TransitionInvariantUtils.removeFunctionFromVarsName(variable)
                 + " = "
                 + "__VERIFIER_nondet_"
-                + scope.lookupVariable(variable.getKey()).getType().toString()
+                + scope.lookupVariable(variable).getType().toString()
                 + "();\n");
       }
     }
