@@ -85,7 +85,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
     } else {
       assert !relevantCallStates.isEmpty();
-      final BackwardARGState lastRelevantNode = Iterables.getLast(relevantCallStates);
+      final BackwardARGState lastRelevantNode = relevantCallStates.getLast();
       final List<Pair<Precision, Predicate<? super Precision>>> newPrecisionsLst =
           Pair.zipList(pNewPrecisions, pNewPrecisionTypes);
 

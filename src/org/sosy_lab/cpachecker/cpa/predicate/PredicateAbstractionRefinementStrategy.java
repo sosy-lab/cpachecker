@@ -20,7 +20,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.MultimapBuilder;
@@ -490,7 +489,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       ARGState root = (ARGState) reached.getFirstState();
       // we have to use the child as the refinementRoot
       assert root.getChildren().size() == 1 : "ARG root should have exactly one child";
-      refinementRoot = Iterables.getLast(root.getChildren());
+      refinementRoot = root.getChildren().getLast();
 
       logger.log(
           Level.FINEST,

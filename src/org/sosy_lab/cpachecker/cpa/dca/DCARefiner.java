@@ -381,7 +381,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   firstNodeInCycle,
                   loopPath.asStatesList(),
                   stemPathFormula.getSsa(),
-                  Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
+                  stemPathFormulaList.getLast().getPointerTargetSet(),
                   AbstractionPosition.NONE);
           PathFormula loopPathFormula =
               loopPathFormulaList.isEmpty()

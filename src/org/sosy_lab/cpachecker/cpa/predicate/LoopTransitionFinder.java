@@ -15,7 +15,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -435,7 +434,7 @@ class LoopTransitionFinder implements StatisticsProvider {
       }
       edges = l.build();
       predecessor = edges.getFirst().getPredecessor();
-      successor = Iterables.getLast(edges).getSuccessor();
+      successor = edges.getLast().getSuccessor();
     }
 
     @Override

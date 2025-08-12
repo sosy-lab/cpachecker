@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -238,7 +237,7 @@ public class ARGPath extends AbstractAppender {
   }
 
   public ARGState getLastState() {
-    return Iterables.getLast(states);
+    return states.getLast();
   }
 
   @Override

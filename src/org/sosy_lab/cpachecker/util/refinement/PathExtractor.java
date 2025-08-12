@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.refinement;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -87,7 +86,7 @@ public class PathExtractor implements Statistics {
     // set of targets may only be empty, if all of them were found feasible previously
     if (targets.isEmpty()) {
       throw new RefinementFailedException(
-          Reason.RepeatedCounterexample, ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
+          Reason.RepeatedCounterexample, ARGUtils.getOnePathTo(feasibleTargets.getLast()));
     }
 
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
