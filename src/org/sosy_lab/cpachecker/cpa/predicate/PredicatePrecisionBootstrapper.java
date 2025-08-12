@@ -495,6 +495,7 @@ public final class PredicatePrecisionBootstrapper {
                       + "but the location is not present in the CFA, ignoring it.",
                   pWitnessFile,
                   locationRecord);
+              continue;
             }
 
             addLocalPrecision(
