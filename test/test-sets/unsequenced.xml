@@ -15,7 +15,7 @@
 
     <resultfiles>**/witness.*</resultfiles>
 
-    <option name="-config">../config/unseq-analysis.properties</option>
+    <option name="-config">../../config/unseq-analysis.properties</option>
     <option name="--heap" />
     <option name="10000M" />
     <option name="--benchmark" />
