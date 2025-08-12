@@ -20,100 +20,102 @@
     <option name="10000M" />
     <option name="--benchmark" />
 
-    <rundefinition>
-        <tasks name="Arrays">
+    <rundefinition name="SV-COMP25_unreach-call">
+        <tasks name="ReachSafety-Arrays">
             <includesfile>../../../sv-benchmarks/c/Arrays.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="BitVectors">
+        <tasks name="ReachSafety-BitVectors">
             <includesfile>../../../sv-benchmarks/c/BitVectors.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="ControlFlow">
+        <tasks name="ReachSafety-ControlFlow">
             <includesfile>../../../sv-benchmarks/c/ControlFlow.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="ECA">
+        <tasks name="ReachSafety-ECA">
             <includesfile>../../../sv-benchmarks/c/ECA.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Floats">
+        <tasks name="ReachSafety-Floats">
             <includesfile>../../../sv-benchmarks/c/Floats.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Heap">
+        <tasks name="ReachSafety-Heap">
             <includesfile>../../../sv-benchmarks/c/Heap.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/LinkedLists.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Loops">
+        <tasks name="ReachSafety-Loops">
             <includesfile>../../../sv-benchmarks/c/Loops.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="ProductLines">
+        <tasks name="ReachSafety-ProductLines">
             <includesfile>../../../sv-benchmarks/c/ProductLines.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Recursive">
+        <tasks name="ReachSafety-Recursive">
             <includesfile>../../../sv-benchmarks/c/Recursive.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Sequentialized">
+        <tasks name="ReachSafety-Sequentialized">
             <includesfile>../../../sv-benchmarks/c/Sequentialized.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="XCSP">
+        <tasks name="ReachSafety-XCSP">
             <includesfile>../../../sv-benchmarks/c/XCSP.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Combinations">
+        <tasks name="ReachSafety-Combinations">
             <includesfile>../../../sv-benchmarks/c/Combinations.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Hardware">
+        <tasks name="ReachSafety-Hardware">
             <includesfile>../../../sv-benchmarks/c/Hardware.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Hardness">
+        <tasks name="ReachSafety-Hardness">
             <includesfile>../../../sv-benchmarks/c/Hardness.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Fuzzle">
+        <tasks name="ReachSafety-Fuzzle">
             <includesfile>../../../sv-benchmarks/c/Fuzzle.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="Concurrency">
+
+        <tasks name="ConcurrencySafety-Main">
             <includesfile>../../../sv-benchmarks/c/Concurrency.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="SoftwareSystems-AWS-C-Common">
+
+        <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-AWS-C-Common.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="SoftwareSystems-DeviceDriversLinux64">
+        <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
             <excludesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large.set</excludesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="SoftwareSystems-DeviceDriversLinux64Large">
+        <tasks name="SoftwareSystems-DeviceDriversLinux64Large-ReachSafety">
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="SoftwareSystems-coreutils">
+        <tasks name="SoftwareSystems-Other-ReachSafety">
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-coreutils.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-BusyBox.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-OpenBSD.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="SoftwareSystems-uthash">
+        <tasks name="SoftwareSystems-uthash-ReachSafety">
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
-        <tasks name="SoftwareSystems-Intel-TDX-Module">
+        <tasks name="SoftwareSystems-Intel-TDX-Module-ReachSafety">
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-Intel-TDX-Module.set</includesfile>
-            <propertyfile>../../config/specification/deterministic-execution-order.spc</propertyfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         </tasks>
     </rundefinition>
 
