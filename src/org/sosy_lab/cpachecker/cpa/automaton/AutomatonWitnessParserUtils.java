@@ -150,29 +150,17 @@ public class AutomatonWitnessParserUtils {
         .allMatch(
             e ->
                 (e instanceof ViolationSequenceEntry violationSequenceEntry
-                        && violationSequenceEntry
-                            .getMetadata()
-                            .getFormatVersion()
-                            .equals("2.0"))
+                        && violationSequenceEntry.getMetadata().getFormatVersion().equals("2.0"))
                     || (e instanceof InvariantSetEntry invariantSetEntry
-                        && invariantSetEntry
-                            .getMetadata()
-                            .getFormatVersion()
-                            .equals("2.0")))) {
+                        && invariantSetEntry.getMetadata().getFormatVersion().equals("2.0")))) {
       return Optional.of(WitnessYAMLVersion.V2);
     } else if (FluentIterable.from(entries)
         .allMatch(
             e ->
                 (e instanceof ViolationSequenceEntry violationSequenceEntry
-                        && violationSequenceEntry
-                            .getMetadata()
-                            .getFormatVersion()
-                            .equals("2.1"))
+                        && violationSequenceEntry.getMetadata().getFormatVersion().equals("2.1"))
                     || (e instanceof InvariantSetEntry invariantSetEntry
-                        && invariantSetEntry
-                            .getMetadata()
-                            .getFormatVersion()
-                            .equals("2.1")))) {
+                        && invariantSetEntry.getMetadata().getFormatVersion().equals("2.1")))) {
       return Optional.of(WitnessYAMLVersion.V21);
     }
     return Optional.empty();
