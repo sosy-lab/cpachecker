@@ -130,8 +130,8 @@ public class StaticCandidateProvider implements CandidateGenerator {
   }
 
   @Override
-  public Set<CandidateInvariant> getConfirmedCandidates() {
-    return Collections.unmodifiableSet(confirmedInvariants);
+  public SequencedSet<CandidateInvariant> getConfirmedCandidates() {
+    return Collections.unmodifiableSequencedSet(confirmedInvariants);
   }
 
   @Override

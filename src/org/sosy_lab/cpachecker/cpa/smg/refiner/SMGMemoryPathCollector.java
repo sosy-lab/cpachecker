@@ -42,7 +42,7 @@ public class SMGMemoryPathCollector {
     smg = pSmg;
   }
 
-  public Set<SMGMemoryPath> getMemoryPaths() {
+  public SequencedSet<SMGMemoryPath> getMemoryPaths() {
 
     SequencedSet<SMGMemoryPath> result = new LinkedHashSet<>();
     SequencedSet<SMGObject> reached = new LinkedHashSet<>();
@@ -50,10 +50,10 @@ public class SMGMemoryPathCollector {
     getMemoryPathsFromGlobalVariables(result, reached);
     getMemoryPathsFromStack(result, reached);
 
-    return Collections.unmodifiableSet(result);
+    return Collections.unmodifiableSequencedSet(result);
   }
 
-  public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
+  public SequencedMap<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
 
     SequencedMap<SMGObject, SMGMemoryPath> result = new LinkedHashMap<>();
     SequencedSet<SMGObject> reached = new LinkedHashSet<>();
@@ -61,7 +61,7 @@ public class SMGMemoryPathCollector {
     getHeapObjectMemoryPathsFromGlobalVariables(result, reached);
     getHeapObjectMemoryPathsFromStack(result, reached);
 
-    return Collections.unmodifiableMap(result);
+    return Collections.unmodifiableSequencedMap(result);
   }
 
   private void getMemoryPathsFromGlobalVariables(
