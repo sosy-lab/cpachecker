@@ -152,7 +152,7 @@ public class LoopTransitionFinderTest {
         new TreeSet<>(Comparator.comparingInt(CFANode::getReversePostorderId));
     loopHeads.addAll(cfa.getAllLoopHeads().orElseThrow());
     // first loop head in the program has the highest reverse post-order ID
-    CFANode loopHead = loopHeads.last();
+    CFANode loopHead = loopHeads.getLast();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
             config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, notifier);

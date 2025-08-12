@@ -479,7 +479,7 @@ public final class LoopStructure {
     @Nullable CFANode nodeAfterInitialChain = null;
     {
       // The function exit node is always the first
-      if (pNodes.first() instanceof FunctionExitNode functionExitNode) {
+      if (pNodes.getFirst() instanceof FunctionExitNode functionExitNode) {
         CFANode startNode = functionExitNode.getEntryNode();
         while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
           initialChain.add(startNode);
@@ -598,7 +598,7 @@ public final class LoopStructure {
         // We just pick a node randomly and merge it into others.
         // This is imprecise, but not wrong.
 
-        CFANode currentNode = nodes.last();
+        CFANode currentNode = nodes.getLast();
         final int current = arrayIndexForNode.apply(currentNode);
 
         // Mark this node as a loop head
