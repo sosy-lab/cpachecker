@@ -1716,7 +1716,10 @@ public class ValueAnalysisTransferRelation
     } catch (ParserConfigurationException | SAXException | IOException e) {
       // Nothing to do here, as we are not able to lead the additional information, hence ignoring
       // the file
-      logger.logf(Level.WARNING, "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error", options.getFunctionValuesForRandom());
+      logger.logf(
+          Level.WARNING,
+          "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
+          options.getFunctionValuesForRandom());
     }
   }
 
