@@ -42,6 +42,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.units.qual.C;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -2571,12 +2572,41 @@ public class SMGState
   }
 
   /**
+   * Invalid write to a not initialized, unknown or non-existing or beyond the boundries of a memory
+   * region.
+   *
+   * @param invalidWriteRegion the invalid address pointing to nothing.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidWrite(SMGObject invalidWriteRegion, CExpression expression) {
+    String errorMSG =
+        "Write to invalid, unknown or non-existing or beyond the boundries of a memory region: "
+            + invalidWriteRegion
+            + ".";
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_WRITE)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(invalidWriteRegion));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+
+    //Add info dereferenced object
+    SMGErrorInfo expressionNameInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage("Expression: " + expression.toASTString());
+
+    return copyWithNewErrorInfo(ImmutableList.of(newErrorInfo, expressionNameInfo));
+  }
+
+  /**
    * Invalid write to 0. (0 SMGObject)
    *
    * @param invalidWriteRegion the invalid address pointing to nothing.
    * @return A new SMGState with the error info.
    */
-  public SMGState withInvalidWriteToZeroObject(SMGObject invalidWriteRegion) {
+  public SMGState withInvalidWriteToZeroObject(SMGObject invalidWriteRegion, CExpression expression) {
     String errorMSG = "Write to invalid memory region: NULL.";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
@@ -2585,7 +2615,14 @@ public class SMGState
             .withInvalidObjects(Collections.singleton(invalidWriteRegion));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithNewErrorInfo(newErrorInfo);
+
+    //Add info dereferenced object
+    SMGErrorInfo expressionNameInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage("Expression: " + expression.toASTString());
+
+    return copyWithNewErrorInfo(ImmutableList.of(newErrorInfo, expressionNameInfo));
   }
 
   /**
@@ -3936,11 +3973,11 @@ public class SMGState
       throws SMGException, SMGSolverException {
     if (object.isZero()) {
       // Write to 0
-      return ImmutableList.of(withInvalidWriteToZeroObject(object));
+      return ImmutableList.of(withInvalidWriteToZeroObject(object, lValueExpr));
     } else if (!memoryModel.isObjectValid(object)) {
       // Write to an object that is invalidated (already freed)
       // If object part of the heap -> invalid deref
-      return ImmutableList.of(this.withInvalidWrite(object));
+      return ImmutableList.of(this.withInvalidWrite(object, lValueExpr));
     }
     SMGState currentState = this;
     if (valueToWrite instanceof AddressExpression) {

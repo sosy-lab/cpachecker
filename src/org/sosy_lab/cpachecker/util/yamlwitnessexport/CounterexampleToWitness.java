@@ -385,7 +385,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return pSMGAdditionalInfo != null
         && pSMGAdditionalInfo.getLevel() == SMGAdditionalInfo.Level.ERROR
         && (pSMGAdditionalInfo.getValue().startsWith("Invalid read of memory object")
-            || pSMGAdditionalInfo.getValue().startsWith("Null pointer dereference"));
+            || pSMGAdditionalInfo.getValue().startsWith("Null pointer dereference")
+            || pSMGAdditionalInfo.getValue().startsWith("Write to invalid memory region"));
   }
 
   private boolean isMemtrackError(SMGAdditionalInfo pSMGAdditionalInfo) {
