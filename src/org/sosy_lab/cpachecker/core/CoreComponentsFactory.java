@@ -473,16 +473,6 @@ public class CoreComponentsFactory {
       algorithm =
           new NonTerminationWitnessValidator(
               cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
-    } else if (useTerminationWitnessValidation) {
-      logger.log(Level.INFO, "Using validator for correctness witnesses for termination");
-      algorithm =
-          new TerminationWitnessValidator(
-              cfa,
-              cpa,
-              config,
-              logger,
-              shutdownNotifier,
-              specification.getPathToSpecificationAutomata().keySet());
     } else if (useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
@@ -643,6 +633,19 @@ public class CoreComponentsFactory {
                 aggregatedReachedSetManager,
                 algorithm,
                 cpa);
+      }
+
+      if (useTerminationWitnessValidation) {
+        logger.log(Level.INFO, "Using validator for correctness witnesses for termination");
+        algorithm =
+            new TerminationWitnessValidator(
+                cfa,
+                cpa,
+                config,
+                logger,
+                shutdownNotifier,
+                specification.getPathToSpecificationAutomata().keySet(),
+                specification);
       }
 
       if (checkCounterexamples) {

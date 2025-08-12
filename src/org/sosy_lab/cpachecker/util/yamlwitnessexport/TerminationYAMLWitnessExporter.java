@@ -26,6 +26,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
@@ -40,10 +41,6 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
-  }
-
-  private String removeFunctionFromVarsName(String pFormula) {
-    return pFormula.replaceAll("\\b\\w+::", "");
   }
 
   private String rightSideOfRankingFunction(String pRankingFunction) {
@@ -76,7 +73,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
             pLoopHead.getFunctionName());
     return new InvariantEntry(
-        removeFunctionFromVarsName(pSupportingInvariant.toString()),
+        TransitionInvariantUtils.removeFunctionFromVarsName(pSupportingInvariant.toString()),
         InvariantRecordType.LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.C,
         locationRecord);
@@ -100,7 +97,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         rightSideOfRankingFunction(addPrevKeyWordInFrontOfTheVariables(pRankingFunction));
     String currentRank = rightSideOfRankingFunction(pRankingFunction.toString());
     return new InvariantEntry(
-        removeFunctionFromVarsName(prevRank + " > " + currentRank),
+        TransitionInvariantUtils.removeFunctionFromVarsName(prevRank + " > " + currentRank),
         InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.C,
         locationRecord);

@@ -5235,6 +5235,9 @@ termination.resultFile = "terminationAnalysisResult.txt"
 # imprecise
 termination.useCexImpreciseHeuristic = false
 
+# toggle to assume possible infinite state space in transition invariant
+termination.validation.checkWithInfiniteSpace = false
+
 # Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
 
