@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
@@ -103,7 +102,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     // Check if the argElement has only one parent and remember it for later:
     ARGState parent = null;
     if (argElement.getParents().size() == 1) {
-      parent = Iterables.get(argElement.getParents(), 0);
+      parent = argElement.getParents().getFirst();
     }
 
     for (AbstractState reachedState : pReached) {

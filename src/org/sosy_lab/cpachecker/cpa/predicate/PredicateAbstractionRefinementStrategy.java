@@ -614,7 +614,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       // this is not necessary equal to firstInterpolationPoint
       ARGState current = firstInterpolationPoint;
       while (!current.getParents().isEmpty()) {
-        current = Iterables.get(current.getParents(), 0);
+        current = current.getParents().getFirst();
 
         if (getPredicateState(current).isAbstractionState()) {
           CFANode loc = AbstractStates.extractLocation(current);
