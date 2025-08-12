@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.io.Serial;
 import java.math.BigInteger;
@@ -1799,7 +1798,7 @@ public abstract class AbstractExpressionValueVisitor
     long concreteArraySize;
     final JType elementType = pJArrayCreationExpression.getExpressionType().getElementType();
 
-    for (JExpression sizeExpression : Lists.reverse(pJArrayCreationExpression.getLength())) {
+    for (JExpression sizeExpression : pJArrayCreationExpression.getLength().reverse()) {
       currentDimension++;
       lastArrayValue = currentArrayValue;
       Value sizeValue = sizeExpression.accept(this);

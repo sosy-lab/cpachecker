@@ -24,7 +24,7 @@ workflow:
 variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 9f3f9b03f29fa8a744af91fa66d276049a85d84a
+  REFASTER_REPO_REVISION: f94a083babdea86df0ba5b027f21702bb4968e66
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.41.0
 
