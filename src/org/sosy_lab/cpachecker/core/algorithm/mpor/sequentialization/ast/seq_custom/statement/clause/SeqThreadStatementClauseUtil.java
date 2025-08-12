@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -41,12 +43,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseUtil {
-
-  public static SeqThreadStatementBlock getFirstBlock(
-      ImmutableList<SeqThreadStatementClause> pClauses) {
-
-    return pClauses.get(0).getFirstBlock();
-  }
 
   /** Searches for all target {@code pc} in {@code pStatement}. */
   public static ImmutableSet<Integer> collectAllIntegerTargetPc(SeqThreadStatement pStatement) {
@@ -335,6 +331,8 @@ public class SeqThreadStatementClauseUtil {
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       Set<SeqThreadStatementBlock> pVisited) {
 
+    // add current block to visited to prevent infinite recursion
+    pVisited.add(pCurrentBlock);
     for (SeqThreadStatement statement : pCurrentBlock.getStatements()) {
       Optional<Integer> targetNumber = SeqThreadStatementUtil.tryGetTargetPcOrGotoNumber(statement);
       if (targetNumber.isPresent()) {
@@ -464,8 +462,11 @@ public class SeqThreadStatementClauseUtil {
   private static ImmutableList<SeqThreadStatementBlock> getAllFirstBlocksFromClauses(
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
-    return pClauses.stream()
-        .map(pClause -> pClause.getFirstBlock())
-        .collect(ImmutableList.toImmutableList());
+    return transformedImmutableListCopy(
+        pClauses,
+        clause -> {
+          assert clause != null : "clause cannot be null";
+          return clause.getFirstBlock();
+        });
   }
 }

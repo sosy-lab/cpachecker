@@ -233,8 +233,7 @@ public class SeqMainFunction extends SeqFunction {
     ImmutableList.Builder<LineOfCode> rInitializations = ImmutableList.builder();
     for (MPORThread thread : pClauses.keySet()) {
       ImmutableList<SeqThreadStatementClause> currentClauses = pClauses.get(thread);
-      SeqThreadStatementBlock firstBlock =
-          SeqThreadStatementClauseUtil.getFirstBlock(currentClauses);
+      SeqThreadStatementBlock firstBlock = currentClauses.get(0).getFirstBlock();
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(currentClauses);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
