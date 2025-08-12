@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -27,7 +26,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.transfer.PointerAnalysisTransferRelat
 import org.sosy_lab.cpachecker.cpa.pointer.transfer.PointerTransferOptions;
 
 @Options(prefix = "cpa.pointer")
-public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
+public class PointerAnalysisCPA extends AbstractCPA {
 
   @Option(
       secure = true,
