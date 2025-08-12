@@ -185,7 +185,7 @@ public class PointerState implements AbstractState {
    * @return the points-to map of this state.
    */
   public Map<MemoryLocation, LocationSet> getPointsToMap() {
-    return Collections.unmodifiableMap(pointsToMap);
+    return Collections.unmodifiableNavigableMap(pointsToMap);
   }
 
   @Override

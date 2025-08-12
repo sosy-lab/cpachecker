@@ -29,7 +29,7 @@ public class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
   private final List<AStatementEdge> functionCalls = new ArrayList<>();
 
   public Collection<AStatementEdge> getFunctionCalls() {
-    return Collections.unmodifiableCollection(functionCalls);
+    return Collections.unmodifiableList(functionCalls);
   }
 
   @Override
