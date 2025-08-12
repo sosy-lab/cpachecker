@@ -198,7 +198,7 @@ public class ARGPathTest {
     PathIterator it = path.pathIterator();
     it.advance();
     assertThat(it.getPrefixInclusive())
-        .isEqualTo(ARGPath.builder().add(firstARGState, edges.get(0)).build(secondARGState));
+        .isEqualTo(ARGPath.builder().add(firstARGState, edges.getFirst()).build(secondARGState));
   }
 
   @Test

@@ -93,7 +93,7 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
         if (cInit instanceof CDesignatedInitializer cDesignatedInitializer) {
           List<CDesignator> des = cDesignatedInitializer.getDesignators();
           assert des.size() == 1;
-          CDesignator field = des.get(0);
+          CDesignator field = des.getFirst();
           CInitializer fieldInit = cDesignatedInitializer.getRightHandSide();
           if (fieldInit instanceof CInitializerExpression cInitializerExpression
               && field instanceof CFieldDesignator cFieldDesignator) {

@@ -1158,12 +1158,12 @@ public class FormulaManagerView {
     if (parts.size() == 2) {
       if (parts.get(1).isEmpty()) {
         // Variable name ending in @ marks variables that should not be instantiated
-        return Pair.of(parts.get(0), OptionalInt.empty());
+        return Pair.of(parts.getFirst(), OptionalInt.empty());
       }
-      return Pair.of(parts.get(0), OptionalInt.of(Integer.parseInt(parts.get(1))));
+      return Pair.of(parts.getFirst(), OptionalInt.of(Integer.parseInt(parts.get(1))));
     } else if (parts.size() == 1) {
       // TODO throw exception after forbidding such variable names
-      return Pair.of(parts.get(0), OptionalInt.empty());
+      return Pair.of(parts.getFirst(), OptionalInt.empty());
     } else {
       throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
     }
@@ -1358,7 +1358,7 @@ public class FormulaManagerView {
           public TraversalProcess visitAtom(
               BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
             if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
-              result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).get(0), false));
+              result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).getFirst(), false));
             }
             result.add(atom);
             return TraversalProcess.CONTINUE;
@@ -1415,10 +1415,10 @@ public class FormulaManagerView {
               Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
             if ((functionDeclaration.getKind() == FunctionDeclarationKind.EQ
                     || functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO)
-                && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()
-                && !functionDeclaration.getArgumentTypes().get(0).isArrayType()) {
+                && !functionDeclaration.getArgumentTypes().getFirst().isBooleanType()
+                && !functionDeclaration.getArgumentTypes().getFirst().isArrayType()) {
 
-              Formula arg1 = args.get(0);
+              Formula arg1 = args.getFirst();
               Formula arg2;
 
               if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO) {
@@ -1764,7 +1764,7 @@ public class FormulaManagerView {
               Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
             if (functionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
               assert args.size() == 3;
-              BooleanFormula cond = (BooleanFormula) args.get(0);
+              BooleanFormula cond = (BooleanFormula) args.getFirst();
               Formula thenBranch = args.get(1);
               Formula elseBranch = args.get(2);
               FormulaType<T> targetType = getFormulaType(pF);
@@ -1941,11 +1941,11 @@ public class FormulaManagerView {
             if (pDecl.getKind() != FunctionDeclarationKind.EQ && pArgs.size() != 2) {
               return visitDefault(pF);
             }
-            Formula dummyVar = makeVariable(getFormulaType(pArgs.get(0)), DUMMY_VAR);
-            if (pArgs.get(0).equals(dummyVar)) {
+            Formula dummyVar = makeVariable(getFormulaType(pArgs.getFirst()), DUMMY_VAR);
+            if (pArgs.getFirst().equals(dummyVar)) {
               return pArgs.get(1);
             } else if (pArgs.get(1).equals(dummyVar)) {
-              return pArgs.get(0);
+              return pArgs.getFirst();
             }
             return visitDefault(pF);
           }
@@ -2000,7 +2000,7 @@ public class FormulaManagerView {
 
     // set of mutual operands that are contained in all subformulas
     final SequencedSet<BooleanFormula> mutualOperandsSet =
-        new LinkedHashSet<>(listOfOperands.get(0));
+        new LinkedHashSet<>(listOfOperands.getFirst());
     for (Set<BooleanFormula> operands : listOfOperands) {
       mutualOperandsSet.retainAll(operands);
     }

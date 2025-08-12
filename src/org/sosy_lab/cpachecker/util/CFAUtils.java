@@ -725,7 +725,7 @@ public class CFAUtils {
     blankPaths.clear();
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
-      CFANode pathPred = currentPath.get(0);
+      CFANode pathPred = currentPath.getFirst();
       List<BlankEdge> enteringBlankEdges =
           CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
       if (pathPred.getNumEnteringEdges() <= 0

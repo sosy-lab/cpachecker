@@ -296,7 +296,7 @@ public class ThreadCreateTransformer {
   }
 
   private CIdExpression getThreadVariableName(CFunctionCallExpression fCall) {
-    CExpression var = fCall.getParameterExpressions().get(0);
+    CExpression var = fCall.getParameterExpressions().getFirst();
 
     while (!(var instanceof CIdExpression)) {
       if (var instanceof CUnaryExpression) {

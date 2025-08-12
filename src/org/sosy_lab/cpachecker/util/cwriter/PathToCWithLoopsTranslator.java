@@ -788,7 +788,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       final CFANode thenNode,
       final CFANode elseNode) {
     return findEndOfBranchesNonRecursive(
-        elseNode, thenNode, functionStart, intermediateFunctionEnds.get(0));
+        elseNode, thenNode, functionStart, intermediateFunctionEnds.getFirst());
   }
 
   private CFANode findEndOfBranchesNonRecursive(

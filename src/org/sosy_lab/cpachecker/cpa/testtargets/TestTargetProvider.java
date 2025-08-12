@@ -167,7 +167,7 @@ public class TestTargetProvider implements Statistics {
       if (pTargetOptimizationStrategies != null
           && !pTargetOptimizationStrategies.isEmpty()
           && !(pTargetOptimizationStrategies.size() == 1
-              && pTargetOptimizationStrategies.get(0).equals(TestTargetAdaption.NONE))) {
+              && pTargetOptimizationStrategies.getFirst().equals(TestTargetAdaption.NONE))) {
         pLogger.log(
             Level.SEVERE,
             "Consider "

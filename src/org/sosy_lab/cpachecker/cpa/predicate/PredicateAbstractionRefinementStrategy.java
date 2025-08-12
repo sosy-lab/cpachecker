@@ -591,7 +591,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       newPredicatesFound = true;
     }
 
-    ARGState firstInterpolationPoint = pAffectedStates.get(0);
+    ARGState firstInterpolationPoint = pAffectedStates.getFirst();
     if (!newPredicatesFound) {
       if (pRepeatedCounterexample) {
         throw new RefinementFailedException(

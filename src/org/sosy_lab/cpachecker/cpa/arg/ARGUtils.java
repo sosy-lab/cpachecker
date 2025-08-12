@@ -142,7 +142,7 @@ public class ARGUtils {
       if (children.size() > 2) {
         return true;
       } else if (children.size() == 2) {
-        ARGState firstChild = children.get(0);
+        ARGState firstChild = children.getFirst();
         ARGState secondChild = children.get(1);
         List<CFAEdge> edgesToFirstChild = current.getEdgesToChild(firstChild);
         if (edgesToFirstChild.size() > 1) {

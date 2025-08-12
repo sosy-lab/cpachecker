@@ -503,7 +503,7 @@ public class CPAchecker {
           Classes.getCodeLocation(CPAchecker.class)
               .resolveSibling("config/specification/default.spc");
       if (specificationFiles.size() == 1
-          && Files.isSameFile(specificationFiles.get(0), defaultSpec)) {
+          && Files.isSameFile(specificationFiles.getFirst(), defaultSpec)) {
         logger.log(
             Level.INFO,
             "Using default specification, which checks for assertion failures and error labels.");

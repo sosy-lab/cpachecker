@@ -233,7 +233,7 @@ public class ARGPath extends AbstractAppender {
   }
 
   public ARGState getFirstState() {
-    return states.get(0);
+    return states.getFirst();
   }
 
   public ARGState getLastState() {

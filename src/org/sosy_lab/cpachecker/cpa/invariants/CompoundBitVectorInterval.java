@@ -288,7 +288,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     if (contains(pOther)) {
       return CompoundBitVectorInterval.of(pOther);
     }
-    if (intervals.size() == 1 && pOther.contains(intervals.get(0))) {
+    if (intervals.size() == 1 && pOther.contains(intervals.getFirst())) {
       return this;
     }
     CompoundBitVectorInterval result = bottom(info);
@@ -536,7 +536,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public BigInteger getLowerBound() {
-    return intervals.get(0).getLowerBound();
+    return intervals.getFirst().getLowerBound();
   }
 
   /**
@@ -557,7 +557,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public boolean isSingleton() {
-    return !isBottom() && intervals.size() == 1 && intervals.get(0).isSingleton();
+    return !isBottom() && intervals.size() == 1 && intervals.getFirst().isSingleton();
   }
 
   /**
@@ -959,7 +959,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     ImmutableList.Builder<BitVectorInterval> resultIntervals =
         ImmutableList.builderWithExpectedSize(intervals.size());
-    resultIntervals.add(intervals.get(0).extendToMinValue());
+    resultIntervals.add(intervals.getFirst().extendToMinValue());
     resultIntervals.addAll(intervals.subList(1, intervals.size()));
     return getInternal(info, resultIntervals.build());
   }
@@ -1097,7 +1097,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       boolean pAllowSignedWrapAround,
       final OverflowEventHandler pOverflowEventHandler) {
     if (pState.intervals.size() == 1) {
-      return multiply(pState.intervals.get(0), pAllowSignedWrapAround, pOverflowEventHandler);
+      return multiply(pState.intervals.getFirst(), pAllowSignedWrapAround, pOverflowEventHandler);
     }
     return applyOperationToAllAndUnite(
         IICOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler),

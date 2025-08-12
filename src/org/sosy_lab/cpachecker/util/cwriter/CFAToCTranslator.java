@@ -236,7 +236,7 @@ public class CFAToCTranslator {
   }
 
   private Statement createGoto(CFANode pCurrentNode, CFANode pTarget) {
-    String go = "goto " + createdStatements.get(pTarget).get(0).getLabel() + ";";
+    String go = "goto " + createdStatements.get(pTarget).getFirst().getLabel() + ";";
     return createSimpleStatement(pCurrentNode, go);
   }
 
@@ -339,7 +339,7 @@ public class CFAToCTranslator {
       ImmutableList.Builder<Pair<CFAEdge, CompoundStatement>> branches = ImmutableList.builder();
 
       List<CFAEdge> ifAndElseEdge = new ArrayList<>(outgoingEdges);
-      if (!getRealTruthAssumption((CAssumeEdge) ifAndElseEdge.get(0))) {
+      if (!getRealTruthAssumption((CAssumeEdge) ifAndElseEdge.getFirst())) {
         // swap elements so that if-branch comes before else-branch in list
         ifAndElseEdge = swapElements(ifAndElseEdge);
       }
@@ -351,7 +351,7 @@ public class CFAToCTranslator {
         String cond;
         if (truthAssumption) {
           // must be if-branch, first in list
-          assert ifAndElseEdge.get(0) == currentEdge;
+          assert ifAndElseEdge.getFirst() == currentEdge;
           if (assumeEdge.getTruthAssumption()) {
             cond =
                 "if ("
@@ -384,7 +384,7 @@ public class CFAToCTranslator {
 
     List<CFAEdge> swapped = new ArrayList<>(2);
     swapped.add(pListWithTwoElements.get(1));
-    swapped.add(pListWithTwoElements.get(0));
+    swapped.add(pListWithTwoElements.getFirst());
     return swapped;
   }
 

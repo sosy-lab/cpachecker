@@ -272,7 +272,7 @@ public class ARGToAutomatonConverter {
     if (locationQueries.isEmpty()) {
       return AutomatonBoolExpr.TRUE;
     }
-    AutomatonBoolExpr otherwise = locationQueries.get(0);
+    AutomatonBoolExpr otherwise = locationQueries.getFirst();
     for (AutomatonBoolExpr expr : Iterables.skip(locationQueries, 1)) {
       otherwise = new AutomatonBoolExpr.And(otherwise, expr);
     }

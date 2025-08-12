@@ -385,7 +385,7 @@ public class ARGToCTranslator {
 
         if (truthAssumption && elseCond != null) {
           currentBlock.addStatement(new SimpleStatement(edgeToChild, elseCond));
-          currentBlock.addStatement(result.get(0).getCurrentBlock());
+          currentBlock.addStatement(result.getFirst().getCurrentBlock());
         }
 
         ARGEdge newEdge = new ARGEdge(currentElement, child, edgeToChild, newBlock);
@@ -982,7 +982,7 @@ public class ARGToCTranslator {
       probs = new ArrayList<>(decProblems.get(key));
       probVars = new ArrayList<>();
 
-      for (Entry<CDeclaration, String> prob : probs.get(0).entrySet()) {
+      for (Entry<CDeclaration, String> prob : probs.getFirst().entrySet()) {
         boolean containAll = true;
         boolean different = false;
         for (int i = 1; i < probs.size(); i++) {

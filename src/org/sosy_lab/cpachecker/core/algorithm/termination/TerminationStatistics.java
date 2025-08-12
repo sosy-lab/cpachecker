@@ -781,7 +781,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       result = result.substring(1, result.length() - 1);
       List<String> t = extractArgs(result);
 
-      if (t.get(0).startsWith("*")) {
+      if (t.getFirst().startsWith("*")) {
         if (t.size() == 2) {
           return "*(" + expressionVarName(t.get(1)) + ")";
         } else if (t.size() == 3) {
@@ -789,7 +789,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         }
       }
 
-      if (t.get(0).startsWith("+")) {
+      if (t.getFirst().startsWith("+")) {
         if (t.size() == 3) {
           return "(" + expressionVarName(t.get(1)) + ")+(" + expressionVarName(t.get(2)) + ")";
         }

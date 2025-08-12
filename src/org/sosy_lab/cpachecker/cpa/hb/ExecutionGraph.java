@@ -112,7 +112,7 @@ public record ExecutionGraph(
       return sets.build();
     }
     List<T> list = originalSet.stream().toList();
-    T head = list.get(0);
+    T head = list.getFirst();
     SequencedSet<T> rest = new LinkedHashSet<>(list.subList(1, list.size()));
     for (Set<T> set : powerSet(rest)) {
       SequencedSet<T> newSet = new LinkedHashSet<>();

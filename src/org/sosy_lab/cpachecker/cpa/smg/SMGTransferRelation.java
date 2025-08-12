@@ -1214,7 +1214,7 @@ public class SMGTransferRelation
     assert pInitializer.getDesignators().size() == 1;
 
     String fieldDesignator =
-        ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
+        ((CFieldDesignator) pInitializer.getDesignators().getFirst()).getFieldName();
 
     BigInteger offset = BigInteger.valueOf(offsetAtStartOfStruct);
     int sizeOfByte = machineModel.getSizeofCharInBits();
@@ -1413,7 +1413,7 @@ public class SMGTransferRelation
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       if (initializer instanceof CDesignatedInitializer designatedInitializer) {
         assert designatedInitializer.getDesignators().size() == 1;
-        CDesignator cDesignator = designatedInitializer.getDesignators().get(0);
+        CDesignator cDesignator = designatedInitializer.getDesignators().getFirst();
         if (cDesignator instanceof CArrayDesignator cArrayDesignator) {
           CExpression subscriptExpression = cArrayDesignator.getSubscriptExpression();
           SMGExplicitValueAndState smgExplicitValueAndState =

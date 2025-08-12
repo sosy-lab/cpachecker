@@ -288,7 +288,7 @@ public class ConstraintsTransferRelation
     boolean nothingChanged = true;
 
     for (AbstractState currStrengtheningState : pStrengtheningStates) {
-      ConstraintsState currStateToStrengthen = newStates.get(0);
+      ConstraintsState currStateToStrengthen = newStates.getFirst();
       StrengthenOperator strengthenOperator = null;
 
       if (currStrengtheningState instanceof ValueAnalysisState) {

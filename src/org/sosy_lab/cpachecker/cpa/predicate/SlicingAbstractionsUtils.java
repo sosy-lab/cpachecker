@@ -483,7 +483,7 @@ public final class SlicingAbstractionsUtils {
     PathFormula currentPathFormula =
         buildPathFormula(
             pRoot,
-            pPath.get(0),
+            pPath.getFirst(),
             pSSAMap,
             pPts,
             pSolver.getFormulaManager(),
@@ -630,7 +630,7 @@ public final class SlicingAbstractionsUtils {
     ARGState root = rootStates.iterator().next();
     final List<ARGState> abstractionStatesTrace =
         PredicateCPARefiner.filterAbstractionStates(pErrorPath);
-    assert abstractionStatesTrace.get(0).getStateId() != 0;
+    assert abstractionStatesTrace.getFirst().getStateId() != 0;
     for (int i = -1; i < abstractionStatesTrace.size() - 1; i++) {
       ARGState first = (i == -1) ? root : abstractionStatesTrace.get(i);
       ARGState second = abstractionStatesTrace.get(i + 1);

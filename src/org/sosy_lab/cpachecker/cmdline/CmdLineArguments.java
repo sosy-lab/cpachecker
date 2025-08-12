@@ -185,7 +185,7 @@ class CmdLineArguments {
                         "%s argument must be a key=value pair, but \"%s\" is not.",
                         currentArg, argValue));
               }
-              putIfNotExistent(properties, bits.get(0), bits.get(1));
+              putIfNotExistent(properties, bits.getFirst(), bits.get(1));
             }
           }.withDescription("set an option directly"),
           new CmdLineArgument("--print-options", "-printOptions") {

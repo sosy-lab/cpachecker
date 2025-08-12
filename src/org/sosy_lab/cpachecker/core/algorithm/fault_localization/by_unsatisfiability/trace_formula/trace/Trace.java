@@ -127,7 +127,7 @@ public class Trace extends ForwardingList<TraceAtom> {
     Map<CFANode, Integer> mergeNodes = new HashMap<>();
     MergePoint<CFANode> mergePoint =
         new MergePoint<>(
-            entries.get(0).correspondingEdge().getPredecessor(),
+            entries.getFirst().correspondingEdge().getPredecessor(),
             CFAUtils::allSuccessorsOf,
             CFAUtils::allPredecessorsOf);
     List<List<FormulaLabel>> labels = new ArrayList<>(entries.size());

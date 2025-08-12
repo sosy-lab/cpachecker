@@ -60,7 +60,7 @@ public class AdditionalInfoExtractor {
           // We assume that there is only 1 error info per state (as the SV-COMP rules dictate)
           edgeWithAdditionalInfo.addInfo(
               SMGConvertingTags.NOTE,
-              SMGAdditionalInfo.of(errorInfos.get(0).getErrorDescription(), Level.ERROR));
+              SMGAdditionalInfo.of(errorInfos.getFirst().getErrorDescription(), Level.ERROR));
           errorInfos = null;
         }
 
@@ -95,7 +95,7 @@ public class AdditionalInfoExtractor {
         if (!containsInvalidElement(smgState, elem)) {
           visitedElems.add(elem);
           if (!prevSMGState.getErrorInfo().isEmpty()) {
-            for (Object additionalElem : prevSMGState.getErrorInfo().get(0).getInvalidChain()) {
+            for (Object additionalElem : prevSMGState.getErrorInfo().getFirst().getInvalidChain()) {
               if (!visitedElems.contains(additionalElem)
                   && !invalidChain.contains(additionalElem)) {
                 toCheck.add(additionalElem);

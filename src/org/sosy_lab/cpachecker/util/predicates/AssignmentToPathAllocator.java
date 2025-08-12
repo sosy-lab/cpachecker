@@ -355,10 +355,10 @@ public class AssignmentToPathAllocator {
     boolean isReference = references.size() > IS_FIELD_REFERENCE;
 
     if (isNotGlobal) {
-      function = nameAndFunction.get(0);
+      function = nameAndFunction.getFirst();
       name = nameAndFunction.get(1);
     } else {
-      name = nameAndFunction.get(0);
+      name = nameAndFunction.getFirst();
     }
 
     if (isReference) {

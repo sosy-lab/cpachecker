@@ -112,7 +112,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
       }
 
       final UnmodifiableReachedSet mainReachedSet = pMainReachedSet.asReachedSet();
-      if (mainReachedSet.getFirstState() == relevantCallStates.get(0).getARGState()
+      if (mainReachedSet.getFirstState() == relevantCallStates.getFirst().getARGState()
           && ((ARGState) mainReachedSet.getLastState())
               .getParents()
               .contains(mainReachedSet.getFirstState())) {
@@ -124,9 +124,9 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
       } else {
         if (mustUpdatePrecision(lastRelevantNode, cutState, currentCutState)) {
           pMainReachedSet.removeSubtree(
-              relevantCallStates.get(0).getARGState(), pNewPrecisions, pNewPrecisionTypes);
+              relevantCallStates.getFirst().getARGState(), pNewPrecisions, pNewPrecisionTypes);
         } else {
-          pMainReachedSet.removeSubtree(relevantCallStates.get(0).getARGState());
+          pMainReachedSet.removeSubtree(relevantCallStates.getFirst().getARGState());
         }
       }
     }

@@ -237,7 +237,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // the assumption itself is unimportant, so we can ignore it
     if (isAssumptionWithSameImpChild(usedChildren, current, s2s)) {
 
-      final ARGState child1 = usedChildren.get(0);
+      final ARGState child1 = usedChildren.getFirst();
       s2s.putAll(current, s2s.get(child1));
 
       // vars from latest important child,
@@ -294,7 +294,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final ARGState current,
       final SetMultimap<ARGState, ARGState> s2s) {
     if (usedChildren.size() == 2) {
-      final ARGState child1 = usedChildren.get(0);
+      final ARGState child1 = usedChildren.getFirst();
       final ARGState child2 = usedChildren.get(1);
       final CFAEdge edge1 = current.getEdgeToChild(child1);
       final CFAEdge edge2 = current.getEdgeToChild(child2);
@@ -569,7 +569,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       pfs.add(buildFormulaForEdge(parent, current, oldPf, importantEdges));
     }
 
-    PathFormula joined = pfs.get(0);
+    PathFormula joined = pfs.getFirst();
     for (int i = 1; i < pfs.size(); i++) {
       joined = pfmgr.makeOr(joined, pfs.get(i));
     }

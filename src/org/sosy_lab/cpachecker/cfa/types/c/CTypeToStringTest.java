@@ -220,7 +220,7 @@ public class CTypeToStringTest {
             parser
                 .parseString(Path.of("dummy"), stringRepr + ";")
                 .globalDeclarations()
-                .get(0)
+                .getFirst()
                 .getFirst()
                 .getType();
     assertThat(parsed.getCanonicalType()).isEqualTo(type.getCanonicalType());

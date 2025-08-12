@@ -141,7 +141,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       successorRelation.put(predecessorState, successorState);
     }
 
-    return states.get(0);
+    return states.getFirst();
   }
 
   /** This method builds an actual tree from multiple path. */

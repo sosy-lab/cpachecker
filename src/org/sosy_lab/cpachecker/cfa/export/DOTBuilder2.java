@@ -185,13 +185,13 @@ public final class DOTBuilder2 {
 
         if (combinedEdges.size() == 1) {
           it.remove();
-          CFAEdge firstEdge = combinedEdges.get(0);
+          CFAEdge firstEdge = combinedEdges.getFirst();
           edges.put(functionName, firstEdge);
           nodes.put(functionName, firstEdge.getPredecessor());
           nodes.put(functionName, firstEdge.getSuccessor());
 
         } else if (combinedEdges.size() > 1) {
-          CFAEdge first = combinedEdges.get(0);
+          CFAEdge first = combinedEdges.getFirst();
           int firstNode = first.getPredecessor().getNodeNumber();
           Set<Integer> combinedNodes = comboNodes.get(firstNode);
           StringBuilder label = comboNodesLabels.get(firstNode);
@@ -247,7 +247,7 @@ public final class DOTBuilder2 {
         for (List<CFAEdge> combo : comboedges.get(funcname)) {
           outb.append(comboToDot(combo));
 
-          CFAEdge first = combo.get(0);
+          CFAEdge first = combo.getFirst();
           CFAEdge last = combo.getLast();
 
           outb.append(first.getPredecessor().getNodeNumber());
@@ -279,7 +279,7 @@ public final class DOTBuilder2 {
             getOnlyElement(successorsOf(edge.getPredecessor()).filter(FunctionEntryNode.class));
         String calledFunction = functionEntryNode.getFunctionName();
         int from = edge.getPredecessor().getNodeNumber();
-        Integer virtFuncCallNodeId = virtFuncCallEdges.get(from).get(0);
+        Integer virtFuncCallNodeId = virtFuncCallEdges.get(from).getFirst();
 
         StringBuilder sb = new StringBuilder();
         sb.append(virtFuncCallNodeId);
@@ -306,7 +306,7 @@ public final class DOTBuilder2 {
     }
 
     private String comboToDot(List<CFAEdge> combo) {
-      CFAEdge first = combo.get(0);
+      CFAEdge first = combo.getFirst();
       StringBuilder sb = new StringBuilder();
       int firstNo = first.getPredecessor().getNodeNumber();
       sb.append(firstNo);

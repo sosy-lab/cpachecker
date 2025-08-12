@@ -730,7 +730,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         List<Pair<IASTExpression, CIdExpression>> tempVars =
             sideAssignmentStack.getConditionalExpressions();
         if ((tempVars.size() == 1)
-            && (tempVars.get(0).getSecond() == cExpressionStatement.getExpression())) {
+            && (tempVars.getFirst().getSecond() == cExpressionStatement.getExpression())) {
           resultIsUsed = false;
         }
       }
@@ -2145,7 +2145,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       // ignore side assignment
       sideAssignmentStack.getAndResetPreSideAssignments();
 
-      prevNode = handleConditionalExpression(prevNode, condExps.get(0).getFirst(), null);
+      prevNode = handleConditionalExpression(prevNode, condExps.getFirst().getFirst(), null);
 
     } else {
 
@@ -2523,7 +2523,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       boolean resultIsUsed =
           (tempVar != null)
               || (sideAssignmentStack.getConditionalExpressions().size() > 1)
-              || (exp != sideAssignmentStack.getConditionalExpressions().get(0).getSecond());
+              || (exp != sideAssignmentStack.getConditionalExpressions().getFirst().getSecond());
 
       prevNode =
           handleAllSideEffects(prevNode, fileLocation, condExp.getRawSignature(), resultIsUsed);

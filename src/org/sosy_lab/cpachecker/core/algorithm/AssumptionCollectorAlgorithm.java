@@ -383,7 +383,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               + " The CPA can only handle ONE Automaton!");
     }
 
-    return lst.get(0);
+    return lst.getFirst();
   }
 
   private void writeAutomatonToDot(Automaton automaton) {
@@ -513,7 +513,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         if (edges.size() > 1) {
           sb.append("    MATCH \"");
-          escape(edges.get(0).getRawStatement(), sb);
+          escape(edges.getFirst().getRawStatement(), sb);
           sb.append("\" -> ");
           sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
 

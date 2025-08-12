@@ -1041,7 +1041,7 @@ class WitnessFactory implements EdgeAppender {
         if (cex instanceof FaultLocalizationInfoWithTraceFormula fInfo) {
           List<Fault> faults = fInfo.getRankedList();
           if (!faults.isEmpty()) {
-            Fault bestFault = faults.get(0);
+            Fault bestFault = faults.getFirst();
             FluentIterable.from(bestFault)
                 .transform(FaultContribution::correspondingEdge)
                 .copyInto(edgesInFault);

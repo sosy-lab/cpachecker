@@ -237,7 +237,7 @@ public class FaultLocalizationByImport implements Algorithm {
                   FluentIterable.from(reachedSet)
                       .filter(AbstractStates::isTargetState)
                       .toList()
-                      .get(0);
+                      .getFirst();
           errorLocation = AbstractStates.extractLocation(target);
         }
         reachedSet.clear();

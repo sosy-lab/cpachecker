@@ -181,7 +181,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     for (String option : Splitter.on("\n").omitEmptyStrings().split(config.asPropertiesString())) {
       List<String> split = Splitter.on(" = ").splitToList(option);
       checkArgument(split.size() == 2, "unexpected option format: %s", option);
-      mp.put(split.get(0), split.get(1));
+      mp.put(split.getFirst(), split.get(1));
     }
     return mp;
   }

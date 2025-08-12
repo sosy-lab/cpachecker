@@ -1231,7 +1231,8 @@ class ASTConverter {
         sideAssignmentStack.leaveBlock();
         if (params.size() == 2) {
           // Expression from convertExpressionWithoutSideEffects is null if type was void
-          CType type1 = params.get(0) == null ? CVoidType.VOID : params.get(0).getExpressionType();
+          CType type1 =
+              params.getFirst() == null ? CVoidType.VOID : params.getFirst().getExpressionType();
           CType type2 = params.get(1) == null ? CVoidType.VOID : params.get(1).getExpressionType();
           if (areCompatibleTypes(type1, type2)) {
             return CIntegerLiteralExpression.ONE;
@@ -1255,7 +1256,7 @@ class ASTConverter {
       if (((CIdExpression) functionNameExpression).getName().equals(FUNC_CONSTANT)
           && params.size() == 1
           && scope.lookupFunction(FUNC_CONSTANT) == null) {
-        if (params.get(0) instanceof CLiteralExpression) {
+        if (params.getFirst() instanceof CLiteralExpression) {
           return CIntegerLiteralExpression.ONE;
         } else {
           return CIntegerLiteralExpression.ZERO;
@@ -1263,7 +1264,7 @@ class ASTConverter {
       }
       if (((CIdExpression) functionNameExpression).getName().equals(FUNC_OFFSETOF)
           && params.size() == 1
-          && params.get(0) instanceof CFieldReference exp) {
+          && params.getFirst() instanceof CFieldReference exp) {
 
         BigInteger offset = handleBuiltinOffsetOfFunction(exp, e);
         BigInteger byteInBit = new BigInteger("8");
@@ -1286,7 +1287,7 @@ class ASTConverter {
 
         // This is the GCC built-in function __builtin_expect(exp, c) that behaves like (exp).
         // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005fexpect-3345
-        return params.get(0);
+        return params.getFirst();
       }
     }
 

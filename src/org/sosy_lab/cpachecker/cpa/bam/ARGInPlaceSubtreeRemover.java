@@ -61,7 +61,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
     final ARGState firstState = (ARGState) mainReachedSet.asReachedSet().getFirstState();
     final ARGState lastState = (ARGState) mainReachedSet.asReachedSet().getLastState();
 
-    assert pPath.asStatesList().get(0).getWrappedState() == firstState
+    assert pPath.asStatesList().getFirst().getWrappedState() == firstState
         : "path should start with root state";
     assert pPath.asStatesList().getLast().getWrappedState() == lastState
         : "path should end with target state";
@@ -149,7 +149,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
             p.getSecond());
       }
 
-      if (Objects.equals(firstState, relevantCallStates.get(0).getARGState())
+      if (Objects.equals(firstState, relevantCallStates.getFirst().getARGState())
           && AbstractStates.isTargetState(lastState)) {
         // old code:
         // the main-reachedset contains only the root, exit-states and targets.
@@ -157,7 +157,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
         assert firstState.getChildren().contains(lastState);
         mainReachedSet.removeSubtree(lastState);
       } else {
-        BackwardARGState stateToRemove = relevantCallStates.get(0);
+        BackwardARGState stateToRemove = relevantCallStates.getFirst();
         Pair<List<Precision>, List<Predicate<? super Precision>>> p =
             precUpdate.apply(stateToRemove.getARGState());
         mainReachedSet.removeSubtree(stateToRemove.getARGState(), p.getFirst(), p.getSecond());

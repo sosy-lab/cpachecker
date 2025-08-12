@@ -303,7 +303,7 @@ final class SummaryEdgeBuilder {
           pFormalOutNodes.size() <= MAX_BATCH_SIZE,
           "pFormalOutNodes must not contain more than MAX_BATCH_SIZE nodes");
 
-      procedureId = getProcedureId(pFormalOutNodes.get(0).getId());
+      procedureId = getProcedureId(pFormalOutNodes.getFirst().getId());
       recursive = pRecursive;
       statesDirtyMin = states.length - 1;
       statesDirtyMax = 0;
