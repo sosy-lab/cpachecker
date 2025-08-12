@@ -406,7 +406,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             falseAssumptionStates.add(state);
             if (state instanceof ARGState argState) {
               while (!argState.getChildren().isEmpty()) {
-                argState.getChildren().iterator().next().removeFromARG();
+                argState.getChildren().getFirst().removeFromARG();
               }
             }
           }

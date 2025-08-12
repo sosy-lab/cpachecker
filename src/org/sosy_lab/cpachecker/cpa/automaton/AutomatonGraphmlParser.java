@@ -1708,7 +1708,7 @@ public class AutomatonGraphmlParser {
         StringBuilder messageBuilder = new StringBuilder();
         if (invalidHashes.size() == 1) {
           messageBuilder.append("The value <");
-          messageBuilder.append(invalidHashes.iterator().next());
+          messageBuilder.append(invalidHashes.getFirst());
           messageBuilder.append(
               "> given as hash value of the program source code is not a valid SHA-256 hash value"
                   + " for any program.");

@@ -156,7 +156,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       if (currentState.getParents().iterator().hasNext()) {
 
         if (!predecessorRelation.containsKey(currentState)) {
-          ARGState parentState = currentState.getParents().iterator().next();
+          ARGState parentState = currentState.getParents().getFirst();
 
           predecessorRelation.put(currentState, parentState);
           successorRelation.put(parentState, currentState);
@@ -302,7 +302,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   public ImmutableSet<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
     if (pStrategy == GenericRefiner.RestartStrategy.ROOT) {
       assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
-      return ImmutableSet.of(successorRelation.get(root).iterator().next());
+      return ImmutableSet.of(successorRelation.get(root).getFirst());
     }
 
     ARGState commonRoot = null;

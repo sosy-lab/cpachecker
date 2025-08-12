@@ -325,7 +325,7 @@ public final class ErrorPathShrinker {
   private boolean isSwitchStatement(final AExpression assumeExp) {
 
     // path can be empty at the end of a functionCall ("if (a) return b;")
-    if (!shortPath.isEmpty() && shortPath.iterator().next().getSecond()) {
+    if (!shortPath.isEmpty() && shortPath.getFirst().getSecond()) {
       final CFAEdge lastEdge = shortPath.getFirst().getFirst().getCFAEdge();
 
       // check, if the last edge was an assumption

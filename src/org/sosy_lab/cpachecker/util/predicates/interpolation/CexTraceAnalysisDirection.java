@@ -402,10 +402,10 @@ enum CexTraceAnalysisDirection {
       ARGState argState, ARGState lastState, String wantedFunction) {
     CFANode returnNode = AbstractStates.extractLocation(argState);
     while (!returnNode.getFunctionName().equals(wantedFunction)) {
-      argState = argState.getParents().iterator().next();
+      argState = argState.getParents().getFirst();
 
       // the function does not return to the wanted function we can skip the search here
-      if (Objects.equals(argState, lastState.getParents().iterator().next())) {
+      if (Objects.equals(argState, lastState.getParents().getFirst())) {
         return null;
       }
 

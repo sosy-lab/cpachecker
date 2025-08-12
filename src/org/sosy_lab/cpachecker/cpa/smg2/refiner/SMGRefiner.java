@@ -436,7 +436,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       final ARGState currentState = todo.removeFirst();
 
       if (currentState.getParents().iterator().hasNext()) {
-        ARGState parentState = currentState.getParents().iterator().next();
+        ARGState parentState = currentState.getParents().getFirst();
         todo.add(parentState);
         successorRelation.put(parentState, currentState);
 

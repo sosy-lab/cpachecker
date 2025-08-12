@@ -7350,7 +7350,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i > minAbstractionLength - 1) {
         assertThat(candidates).hasSize(1);
-        SMGCandidate candidate = candidates.iterator().next();
+        SMGCandidate candidate = candidates.getFirst();
         Optional<BigInteger> maybePfo = absFinder.isDLL(candidate, state.getMemoryModel().getSmg());
         assertThat(maybePfo).isPresent();
         // PFO is 64
@@ -7377,7 +7377,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       if (i < minAbstractionLength) {
         continue;
       }
-      SMGCandidate firstObj = candidates.iterator().next();
+      SMGCandidate firstObj = candidates.getFirst();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
       state =
           state.abstractIntoSLL(firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of(), 0);
@@ -7425,7 +7425,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       if (i < minAbstractionLength) {
         continue;
       }
-      SMGCandidate firstObj = candidates.iterator().next();
+      SMGCandidate firstObj = candidates.getFirst();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
       state =
           state.abstractIntoSLL(firstObj.getObject(), nfo, BigInteger.ZERO, ImmutableSet.of(), 0);
@@ -7469,7 +7469,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       if (i < minAbstractionLength) {
         continue;
       }
-      SMGCandidate firstObj = candidates.iterator().next();
+      SMGCandidate firstObj = candidates.getFirst();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
       state =
           state.abstractIntoDLL(
@@ -7529,7 +7529,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
           assertThat(candidates.isEmpty()).isTrue();
           continue;
         }
-        SMGCandidate firstObj = candidates.iterator().next();
+        SMGCandidate firstObj = candidates.getFirst();
         assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
         state =
             state.abstractIntoDLL(

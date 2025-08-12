@@ -140,7 +140,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
     void analyze(ARGState pSuccessor) {
       if (!pSuccessor.getParents().isEmpty()) {
-        ARGState parent = pSuccessor.getParents().stream().findFirst().orElseThrow();
+        ARGState parent = pSuccessor.getParents().getFirst();
         if (callStackRecovery.containsKey(parent)) {
           // Copy the saved callstack, since we want to return to the state we had before the
           // branching

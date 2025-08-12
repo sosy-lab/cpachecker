@@ -340,7 +340,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
         assert cycle.stream().anyMatch(ARGState::isTarget) : "Cycle does not contain a target";
 
         shutdownNotifier.shutdownIfNecessary();
-        ARGState firstNodeInCycle = cycle.iterator().next();
+        ARGState firstNodeInCycle = cycle.getFirst();
         ARGPath stemPath = ARGUtils.getShortestPathTo(firstNodeInCycle);
         ARGPath loopPath = new ARGPath(cycle);
         assert loopPath.asStatesList().equals(cycle)
@@ -442,7 +442,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
               FluentIterable.from(loopStructure.getAllLoops())
                   .filter(x -> x.getLoopNodes().containsAll(cfaNodesOfCurrentCycle))
                   .toList();
-          Loop loop = loops.iterator().next();
+          Loop loop = loops.getFirst();
 
           Set<CVariableDeclaration> varDeclarations = variables.getDeclarations(loop);
           ImmutableMap<String, CVariableDeclaration> varDeclarationsForName =

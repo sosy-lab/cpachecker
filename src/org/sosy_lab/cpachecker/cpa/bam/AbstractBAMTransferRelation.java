@@ -181,7 +181,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
 
       // optimization to skip plain chains
       while (state.getParents().size() == 1) {
-        state = state.getParents().iterator().next();
+        state = state.getParents().getFirst();
       }
 
       // initial states in the reached-set have no predecessor

@@ -148,7 +148,7 @@ public class ARGUtils {
         if (edgesToFirstChild.size() > 1) {
           return true;
         }
-        CFAEdge edgeToFirstChild = edgesToFirstChild.iterator().next();
+        CFAEdge edgeToFirstChild = edgesToFirstChild.getFirst();
         if (!(edgeToFirstChild instanceof AssumeEdge assumeEdge)) {
           return true;
         }
@@ -156,7 +156,7 @@ public class ARGUtils {
         if (edgesToSecondChild.size() > 1) {
           return true;
         }
-        CFAEdge edgeToSecondChild = edgesToSecondChild.iterator().next();
+        CFAEdge edgeToSecondChild = edgesToSecondChild.getFirst();
         if (!(edgeToSecondChild instanceof AssumeEdge)) {
           return true;
         }
@@ -400,7 +400,7 @@ public class ARGUtils {
     ARGState currentElement = root;
     while (!currentElement.getChildren().isEmpty()) {
       states.add(currentElement);
-      currentElement = currentElement.getChildren().iterator().next();
+      currentElement = currentElement.getChildren().getFirst();
     }
     states.add(currentElement);
     return new ARGPath(states);
@@ -642,7 +642,7 @@ public class ARGUtils {
       @Nullable CounterexampleInfo pCounterExample)
       throws IOException {
 
-    ARGState rootState = pPaths.iterator().next().getFirstState();
+    ARGState rootState = pPaths.getFirst().getFirstState();
 
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
 

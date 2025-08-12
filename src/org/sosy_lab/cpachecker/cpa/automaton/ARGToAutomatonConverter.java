@@ -774,10 +774,10 @@ public class ARGToAutomatonConverter {
       CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
       Preconditions.checkNotNull(callstack);
       Preconditions.checkArgument(leaf.getParents().size() == 1);
-      Preconditions.checkArgument(leaf.getParents().iterator().next().getEdgeToChild(leaf) != null);
+      Preconditions.checkArgument(leaf.getParents().getFirst().getEdgeToChild(leaf) != null);
       // if an error occurs when entering the function, we need to remove the last entry from the
       // stack (at least for assumption handling, otherwise this probably does not happen any way):
-      if (leaf.getParents().iterator().next().getEdgeToChild(leaf) instanceof FunctionCallEdge) {
+      if (leaf.getParents().getFirst().getEdgeToChild(leaf) instanceof FunctionCallEdge) {
         callstack = callstack.getPreviousState();
       }
       callstackToLeaves.put(callstack, leaf);
@@ -832,7 +832,7 @@ public class ARGToAutomatonConverter {
                   withTargetStates ? AutomatonInternalState.ERROR.getName() : id(leaf)));
         } else {
           // assumptions present, bend transition to parent instead:
-          ARGState parent = leaf.getParents().iterator().next();
+          ARGState parent = leaf.getParents().getFirst();
           stacksWithAssumptions.add(elem);
           transitions.add(
               makeLocationTransition(
@@ -884,7 +884,7 @@ public class ARGToAutomatonConverter {
       final Set<ARGState> parents = new HashSet<>();
       final Map<ARGState, CFANode> parentsToLeafNode = new HashMap<>();
       for (ARGState leaf : pCallstackToLeaves.get(callstack)) {
-        ARGState parent = leaf.getParents().iterator().next();
+        ARGState parent = leaf.getParents().getFirst();
         if (parents.add(parent)) {
           CFANode leafNode = AbstractStates.extractLocation(leaf);
           if (parentsToLeafNode.containsKey(parent)) {

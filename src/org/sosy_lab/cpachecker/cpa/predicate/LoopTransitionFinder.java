@@ -434,7 +434,7 @@ class LoopTransitionFinder implements StatisticsProvider {
         }
       }
       edges = l.build();
-      predecessor = edges.iterator().next().getPredecessor();
+      predecessor = edges.getFirst().getPredecessor();
       successor = Iterables.getLast(edges).getSuccessor();
     }
 
@@ -476,8 +476,8 @@ class LoopTransitionFinder implements StatisticsProvider {
     OrEdge(List<EdgeWrapper> pEdges) {
       Preconditions.checkState(!pEdges.isEmpty());
       edges = ImmutableList.copyOf(pEdges);
-      predecessor = edges.iterator().next().getPredecessor();
-      successor = edges.iterator().next().getSuccessor();
+      predecessor = edges.getFirst().getPredecessor();
+      successor = edges.getFirst().getSuccessor();
     }
 
     @Override
@@ -495,7 +495,7 @@ class LoopTransitionFinder implements StatisticsProvider {
         throws CPATransferException, InterruptedException {
       Preconditions.checkState(!edges.isEmpty());
 
-      EdgeWrapper first = edges.iterator().next();
+      EdgeWrapper first = edges.getFirst();
       PathFormula out = first.toPathFormula(prev);
 
       for (EdgeWrapper edge : edges) {

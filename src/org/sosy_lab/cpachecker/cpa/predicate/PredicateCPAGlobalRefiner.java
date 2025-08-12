@@ -158,7 +158,7 @@ final class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
       ARGState currentState = currentAbstractionState;
       do {
-        currentState = currentState.getParents().iterator().next();
+        currentState = currentState.getParents().getFirst();
       } while (!getPredicateState(currentState).isAbstractionState());
 
       if (!currentState.getParents().isEmpty() && !predecessors.containsKey(currentState)) {

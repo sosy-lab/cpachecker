@@ -135,7 +135,7 @@ public class BAMSubgraphIterator {
       iterator = toCallerStatesIterator.get(forkChildInARG);
     } else {
       // assert forkChildInARG.getParents().size() == 1;
-      ARGState reducedStateInARG = forkChildInARG.getParents().iterator().next();
+      ARGState reducedStateInARG = forkChildInARG.getParents().getFirst();
 
       iterator =
           from(new TreeSet<>(data.getNonReducedInitialStates(reducedStateInARG)))
@@ -176,7 +176,7 @@ public class BAMSubgraphIterator {
       ARGState currentStateInARG = currentStateOnPath.getARGState();
 
       // No matter which parent to take - interesting one is single anyway
-      ARGState parentInARG = currentStateInARG.getParents().iterator().next();
+      ARGState parentInARG = currentStateInARG.getParents().getFirst();
 
       // Check if it is an exit state, we are waiting
       // Recursion is not supported here!
@@ -238,10 +238,10 @@ public class BAMSubgraphIterator {
    */
 
   private BackwardARGState getNextStateOnPath(BackwardARGState state) {
-    return (BackwardARGState) state.getChildren().iterator().next();
+    return (BackwardARGState) state.getChildren().getFirst();
   }
 
   private BackwardARGState getPreviousStateOnPath(BackwardARGState state) {
-    return (BackwardARGState) state.getParents().iterator().next();
+    return (BackwardARGState) state.getParents().getFirst();
   }
 }

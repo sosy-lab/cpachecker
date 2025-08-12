@@ -124,7 +124,7 @@ public class SMGInterpolationTree {
       if (currentState.getParents().iterator().hasNext()) {
 
         if (!predecessorRelation.containsKey(currentState)) {
-          ARGState parentState = currentState.getParents().iterator().next();
+          ARGState parentState = currentState.getParents().getFirst();
 
           predecessorRelation.put(currentState, parentState);
           successorRelation.put(parentState, currentState);
