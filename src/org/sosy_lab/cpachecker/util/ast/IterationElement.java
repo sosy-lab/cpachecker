@@ -78,6 +78,19 @@ public final class IterationElement extends BranchingElement {
       return Optional.empty();
     }
 
+    // First try to get the loop head normally by iterating over all the edges.
+    // This will fail if there is a loop inside the loop body.
+    ImmutableSet<CFANode> loopStartNodesCandidates =
+        getCompleteElement().edges().stream()
+            .map(CFAEdge::getPredecessor)
+            .filter(CFANode::isLoopStart)
+            .collect(ImmutableSet.toImmutableSet());
+    if (loopStartNodesCandidates.size() == 1) {
+      return Optional.of(loopStartNodesCandidates.iterator().next());
+    }
+
+    // If we found no, or more than one loop start nodes, we try to find the loop head
+    // by looking at the edges of the controlling expression.
     ImmutableSet<CFANode> loopStartNodes =
         controllingExpression.orElseThrow().edges().stream()
             .map(CFAEdge::getPredecessor)
