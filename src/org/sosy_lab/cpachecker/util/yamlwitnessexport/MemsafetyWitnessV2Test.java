@@ -16,49 +16,111 @@ import org.sosy_lab.cpachecker.util.witnesses.CommonTestingWitnessV2;
 
 public class MemsafetyWitnessV2Test extends CommonTestingWitnessV2 {
 
-  @Ignore("Functionality not yet implemented")
   @Test
-  public void testSimpleMemtrackWitnessExport() throws Exception {
+  public void testSimpleDoubleFree() throws Exception {
     performExportTest(
-        "simple-memtrack-unsafe.c",
-        "simple-memtrack-unsafe-expected.witness.yml",
+        "simple-double-free.c",
+        "simple-double-free-expected.witness.yml",
         ExpectedVerdict.FALSE,
         getMemorySafetySpec(),
         TestConfig.SMG2,
         ImmutableMap.of("parser.usePreprocessor", "true"));
   }
 
-  @Ignore("Functionality not yet implemented")
   @Test
-  public void testSimpleValidWitnessExport() throws Exception {
+  public void testDifferentVariablesDoubleFree() throws Exception {
 
     performExportTest(
-        "simple-valid.c",
-        "simple-valid-expected.witness.yml",
+        "diff-var-double-free.c",
+        "diff-var-double-free-expected.witness.yml",
         ExpectedVerdict.FALSE,
         getMemorySafetySpec(),
         TestConfig.SMG2,
         ImmutableMap.of("parser.usePreprocessor", "true"));
   }
 
-  @Ignore("Functionality not yet implemented")
   @Test
-  public void testSimpleMemtrackWitnessValidation() throws Exception {
+  public void testConditionalDoubleFree() throws Exception {
 
-    performValidationTest(
-        "simple-memtrack-unsafe.c",
+    performExportTest(
+        "conditional-double-free.c",
+        "conditional-double-free-expected.witness.yml",
         ExpectedVerdict.FALSE,
         getMemorySafetySpec(),
-        "simple-memtrack-unsafe-expected.witness.yml");
+        TestConfig.SMG2,
+        ImmutableMap.of("parser.usePreprocessor", "true"));
   }
 
-  @Ignore("Functionality not yet implemented")
   @Test
-  public void testSimpleValidWitnessValidation() throws Exception {
-    performValidationTest(
-        "simple-valid.c",
+  public void testBlockedDoubleFree() throws Exception {
+
+    performExportTest(
+        "blocked-double-free.c",
+        "blocked-double-free-expected.witness.yml",
         ExpectedVerdict.FALSE,
         getMemorySafetySpec(),
-        "simple-valid-expected.witness.yml");
+        TestConfig.SMG2,
+        ImmutableMap.of("parser.usePreprocessor", "true"));
   }
+
+  @Test
+  public void testSimpleInvalidDereference() throws Exception {
+
+    performExportTest(
+        "simple-invalid-deref.c",
+        "simple-invalid-deref-expected.witness.yml",
+        ExpectedVerdict.FALSE,
+        getMemorySafetySpec(),
+        TestConfig.SMG2,
+        ImmutableMap.of("parser.usePreprocessor", "true"));
+  }
+
+  @Test
+  public void testSimpleNilDereference() throws Exception {
+
+    performExportTest(
+        "simple-nil-deref.c",
+        "simple-nil-deref-expected.witness.yml",
+        ExpectedVerdict.FALSE,
+        getMemorySafetySpec(),
+        TestConfig.SMG2,
+        ImmutableMap.of("parser.usePreprocessor", "true"));
+  }
+
+  @Test
+  public void testBufOverrunDereference() throws Exception {
+
+    performExportTest(
+        "buf-overrun-deref.c",
+        "buf-overrun-deref-expected.witness.yml",
+        ExpectedVerdict.FALSE,
+        getMemorySafetySpec(),
+        TestConfig.SMG2,
+        ImmutableMap.of("parser.usePreprocessor", "true"));
+  }
+
+  @Test
+  public void testSimpleInvalidMemtrack() throws Exception {
+
+    performExportTest(
+        "simple-invalid-memtrack.c",
+        "simple-invalid-memtrack-expected.witness.yml",
+        ExpectedVerdict.FALSE,
+        getMemorySafetySpec(),
+        TestConfig.SMG2,
+        ImmutableMap.of("parser.usePreprocessor", "true"));
+  }
+
+  @Test
+  public void testVarOverrideInvalidMemtrack() throws Exception {
+
+    performExportTest(
+        "var-override-invalid-memtrack.c",
+        "var-override-invalid-memtrack-expected.witness.yml",
+        ExpectedVerdict.FALSE,
+        getMemorySafetySpec(),
+        TestConfig.SMG2,
+        ImmutableMap.of("parser.usePreprocessor", "true"));
+  }
+
 }

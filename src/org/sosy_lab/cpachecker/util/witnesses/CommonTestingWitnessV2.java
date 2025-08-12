@@ -33,7 +33,7 @@ public class CommonTestingWitnessV2 {
 
   final Yaml yaml = new Yaml();
 
-  static final String TEST_DIR_PATH = "test/programs/witnessValidation/";
+  static final String TEST_DIR_PATH = "test/programs/witnessValidation/valid-tests/";
   static final String SPEC_DIR_PATH = "config/properties";
 
   protected enum TestConfig {

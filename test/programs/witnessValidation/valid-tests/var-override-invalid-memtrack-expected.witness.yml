@@ -1,0 +1,34 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.0"
+    uuid: "4d73cde3-3a65-37e3-90a0-730045d3c554"
+    creation_time: "2025-03-28T11:13:29+01:00"
+    producer:
+      name: "CPAchecker"
+      version: "4.0-624-g18556091eb+"
+    task:
+      input_files:
+        - "test/programs/witnessValidation/simple-memtrack-unsafe.c"
+      input_file_hashes:
+        test/programs/witnessValidation/simple-memtrack-unsafe.c: "26f1ec8e6327cae44a36e86f0bf2bcd23ab69ee23eab43354d0cd050fef12274"
+      specification: ""
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "target"
+            action: "follow"
+            location:
+              file_name: "test/programs/witnessValidation/valid-tests/var-override-invalid-memtrack.c"
+              line: 18
+              column: 3
+              function: "main"

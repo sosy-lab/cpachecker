@@ -9,16 +9,11 @@
 #include <stdlib.h>
 
 int main() {
+  int* x = (int*) malloc(sizeof(int));
+  *x = 42;
 
-  int* x = (int*) malloc(6*sizeof(int));
-
-  for (int i = 0; i < 6; i++) {
-    x[i] = i;
-  }
+  int y = *(x+2*sizeof(int));
 
   free(x);
-
-  free(x); //To export violation witnesses
   return 0;
-
 }
