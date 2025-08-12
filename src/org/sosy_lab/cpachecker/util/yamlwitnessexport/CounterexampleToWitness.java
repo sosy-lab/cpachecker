@@ -629,7 +629,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
           }
 
           // VALID-DEREF handling
-          if (potentialCausesForDereference.contains(edge)) {
+          if (potentialCausesForDereference != null
+              && potentialCausesForDereference.contains(edge)) {
             statement = addAssumptions(statement, "!\\valid(" + expression + ")");
           }
         }
