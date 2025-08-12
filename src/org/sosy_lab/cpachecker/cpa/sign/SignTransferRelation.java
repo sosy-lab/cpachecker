@@ -89,15 +89,14 @@ public class SignTransferRelation
     ImmutableMap.Builder<String, Sign> mapBuilder = ImmutableMap.builder();
     for (int i = 0; i < pParameters.size(); i++) {
       AExpression exp = pArguments.get(i);
-      if (!(exp instanceof CRightHandSide)) {
+      if (!(exp instanceof CRightHandSide cRightHandSide)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
       String scopedVarId =
           getScopedVariableNameForNonGlobalVariable(
               pParameters.get(i).getName(), pCalledFunctionName);
       mapBuilder.put(
-          scopedVarId,
-          ((CRightHandSide) exp).accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
+          scopedVarId, cRightHandSide.accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
     }
     ImmutableMap<String, Sign> argumentMap = mapBuilder.buildOrThrow();
     logger.log(
@@ -149,7 +148,7 @@ public class SignTransferRelation
     CExpression identifier;
     Sign value;
 
-    public IdentifierValuePair(CExpression pIdentifier, Sign pValue) {
+    IdentifierValuePair(CExpression pIdentifier, Sign pValue) {
       identifier = pIdentifier;
       value = pValue;
     }
@@ -285,11 +284,11 @@ public class SignTransferRelation
       CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
       throws CPATransferException { // TODO more complex things
     // Analyse only expressions of the form x op y
-    if (!(pExpression instanceof CBinaryExpression)) {
+    if (!(pExpression instanceof CBinaryExpression cBinaryExpression)) {
       return state;
     }
     Optional<IdentifierValuePair> result =
-        evaluateAssumption((CBinaryExpression) pExpression, pTruthAssumption, pCfaEdge);
+        evaluateAssumption(cBinaryExpression, pTruthAssumption, pCfaEdge);
     if (result.isPresent()) {
       logger.log(
           Level.FINE,
@@ -321,10 +320,10 @@ public class SignTransferRelation
   @Override
   protected SignState handleDeclarationEdge(ADeclarationEdge pCfaEdge, ADeclaration pDecl)
       throws CPATransferException {
-    if (!(pDecl instanceof AVariableDeclaration)) {
+    if (!(pDecl instanceof AVariableDeclaration decl)) {
       return state;
     }
-    AVariableDeclaration decl = (AVariableDeclaration) pDecl;
+
     String scopedId;
     if (decl.isGlobal()) {
       scopedId = decl.getName();
@@ -334,9 +333,9 @@ public class SignTransferRelation
     AInitializer init = decl.getInitializer();
     logger.log(Level.FINE, "Declaration: " + scopedId);
     // type x = expression;
-    if (init instanceof AInitializerExpression) {
+    if (init instanceof AInitializerExpression aInitializerExpression) {
       return handleAssignmentToVariable(
-          state, scopedId, ((AInitializerExpression) init).getExpression(), pCfaEdge);
+          state, scopedId, aInitializerExpression.getExpression(), pCfaEdge);
     }
     // type x;
     // since it is C, we assume it may have any value here
@@ -347,8 +346,8 @@ public class SignTransferRelation
   protected SignState handleStatementEdge(AStatementEdge pCfaEdge, AStatement pStatement)
       throws CPATransferException {
     // expression is a binary expression e.g. a = b.
-    if (pStatement instanceof AAssignment) {
-      return handleAssignment((AAssignment) pStatement, pCfaEdge);
+    if (pStatement instanceof AAssignment aAssignment) {
+      return handleAssignment(aAssignment, pCfaEdge);
     }
 
     // only expression expr; does not change state
@@ -383,11 +382,10 @@ public class SignTransferRelation
     }
 
     // x[index] = ..,
-    if (left instanceof CArraySubscriptExpression) {
+    if (left instanceof CArraySubscriptExpression cArraySubscriptExpression) {
       // currently only overapproximate soundly and assume any value
       return state.assignSignToVariable(
-          getScopedVariableName(
-              ((CArraySubscriptExpression) left).getArrayExpression(), functionName),
+          getScopedVariableName(cArraySubscriptExpression.getArrayExpression(), functionName),
           Sign.ALL);
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);

@@ -91,7 +91,7 @@ class PointerTargetSetManager {
    * @return Whether the type is a fake base type or not.
    */
   static boolean isFakeBaseType(final CType type) {
-    return type instanceof CArrayType && ((CArrayType) type).getType() instanceof CVoidType;
+    return type instanceof CArrayType cArrayType && cArrayType.getType() instanceof CVoidType;
   }
 
   /**

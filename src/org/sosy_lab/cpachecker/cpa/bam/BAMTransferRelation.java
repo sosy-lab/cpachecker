@@ -338,10 +338,10 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
     ARGState rootOfBlock = null;
     if (bamPccManager.isPCCEnabled()) {
-      if (!(reached.getFirstState() instanceof ARGState)) {
+      if (!(reached.getFirstState() instanceof ARGState aRGState)) {
         throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
       }
-      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
+      rootOfBlock = BAMARGUtils.copyARG(aRGState);
     }
 
     // use 'reducedResult' for cache and 'statesForFurtherAnalysis' as return value,

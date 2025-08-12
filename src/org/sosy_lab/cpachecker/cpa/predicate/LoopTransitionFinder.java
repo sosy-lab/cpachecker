@@ -182,11 +182,11 @@ class LoopTransitionFinder implements StatisticsProvider {
       if (visitedEdges.contains(edge)) {
         return TraversalProcess.SKIP;
       }
-      if (edge instanceof FunctionCallEdge) {
-        return onCallEdge((FunctionCallEdge) edge);
+      if (edge instanceof FunctionCallEdge functionCallEdge) {
+        return onCallEdge(functionCallEdge);
 
-      } else if (edge instanceof FunctionReturnEdge) {
-        return onReturnEdge((FunctionReturnEdge) edge);
+      } else if (edge instanceof FunctionReturnEdge functionReturnEdge) {
+        return onReturnEdge(functionReturnEdge);
       } else if (edge instanceof FunctionSummaryEdge
           || edge instanceof CFunctionSummaryStatementEdge) {
         // skip because we handle the super edges instead
@@ -427,8 +427,8 @@ class LoopTransitionFinder implements StatisticsProvider {
       Preconditions.checkState(!pEdges.isEmpty());
       ImmutableList.Builder<EdgeWrapper> l = ImmutableList.builder();
       for (EdgeWrapper w : pEdges) {
-        if (w instanceof AndEdge) { // flatten nested edges
-          l.addAll(((AndEdge) w).edges);
+        if (w instanceof AndEdge andEdge) { // flatten nested edges
+          l.addAll(andEdge.edges);
         } else {
           l.add(w);
         }

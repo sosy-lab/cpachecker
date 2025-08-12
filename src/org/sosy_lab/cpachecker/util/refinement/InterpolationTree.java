@@ -548,7 +548,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     /** the states that are the sources for obtaining error paths */
     private List<ARGState> sources;
 
-    public BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
+    BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
       sources = new ArrayList<>(pTargets);
     }
 

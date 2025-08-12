@@ -892,7 +892,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       return candidates.iterator();
     }
 
-    public boolean hasFoundInvariants() {
+    boolean hasFoundInvariants() {
       return !foundInvariants.isEmpty();
     }
 
@@ -901,7 +901,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       return new HashSet<>(foundInvariants);
     }
 
-    public List<Pair<BooleanFormula, CFANode>> retrieveConfirmedInvariants() {
+    List<Pair<BooleanFormula, CFANode>> retrieveConfirmedInvariants() {
       FluentIterable<CandidateInvariant> found = from(foundInvariants);
       List<Pair<BooleanFormula, CFANode>> invariants = new ArrayList<>();
       for (final CFANode node : abstractionNodes) {
@@ -948,7 +948,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
 
     private final LogManager logger;
 
-    public OnlyWarningsLogmanager(LogManager pLogger) {
+    OnlyWarningsLogmanager(LogManager pLogger) {
       logger = pLogger;
     }
 

@@ -67,16 +67,17 @@ public final class AbstractStates {
       return pType.cast(pState);
 
       // optimization for single-wrapper states (would work without)
-    } else if (pState instanceof AbstractSingleWrapperState) {
-      AbstractState wrapped = ((AbstractSingleWrapperState) pState).getWrappedState();
+    } else if (pState instanceof AbstractSingleWrapperState abstractSingleWrapperState) {
+      AbstractState wrapped = abstractSingleWrapperState.getWrappedState();
       return extractStateByType(wrapped, pType);
 
-    } else if (pState instanceof AbstractSerializableSingleWrapperState) {
-      AbstractState wrapped = ((AbstractSerializableSingleWrapperState) pState).getWrappedState();
+    } else if (pState
+        instanceof AbstractSerializableSingleWrapperState abstractSerializableSingleWrapperState) {
+      AbstractState wrapped = abstractSerializableSingleWrapperState.getWrappedState();
       return extractStateByType(wrapped, pType);
 
-    } else if (pState instanceof AbstractWrapperState) {
-      for (AbstractState wrapped : ((AbstractWrapperState) pState).getWrappedStates()) {
+    } else if (pState instanceof AbstractWrapperState abstractWrapperState) {
+      for (AbstractState wrapped : abstractWrapperState.getWrappedStates()) {
         T result = extractStateByType(wrapped, pType);
         if (result != null) {
           return result;
@@ -136,10 +137,10 @@ public final class AbstractStates {
 
   public static Iterable<AbstractState> filterLocation(
       Iterable<AbstractState> pStates, CFANode pLoc) {
-    if (pStates instanceof LocationMappedReachedSet) {
+    if (pStates instanceof LocationMappedReachedSet locationMappedReachedSet) {
       // only do this for LocationMappedReachedSet, not for all ReachedSet,
       // because this method is imprecise for the rest
-      return ((LocationMappedReachedSet) pStates).getReached(pLoc);
+      return locationMappedReachedSet.getReached(pLoc);
     }
 
     Predicate<AbstractState> statesWithRightLocation =
@@ -161,7 +162,7 @@ public final class AbstractStates {
   }
 
   public static boolean isTargetState(AbstractState as) {
-    return (as instanceof Targetable) && ((Targetable) as).isTarget();
+    return (as instanceof Targetable targetable) && targetable.isTarget();
   }
 
   public static FluentIterable<AbstractState> getTargetStates(
@@ -214,8 +215,8 @@ public final class AbstractStates {
     return FluentIterable.from(
         Traverser.forTree(
                 (AbstractState state) -> {
-                  if (state instanceof AbstractWrapperState) {
-                    return ((AbstractWrapperState) state).getWrappedStates();
+                  if (state instanceof AbstractWrapperState abstractWrapperState) {
+                    return abstractWrapperState.getWrappedStates();
                   }
 
                   return ImmutableList.of();

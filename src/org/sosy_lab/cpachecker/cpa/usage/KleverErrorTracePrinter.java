@@ -70,7 +70,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     private Set<Integer> usedThreadIds;
     private int currentThread;
 
-    public ThreadIterator() {
+    ThreadIterator() {
       usedThreadIds = new HashSet<>();
       currentThread = 0;
     }
@@ -91,11 +91,11 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       return getCurrentThread();
     }
 
-    public int getCurrentThread() {
+    int getCurrentThread() {
       return currentThread;
     }
 
-    public void setCurrentThread(int newVal) {
+    void setCurrentThread(int newVal) {
       currentThread = newVal;
     }
   }
@@ -302,10 +302,10 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private CThreadCreateStatement getThreadCreateStatementIfExists(CFAEdge pEdge) {
-    if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionCall fCall = ((CFunctionCallEdge) pEdge).getFunctionCall();
-      if (fCall instanceof CThreadCreateStatement) {
-        return (CThreadCreateStatement) fCall;
+    if (pEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
+      CFunctionCall fCall = cFunctionCallEdge.getFunctionCall();
+      if (fCall instanceof CThreadCreateStatement cThreadCreateStatement) {
+        return cThreadCreateStatement;
       }
     }
     return null;
@@ -314,9 +314,9 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   private boolean containsId(CFAEdge edge, String pIdName) {
     if (edge.toString().contains(pIdName)) {
       return true;
-    } else if (edge instanceof CFunctionCallEdge) {
+    } else if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
       // if the whole line is 'a = f(b)' the edge contains only 'f(b)'
-      if (((CFunctionCallEdge) edge).getSummaryEdge().getRawStatement().contains(pIdName)) {
+      if (cFunctionCallEdge.getSummaryEdge().getRawStatement().contains(pIdName)) {
         return true;
       }
     }

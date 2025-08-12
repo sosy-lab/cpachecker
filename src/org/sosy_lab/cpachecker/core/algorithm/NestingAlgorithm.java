@@ -87,11 +87,11 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, specification);
     ReachedSet reached = createInitialReachedSet(cpa, initialNode, coreComponents, singleLogger);
 
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) cpa).collectStatistics(stats);
+    if (cpa instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(stats);
     }
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(stats);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(stats);
     }
 
     return new NestedAnalysis(algorithm, cpa, reached);

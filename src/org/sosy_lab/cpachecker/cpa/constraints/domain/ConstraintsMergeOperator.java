@@ -74,8 +74,8 @@ public class ConstraintsMergeOperator implements MergeOperator {
         stats.constraintsRemovedInMerge.inc();
       }
 
-    } else if (lastConstraintOfState2 instanceof LogicalNotExpression) {
-      SymbolicValue innerExpression = ((LogicalNotExpression) lastConstraintOfState2).getOperand();
+    } else if (lastConstraintOfState2 instanceof LogicalNotExpression logicalNotExpression) {
+      SymbolicValue innerExpression = logicalNotExpression.getOperand();
 
       if (lastConstraintOfState1.equals(innerExpression)) {
         weakenedConstraints.remove(lastConstraintOfState2);

@@ -28,8 +28,8 @@ public final class CoverageData {
       // dummy location
       return false;
     }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge) pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
+    if (pEdge instanceof ADeclarationEdge aDeclarationEdge
+        && (aDeclarationEdge.getDeclaration() instanceof AFunctionDeclaration)) {
       // Function declarations span the complete body, this is not desired.
       return false;
     }
@@ -95,8 +95,8 @@ public final class CoverageData {
       collector.addExistingLine(line);
     }
 
-    if (pEdge instanceof AssumeEdge) {
-      collector.addExistingAssume((AssumeEdge) pEdge);
+    if (pEdge instanceof AssumeEdge assumeEdge) {
+      collector.addExistingAssume(assumeEdge);
     }
   }
 
@@ -112,8 +112,8 @@ public final class CoverageData {
     final int startingLine = loc.getStartingLineInOrigin();
     final int endingLine = loc.getEndingLineInOrigin();
 
-    if (pEdge instanceof AssumeEdge) {
-      collector.addVisitedAssume((AssumeEdge) pEdge);
+    if (pEdge instanceof AssumeEdge assumeEdge) {
+      collector.addVisitedAssume(assumeEdge);
     }
 
     for (int line = startingLine; line <= endingLine; line++) {

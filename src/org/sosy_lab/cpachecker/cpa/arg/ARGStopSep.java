@@ -157,7 +157,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   public boolean isForcedCoveringPossible(
       AbstractState pElement, AbstractState pReachedState, Precision pPrecision)
       throws CPAException, InterruptedException {
-    if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
+    if (!(wrappedStop instanceof ForcedCoveringStopOperator forcedCoveringStopOperator)) {
       return false;
     }
 
@@ -172,8 +172,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       return false;
     }
 
-    return ((ForcedCoveringStopOperator) wrappedStop)
-        .isForcedCoveringPossible(
-            element.getWrappedState(), reachedState.getWrappedState(), pPrecision);
+    return forcedCoveringStopOperator.isForcedCoveringPossible(
+        element.getWrappedState(), reachedState.getWrappedState(), pPrecision);
   }
 }

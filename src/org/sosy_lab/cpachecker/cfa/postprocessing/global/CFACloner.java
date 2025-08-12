@@ -49,9 +49,9 @@ public class CFACloner {
     final NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
     final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
     for (final String function : cfa.getAllFunctionNames()) {
-      if (cfa instanceof MutableCFA) {
+      if (cfa instanceof MutableCFA mutableCFA) {
         // it is more efficient to directly copy the nodes
-        nodes.putAll(function, ((MutableCFA) cfa).getFunctionNodes(function));
+        nodes.putAll(function, mutableCFA.getFunctionNodes(function));
       } else {
         nodes.putAll(
             function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));

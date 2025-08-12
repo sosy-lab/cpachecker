@@ -345,7 +345,7 @@ public class FaultLocalizationByImport implements Algorithm {
 
     private final Set<CFAEdge> edges;
 
-    public FaultsDeserializer(CFA pCFA) {
+    FaultsDeserializer(CFA pCFA) {
       super(IntermediateFaults.class);
       edges = ImmutableSet.copyOf(CFAUtils.allEdges(pCFA));
     }

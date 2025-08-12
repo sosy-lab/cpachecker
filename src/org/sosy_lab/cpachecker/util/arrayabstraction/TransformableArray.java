@@ -103,10 +103,10 @@ final class TransformableArray {
 
     CType arrayType = arrayDeclaration.getType();
     CType valueType;
-    if (arrayType instanceof CArrayType) {
-      valueType = ((CArrayType) arrayType).getType();
-    } else if (arrayType instanceof CPointerType) {
-      valueType = ((CPointerType) arrayType).getType();
+    if (arrayType instanceof CArrayType cArrayType) {
+      valueType = cArrayType.getType();
+    } else if (arrayType instanceof CPointerType cPointerType) {
+      valueType = cPointerType.getType();
     } else {
       throw new AssertionError("Unknown array type");
     }
@@ -193,8 +193,8 @@ final class TransformableArray {
     CDeclaration declaration = pDeclarationEdge.getDeclaration();
     if (declaration instanceof CVariableDeclaration) {
       CType type = declaration.getType();
-      if (type instanceof CArrayType) {
-        return Optional.of(((CArrayType) type).getLength());
+      if (type instanceof CArrayType cArrayType) {
+        return Optional.of(cArrayType.getLength());
       }
     }
 
@@ -228,9 +228,8 @@ final class TransformableArray {
     CExpression arrayExpression = pArrayAccess.getArrayExpression();
     CExpression subscriptExpression = pArrayAccess.getSubscriptExpression();
 
-    if (arrayExpression instanceof CIdExpression) {
-      CSimpleDeclaration arrayExpressDeclaration =
-          ((CIdExpression) arrayExpression).getDeclaration();
+    if (arrayExpression instanceof CIdExpression cIdExpression) {
+      CSimpleDeclaration arrayExpressDeclaration = cIdExpression.getDeclaration();
       if (arrayExpressDeclaration.equals(pArrayDeclaration)) {
         if (subscriptExpression instanceof CIntegerLiteralExpression integerExpression) {
           // we don't consider arrays as relevant if they are only accessed at index 0
@@ -327,15 +326,15 @@ final class TransformableArray {
 
       CAstNode astNode = null;
 
-      if (pEdge instanceof CFunctionSummaryEdge) {
-        astNode = ((CFunctionSummaryEdge) pEdge).getExpression();
+      if (pEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
+        astNode = cFunctionSummaryEdge.getExpression();
       }
 
       Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
       if (optAstNode.isPresent()) {
         AAstNode aAstNode = optAstNode.get();
-        if (aAstNode instanceof CAstNode) {
-          astNode = (CAstNode) aAstNode;
+        if (aAstNode instanceof CAstNode cAstNode) {
+          astNode = cAstNode;
         }
       }
 

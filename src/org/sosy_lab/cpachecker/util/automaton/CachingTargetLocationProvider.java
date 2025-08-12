@@ -58,7 +58,7 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
 
     private final Specification specification;
 
-    public CacheKey(CFANode pNode, Specification pSpecification) {
+    CacheKey(CFANode pNode, Specification pSpecification) {
       node = pNode;
       specification = pSpecification;
     }

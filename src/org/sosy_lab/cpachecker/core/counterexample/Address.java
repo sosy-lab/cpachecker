@@ -91,10 +91,10 @@ public abstract class Address {
    */
   public static Address valueOf(Object pAddress) {
 
-    if (pAddress instanceof Address) {
-      return (Address) pAddress;
-    } else if (pAddress instanceof BigInteger) {
-      return new ConcreteAddress((BigInteger) pAddress);
+    if (pAddress instanceof Address address) {
+      return address;
+    } else if (pAddress instanceof BigInteger bigInteger) {
+      return new ConcreteAddress(bigInteger);
     } else if (pAddress instanceof Rational rational) {
       if (rational.isIntegral()) {
         return new ConcreteAddress(rational.getNum());
@@ -106,17 +106,17 @@ public abstract class Address {
           return new ConcreteAddress(rat.getNum());
         }
       }
-    } else if (pAddress instanceof Byte) {
-      long value = ((Byte) pAddress).longValue();
+    } else if (pAddress instanceof Byte b) {
+      long value = b.longValue();
       return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Integer) {
-      long value = ((Integer) pAddress).longValue();
+    } else if (pAddress instanceof Integer i) {
+      long value = i.longValue();
       return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Long) {
-      long value = ((Long) pAddress);
+    } else if (pAddress instanceof Long l) {
+      long value = l;
       return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Short) {
-      long value = ((Short) pAddress).longValue();
+    } else if (pAddress instanceof Short s) {
+      long value = s.longValue();
       return new ConcreteAddress(BigInteger.valueOf(value));
     } else if (pAddress instanceof Double value) {
       if (DoubleMath.isMathematicalInteger(value)) {
@@ -191,8 +191,7 @@ public abstract class Address {
 
     @Override
     public boolean equals(Object pObj) {
-      return pObj instanceof ConcreteAddress
-          && addressValue.equals(((ConcreteAddress) pObj).addressValue);
+      return pObj instanceof ConcreteAddress other && addressValue.equals(other.addressValue);
     }
 
     @Override
@@ -313,8 +312,7 @@ public abstract class Address {
 
     @Override
     public boolean equals(Object pObj) {
-      return pObj instanceof SymbolicAddress
-          && symbolicAddress.equals(((SymbolicAddress) pObj).symbolicAddress);
+      return pObj instanceof SymbolicAddress other && symbolicAddress.equals(other.symbolicAddress);
     }
 
     @Override

@@ -1281,9 +1281,9 @@ class AssignmentFormulaHandler {
         !useOldSSAIndices || updatedRegions == null,
         "With old SSA indices returning updated regions does not make sense");
 
-    if (lvalueType instanceof CArrayType) {
+    if (lvalueType instanceof CArrayType cArrayType) {
       return makeDestructiveArrayAssignment(
-          (CArrayType) lvalueType,
+          cArrayType,
           rvalueType,
           lvalue,
           rvalue,

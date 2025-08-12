@@ -73,8 +73,8 @@ public final class PredefinedTypes {
   }
 
   public static Type getCanonicalType(Type pType) {
-    if (pType instanceof CType) {
-      return ((CType) pType).getCanonicalType();
+    if (pType instanceof CType cType) {
+      return cType.getCanonicalType();
     }
     return pType;
   }
@@ -151,7 +151,7 @@ public final class PredefinedTypes {
     Predicate<Type> isPointerToIntegral =
         t -> {
           Type type = getCanonicalType(t);
-          return type instanceof CPointerType && isIntegerType(((CPointerType) type).getType());
+          return type instanceof CPointerType cPointerType && isIntegerType(cPointerType.getType());
         };
     return functionMatchesExactType(
         pDeclaration,
@@ -164,7 +164,7 @@ public final class PredefinedTypes {
     Predicate<Type> isPointerToIntegral =
         t -> {
           Type type = getCanonicalType(t);
-          return type instanceof CPointerType && isIntegerType(((CPointerType) type).getType());
+          return type instanceof CPointerType cPointerType && isIntegerType(cPointerType.getType());
         };
     return functionMatches(
         pDeclaration,
@@ -223,10 +223,10 @@ public final class PredefinedTypes {
 
   private static boolean isIntegerType(Type pType) {
     Type type = getCanonicalType(pType);
-    if (type instanceof JSimpleType) {
-      return ((JSimpleType) type).isIntegerType();
+    if (type instanceof JSimpleType jSimpleType) {
+      return jSimpleType.isIntegerType();
     }
-    return type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType();
+    return type instanceof CSimpleType cSimpleType && cSimpleType.getType().isIntegerType();
   }
 
   private static boolean functionMatchesExactType(

@@ -102,7 +102,7 @@ public class PrefixSelector {
     // and if we instantiate it every time, we get the same sequence of random numbers.
     private final Scorer randomScorer = new RandomScorer();
 
-    public ScorerFactory(
+    ScorerFactory(
         final Optional<VariableClassification> pClassification,
         final Optional<LoopStructure> pLoopStructure,
         final LogManager pLogger) {
@@ -111,7 +111,7 @@ public class PrefixSelector {
       logger = new LogManagerWithoutDuplicates(pLogger);
     }
 
-    public Scorer createScorer(PrefixPreference pPreference) {
+    Scorer createScorer(PrefixPreference pPreference) {
       return switch (pPreference) {
         case LENGTH_MIN -> new LengthScorer();
         case LENGTH_MAX -> new LengthScorer().invert();
@@ -164,7 +164,7 @@ public class PrefixSelector {
     private final Optional<VariableClassification> classification;
     private final Optional<LoopStructure> loopStructure;
 
-    public DomainScorer(
+    DomainScorer(
         final Optional<VariableClassification> pClassification,
         final Optional<LoopStructure> pLoopStructure,
         final LogManagerWithoutDuplicates pLogger) {
@@ -188,7 +188,7 @@ public class PrefixSelector {
     private final Optional<VariableClassification> classification;
     private final Optional<LoopStructure> loopStructure;
 
-    public LoopScorer(
+    LoopScorer(
         final Optional<VariableClassification> pClassification,
         final Optional<LoopStructure> pLoopStructure,
         final LogManagerWithoutDuplicates pLogger) {
@@ -242,7 +242,7 @@ public class PrefixSelector {
 
     private final Optional<VariableClassification> classification;
 
-    public AssignmentScorer(final Optional<VariableClassification> pClassification) {
+    AssignmentScorer(final Optional<VariableClassification> pClassification) {
       classification = pClassification;
     }
 
@@ -261,7 +261,7 @@ public class PrefixSelector {
 
     private final Optional<VariableClassification> classification;
 
-    public AssumptionScorer(final Optional<VariableClassification> pClassification) {
+    AssumptionScorer(final Optional<VariableClassification> pClassification) {
       classification = pClassification;
     }
 
