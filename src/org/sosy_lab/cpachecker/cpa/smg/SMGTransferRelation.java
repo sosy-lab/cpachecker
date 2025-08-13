@@ -452,7 +452,7 @@ public class SMGTransferRelation
 
         final List<Pair<SMGRegion, SMGValue>> curValues = valuesMap.get(curState);
         assert curValues.size() == i : "evaluation of parameters out of order";
-        curValues.add(i, Pair.of(paramObj, value));
+        curValues.add(Pair.of(paramObj, value));
 
         // Check that previous values are not merged with new one
         if (newStateWithExpVal.getSecond() != null) {
