@@ -404,22 +404,31 @@ public class TerminationWitnessValidator implements Algorithm {
         pLoop, pCandidateInvariant, pSupportingInvariants)) {
       return false;
     }
+    PathFormula loopFormula =
+        TransitionInvariantUtils.makeLoopFormulaWithInitialSSAIndex(
+            new ArrayList<>(pLoop.getInnerLoopEdges()), pfmgr);
+    BooleanFormula booleanLoopFormula = loopFormula.getFormula();
 
-    PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(pLoop.getInnerLoopEdges()));
     BooleanFormula firstStep =
         fmgr.instantiate(
             pCandidateInvariant,
             TransitionInvariantUtils.setIndicesToDifferentValues(
-                pCandidateInvariant, 0, 1, fmgr, scope));
+                pCandidateInvariant, 1, 2, fmgr, scope));
+    firstStep =
+        bfmgr.and(
+            firstStep,
+            TransitionInvariantUtils.makeStatesEquivalent(
+                firstStep, booleanLoopFormula, 1, 2, bfmgr, fmgr));
+
     BooleanFormula secondStep =
         fmgr.instantiate(
             pCandidateInvariant,
             SSAMap.merge(
                 loopFormula.getSsa(),
                 TransitionInvariantUtils.setIndicesToDifferentValues(
-                    pCandidateInvariant, 0, -1, fmgr, scope),
+                        pCandidateInvariant, 1, -1, fmgr, scope)
+                    .withDefault(2),
                 MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
-    BooleanFormula booleanLoopFormula = loopFormula.getFormula();
 
     boolean isTransitionInvariant;
     try {
