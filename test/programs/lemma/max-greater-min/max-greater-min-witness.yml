@@ -1,0 +1,72 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: invariant_set
+  metadata:
+    format_version: "2.0"
+    producer:
+      name: "Handcrafted"
+  content:
+    - invariant:
+        type: loop_invariant
+        location:
+          line: 18
+          column: 3
+          function: maxArray
+        value: "max == ACSL(_L_MAX(a,j))"
+        format: c_expression
+    - invariant:
+        type: loop_invariant
+        location:
+          line: 18
+          column: 3
+          function: maxArray
+        value: "0 <= j <= l"
+        format: c_expression
+    - invariant:
+        type: loop_invariant
+        location:
+          line: 30
+          column: 3
+          function: minArray
+        value: "min == ACSL(_L_MIN(b,k))"
+        format: c_expression
+    - invariant:
+        type: loop_invariant
+        location:
+          line: 30
+          column: 3
+          function: minArray
+        value: "0 <= k <= n"
+        format: c_expression
+- entry_type: lemma_set
+  declarations: 
+    - "int _L_MAX(int* A1, int I1)"
+    - "int* A1"
+    - "int I1"
+  content:
+    - lemma:
+        value: "ACSL(_L_MAX(A1,0)) == A1[0]"
+        format: c_expression
+    - lemma:
+        # ACSL(_L_MAX(A1,I1)) == (A1[I1] > ACSL(_L_MAX(A1,I1-1)) ? A1[I1] : ACSL(_L_MAX(A1,I1-1))) 
+        value: "((A1[I1] > ACSL(_L_MAX(A1,I1))) & ACSL(_L_MAX(A1,I1)) == A1[I1]) | (A1[I1] <= ACSL(_L_MAX(A1,I1)) & ACSL(_L_MAX(A1,I1)) == ACSL(_L_MAX(A1,I1-1)))"
+        format: c_expression
+- entry_type: lemma_set
+  declarations: 
+    - "int _L_MIN(int* A, int I)"
+    - "int* A"
+    - "int I"
+  content:
+    - lemma:
+        value: "ACSL(_L_MIN(A,0)) == A[0]"
+        format: c_expression
+    - lemma:
+        # ACSL(_L_MIN(A,I)) == (A[I] < ACSL(_L_MIN(A,I-1)) ? A[I] : ACSL(_L_MIN(A,I-1))) 
+        value: "((A[I] < ACSL(_L_MIN(A,I))) & ACSL(_L_MIN(A,I)) == A[I]) | (A[I] >= ACSL(_L_MIN(A,I)) & ACSL(_L_MIN(A,I)) == ACSL(_L_MIN(A,I-1)))"
+        format: c_expression

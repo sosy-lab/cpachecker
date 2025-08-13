@@ -13,15 +13,27 @@ extern unsigned __VERIFIER_nondet_uint();
 extern unsigned __VERIFIER_nondet_uchar();
 
 int maxArray(int* a, unsigned int l) {
-  int m = a[0];
+  int max = a[0];
   int j = 0;
   while(j < l) {
-    if(a[j] > m) {
-      m = a[j];
+    if(a[j] > max) {
+      max = a[j];
     }
     ++j;
   }
-  return m;
+  return max;
+}
+
+int minArray(int* b, unsigned int n) {
+  int min = b[0];
+  int k = 0;
+  while(k < n) {
+    if(b[k] < min) {
+      min = b[k];
+    }
+    ++k;
+  }
+  return min;
 }
 
 int main() {
@@ -33,12 +45,17 @@ int main() {
     i++;
   }
 
-  int max = maxArray(arr, length);
-  for(int k = 0; k < length; k++){
-    if(max < arr[k]){
-      reach_error();
-      return -1;
-    }
+  int maximum = maxArray(arr, length);
+  int minimum = minArray(arr, length);
+
+  if(maximum < minimum) {
+    reach_error();
+    return -1;
   }
+  // for(int k = 0; k < length; k++){
+  //   if(max < arr[k]){
+  //     reach_error();
+  //   }
+  // }
   return 0;
 }
