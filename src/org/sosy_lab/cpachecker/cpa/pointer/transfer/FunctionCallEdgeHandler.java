@@ -17,6 +17,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
@@ -33,9 +34,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 public final class FunctionCallEdgeHandler
     implements TransferRelationEdgeHandler<CFunctionCallEdge> {
   private PointerTransferOptions options;
+  private MachineModel machineModel;
 
-  public FunctionCallEdgeHandler(PointerTransferOptions pOptions) {
+  public FunctionCallEdgeHandler(
+      final PointerTransferOptions pOptions, MachineModel pMachineModel) {
     options = pOptions;
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -70,7 +74,12 @@ public final class FunctionCallEdgeHandler
           new DeclaredVariableLocation(DeclaredVariableLocation.getMemoryLocation(formalParam));
       LocationSet referencedLocations =
           getReferencedLocations(
-              Objects.requireNonNull(actualParam), pState, true, pCFunctionCallEdge, options);
+              Objects.requireNonNull(actualParam),
+              pState,
+              true,
+              pCFunctionCallEdge,
+              options,
+              machineModel);
 
       newState =
           new PointerAnalysisState(

@@ -208,7 +208,7 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description = "Blacklist addressed variables to avoid using of pointer analysis ")
-    private boolean blacklistAddressedVariable = false;
+    private boolean blacklistAddressedVariable = true;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -1669,7 +1669,7 @@ public class ValueAnalysisTransferRelation
       CExpression baseExpr = arraySubscriptExpression.getArrayExpression();
       LocationSet baseLocations =
           ReferenceLocationsResolver.getReferencedLocations(
-              baseExpr, pPointerInfo, false, pCfaEdge, pointerTransferOptions);
+              baseExpr, pPointerInfo, false, pCfaEdge, pointerTransferOptions, machineModel);
 
       if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
           && explicitBaseLocations.getSize() == 1) {
@@ -1695,6 +1695,12 @@ public class ValueAnalysisTransferRelation
               }
             }
           }
+          if (heapBase instanceof DeclaredVariableLocation array) {
+            target = array.memoryLocation();
+            targetIsUnknown = target == null;
+            type = arraySubscriptExpression.getExpressionType().getCanonicalType();
+            shouldAssign = true;
+          }
         }
       }
     }
@@ -1702,49 +1708,47 @@ public class ValueAnalysisTransferRelation
       PointerTransferOptions pointerTransferOptions = new PointerTransferOptions(config);
       LocationSet baseLocations =
           ReferenceLocationsResolver.getReferencedLocations(
-              pointerExpression, pPointerInfo, false, pCfaEdge, pointerTransferOptions);
+              pointerExpression,
+              pPointerInfo,
+              false,
+              pCfaEdge,
+              pointerTransferOptions,
+              machineModel);
 
       if (baseLocations instanceof ExplicitLocationSet explicitBaseLocations
           && explicitBaseLocations.getSize() == 1) {
-        PointerLocation basePointerLocation =
+        PointerLocation pointerLocation =
             explicitBaseLocations.sortedPointerLocations().iterator().next();
 
-        LocationSet pointerTargets = pPointerInfo.getPointsToSet(basePointerLocation);
-
-        if (pointerTargets instanceof ExplicitLocationSet explicitPointerTargets
-            && explicitPointerTargets.getSize() == 1) {
-          PointerLocation pointerLocation =
-              explicitPointerTargets.sortedPointerLocations().iterator().next();
-          if (pointerLocation instanceof DeclaredVariableLocation targetMemoryLocation) {
-            target = targetMemoryLocation.memoryLocation();
-            targetIsUnknown = target == null;
-            type = pointerExpression.getExpressionType().getCanonicalType();
-            shouldAssign = true;
-          }
-          if (pointerLocation instanceof HeapLocation heapLocation) {
-            LocationSet heapTargetLocations = pPointerInfo.getPointsToSet(heapLocation);
-            if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
-                && explicitHeapTargetLocations.getSize() == 1) {
-              PointerLocation heapPointerLocation =
-                  explicitHeapTargetLocations.sortedPointerLocations().iterator().next();
-              if (heapPointerLocation
-                  instanceof DeclaredVariableLocation pHeapDeclaredVariableLocation) {
-                target = pHeapDeclaredVariableLocation.memoryLocation();
-                targetIsUnknown = target == null;
-                type = pointerExpression.getExpressionType().getCanonicalType();
-                shouldAssign = true;
-              }
-              if (heapPointerLocation instanceof InvalidLocation) {
-                logger.logf(
-                    Level.CONFIG, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
-                return null;
-              }
+        if (pointerLocation instanceof DeclaredVariableLocation targetMemoryLocation) {
+          target = targetMemoryLocation.memoryLocation();
+          targetIsUnknown = target == null;
+          type = pointerExpression.getExpressionType().getCanonicalType();
+          shouldAssign = true;
+        }
+        if (pointerLocation instanceof HeapLocation heapLocation) {
+          LocationSet heapTargetLocations = pPointerInfo.getPointsToSet(heapLocation);
+          if (heapTargetLocations instanceof ExplicitLocationSet explicitHeapTargetLocations
+              && explicitHeapTargetLocations.getSize() == 1) {
+            PointerLocation heapPointerLocation =
+                explicitHeapTargetLocations.sortedPointerLocations().iterator().next();
+            if (heapPointerLocation
+                instanceof DeclaredVariableLocation pHeapDeclaredVariableLocation) {
+              target = pHeapDeclaredVariableLocation.memoryLocation();
+              targetIsUnknown = target == null;
+              type = pointerExpression.getExpressionType().getCanonicalType();
+              shouldAssign = true;
+            }
+            if (heapPointerLocation instanceof InvalidLocation) {
+              logger.logf(
+                  Level.CONFIG, "Use-after-free detected at %s", pCfaEdge.getFileLocation());
+              return null;
             }
           }
-          if (pointerLocation instanceof InvalidLocation) {
-            logger.logf(Level.CONFIG, "Use-of-invalid detected at %s", pCfaEdge.getFileLocation());
-            return null;
-          }
+        }
+        if (pointerLocation instanceof InvalidLocation) {
+          logger.logf(Level.CONFIG, "Use-of-invalid detected at %s", pCfaEdge.getFileLocation());
+          return null;
         }
       }
     }
@@ -1765,7 +1769,12 @@ public class ValueAnalysisTransferRelation
 
       LocationSet valueLocations =
           ReferenceLocationsResolver.getReferencedLocations(
-              addressExpression, pPointerInfo, true, pCfaEdge, pointerTransferOptions);
+              addressExpression,
+              pPointerInfo,
+              true,
+              pCfaEdge,
+              pointerTransferOptions,
+              machineModel);
       if (valueLocations instanceof ExplicitLocationSet explicitValueLocations
           && explicitValueLocations.getSize() == 1) {
         PointerLocation valuePointerLocation =

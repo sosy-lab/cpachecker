@@ -13,6 +13,7 @@ import static org.sosy_lab.cpachecker.cpa.pointer.utils.ReferenceLocationsResolv
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
@@ -30,9 +31,11 @@ public final class ReturnStatementEdgeHandler
     implements TransferRelationEdgeHandler<CReturnStatementEdge> {
 
   private final PointerTransferOptions options;
+  private MachineModel machineModel;
 
-  public ReturnStatementEdgeHandler(PointerTransferOptions pOptions) {
+  public ReturnStatementEdgeHandler(PointerTransferOptions pOptions, MachineModel pMachineModel) {
     options = pOptions;
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -48,7 +51,7 @@ public final class ReturnStatementEdgeHandler
       return pState;
     }
     LocationSet returnLocations =
-        getReferencedLocations(returnExpression, pState, true, pCfaEdge, options);
+        getReferencedLocations(returnExpression, pState, true, pCfaEdge, options, machineModel);
     if (returnLocations.isTop()) {
       return pState;
     }

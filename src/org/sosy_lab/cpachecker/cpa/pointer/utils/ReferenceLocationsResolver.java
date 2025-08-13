@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -49,11 +50,12 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public final class ReferenceLocationsResolver {
   public static LocationSet getReferencedLocations(
-      CRightHandSide pExpression,
-      PointerAnalysisState pState,
-      boolean shouldDereference,
-      CFAEdge pCfaEdge,
-      PointerTransferOptions pointerTransferOptions)
+      final CRightHandSide pExpression,
+      final PointerAnalysisState pState,
+      final boolean shouldDereference,
+      final CFAEdge pCfaEdge,
+      PointerTransferOptions pointerTransferOptions,
+      final MachineModel machineModel)
       throws CPATransferException {
 
     return pExpression.accept(
@@ -94,9 +96,10 @@ public final class ReferenceLocationsResolver {
                 getReferencedLocations(
                     pPointerExpression.getOperand(),
                     pState,
-                    shouldDereference,
+                    true,
                     pCfaEdge,
-                    pointerTransferOptions);
+                    pointerTransferOptions,
+                    machineModel);
             if (shouldDereference) {
               return dereference(operand);
             }
@@ -112,7 +115,8 @@ public final class ReferenceLocationsResolver {
                       pState,
                       false,
                       pCfaEdge,
-                      pointerTransferOptions);
+                      pointerTransferOptions,
+                      machineModel);
               return addressOf(operand);
             }
             return getReferencedLocations(
@@ -120,7 +124,8 @@ public final class ReferenceLocationsResolver {
                 pState,
                 shouldDereference,
                 pCfaEdge,
-                pointerTransferOptions);
+                pointerTransferOptions,
+                machineModel);
           }
 
           @Override
@@ -138,7 +143,8 @@ public final class ReferenceLocationsResolver {
 
             if (pFieldReference.isPointerDereference()) {
               LocationSet pointees =
-                  getReferencedLocations(owner, pState, true, pCfaEdge, pointerTransferOptions);
+                  getReferencedLocations(
+                      owner, pState, true, pCfaEdge, pointerTransferOptions, machineModel);
               if (pointees instanceof ExplicitLocationSet explicit && explicit.getSize() == 1) {
                 for (PointerLocation target : explicit.sortedPointerLocations()) {
                   if (target instanceof DeclaredVariableLocation memPtr) {
@@ -189,7 +195,8 @@ public final class ReferenceLocationsResolver {
                     pState,
                     shouldDereference,
                     pCfaEdge,
-                    pointerTransferOptions);
+                    pointerTransferOptions,
+                    machineModel);
 
             if (base.isTop() || base.isBot()) {
               return base;
@@ -198,11 +205,24 @@ public final class ReferenceLocationsResolver {
               return LocationSetFactory.withTop();
             }
 
-            long offset = idxExpr.getValue().longValue();
+            CType container = expr.getArrayExpression().getExpressionType().getCanonicalType();
+            final CType elementType;
+            if (container instanceof CArrayType arrayType) {
+              elementType = arrayType.getType().getCanonicalType();
+            } else if (container instanceof CPointerType pointerType) {
+              elementType = pointerType.getType().getCanonicalType();
+            } else {
+              return LocationSetFactory.withTop();
+            }
+
+            long elemSize = machineModel.getSizeof(elementType).longValueExact();
+            long index = idxExpr.getValue().longValue();
+            long offsetBytes = Math.multiplyExact(index, elemSize);
+
             if (base instanceof ExplicitLocationSet explicitBase) {
               LocationSet locationSet =
                   PointerArithmetic.applyOffset(
-                      explicitBase, offset, pointerTransferOptions.isOffsetSensitive());
+                      explicitBase, offsetBytes, pointerTransferOptions.isOffsetSensitive());
 
               if (shouldDereference) {
                 return dereference(locationSet);
@@ -219,7 +239,12 @@ public final class ReferenceLocationsResolver {
               return LocationSetFactory.withNullLocation();
             }
             return getReferencedLocations(
-                expr.getOperand(), pState, shouldDereference, pCfaEdge, pointerTransferOptions);
+                expr.getOperand(),
+                pState,
+                shouldDereference,
+                pCfaEdge,
+                pointerTransferOptions,
+                machineModel);
           }
 
           @Override
@@ -251,15 +276,30 @@ public final class ReferenceLocationsResolver {
 
               LocationSet base =
                   getReferencedLocations(
-                      pointerExpr, pState, true, pCfaEdge, pointerTransferOptions);
+                      pointerExpr, pState, true, pCfaEdge, pointerTransferOptions, machineModel);
 
               if (offsetExpr instanceof CIntegerLiteralExpression intLit) {
-                long offset =
+                long index =
                     operator == CBinaryExpression.BinaryOperator.MINUS
                         ? -intLit.getValue().longValue()
                         : intLit.getValue().longValue();
+
+                CType ptrOrArr = pointerExpr.getExpressionType().getCanonicalType();
+                final CType elementType;
+                if (ptrOrArr instanceof CPointerType pointerType) {
+                  elementType = pointerType.getType().getCanonicalType();
+                } else if (ptrOrArr instanceof CArrayType arrayType) {
+                  elementType = arrayType.getType().getCanonicalType();
+                } else {
+                  return LocationSetFactory.withPointerLocation(
+                      new InvalidLocation(InvalidationReason.POINTER_ARITHMETIC));
+                }
+
+                long elementSize = machineModel.getSizeof(elementType).longValueExact();
+                long offsetBytes = Math.multiplyExact(index, elementSize);
+
                 return PointerArithmetic.applyOffset(
-                    base, offset, pointerTransferOptions.isOffsetSensitive());
+                    base, offsetBytes, pointerTransferOptions.isOffsetSensitive());
               }
 
               return LocationSetFactory.withTop();
@@ -336,7 +376,7 @@ public final class ReferenceLocationsResolver {
               return LocationSetFactory.withNullLocation();
             }
             return getReferencedLocations(
-                operand, pState, shouldDereference, pCfaEdge, pointerTransferOptions);
+                operand, pState, shouldDereference, pCfaEdge, pointerTransferOptions, machineModel);
           }
 
           private LocationSet dereference(LocationSet set) {

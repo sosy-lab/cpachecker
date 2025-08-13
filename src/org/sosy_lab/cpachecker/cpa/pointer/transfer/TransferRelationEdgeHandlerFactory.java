@@ -11,22 +11,25 @@ package org.sosy_lab.cpachecker.cpa.pointer.transfer;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 public class TransferRelationEdgeHandlerFactory {
   public static TransferRelationEdgeHandler<?> createEdgeHandler(
       CFAEdgeType pEdgeType,
       LogManager logger,
       PointerTransferOptions pOptions,
-      AtomicInteger allocationCounter) {
+      AtomicInteger allocationCounter,
+      MachineModel machineModel) {
     return switch (pEdgeType) {
-      case DeclarationEdge -> new DeclarationEdgeHandler(pOptions);
-      case StatementEdge -> new StatementEdgeHandler(logger, pOptions, allocationCounter);
+      case DeclarationEdge -> new DeclarationEdgeHandler(pOptions, machineModel);
+      case StatementEdge ->
+          new StatementEdgeHandler(logger, pOptions, allocationCounter, machineModel);
       case CallToReturnEdge -> new CallToReturnEdgeHandler();
-      case AssumeEdge -> new AssumeEdgeHandler(pOptions);
+      case AssumeEdge -> new AssumeEdgeHandler(pOptions, machineModel);
       case BlankEdge -> new BlankEdgeHandler();
-      case FunctionCallEdge -> new FunctionCallEdgeHandler(pOptions);
-      case FunctionReturnEdge -> new FunctionReturnEdgeHandler(logger, pOptions);
-      case ReturnStatementEdge -> new ReturnStatementEdgeHandler(pOptions);
+      case FunctionCallEdge -> new FunctionCallEdgeHandler(pOptions, machineModel);
+      case FunctionReturnEdge -> new FunctionReturnEdgeHandler(logger, pOptions, machineModel);
+      case ReturnStatementEdge -> new ReturnStatementEdgeHandler(pOptions, machineModel);
     };
   }
 }

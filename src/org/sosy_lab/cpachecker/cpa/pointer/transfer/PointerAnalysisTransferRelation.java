@@ -13,7 +13,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -28,9 +30,13 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
   private final AtomicInteger allocationCounter = new AtomicInteger(0);
 
-  public PointerAnalysisTransferRelation(LogManager pLogger, PointerTransferOptions pOptions) {
+  private final MachineModel machineModel;
+
+  public PointerAnalysisTransferRelation(
+      LogManager pLogger, PointerTransferOptions pOptions, CFA pCfa) {
     logger = pLogger;
     options = pOptions;
+    machineModel = pCfa.getMachineModel();
   }
 
   @Override
@@ -53,7 +59,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     TransferRelationEdgeHandler<E> handler =
         (TransferRelationEdgeHandler<E>)
             TransferRelationEdgeHandlerFactory.createEdgeHandler(
-                edge.getEdgeType(), logger, options, allocationCounter);
+                edge.getEdgeType(), logger, options, allocationCounter, machineModel);
     return handler;
   }
 }

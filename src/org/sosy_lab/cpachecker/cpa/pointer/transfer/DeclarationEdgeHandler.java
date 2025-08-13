@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
@@ -34,9 +35,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public final class DeclarationEdgeHandler implements TransferRelationEdgeHandler<CDeclarationEdge> {
   private PointerTransferOptions options;
+  private MachineModel machineModel;
 
-  public DeclarationEdgeHandler(PointerTransferOptions pOptions) {
+  public DeclarationEdgeHandler(PointerTransferOptions pOptions, MachineModel pMachineModel) {
     options = pOptions;
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -65,7 +68,12 @@ public final class DeclarationEdgeHandler implements TransferRelationEdgeHandler
                     }
 
                     return getReferencedLocations(
-                        pInitializerExpression.getExpression(), pState, true, pCfaEdge, options);
+                        pInitializerExpression.getExpression(),
+                        pState,
+                        true,
+                        pCfaEdge,
+                        options,
+                        machineModel);
                   }
 
                   @Override

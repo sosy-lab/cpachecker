@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -61,14 +62,17 @@ public final class StatementEdgeHandler implements TransferRelationEdgeHandler<C
   private final PointerTransferOptions options;
 
   private final AtomicInteger allocationCounter;
+  private MachineModel machineModel;
 
   public StatementEdgeHandler(
       LogManager pLogger,
       PointerTransferOptions pOptions,
-      AtomicInteger allocationCounterAsInteger) {
+      AtomicInteger allocationCounterAsInteger,
+      MachineModel pMachineModel) {
     logger = pLogger;
     options = pOptions;
     allocationCounter = allocationCounterAsInteger;
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -99,7 +103,12 @@ public final class StatementEdgeHandler implements TransferRelationEdgeHandler<C
             HeapLocation heapLocation = createHeapLocation(pCfaEdge);
             LocationSet lhsLocations =
                 getReferencedLocations(
-                    callAssignment.getLeftHandSide(), pState, false, pCfaEdge, options);
+                    callAssignment.getLeftHandSide(),
+                    pState,
+                    false,
+                    pCfaEdge,
+                    options,
+                    machineModel);
             LocationSet rhsSet = LocationSetFactory.withPointerLocation(heapLocation);
             return handleAssignment(pState, lhsLocations, rhsSet, pCfaEdge);
           }
@@ -136,7 +145,8 @@ public final class StatementEdgeHandler implements TransferRelationEdgeHandler<C
       throws CPATransferException {
     CExpression freedExpr = callExpr.getParameterExpressions().get(0);
 
-    LocationSet targets = getReferencedLocations(freedExpr, pState, true, pCfaEdge, options);
+    LocationSet targets =
+        getReferencedLocations(freedExpr, pState, true, pCfaEdge, options, machineModel);
 
     if (targets instanceof ExplicitLocationSet explicitTargets) {
       PersistentMap<PointerLocation, LocationSet> newPointsToMap = pState.getPointsToMap();
@@ -214,25 +224,26 @@ public final class StatementEdgeHandler implements TransferRelationEdgeHandler<C
       PointerAnalysisState pState, CExpression pLhs, CRightHandSide pRhs, CCfaEdge pCfaEdge)
       throws CPATransferException {
 
-    LocationSet lhsLocations = getReferencedLocations(pLhs, pState, false, pCfaEdge, options);
-    LocationSet rhsTargets = getReferencedLocations(pRhs, pState, true, pCfaEdge, options);
+    LocationSet lhsLocations =
+        getReferencedLocations(pLhs, pState, false, pCfaEdge, options, machineModel);
+    LocationSet rhsTargets =
+        getReferencedLocations(pRhs, pState, true, pCfaEdge, options, machineModel);
     if (pLhs instanceof CFieldReference pCFieldReference) {
       CType baseType = pCFieldReference.getFieldOwner().getExpressionType().getCanonicalType();
 
       while (baseType instanceof CPointerType ptrType) {
         baseType = ptrType.getType().getCanonicalType();
-
-        if (StructUnionAssignmentHandler.isUnion(baseType)
-            || StructUnionAssignmentHandler.isStruct(baseType)) {
-          return StructUnionAssignmentHandler.handleAssignmentForStructOrUnionType(
-              pState,
-              baseType,
-              lhsLocations,
-              rhsTargets,
-              pCfaEdge,
-              options.getStructHandlingStrategy(),
-              logger);
-        }
+      }
+      if (StructUnionAssignmentHandler.isUnion(baseType)
+          || StructUnionAssignmentHandler.isStruct(baseType)) {
+        return StructUnionAssignmentHandler.handleAssignmentForStructOrUnionType(
+            pState,
+            baseType,
+            lhsLocations,
+            rhsTargets,
+            pCfaEdge,
+            options.getStructHandlingStrategy(),
+            logger);
       }
     }
     return handleAssignment(pState, lhsLocations, rhsTargets, pCfaEdge);

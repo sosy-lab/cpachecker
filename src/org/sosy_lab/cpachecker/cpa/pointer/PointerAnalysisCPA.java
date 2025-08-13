@@ -13,12 +13,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -26,7 +28,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.transfer.PointerAnalysisTransferRelat
 import org.sosy_lab.cpachecker.cpa.pointer.transfer.PointerTransferOptions;
 
 @Options(prefix = "cpa.pointer")
-public class PointerAnalysisCPA extends AbstractCPA {
+public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Option(
       secure = true,
@@ -46,6 +48,7 @@ public class PointerAnalysisCPA extends AbstractCPA {
 
   private final LogManager logger;
   private final PointerTransferOptions transferOptions;
+  private final CFA cfa;
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
@@ -53,17 +56,18 @@ public class PointerAnalysisCPA extends AbstractCPA {
     return new PointerAnalysisState();
   }
 
-  public PointerAnalysisCPA(Configuration pConfig, LogManager pLogger)
+  public PointerAnalysisCPA(Configuration pConfig, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException {
     super(DelegateAbstractDomain.getInstance(), null);
     logger = pLogger;
     pConfig.inject(this, PointerAnalysisCPA.class);
     transferOptions = new PointerTransferOptions(pConfig);
+    cfa = pCfa;
   }
 
   @Override
   public PointerAnalysisTransferRelation getTransferRelation() {
-    return new PointerAnalysisTransferRelation(logger, transferOptions);
+    return new PointerAnalysisTransferRelation(logger, transferOptions, cfa);
   }
 
   public static CPAFactory factory() {

@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer.location.DeclaredVariableLocation;
@@ -45,10 +46,13 @@ public final class FunctionReturnEdgeHandler
     implements TransferRelationEdgeHandler<CFunctionReturnEdge> {
   private final LogManager logger;
   private final PointerTransferOptions pOptions;
+  private MachineModel machineModel;
 
-  public FunctionReturnEdgeHandler(LogManager pLogger, PointerTransferOptions options) {
+  public FunctionReturnEdgeHandler(
+      LogManager pLogger, PointerTransferOptions options, MachineModel pMachineModel) {
     logger = pLogger;
     pOptions = options;
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -84,7 +88,8 @@ public final class FunctionReturnEdgeHandler
         rhsTargets = LocationSetFactory.withPointerTargets(newTargets);
       }
 
-      LocationSet lhsLocations = getReferencedLocations(lhs, pState, false, pCfaEdge, pOptions);
+      LocationSet lhsLocations =
+          getReferencedLocations(lhs, pState, false, pCfaEdge, pOptions, machineModel);
       return handleAssignment(pState, lhsLocations, rhsTargets, pCfaEdge);
     }
     return pState;

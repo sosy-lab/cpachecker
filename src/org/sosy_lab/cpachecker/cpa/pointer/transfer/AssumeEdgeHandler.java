@@ -13,6 +13,7 @@ import static org.sosy_lab.cpachecker.cpa.pointer.utils.ReferenceLocationsResolv
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisState;
@@ -28,9 +29,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  */
 public final class AssumeEdgeHandler implements TransferRelationEdgeHandler<AssumeEdge> {
   private final PointerTransferOptions pOptions;
+  private MachineModel machineModel;
 
-  public AssumeEdgeHandler(PointerTransferOptions options) {
-    this.pOptions = options;
+  public AssumeEdgeHandler(PointerTransferOptions options, MachineModel pMachineModel) {
+    pOptions = options;
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -87,7 +90,7 @@ public final class AssumeEdgeHandler implements TransferRelationEdgeHandler<Assu
         CExpression pointerExpr =
             PointerAnalysisChecks.isNullPointer(leftOperand) ? rightOperand : leftOperand;
         LocationSet pointsTo =
-            getReferencedLocations(pointerExpr, pState, true, pCFAEdge, pOptions);
+            getReferencedLocations(pointerExpr, pState, true, pCFAEdge, pOptions, machineModel);
 
         if (pointsTo.isTop()) {
           return pState;
@@ -103,9 +106,9 @@ public final class AssumeEdgeHandler implements TransferRelationEdgeHandler<Assu
         return PointerAnalysisState.BOTTOM_STATE;
       } else {
         LocationSet leftPointsTo =
-            getReferencedLocations(leftOperand, pState, true, pCFAEdge, pOptions);
+            getReferencedLocations(leftOperand, pState, true, pCFAEdge, pOptions, machineModel);
         LocationSet rightPointsTo =
-            getReferencedLocations(rightOperand, pState, true, pCFAEdge, pOptions);
+            getReferencedLocations(rightOperand, pState, true, pCFAEdge, pOptions, machineModel);
 
         if (leftPointsTo.isTop() || rightPointsTo.isTop()) {
           return pState;
