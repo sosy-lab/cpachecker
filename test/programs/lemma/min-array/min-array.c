@@ -12,7 +12,7 @@ void reach_error() { __assert_fail("0", "linear-inequality-inv-a.c", 2, "reach_e
 extern unsigned __VERIFIER_nondet_uint();
 extern unsigned __VERIFIER_nondet_uchar();
 
-int minArray(int* a, unsigned int l, unsigned int n) {
+int minArray(int* a, unsigned int l) {
   int m = a[0];
   int j = 0;
   while(j < l) {
@@ -21,22 +21,23 @@ int minArray(int* a, unsigned int l, unsigned int n) {
     }
     ++j;
   }
-  if(m > a[n]) {
-    reach_error();
-    return -1;
-  }
   return m;
 }
 
 int main() {
-  int arr[50];
+  int arr[10000];
   int i = 0;
-  unsigned int length = 50;
+  unsigned int length = 10000;
   while(i < length){
     arr[i] = __VERIFIER_nondet_uint();
     i++;
   }
-  unsigned char k = __VERIFIER_nondet_uchar();
-  k = k % length;
-  return minArray(arr,length,k);
+  int min = minArray(arr, length);
+  for(int k = 0; k < length; k++){
+    if(min < arr[k]){
+      reach_error();
+      return -1;
+    }
+  }
+  return 0;
 }

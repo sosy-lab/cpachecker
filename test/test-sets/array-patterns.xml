@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
-<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="2000 MB" cpuCores="4">
+<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="7000 MB" cpuCores="2">
 
   <rundefinition>
     <option name="--predicateAnalysis"/>
@@ -77,6 +77,56 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/lemma/array-patterns/array10_pattern-expected-true.yml</include>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
     <option name="--option">cpa.predicate.abstraction.initialPredicates=test/programs/lemma/array-patterns/array10_pattern-witness.yml</option> 
+  </tasks>
+
+  <tasks name="array1_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array1_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="array2_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array2_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="array3_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array3_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="array4_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array4_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="array5_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array5_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="array6_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array6_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="array7_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array7_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="array8_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array8_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="array9_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array9_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="array10_pattern-expected-unknown">
+    <include>../programs/lemma/array-patterns/array10_pattern-expected-unknown.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   
   </benchmark>
