@@ -125,7 +125,7 @@ public class BDDPartitionOrderer {
     // add partitions, that are not dependent, in front of all other partitions
     for (Partition p : varClass.getPartitions()) {
       if (!partitions.contains(p)) {
-        orderedPartitions.add(0, p);
+        orderedPartitions.addFirst(p);
       }
     }
     return orderedPartitions;

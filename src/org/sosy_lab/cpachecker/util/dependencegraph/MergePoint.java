@@ -65,7 +65,7 @@ public class MergePoint<T> {
     List<T> currentPath;
     while (!waitlist.isEmpty()) {
 
-      currentPath = waitlist.remove(0);
+      currentPath = waitlist.removeFirst();
 
       lastElement = currentPath.removeLast();
 

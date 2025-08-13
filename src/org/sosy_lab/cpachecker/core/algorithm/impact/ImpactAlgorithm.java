@@ -333,7 +333,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       formulas.add(bfmgr.not(fmgr.instantiate(w.getStateFormula(), pf.getSsa().withDefault(1))));
     }
 
-    path.add(0, x); // now path is [x; v] (including x and v)
+    path.addFirst(x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
     Optional<ImmutableList<BooleanFormula>> interpolantInfo = imgr.interpolate(formulas);

@@ -337,7 +337,7 @@ public class BlockGraphModification {
     waitlist.add(new NodePair(pOriginal.getMainFunction(), pInstrumented.getMainFunction()));
     originalToInstrumentedNodes.put(pOriginal.getMainFunction(), pInstrumented.getMainFunction());
     while (!waitlist.isEmpty()) {
-      NodePair pair = waitlist.remove(0);
+      NodePair pair = waitlist.removeFirst();
       CFANode originalNode = pair.n1();
       if (covered.contains(originalNode)) {
         continue;

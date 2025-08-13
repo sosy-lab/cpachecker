@@ -30,7 +30,7 @@ public class SingleBlockDecomposition implements DssBlockDecomposition {
     SequencedSet<CFANode> seen = new LinkedHashSet<>();
     waitlist.add(cfa.getMainFunction());
     while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.remove(0);
+      CFANode current = waitlist.removeFirst();
       if (seen.contains(current)) {
         continue;
       }

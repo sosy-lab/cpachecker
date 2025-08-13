@@ -45,7 +45,7 @@ public class StronglyConnectedComponents {
     waitlist.add(pStartNode);
     SequencedMap<BlockNodeWithoutGraphInformation, Vertex> cache = new LinkedHashMap<>();
     while (!waitlist.isEmpty()) {
-      BlockNodeWithoutGraphInformation current = waitlist.remove(0);
+      BlockNodeWithoutGraphInformation current = waitlist.removeFirst();
       for (BlockNodeWithoutGraphInformation t : pSuccessors.apply(current)) {
         Vertex v1 = cache.getOrDefault(current, new Vertex(current));
         Vertex v2 = cache.getOrDefault(t, new Vertex(t));

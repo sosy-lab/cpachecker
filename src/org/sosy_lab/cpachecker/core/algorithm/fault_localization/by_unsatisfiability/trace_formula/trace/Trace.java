@@ -141,7 +141,7 @@ public class Trace extends ForwardingList<TraceAtom> {
       for (int i = 0;
           i < mergeNodes.getOrDefault(entry.correspondingEdge().getSuccessor(), 0);
           i++) {
-        labelsForEntry.add(0, FormulaLabel.ENDIF);
+        labelsForEntry.addFirst(FormulaLabel.ENDIF);
       }
       labels.add(labelsForEntry);
     }

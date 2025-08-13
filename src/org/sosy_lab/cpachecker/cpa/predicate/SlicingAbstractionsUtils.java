@@ -369,7 +369,7 @@ public final class SlicingAbstractionsUtils {
       ARGState start, ARGState stop, List<ARGState> segmentList, PathFormulaManager pPfmgr) {
     final Map<ARGState, PathFormulaBuilder> finishedBuilders = new TreeMap<>();
     List<ARGState> allList = new ArrayList<>(segmentList);
-    allList.add(0, start);
+    allList.addFirst(start);
     allList.add(stop);
 
     for (ARGState currentState : allList) {

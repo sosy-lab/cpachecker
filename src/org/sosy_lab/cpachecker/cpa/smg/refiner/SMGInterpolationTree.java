@@ -383,7 +383,7 @@ public class SMGInterpolationTree {
 
     @Override
     public ARGPath getNextPathForInterpolation() {
-      ARGState current = sources.remove(0);
+      ARGState current = sources.removeFirst();
 
       assert current.isTarget() : "current element is not a target";
 

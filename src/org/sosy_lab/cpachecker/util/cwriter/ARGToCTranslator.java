@@ -390,7 +390,7 @@ public class ARGToCTranslator {
 
         ARGEdge newEdge = new ARGEdge(currentElement, child, edgeToChild, newBlock);
         if (truthAssumption) {
-          result.add(0, newEdge);
+          result.addFirst(newEdge);
         } else {
           result.add(newEdge);
         }
@@ -957,7 +957,7 @@ public class ARGToCTranslator {
             if (getRealTruthAssumption((CAssumeEdge) edge)) {
               assumeInfo.add(Pair.of(child, decInfo));
             } else {
-              assumeInfo.add(0, Pair.of(child, decInfo));
+              assumeInfo.addFirst(Pair.of(child, decInfo));
             }
           } else {
             waitlist.push(Pair.of(child, decInfo));

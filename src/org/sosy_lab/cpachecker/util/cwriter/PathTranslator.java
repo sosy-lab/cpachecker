@@ -144,7 +144,7 @@ public abstract class PathTranslator {
       Collections.sort(waitlist);
 
       // get the first element in the list (this is the smallest element when topologically sorted)
-      Edge nextEdge = waitlist.remove(0);
+      Edge nextEdge = waitlist.removeFirst();
 
       waitlist.addAll(handleEdge(nextEdge, mergeNodes, elementsOnPath, callback));
     }

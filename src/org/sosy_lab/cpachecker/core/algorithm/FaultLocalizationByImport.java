@@ -482,7 +482,7 @@ public class FaultLocalizationByImport implements Algorithm {
       waitlist.add(new ArrayList<>(ImmutableList.of(leavingEdge)));
     }
     while (!waitlist.isEmpty()) {
-      List<CFAEdge> path = waitlist.remove(0);
+      List<CFAEdge> path = waitlist.removeFirst();
       Set<CFAEdge> covered = ImmutableSet.copyOf(path);
       CFAEdge lastEdge = path.getLast();
       CFANode currentTail = lastEdge.getSuccessor();

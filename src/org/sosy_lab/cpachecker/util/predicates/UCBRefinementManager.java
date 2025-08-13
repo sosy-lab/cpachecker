@@ -67,7 +67,7 @@ public class UCBRefinementManager {
     List<ARGState> trace = new ArrayList<>(abstractionStatesTrace);
     // Add root to the trace in order to compute WPs correctly as 'abstractionStatesTrace'
     // does not contain the root element.
-    trace.add(0, allStatesTrace.getFirstState());
+    trace.addFirst(allStatesTrace.getFirstState());
 
     // Compute weakest preconditions on the error trace
     // If the list is empty then the trace is feasible,
