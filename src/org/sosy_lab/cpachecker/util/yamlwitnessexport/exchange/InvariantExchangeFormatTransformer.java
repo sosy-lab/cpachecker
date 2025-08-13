@@ -173,18 +173,18 @@ public class InvariantExchangeFormatTransformer {
   }
 
   /**
-   * In case the witness is termination witness, it may contain \prev keyword which is not parsed.
-   * We have to encode this keyword into the names of the variables.
+   * In case the witness is termination witness, it may contain \at(x, AnyPrev) keyword which is not
+   * parsed. We have to encode this keyword into the names of the variables.
    *
    * @param pInvariantEntry transition invariant string
-   * @return Invariant string with \prev encoded as __PREV suffix
+   * @return Invariant string with \at(x, AnyPrev) encoded as __PREV suffix
    */
   private String replacePrevKeywordWithFreshVariables(InvariantEntry pInvariantEntry) {
     String invariantString = pInvariantEntry.getValue();
     if (!isTransitionInvariant(pInvariantEntry)) {
       return invariantString;
     }
-    Pattern pattern = Pattern.compile("\\\\prev\\(([^)]+)\\)");
+    Pattern pattern = Pattern.compile("\\\\at\\(([^)]+),\s*AnyPrev\\)");
     Matcher matcher = pattern.matcher(invariantString);
     StringBuilder result = new StringBuilder();
 

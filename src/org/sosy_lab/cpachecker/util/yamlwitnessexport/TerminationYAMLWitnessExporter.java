@@ -48,11 +48,12 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
     return pRankingFunction.substring(firstEquals + 1).trim();
   }
 
-  // The function replaces variable names with annotation \prev, i.e. x -> \prev(x)
+  // The function replaces variable names with annotation \at(..., AnyPrev), i.e. x -> \at(x,
+  // AnyPrev)
   private String addPrevKeyWordInFrontOfTheVariables(RankingFunction pRankingFunction) {
     String rankingFunctionWithPrev = pRankingFunction.toString();
     for (IProgramVar var : pRankingFunction.getVariables()) {
-      String newVarName = "\\prev(" + var + ")";
+      String newVarName = "\\at(" + var + ", AnyPrev)";
       rankingFunctionWithPrev = rankingFunctionWithPrev.replace(var.toString(), newVarName);
     }
     return rankingFunctionWithPrev;
