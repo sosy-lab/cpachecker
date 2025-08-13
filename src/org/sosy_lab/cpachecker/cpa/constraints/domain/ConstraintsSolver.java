@@ -96,9 +96,9 @@ public class ConstraintsSolver {
       secure = true,
       description =
           "Whether to perform SAT checks only for the last added constraint, as well as all"
-              + " constraints dependent on it",
+              + " constraints dependent on it. Might improve solver performance.",
       name = "minimalSatCheck")
-  private boolean performMinimalSatCheck = false;
+  private boolean performMinimalSatCheck = true;
 
   @Option(
       secure = true,
