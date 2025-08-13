@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CFACreator cfaCreator;
+  private final CFA cfa;
   private final Configuration config;
   private final Scope scope;
   private final LogManager logger;
@@ -57,7 +59,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier,
       final Specification pSpecification,
-      final Scope pScope)
+      final Scope pScope,
+      final CFA pCFA)
       throws InvalidConfigurationException {
     fmgr = pFmgr;
     bfmgr = pBfmgr;
@@ -67,6 +70,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     scope = pScope;
     cfaCreator = new CFACreator(config, pLogger, pShutdownNotifier);
     specification = pSpecification;
+    cfa = pCFA;
   }
 
   /**
@@ -86,11 +90,22 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     builder.append("int main() { \n");
 
     // Initialize the variables from the transition invariant
-    for (String variable : mapNamesToVariables.keySet()) {
-      builder.append(
+    Set<String> alreadyDeclaredVars = new HashSet<>();
+    String varDeclaration;
+    for (String variable : cfa.getVarClassification().get().getRelevantVariables()) {
+      varDeclaration =
           TransitionInvariantUtils.removeFunctionFromVarsName(
-                  scope.lookupVariable(variable).toString())
-              + "\n");
+              scope.lookupVariable(variable).toString());
+      builder.append(varDeclaration + "\n");
+      alreadyDeclaredVars.add(varDeclaration);
+    }
+    for (String variable : mapNamesToVariables.keySet()) {
+      varDeclaration =
+          TransitionInvariantUtils.removeFunctionFromVarsName(
+              scope.lookupVariable(variable).toString());
+      if (!alreadyDeclaredVars.contains(varDeclaration)) {
+        builder.append(varDeclaration + "\n");
+      }
     }
 
     // Build the loop
@@ -105,10 +120,12 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     for (BooleanFormula invariant : pSupportingInvariants) {
       loopCondition = loopCondition + " && " + converter.formulaToCExpression(invariant);
       for (String variable : fmgr.extractVariables(invariant).keySet()) {
-        builder.append(
+        varDeclaration =
             TransitionInvariantUtils.removeFunctionFromVarsName(
-                    scope.lookupVariable(variable).toString())
-                + "\n");
+                scope.lookupVariable(variable).toString());
+        if (!alreadyDeclaredVars.contains(varDeclaration)) {
+          builder.append(varDeclaration + "\n");
+        }
       }
     }
     builder.append("while(" + loopCondition + ") {\n");

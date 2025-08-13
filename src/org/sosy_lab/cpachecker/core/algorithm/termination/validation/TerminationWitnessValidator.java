@@ -129,7 +129,7 @@ public class TerminationWitnessValidator implements Algorithm {
     if (checkWithInfiniteSpace) {
       wellFoundednessChecker =
           new ImplicitRankingChecker(
-              fmgr, bfmgr, logger, config, shutdownNotifier, pSpecification, scope);
+              fmgr, bfmgr, logger, config, shutdownNotifier, pSpecification, scope, cfa);
     } else {
       wellFoundednessChecker = new DecreasingCardinalityChecker(fmgr, bfmgr, solver, scope, logger);
     }
@@ -187,8 +187,15 @@ public class TerminationWitnessValidator implements Algorithm {
       // The formula is not well-founded, therefore we have to check for disjunctive
       // well-foundedness
       // And hence, we have to do check R^+ => T
-      if (!wellFoundednessChecker.isDisjunctivelyWellFounded(
-              invariant, loopsToSupportingInvariants.get(loop), loop)
+      boolean isWellFounded =
+          wellFoundednessChecker.isDisjunctivelyWellFounded(
+              invariant, loopsToSupportingInvariants.get(loop), loop);
+      // Our termination analysis might be unsound with respect to C semantics because it assumes
+      // infinite state space.
+      if (!isWellFounded && wellFoundednessChecker instanceof ImplicitRankingChecker) {
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
+      if (!isWellFounded
           || !isCandidateInvariantInductiveTransitionInvariant(
               loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
         // The invariant is not disjunctively well-founded
