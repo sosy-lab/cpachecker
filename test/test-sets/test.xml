@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="1 min" hardtimelimit="2 min" memlimit="15 GB" cpuCores="2">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="5 min" hardtimelimit="6 min" memlimit="15 GB" cpuCores="2">
 
     <require cpuModel="Intel Core i7-10700 @ 2.90 GHz" />
 
@@ -11,7 +11,7 @@
     <option name="--benchmark" />
 
     <rundefinition name="unseq">
-        <tasks name="ReachSafety-Arrays">
+        <tasks name="ReachSafety">
             <includesfile>../../../sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
         </tasks>
     </rundefinition>
