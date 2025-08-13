@@ -48,8 +48,8 @@ public abstract class ARGPathBuilder {
   @CanIgnoreReturnValue
   public ARGPathBuilder removeLast() {
     assert !states.isEmpty() && !edges.isEmpty();
-    states.remove(states.size() - 1);
-    edges.remove(edges.size() - 1);
+    states.removeLast();
+    edges.removeLast();
     return this;
   }
 
@@ -65,7 +65,7 @@ public abstract class ARGPathBuilder {
     public ARGPath build(ARGState pState) {
       states.add(pState);
       ARGPath path = new ARGPath(states, edges);
-      states.remove(states.size() - 1);
+      states.removeLast();
       return path;
     }
   }
@@ -80,7 +80,7 @@ public abstract class ARGPathBuilder {
     public ARGPath build(ARGState pState) {
       states.add(pState);
       ARGPath path = new ARGPath(states.reversed(), edges.reversed());
-      states.remove(states.size() - 1);
+      states.removeLast();
       return path;
     }
   }

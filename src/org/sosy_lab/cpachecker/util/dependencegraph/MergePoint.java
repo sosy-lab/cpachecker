@@ -67,7 +67,7 @@ public class MergePoint<T> {
 
       currentPath = waitlist.remove(0);
 
-      lastElement = currentPath.remove(currentPath.size() - 1);
+      lastElement = currentPath.removeLast();
 
       if (isPotentialMergeNode(assume, lastElement, currentPath)) {
         int prevSize = potentialMergeNodes.size();

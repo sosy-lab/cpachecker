@@ -236,7 +236,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     if (!inserted) {
       if (pOther.touches(lastInterval)) {
-        resultIntervals.remove(resultIntervals.size() - 1);
+        resultIntervals.removeLast();
         lastInterval = union(pOther, lastInterval);
         resultIntervals.add(lastInterval);
       } else {

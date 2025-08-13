@@ -313,7 +313,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
           break;
         }
       } finally {
-        itpStack.remove(itpStack.size() - 1);
+        itpStack.removeLast();
         itpProver.pop();
       }
     }
@@ -352,7 +352,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     // going upwards from unreachableState refining states with interpolants
     ARGState currentState = unreachableState;
     do {
-      itpStack.remove(itpStack.size() - 1); // remove last
+      itpStack.removeLast(); // remove last
       currentState = predecessors.get(currentState);
       if (itpStack.isEmpty()) {
         assert currentState.getParents().isEmpty(); // we should have reached the ARG root

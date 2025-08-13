@@ -280,7 +280,7 @@ final class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
         }
 
       } finally {
-        itpStack.remove(itpStack.size() - 1);
+        itpStack.removeLast();
         itpProver.pop();
         currentPath.removeLast();
       }
@@ -330,7 +330,7 @@ final class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
     // last interpolant will always be false and therefore it is required
     // to remove it, for having proper arguments to call performRefinement
-    interpolants.remove(interpolants.size() - 1);
+    interpolants.removeLast();
 
     // TODO repeated counterexample is always false currently, we also ignore the return value
     strategy.performRefinement(reached, pAbstractionStatesTrace, interpolants, false);

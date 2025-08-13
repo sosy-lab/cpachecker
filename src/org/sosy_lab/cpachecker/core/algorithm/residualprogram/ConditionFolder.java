@@ -106,7 +106,7 @@ public abstract class ConditionFolder {
           while (lsucc != null && lsucc.getOutgoingEdges().contains(edge)) {
             // leave edge
             succLoopStack = new ArrayList<>(succLoopStack);
-            succLoopStack.remove(succLoopStack.size() - 1);
+            succLoopStack.removeLast();
             if (succLoopStack.isEmpty()) {
               lsucc = null;
             } else {

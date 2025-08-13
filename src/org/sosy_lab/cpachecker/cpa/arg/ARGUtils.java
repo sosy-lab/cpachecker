@@ -1277,7 +1277,7 @@ public class ARGUtils {
     // Loop until all paths reached the root
     while (!paths.isEmpty()) {
       // Expand currently considered path
-      List<ARGState> curPath = paths.remove(paths.size() - 1);
+      List<ARGState> curPath = paths.removeLast();
       Preconditions.checkNotNull(curPath);
       // If there is no more to expand - add this path and continue
       if (curPath.getLast() == root) {

@@ -232,7 +232,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       if (abstractTraceElement instanceof TraceAtom traceAtom) {
         if (abstractTraceElement.equals(lastSelector)) {
           Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
-          Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
+          Interval lastInterval = (Interval) summarizedList.removeLast();
           Interval merged = Interval.merge(toMerge, lastInterval, bmgr);
           summarizedList.add(summarizedList.size() - 1, merged);
         } else {

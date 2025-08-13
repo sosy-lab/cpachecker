@@ -491,7 +491,7 @@ public final class LoopStructure {
         // of loop head nodes that does not contain what most users would consider
         // the most important loop head node of a function.
         if (!initialChain.isEmpty()) {
-          nodeAfterInitialChain = initialChain.remove(initialChain.size() - 1);
+          nodeAfterInitialChain = initialChain.removeLast();
         }
 
         if (!hasBackWardsEdges(startNode)) {
