@@ -139,8 +139,78 @@ public class TerminationWitnessValidator implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    Set<ExpressionTreeLocationInvariant> invariants;
+    ImmutableCollection<LoopStructure.Loop> loops =
+        cfa.getLoopStructure().orElseThrow().getAllLoops();
+    try {
+      WitnessInvariantsExtractor invariantsExtractor =
+          new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, witnessPath);
+      invariants = invariantsExtractor.extractInvariantsFromReachedSet();
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException(
+          "Invalid Configuration while analyzing witness:\n" + e.getMessage(), e);
+    } catch (InvalidWitnessException e) {
+      throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
+    }
+
+    ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
+        mapTransitionInvariantsToLoops(loops, invariants);
+    ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> loopsToSupportingInvariants =
+        mapSupportingInvariantsToLoops(loops, invariants);
+
     // Check the supporting invariants first
     logger.log(Level.FINE, "Checking the supporting invariants.");
+    if (hasSupportingInvariants(loopsToSupportingInvariants)) {
+      ReachedSet reachedSet = checkSupportingInvariants();
+      if (reachedSet.wasTargetReached()) {
+        // Supporting invariants are not invariants
+        pReachedSet.addNoWaitlist(
+            DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+    }
+
+    // Check that every candidate invariant is disjunctively well-founded and transition invariant
+    for (LoopStructure.Loop loop : loops) {
+      BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
+      if (!checkWithInfiniteSpace && hasInfiniteSpace(invariant)) {
+        throw new CPAException("The configuration does not support infinite state spaces.");
+      }
+      // Check the proper well-foundedness of the formula and if it succeeds, check R => T
+      if (wellFoundednessChecker.isWellFounded(
+              invariant, loopsToSupportingInvariants.get(loop), loop)
+          && isCandidateInvariantTransitionInvariant(
+              loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
+        continue;
+      }
+
+      // The formula is not well-founded, therefore we have to check for disjunctive
+      // well-foundedness
+      // And hence, we have to do check R^+ => T
+      if (!wellFoundednessChecker.isDisjunctivelyWellFounded(
+              invariant, loopsToSupportingInvariants.get(loop), loop)
+          || !isCandidateInvariantInductiveTransitionInvariant(
+              loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
+        // The invariant is not disjunctively well-founded
+        pReachedSet.addNoWaitlist(
+            DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+    }
+    pReachedSet.clear();
+    return AlgorithmStatus.SOUND_AND_PRECISE;
+  }
+
+  private boolean hasSupportingInvariants(
+      ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>>
+          pLoopsToSupportingInvariants) {
+    return !pLoopsToSupportingInvariants.entrySet().stream()
+        .filter(e -> !e.getValue().isEmpty())
+        .toList()
+        .isEmpty();
+  }
+
+  private ReachedSet checkSupportingInvariants() throws CPAException {
     try {
       String invariantsSpecPath = "test/programs/benchmarks/properties/no-overflow.prp";
       Configuration generationConfig =
@@ -183,66 +253,10 @@ public class TerminationWitnessValidator implements Algorithm {
 
       // Running the algorithm
       invariantCheckingAlgorithm.run(reachedSet);
-
-      if (reachedSet.wasTargetReached()) {
-        System.out.println("YES");
-        // Supporting invariants are not invariants
-        pReachedSet.addNoWaitlist(
-            DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
-        return AlgorithmStatus.SOUND_AND_PRECISE;
-      }
+      return reachedSet;
     } catch (Exception e) {
       throw new CPAException(e.toString());
     }
-
-    Set<ExpressionTreeLocationInvariant> invariants;
-    ImmutableCollection<LoopStructure.Loop> loops =
-        cfa.getLoopStructure().orElseThrow().getAllLoops();
-    try {
-      WitnessInvariantsExtractor invariantsExtractor =
-          new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, witnessPath);
-      invariants = invariantsExtractor.extractInvariantsFromReachedSet();
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException(
-          "Invalid Configuration while analyzing witness:\n" + e.getMessage(), e);
-    } catch (InvalidWitnessException e) {
-      throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
-    }
-
-    ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
-        mapTransitionInvariantsToLoops(loops, invariants);
-    ImmutableMap<LoopStructure.Loop, ImmutableList<BooleanFormula>> loopsToSupportingInvariants =
-        mapSupportingInvariantsToLoops(loops, invariants);
-
-    // Check that every candidate invariant is disjunctively well-founded and transition invariant
-    for (LoopStructure.Loop loop : loops) {
-      BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
-      if (!checkWithInfiniteSpace && hasInfiniteSpace(invariant)) {
-        throw new CPAException("The configuration does not support infinite state spaces.");
-      }
-      // Check the proper well-foundedness of the formula and if it succeeds, check R => T
-      if (wellFoundednessChecker.isWellFounded(
-              invariant, loopsToSupportingInvariants.get(loop), loop)
-          && isCandidateInvariantTransitionInvariant(
-              loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
-        continue;
-      }
-
-      // The formula is not well-founded, therefore we have to check for disjunctive
-      // well-foundedness
-      // And hence, we have to do check R^+ => T
-      if (!wellFoundednessChecker.isDisjunctivelyWellFounded(
-              invariant, loopsToSupportingInvariants.get(loop), loop)
-          || !isCandidateInvariantInductiveTransitionInvariant(
-              loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
-        // The invariant is not disjunctively well-founded
-        pReachedSet.addNoWaitlist(
-            DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
-        return AlgorithmStatus.SOUND_AND_PRECISE;
-      }
-    }
-    pReachedSet.clear();
-    return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
   private ImmutableMap<Loop, ImmutableList<BooleanFormula>> mapSupportingInvariantsToLoops(
@@ -256,8 +270,6 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableList.Builder<BooleanFormula> builder1 = new ImmutableList.Builder<>();
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         if (!invariant.isTransitionInvariant()) {
-          // The check for supporting invariants is not yet supported
-          // TODO: Implement checking that the invariants are really invariants
           if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
             BooleanFormula invariantFormula;
             try {
