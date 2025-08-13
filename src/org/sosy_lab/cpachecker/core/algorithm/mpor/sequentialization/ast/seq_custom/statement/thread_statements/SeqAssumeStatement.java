@@ -23,8 +23,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
 public class SeqAssumeStatement implements SeqThreadStatement {
 
-  public final boolean isLoopStart;
-
   public final SeqSingleControlExpression controlStatement;
 
   private final CLeftHandSide pcLeftHandSide;
@@ -38,13 +36,11 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqAssumeStatement(
-      boolean pIsLoopStart,
       SeqSingleControlExpression pControlStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    isLoopStart = pIsLoopStart;
     controlStatement = pControlStatement;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -54,7 +50,6 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   private SeqAssumeStatement(
-      boolean pIsLoopStart,
       SeqSingleControlExpression pControlStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -62,7 +57,6 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    isLoopStart = pIsLoopStart;
     controlStatement = pControlStatement;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -104,7 +98,6 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   @Override
   public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(
-        isLoopStart,
         controlStatement,
         pcLeftHandSide,
         substituteEdges,
@@ -116,7 +109,6 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
-        isLoopStart,
         controlStatement,
         pcLeftHandSide,
         substituteEdges,
@@ -130,7 +122,6 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqAssumeStatement(
-        isLoopStart,
         controlStatement,
         pcLeftHandSide,
         substituteEdges,
@@ -144,7 +135,6 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqAssumeStatement(
-        isLoopStart,
         controlStatement,
         pcLeftHandSide,
         substituteEdges,

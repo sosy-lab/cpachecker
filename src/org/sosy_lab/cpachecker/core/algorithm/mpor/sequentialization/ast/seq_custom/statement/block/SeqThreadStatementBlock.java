@@ -10,10 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlExpressionEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -22,8 +25,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SeqThreadStatementBlock implements SeqStatement {
 
@@ -79,8 +84,27 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   public boolean isLoopStart() {
     for (SeqThreadStatement statement : statements) {
-      if (statement instanceof SeqAssumeStatement assumeStatement) {
-        return assumeStatement.isLoopStart;
+      for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
+        CFANode predecessorA = substituteEdge.cfaEdge.getPredecessor();
+        if (predecessorA.isLoopStart()) {
+          // simple for / while loop with predicate expression -> loop is in direct predecessor
+          return true;
+        } else {
+          for (CFAEdge enteringEdgeA : CFAUtils.enteringEdges(predecessorA)) {
+            CFANode predecessorB = enteringEdgeA.getPredecessor();
+            if (predecessorB.isLoopStart()) {
+              for (CFAEdge enteringEdgeB : CFAUtils.enteringEdges(predecessorB)) {
+                if (enteringEdgeB instanceof BlankEdge blankEdge) {
+                  String description = blankEdge.getDescription();
+                  if (description.equals(SingleControlExpressionEncoding.WHILE.keyword)) {
+                    // infinite while (1) loop -> loop is in predecessor of predecessor
+                    return true;
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
     return false;

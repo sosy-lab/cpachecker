@@ -319,7 +319,10 @@ public class SeqThreadStatementClauseUtil {
     // create graph used for dependency checking
     ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> blockGraph =
         ArrayListMultimap.create();
-    recursivelyBuildBlockGraph(pFirstBlock, blockGraph, pLabelBlockMap, new HashSet<>());
+    Set<SeqThreadStatementBlock> visited = new HashSet<>();
+    // add current block to visited to prevent infinite recursion
+    visited.add(pFirstBlock);
+    recursivelyBuildBlockGraph(pFirstBlock, blockGraph, pLabelBlockMap, visited);
     recursivelyReorderBlocks(blockGraph, foundOrder);
     assert !foundOrder.isEmpty() : "could not find any order";
     return ImmutableList.copyOf(foundOrder);
@@ -331,18 +334,28 @@ public class SeqThreadStatementClauseUtil {
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       Set<SeqThreadStatementBlock> pVisited) {
 
-    // add current block to visited to prevent infinite recursion
-    pVisited.add(pCurrentBlock);
     for (SeqThreadStatement statement : pCurrentBlock.getStatements()) {
       Optional<Integer> targetNumber = SeqThreadStatementUtil.tryGetTargetPcOrGotoNumber(statement);
       if (targetNumber.isPresent()) {
         if (targetNumber.orElseThrow() != Sequentialization.EXIT_PC) {
           SeqThreadStatementBlock target = pLabelBlockMap.get(targetNumber.orElseThrow());
           assert target != null : "target could not be found in map";
-          // add targets only once to prevent infinite recursion (e.g. with loops)
-          if (pVisited.add(target)) {
+          // non-loop starts are always added as targets,
+          // loop starts are added only once to prevent backward jumps
+          if (!target.isLoopStart() || pVisited.add(target)) {
             pGraph.get(pCurrentBlock).add(target);
-            recursivelyBuildBlockGraph(target, pGraph, pLabelBlockMap, pVisited);
+            if (target.isLoopStart()) {
+              System.out.println("target is loop start:");
+              try {
+                System.out.println(target.toASTString());
+              } catch (Exception e) {
+                throw new IllegalArgumentException();
+              }
+            }
+            // if the target is a loop start, it is already in pVisited at this location
+            if (target.isLoopStart() || pVisited.add(target)) {
+              recursivelyBuildBlockGraph(target, pGraph, pLabelBlockMap, pVisited);
+            }
           }
         }
       }
