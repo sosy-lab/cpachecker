@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -150,13 +151,13 @@ public class TerminationWitnessValidator implements Algorithm {
                     "--spec",
                     invariantsSpecPath,
                     "--config",
-                    "config/witness-invariants-check.properties",
+                    "config/witnessValidation.properties",
                     "--no-output-files",
                   })
               .configuration();
       Specification invariantSpec =
           Specification.fromFiles(
-              Collections.singleton(Path.of(invariantsSpecPath)),
+              Arrays.asList(Path.of(invariantsSpecPath), witnessPath),
               cfa,
               generationConfig,
               logger,
@@ -170,7 +171,8 @@ public class TerminationWitnessValidator implements Algorithm {
           coreComponents.createAlgorithm(supportingInvariantsCPA, cfa, invariantSpec);
 
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
-      ReachedSet reachedSet = reachedSetFactory.create(supportingInvariantsCPA);
+      ForwardingReachedSet reachedSet =
+          new ForwardingReachedSet(reachedSetFactory.create(supportingInvariantsCPA));
       AbstractState initialState =
           supportingInvariantsCPA.getInitialState(
               cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
@@ -183,6 +185,7 @@ public class TerminationWitnessValidator implements Algorithm {
       invariantCheckingAlgorithm.run(reachedSet);
 
       if (reachedSet.wasTargetReached()) {
+        System.out.println("YES");
         // Supporting invariants are not invariants
         pReachedSet.addNoWaitlist(
             DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
