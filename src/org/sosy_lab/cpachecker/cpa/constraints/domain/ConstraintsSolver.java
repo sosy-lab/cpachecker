@@ -1027,7 +1027,7 @@ public class ConstraintsSolver {
       return result.equals(Result.UNSAT);
     }
 
-    public Optional<ImmutableList<ValueAssignment>> getModelAssignment() {
+    private Optional<ImmutableList<ValueAssignment>> getModelAssignment() {
       checkState(modelAssignment.isPresent());
       return modelAssignment;
     }
