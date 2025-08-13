@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -29,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cmdline.CPAMain;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.DecreasingCardinalityChecker;
@@ -36,8 +39,13 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_founde
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.WellFoundednessChecker;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -130,6 +138,60 @@ public class TerminationWitnessValidator implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    // Check the supporting invariants first
+    logger.log(Level.FINE, "Checking the supporting invariants.");
+    try {
+      String invariantsSpecPath = "test/programs/benchmarks/properties/no-overflow.prp";
+      Configuration generationConfig =
+          CPAMain.createConfiguration(
+                  new String[] {
+                    "--witness",
+                    witnessPath.toString(),
+                    "--spec",
+                    invariantsSpecPath,
+                    "--config",
+                    "config/witness-invariants-check.properties",
+                    "--no-output-files",
+                  })
+              .configuration();
+      Specification invariantSpec =
+          Specification.fromFiles(
+              Collections.singleton(Path.of(invariantsSpecPath)),
+              cfa,
+              generationConfig,
+              logger,
+              shutdownNotifier);
+      CoreComponentsFactory coreComponents =
+          new CoreComponentsFactory(
+              generationConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
+      ConfigurableProgramAnalysis supportingInvariantsCPA =
+          coreComponents.createCPA(cfa, invariantSpec);
+      Algorithm invariantCheckingAlgorithm =
+          coreComponents.createAlgorithm(supportingInvariantsCPA, cfa, invariantSpec);
+
+      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
+      ReachedSet reachedSet = reachedSetFactory.create(supportingInvariantsCPA);
+      AbstractState initialState =
+          supportingInvariantsCPA.getInitialState(
+              cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      Precision initialPrecision =
+          supportingInvariantsCPA.getInitialPrecision(
+              cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      reachedSet.add(initialState, initialPrecision);
+
+      // Running the algorithm
+      invariantCheckingAlgorithm.run(reachedSet);
+
+      if (reachedSet.wasTargetReached()) {
+        // Supporting invariants are not invariants
+        pReachedSet.addNoWaitlist(
+            DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+    } catch (Exception e) {
+      throw new CPAException(e.toString());
+    }
+
     Set<ExpressionTreeLocationInvariant> invariants;
     ImmutableCollection<LoopStructure.Loop> loops =
         cfa.getLoopStructure().orElseThrow().getAllLoops();
