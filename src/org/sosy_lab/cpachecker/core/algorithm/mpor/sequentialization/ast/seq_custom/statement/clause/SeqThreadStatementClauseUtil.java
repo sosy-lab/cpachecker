@@ -344,14 +344,6 @@ public class SeqThreadStatementClauseUtil {
           // loop starts are added only once to prevent backward jumps
           if (!target.isLoopStart() || pVisited.add(target)) {
             pGraph.get(pCurrentBlock).add(target);
-            if (target.isLoopStart()) {
-              System.out.println("target is loop start:");
-              try {
-                System.out.println(target.toASTString());
-              } catch (Exception e) {
-                throw new IllegalArgumentException();
-              }
-            }
             // if the target is a loop start, it is already in pVisited at this location
             if (target.isLoopStart() || pVisited.add(target)) {
               recursivelyBuildBlockGraph(target, pGraph, pLabelBlockMap, pVisited);
