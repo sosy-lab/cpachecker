@@ -421,10 +421,9 @@ public class SMGCPAValueVisitor
             returnType,
             exprThatCalledThis);
       }
-    } else if (arrayValue instanceof SymbolicIdentifier
-        && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
-      MemoryLocation memloc =
-          ((SymbolicIdentifier) arrayValue).getRepresentedLocation().orElseThrow();
+    } else if (arrayValue instanceof SymbolicIdentifier symbolicIdentifier
+        && symbolicIdentifier.getRepresentedLocation().isPresent()) {
+      MemoryLocation memloc = symbolicIdentifier.getRepresentedLocation().orElseThrow();
       String qualifiedVarName = memloc.getIdentifier();
       Value finalOffset =
           evaluator.addBitOffsetValues(additionalOffset, BigInteger.valueOf(memloc.getOffset()));
@@ -816,7 +815,7 @@ public class SMGCPAValueVisitor
 
     // Interpret address as numeric, try to calculate the operation based on the numeric
     // A pointer deref on a numeric (or a cast) should return it to an address expr or pointer
-    if (targetType instanceof CSimpleType && !((CSimpleType) targetType).hasComplexSpecifier()) {
+    if (targetType instanceof CSimpleType cSimpleType && !cSimpleType.hasComplexSpecifier()) {
       if (((value instanceof AddressExpression) || evaluator.isPointerValue(value, currentState))
           && options.isCastMemoryAddressesToNumeric()) {
 
@@ -898,9 +897,8 @@ public class SMGCPAValueVisitor
           || ownerExpression.getExpressionType() instanceof CElaboratedType
           || ownerExpression.getExpressionType() instanceof CArrayType
           || ownerExpression.getExpressionType() instanceof CTypedefType) {
-        if (structValue instanceof SymbolicIdentifier) {
-          Preconditions.checkArgument(
-              ((SymbolicIdentifier) structValue).getRepresentedLocation().isPresent());
+        if (structValue instanceof SymbolicIdentifier symbolicIdentifier) {
+          Preconditions.checkArgument(symbolicIdentifier.getRepresentedLocation().isPresent());
         } else {
           Preconditions.checkArgument(structValue instanceof AddressExpression);
         }
@@ -937,14 +935,13 @@ public class SMGCPAValueVisitor
     ImmutableList.Builder<SMGState> creationBuilder = ImmutableList.builder();
     if (!state.isLocalOrGlobalVariablePresent(variableName)
         && !state.isLocalVariablePresentOnPreviousStackFrame(variableName)) {
-      if (varDecl instanceof CVariableDeclaration) {
+      if (varDecl instanceof CVariableDeclaration cVariableDeclaration) {
+        creationBuilder.addAll(
+            evaluator.handleVariableDeclarationWithoutInizializer(state, cVariableDeclaration));
+      } else if (varDecl instanceof CParameterDeclaration cParameterDeclaration) {
         creationBuilder.addAll(
             evaluator.handleVariableDeclarationWithoutInizializer(
-                state, (CVariableDeclaration) varDecl));
-      } else if (varDecl instanceof CParameterDeclaration) {
-        creationBuilder.addAll(
-            evaluator.handleVariableDeclarationWithoutInizializer(
-                state, ((CParameterDeclaration) varDecl).asVariableDeclaration()));
+                state, cParameterDeclaration.asVariableDeclaration()));
       } else {
         throw new SMGException("Unhandled on-the-fly variable creation type: " + varDecl);
       }
@@ -1131,35 +1128,30 @@ public class SMGCPAValueVisitor
       SMGState currentState = valueAndState.getState();
       Value value = valueAndState.getValue();
 
+      ValueAndSMGState newValueAndState;
       if (value instanceof SymbolicValue) {
-        builder.add(
+        newValueAndState =
             ValueAndSMGState.of(
                 createSymbolicExpression(value, operandType, unaryOperator, returnType),
-                currentState));
-        continue;
+                currentState);
       } else if (!value.isNumericValue()) {
         logger.logf(
             Level.FINE,
             "Returned unknown due to invalid argument %s for unary operator %s.",
             value,
             unaryOperator);
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
-        continue;
+        newValueAndState = ValueAndSMGState.ofUnknownValue(currentState);
+      } else {
+        final NumericValue numericValue = (NumericValue) value;
+        final NumericValue newValue =
+            switch (unaryOperator) {
+              case MINUS -> numericValue.negate();
+              case TILDE -> new NumericValue(~numericValue.longValue());
+              default -> throw new AssertionError("Unknown unary operator: " + unaryOperator);
+            };
+        newValueAndState = ValueAndSMGState.of(newValue, currentState);
       }
-
-      final NumericValue numericValue = (NumericValue) value;
-      switch (unaryOperator) {
-        case MINUS -> {
-          builder.add(ValueAndSMGState.of(numericValue.negate(), currentState));
-          continue;
-        }
-        case TILDE -> {
-          builder.add(
-              ValueAndSMGState.of(new NumericValue(~numericValue.longValue()), currentState));
-          continue;
-        }
-        default -> throw new AssertionError("Unknown unary operator: " + unaryOperator);
-      }
+      builder.add(newValueAndState);
     }
     return builder.build();
   }
@@ -1331,8 +1323,8 @@ public class SMGCPAValueVisitor
   private Value castSymbolicValue(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-    if (pValue instanceof SymbolicValue && pTargetType instanceof CSimpleType) {
-      return factory.cast((SymbolicValue) pValue, pTargetType);
+    if (pValue instanceof SymbolicValue symbolicValue && pTargetType instanceof CSimpleType) {
+      return factory.cast(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -1343,11 +1335,9 @@ public class SMGCPAValueVisitor
   private Value castNumeric(
       @NonNull final NumericValue numericValue, final CType type, final int size) {
 
-    if (!(type instanceof CSimpleType)) {
+    if (!(type instanceof CSimpleType st)) {
       return numericValue;
     }
-
-    final CSimpleType st = (CSimpleType) type;
 
     switch (st.getType()) {
       case BOOL -> {
@@ -1497,7 +1487,7 @@ public class SMGCPAValueVisitor
   private boolean isBooleanFalseRepresentation(final Number n) {
     return ((n instanceof Float || n instanceof Double) && 0 == n.doubleValue())
         || (n instanceof BigInteger && BigInteger.ZERO.equals(n))
-        || (n instanceof BigDecimal && ((BigDecimal) n).compareTo(BigDecimal.ZERO) == 0)
+        || (n instanceof BigDecimal bigDecimal && bigDecimal.compareTo(BigDecimal.ZERO) == 0)
         || 0 == n.longValue();
   }
 
@@ -1518,8 +1508,8 @@ public class SMGCPAValueVisitor
   // +++++++++++++++++++ Below this point methods for handling functions
 
   private boolean isUnspecifiedType(CType pType) {
-    return pType instanceof CSimpleType
-        && ((CSimpleType) pType).getType() == CBasicType.UNSPECIFIED;
+    return pType instanceof CSimpleType cSimpleType
+        && cSimpleType.getType() == CBasicType.UNSPECIFIED;
   }
 
   /** Cast the argument to a floating point type */
@@ -1587,8 +1577,8 @@ public class SMGCPAValueVisitor
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
     // We only handle builtin functions
-    if (functionNameExp instanceof CIdExpression) {
-      String calledFunctionName = ((CIdExpression) functionNameExp).getName();
+    if (functionNameExp instanceof CIdExpression cIdExpression) {
+      String calledFunctionName = cIdExpression.getName();
 
       if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
 
@@ -1943,10 +1933,10 @@ public class SMGCPAValueVisitor
   // commutative
   private Value calculateExpressionWithFunctionValue(
       BinaryOperator binaryOperator, Value val1, Value val2) {
-    if (val1 instanceof FunctionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val1, val2);
-    } else if (val2 instanceof FunctionValue) {
-      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val2, val1);
+    if (val1 instanceof FunctionValue functionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val2);
+    } else if (val2 instanceof FunctionValue functionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, functionValue, val1);
     } else {
       return new Value.UnknownValue();
     }
@@ -2145,10 +2135,8 @@ public class SMGCPAValueVisitor
         // distance in bits / type size = distance
         // The type in both pointers is the same, we need the return type from one of them
         NumericValue size;
-        if (leftValueType instanceof CPointerType) {
-          size =
-              new NumericValue(
-                  evaluator.getBitSizeof(currentState, ((CPointerType) leftValueType).getType()));
+        if (leftValueType instanceof CPointerType cPointerType) {
+          size = new NumericValue(evaluator.getBitSizeof(currentState, cPointerType.getType()));
         } else if (addressRight.getType() instanceof CArrayType) {
           size =
               new NumericValue(
@@ -2702,8 +2690,8 @@ public class SMGCPAValueVisitor
 
     if (!value.isExplicitlyKnown()) {
       if (value instanceof AddressExpression
-          || (value instanceof SymbolicIdentifier
-              && ((SymbolicIdentifier) value).getRepresentedLocation().isPresent())) {
+          || (value instanceof SymbolicIdentifier symbolicIdentifier
+              && symbolicIdentifier.getRepresentedLocation().isPresent())) {
         // Don't cast pointers or values carrying location information
         return value;
       } else {
@@ -2737,10 +2725,10 @@ public class SMGCPAValueVisitor
   private static Value castIfSymbolic(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-    if (pValue instanceof SymbolicValue
+    if (pValue instanceof SymbolicValue symbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast((SymbolicValue) pValue, pTargetType);
+      return factory.cast(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.

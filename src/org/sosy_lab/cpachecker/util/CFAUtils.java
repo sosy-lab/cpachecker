@@ -651,7 +651,7 @@ public class CFAUtils {
       }
     }
 
-    public boolean hasBackwardsEdges() {
+    boolean hasBackwardsEdges() {
       return hasBackwardsEdges;
     }
   }
@@ -782,8 +782,8 @@ public class CFAUtils {
             .filter(FileLocation::isRealLocation)
             .toSet();
 
-    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode functionEntryNode = (FunctionEntryNode) pEdge.getPredecessor();
+    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode functionEntryNode) {
+
       if (functionEntryNode.getFileLocation().isRealLocation()) {
         return ImmutableSet.of(functionEntryNode.getFileLocation());
       }

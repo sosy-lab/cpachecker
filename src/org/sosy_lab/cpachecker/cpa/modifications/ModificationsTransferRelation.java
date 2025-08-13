@@ -112,8 +112,8 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
       // only new declarations are added and existing declarations are deleted
       if (ignoreDeclarations) {
 
-        if (pEdgeInGiven instanceof CDeclarationEdge) {
-          if (!declarationNameAlreadyExistsInOtherCFA(true, (CDeclarationEdge) pEdgeInGiven)) {
+        if (pEdgeInGiven instanceof CDeclarationEdge cDeclarationEdge) {
+          if (!declarationNameAlreadyExistsInOtherCFA(true, cDeclarationEdge)) {
             return Optional.of(
                 new ModificationsState(pEdgeInGiven.getSuccessor(), originalEdge.getPredecessor()));
           }

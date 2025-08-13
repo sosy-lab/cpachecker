@@ -50,7 +50,6 @@ class CFloatImpl extends CFloat {
       case SINGLE -> Format.Float32;
       case DOUBLE -> Format.Float64;
       case LONG_DOUBLE -> Format.Float80;
-      default -> throw new UnsupportedOperationException();
     };
   }
 
@@ -256,7 +255,6 @@ class CFloatImpl extends CFloat {
       case SINGLE -> new CFloatImpl(delegate.withPrecision(Format.Float32));
       case DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Float64));
       case LONG_DOUBLE -> new CFloatImpl(delegate.withPrecision(Format.Float80));
-      default -> throw new IllegalArgumentException();
     };
   }
 

@@ -304,7 +304,7 @@ class CFloatNative extends CFloat {
     }
     return other instanceof CFloatNative otherFloat
         && type == otherFloat.type
-        && ((isNan() && otherFloat.isNan()) || this.compareTo(otherFloat) == 0);
+        && ((isNan() && otherFloat.isNan()) || compareTo(otherFloat) == 0);
   }
 
   @Override

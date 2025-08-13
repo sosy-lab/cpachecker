@@ -504,8 +504,8 @@ public class ArrayAbstraction {
 
     CExpression arrayExpression = pArrayAccess.getArrayExpression();
 
-    if (arrayExpression instanceof CIdExpression) {
-      CSimpleDeclaration declaration = ((CIdExpression) arrayExpression).getDeclaration();
+    if (arrayExpression instanceof CIdExpression cIdExpression) {
+      CSimpleDeclaration declaration = cIdExpression.getDeclaration();
       TransformableArray transformableArray = pTransformableArrayMap.get(declaration);
       return Optional.ofNullable(transformableArray);
     }
@@ -588,8 +588,8 @@ public class ArrayAbstraction {
         CFAEdge updateIndexEdge = loop.getIndex().getUpdateEdge();
 
         CFAEdge postDominatedEdge = pEdge;
-        if (pEdge instanceof CFunctionCallEdge) {
-          postDominatedEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();
+        if (pEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
+          postDominatedEdge = cFunctionCallEdge.getSummaryEdge();
         }
 
         if (subscriptExpression.equals(preciseSubscriptExpression)

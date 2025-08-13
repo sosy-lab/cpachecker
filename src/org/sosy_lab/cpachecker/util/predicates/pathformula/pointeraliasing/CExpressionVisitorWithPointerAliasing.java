@@ -314,11 +314,11 @@ class CExpressionVisitorWithPointerAliasing
     } else {
       // expressing as unaliased location failed, return a corresponding aliased location
       final CType fieldOwnerType = typeHandler.getSimplifiedType(e.getFieldOwner());
-      if (fieldOwnerType instanceof CCompositeType) {
+      if (fieldOwnerType instanceof CCompositeType cCompositeType) {
         // visit the field owner to get the base aliased location
         final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
         // make the field
-        CompositeField field = CompositeField.of((CCompositeType) fieldOwnerType, e.getFieldName());
+        CompositeField field = CompositeField.of(cCompositeType, e.getFieldName());
         // add the field to used fields for use by UF finishing assignments
         usedFields.add(field);
         // apply the field offset to base aliased location
@@ -501,9 +501,9 @@ class CExpressionVisitorWithPointerAliasing
         usedFields.addAll(alreadyUsedFields);
 
         return Value.ofValue(addressExpression.getAddress());
-      } else if (operand instanceof CIdExpression
+      } else if (operand instanceof CIdExpression cIdExpression
           && typeHandler.simplifyType(operand.getExpressionType()) instanceof CArrayType
-          && ((CIdExpression) operand).getDeclaration() instanceof CParameterDeclaration) {
+          && cIdExpression.getDeclaration() instanceof CParameterDeclaration) {
         return Value.ofValue(dereference(operand, operand.accept(this)).getAddress());
       } else {
         final Variable base = baseVisitor.getLastBase();
@@ -620,8 +620,8 @@ class CExpressionVisitorWithPointerAliasing
     final CExpression functionNameExpression = e.getFunctionNameExpression();
 
     // First let's handle special cases such as allocations
-    if (functionNameExpression instanceof CIdExpression) {
-      final String functionName = ((CIdExpression) functionNameExpression).getName();
+    if (functionNameExpression instanceof CIdExpression cIdExpression) {
+      final String functionName = cIdExpression.getName();
 
       if (conv.options.isDynamicMemoryFunction(functionName)) {
         DynamicMemoryHandler memoryHandler =
@@ -804,8 +804,8 @@ class CExpressionVisitorWithPointerAliasing
     long maxIndex = conv.options.maxPreciseStrFunctionSize();
     if (hasBounds) {
       CExpression size = parameters.get(2);
-      if (size instanceof CIntegerLiteralExpression) {
-        maxIndex = Math.min(maxIndex, ((CIntegerLiteralExpression) size).asLong());
+      if (size instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        maxIndex = Math.min(maxIndex, cIntegerLiteralExpression.asLong());
       }
       sizeType = e.getDeclaration().getParameters().get(2).getType().getCanonicalType();
       sizeFormula = asValueFormula(size.accept(this), sizeType);

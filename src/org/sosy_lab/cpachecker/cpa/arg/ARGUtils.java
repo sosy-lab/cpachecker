@@ -150,7 +150,7 @@ public class ARGUtils {
           return true;
         }
         CFAEdge edgeToFirstChild = edgesToFirstChild.iterator().next();
-        if (!(edgeToFirstChild instanceof AssumeEdge)) {
+        if (!(edgeToFirstChild instanceof AssumeEdge assumeEdge)) {
           return true;
         }
         List<CFAEdge> edgesToSecondChild = current.getEdgesToChild(secondChild);
@@ -161,8 +161,7 @@ public class ARGUtils {
         if (!(edgeToSecondChild instanceof AssumeEdge)) {
           return true;
         }
-        if (!CFAUtils.getComplimentaryAssumeEdge((AssumeEdge) edgeToFirstChild)
-            .equals(edgeToSecondChild)) {
+        if (!CFAUtils.getComplimentaryAssumeEdge(assumeEdge).equals(edgeToSecondChild)) {
           return true;
         }
       }
@@ -1058,8 +1057,8 @@ public class ARGUtils {
         CFANode edgeSuccessor = edge.getSuccessor();
 
         // skip function calls
-        if (edge instanceof FunctionCallEdge) {
-          CFANode sumEdgeSuccessor = ((FunctionCallEdge) edge).getReturnNode();
+        if (edge instanceof FunctionCallEdge functionCallEdge) {
+          CFANode sumEdgeSuccessor = functionCallEdge.getReturnNode();
 
           // only continue if we do not meet the loophead again
           if (!sumEdgeSuccessor.equals(loopHead)) {

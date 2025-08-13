@@ -208,12 +208,10 @@ class LvalueToPointerTargetPatternVisitor
     final PointerTargetPatternBuilder result = ownerExpression.accept(this);
     if (result != null) {
       final CType containerType = typeHandler.getSimplifiedType(ownerExpression);
-      if (containerType instanceof CCompositeType) {
-        assert ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM
-            : "Enums are not composites!";
+      if (containerType instanceof CCompositeType cCompositeType) {
+        assert cCompositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
 
-        final OptionalLong offset =
-            typeHandler.getOffset((CCompositeType) containerType, e.getFieldName());
+        final OptionalLong offset = typeHandler.getOffset(cCompositeType, e.getFieldName());
         if (!offset.isPresent()) {
           return null; // TODO this looses values of bit fields
         }
@@ -276,8 +274,8 @@ class LvalueToPointerTargetPatternVisitor
   }
 
   private static @Nullable Long tryEvaluateExpression(CExpression e) {
-    if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().longValueExact();
+    if (e instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      return cIntegerLiteralExpression.getValue().longValueExact();
     }
     return null;
   }

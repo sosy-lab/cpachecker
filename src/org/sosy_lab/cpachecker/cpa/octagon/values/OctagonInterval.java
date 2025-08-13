@@ -86,11 +86,11 @@ public class OctagonInterval {
 
   public boolean isInfinite() {
     boolean isInfinite = false;
-    if (low instanceof OctagonDoubleValue) {
-      isInfinite = ((OctagonDoubleValue) low).getValue().isInfinite();
+    if (low instanceof OctagonDoubleValue octagonDoubleValue) {
+      isInfinite = octagonDoubleValue.getValue().isInfinite();
     }
-    if (!isInfinite && high instanceof OctagonDoubleValue) {
-      isInfinite = ((OctagonDoubleValue) high).getValue().isInfinite();
+    if (!isInfinite && high instanceof OctagonDoubleValue octagonDoubleValue) {
+      isInfinite = octagonDoubleValue.getValue().isInfinite();
     }
     return isInfinite;
   }

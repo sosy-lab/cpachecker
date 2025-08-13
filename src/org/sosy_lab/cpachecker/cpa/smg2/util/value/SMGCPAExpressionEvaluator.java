@@ -215,10 +215,10 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException in case of critical errors.
    */
   public ValueAndSMGState unpackAddressExpression(Value value, SMGState state) throws SMGException {
-    if (!(value instanceof AddressExpression)) {
+    if (!(value instanceof AddressExpression address1)) {
       return ValueAndSMGState.of(value, state);
     }
-    AddressExpression address1 = (AddressExpression) value;
+
     Value offsetValue = address1.getOffset();
     if (offsetValue.isNumericValue()
         && offsetValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
@@ -260,10 +260,10 @@ public class SMGCPAExpressionEvaluator {
    * @return the offset in bits of a field as a {@link BigInteger}.
    */
   public BigInteger getFieldOffsetInBits(CType ownerExprType, String pFieldName) {
-    if (ownerExprType instanceof CElaboratedType) {
+    if (ownerExprType instanceof CElaboratedType cElaboratedType) {
 
       // CElaboratedType is either a struct, union or enum. getRealType returns the correct type
-      CType realType = ((CElaboratedType) ownerExprType).getRealType();
+      CType realType = cElaboratedType.getRealType();
 
       if (realType == null) {
         // TODO: This is possible, i don't know when however, handle once i find out.
@@ -271,14 +271,14 @@ public class SMGCPAExpressionEvaluator {
       }
 
       return getFieldOffsetInBits(realType, pFieldName);
-    } else if (ownerExprType instanceof CCompositeType) {
+    } else if (ownerExprType instanceof CCompositeType cCompositeType) {
 
       // Struct or Union type
-      return machineModel.getFieldOffsetInBits((CCompositeType) ownerExprType, pFieldName);
-    } else if (ownerExprType instanceof CPointerType) {
+      return machineModel.getFieldOffsetInBits(cCompositeType, pFieldName);
+    } else if (ownerExprType instanceof CPointerType cPointerType) {
 
       // structPointer -> field or (*structPointer).field
-      CType type = getCanonicalType(((CPointerType) ownerExprType).getType());
+      CType type = getCanonicalType(cPointerType.getType());
 
       return getFieldOffsetInBits(type, pFieldName);
     }
@@ -400,12 +400,11 @@ public class SMGCPAExpressionEvaluator {
       if (!objectAndOffsetOrState.hasSMGObjectAndOffset()) {
         // Functions are not declared, but the address might be requested anyway, so we have to
         // create the address
-        if (operand instanceof CIdExpression
+        if (operand instanceof CIdExpression cIdExpression
             && SMGCPAExpressionEvaluator.getCanonicalType(operand.getExpressionType())
                 instanceof CFunctionType) {
           currentState = objectAndOffsetOrState.getSMGState();
-          CFunctionDeclaration functionDcl =
-              (CFunctionDeclaration) ((CIdExpression) operand).getDeclaration();
+          CFunctionDeclaration functionDcl = (CFunctionDeclaration) cIdExpression.getDeclaration();
           Optional<SMGObject> functionObject = currentState.getObjectForFunction(functionDcl);
 
           if (functionObject.isEmpty()) {
@@ -2061,8 +2060,8 @@ public class SMGCPAExpressionEvaluator {
             "Missing type handling when writing a pointer to a " + parameterType + ".");
       }
 
-    } else if (valueToWrite instanceof SymbolicIdentifier
-        && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
+    } else if (valueToWrite instanceof SymbolicIdentifier symbolicIdentifier
+        && symbolicIdentifier.getRepresentedLocation().isPresent()) {
       return copyStructOrArrayFromValueTo(
           valueToWrite, parameterType, newVariableMemory, ZeroOffsetInBits, currentState);
 
@@ -2094,8 +2093,8 @@ public class SMGCPAExpressionEvaluator {
     // A SymbolicIdentifier with location is used to copy entire variable structures (i.e.
     // arrays/structs etc.). We allow arrays here for function parameters.
     Preconditions.checkArgument(
-        rightHandSideValue instanceof SymbolicIdentifier
-            && ((SymbolicIdentifier) rightHandSideValue).getRepresentedLocation().isPresent());
+        rightHandSideValue instanceof SymbolicIdentifier symbolicIdentifier
+            && symbolicIdentifier.getRepresentedLocation().isPresent());
     Preconditions.checkArgument(
         SMGCPAExpressionEvaluator.isStructOrUnionType(leftHandSideType)
             || leftHandSideType instanceof CArrayType);
@@ -2238,16 +2237,16 @@ public class SMGCPAExpressionEvaluator {
       }
       throw e;
     }
-    if (cType instanceof CArrayType
-        && ((CArrayType) cType).getLength() == null
+    if (cType instanceof CArrayType cArrayType
+        && cArrayType.getLength() == null
         && pVarDecl.getInitializer() != null) {
       // For some reason the type size is not always correct.
       // in the case: static const char array[] = "blablabla"; for example the cType
       // is just const char[] and returns pointer size. We try to get it from the
       // initializer
       CInitializer init = pVarDecl.getInitializer();
-      if (init instanceof CInitializerExpression) {
-        CExpression initExpr = ((CInitializerExpression) init).getExpression();
+      if (init instanceof CInitializerExpression cInitializerExpression) {
+        CExpression initExpr = cInitializerExpression.getExpression();
         if (initExpr instanceof CStringLiteralExpression stringLit) {
           typeSizeInBits = BigInteger.valueOf(8).multiply(BigInteger.valueOf(stringLit.getSize()));
         } else {
@@ -2345,10 +2344,10 @@ public class SMGCPAExpressionEvaluator {
       CInitializer pInitializer)
       throws CPATransferException {
 
-    if (pInitializer instanceof CInitializerExpression) {
-      CExpression expression = ((CInitializerExpression) pInitializer).getExpression();
+    if (pInitializer instanceof CInitializerExpression cInitializerExpression) {
+      CExpression expression = cInitializerExpression.getExpression();
       // string literal handling
-      if (expression instanceof CStringLiteralExpression) {
+      if (expression instanceof CStringLiteralExpression cStringLiteralExpression) {
         return handleStringInitializer(
             pNewState,
             pVarDecl,
@@ -2357,8 +2356,8 @@ public class SMGCPAExpressionEvaluator {
             pOffset,
             pLValueType,
             pInitializer.getFileLocation(),
-            (CStringLiteralExpression) expression);
-      } else if (expression instanceof CCastExpression) {
+            cStringLiteralExpression);
+      } else if (expression instanceof CCastExpression cCastExpression) {
         // handle casting on initialization like 'char *str = (char *)"string";'
         return handleCastInitializer(
             pNewState,
@@ -2368,7 +2367,7 @@ public class SMGCPAExpressionEvaluator {
             pOffset,
             pLValueType,
             pInitializer.getFileLocation(),
-            (CCastExpression) expression);
+            cCastExpression);
       } else {
         return writeCExpressionToLocalOrGlobalVariable(
             pNewState, pEdge, variableName, pOffset, pLValueType, expression);
@@ -2418,7 +2417,7 @@ public class SMGCPAExpressionEvaluator {
       CCastExpression pExpression)
       throws CPATransferException {
     CExpression expression = pExpression.getOperand();
-    if (expression instanceof CStringLiteralExpression) {
+    if (expression instanceof CStringLiteralExpression cStringLiteralExpression) {
       return handleStringInitializer(
           pNewState,
           pVarDecl,
@@ -2427,8 +2426,8 @@ public class SMGCPAExpressionEvaluator {
           pOffset,
           pLValueType,
           pFileLocation,
-          (CStringLiteralExpression) expression);
-    } else if (expression instanceof CCastExpression) {
+          cStringLiteralExpression);
+    } else if (expression instanceof CCastExpression cCastExpression) {
       return handleCastInitializer(
           pNewState,
           pVarDecl,
@@ -2437,7 +2436,7 @@ public class SMGCPAExpressionEvaluator {
           pOffset,
           pLValueType,
           pFileLocation,
-          (CCastExpression) expression);
+          cCastExpression);
     } else {
       return writeCExpressionToLocalOrGlobalVariable(
           pNewState, pEdge, variableName, pOffset, pLValueType, expression);
@@ -2747,9 +2746,8 @@ public class SMGCPAExpressionEvaluator {
         Value valueToAssign = valueAndStateToAssign.getValue();
         currentState = valueAndStateToAssign.getState();
 
-        if (valueToAssign instanceof SymbolicIdentifier) {
-          Preconditions.checkArgument(
-              ((SymbolicIdentifier) valueToAssign).getRepresentedLocation().isEmpty());
+        if (valueToAssign instanceof SymbolicIdentifier symbolicIdentifier) {
+          Preconditions.checkArgument(symbolicIdentifier.getRepresentedLocation().isEmpty());
         }
 
         resultStatesBuilder.add(

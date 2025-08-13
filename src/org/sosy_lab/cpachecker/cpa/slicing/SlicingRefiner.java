@@ -547,11 +547,11 @@ public class SlicingRefiner implements Refiner {
       precision = pPrecision;
     }
 
-    public ARGState getState() {
+    ARGState getState() {
       return state;
     }
 
-    public SlicingPrecision getPrecision() {
+    SlicingPrecision getPrecision() {
       return precision;
     }
   }
@@ -567,11 +567,11 @@ public class SlicingRefiner implements Refiner {
       precisions = pPrecisions;
     }
 
-    public boolean hasSliceChanged() {
+    boolean hasSliceChanged() {
       return sliceChanged;
     }
 
-    public Set<StateSlicingPrecision> getStatePrecisions() {
+    Set<StateSlicingPrecision> getStatePrecisions() {
       return precisions;
     }
   }

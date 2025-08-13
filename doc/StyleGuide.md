@@ -127,6 +127,8 @@ with considerably less effort!
   use the interface as type instead of the implementation (e.g., `List` instead of `ArrayList`).
   This is especially true for fields, parameters, and return types.
   Do use the `Immutable*` types from Guava, though, to show that your collection is immutable.
+- Do not use the types `SortedMap` and `SortedSet`, use `NavigableMap` and `NavigableSet`
+  (these are subinterfaces with more methods).
 - There are many helpers for collections, but unfortunately in different places:
   - `org.sosy_lab.common.collect.Collections3` contains our own helper methods.
   - Guava has [utility classes such as `Lists`, `Iterables`, `Maps`, `Collections2`](https://github.com/google/guava/wiki/CollectionUtilitiesExplained),

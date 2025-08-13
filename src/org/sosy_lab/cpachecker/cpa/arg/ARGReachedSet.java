@@ -336,11 +336,9 @@ public class ARGReachedSet {
   }
 
   private void dumpSubgraph(ARGState e) {
-    if (!(cpa instanceof ARGCPA)) {
+    if (!(cpa instanceof ARGCPA argCpa)) {
       return;
     }
-
-    ARGCPA argCpa = (ARGCPA) cpa;
 
     ARGToDotWriter refinementGraph = argCpa.getARGExporter().getRefinementGraphWriter();
     if (refinementGraph == null) {

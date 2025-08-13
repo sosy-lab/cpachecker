@@ -104,7 +104,7 @@ import org.sosy_lab.llvm_j.Value.IntPredicate;
 import org.sosy_lab.llvm_j.Value.OpCode;
 
 /** CFA builder for LLVM IR. Metadata stored in the LLVM IR file is ignored. */
-public class CFABuilder {
+class CFABuilder {
   // TODO: Thread Local Storage Model: May be important for concurrency
   // TODO: Aliases (@a = %b) and IFuncs (@a = ifunc @..)
 
@@ -143,7 +143,7 @@ public class CFABuilder {
   protected TreeMultimap<String, CFANode> cfaNodes;
   protected List<Pair<ADeclaration, String>> globalDeclarations;
 
-  public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
+  CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
     logger = pLogger;
     machineModel = pMachineModel;
 
@@ -160,14 +160,14 @@ public class CFABuilder {
     globalDeclarations = new ArrayList<>();
   }
 
-  public ParseResult build(final Module pModule, final Path pFilename) throws LLVMException {
+  ParseResult build(final Module pModule, final Path pFilename) throws LLVMException {
     visit(pModule, pFilename);
     List<Path> input_file = ImmutableList.of(pFilename);
 
     return new ParseResult(functions, cfaNodes, globalDeclarations, input_file);
   }
 
-  public void visit(final Module pItem, final Path pFileName) throws LLVMException {
+  void visit(final Module pItem, final Path pFileName) throws LLVMException {
     if (pItem.getFirstFunction() == null) {
       return;
     }
@@ -593,16 +593,16 @@ public class CFABuilder {
         for (CAstNode expr : expressions) {
           FileLocation exprLocation = expr.getFileLocation();
           // build an edge with this expression over it
-          if (expr instanceof CDeclaration) {
+          if (expr instanceof CDeclaration cDeclaration) {
             curNode = newNode(pFunction);
             addEdge(
                 new CDeclarationEdge(
-                    expr.toASTString(), exprLocation, prevNode, curNode, (CDeclaration) expr));
-          } else if (expr instanceof CReturnStatement) {
+                    expr.toASTString(), exprLocation, prevNode, curNode, cDeclaration));
+          } else if (expr instanceof CReturnStatement cReturnStatement) {
             curNode = exitNode;
             addEdge(
                 new CReturnStatementEdge(
-                    i.toString(), (CReturnStatement) expr, exprLocation, prevNode, exitNode));
+                    i.toString(), cReturnStatement, exprLocation, prevNode, exitNode));
           } else if (i.isUnreachableInst()) {
             curNode = new CFATerminationNode(pFunction);
             addNode(funcName, curNode);
@@ -630,16 +630,16 @@ public class CFABuilder {
     private CFANode entryNode;
     private CFANode exitNode;
 
-    public BasicBlockInfo(CFANode entry, CFANode exit) {
+    BasicBlockInfo(CFANode entry, CFANode exit) {
       entryNode = entry;
       exitNode = exit;
     }
 
-    public CFANode getEntryNode() {
+    CFANode getEntryNode() {
       return entryNode;
     }
 
-    public CFANode getExitNode() {
+    CFANode getExitNode() {
       return exitNode;
     }
 
@@ -1222,16 +1222,16 @@ public class CFABuilder {
     FileLocation loc = getLocation(pForElement, pFileName);
     CInitializer init;
     CType canonicalType = pExpectedType.getCanonicalType();
-    if (canonicalType instanceof CArrayType) {
-      int length = ((CArrayType) canonicalType).getLengthAsInt().orElseThrow();
-      CType elementType = ((CArrayType) canonicalType).getType().getCanonicalType();
+    if (canonicalType instanceof CArrayType cArrayType) {
+      int length = cArrayType.getLengthAsInt().orElseThrow();
+      CType elementType = cArrayType.getType().getCanonicalType();
       CInitializer zeroInitializer = getZeroInitializer(pForElement, elementType, pFileName);
       List<CInitializer> initializers = Collections.nCopies(length, zeroInitializer);
       init = new CInitializerList(loc, initializers);
 
-    } else if (canonicalType instanceof CCompositeType) {
+    } else if (canonicalType instanceof CCompositeType cCompositeType) {
 
-      List<CCompositeTypeMemberDeclaration> members = ((CCompositeType) canonicalType).getMembers();
+      List<CCompositeTypeMemberDeclaration> members = cCompositeType.getMembers();
       List<CInitializer> initializers = new ArrayList<>(members.size());
       for (CCompositeTypeMemberDeclaration m : members) {
         CType memberType = m.getType();
@@ -1243,8 +1243,8 @@ public class CFABuilder {
 
     } else {
       CExpression zeroExpression;
-      if (canonicalType instanceof CSimpleType) {
-        CBasicType basicType = ((CSimpleType) canonicalType).getType();
+      if (canonicalType instanceof CSimpleType cSimpleType) {
+        CBasicType basicType = cSimpleType.getType();
         if (basicType.isFloatingPointType()) {
           FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pExpectedType);
           // use expected type for float, not canonical
@@ -1271,8 +1271,8 @@ public class CFABuilder {
       OptionalInt maybeArrayLength = arrayType.getLengthAsInt();
       assert maybeArrayLength.isPresent() : "Constant array has non-constant length";
       return maybeArrayLength.orElseThrow();
-    } else if (aggregateType instanceof CCompositeType) {
-      return ((CCompositeType) aggregateType).getMembers().size();
+    } else if (aggregateType instanceof CCompositeType cCompositeType) {
+      return cCompositeType.getMembers().size();
     } else {
       throw new AssertionError();
     }
@@ -1314,12 +1314,10 @@ public class CFABuilder {
             new CPointerExpression(getLocation(pAssignee, pFileName), varType, assigneeIdExp);
       }
 
-      if (pAssignment instanceof CFunctionCallExpression) {
+      if (pAssignment instanceof CFunctionCallExpression cFunctionCallExpression) {
         return ImmutableList.of(
             new CFunctionCallAssignmentStatement(
-                getLocation(pAssignee, pFileName),
-                assigneeIdExp,
-                (CFunctionCallExpression) pAssignment));
+                getLocation(pAssignee, pFileName), assigneeIdExp, cFunctionCallExpression));
 
       } else {
         return ImmutableList.of(
@@ -1328,7 +1326,7 @@ public class CFABuilder {
       }
 
     } else { // Variable must be newly declared
-      if (pAssignment instanceof CFunctionCallExpression) {
+      if (pAssignment instanceof CFunctionCallExpression cFunctionCallExpression) {
         CSimpleDeclaration assigneeDecl =
             getAssignedVarDeclaration(pAssignee, pFunctionName, null, pFileName);
         CLeftHandSide assigneeIdExp =
@@ -1337,9 +1335,7 @@ public class CFABuilder {
         return ImmutableList.of(
             assigneeDecl,
             new CFunctionCallAssignmentStatement(
-                getLocation(pAssignee, pFileName),
-                assigneeIdExp,
-                (CFunctionCallExpression) pAssignment));
+                getLocation(pAssignee, pFileName), assigneeIdExp, cFunctionCallExpression));
 
       } else {
         CInitializer initializer =
@@ -1422,12 +1418,11 @@ public class CFABuilder {
       }
     } else if (expressionType instanceof CPointerType) {
       return getDereference(location, expression);
-    } else if (expressionType instanceof CArrayType) {
+    } else if (expressionType instanceof CArrayType cArrayType) {
       // Pointer to an array is the pointer to the beginning of the array
       if (pExpectedType instanceof CPointerType) {
         if (isCompatible(
-            getReferencedType(pExpectedType),
-            ((CArrayType) expressionType).getType().getCanonicalType())) {
+            getReferencedType(pExpectedType), cArrayType.getType().getCanonicalType())) {
           return expression;
         }
       }
@@ -1475,11 +1470,8 @@ public class CFABuilder {
    * </ul>
    */
   private boolean pointerOf(CType pPotentialPointer, CType pPotentialPointee) {
-    return pPotentialPointer instanceof CPointerType
-        && ((CPointerType) pPotentialPointer)
-            .getType()
-            .getCanonicalType()
-            .equals(pPotentialPointee.getCanonicalType());
+    return pPotentialPointer instanceof CPointerType cPointerType
+        && cPointerType.getType().getCanonicalType().equals(pPotentialPointee.getCanonicalType());
   }
 
   private String getName(final Value pValue) {
@@ -1615,9 +1607,9 @@ public class CFABuilder {
   private CExpression getReference(FileLocation fileLocation, CExpression expr) {
     CType exprType = expr.getExpressionType();
     // if this expression starts with *, just remove the *
-    if (expr instanceof CPointerExpression) {
-      return ((CPointerExpression) expr).getOperand();
-    } else if (expr instanceof CArraySubscriptExpression) {
+    if (expr instanceof CPointerExpression cPointerExpression) {
+      return cPointerExpression.getOperand();
+    } else if (expr instanceof CArraySubscriptExpression cArraySubscriptExpression) {
       /* this is taking an address of "array[x]", so just
        * transform it to "array + x" */
       CType type = getPointerOfType(exprType);
@@ -1625,8 +1617,8 @@ public class CFABuilder {
           fileLocation,
           type,
           type,
-          ((CArraySubscriptExpression) expr).getArrayExpression(),
-          ((CArraySubscriptExpression) expr).getSubscriptExpression(),
+          cArraySubscriptExpression.getArrayExpression(),
+          cArraySubscriptExpression.getSubscriptExpression(),
           BinaryOperator.PLUS);
     }
 
@@ -1640,9 +1632,9 @@ public class CFABuilder {
 
     /* if this is and expression starting with &,
      * just remove the & */
-    if (expr instanceof CUnaryExpression
-        && ((CUnaryExpression) expr).getOperator() == UnaryOperator.AMPER) {
-      return ((CUnaryExpression) expr).getOperand();
+    if (expr instanceof CUnaryExpression cUnaryExpression
+        && cUnaryExpression.getOperator() == UnaryOperator.AMPER) {
+      return cUnaryExpression.getOperand();
     }
 
     return new CPointerExpression(fileLocation, derefType, expr);
@@ -1700,11 +1692,11 @@ public class CFABuilder {
                 currentExpression,
                 index);
       } else if (currentType instanceof CCompositeType) {
-        if (!(index instanceof CIntegerLiteralExpression)) {
+        if (!(index instanceof CIntegerLiteralExpression cIntegerLiteralExpression)) {
           throw new UnsupportedOperationException(
               "GEP index to struct only allows integer constant, but is " + index);
         }
-        int memberIndex = ((CIntegerLiteralExpression) index).getValue().intValue();
+        int memberIndex = cIntegerLiteralExpression.getValue().intValue();
         CCompositeTypeMemberDeclaration field =
             ((CCompositeType) currentType).getMembers().get(memberIndex);
         String fieldName = field.getName();

@@ -64,10 +64,10 @@ public class BuiltinOverflowFunctions {
     UMULL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_INT, false),
     UMULLL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_LONG_INT, false);
 
-    public final BinaryOperator operator;
-    public final Optional<CSimpleType> type;
-    public final Boolean hasNoSideEffects;
-    public final String name;
+    final BinaryOperator operator;
+    final Optional<CSimpleType> type;
+    final Boolean hasNoSideEffects;
+    final String name;
 
     BuiltinOverflowFunction(
         BinaryOperator pOperator, @Nullable CSimpleType pType, Boolean pHasNoSideEffect) {
@@ -268,18 +268,10 @@ public class BuiltinOverflowFunctions {
             if (!isFunctionWithArbitraryArgumentTypes(nameOfCalledFunc)) {
               firstParameterValue =
                   AbstractExpressionValueVisitor.castCValue(
-                      firstParameterValue,
-                      resultType,
-                      machineModel,
-                      logger,
-                      functionCallExpression.getFileLocation());
+                      firstParameterValue, resultType, machineModel, logger);
               secondParameterValue =
                   AbstractExpressionValueVisitor.castCValue(
-                      secondParameterValue,
-                      resultType,
-                      machineModel,
-                      logger,
-                      functionCallExpression.getFileLocation());
+                      secondParameterValue, resultType, machineModel, logger);
             }
 
             // perform operation with infinite precision
@@ -302,11 +294,7 @@ public class BuiltinOverflowFunctions {
             Value resultValue = new NumericValue(resultOfComputation);
             resultValue =
                 AbstractExpressionValueVisitor.castCValue(
-                    resultValue,
-                    resultType,
-                    machineModel,
-                    logger,
-                    functionCallExpression.getFileLocation());
+                    resultValue, resultType, machineModel, logger);
 
             if (resultValue.asNumericValue().bigIntegerValue().equals(resultOfComputation)) {
               return new NumericValue(0);

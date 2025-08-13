@@ -456,12 +456,12 @@ public class CPABuilder {
       throw new UnexpectedCheckedException("instantiation of CPA " + pCpaName, cause);
     }
 
-    if (!(factoryObj instanceof CPAFactory)) {
+    if (!(factoryObj instanceof CPAFactory cPAFactory)) {
       throw new InvalidComponentException(
           cpaClass, "CPA", "Factory method did not return a CPAFactory instance.");
     }
 
-    return (CPAFactory) factoryObj;
+    return cPAFactory;
   }
 
   private void createAndSetChildrenCPAs(

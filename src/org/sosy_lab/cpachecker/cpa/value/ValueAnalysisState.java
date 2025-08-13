@@ -667,8 +667,8 @@ public final class ValueAnalysisState
 
               Number value = num.getNumber();
               final BitvectorFormula val;
-              if (value instanceof BigInteger) {
-                val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
+              if (value instanceof BigInteger bigInteger) {
+                val = bitvectorFMGR.makeBitvector(bitSize, bigInteger);
               } else {
                 val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
               }
@@ -852,8 +852,8 @@ public final class ValueAnalysisState
   }
 
   private BigInteger getBigIntFromIntegerNumber(Number pNum) {
-    if (pNum instanceof BigInteger) {
-      return (BigInteger) pNum;
+    if (pNum instanceof BigInteger bigInteger) {
+      return bigInteger;
     } else {
       return BigInteger.valueOf(pNum.longValue());
     }

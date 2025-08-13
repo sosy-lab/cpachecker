@@ -20,6 +20,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -788,6 +789,9 @@ public class PolicyIterationManager {
    * @param generatorState State to abstract
    * @return Abstracted state if the state is reachable, empty optional otherwise.
    */
+  @SuppressFBWarnings(
+      value = "SF_SWITCH_NO_DEFAULT",
+      justification = "false alarm, maybe https://github.com/spotbugs/spotbugs/issues/3617")
   private PolicyAbstractedState performAbstraction(
       final PolicyIntermediateState generatorState,
       int locationID,
@@ -844,7 +848,6 @@ public class PolicyIterationManager {
             case ABSTRACTION_REQUIRED -> {
               // Continue with abstraction.
             }
-            default -> throw new UnsupportedOperationException("Unexpected case");
           }
         }
 
@@ -1278,8 +1281,9 @@ public class PolicyIterationManager {
   private BooleanFormula extractFormula(AbstractState pFormulaState) {
     List<BooleanFormula> constraints = new ArrayList<>();
     for (AbstractState a : asIterable(pFormulaState)) {
-      if (!(a instanceof PolicyAbstractedState) && a instanceof FormulaReportingState) {
-        constraints.add(((FormulaReportingState) a).getFormulaApproximation(fmgr));
+      if (!(a instanceof PolicyAbstractedState)
+          && a instanceof FormulaReportingState formulaReportingState) {
+        constraints.add(formulaReportingState.getFormulaApproximation(fmgr));
       }
     }
     return bfmgr.and(constraints);

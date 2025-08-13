@@ -829,7 +829,7 @@ public class ConstraintsSolver {
     private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
 
-    public SupersetConstraintsCache(final ConstraintsCache pDelegate) {
+    SupersetConstraintsCache(final ConstraintsCache pDelegate) {
       delegate = pDelegate;
     }
 
@@ -907,7 +907,7 @@ public class ConstraintsSolver {
     private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
 
-    public SubsetConstraintsCache(final ConstraintsCache pDelegate) {
+    SubsetConstraintsCache(final ConstraintsCache pDelegate) {
       delegate = pDelegate;
     }
 
@@ -1002,15 +1002,15 @@ public class ConstraintsSolver {
     private Result result;
     private Optional<ImmutableList<ValueAssignment>> modelAssignment;
 
-    public static CacheResult getSat(ImmutableList<ValueAssignment> pModelAssignment) {
+    static CacheResult getSat(ImmutableList<ValueAssignment> pModelAssignment) {
       return new CacheResult(Result.SAT, Optional.ofNullable(pModelAssignment));
     }
 
-    public static CacheResult getUnsat() {
+    static CacheResult getUnsat() {
       return UNSAT_SINGLETON;
     }
 
-    public static CacheResult getUnknown() {
+    static CacheResult getUnknown() {
       return UNKNOWN_SINGLETON;
     }
 
@@ -1019,15 +1019,16 @@ public class ConstraintsSolver {
       modelAssignment = pModelAssignment;
     }
 
-    public boolean isSat() {
+    boolean isSat() {
       return result.equals(Result.SAT);
     }
 
-    public boolean isUnsat() {
+    boolean isUnsat() {
       return result.equals(Result.UNSAT);
     }
 
     public Optional<ImmutableList<ValueAssignment>> getModelAssignment() {
+      checkState(modelAssignment.isPresent());
       return modelAssignment;
     }
   }

@@ -242,13 +242,11 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       // write summary edge to the caller site (with the new unique function name)
       currentFunction.write(processFunctionCall(edge, freshFunctionName));
 
-    } else if (edge instanceof CFunctionReturnEdge) {
+    } else if (edge instanceof CFunctionReturnEdge cFunctionReturnEdge) {
       // only pop from functionStack when we have a unique function
       // and the functionreturn has also to be matchin to the current function we are
       // in
-      if (callStack
-          .peek()
-          .contains(((CFunctionReturnEdge) edge).getFunctionEntry().getFunctionName())) {
+      if (callStack.peek().contains(cFunctionReturnEdge.getFunctionEntry().getFunctionName())) {
         if (uniqueFunction.matcher(callStack.peek()).matches()) {
           functionStack.pop();
         }

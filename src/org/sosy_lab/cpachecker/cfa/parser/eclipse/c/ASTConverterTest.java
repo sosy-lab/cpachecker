@@ -13,6 +13,8 @@ import static com.google.common.truth.Truth.assert_;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Locale;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -23,6 +25,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class ASTConverterTest {
+
+  @BeforeClass
+  public static void configureLocale() {
+    Locale.setDefault(Locale.US);
+  }
 
   private final ASTLiteralConverter converter32 =
       new ASTLiteralConverter(MachineModel.LINUX32, ParseContext.dummy());

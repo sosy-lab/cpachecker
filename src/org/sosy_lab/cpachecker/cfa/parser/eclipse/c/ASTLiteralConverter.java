@@ -532,10 +532,10 @@ class ASTLiteralConverter {
       }
     };
 
-    public abstract boolean isSigned();
+    abstract boolean isSigned();
 
-    public abstract CSimpleType getType();
+    abstract CSimpleType getType();
 
-    public abstract int getLength();
+    abstract int getLength();
   }
 }

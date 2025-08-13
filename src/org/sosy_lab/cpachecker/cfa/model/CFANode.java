@@ -248,19 +248,19 @@ public sealed class CFANode implements Comparable<CFANode>
    * locations of edges instead.
    */
   public String describeFileLocation() {
-    if (this instanceof FunctionEntryNode) {
+    if (this instanceof FunctionEntryNode functionEntryNode) {
       return "entry of function "
           + getFunctionName()
           + " in "
-          + ((FunctionEntryNode) this).getFileLocation();
+          + functionEntryNode.getFileLocation();
     }
 
-    if (this instanceof FunctionExitNode) {
+    if (this instanceof FunctionExitNode functionExitNode) {
       // these nodes do not belong to a location
       return "exit of function "
           + getFunctionName()
           + " in "
-          + ((FunctionExitNode) this).getEntryNode().getFileLocation();
+          + functionExitNode.getEntryNode().getFileLocation();
     }
 
     if (getNumLeavingEdges() > 0) {
@@ -290,8 +290,8 @@ public sealed class CFANode implements Comparable<CFANode>
         pOutOfScopeVariables.stream()
             .filter(
                 decl ->
-                    !(decl instanceof CVariableDeclaration)
-                        || !((CVariableDeclaration) decl).isGlobal())
+                    !(decl instanceof CVariableDeclaration cVariableDeclaration)
+                        || !cVariableDeclaration.isGlobal())
             .collect(ImmutableSet.toImmutableSet()));
   }
 
