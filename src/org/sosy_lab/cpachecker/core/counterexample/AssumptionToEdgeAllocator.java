@@ -120,8 +120,6 @@ public class AssumptionToEdgeAllocator {
   private final LogManager logger;
   private final MachineModel machineModel;
 
-  private static final int FIRST = 0;
-
   @Option(
       secure = true,
       description =
@@ -684,12 +682,12 @@ public class AssumptionToEdgeAllocator {
 
     List<String> fieldNameList = new ArrayList<>();
     CFieldReference reference = pIastFieldReference;
-    fieldNameList.add(FIRST, reference.getFieldName());
+    fieldNameList.addFirst(reference.getFieldName());
 
     while (reference.getFieldOwner() instanceof CFieldReference
         && !reference.isPointerDereference()) {
       reference = (CFieldReference) reference.getFieldOwner();
-      fieldNameList.add(FIRST, reference.getFieldName());
+      fieldNameList.addFirst(reference.getFieldName());
     }
 
     if (reference.getFieldOwner() instanceof CIdExpression idExpression) {
