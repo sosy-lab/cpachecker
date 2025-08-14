@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -54,6 +55,7 @@ public class TaintAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TaintAnalysisState(ImmutableSet.of());
+    return new TaintAnalysisState(
+        ImmutableSet.of(), ImmutableSet.of(), Map.of(), ImmutableSet.of());
   }
 }
