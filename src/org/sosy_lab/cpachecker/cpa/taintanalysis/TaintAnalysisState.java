@@ -502,7 +502,7 @@ public class TaintAnalysisState
    */
   public boolean isContainedIn(List<TaintAnalysisState> pStates) {
     return pStates.stream()
-        .anyMatch(s -> Objects.equals(System.identityHashCode(s), System.identityHashCode(this)));
+        .anyMatch(s -> System.identityHashCode(s) == System.identityHashCode(this));
   }
 
   @Override
