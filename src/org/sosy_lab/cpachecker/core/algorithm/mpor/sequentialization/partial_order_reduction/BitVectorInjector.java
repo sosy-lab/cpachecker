@@ -52,7 +52,7 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -73,7 +73,7 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -98,7 +98,7 @@ public class BitVectorInjector {
       boolean pAddEvaluation,
       BitVectorVariables pBitVectorVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -147,7 +147,7 @@ public class BitVectorInjector {
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -184,7 +184,7 @@ public class BitVectorInjector {
       BitVectorVariables pBitVectorVariables,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -217,7 +217,7 @@ public class BitVectorInjector {
       final BitVectorVariables pBitVectorVariables,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      final ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      final ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       final ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -277,7 +277,7 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       SeqThreadStatementBlock pTargetBlock,
       BitVectorVariables pBitVectorVariables,
@@ -327,7 +327,7 @@ public class BitVectorInjector {
       SeqThreadStatementBlock pTargetBlock,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables) {
 

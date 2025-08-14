@@ -35,7 +35,7 @@ public class PartialOrderReducer {
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)

@@ -33,7 +33,7 @@ public class GlobalVariableFinder {
    */
   static boolean hasGlobalAccess(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       SeqThreadStatementBlock pBlock) {
 
@@ -52,7 +52,7 @@ public class GlobalVariableFinder {
    */
   public static ImmutableSet<CVariableDeclaration> findDirectGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
@@ -81,7 +81,7 @@ public class GlobalVariableFinder {
   static ImmutableSet<CVariableDeclaration> findReachableGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
@@ -182,7 +182,7 @@ public class GlobalVariableFinder {
   @SuppressWarnings("unused")
   private static ImmutableSet<CVariableDeclaration> extractGlobalVariablesFromStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       BitVectorAccessType pAccessType) {
 
@@ -196,14 +196,18 @@ public class GlobalVariableFinder {
           rGlobalVariables.add(variable);
         }
         // then check indirect accesses via pointers that point to the variables
-        for (CVariableDeclaration pointerDereference :
+        for (CSimpleDeclaration pointerDereference :
             substituteEdge.getPointerDereferencesByAccessType(pAccessType)) {
-          if (pPointerAssignments.containsKey(pointerDereference)) {
-            for (CVariableDeclaration assignedVariable :
-                pPointerAssignments.get(pointerDereference)) {
-              // the variables assigned to a pointer may not be global, we only filter the globals
-              if (assignedVariable.isGlobal()) {
-                rGlobalVariables.add(assignedVariable);
+          if (pointerDereference instanceof CVariableDeclaration lhsVariableDeclaration) {
+            if (pPointerAssignments.containsKey(lhsVariableDeclaration)) {
+              for (CSimpleDeclaration assignedVariable :
+                  pPointerAssignments.get(lhsVariableDeclaration)) {
+                // the variables assigned to a pointer may not be global, we only filter the globals
+                if (assignedVariable instanceof CVariableDeclaration rhsVariableDeclaration) {
+                  if (rhsVariableDeclaration.isGlobal()) {
+                    rGlobalVariables.add(rhsVariableDeclaration);
+                  }
+                }
               }
             }
           }

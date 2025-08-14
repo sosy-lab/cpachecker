@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -175,7 +176,8 @@ public class LineOfCodeUtil {
       for (CParameterDeclaration parameterDeclaration : parameterDeclarations) {
         if (!PthreadUtil.isPthreadObjectType(parameterDeclaration.getType())) {
           // CParameterDeclarations require addition semicolon
-          rParameterDeclarations.add(LineOfCode.of(parameterDeclaration.toASTString() + SeqSyntax.SEMICOLON));
+          rParameterDeclarations.add(
+              LineOfCode.of(parameterDeclaration.toASTString() + SeqSyntax.SEMICOLON));
         }
       }
     }
@@ -355,7 +357,7 @@ public class LineOfCodeUtil {
             pBinaryExpressionBuilder,
             pLogger);
     // TODO don't call this method twice but pass parameter
-    ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pointerAssignments =
+    ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments =
         SubstituteUtil.mapPointerAssignments(pSubstituteEdges.values());
     SeqMainFunction mainFunction =
         new SeqMainFunction(

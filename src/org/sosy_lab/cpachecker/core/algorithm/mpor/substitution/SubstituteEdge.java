@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
@@ -32,13 +33,13 @@ public class SubstituteEdge {
   public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> pointerAssignment;
 
   /** The set of accessed pointer derefs i.e. reads and writes. */
-  public final ImmutableSet<CVariableDeclaration> accessedPointerDereferences;
+  public final ImmutableSet<CSimpleDeclaration> accessedPointerDereferences;
 
   /** The set of read pointer derefs including reads, e.g. {@code var = 42 + *ptr;} */
-  public final ImmutableSet<CVariableDeclaration> readPointerDereferences;
+  public final ImmutableSet<CSimpleDeclaration> readPointerDereferences;
 
   /** The set of written pointer derefs, .e.g {@code *ptr = 42;} */
-  public final ImmutableSet<CVariableDeclaration> writtenPointerDereferences;
+  public final ImmutableSet<CSimpleDeclaration> writtenPointerDereferences;
 
   /** The set of global variable declarations that this edge accesses. */
   public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
@@ -54,8 +55,8 @@ public class SubstituteEdge {
       ThreadEdge pThreadEdge,
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
       ImmutableMap<CVariableDeclaration, CVariableDeclaration> pPointerAssignment,
-      ImmutableSet<CVariableDeclaration> pWrittenPointerDereferences,
-      ImmutableSet<CVariableDeclaration> pAccessedPointerDereferences,
+      ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
+      ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
@@ -129,7 +130,7 @@ public class SubstituteEdge {
     };
   }
 
-  public ImmutableSet<CVariableDeclaration> getPointerDereferencesByAccessType(
+  public ImmutableSet<CSimpleDeclaration> getPointerDereferencesByAccessType(
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {

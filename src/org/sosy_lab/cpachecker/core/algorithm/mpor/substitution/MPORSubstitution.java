@@ -202,18 +202,20 @@ public class MPORSubstitution {
     }
   }
 
+  // TODO also need CFieldReference, CArraySubscriptExpression here
   private void handlePointerDereference(
       CPointerExpression pPointerExpression,
       boolean pIsWrite,
       Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pPointerExpression.getOperand() instanceof CIdExpression idExpression) {
-      if (idExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+      // do not consider CFunctionDeclarations
+      if (isSubstitutable(idExpression.getDeclaration())) {
         if (pTracker.isPresent()) {
           if (pIsWrite) {
-            pTracker.orElseThrow().addWrittenPointerDereference(variableDeclaration);
+            pTracker.orElseThrow().addWrittenPointerDereference(idExpression.getDeclaration());
           }
-          pTracker.orElseThrow().addAccessedPointerDereference(variableDeclaration);
+          pTracker.orElseThrow().addAccessedPointerDereference(idExpression.getDeclaration());
         }
       }
     }

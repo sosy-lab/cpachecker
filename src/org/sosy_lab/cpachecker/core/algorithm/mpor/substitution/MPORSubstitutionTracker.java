@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 
 /**
@@ -41,13 +42,13 @@ public class MPORSubstitutionTracker {
    * Accessed pointer dereferences e.g. of the form {@code x = *ptr;}. Contains both reads and
    * writes.
    */
-  private final Set<CVariableDeclaration> accessedPointerDereferences;
+  private final Set<CSimpleDeclaration> accessedPointerDereferences;
 
   /** Read pointer dereferences e.g. of the form {@code x = *ptr;}. */
-  private final Set<CVariableDeclaration> readPointerDereferences;
+  private final Set<CSimpleDeclaration> readPointerDereferences;
 
   /** Written pointer dereferences e.g. of the form {@code *ptr = x;}. */
-  private final Set<CVariableDeclaration> writtenPointerDereferences;
+  private final Set<CSimpleDeclaration> writtenPointerDereferences;
 
   /**
    * Accessed global variables e.g. of the form {@code x++;} where {@code x} is a global variable.
@@ -80,8 +81,8 @@ public class MPORSubstitutionTracker {
   private MPORSubstitutionTracker(
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
       ImmutableMap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
-      ImmutableSet<CVariableDeclaration> pAccessedPointerDereferences,
-      ImmutableSet<CVariableDeclaration> pWrittenPointerDereferences,
+      ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
+      ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
@@ -133,11 +134,11 @@ public class MPORSubstitutionTracker {
     pointerAssignments.put(pLeftHandSide, pRightHandSide);
   }
 
-  public void addWrittenPointerDereference(CVariableDeclaration pWrittenPointerDereference) {
+  public void addWrittenPointerDereference(CSimpleDeclaration pWrittenPointerDereference) {
     writtenPointerDereferences.add(pWrittenPointerDereference);
   }
 
-  public void addAccessedPointerDereference(CVariableDeclaration pAccessedPointerDereference) {
+  public void addAccessedPointerDereference(CSimpleDeclaration pAccessedPointerDereference) {
     accessedPointerDereferences.add(pAccessedPointerDereference);
   }
 
@@ -172,22 +173,22 @@ public class MPORSubstitutionTracker {
 
   // pointer dereferences
 
-  public ImmutableSet<CVariableDeclaration> getAccessedPointerDereferences() {
-    if (accessedPointerDereferences instanceof ImmutableSet<CVariableDeclaration> immutableSet) {
+  public ImmutableSet<CSimpleDeclaration> getAccessedPointerDereferences() {
+    if (accessedPointerDereferences instanceof ImmutableSet<CSimpleDeclaration> immutableSet) {
       return immutableSet;
     }
     return ImmutableSet.copyOf(accessedPointerDereferences);
   }
 
-  public ImmutableSet<CVariableDeclaration> getReadPointerDereferences() {
-    if (readPointerDereferences instanceof ImmutableSet<CVariableDeclaration> immutableSet) {
+  public ImmutableSet<CSimpleDeclaration> getReadPointerDereferences() {
+    if (readPointerDereferences instanceof ImmutableSet<CSimpleDeclaration> immutableSet) {
       return immutableSet;
     }
     return ImmutableSet.copyOf(readPointerDereferences);
   }
 
-  public ImmutableSet<CVariableDeclaration> getWrittenPointerDereferences() {
-    if (writtenPointerDereferences instanceof ImmutableSet<CVariableDeclaration> immutableSet) {
+  public ImmutableSet<CSimpleDeclaration> getWrittenPointerDereferences() {
+    if (writtenPointerDereferences instanceof ImmutableSet<CSimpleDeclaration> immutableSet) {
       return immutableSet;
     }
     return ImmutableSet.copyOf(writtenPointerDereferences);

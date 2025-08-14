@@ -32,7 +32,7 @@ public class StatementLinker {
   /** Links commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
   protected static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> link(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rLinked =
@@ -58,7 +58,7 @@ public class StatementLinker {
 
   private static ImmutableList<SeqThreadStatementClause> linkCommutingClausesWithGotos(
       ImmutableList<SeqThreadStatementClause> pClauses,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       ImmutableSet.Builder<Integer> pLinkedTargetIds) {
 
@@ -98,7 +98,7 @@ public class StatementLinker {
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments) {
 
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
@@ -124,7 +124,7 @@ public class StatementLinker {
       SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments) {
 
     SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
