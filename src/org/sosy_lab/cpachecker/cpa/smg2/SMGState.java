@@ -3556,8 +3556,7 @@ public class SMGState
   private Value extractFloatingPointValueAsIntegralValue(Value readValue) {
     Number numberValue = readValue.asNumericValue().getNumber();
 
-    if (numberValue instanceof FloatValue) {
-      FloatValue floatValue = (FloatValue) numberValue;
+    if (numberValue instanceof FloatValue floatValue) {
       if (floatValue.getFormat().equals(FloatValue.Format.Float32)) {
         numberValue = floatValue.floatValue();
       } else if (floatValue.getFormat().equals(FloatValue.Format.Float64)) {

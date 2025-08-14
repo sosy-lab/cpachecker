@@ -1188,7 +1188,7 @@ public class SMGCPAValueVisitor
             AddressExpression.of(value, e.getExpressionType(), new NumericValue(BigInteger.ZERO));
       }
 
-      if (!(value instanceof AddressExpression)) {
+      if (!(value instanceof AddressExpression pointerValue)) {
         // Non-pointer dereference, either numeric or symbolic
         Preconditions.checkArgument(
             (value.isNumericValue()
@@ -1202,8 +1202,6 @@ public class SMGCPAValueVisitor
                 cfaEdge));
         continue;
       }
-
-      AddressExpression pointerValue = (AddressExpression) value;
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();

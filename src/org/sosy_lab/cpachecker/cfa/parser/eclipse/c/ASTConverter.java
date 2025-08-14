@@ -1960,7 +1960,7 @@ class ASTConverter {
       while (innerType instanceof CTypedefType) {
         innerType = ((CTypedefType) innerType).getRealType();
       }
-      if (innerType instanceof CFunctionType) {
+      if (innerType instanceof CFunctionType functionType) {
         if (initializer != null) {
           throw parseContext.parseError("Function definition with initializer", d);
         }
@@ -1971,7 +1971,6 @@ class ASTConverter {
 
         List<CParameterDeclaration> params;
 
-        CFunctionType functionType = (CFunctionType) innerType;
         if (functionType instanceof CFunctionTypeWithNames cFunctionTypeWithNames) {
           params = cFunctionTypeWithNames.getParameterDeclarations();
         } else {

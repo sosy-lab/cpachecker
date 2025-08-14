@@ -868,9 +868,8 @@ public final class AutomatonGraphmlCommon {
                 assignment = aAssignment;
                 successorEdge = summaryEdge;
               }
-            } else if (successorEdge instanceof AStatementEdge) {
+            } else if (successorEdge instanceof AStatementEdge statementEdge) {
               intermediateDeclarationsExpected = false;
-              AStatementEdge statementEdge = (AStatementEdge) successorEdge;
               if (statementEdge.getStatement() instanceof AAssignment aAssignment) {
                 assignment = aAssignment;
               }
