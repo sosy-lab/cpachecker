@@ -151,6 +151,15 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
               + "Only relevant if enableMemoryAssignmentFunctions is set to true.")
   private boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Checks whether to disable lazy aliasing. "
+              + "If set to true, all aliasing will be done eagerly, "
+              + "and all balancing terms for aliasing "
+              + "will be added to the formula under any circumstances.")
+  private boolean disableLazyAliasing = false;
+
   public FormulaEncodingWithPointerAliasingOptions(Configuration config)
       throws InvalidConfigurationException {
     super(config);
@@ -163,6 +172,10 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     if (maxArrayLength == -1) {
       maxArrayLength = Integer.MAX_VALUE;
     }
+  }
+
+  public boolean isLazyAliasingDisabled() {
+    return disableLazyAliasing;
   }
 
   @Override

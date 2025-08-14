@@ -127,7 +127,7 @@ class LvalueToPointerTargetPatternVisitor
     public PointerTargetPatternBuilder visit(final CIdExpression e)
         throws UnrecognizedCodeException {
       final CType expressionType = typeHandler.getSimplifiedType(e);
-      if (pts.isAliasedWithBase(e, expressionType)) {
+      if (pts.isAliasedWithBaseType(e, expressionType) || typeHandler.isLazyAliasingDisabled()) {
         final String name = e.getDeclaration().getQualifiedName();
         return PointerTargetPatternBuilder.forBase(name);
       }
@@ -227,7 +227,7 @@ class LvalueToPointerTargetPatternVisitor
   @Override
   public PointerTargetPatternBuilder visit(final CIdExpression e) throws UnrecognizedCodeException {
     final CType expressionType = typeHandler.getSimplifiedType(e);
-    if (pts.isAliasedWithActualBase(e, expressionType)) {
+    if (pts.isAliasedWithActualBase(e, expressionType) || typeHandler.isLazyAliasingDisabled()) {
       final String name = e.getDeclaration().getQualifiedName();
       return PointerTargetPatternBuilder.forBase(name);
     }

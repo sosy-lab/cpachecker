@@ -90,7 +90,7 @@ interface BaseProvider {
    * @param idExpressionType the type of the id expression
    * @return true if aliasing is necessary, false otherwise
    */
-  default boolean isAliasedWithBase(
+  default boolean isAliasedWithBaseType(
       final CIdExpression idExpression, final CType idExpressionType) {
     return isBaseType(idExpression.getDeclaration().getQualifiedName(), idExpressionType)
         || CTypeUtils.containsArray(idExpressionType, idExpression.getDeclaration());

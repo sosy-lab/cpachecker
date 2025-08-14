@@ -825,7 +825,7 @@ public interface PointerTargetSetBuilder extends BaseProvider {
     }
 
     @Override
-    public boolean isAliasedWithBase(
+    public boolean isAliasedWithBaseType(
         final CIdExpression idExpression, final CType idExpressionType) {
       throw new UnsupportedOperationException();
     }

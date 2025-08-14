@@ -85,6 +85,10 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     }
   }
 
+  public boolean isLazyAliasingDisabled() {
+    return options.isLazyAliasingDisabled();
+  }
+
   public int getAlignof(CType type) {
     return model.getAlignof(type);
   }
