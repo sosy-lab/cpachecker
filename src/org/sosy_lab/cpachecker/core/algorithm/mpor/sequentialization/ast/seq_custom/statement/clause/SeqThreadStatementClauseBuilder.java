@@ -77,16 +77,16 @@ public class SeqThreadStatementClauseBuilder {
             atomicBlocks,
             pBinaryExpressionBuilder,
             pLogger);
-    // if enabled, ensure that no upward goto exist
-    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noUpwardGoto =
-        pOptions.noUpwardGoto
-            ? SeqThreadStatementClauseUtil.ensureNoUpwardGoto(reducedClauses)
+    // if enabled, ensure that no backward goto exist
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noBackwardGoto =
+        pOptions.noBackwardGoto
+            ? SeqThreadStatementClauseUtil.removeBackwardGoto(reducedClauses)
             : reducedClauses;
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =
         pOptions.consecutiveLabels
-            ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noUpwardGoto)
-            : noUpwardGoto;
+            ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
+            : noBackwardGoto;
     // if enabled, ensure that all label and target pc are valid
     return pOptions.validatePc
         ? SeqValidator.validateClauses(consecutiveLabels, pLogger)

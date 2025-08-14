@@ -76,7 +76,9 @@ public class MPOROptions {
 
   public final NondeterminismSource nondeterminismSource;
 
-  public final boolean noUpwardGoto;
+  public final boolean noBackwardGoto;
+
+  public final boolean noBackwardLoopGoto;
 
   public final boolean outputMetadata;
 
@@ -124,7 +126,8 @@ public class MPOROptions {
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
       NondeterminismSource pNondeterminismSource,
-      boolean pNoUpwardGoto,
+      boolean pNoBackwardGoto,
+      boolean pNoBackwardLoopGoto,
       boolean pOutputMetadata,
       String pOutputPath,
       boolean pOverwriteFiles,
@@ -168,7 +171,8 @@ public class MPOROptions {
     loopFiniteMainThreadEnd = pLoopFiniteMainThreadEnd;
     loopIterations = pLoopIterations;
     nondeterminismSource = pNondeterminismSource;
-    noUpwardGoto = pNoUpwardGoto;
+    noBackwardGoto = pNoBackwardGoto;
+    noBackwardLoopGoto = pNoBackwardLoopGoto;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
@@ -202,7 +206,8 @@ public class MPOROptions {
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
       NondeterminismSource pNondeterminismSource,
-      boolean pNoUpwardGoto,
+      boolean pNoBackwardGoto,
+      boolean pNoBackwardLoopGoto,
       ReductionMode pReductionMode,
       boolean pScalarPc,
       boolean pSequentializationErrors,
@@ -237,7 +242,8 @@ public class MPOROptions {
         pLoopFiniteMainThreadEnd,
         pLoopIterations,
         pNondeterminismSource,
-        pNoUpwardGoto,
+        pNoBackwardGoto,
+        pNoBackwardLoopGoto,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,

@@ -90,6 +90,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
           // simple for / while loop with predicate expression -> loop is in direct predecessor
           return true;
         } else {
+          // infinite while (1) loop -> loop is in predecessor of predecessor
           for (CFAEdge enteringEdgeA : CFAUtils.enteringEdges(predecessorA)) {
             CFANode predecessorB = enteringEdgeA.getPredecessor();
             if (predecessorB.isLoopStart()) {
@@ -97,7 +98,6 @@ public class SeqThreadStatementBlock implements SeqStatement {
                 if (enteringEdgeB instanceof BlankEdge blankEdge) {
                   String description = blankEdge.getDescription();
                   if (description.equals(SingleControlExpressionEncoding.WHILE.keyword)) {
-                    // infinite while (1) loop -> loop is in predecessor of predecessor
                     return true;
                   }
                 }

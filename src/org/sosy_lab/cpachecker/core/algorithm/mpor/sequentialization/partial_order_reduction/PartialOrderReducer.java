@@ -54,7 +54,8 @@ public class PartialOrderReducer {
 
       if (pOptions.bitVectorReduction && pOptions.conflictReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-            StatementLinker.link(pClauses, pointerAssignments, pointerParameterAssignments);
+            StatementLinker.link(
+                pOptions, pClauses, pointerAssignments, pointerParameterAssignments);
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectors =
             BitVectorInjector.injectWithEvaluations(
                 pOptions,
@@ -76,7 +77,8 @@ public class PartialOrderReducer {
 
       } else if (pOptions.bitVectorReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-            StatementLinker.link(pClauses, pointerAssignments, pointerParameterAssignments);
+            StatementLinker.link(
+                pOptions, pClauses, pointerAssignments, pointerParameterAssignments);
         return BitVectorInjector.injectWithEvaluations(
             pOptions,
             pBitVectorVariables.orElseThrow(),
@@ -88,7 +90,8 @@ public class PartialOrderReducer {
 
       } else if (pOptions.conflictReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-            StatementLinker.link(pClauses, pointerAssignments, pointerParameterAssignments);
+            StatementLinker.link(
+                pOptions, pClauses, pointerAssignments, pointerParameterAssignments);
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectors =
             BitVectorInjector.injectWithoutEvaluations(
                 pOptions,
@@ -109,7 +112,8 @@ public class PartialOrderReducer {
             pLogger);
 
       } else {
-        return StatementLinker.link(pClauses, pointerAssignments, pointerParameterAssignments);
+        return StatementLinker.link(
+            pOptions, pClauses, pointerAssignments, pointerParameterAssignments);
       }
     }
     return pClauses;

@@ -290,12 +290,12 @@ public class SeqThreadStatementClauseUtil {
     }
   }
 
-  // No Upward Goto ================================================================================
+  // No Backward Goto ==============================================================================
 
-  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> ensureNoUpwardGoto(
+  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> removeBackwardGoto(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rNoUpwardGoto =
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rNoBackwardGoto =
         ImmutableListMultimap.builder();
     for (MPORThread thread : pClauses.keySet()) {
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
@@ -307,9 +307,9 @@ public class SeqThreadStatementClauseUtil {
           reorderBlocks(firstBlocks.get(0), labelBlockMap);
       assert SeqValidator.validateEqualBlocks(reorderedBlocks, allBlocks)
           : "block sets must be equal before and after reordering";
-      rNoUpwardGoto.putAll(thread, buildClausesFromReorderedBlocks(reorderedBlocks, firstBlocks));
+      rNoBackwardGoto.putAll(thread, buildClausesFromReorderedBlocks(reorderedBlocks, firstBlocks));
     }
-    return rNoUpwardGoto.build();
+    return rNoBackwardGoto.build();
   }
 
   private static ImmutableList<SeqThreadStatementBlock> reorderBlocks(

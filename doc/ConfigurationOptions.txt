@@ -354,9 +354,14 @@ analysis.algorithm.MPOR.loopFiniteMainThreadEnd = false
 # thread.
 analysis.algorithm.MPOR.loopIterations = 0
 
-# removes upward goto, i.e. jumping to a LOC higher up in the program, by
-# reordering statements. only works for if-else constructs, not loops.
-analysis.algorithm.MPOR.noUpwardGoto = true
+# removes backward goto, i.e. jumping to a line higher up in the program, by
+# reordering statements. only works for if-else constructs, not loops. use
+# noBackwardLoopGoto to ensure that backward loop goto are removed.
+analysis.algorithm.MPOR.noBackwardGoto = true
+
+# removes backward goto from loops. this option is independent from
+# noBackwardGoto.
+analysis.algorithm.MPOR.noBackwardLoopGoto = false
 
 # the source(s) of nondeterminism in the sequentialization. may slow down or
 # improve performance, depending on the verifier.

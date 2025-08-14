@@ -20,6 +20,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -33,6 +34,7 @@ public class StatementLinker {
 
   /** Links commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
   protected static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> link(
+      MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
@@ -46,6 +48,7 @@ public class StatementLinker {
       ImmutableSet.Builder<Integer> linkedTargetIds = ImmutableSet.builder();
       ImmutableList<SeqThreadStatementClause> linkedClauses =
           linkCommutingClausesWithGotos(
+              pOptions,
               pClauses.get(thread),
               pPointerAssignments,
               pPointerParameterAssignments,
@@ -60,6 +63,7 @@ public class StatementLinker {
   // Inject Gotos ==================================================================================
 
   private static ImmutableList<SeqThreadStatementClause> linkCommutingClausesWithGotos(
+      MPOROptions pOptions,
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
@@ -79,6 +83,7 @@ public class StatementLinker {
         for (SeqThreadStatement statement : block.getStatements()) {
           newStatements.add(
               linkStatements(
+                  pOptions,
                   statement,
                   pLinkedTargetIds,
                   labelClauseMap,
@@ -98,6 +103,7 @@ public class StatementLinker {
    * statement is guaranteed to commute.
    */
   private static SeqThreadStatement linkStatements(
+      MPOROptions pOptions,
       SeqThreadStatement pCurrentStatement,
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
@@ -110,6 +116,7 @@ public class StatementLinker {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       if (isValidLink(
+          pOptions,
           pCurrentStatement,
           newTarget,
           pLabelBlockMap,
@@ -126,6 +133,7 @@ public class StatementLinker {
 
   /** Checks if {@code pStatement} and {@code pTarget} can be linked via {@code goto}. */
   private static boolean isValidLink(
+      MPOROptions pOptions,
       SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -135,6 +143,8 @@ public class StatementLinker {
 
     SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
     return pStatement.isLinkable()
+        // if the target is a loop start, then backward loop goto must be enabled for linking
+        && (!targetBlock.isLoopStart() || !pOptions.noBackwardLoopGoto)
         // do not link atomic blocks, this is handled by AtomicBlockMerger
         && !(targetBlock.startsAtomicBlock() || targetBlock.startsInAtomicBlock())
         // thread synchronization statements must be directly reachable (via pc) -> no linking

@@ -215,9 +215,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "removes upward goto, i.e. jumping to a LOC higher up in the program, by reordering"
-              + " statements. only works for if-else constructs, not loops.")
-  private boolean noUpwardGoto = true;
+          "removes backward goto, i.e. jumping to a line higher up in the program, by reordering"
+              + " statements. only works for if-else constructs, not loops. use noBackwardLoopGoto"
+              + " to ensure that backward loop goto are removed.")
+  private boolean noBackwardGoto = true;
+
+  @Option(
+      secure = true,
+      description =
+          "removes backward goto from loops. this option is independent from" + " noBackwardGoto.")
+  private boolean noBackwardLoopGoto = false;
 
   @Option(
       secure = true,
@@ -383,7 +390,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               loopFiniteMainThreadEnd,
               loopIterations,
               nondeterminismSource,
-              noUpwardGoto,
+              noBackwardGoto,
+              noBackwardLoopGoto,
               outputMetadata,
               outputPath,
               overwriteFiles,
