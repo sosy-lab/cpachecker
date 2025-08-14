@@ -101,13 +101,13 @@ interface BaseProvider {
    * options.
    *
    * @param idExpression the id expression to check
-   * @param idExpressionType the type of the id expression
+   * @param typeHandler the type handler for querying the associated simplified type
    * @return true if aliasing is necessary, false otherwise
    */
   default boolean isAliasedWithActualBaseOrLazyAliasingIsDisabled(
-      final CIdExpression idExpression, final TypeHandlerWithPointerAliasing typeHanlder) {
-    return typeHanlder.isLazyAliasingDisabled()
-        || isAliasedWithActualBase(idExpression, typeHanlder.getSimplifiedType(idExpression));
+      final CIdExpression idExpression, final TypeHandlerWithPointerAliasing typeHandler) {
+    return typeHandler.isLazyAliasingDisabled()
+        || isAliasedWithActualBase(idExpression, typeHandler.getSimplifiedType(idExpression));
   }
 
   /**
@@ -115,12 +115,12 @@ interface BaseProvider {
    * disabled in the options.
    *
    * @param idExpression the id expression to check
-   * @param idExpressionType the type of the id expression
+   * @param typeHandler the type handler for querying the associated simplified type
    * @return true if aliasing is necessary, false otherwise
    */
   default boolean isAliasedWithBaseTypeOrLazyAliasingIsDisabled(
-      final CIdExpression idExpression, final TypeHandlerWithPointerAliasing typeHanlder) {
-    return typeHanlder.isLazyAliasingDisabled()
-        || isAliasedWithBaseType(idExpression, typeHanlder.getSimplifiedType(idExpression));
+      final CIdExpression idExpression, final TypeHandlerWithPointerAliasing typeHandler) {
+    return typeHandler.isLazyAliasingDisabled()
+        || isAliasedWithBaseType(idExpression, typeHandler.getSimplifiedType(idExpression));
   }
 }
