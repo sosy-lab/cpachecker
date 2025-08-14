@@ -2417,6 +2417,11 @@ cpa.predicate.deferUntypedAllocations = true
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
+# Checks whether to disable lazy aliasing. If set to true, all aliasing will
+# be done eagerly, and all balancing terms for aliasing will be added to the
+# formula under any circumstances.
+cpa.predicate.disableLazyAliasing = false
+
 # deprecated name for counterexample.export.formula
 cpa.predicate.dumpCounterexampleFormula = "Counterexample.%d.smt2"
 
