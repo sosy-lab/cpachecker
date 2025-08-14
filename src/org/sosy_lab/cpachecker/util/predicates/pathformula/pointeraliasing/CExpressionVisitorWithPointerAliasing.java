@@ -401,17 +401,14 @@ class CExpressionVisitorWithPointerAliasing
     final CType resultType = typeHandler.getSimplifiedType(e);
 
     final String variableName = e.getDeclaration().getQualifiedName();
-    if (!pts.isActualBase(variableName)
-        && !CTypeUtils.containsArray(resultType, e.getDeclaration())) {
-      if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
-        return UnaliasedLocation.ofVariableName(variableName);
-      } else {
-        return Value.ofValue(conv.makeConstant(variableName, resultType));
-      }
-    } else {
+    if (pts.isAliasedWithActualBase(e, resultType)) {
       final Formula address = conv.makeBaseAddress(variableName, resultType);
       return AliasedLocation.ofAddress(address);
     }
+    if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
+      return UnaliasedLocation.ofVariableName(variableName);
+    }
+    return Value.ofValue(conv.makeConstant(variableName, resultType));
   }
 
   /**

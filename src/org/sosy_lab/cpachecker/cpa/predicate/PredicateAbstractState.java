@@ -343,6 +343,7 @@ public abstract sealed class PredicateAbstractState
     abstractionFormula = a;
     abstractionLocations = pAbstractionLocations;
     previousAbstractionState = null;
+    System.out.println(pathFormula);
   }
 
   private PredicateAbstractState(
@@ -354,6 +355,7 @@ public abstract sealed class PredicateAbstractState
     abstractionFormula = a;
     abstractionLocations = pAbstractionLocations;
     previousAbstractionState = (AbstractionState) pPreviousAbstractionState;
+    System.out.println(pathFormula);
   }
 
   public abstract boolean isAbstractionState();

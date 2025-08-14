@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -31,7 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
-public final class PointerTargetSet implements Serializable {
+public final class PointerTargetSet implements BaseProvider, Serializable {
 
   static String getBaseName(final String name) {
     return BASE_PREFIX + name;
@@ -128,6 +130,7 @@ public final class PointerTargetSet implements Serializable {
     }
   }
 
+  @Override
   public PersistentSortedMap<String, CType> getBases() {
     return bases;
   }
@@ -138,8 +141,21 @@ public final class PointerTargetSet implements Serializable {
    * @param name The name of the variable.
    * @return True, if the variable is an actual base, false otherwise.
    */
+  @Override
   public boolean isActualBase(final String name) {
     return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
+  }
+
+  @Override
+  public boolean isPreparedBase(String name) {
+    return bases.containsKey(name);
+  }
+
+  @Override
+  public boolean isBase(String name, CType type) {
+    checkIsSimplified(type);
+    final CType baseType = bases.get(name);
+    return baseType != null && baseType.equals(type);
   }
 
   PersistentSortedMap<CompositeField, Boolean> getFields() {

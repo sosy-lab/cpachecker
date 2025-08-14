@@ -34,6 +34,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -45,7 +46,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.java_smt.api.Formula;
 
-public interface PointerTargetSetBuilder {
+public interface PointerTargetSetBuilder extends BaseProvider {
 
   void addNextBaseAddressConstraints(
       String newBase,
@@ -86,14 +87,6 @@ public interface PointerTargetSetBuilder {
   boolean isTemporaryDeferredAllocationPointer(String pointer);
 
   boolean isDeferredAllocationPointer(String pointer);
-
-  boolean isActualBase(String name);
-
-  boolean isPreparedBase(String name);
-
-  boolean isBase(String name, CType type);
-
-  NavigableSet<String> getAllBases();
 
   PersistentList<PointerTarget> getAllTargets(MemoryRegion region);
 
@@ -684,14 +677,9 @@ public interface PointerTargetSetBuilder {
       return baseType != null && baseType.equals(type);
     }
 
-    /**
-     * Returns a set of all pointer bases.
-     *
-     * @return A set of all pointer bases.
-     */
     @Override
-    public NavigableSet<String> getAllBases() {
-      return bases.keySet();
+    public PersistentSortedMap<String, CType> getBases() {
+      return bases;
     }
 
     /**
@@ -858,6 +846,23 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public boolean isBase(String pName, CType pType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PersistentSortedMap<String, CType> getBases() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isAliasedWithActualBase(
+        final CIdExpression idExpression, final CType idExpressionType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isAliasedWithBase(
+        final CIdExpression idExpression, final CType idExpressionType) {
       throw new UnsupportedOperationException();
     }
 
