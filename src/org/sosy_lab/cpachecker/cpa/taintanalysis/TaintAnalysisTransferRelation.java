@@ -1240,6 +1240,17 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           .isPresent();
     }
 
+    private Loop getOutermostLoop(Loop loopOfCurrentStatement) {
+      if (!isNestedLoop(loopOfCurrentStatement)) {
+        return loopOfCurrentStatement;
+      }
+      Loop outerLoop =
+          getLoopForStatement(
+                  loopOfCurrentStatement.getIncomingEdges().iterator().next().getPredecessor())
+              .orElseThrow();
+      return getOutermostLoop(outerLoop);
+    }
+
     private boolean loopConditionIsControlledByTaintedVars(
         Loop pLoopOfCurrentStatement, Set<CIdExpression> pTaintedVariables) {
       boolean result = false;
