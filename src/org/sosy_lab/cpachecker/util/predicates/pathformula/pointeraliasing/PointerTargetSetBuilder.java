@@ -831,7 +831,7 @@ public interface PointerTargetSetBuilder extends BaseProvider {
     }
 
     @Override
-    public NavigableSet<String> getAllBases() {
+    public NavigableSet<String> getBasesNames() {
       throw new UnsupportedOperationException();
     }
 

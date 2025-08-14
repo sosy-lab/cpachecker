@@ -361,7 +361,7 @@ class DynamicMemoryHandler {
               typeHandler.getSimplifiedType(parameters.get(0)));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
-      for (String base : pts.getAllBases()) {
+      for (String base : pts.getBasesNames()) {
         Formula baseF =
             conv.makeBaseAddress(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID);
         validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));

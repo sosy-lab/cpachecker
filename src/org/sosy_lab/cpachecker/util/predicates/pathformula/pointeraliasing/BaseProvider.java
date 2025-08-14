@@ -30,7 +30,7 @@ interface BaseProvider {
    *
    * @return A set of all pointer bases.
    */
-  default NavigableSet<String> getAllBases() {
+  default NavigableSet<String> getBasesNames() {
     return getBases().keySet();
   }
 
