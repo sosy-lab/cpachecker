@@ -74,7 +74,9 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder rString = new StringBuilder();
     for (FunctionParameterAssignment assignment : assignments) {
-      rString.append(assignment.statement.toASTString()).append(SeqSyntax.SPACE);
+      rString
+          .append(assignment.toExpressionAssignmentStatement().toASTString())
+          .append(SeqSyntax.SPACE);
     }
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
@@ -164,5 +166,9 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   @Override
   public boolean onlyWritesPc() {
     return false;
+  }
+
+  public ImmutableList<FunctionParameterAssignment> getAssignments() {
+    return assignments;
   }
 }

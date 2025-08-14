@@ -73,6 +73,8 @@ public class SeqMainFunction extends SeqFunction {
 
   private final ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pointerAssignments;
 
+  private final ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pointerParameterAssignments;
+
   // TODO make Optional
   private final CFunctionCallAssignmentStatement nextThreadAssignment;
 
@@ -112,6 +114,8 @@ public class SeqMainFunction extends SeqFunction {
     numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(numThreads);
     clauses = pClauses;
     pointerAssignments = pPointerAssignments;
+    pointerParameterAssignments =
+        SeqThreadStatementClauseUtil.mapPointerParameterAssignments(pClauses);
     bitVectorVariables = pBitVectorVariables;
     pcVariables = pPcVariables;
     threadSimulationVariables = pThreadSimulationVariables;
@@ -246,6 +250,7 @@ public class SeqMainFunction extends SeqFunction {
               labelClauseMap,
               labelBlockMap,
               pointerAssignments,
+              pointerParameterAssignments,
               pBitVectorVariables.orElseThrow());
       rInitializations.addAll(
           LineOfCodeUtil.buildLinesOfCodeFromSeqAstNodes(bitVectorInitializations));

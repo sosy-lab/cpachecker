@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -35,8 +37,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqParameterAssignmentStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -452,6 +456,32 @@ public class SeqThreadStatementClauseUtil {
       }
     }
     return Optional.empty();
+  }
+
+  // Pointer Parameters ============================================================================
+
+  public static ImmutableMap<CParameterDeclaration, CSimpleDeclaration>
+      mapPointerParameterAssignments(
+          ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
+
+    ImmutableMap.Builder<CParameterDeclaration, CSimpleDeclaration> rAssignments =
+        ImmutableMap.builder();
+    for (MPORThread thread : pClauses.keySet()) {
+      for (SeqThreadStatementClause clause : pClauses.get(thread)) {
+        for (SeqThreadStatement statement : clause.getAllStatements()) {
+          if (statement instanceof SeqParameterAssignmentStatements parameterStatement) {
+            for (FunctionParameterAssignment assignment : parameterStatement.getAssignments()) {
+              if (assignment.isPointer()) {
+                rAssignments.put(
+                    assignment.getLeftHandSideDeclaration(),
+                    assignment.getRightHandSideDeclaration());
+              }
+            }
+          }
+        }
+      }
+    }
+    return rAssignments.buildOrThrow();
   }
 
   // Helper ========================================================================================

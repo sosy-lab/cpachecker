@@ -77,7 +77,9 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder rString = new StringBuilder();
-    rString.append(condAssignment.statement.toASTString()).append(SeqSyntax.SPACE);
+    rString
+        .append(condAssignment.toExpressionAssignmentStatement().toASTString())
+        .append(SeqSyntax.SPACE);
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);

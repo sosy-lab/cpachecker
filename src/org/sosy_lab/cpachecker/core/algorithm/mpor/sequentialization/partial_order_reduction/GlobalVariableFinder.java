@@ -15,6 +15,8 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
@@ -32,10 +34,15 @@ public class GlobalVariableFinder {
   static boolean hasGlobalAccess(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       SeqThreadStatementBlock pBlock) {
 
     return !findDirectGlobalVariablesByAccessType(
-            pLabelBlockMap, pPointerAssignments, pBlock, BitVectorAccessType.ACCESS)
+            pLabelBlockMap,
+            pPointerAssignments,
+            pPointerParameterAssignments,
+            pBlock,
+            BitVectorAccessType.ACCESS)
         .isEmpty();
   }
 
@@ -46,6 +53,7 @@ public class GlobalVariableFinder {
   public static ImmutableSet<CVariableDeclaration> findDirectGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
 
@@ -56,7 +64,10 @@ public class GlobalVariableFinder {
       recursivelyFindTargetGotoStatements(found, statement, pLabelBlockMap);
       ImmutableSet<CVariableDeclaration> foundGlobalVariables =
           extractGlobalVariablesFromStatements(
-              ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
+              ImmutableSet.copyOf(found),
+              pPointerAssignments,
+              pPointerParameterAssignments,
+              pAccessType);
       rGlobalVariables.addAll(foundGlobalVariables);
     }
     return rGlobalVariables.build();
@@ -71,6 +82,7 @@ public class GlobalVariableFinder {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
 
@@ -81,7 +93,10 @@ public class GlobalVariableFinder {
       recursivelyFindTargetStatements(found, statement, pLabelClauseMap, pLabelBlockMap);
       ImmutableSet<CVariableDeclaration> foundGlobalVariables =
           extractGlobalVariablesFromStatements(
-              ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
+              ImmutableSet.copyOf(found),
+              pPointerAssignments,
+              pPointerParameterAssignments,
+              pAccessType);
       rGlobalVariables.addAll(foundGlobalVariables);
     }
     return rGlobalVariables.build();
@@ -163,9 +178,12 @@ public class GlobalVariableFinder {
     return ImmutableList.of();
   }
 
+  // TODO actually use pointer parameter assignments
+  @SuppressWarnings("unused")
   private static ImmutableSet<CVariableDeclaration> extractGlobalVariablesFromStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       BitVectorAccessType pAccessType) {
 
     ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();

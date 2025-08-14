@@ -128,7 +128,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
             targetPc,
             targetGoto,
             injectedStatements);
-    return parameterAssignment.statement.toASTString()
+    return parameterAssignment.toExpressionAssignmentStatement().toASTString()
         + SeqSyntax.SPACE
         + bitVectors
         + createdPcWrite.toASTString()

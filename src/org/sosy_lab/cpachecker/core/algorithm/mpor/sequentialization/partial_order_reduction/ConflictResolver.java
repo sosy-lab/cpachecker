@@ -17,6 +17,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -41,6 +43,7 @@ public class ConflictResolver {
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -70,6 +73,7 @@ public class ConflictResolver {
               otherThreads,
               labelBlockMap,
               pPointerAssignments,
+              pPointerParameterAssignments,
               pBitVectorVariables,
               pPcVariables,
               pBinaryExpressionBuilder));
@@ -86,6 +90,7 @@ public class ConflictResolver {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -103,6 +108,7 @@ public class ConflictResolver {
                 pOtherThreads,
                 pLabelBlockMap,
                 pPointerAssignments,
+                pPointerParameterAssignments,
                 pBitVectorVariables,
                 pPcVariables,
                 pBinaryExpressionBuilder));
@@ -119,6 +125,7 @@ public class ConflictResolver {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -134,6 +141,7 @@ public class ConflictResolver {
               pOtherThreads,
               pLabelBlockMap,
               pPointerAssignments,
+              pPointerParameterAssignments,
               pBitVectorVariables,
               pPcVariables,
               pBinaryExpressionBuilder));
@@ -148,6 +156,7 @@ public class ConflictResolver {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -163,6 +172,7 @@ public class ConflictResolver {
               pOtherThreads,
               pLabelBlockMap,
               pPointerAssignments,
+              pPointerParameterAssignments,
               targetBlock,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
@@ -189,6 +199,7 @@ public class ConflictResolver {
           ImmutableSet<MPORThread> pOtherThreads,
           ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
           ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+          ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
           SeqThreadStatementBlock pTargetBlock,
           BitVectorVariables pBitVectorVariables,
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -203,6 +214,7 @@ public class ConflictResolver {
               ImmutableSet.of(otherThread),
               pLabelBlockMap,
               pPointerAssignments,
+              pPointerParameterAssignments,
               pTargetBlock,
               pBitVectorVariables,
               pBinaryExpressionBuilder);

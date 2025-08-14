@@ -14,6 +14,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
@@ -63,6 +65,7 @@ public class BitVectorEvaluationBuilder {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
       SeqThreadStatementBlock pTargetBlock,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -79,7 +82,11 @@ public class BitVectorEvaluationBuilder {
       case ACCESS_ONLY -> {
         ImmutableSet<CVariableDeclaration> directAccessVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
+                pLabelBlockMap,
+                pPointerAssignments,
+                pPointerParameterAssignments,
+                pTargetBlock,
+                BitVectorAccessType.ACCESS);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,
@@ -92,10 +99,18 @@ public class BitVectorEvaluationBuilder {
       case READ_AND_WRITE -> {
         ImmutableSet<CVariableDeclaration> directReadVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
+                pLabelBlockMap,
+                pPointerAssignments,
+                pPointerParameterAssignments,
+                pTargetBlock,
+                BitVectorAccessType.READ);
         ImmutableSet<CVariableDeclaration> directWriteVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
+                pLabelBlockMap,
+                pPointerAssignments,
+                pPointerParameterAssignments,
+                pTargetBlock,
+                BitVectorAccessType.WRITE);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,

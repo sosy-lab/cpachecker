@@ -351,6 +351,7 @@ public class LineOfCodeUtil {
             pThreadSimulationVariables,
             pBinaryExpressionBuilder,
             pLogger);
+    // TODO don't call this method twice but pass parameter
     ImmutableSetMultimap<CVariableDeclaration, CVariableDeclaration> pointerAssignments =
         SubstituteUtil.mapPointerAssignments(pSubstituteEdges.values());
     SeqMainFunction mainFunction =
