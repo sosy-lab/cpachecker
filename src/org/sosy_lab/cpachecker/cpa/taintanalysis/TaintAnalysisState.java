@@ -203,7 +203,21 @@ public class TaintAnalysisState
   }
 
   private boolean precedes(TaintAnalysisState pOther) {
-    if (pOther.predecessors.contains(this)) {
+
+    boolean otherContainsAllThisPathStarts =
+        this.nonTrivialPathStartStates.stream()
+            .allMatch(s -> s.isContainedIn(pOther.nonTrivialPathStartStates));
+
+    if (!otherContainsAllThisPathStarts) {
+      return false;
+    }
+
+    if (this.nonTrivialPathStartStates.size() < pOther.nonTrivialPathStartStates.size()) {
+      return true;
+    }
+
+    boolean otherContainsThisAsPredecessor = this.isContainedIn(pOther.predecessors);
+    if (otherContainsThisAsPredecessor) {
       return true;
     } else {
       for (TaintAnalysisState predecessor : pOther.predecessors) {
