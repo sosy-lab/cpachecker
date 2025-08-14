@@ -433,7 +433,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       size = getSizeExpression(decayedType, edge, function, ssa, pts, constraints, errorConditions);
     }
 
-    if (CTypeUtils.containsArray(type, originalDeclaration) || typeHandler.isLazyAliasingDisabled()) {
+    if (CTypeUtils.containsArray(type, originalDeclaration)
+        || typeHandler.isLazyAliasingDisabled()) {
       pts.addNextBaseAddressConstraints(
           declaration.getQualifiedName(), type, size, false, constraints);
       pts.addBase(declaration.getQualifiedName(), type);
