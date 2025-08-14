@@ -40,15 +40,24 @@ public class TaintAnalysisState
   @Serial private static final long serialVersionUID = -7715698130795640052L;
 
   private boolean violatesProperty = false;
+  private boolean isPathStart = false;
+  private boolean isMergePoint = false;
+
   private final Set<CIdExpression> taintedVariables = new HashSet<>();
   private final Set<CIdExpression> untaintedVariables = new HashSet<>();
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
   private final Map<CIdExpression, List<CExpression>> evaluatedValues = new HashMap<>();
-  private final Set<TaintAnalysisState> predecessors = new HashSet<>();
 
-  public TaintAnalysisState(Set<CIdExpression> pElements) {
-    this.taintedVariables.addAll(pElements);
-  }
+  private final List<TaintAnalysisState> predecessors = new ArrayList<>();
+  private final List<TaintAnalysisState> successors = new ArrayList<>();
+
+  private final List<TaintAnalysisState> siblingStates = new ArrayList<>();
+  private final List<TaintAnalysisState> nonTrivialPathStartStates = new ArrayList<>();
+
+  private static final List<TaintAnalysisState> allPathStartStates = new ArrayList<>();
+  private static final List<TaintAnalysisState> mergePoints = new ArrayList<>();
+  private static final List<TaintAnalysisState> targetStates = new ArrayList<>();
+
 
   public TaintAnalysisState(
       Set<CIdExpression> pTaintedVariables,
@@ -59,6 +68,84 @@ public class TaintAnalysisState
     this.untaintedVariables.addAll(pUntaintedVariables);
     this.evaluatedValues.putAll(pEvaluatedValues);
     this.predecessors.addAll(pPredecessors);
+
+    for (TaintAnalysisState predecessor : pPredecessors) {
+
+      // Don't set this for joined states
+      if (!this.isSuccessorOfJoinedState() && !predecessor.isSuccessorOfJoinedState()) {
+
+        if (!predecessor.successors.isEmpty()) {
+          this.isPathStart = true;
+          this.nonTrivialPathStartStates.add(this);
+
+          if (!this.isContainedIn(allPathStartStates)) {
+            allPathStartStates.add(this);
+          }
+
+          this.siblingStates.addAll(predecessor.successors);
+          for (TaintAnalysisState sibling : this.siblingStates) {
+            sibling.isPathStart = true;
+            sibling.nonTrivialPathStartStates.add(sibling);
+            sibling.siblingStates.add(this);
+
+            if (!sibling.isContainedIn(allPathStartStates)) {
+              allPathStartStates.add(sibling);
+            }
+          }
+        }
+
+        if (!predecessor.siblingStates.isEmpty()) {
+          // the predecessor is a non-trivial path-start-state.
+          this.nonTrivialPathStartStates.add(predecessor);
+        }
+      }
+
+      predecessor.successors.add(this);
+
+      for (TaintAnalysisState pathStartState : predecessor.nonTrivialPathStartStates) {
+
+        if (!pathStartState.isContainedIn(this.nonTrivialPathStartStates)) {
+          this.nonTrivialPathStartStates.add(pathStartState);
+        }
+      }
+    }
+  }
+
+  public boolean isMergePoint() {
+    return isMergePoint;
+  }
+
+  public boolean isSuccessorOfJoinedState() {
+    return this.predecessors.size() > 1;
+  }
+
+  public boolean isPathStart() {
+    return isPathStart;
+  }
+
+  public void setMergePoint(boolean pMergePoint) {
+
+    isMergePoint = pMergePoint;
+
+    if (pMergePoint) {
+      if (!this.isContainedIn(mergePoints)) {
+        mergePoints.add(this);
+      }
+    } else {
+      mergePoints.remove(this);
+    }
+  }
+
+  public List<TaintAnalysisState> getNonTrivialPathStartStates() {
+    return nonTrivialPathStartStates;
+  }
+
+  public List<TaintAnalysisState> getPredecessors() {
+    return predecessors;
+  }
+
+  public List<TaintAnalysisState> getSuccessors() {
+    return successors;
   }
 
   public Map<CIdExpression, List<CExpression>> getEvaluatedValues() {
