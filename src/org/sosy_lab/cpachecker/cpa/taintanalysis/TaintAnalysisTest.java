@@ -1053,13 +1053,6 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
-  @Test
-  public void testSimpleRecursionSafe_1() throws Exception {
-    TestResults results = runCPAchecker("simpleRecursionSafe_1.c", "extern_benchmarks");
-    results.assertIsSafe();
-  }
-
   @Test
   public void testPointersAsParamSimpleSafe_1() throws Exception {
     TestResults results = runCPAchecker("pointersAsParamSimpleSafe_1.c", "extern_benchmarks");
@@ -1111,20 +1104,6 @@ public class TaintAnalysisTest {
   @Test
   public void testGlobalsSimpleSafe_1() throws Exception {
     TestResults results = runCPAchecker("globalsSimpleSafe_1.c", "extern_benchmarks");
-    results.assertIsSafe();
-  }
-
-  @Ignore
-  @Test
-  public void testGlobalsSimpleSafe_recursion() throws Exception {
-    TestResults results = runCPAchecker("globalsSimpleSafe_recursion.c", "extern_benchmarks");
-    results.assertIsSafe();
-  }
-
-  @Ignore
-  @Test
-  public void testPointersAsParamsRecursiveSafe_1() throws Exception {
-    TestResults results = runCPAchecker("pointersAsParamsRecursiveSafe_1.c", "extern_benchmarks");
     results.assertIsSafe();
   }
 
@@ -1181,17 +1160,9 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
-  public void testReadMetricsBasicRecursionSafe_1() throws Exception {
-    TestResults results = runCPAchecker("readMetricsBasicRecursionSafe_1.c", "extern_benchmarks");
-    results.assertIsSafe();
-  }
-
-  @Ignore
-  @Test
-  public void testReadMetricsBasicRecursionSafe_2() throws Exception {
-    TestResults results = runCPAchecker("readMetricsBasicRecursionSafe_2.c", "extern_benchmarks");
+  public void testReadMetricsSafe_1() throws Exception {
+    TestResults results = runCPAchecker("readMetricsSafe_1.c", "extern_benchmarks");
     results.assertIsSafe();
   }
 
