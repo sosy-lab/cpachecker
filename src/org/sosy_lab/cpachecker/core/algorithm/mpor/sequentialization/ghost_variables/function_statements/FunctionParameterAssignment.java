@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -18,16 +19,45 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class FunctionParameterAssignment {
 
-  public final CLeftHandSide leftHandSide;
+  private final ThreadEdge callContext;
 
-  public final CExpression rightHandSide;
+  private final CParameterDeclaration originalParameterDeclaration;
 
-  public FunctionParameterAssignment(CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {
+  private final Optional<CSimpleDeclaration> originalRightHandSideDeclaration;
+
+  private final CLeftHandSide leftHandSide;
+
+  private final CExpression rightHandSide;
+
+  public FunctionParameterAssignment(
+      ThreadEdge pCallContext,
+      CParameterDeclaration pOriginalParameterDeclaration,
+      CExpression pOriginalRightHandSide,
+      CLeftHandSide pLeftHandSide,
+      CExpression pRightHandSide) {
+
+    callContext = pCallContext;
+    originalParameterDeclaration = pOriginalParameterDeclaration;
+    originalRightHandSideDeclaration = extractSimpleDeclaration(pOriginalRightHandSide);
     leftHandSide = pLeftHandSide;
     rightHandSide = pRightHandSide;
+  }
+
+  private Optional<CSimpleDeclaration> extractSimpleDeclaration(CExpression pRightHandSide) {
+    if (pRightHandSide instanceof CIdExpression idExpression) {
+      return Optional.of(idExpression.getDeclaration());
+
+    } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
+      if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
+        return Optional.of(idExpression.getDeclaration());
+      }
+    }
+    // can e.g. occur with 'param = 4' i.e. literal integer expressions
+    return Optional.empty();
   }
 
   public boolean isPointer() {
@@ -36,6 +66,18 @@ public class FunctionParameterAssignment {
 
   public CExpressionAssignmentStatement toExpressionAssignmentStatement() {
     return SeqStatementBuilder.buildExpressionAssignmentStatement(leftHandSide, rightHandSide);
+  }
+
+  public ThreadEdge getCallContext() {
+    return callContext;
+  }
+
+  public CParameterDeclaration getOriginalParameterDeclaration() {
+    return originalParameterDeclaration;
+  }
+
+  public Optional<CSimpleDeclaration> getOriginalRightHandSideDeclaration() {
+    return originalRightHandSideDeclaration;
   }
 
   public CParameterDeclaration getLeftHandSideDeclaration() {

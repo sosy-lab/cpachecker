@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseUtil {
@@ -460,21 +462,24 @@ public class SeqThreadStatementClauseUtil {
 
   // Pointer Parameters ============================================================================
 
-  public static ImmutableMap<CParameterDeclaration, CSimpleDeclaration>
+  public static ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
       mapPointerParameterAssignments(
           ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    ImmutableMap.Builder<CParameterDeclaration, CSimpleDeclaration> rAssignments =
-        ImmutableMap.builder();
+    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, CSimpleDeclaration> rAssignments =
+        ImmutableTable.builder();
     for (MPORThread thread : pClauses.keySet()) {
       for (SeqThreadStatementClause clause : pClauses.get(thread)) {
         for (SeqThreadStatement statement : clause.getAllStatements()) {
           if (statement instanceof SeqParameterAssignmentStatements parameterStatement) {
             for (FunctionParameterAssignment assignment : parameterStatement.getAssignments()) {
-              if (assignment.isPointer()) {
-                rAssignments.put(
-                    assignment.getLeftHandSideDeclaration(),
-                    assignment.getRightHandSideDeclaration());
+              if (assignment.getOriginalRightHandSideDeclaration().isPresent()) {
+                if (assignment.isPointer()) {
+                  rAssignments.put(
+                      assignment.getCallContext(),
+                      assignment.getOriginalParameterDeclaration(),
+                      assignment.getOriginalRightHandSideDeclaration().orElseThrow());
+                }
               }
             }
           }

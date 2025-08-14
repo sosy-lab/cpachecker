@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableTable;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqMainFunction extends SeqFunction {
@@ -73,7 +75,8 @@ public class SeqMainFunction extends SeqFunction {
 
   private final ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments;
 
-  private final ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pointerParameterAssignments;
+  private final ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+      pointerParameterAssignments;
 
   // TODO make Optional
   private final CFunctionCallAssignmentStatement nextThreadAssignment;

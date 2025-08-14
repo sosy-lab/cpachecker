@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableTable;
 import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorInjector {
@@ -53,7 +55,8 @@ public class BitVectorInjector {
       BitVectorVariables pBitVectorVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+          pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -74,7 +77,8 @@ public class BitVectorInjector {
       BitVectorVariables pBitVectorVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+          pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -99,7 +103,8 @@ public class BitVectorInjector {
       BitVectorVariables pBitVectorVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+          pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -148,7 +153,8 @@ public class BitVectorInjector {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+          pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -185,7 +191,8 @@ public class BitVectorInjector {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+          pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -218,7 +225,8 @@ public class BitVectorInjector {
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       final ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      final ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
+      final ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+          pPointerParameterAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -278,7 +286,8 @@ public class BitVectorInjector {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+          pPointerParameterAssignments,
       SeqThreadStatementBlock pTargetBlock,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -328,7 +337,8 @@ public class BitVectorInjector {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+          pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables) {
 
     return switch (pOptions.reductionMode) {

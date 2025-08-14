@@ -25,11 +25,11 @@ void * start_routine(void * arg)
   pointer_c = pointer_b;
   int * pointer_d;
   pointer_d = &y;
-  pointer_function(pointer_a);
+  int xx = pointer_function(pointer_a);
 }
 int pointer_function(int * param) 
 {
-  *param++;
+  *param = *param + 1;
   int * pointer_e;
   param = pointer_e;
   pointer_e = &z;
