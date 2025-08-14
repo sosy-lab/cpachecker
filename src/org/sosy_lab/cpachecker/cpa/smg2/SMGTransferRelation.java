@@ -1044,23 +1044,7 @@ public class SMGTransferRelation
       if (cfa != null
           && cFuncDecl.getQualifiedName().equals(cfa.getMainFunction().getFunctionName())) {
         if (cFuncDecl.getParameters() != null) {
-          // Init main parameters if there are any
-          for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
-            CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
-            Value paramSizeInBits =
-                new NumericValue(evaluator.getBitSizeof(currentState, paramType));
-            if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
-              currentState =
-                  currentState.copyAndAddLocalVariable(
-                      paramSizeInBits, parameters.getQualifiedName(), paramType, true);
-            } else {
-              // argc and argv are also allocated here if they are in the program
-              // argc is some nondet > 1 while argv is non-null array of unknown values size argc
-              currentState =
-                  currentState.copyAndAddLocalVariable(
-                      paramSizeInBits, parameters.getQualifiedName(), paramType);
-            }
-          }
+          currentState = handleComplexEntryFunctionParameterInitialization(currentState, cFuncDecl);
         }
       }
     } else if (cDecl instanceof CComplexTypeDeclaration) {
@@ -1078,6 +1062,48 @@ public class SMGTransferRelation
     }
     // Fall through
     return ImmutableList.of(currentState);
+  }
+
+  // Init main() parameters if there are any (complex entry function)
+  private SMGState handleComplexEntryFunctionParameterInitialization(
+      SMGState pState, CFunctionDeclaration cFuncDecl) throws CPATransferException {
+    SMGState currentState = pState;
+    // C11 standard:
+    // If they are declared, the parameters to the main function shall obey the following
+    // constraints:
+    // — The value of argc shall be non-negative.
+    // — argv[argc] shall be a null pointer.
+    // — If the value of argc is greater than zero, the array members argv[0] through
+    // argv[argc-1] inclusive shall contain pointers to strings, which are given
+    // implementation-defined values by the host environment prior to program startup. The
+    // intent is to supply to the program information determined prior to program startup
+    // from elsewhere in the hosted environment. If the host environment is not capable of
+    // supplying strings with letters in both uppercase and lowercase, the implementation
+    // shall ensure that the strings are received in lowercase.
+    // — If the value of argc is greater than zero, the string pointed to by argv[0]
+    // represents the program name; argv[0][0] shall be the null character if the
+    // program name is not available from the host environment. If the value of argc is
+    // greater than one, the strings pointed to by argv[1] through argv[argc-1]
+    // represent the program parameters.
+    // — The parameters argc and argv and the strings pointed to by the argv array shall
+    // be modifiable by the program, and retain their last-stored values between program
+    // startup and program termination.
+    for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
+      CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
+      Value paramSizeInBits = new NumericValue(evaluator.getBitSizeof(currentState, paramType));
+      if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
+        currentState =
+            currentState.copyAndAddLocalVariable(
+                paramSizeInBits, parameters.getQualifiedName(), paramType, true);
+      } else {
+        // argc and argv are also allocated here if they are in the program
+        // argc is some nondet > 1 while argv is non-null array of unknown values size argc
+        currentState =
+            currentState.copyAndAddLocalVariable(
+                paramSizeInBits, parameters.getQualifiedName(), paramType);
+      }
+    }
+    return currentState;
   }
 
   @Override
