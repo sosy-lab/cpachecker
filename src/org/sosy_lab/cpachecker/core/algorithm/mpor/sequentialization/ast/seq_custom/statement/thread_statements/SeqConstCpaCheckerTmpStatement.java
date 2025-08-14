@@ -13,10 +13,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -80,8 +82,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
 
     CStatement bStatement = ((CStatementEdge) pStatementB.cfaEdge).getStatement();
     if (bStatement instanceof CExpressionStatement expressionStatement) {
-      // TODO this may also be pointer expression when dereferencing: '*ptr++;'
-      CIdExpression idExpressionB = (CIdExpression) expressionStatement.getExpression();
+      CIdExpression idExpressionB = extractIdExpressionB(expressionStatement.getExpression());
       CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
       checkArgument(
           pVariableDeclaration.equals(declarationB),
@@ -103,6 +104,18 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
           "pStatementA LHS must equal pStatementB RHS when pStatementB is a"
               + " CExpressionAssignmentStatement");
     }
+  }
+
+  private CIdExpression extractIdExpressionB(CExpression pExpression) {
+    if (pExpression instanceof CIdExpression idExpression) {
+      return idExpression;
+    } else if (pExpression instanceof CPointerExpression pointerExpression) {
+      if (pointerExpression.getOperand() instanceof CIdExpression idExpression) {
+        return idExpression;
+      }
+    }
+    throw new IllegalArgumentException(
+        "pExpression must be either CIdExpression or CPointerExpression");
   }
 
   SeqConstCpaCheckerTmpStatement(
