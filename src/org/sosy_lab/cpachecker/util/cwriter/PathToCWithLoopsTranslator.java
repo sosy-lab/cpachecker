@@ -60,6 +60,13 @@ import org.sosy_lab.cpachecker.util.Pair;
  */
 public class PathToCWithLoopsTranslator extends PathTranslator {
 
+  private static final String HEADER_DEFINITIONS =
+      """
+      #include <stdlib.h>
+      #include <time.h>
+      #define __VERIFIER_nondet_int() rand()
+      """;
+
   private static final Pattern uniqueFunction = Pattern.compile(".*_[0-9]+(.*)");
 
   private final LoopStructure loopStructure;
@@ -119,9 +126,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   @Override
   protected Appender generateCCode() {
     // proper order and c-code without warnings
-    mGlobalDefinitionsList.add(0, "#include <stdlib.h>\n");
-    mGlobalDefinitionsList.add(1, "#include <time.h>\n");
-    mGlobalDefinitionsList.add(2, "#define __VERIFIER_nondet_int() rand()");
+    mGlobalDefinitionsList.addFirst(HEADER_DEFINITIONS);
 
     mGlobalDefinitionsList.remove("int __VERIFIER_nondet_int()");
 
