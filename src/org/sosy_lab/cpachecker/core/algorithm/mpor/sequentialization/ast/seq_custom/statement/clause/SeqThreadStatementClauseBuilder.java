@@ -73,9 +73,8 @@ public class SeqThreadStatementClauseBuilder {
             pOptions,
             pBitVectorVariables,
             pPcVariables,
+            pSubstituteEdges.values(),
             atomicBlocks,
-            SubstituteUtil.mapPointerAssignments(pSubstituteEdges.values()),
-            SeqThreadStatementClauseUtil.mapPointerParameterAssignments(atomicBlocks),
             pBinaryExpressionBuilder,
             pLogger);
     // if enabled, ensure that no upward goto exist
