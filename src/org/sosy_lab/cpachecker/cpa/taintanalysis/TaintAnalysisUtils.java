@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -102,7 +103,7 @@ public class TaintAnalysisUtils {
               taintedVariables,
               untaintedVariables,
               outdatedState.getEvaluatedValues(),
-              Set.of(stateWithUpdatedTaint));
+              ImmutableSet.of(stateWithUpdatedTaint));
 
       updatedState
           .getNonTrivialPathStartStates()
