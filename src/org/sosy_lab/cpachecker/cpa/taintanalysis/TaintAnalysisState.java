@@ -58,7 +58,6 @@ public class TaintAnalysisState
   private static final List<TaintAnalysisState> mergePoints = new ArrayList<>();
   private static final List<TaintAnalysisState> targetStates = new ArrayList<>();
 
-
   public TaintAnalysisState(
       Set<CIdExpression> pTaintedVariables,
       Set<CIdExpression> pUntaintedVariables,
@@ -487,6 +486,23 @@ public class TaintAnalysisState
   @SuppressWarnings("unused")
   public void setViolatesProperty() {
     violatesProperty = true;
+    if (this.isContainedIn(targetStates)) {
+      targetStates.add(this);
+    }
+  }
+
+  /**
+   * Checks if the current TaintAnalysisState instance is contained in the given list of states by
+   * comparing their identity hash codes. We use this check instead of the equals method when we
+   * want to use intentional equality (object comparison instead of attributes comparison).
+   *
+   * @param pStates the list of TaintAnalysisState objects to search within
+   * @return {@code true} if the current instance is contained in the given list, {@code false}
+   *     otherwise
+   */
+  public boolean isContainedIn(List<TaintAnalysisState> pStates) {
+    return pStates.stream()
+        .anyMatch(s -> Objects.equals(System.identityHashCode(s), System.identityHashCode(this)));
   }
 
   @Override
