@@ -8,19 +8,21 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
+
 import java.util.NavigableSet;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+/** Interface for handling pointer bases in a path formula. */
 interface BaseProvider {
 
-  boolean isActualBase(String name);
-
-  boolean isPreparedBase(String name);
-
-  boolean isBase(String name, CType type);
-
+  /**
+   * Return the currently known pointer bases as a map from variable names to their types.
+   *
+   * @return A map from variable names to their types, where the types are simplified.
+   */
   PersistentSortedMap<String, CType> getBases();
 
   /**
@@ -30,6 +32,42 @@ interface BaseProvider {
    */
   default NavigableSet<String> getAllBases() {
     return getBases().keySet();
+  }
+
+  /**
+   * Checks if a variable is a prepared base, i.e., if it is a base that has been added to the
+   * bases.
+   *
+   * @param name The name of the variable to check.
+   * @return True, if the variable is a prepared base, false otherwise.
+   * @see #getBases()
+   */
+  default boolean isPreparedBase(String name) {
+    return getBases().containsKey(name);
+  }
+
+  /**
+   * Returns, if a variable is the actual base of a pointer. This means that the variable is a base
+   * that is not a fake base.
+   *
+   * @param name The name of the variable.
+   * @return True, if the variable is an actual base, false otherwise.
+   * @see PointerTargetSetManager#isFakeBaseType(CType)
+   */
+  default boolean isActualBase(final String name) {
+    return isPreparedBase(name) && !PointerTargetSetManager.isFakeBaseType(getBases().get(name));
+  }
+
+  /**
+   * Checks whether the type associated with the variable is equal to the provided simplified type.
+   *
+   * @param name the name of the variable
+   * @param type the type to check the content of the bases against
+   * @return true if the type is a base type, false otherwise
+   */
+  default boolean isBaseType(String name, CType type) {
+    final CType baseType = getBases().get(name);
+    return baseType != null && baseType.equals(checkIsSimplified(type));
   }
 
   /**
@@ -54,7 +92,7 @@ interface BaseProvider {
    */
   default boolean isAliasedWithBase(
       final CIdExpression idExpression, final CType idExpressionType) {
-    return isBase(idExpression.getDeclaration().getQualifiedName(), idExpressionType)
+    return isBaseType(idExpression.getDeclaration().getQualifiedName(), idExpressionType)
         || CTypeUtils.containsArray(idExpressionType, idExpression.getDeclaration());
   }
 }

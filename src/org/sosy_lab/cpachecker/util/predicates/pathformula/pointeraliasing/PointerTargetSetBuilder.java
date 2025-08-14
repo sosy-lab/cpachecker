@@ -641,42 +641,6 @@ public interface PointerTargetSetBuilder extends BaseProvider {
       return deferredAllocations.stream().anyMatch(p -> p.getFirst().equals(pointer));
     }
 
-    /**
-     * Returns, if a variable is the actual base of a pointer.
-     *
-     * @param name The name of the variable.
-     * @return True, if the variable is an actual base, false otherwise.
-     */
-    @Override
-    public boolean isActualBase(final String name) {
-      return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
-    }
-
-    /**
-     * Returns, if a variable name is a prepared base.
-     *
-     * @param name The name of the variable.
-     * @return True, if the variable is a prepared base, false otherwise.
-     */
-    @Override
-    public boolean isPreparedBase(final String name) {
-      return bases.containsKey(name);
-    }
-
-    /**
-     * Checks, if a variable is a base of a pointer.
-     *
-     * @param name The name of the variable.
-     * @param type The type of the variable.
-     * @return True, if the variable is a base, false otherwise.
-     */
-    @Override
-    public boolean isBase(final String name, CType type) {
-      checkIsSimplified(type);
-      final CType baseType = bases.get(name);
-      return baseType != null && baseType.equals(type);
-    }
-
     @Override
     public PersistentSortedMap<String, CType> getBases() {
       return bases;
@@ -845,7 +809,7 @@ public interface PointerTargetSetBuilder extends BaseProvider {
     }
 
     @Override
-    public boolean isBase(String pName, CType pType) {
+    public boolean isBaseType(String pName, CType pType) {
       throw new UnsupportedOperationException();
     }
 
