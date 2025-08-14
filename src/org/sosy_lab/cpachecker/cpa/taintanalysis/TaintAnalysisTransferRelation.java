@@ -292,7 +292,58 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         }
       }
     }
+
+    if (newStates.size() > 1) {
+      boolean extractedStatesViolateTheProperty =
+          extractedStates.stream().anyMatch(s -> s.isTarget());
+      if (extractedStatesViolateTheProperty) {
+        // pass the property violation to the states-container
+        incomingState.setViolatesProperty();
+      }
+    }
+
+    for (TaintAnalysisState newState : newStates) {
+      checkMergeState(newState, cfaEdge);
+    }
+
     return newStates;
+  }
+
+  private void checkMergeState(TaintAnalysisState pState, CFAEdge pCfaEdge) {
+    CFANode successorNode = pCfaEdge.getSuccessor();
+
+    boolean isMergePoint = false;
+
+    if (successorNode.getNumLeavingEdges() == 1) {
+
+      for (int i = 0; i < successorNode.getNumLeavingEdges(); i++) {
+
+        CFAEdge nextLeavingEdge = successorNode.getLeavingEdge(i);
+        StatementControlFlowInfo statementControlFlowInfo =
+            new StatementControlFlowInfo(nextLeavingEdge, pState.getTaintedVariables());
+        if (!statementControlFlowInfo.isCurrentStatementInControlStructure()) {
+          isMergePoint = true;
+        } else {
+          isMergePoint = false;
+        }
+      }
+    }
+
+    isMergePoint = isMergePoint && successorNode.getNumEnteringEdges() == 2;
+
+    if (isMergePoint) {
+
+      for (int i = 0; i < successorNode.getNumEnteringEdges(); i++) {
+        CFAEdge nextEnteringEdge = successorNode.getEnteringEdge(i);
+        isMergePoint =
+            isMergePoint && nextEnteringEdge instanceof AssumeEdge
+                || nextEnteringEdge instanceof BlankEdge;
+      }
+    }
+
+    if (isMergePoint) {
+      pState.setMergePoint(true);
+    }
   }
 
   private Map<CIdExpression, CExpression> extractOneToOneMappings(
@@ -384,7 +435,105 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Set<CIdExpression> generatedVars = new HashSet<>();
     Map<CIdExpression, CExpression> values = new HashMap<>();
 
-    return generateNewState(pState, killedVars, generatedVars, values);
+    TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
+
+    StatementControlFlowInfo statementControlFlowInfo =
+        new StatementControlFlowInfo(pCfaEdge, pState.getTaintedVariables());
+
+    Optional<IfElement> outermostIfStatementForEdge =
+        statementControlFlowInfo.getIfStructuresOfCurrentStatement().stream()
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .min(
+                Comparator.comparingInt(
+                    ifElement ->
+                        ifElement.getCompleteElement().location().getStartingLineNumber()));
+
+    Optional<Loop> loopForStatement =
+        statementControlFlowInfo.getLoopForStatement(pCfaEdge.getSuccessor());
+    Loop outermostLoopForEdge = null;
+    if (loopForStatement.isPresent()) {
+      outermostLoopForEdge =
+          statementControlFlowInfo.getOutermostLoop(loopForStatement.orElseThrow());
+    }
+
+    int invalidLocationNumber = -1;
+    int startingLineNumberOfOutermostIfElementOfThisEdge = invalidLocationNumber;
+    int endingLineNumberOfOutermostIfElementOfThisEdge = invalidLocationNumber;
+    int startingLineNumberOfOutermostLoopOfThisEdge = invalidLocationNumber;
+    int endingLineNumberOfOutermostLoopOfThisEdge = invalidLocationNumber;
+
+    if (outermostIfStatementForEdge.isPresent()) {
+      startingLineNumberOfOutermostIfElementOfThisEdge =
+          outermostIfStatementForEdge
+              .orElseThrow()
+              .getCompleteElement()
+              .location()
+              .getStartingLineNumber();
+
+      endingLineNumberOfOutermostIfElementOfThisEdge =
+          outermostIfStatementForEdge
+              .orElseThrow()
+              .getCompleteElement()
+              .location()
+              .getEndingLineNumber();
+    }
+
+    if (outermostLoopForEdge != null) {
+
+      startingLineNumberOfOutermostLoopOfThisEdge =
+          outermostLoopForEdge
+              .getIncomingEdges()
+              .iterator()
+              .next()
+              .getFileLocation()
+              .getStartingLineNumber();
+
+      endingLineNumberOfOutermostLoopOfThisEdge =
+          outermostLoopForEdge.getInnerLoopEdges().stream()
+              .filter(edge -> edge.getFileLocation().isRealLocation())
+              .mapToInt(edge -> edge.getFileLocation().getEndingLineNumber())
+              .max()
+              .orElseThrow(() -> new IllegalStateException("No valid edge found"));
+    }
+
+    int startingLineNumberOfOutermostControlStructureOfThisEdge;
+    int endingLineNumberOfOutermostControlStructureOfThisEdge;
+    if (startingLineNumberOfOutermostIfElementOfThisEdge != invalidLocationNumber
+        && startingLineNumberOfOutermostLoopOfThisEdge != invalidLocationNumber
+        && endingLineNumberOfOutermostLoopOfThisEdge != invalidLocationNumber
+        && startingLineNumberOfOutermostLoopOfThisEdge
+            != endingLineNumberOfOutermostIfElementOfThisEdge) {
+
+      endingLineNumberOfOutermostControlStructureOfThisEdge =
+          Math.max(
+              endingLineNumberOfOutermostIfElementOfThisEdge,
+              endingLineNumberOfOutermostLoopOfThisEdge);
+
+    } else if (startingLineNumberOfOutermostIfElementOfThisEdge == invalidLocationNumber
+        && endingLineNumberOfOutermostIfElementOfThisEdge == invalidLocationNumber) {
+      endingLineNumberOfOutermostControlStructureOfThisEdge =
+          endingLineNumberOfOutermostLoopOfThisEdge;
+
+    } else if (startingLineNumberOfOutermostLoopOfThisEdge == invalidLocationNumber
+        && endingLineNumberOfOutermostLoopOfThisEdge == invalidLocationNumber) {
+      endingLineNumberOfOutermostControlStructureOfThisEdge =
+          endingLineNumberOfOutermostIfElementOfThisEdge;
+    } else {
+      endingLineNumberOfOutermostControlStructureOfThisEdge = invalidLocationNumber;
+    }
+
+    // filter the edges that can potentially be an if-statement, or a loop
+    if (pCfaEdge.getSuccessor().getNumEnteringEdges() == 2
+        && pCfaEdge.getSuccessor().getNumLeavingEdges() >= 1) {
+      int startingLineNumberOfLeavingEdge =
+          pCfaEdge.getSuccessor().getLeavingEdge(0).getFileLocation().getStartingLineNumber();
+
+      if (startingLineNumberOfLeavingEdge > endingLineNumberOfOutermostControlStructureOfThisEdge) {
+        newState.setMergePoint(true);
+      }
+    }
+    return newState;
   }
 
   @SuppressWarnings("unused")
