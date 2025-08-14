@@ -337,7 +337,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       for (int i = 0; i < successorNode.getNumEnteringEdges(); i++) {
         CFAEdge nextEnteringEdge = successorNode.getEnteringEdge(i);
         isMergePoint =
-            isMergePoint && nextEnteringEdge instanceof AssumeEdge
+            (isMergePoint && nextEnteringEdge instanceof AssumeEdge)
                 || nextEnteringEdge instanceof BlankEdge;
       }
     }
