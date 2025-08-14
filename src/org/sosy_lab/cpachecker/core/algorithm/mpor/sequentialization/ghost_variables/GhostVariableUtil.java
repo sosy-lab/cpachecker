@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
@@ -341,15 +340,9 @@ public class GhostVariableUtil {
             pSubstitution.getParameterSubstituteByCallContext(threadEdge, parameterDeclaration);
         FunctionParameterAssignment parameterAssignment =
             new FunctionParameterAssignment(
-                SeqStatementBuilder.buildExpressionAssignmentStatement(
-                    parameterSubstitute,
-                    pSubstitution.substitute(
-                        rightHandSide,
-                        threadEdge.callContext,
-                        false,
-                        false,
-                        false,
-                        Optional.empty())));
+                parameterSubstitute,
+                pSubstitution.substitute(
+                    rightHandSide, threadEdge.callContext, false, false, false, Optional.empty()));
         assignments.add(parameterAssignment);
       }
       rAssignments.put(threadEdge, assignments.build());
@@ -372,16 +365,15 @@ public class GhostVariableUtil {
           CExpression rightHandSide = PthreadUtil.extractStartRoutineArgument(callContext.cfaEdge);
           FunctionParameterAssignment parameterAssignment =
               new FunctionParameterAssignment(
-                  SeqStatementBuilder.buildExpressionAssignmentStatement(
-                      parameterSubstitute,
-                      pSubstitution.substitute(
-                          // the inner call context is the context in which pthread_create is called
-                          rightHandSide,
-                          callContext.callContext,
-                          false,
-                          false,
-                          false,
-                          Optional.empty())));
+                  parameterSubstitute,
+                  pSubstitution.substitute(
+                      // the inner call context is the context in which pthread_create is called
+                      rightHandSide,
+                      callContext.callContext,
+                      false,
+                      false,
+                      false,
+                      Optional.empty()));
           rAssignments.put(callContext, parameterAssignment);
         }
       }
