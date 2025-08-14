@@ -8,11 +8,11 @@
 
 format_version: '2.0'
 
-input_files: 'simpleRecursionSafe_1.c'
+input_files: 'sameAssignmentBothBranchesUnsafe.c'
 
 properties:
-  - property_file: ../../../../config/specification/information-flow.spc
-    expected_verdict: true
+  - property_file: ../../../config/specification/information-flow.spc
+    expected_verdict: false
 
 options:
   language: C
