@@ -401,7 +401,7 @@ class CExpressionVisitorWithPointerAliasing
     final CType resultType = typeHandler.getSimplifiedType(e);
 
     final String variableName = e.getDeclaration().getQualifiedName();
-    if (pts.isAliasedWithActualBase(e, resultType) || typeHandler.isLazyAliasingDisabled()) {
+    if (pts.isAliasedWithActualBaseOrLazyAliasingIsDisabled(e, typeHandler)) {
       final Formula address = conv.makeBaseAddress(variableName, resultType);
       return AliasedLocation.ofAddress(address);
     }

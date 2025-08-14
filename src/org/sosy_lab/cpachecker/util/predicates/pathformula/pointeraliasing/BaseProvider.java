@@ -95,4 +95,32 @@ interface BaseProvider {
     return isBaseType(idExpression.getDeclaration().getQualifiedName(), idExpressionType)
         || CTypeUtils.containsArray(idExpressionType, idExpression.getDeclaration());
   }
+
+  /**
+   * Checks whether the given id expression is aliased or if lazy aliasing is disabled in the
+   * options.
+   *
+   * @param idExpression the id expression to check
+   * @param idExpressionType the type of the id expression
+   * @return true if aliasing is necessary, false otherwise
+   */
+  default boolean isAliasedWithActualBaseOrLazyAliasingIsDisabled(
+      final CIdExpression idExpression, final TypeHandlerWithPointerAliasing typeHanlder) {
+    return typeHanlder.isLazyAliasingDisabled()
+        || isAliasedWithActualBase(idExpression, typeHanlder.getSimplifiedType(idExpression));
+  }
+
+  /**
+   * Checks whether the given id expression is aliased with a base type or if lazy aliasing is
+   * disabled in the options.
+   *
+   * @param idExpression the id expression to check
+   * @param idExpressionType the type of the id expression
+   * @return true if aliasing is necessary, false otherwise
+   */
+  default boolean isAliasedWithBaseTypeOrLazyAliasingIsDisabled(
+      final CIdExpression idExpression, final TypeHandlerWithPointerAliasing typeHanlder) {
+    return typeHanlder.isLazyAliasingDisabled()
+        || isAliasedWithBaseType(idExpression, typeHanlder.getSimplifiedType(idExpression));
+  }
 }

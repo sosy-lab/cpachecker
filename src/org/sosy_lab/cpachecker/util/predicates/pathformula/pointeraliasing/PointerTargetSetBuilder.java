@@ -831,6 +831,18 @@ public interface PointerTargetSetBuilder extends BaseProvider {
     }
 
     @Override
+    public boolean isAliasedWithActualBaseOrLazyAliasingIsDisabled(
+        final CIdExpression idExpression, final TypeHandlerWithPointerAliasing idExpressionType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isAliasedWithBaseTypeOrLazyAliasingIsDisabled(
+        final CIdExpression idExpression, final TypeHandlerWithPointerAliasing idExpressionType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public NavigableSet<String> getBasesNames() {
       throw new UnsupportedOperationException();
     }

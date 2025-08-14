@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCodeException> {
@@ -76,11 +75,11 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCodeEx
 
   @Override
   public Variable visit(final CIdExpression e) throws UnrecognizedCodeException {
-    CType type = typeHandler.getSimplifiedType(e);
-    if (pts.isAliasedWithActualBase(e, type) || typeHandler.isLazyAliasingDisabled()) {
+    if (pts.isAliasedWithActualBaseOrLazyAliasingIsDisabled(e, typeHandler)) {
       return null;
     }
-    lastBase = Variable.create(e.getDeclaration().getQualifiedName(), type);
+    lastBase =
+        Variable.create(e.getDeclaration().getQualifiedName(), typeHandler.getSimplifiedType(e));
     return lastBase;
   }
 
