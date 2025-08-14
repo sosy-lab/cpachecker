@@ -11,6 +11,7 @@
 int * pointer_a;
 int x = 42;
 int y = -42;
+int z = 0;
 void * start_routine(void * arg)
 {
   // pointer aliasing
@@ -24,6 +25,15 @@ void * start_routine(void * arg)
   pointer_c = pointer_b;
   int * pointer_d;
   pointer_d = &y;
+  pointer_function(pointer_a);
+}
+int pointer_function(int * param) 
+{
+  *param++;
+  int * pointer_e;
+  param = pointer_e;
+  pointer_e = &z;
+  return *param;
 }
 int main()
 {

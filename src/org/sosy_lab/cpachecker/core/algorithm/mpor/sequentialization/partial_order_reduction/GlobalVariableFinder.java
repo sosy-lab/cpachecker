@@ -18,6 +18,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -178,8 +179,6 @@ public class GlobalVariableFinder {
     return ImmutableList.of();
   }
 
-  // TODO actually use pointer parameter assignments
-  @SuppressWarnings("unused")
   private static ImmutableSet<CVariableDeclaration> extractGlobalVariablesFromStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
@@ -190,30 +189,53 @@ public class GlobalVariableFinder {
     for (SeqThreadStatement statement : pStatements) {
       for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
         // first check direct accesses on the variables themselves
-        for (CVariableDeclaration variable :
-            substituteEdge.getGlobalVariablesByAccessType(pAccessType)) {
+        ImmutableSet<CVariableDeclaration> globalAccesses =
+            substituteEdge.getGlobalVariablesByAccessType(pAccessType);
+        for (CVariableDeclaration variable : globalAccesses) {
           assert variable.isGlobal() : "CVariableDeclaration in SubstituteEdge must be global";
           rGlobalVariables.add(variable);
         }
         // then check indirect accesses via pointers that point to the variables
-        for (CSimpleDeclaration pointerDereference :
-            substituteEdge.getPointerDereferencesByAccessType(pAccessType)) {
-          if (pointerDereference instanceof CVariableDeclaration lhsVariableDeclaration) {
-            if (pPointerAssignments.containsKey(lhsVariableDeclaration)) {
-              for (CSimpleDeclaration assignedVariable :
-                  pPointerAssignments.get(lhsVariableDeclaration)) {
-                // the variables assigned to a pointer may not be global, we only filter the globals
-                if (assignedVariable instanceof CVariableDeclaration rhsVariableDeclaration) {
-                  if (rhsVariableDeclaration.isGlobal()) {
-                    rGlobalVariables.add(rhsVariableDeclaration);
-                  }
-                }
-              }
-            }
-          }
+        ImmutableSet<CSimpleDeclaration> pointerDereferences =
+            substituteEdge.getPointerDereferencesByAccessType(pAccessType);
+        for (CSimpleDeclaration pointerDereference : pointerDereferences) {
+          Set<CVariableDeclaration> globalVariables = new HashSet<>();
+          recursivelyFindGlobalVariablesByPointerDereference(
+              pointerDereference,
+              globalVariables,
+              pPointerAssignments,
+              pPointerParameterAssignments);
+          rGlobalVariables.addAll(globalVariables);
         }
       }
     }
     return rGlobalVariables.build();
+  }
+
+  /**
+   * Finds the set of {@link CVariableDeclaration}s that are associated by the given pointer
+   * dereference, i.e. the set of global variables whose addresses are at some point in the program
+   * assigned to the pointer variable / parameter.
+   */
+  private static void recursivelyFindGlobalVariablesByPointerDereference(
+      CSimpleDeclaration pCurrentDeclaration,
+      Set<CVariableDeclaration> pGlobalVariables,
+      final ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
+      final ImmutableMap<CParameterDeclaration, CSimpleDeclaration> pPointerParameterAssignments) {
+
+    if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
+      if (variableDeclaration.getType() instanceof CPointerType) {
+        for (CSimpleDeclaration rightHandSide : pPointerAssignments.get(variableDeclaration)) {
+          recursivelyFindGlobalVariablesByPointerDereference(
+              rightHandSide, pGlobalVariables, pPointerAssignments, pPointerParameterAssignments);
+        }
+      } else {
+        pGlobalVariables.add(variableDeclaration);
+      }
+    } else if (pCurrentDeclaration instanceof CParameterDeclaration parameterDeclaration) {
+      CSimpleDeclaration rightHandSide = pPointerParameterAssignments.get(parameterDeclaration);
+      recursivelyFindGlobalVariablesByPointerDereference(
+          rightHandSide, pGlobalVariables, pPointerAssignments, pPointerParameterAssignments);
+    }
   }
 }

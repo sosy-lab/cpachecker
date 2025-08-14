@@ -88,7 +88,7 @@ public class SubstituteUtil {
       if (!substituteEdge.pointerAssignment.isEmpty()) {
         assert substituteEdge.pointerAssignment.size() <= 1
             : "a single edge can have at most 1 pointer assignments";
-        Map.Entry<CVariableDeclaration, CVariableDeclaration> singleEntry =
+        Map.Entry<CVariableDeclaration, CSimpleDeclaration> singleEntry =
             substituteEdge.pointerAssignment.entrySet().iterator().next();
         initialBuilder.put(singleEntry.getKey(), singleEntry.getValue());
       }

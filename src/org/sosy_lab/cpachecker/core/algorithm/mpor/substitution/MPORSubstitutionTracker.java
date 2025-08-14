@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -36,7 +38,7 @@ public class MPORSubstitutionTracker {
   private final Set<CParameterDeclaration> accessedMainFunctionArgs;
 
   /** Pointer assignments updates to the address. */
-  private final Map<CVariableDeclaration, CVariableDeclaration> pointerAssignments;
+  private final Map<CVariableDeclaration, CSimpleDeclaration> pointerAssignments;
 
   /**
    * Accessed pointer dereferences e.g. of the form {@code x = *ptr;}. Contains both reads and
@@ -80,7 +82,7 @@ public class MPORSubstitutionTracker {
 
   private MPORSubstitutionTracker(
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
-      ImmutableMap<CVariableDeclaration, CVariableDeclaration> pPointerAssignments,
+      ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
       ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
@@ -129,8 +131,11 @@ public class MPORSubstitutionTracker {
   }
 
   public void addPointerAssignment(
-      CVariableDeclaration pLeftHandSide, CVariableDeclaration pRightHandSide) {
+      CVariableDeclaration pLeftHandSide, CSimpleDeclaration pRightHandSide) {
 
+    checkArgument(
+        !(pRightHandSide instanceof CFunctionDeclaration),
+        "pRightHandSide cannot be CFunctionDeclaration");
     pointerAssignments.put(pLeftHandSide, pRightHandSide);
   }
 
@@ -163,9 +168,9 @@ public class MPORSubstitutionTracker {
     return ImmutableSet.copyOf(accessedMainFunctionArgs);
   }
 
-  public ImmutableMap<CVariableDeclaration, CVariableDeclaration> getPointerAssignments() {
+  public ImmutableMap<CVariableDeclaration, CSimpleDeclaration> getPointerAssignments() {
     if (pointerAssignments
-        instanceof ImmutableMap<CVariableDeclaration, CVariableDeclaration> immutableMap) {
+        instanceof ImmutableMap<CVariableDeclaration, CSimpleDeclaration> immutableMap) {
       return immutableMap;
     }
     return ImmutableMap.copyOf(pointerAssignments);

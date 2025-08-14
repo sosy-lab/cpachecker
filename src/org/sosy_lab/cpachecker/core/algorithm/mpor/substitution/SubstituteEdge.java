@@ -30,7 +30,7 @@ public class SubstituteEdge {
 
   public final ImmutableSet<CParameterDeclaration> accessedMainFunctionArgs;
 
-  public final ImmutableMap<CVariableDeclaration, CVariableDeclaration> pointerAssignment;
+  public final ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pointerAssignment;
 
   /** The set of accessed pointer derefs i.e. reads and writes. */
   public final ImmutableSet<CSimpleDeclaration> accessedPointerDereferences;
@@ -54,7 +54,7 @@ public class SubstituteEdge {
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
-      ImmutableMap<CVariableDeclaration, CVariableDeclaration> pPointerAssignment,
+      ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignment,
       ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
       ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,

@@ -80,6 +80,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
 
     CStatement bStatement = ((CStatementEdge) pStatementB.cfaEdge).getStatement();
     if (bStatement instanceof CExpressionStatement expressionStatement) {
+      // TODO this may also be pointer expression when dereferencing: '*ptr++;'
       CIdExpression idExpressionB = (CIdExpression) expressionStatement.getExpression();
       CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
       checkArgument(
