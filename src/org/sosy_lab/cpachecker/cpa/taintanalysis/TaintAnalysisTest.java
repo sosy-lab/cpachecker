@@ -275,7 +275,8 @@ public class TaintAnalysisTest {
 
   @Test
   public void testNestedTernaryOperatorSafe_implicitTaint_1() throws Exception {
-    TestResults results = runCPAchecker("nestedTernaryOperatorSafe_implicitTaint_1.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("nestedTernaryOperatorSafe_implicitTaint_1.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
@@ -288,7 +289,8 @@ public class TaintAnalysisTest {
 
   @Test
   public void testNestedTernaryOperatorSafe_implicitTaint_2() throws Exception {
-    TestResults results = runCPAchecker("nestedTernaryOperatorSafe_implicitTaint_2.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("nestedTernaryOperatorSafe_implicitTaint_2.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
@@ -809,8 +811,20 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testWhileLoopUnsafe_nested_2() throws Exception {
-    TestResults results = runCPAchecker("whileLoopUnsafe_nested_2.c", "");
+  public void testWhileLoopUnsafe_nested_2_1() throws Exception {
+    TestResults results = runCPAchecker("whileLoopUnsafe_nested_2_1.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testWhileLoopUnsafe_nested_2_2() throws Exception {
+    TestResults results = runCPAchecker("whileLoopUnsafe_nested_2_2.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testWhileLoopUnsafe_nested_2_3() throws Exception {
+    TestResults results = runCPAchecker("whileLoopUnsafe_nested_2_3.c", "");
     results.assertIsUnsafe();
   }
 
@@ -1260,14 +1274,12 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testEntwurfSafe() throws Exception {
     TestResults results = runCPAchecker("entwurfSafe.c", "");
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testEntwurfUnsafe() throws Exception {
     TestResults results = runCPAchecker("entwurfUnsafe.c", "");

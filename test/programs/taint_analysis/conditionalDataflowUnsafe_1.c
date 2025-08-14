@@ -18,24 +18,13 @@ int main() {
     int y = 0;
     int z = 0;
 
-    int condition = (x > 0);
-
-    // conditional data-flow paths
-    if (condition) {
-        y = x; // Tainted data flows into y
+    if (x) {
+        y = x; // t(y) = t(x) = T
     } else {
-        z = x; // Tainted data flows into z
+        z = x; // t(z) = t(x) = T
     }
 
-    // equivalent to (see taintByConditionalTernaryOperator*.c):
-    // y = condition ? x : y;
-    // z = condition ? x : z;
+    int w = y + z; // t(w) = t(y) + t(z) = T + T = T
 
-    // By uncertainty about the truth value of the condition, both branches should be explored.
-    // w contains then the taint status of the union of the taint status of y and z.
-    // Therefore, w is expected to be tainted
-    int w = y + z;
-
-    // Information-flow violation expected
     __VERIFIER_is_public(w, 1);
 }

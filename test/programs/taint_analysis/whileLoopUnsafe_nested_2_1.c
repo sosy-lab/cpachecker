@@ -21,12 +21,10 @@ int main() {
             b++;
 
             while (tainted) {
-                a = tainted; // unreachable statement
+                a = tainted;
             }
         }
     }
 
-    // t(a) = U
-    // a is expected to be private
-    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(a, 0);
 }

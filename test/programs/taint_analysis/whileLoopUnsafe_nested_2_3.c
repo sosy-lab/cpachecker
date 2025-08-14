@@ -26,11 +26,5 @@ int main() {
         }
     }
 
-    // because of the two inner loops being unreachable b and a
-    // remain untainted
-    __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(b, 1);
-
-    // tainted does not become sanitized, because of implicit taint flow
-    __VERIFIER_is_public(tainted, 0);
+    __VERIFIER_is_public(tainted, 1);
 }

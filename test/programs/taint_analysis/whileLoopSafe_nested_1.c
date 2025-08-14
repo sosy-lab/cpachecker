@@ -18,17 +18,17 @@ int main() {
         tainted++;
 
         while (tainted < b) {
-            b++;
+            b++;              // t(b) = t(tainted) + t(b) = T +U = T
 
             while (tainted) {
-                a = tainted; // t(a) = t(tainted) = T
+                a = tainted;  // t(a) = t(tainted) + t(b) = T + T = T
             }
-            // t(a) = U + T = T
         }
     }
 
-    // t(a) = T
-
-    // the taint of a is expected to be recognized in the inner nested loop
+    // t(a) = T -> implicit taint propagation
     __VERIFIER_is_public(a, 0);
+
+    // t(b) = T -> explicit taint propagation
+    __VERIFIER_is_public(b, 0);
 }
