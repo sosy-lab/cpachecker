@@ -9,12 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -54,67 +51,76 @@ public class TaintAnalysisUtils {
   }
 
   public static Collection<TaintAnalysisState> getStatesWithSingeValueMapping(
-      TaintAnalysisState pState) {
+      TaintAnalysisState joinState) {
 
     Map<CIdExpression, List<CExpression>> evaluatedValuesWithMultipleMapping =
-        pState.getEvaluatedValues();
-
-    Set<Map<CIdExpression, List<CExpression>>> mapsWithSingleValueMapping = new HashSet<>();
-    Collection<TaintAnalysisState> states = new HashSet<>();
+        joinState.getEvaluatedValues();
 
     int numberOfMergedStates = 0;
-    for (List<CExpression> mappedValues : evaluatedValuesWithMultipleMapping.values()) {
-      numberOfMergedStates = Math.max(numberOfMergedStates, mappedValues.size());
+
+    if (!evaluatedValuesWithMultipleMapping.isEmpty()) {
+      numberOfMergedStates = evaluatedValuesWithMultipleMapping.values().iterator().next().size();
     }
 
     if (numberOfMergedStates <= 1) {
-      return ImmutableList.of(pState);
+      return ImmutableList.of(joinState);
     }
 
-    for (int i = 0; i < numberOfMergedStates; i++) {
+    Collection<TaintAnalysisState> originalStates = new HashSet<>();
 
-      Map<CIdExpression, List<CExpression>> singleValueMap = new HashMap<>();
+    if (numberOfMergedStates == 2) {
 
-      for (Map.Entry<CIdExpression, List<CExpression>> entry :
-          evaluatedValuesWithMultipleMapping.entrySet()) {
+      originalStates.addAll(joinState.getPredecessors());
+    } else {
 
-        CIdExpression variable = entry.getKey();
-        List<CExpression> values = entry.getValue();
-
-        int index = 0;
-        for (CExpression value : values) {
-          // Use the ith element if it exists
-          if (index == i) {
-            List<CExpression> valueList = new ArrayList<>();
-            valueList.add(value);
-            singleValueMap.put(variable, valueList);
-            break;
-          }
-          index++;
-        }
-
-        if (!singleValueMap.containsKey(variable)) {
-          throw new IllegalStateException(
-              "At this point the variable " + variable + " should exist");
-        }
+      for (TaintAnalysisState predecessor : joinState.getPredecessors()) {
+        originalStates.addAll(getStatesWithSingeValueMapping(predecessor));
       }
-
-      mapsWithSingleValueMapping.add(singleValueMap);
     }
 
-    for (Map<CIdExpression, List<CExpression>> map : mapsWithSingleValueMapping) {
-      TaintAnalysisState reconstructedState =
+    return updateTaintForStates(originalStates, joinState);
+  }
+
+  private static Collection<TaintAnalysisState> updateTaintForStates(
+      Collection<TaintAnalysisState> statesWithOutdatedTaint,
+      TaintAnalysisState stateWithUpdatedTaint) {
+
+    Collection<TaintAnalysisState> updatedStates = new HashSet<>();
+
+    for (TaintAnalysisState outdatedState : statesWithOutdatedTaint) {
+
+      Set<CIdExpression> taintedVariables =
+          new HashSet<>(stateWithUpdatedTaint.getTaintedVariables());
+      taintedVariables.removeIf(var -> !outdatedState.getEvaluatedValues().containsKey(var));
+
+      Set<CIdExpression> untaintedVariables =
+          new HashSet<>(stateWithUpdatedTaint.getUntaintedVariables());
+      untaintedVariables.removeIf(var -> !outdatedState.getEvaluatedValues().containsKey(var));
+
+      TaintAnalysisState updatedState =
           new TaintAnalysisState(
-              pState.getTaintedVariables(),
-              pState.getUntaintedVariables(),
-              map,
-              ImmutableSet.of(pState));
-      if (pState.isTarget()) {
-        reconstructedState.setViolatesProperty();
+              taintedVariables,
+              untaintedVariables,
+              outdatedState.getEvaluatedValues(),
+              Set.of(stateWithUpdatedTaint));
+
+      updatedState
+          .getNonTrivialPathStartStates()
+          .removeIf(
+              inheritedPathStartState ->
+                  !inheritedPathStartState.isContainedIn(
+                      outdatedState.getNonTrivialPathStartStates()));
+
+      if (outdatedState.isPathStart()
+          && !outdatedState.isContainedIn(updatedState.getNonTrivialPathStartStates())) {
+
+        updatedState.getNonTrivialPathStartStates().add(outdatedState);
       }
-      states.add(reconstructedState);
+
+      updatedStates.add(updatedState);
     }
-    return states;
+
+    return updatedStates;
   }
 
   public static CIdExpression getCidExpressionForCVarDec(CVariableDeclaration pDec) {
