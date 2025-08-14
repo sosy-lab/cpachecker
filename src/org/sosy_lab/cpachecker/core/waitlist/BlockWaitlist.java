@@ -398,19 +398,7 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private boolean isEmptyMap() {
-    if (activeBlocksMap.isEmpty()) {
-      return true;
-    }
-    // fast detection if last block is not empty
-    Entry<BKey, Block> highestEntry = activeBlocksMap.lastEntry();
-    if (!highestEntry.getValue().isEmpty()) {
-      return false;
-    }
-
-    // slow path
-
-    for (BKey key : activeBlocksMap.descendingKeySet()) {
-      Block b = activeBlocksMap.get(key);
+    for (Block b : activeBlocksMap.descendingMap().values()) {
       if (!b.isEmpty()) {
         return false;
       }
