@@ -1152,8 +1152,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     private void initialize() {
 
       optionalLoopOfCurrentStatement = getLoopForStatement(cfaEdge.getPredecessor());
-      optionalIfStructureOfCurrentStatement =
-          getIfStructureOfCurrentStatement(cfaEdge.getFileLocation());
+      optionalIfStructureOfCurrentStatement = getIfStructuresOfCurrentStatement();
 
       if (cfaEdge instanceof CStatementEdge) {
         isInTernaryExpression = isTmpPartOfTernaryExpressionAssignment((AStatementEdge) cfaEdge);
