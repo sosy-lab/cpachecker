@@ -1319,7 +1319,16 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       return result;
     }
 
-    private Set<Optional<IfElement>> getIfStructureOfCurrentStatement(FileLocation fileLocation) {
+    /**
+     * Retrieves the set of {@code IfElement} structures that encapsulate the provided statement
+     * represented by the specified file location. This includes all `if` structures where the
+     * current statement is fully enclosed within their boundaries.
+     *
+     * @return a set of optional {@code IfElement} objects that represent the `if` structures
+     *     enclosing the given statement
+     */
+    private Set<Optional<IfElement>> getIfStructuresOfCurrentStatement() {
+      FileLocation fileLocation = cfaEdge.getFileLocation();
       Set<Optional<IfElement>> ifStructures = new HashSet<>();
       assert ifElements != null;
       for (IfElement ifElement : ifElements) {
