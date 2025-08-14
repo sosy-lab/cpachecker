@@ -405,6 +405,74 @@ public class TaintAnalysisState
     return this.violatesProperty;
   }
 
+  public TaintAnalysisState joinThisStateWithNextMergePointStates() {
+
+    if (mergePoints.size() > 1) {
+
+      List<TaintAnalysisState> allOtherPathStarts = new ArrayList<>(allPathStartStates);
+
+      allOtherPathStarts.removeIf(s -> s.isContainedIn(this.nonTrivialPathStartStates));
+
+      boolean allOtherPathsWereExplored = false;
+      if (!allOtherPathStarts.isEmpty()) {
+        // when a path start state has successors, it was already explored
+        allOtherPathsWereExplored =
+            allOtherPathStarts.stream().noneMatch(s -> s.successors.isEmpty());
+      }
+
+      if (allOtherPathsWereExplored) {
+
+        if (mergePoints.size() > 1) {
+
+          // collect the merge point states and states with property violation that have the same or
+          // less number of non-trivial path start states than this merge point. (i.e., that is
+          // before the next merge point)
+          List<TaintAnalysisState> nextMergePointStates =
+              new ArrayList<>(
+                  targetStates.stream()
+                      .filter(
+                          s ->
+                              s.nonTrivialPathStartStates.size()
+                                  <= this.nonTrivialPathStartStates.size())
+                      .toList());
+
+          nextMergePointStates.addAll(mergePoints);
+          nextMergePointStates.removeIf(
+              s -> s.nonTrivialPathStartStates.size() > this.nonTrivialPathStartStates.size());
+
+          TaintAnalysisState bigJoin = joinAllStates(nextMergePointStates);
+
+          // Consume the merge points
+          for (TaintAnalysisState nextMergePointState : nextMergePointStates) {
+            nextMergePointState.setMergePoint(false);
+          }
+
+          return bigJoin;
+        }
+      }
+    }
+    return this;
+  }
+
+  private TaintAnalysisState joinAllStates(List<TaintAnalysisState> pStatesToJoin) {
+
+    if (pStatesToJoin.size() <= 1) {
+      throw new AssertionError("At this point there should be at least two merge points");
+    }
+
+    try {
+      TaintAnalysisState joinedState = pStatesToJoin.get(0);
+
+      for (int i = 1; i < pStatesToJoin.size(); i++) {
+        joinedState = joinedState.join(pStatesToJoin.get(i));
+      }
+
+      return joinedState;
+    } catch (CPAException | InterruptedException e) {
+      throw new RuntimeException("Failed to join states: " + e.getMessage(), e);
+    }
+  }
+
   @Override
   public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     if (isTarget()) {

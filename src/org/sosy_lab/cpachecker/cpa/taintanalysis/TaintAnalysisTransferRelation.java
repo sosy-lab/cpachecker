@@ -196,6 +196,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       throw new CPATransferException("state has the wrong format");
     }
 
+    if (incomingState.isMergePoint()) {
+      incomingState = incomingState.joinThisStateWithNextMergePointStates();
+    }
+
     Collection<TaintAnalysisState> extractedStates =
         TaintAnalysisUtils.getStatesWithSingeValueMapping(incomingState);
     Collection<TaintAnalysisState> newStates = new ArrayList<>();
