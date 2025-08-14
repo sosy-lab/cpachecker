@@ -594,14 +594,13 @@ public class MPORSubstitution {
    * Note that these are not {@link CParameterDeclaration} but {@link CVariableDeclaration} because
    * they are treated as variables in the sequentialization (cf. inlining functions).
    */
-  public ImmutableList<CVariableDeclaration> getParameterDeclarations() {
-    ImmutableList.Builder<CVariableDeclaration> rParameterDeclarations = ImmutableList.builder();
+  public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
+    ImmutableList.Builder<CParameterDeclaration> rParameterDeclarations = ImmutableList.builder();
     for (ImmutableMap<CParameterDeclaration, CIdExpression> substitutes :
         parameterSubstitutes.values()) {
       for (CIdExpression parameter : substitutes.values()) {
-        CVariableDeclaration declaration =
-            castTo(parameter.getDeclaration(), CVariableDeclaration.class);
-        rParameterDeclarations.add(declaration);
+        checkArgument(parameter.getDeclaration() instanceof CParameterDeclaration);
+        rParameterDeclarations.add((CParameterDeclaration) parameter.getDeclaration());
       }
     }
     return rParameterDeclarations.build();

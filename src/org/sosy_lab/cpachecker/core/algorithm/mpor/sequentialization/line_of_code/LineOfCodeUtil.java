@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
@@ -168,11 +170,12 @@ public class LineOfCodeUtil {
       rParameterDeclarations.add(LineOfCode.of(SeqComment.PARAMETER_VAR_SUBSTITUTES));
     }
     for (MPORSubstitution substitution : pSubstitutions) {
-      ImmutableList<CVariableDeclaration> parameterDeclarations =
+      ImmutableList<CParameterDeclaration> parameterDeclarations =
           substitution.getParameterDeclarations();
-      for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
+      for (CParameterDeclaration parameterDeclaration : parameterDeclarations) {
         if (!PthreadUtil.isPthreadObjectType(parameterDeclaration.getType())) {
-          rParameterDeclarations.add(LineOfCodeUtil.buildLineOfCode(parameterDeclaration));
+          // CParameterDeclarations require addition semicolon
+          rParameterDeclarations.add(LineOfCode.of(parameterDeclaration.toASTString() + SeqSyntax.SEMICOLON));
         }
       }
     }

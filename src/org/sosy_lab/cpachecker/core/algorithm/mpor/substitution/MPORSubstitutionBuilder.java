@@ -221,10 +221,11 @@ public class MPORSubstitutionBuilder {
               pFunctionDeclaration.getOrigName(),
               pCallNumber);
       // we use variable declarations for parameters in the sequentialization
-      CVariableDeclaration variableDeclaration =
-          substituteVariableDeclaration(parameterDeclaration.asVariableDeclaration(), varName);
+      CParameterDeclaration substituteParameterDeclaration =
+          substituteParameterDeclaration(parameterDeclaration, varName);
       substitutes.put(
-          parameterDeclaration, SeqExpressionBuilder.buildIdExpression(variableDeclaration));
+          parameterDeclaration,
+          SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration));
     }
     return substitutes.buildOrThrow();
   }
@@ -481,5 +482,11 @@ public class MPORSubstitutionBuilder {
         pOriginal.getOrigName(),
         pOriginal.getQualifiedName(), // TODO funcName::name but not relevant for seq
         pInitExpression);
+  }
+
+  private static CParameterDeclaration substituteParameterDeclaration(
+      CParameterDeclaration pOriginal, String pName) {
+
+    return new CParameterDeclaration(pOriginal.getFileLocation(), pOriginal.getType(), pName);
   }
 }
