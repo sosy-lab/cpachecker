@@ -173,4 +173,8 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   public boolean onlyWritesPc() {
     return false;
   }
+
+  public CVariableDeclaration getVariableDeclaration() {
+    return variableDeclaration;
+  }
 }

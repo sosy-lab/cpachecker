@@ -39,7 +39,7 @@ int pointer_function(int * param)
   pointer_e = &z;
   *pointer_e = 100;
   int * pointer_f = pointer_a;
-  //*pointer_f = 7;
+  *pointer_f = 7;
   return *param;
 }
 int main()

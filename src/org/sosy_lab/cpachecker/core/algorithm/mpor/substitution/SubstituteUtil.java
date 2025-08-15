@@ -81,23 +81,14 @@ public class SubstituteUtil {
   public static ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>
       mapPointerAssignments(ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
-    // step 1: map pointers to memory locations assigned to them, including other pointers
     ImmutableSetMultimap.Builder<CVariableDeclaration, CSimpleDeclaration> rPointerAssignments =
         ImmutableSetMultimap.builder();
     for (MPORThread thread : pClauses.keySet()) {
       for (SeqThreadStatementClause clause : pClauses.get(thread)) {
         for (SeqThreadStatement statement : clause.getAllStatements()) {
-          // pointer assignments from thread creations (= ghost statement by sequentialization)
-          /*if (statement instanceof SeqThreadCreationStatement threadCreation) {
-            FunctionParameterAssignment argAssignment = threadCreation.getStartRoutineArgAssignment();
-            assert argAssignment.isPointer()
-                : "start_routine arg assignments must be pointer assignments";
-            if (argAssignment.)
-          }*/
-          // "normal" pointer assignments from statements
           for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
             if (!substituteEdge.pointerAssignment.isEmpty()) {
-              assert substituteEdge.pointerAssignment.size() <= 1
+              assert substituteEdge.pointerAssignment.size() == 1
                   : "a single edge can have at most 1 pointer assignments";
               Map.Entry<CVariableDeclaration, CSimpleDeclaration> singleEntry =
                   substituteEdge.pointerAssignment.entrySet().iterator().next();

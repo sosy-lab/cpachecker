@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -46,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -114,12 +117,14 @@ public class MPORSubstitution {
     logger = pLogger;
   }
 
+  // Tracker Functions =============================================================================
+
   /**
    * If applicable, adds the {@link CVariableDeclaration} of {@code pIdExpression} to the respective
    * sets. {@code pIsWrite} is used to determine whether the expression to substitute is written,
    * i.e. a LHS in an assignment.
    */
-  private void handleGlobalVariableAccesses(
+  private void trackGlobalVariableAccesses(
       CIdExpression pIdExpression,
       boolean pIsWrite,
       boolean pIsPointerDereference,
@@ -148,7 +153,7 @@ public class MPORSubstitution {
     }
   }
 
-  private void handleGlobalVariableAccessedInLocalVariableDeclaration(
+  private void trackGlobalVariableAccessedInLocalVariableDeclaration(
       LocalVariableDeclarationSubstitute pLocalSubstitute,
       Optional<MPORSubstitutionTracker> pTracker) {
 
@@ -160,7 +165,7 @@ public class MPORSubstitution {
     }
   }
 
-  private void handleAccessedMainFunctionArg(
+  private void trackMainFunctionArg(
       CParameterDeclaration pMainFunctionArg, Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pTracker.isEmpty()) {
@@ -169,7 +174,7 @@ public class MPORSubstitution {
     pTracker.orElseThrow().addAccessedMainFunctionArg(pMainFunctionArg);
   }
 
-  private void handlePointerAssignment(
+  private void trackPointerAssignment(
       CExpressionAssignmentStatement pAssignment, Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pTracker.isEmpty()) {
@@ -180,31 +185,33 @@ public class MPORSubstitution {
       if (lhsId.getDeclaration() instanceof CVariableDeclaration lhsDeclaration) {
         if (lhsDeclaration.getType() instanceof CPointerType) {
           CExpression rightHandSide = pAssignment.getRightHandSide();
-          // unary expression i.e. 'ptr = &var'
-          if (rightHandSide instanceof CUnaryExpression unaryExpression) {
-            if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-              if (unaryExpression.getOperand() instanceof CIdExpression rhsId) {
-                if (isSubstitutable(rhsId.getDeclaration())) {
-                  pTracker
-                      .orElseThrow()
-                      .addPointerAssignment(lhsDeclaration, rhsId.getDeclaration());
-                }
-              }
-            }
-            // id expression i.e. another pointer assigned to the pointer 'ptr_a = ptr_b;'
-          } else if (rightHandSide instanceof CIdExpression rhsId) {
-            if (isSubstitutable(rhsId.getDeclaration())) {
-              if (rhsId.getDeclaration().getType() instanceof CPointerType) {
-                pTracker.orElseThrow().addPointerAssignment(lhsDeclaration, rhsId.getDeclaration());
-              }
-            }
-            // cast expression e.g. 'ptr = (int *) arg;'
-          } else if (rightHandSide instanceof CCastExpression castExpression) {
-            if (castExpression.getCastType() instanceof CPointerType) {
-              if (castExpression.getOperand() instanceof CIdExpression rhsId) {
-                pTracker.orElseThrow().addPointerAssignment(lhsDeclaration, rhsId.getDeclaration());
-              }
-            }
+          Optional<CSimpleDeclaration> pointerDeclaration =
+              MPORUtil.tryGetPointerDeclaration(rightHandSide);
+          if (pointerDeclaration.isPresent()) {
+            pTracker
+                .orElseThrow()
+                .addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
+          }
+        }
+      }
+    }
+  }
+
+  private void trackPointerAssignmentInVariableDeclaration(
+      CVariableDeclaration pVariableDeclaration, Optional<MPORSubstitutionTracker> pTracker) {
+
+    if (pTracker.isEmpty()) {
+      return;
+    }
+    if (pVariableDeclaration.getType() instanceof CPointerType) {
+      CInitializer initializer = pVariableDeclaration.getInitializer();
+      if (initializer instanceof CInitializerExpression initializerExpression) {
+        Optional<CSimpleDeclaration> initializerDeclaration =
+            MPORUtil.tryGetPointerDeclaration(initializerExpression.getExpression());
+        if (initializerDeclaration.isPresent()) {
+          CSimpleDeclaration pointerDeclaration = initializerDeclaration.orElseThrow();
+          if (isSubstitutable(pointerDeclaration)) {
+            pTracker.orElseThrow().addPointerAssignment(pVariableDeclaration, pointerDeclaration);
           }
         }
       }
@@ -212,7 +219,7 @@ public class MPORSubstitution {
   }
 
   // TODO also need CFieldReference, CArraySubscriptExpression here
-  private void handlePointerDereference(
+  private void trackPointerDereference(
       CPointerExpression pPointerExpression,
       boolean pIsWrite,
       Optional<MPORSubstitutionTracker> pTracker) {
@@ -229,6 +236,8 @@ public class MPORSubstitution {
       }
     }
   }
+
+  // Substitute Functions ==========================================================================
 
   /**
    * Substitutes the given expression, and tracks if any global variable was substituted alongside
@@ -256,7 +265,7 @@ public class MPORSubstitution {
     if (pExpression instanceof CIdExpression idExpression) {
       CSimpleDeclaration declaration = idExpression.getDeclaration();
       if (isSubstitutable(declaration)) {
-        handleGlobalVariableAccesses(idExpression, pIsWrite, pIsPointerDereference, pTracker);
+        trackGlobalVariableAccesses(idExpression, pIsWrite, pIsPointerDereference, pTracker);
         return getVariableSubstitute(idExpression.getDeclaration(), pCallContext, pTracker);
       }
       // when accessing function pointers e.g. &func. this is also possible without the unary amper
@@ -347,7 +356,7 @@ public class MPORSubstitution {
           unary.getOperator());
 
     } else if (pExpression instanceof CPointerExpression pointer) {
-      handlePointerDereference(pointer, pIsWrite, pTracker);
+      trackPointerDereference(pointer, pIsWrite, pTracker);
       return new CPointerExpression(
           pointer.getFileLocation(),
           pointer.getExpressionType(),
@@ -409,7 +418,7 @@ public class MPORSubstitution {
 
       // e.g. int x = 42;
     } else if (pStatement instanceof CExpressionAssignmentStatement assignment) {
-      handlePointerAssignment(assignment, pTracker);
+      trackPointerAssignment(assignment, pTracker);
       CLeftHandSide leftHandSide = assignment.getLeftHandSide();
       CExpression rightHandSide = assignment.getRightHandSide();
       CExpression substitute = substitute(leftHandSide, pCallContext, true, false, false, pTracker);
@@ -489,7 +498,7 @@ public class MPORSubstitution {
             Objects.requireNonNull(localSubstitutes.get(variableDeclaration));
         ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes =
             Objects.requireNonNull(localSubstitute.substitutes);
-        handleGlobalVariableAccessedInLocalVariableDeclaration(localSubstitute, pTracker);
+        trackGlobalVariableAccessedInLocalVariableDeclaration(localSubstitute, pTracker);
         return Objects.requireNonNull(substitutes.get(pCallContext));
       } else {
         checkArgument(
@@ -502,7 +511,7 @@ public class MPORSubstitution {
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       if (pCallContext.isEmpty()) {
         // no call context -> main function argument
-        handleAccessedMainFunctionArg(parameterDeclaration, pTracker);
+        trackMainFunctionArg(parameterDeclaration, pTracker);
         return mainFunctionArgSubstitutes.get(parameterDeclaration);
       }
       // normal function called within thread, including start_routines, always have call context
@@ -549,12 +558,14 @@ public class MPORSubstitution {
         "parameter declaration could not be found for given call context");
   }
 
-  public CVariableDeclaration getLocalVariableDeclarationSubstitute(
-      CVariableDeclaration pLocalDeclaration,
+  public CVariableDeclaration getVariableDeclarationSubstitute(
+      CVariableDeclaration pVariableDeclaration,
       Optional<ThreadEdge> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
 
-    CIdExpression idExpression = getVariableSubstitute(pLocalDeclaration, pCallContext, pTracker);
+    trackPointerAssignmentInVariableDeclaration(pVariableDeclaration, pTracker);
+    CIdExpression idExpression =
+        getVariableSubstitute(pVariableDeclaration, pCallContext, pTracker);
     return (CVariableDeclaration) idExpression.getDeclaration();
   }
 

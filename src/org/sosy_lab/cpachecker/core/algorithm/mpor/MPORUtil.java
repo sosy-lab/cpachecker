@@ -18,10 +18,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -29,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -264,7 +270,7 @@ public final class MPORUtil {
     return false;
   }
 
-  // Function Pointers =============================================================================
+  // Pointers ======================================================================================
 
   public static boolean isFunctionPointer(CInitializer pInitializer) {
     if (pInitializer instanceof CInitializerExpression initializerExpression) {
@@ -275,6 +281,34 @@ public final class MPORUtil {
       }
     }
     return false;
+  }
+
+  /**
+   * Extracts the {@link CSimpleDeclaration} of {@code pExpression}, if it is a pointer, or returns
+   * {@link Optional#empty()} otherwise.
+   */
+  public static Optional<CSimpleDeclaration> tryGetPointerDeclaration(CExpression pExpression) {
+    // unary expression i.e. 'ptr = &var;'
+    if (pExpression instanceof CUnaryExpression unaryExpression) {
+      if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+        if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
+          return Optional.of(idExpression.getDeclaration());
+        }
+      }
+      // id expression i.e. another pointer assigned to the pointer 'ptr_a = ptr_b;'
+    } else if (pExpression instanceof CIdExpression idExpression) {
+      if (idExpression.getDeclaration().getType() instanceof CPointerType) {
+        return Optional.of(idExpression.getDeclaration());
+      }
+      // cast expression e.g. 'ptr = (int *) arg;'
+    } else if (pExpression instanceof CCastExpression castExpression) {
+      if (castExpression.getCastType() instanceof CPointerType) {
+        if (castExpression.getOperand() instanceof CIdExpression idExpression) {
+          return Optional.of(idExpression.getDeclaration());
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   // Collections ===================================================================================

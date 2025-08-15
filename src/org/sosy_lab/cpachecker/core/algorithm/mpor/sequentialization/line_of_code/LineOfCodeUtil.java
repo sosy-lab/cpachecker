@@ -357,6 +357,7 @@ public class LineOfCodeUtil {
             pBinaryExpressionBuilder,
             pLogger);
     // TODO don't call this method twice but pass parameter
+    //  (also make optional, only required with bitvectors)
     ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments =
         SubstituteUtil.mapPointerAssignments(clauses);
     SeqMainFunction mainFunction =
