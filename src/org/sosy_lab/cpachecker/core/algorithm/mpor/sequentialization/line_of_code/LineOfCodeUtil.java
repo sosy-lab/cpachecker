@@ -358,7 +358,7 @@ public class LineOfCodeUtil {
             pLogger);
     // TODO don't call this method twice but pass parameter
     ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments =
-        SubstituteUtil.mapPointerAssignments(pSubstituteEdges.values());
+        SubstituteUtil.mapPointerAssignments(clauses);
     SeqMainFunction mainFunction =
         new SeqMainFunction(
             pOptions,

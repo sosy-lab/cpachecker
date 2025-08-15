@@ -180,7 +180,7 @@ public class MPORSubstitution {
       if (lhsId.getDeclaration() instanceof CVariableDeclaration lhsDeclaration) {
         if (lhsDeclaration.getType() instanceof CPointerType) {
           CExpression rightHandSide = pAssignment.getRightHandSide();
-          // unary expression i.e. '&var'
+          // unary expression i.e. 'ptr = &var'
           if (rightHandSide instanceof CUnaryExpression unaryExpression) {
             if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
               if (unaryExpression.getOperand() instanceof CIdExpression rhsId) {
@@ -191,10 +191,17 @@ public class MPORSubstitution {
                 }
               }
             }
-            // id expression i.e. another pointer assigned to the pointer
+            // id expression i.e. another pointer assigned to the pointer 'ptr_a = ptr_b;'
           } else if (rightHandSide instanceof CIdExpression rhsId) {
             if (isSubstitutable(rhsId.getDeclaration())) {
               if (rhsId.getDeclaration().getType() instanceof CPointerType) {
+                pTracker.orElseThrow().addPointerAssignment(lhsDeclaration, rhsId.getDeclaration());
+              }
+            }
+            // cast expression e.g. 'ptr = (int *) arg;'
+          } else if (rightHandSide instanceof CCastExpression castExpression) {
+            if (castExpression.getCastType() instanceof CPointerType) {
+              if (castExpression.getOperand() instanceof CIdExpression rhsId) {
                 pTracker.orElseThrow().addPointerAssignment(lhsDeclaration, rhsId.getDeclaration());
               }
             }

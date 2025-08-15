@@ -73,7 +73,6 @@ public class SeqThreadStatementClauseBuilder {
             pOptions,
             pBitVectorVariables,
             pPcVariables,
-            pSubstituteEdges.values(),
             atomicBlocks,
             pBinaryExpressionBuilder,
             pLogger);

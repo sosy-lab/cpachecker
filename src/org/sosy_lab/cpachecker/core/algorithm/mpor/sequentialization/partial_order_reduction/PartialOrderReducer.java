@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
@@ -23,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -39,7 +37,6 @@ public class PartialOrderReducer {
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -47,7 +44,7 @@ public class PartialOrderReducer {
 
     if (pOptions.linkReduction) {
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments =
-          SubstituteUtil.mapPointerAssignments(pSubstituteEdges);
+          SubstituteUtil.mapPointerAssignments(pClauses);
       ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
           pointerParameterAssignments =
               SeqThreadStatementClauseUtil.mapPointerParameterAssignments(pClauses);

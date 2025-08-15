@@ -12,8 +12,12 @@ int * pointer_a;
 int x = 42;
 int y = -42;
 int z = 0;
+int yy = 10;
 void * start_routine(void * arg)
 {
+  int * pointer_arg;
+  pointer_arg = (int *)arg;
+  *pointer_arg = 11;
   // pointer aliasing
   pointer_a = &x;
   int * pointer_b;
@@ -33,12 +37,16 @@ int pointer_function(int * param)
   int * pointer_e;
   param = pointer_e;
   pointer_e = &z;
+  *pointer_e = 100;
+  int * pointer_f = pointer_a;
+  //*pointer_f = 7;
   return *param;
 }
 int main()
 {
-  pthread_t t1;
-  pthread_create(&t1, 0, start_routine, 0);
+  pthread_t t1, t2;
+  pthread_create(&t1, 0, start_routine, &yy);
+  pthread_create(&t2, 0, start_routine, 0);
   pointer_a = &y;
   *pointer_a = 42;
   pointer_a = &x;

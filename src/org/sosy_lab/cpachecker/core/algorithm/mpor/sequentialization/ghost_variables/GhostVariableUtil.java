@@ -255,7 +255,7 @@ public class GhostVariableUtil {
 
     return new FunctionStatements(
         buildParameterAssignments(pSubstitution),
-        buildStartRoutineArgumentAssignments(pSubstitution),
+        buildStartRoutineArgAssignments(pSubstitution),
         buildReturnValueAssignments(pThread, pSubstituteEdges),
         buildStartRoutineExitAssignments(pThread, pSubstituteEdges));
   }
@@ -354,7 +354,7 @@ public class GhostVariableUtil {
   }
 
   private static ImmutableMap<ThreadEdge, FunctionParameterAssignment>
-      buildStartRoutineArgumentAssignments(MPORSubstitution pSubstitution) {
+      buildStartRoutineArgAssignments(MPORSubstitution pSubstitution) {
 
     ImmutableMap.Builder<ThreadEdge, FunctionParameterAssignment> rAssignments =
         ImmutableMap.builder();
@@ -365,8 +365,8 @@ public class GhostVariableUtil {
       if (pSubstitution.thread.id == callContext.threadId) {
         assert entry.getValue().size() == 1 : "start_routines must have exactly 1 parameter";
         for (var innerEntry : entry.getValue().entrySet()) {
-          CExpression rightHandSide = PthreadUtil.extractStartRoutineArgument(callContext.cfaEdge);
-          FunctionParameterAssignment parameterAssignment =
+          CExpression rightHandSide = PthreadUtil.extractStartRoutineArg(callContext.cfaEdge);
+          FunctionParameterAssignment startRoutineArgAssignment =
               new FunctionParameterAssignment(
                   callContext,
                   innerEntry.getKey(),
@@ -380,7 +380,7 @@ public class GhostVariableUtil {
                       false,
                       false,
                       Optional.empty()));
-          rAssignments.put(callContext, parameterAssignment);
+          rAssignments.put(callContext, startRoutineArgAssignment);
         }
       }
     }

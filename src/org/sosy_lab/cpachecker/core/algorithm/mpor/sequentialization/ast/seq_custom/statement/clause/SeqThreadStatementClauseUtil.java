@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqParameterAssignmentStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
@@ -473,20 +474,30 @@ public class SeqThreadStatementClauseUtil {
         for (SeqThreadStatement statement : clause.getAllStatements()) {
           if (statement instanceof SeqParameterAssignmentStatements parameterStatement) {
             for (FunctionParameterAssignment assignment : parameterStatement.getAssignments()) {
-              if (assignment.getOriginalRightHandSideDeclaration().isPresent()) {
-                if (assignment.isPointer()) {
-                  rAssignments.put(
-                      assignment.getCallContext(),
-                      assignment.getOriginalParameterDeclaration(),
-                      assignment.getOriginalRightHandSideDeclaration().orElseThrow());
-                }
-              }
+              extractPointerParameterAssignment(assignment, rAssignments);
             }
+          } else if (statement instanceof SeqThreadCreationStatement threadCreation) {
+            extractPointerParameterAssignment(
+                threadCreation.getStartRoutineArgAssignment(), rAssignments);
           }
         }
       }
     }
     return rAssignments.buildOrThrow();
+  }
+
+  private static void extractPointerParameterAssignment(
+      FunctionParameterAssignment pFunctionParameterAssignment,
+      ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, CSimpleDeclaration> pAssignments) {
+
+    if (pFunctionParameterAssignment.getOriginalRightHandSideDeclaration().isPresent()) {
+      if (pFunctionParameterAssignment.isPointer()) {
+        pAssignments.put(
+            pFunctionParameterAssignment.getCallContext(),
+            pFunctionParameterAssignment.getOriginalParameterDeclaration(),
+            pFunctionParameterAssignment.getOriginalRightHandSideDeclaration().orElseThrow());
+      }
+    }
   }
 
   // Helper ========================================================================================

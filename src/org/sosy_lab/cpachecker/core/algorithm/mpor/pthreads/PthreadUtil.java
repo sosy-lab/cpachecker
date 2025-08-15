@@ -81,13 +81,13 @@ public class PthreadUtil {
         CFAUtils.getParameterAtIndex(pEdge, functionType.getStartRoutineIndex()));
   }
 
-  public static CExpression extractStartRoutineArgument(CFAEdge pEdge) {
+  public static CExpression extractStartRoutineArg(CFAEdge pEdge) {
     checkArgument(
         callsAnyPthreadFunctionWithStartRoutineParameter(pEdge),
         "pEdge must be a call to a pthread method with a start_routine parameter");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
-    return CFAUtils.getParameterAtIndex(pEdge, functionType.getStartRoutineArgumentIndex());
+    return CFAUtils.getParameterAtIndex(pEdge, functionType.getStartRoutineArgIndex());
   }
 
   public static CExpression extractExitReturnValue(CFAEdge pEdge) {

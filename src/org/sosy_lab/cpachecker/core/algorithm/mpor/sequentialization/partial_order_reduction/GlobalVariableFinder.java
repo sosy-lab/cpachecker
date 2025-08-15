@@ -235,6 +235,9 @@ public class GlobalVariableFinder {
 
     if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.getType() instanceof CPointerType) {
+        if (!pPointerAssignments.containsKey(variableDeclaration)) {
+          System.out.println(variableDeclaration);
+        }
         assert pPointerAssignments.containsKey(variableDeclaration);
         for (CSimpleDeclaration rightHandSide : pPointerAssignments.get(variableDeclaration)) {
           recursivelyFindGlobalVariablesByPointerDereference(
@@ -251,15 +254,17 @@ public class GlobalVariableFinder {
     } else if (pCurrentDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
       ThreadEdge callContext = pCallContext.orElseThrow();
-      assert pPointerParameterAssignments.contains(callContext, parameterDeclaration);
-      CSimpleDeclaration rightHandSide =
-          pPointerParameterAssignments.get(callContext, parameterDeclaration);
-      recursivelyFindGlobalVariablesByPointerDereference(
-          rightHandSide,
-          pGlobalVariables,
-          pCallContext,
-          pPointerAssignments,
-          pPointerParameterAssignments);
+      // in pthread_create that does not pass an arg to start_routine, the pair is not present
+      if (pPointerParameterAssignments.contains(callContext, parameterDeclaration)) {
+        CSimpleDeclaration rightHandSide =
+            pPointerParameterAssignments.get(callContext, parameterDeclaration);
+        recursivelyFindGlobalVariablesByPointerDereference(
+            rightHandSide,
+            pGlobalVariables,
+            pCallContext,
+            pPointerAssignments,
+            pPointerParameterAssignments);
+      }
     }
   }
 }

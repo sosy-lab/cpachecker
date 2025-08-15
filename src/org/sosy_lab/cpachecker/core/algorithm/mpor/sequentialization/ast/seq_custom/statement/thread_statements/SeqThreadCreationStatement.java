@@ -36,7 +36,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
    * The assignment of the parameter given in the {@code pthread_create} call. This is always
    * present, even if the parameter is not actually used.
    */
-  private final FunctionParameterAssignment parameterAssignment;
+  private final FunctionParameterAssignment startRoutineArgAssignment;
 
   public final MPORThread createdThread;
 
@@ -55,14 +55,14 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqThreadCreationStatement(
-      FunctionParameterAssignment pParameterAssignment,
+      FunctionParameterAssignment pStartRoutineArgAssignment,
       MPORThread pCreatedThread,
       MPORThread pCreatingThread,
       PcVariables pPcVariables,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    parameterAssignment = pParameterAssignment;
+    startRoutineArgAssignment = pStartRoutineArgAssignment;
     createdThread = pCreatedThread;
     creatingThread = pCreatingThread;
     bitVectorInitializations = Optional.empty();
@@ -84,7 +84,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    parameterAssignment = pParameterAssignment;
+    startRoutineArgAssignment = pParameterAssignment;
     createdThread = pCreatedThread;
     creatingThread = pCreatingThread;
     bitVectorInitializations = pBitVectorInitializations;
@@ -93,21 +93,6 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
-  }
-
-  public SeqThreadCreationStatement cloneWithBitVectorAssignments(
-      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments) {
-
-    return new SeqThreadCreationStatement(
-        parameterAssignment,
-        createdThread,
-        creatingThread,
-        Optional.of(pBitVectorAssignments),
-        pcVariables,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        injectedStatements);
   }
 
   @Override
@@ -128,7 +113,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
             targetPc,
             targetGoto,
             injectedStatements);
-    return parameterAssignment.toExpressionAssignmentStatement().toASTString()
+    return startRoutineArgAssignment.toExpressionAssignmentStatement().toASTString()
         + SeqSyntax.SPACE
         + bitVectors
         + createdPcWrite.toASTString()
@@ -159,7 +144,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   @Override
   public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqThreadCreationStatement(
-        parameterAssignment,
+        startRoutineArgAssignment,
         createdThread,
         creatingThread,
         bitVectorInitializations,
@@ -173,7 +158,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadCreationStatement(
-        parameterAssignment,
+        startRoutineArgAssignment,
         createdThread,
         creatingThread,
         bitVectorInitializations,
@@ -189,7 +174,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqThreadCreationStatement(
-        parameterAssignment,
+        startRoutineArgAssignment,
         createdThread,
         creatingThread,
         bitVectorInitializations,
@@ -205,7 +190,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqThreadCreationStatement(
-        parameterAssignment,
+        startRoutineArgAssignment,
         createdThread,
         creatingThread,
         bitVectorInitializations,
@@ -229,5 +214,9 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   @Override
   public boolean onlyWritesPc() {
     return false;
+  }
+
+  public FunctionParameterAssignment getStartRoutineArgAssignment() {
+    return startRoutineArgAssignment;
   }
 }

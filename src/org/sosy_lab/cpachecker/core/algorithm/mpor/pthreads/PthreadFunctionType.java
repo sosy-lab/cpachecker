@@ -319,7 +319,7 @@ public enum PthreadFunctionType {
 
   public final Optional<Integer> startRoutineIndex;
 
-  public final Optional<Integer> startRoutineArgumentIndex;
+  public final Optional<Integer> startRoutineArgIndex;
 
   public final Optional<Integer> returnValueIndex;
 
@@ -334,7 +334,7 @@ public enum PthreadFunctionType {
       Optional<Boolean> pIsPthreadTPointer,
       Optional<Integer> pPthreadMutexTIndex,
       Optional<Integer> pStartRoutineIndex,
-      Optional<Integer> pStartRoutineArgumentIndex,
+      Optional<Integer> pStartRoutineArgIndex,
       Optional<Integer> pReturnValueIndex) {
 
     // pPthreadTIndex and pIsPthreadTPointer have to be equivalent (both empty or both present)
@@ -350,7 +350,7 @@ public enum PthreadFunctionType {
     isPthreadTPointer = pIsPthreadTPointer;
     pthreadMutexTIndex = pPthreadMutexTIndex;
     startRoutineIndex = pStartRoutineIndex;
-    startRoutineArgumentIndex = pStartRoutineArgumentIndex;
+    startRoutineArgIndex = pStartRoutineArgIndex;
     returnValueIndex = pReturnValueIndex;
   }
 
@@ -385,11 +385,10 @@ public enum PthreadFunctionType {
     return startRoutineIndex.orElseThrow();
   }
 
-  public int getStartRoutineArgumentIndex() {
+  public int getStartRoutineArgIndex() {
     checkArgument(
-        startRoutineArgumentIndex.isPresent(),
-        "this PthreadFuncType has no start_routine arg param");
-    return startRoutineArgumentIndex.orElseThrow();
+        startRoutineArgIndex.isPresent(), "this PthreadFuncType has no start_routine arg param");
+    return startRoutineArgIndex.orElseThrow();
   }
 
   public int getReturnValueIndex() {

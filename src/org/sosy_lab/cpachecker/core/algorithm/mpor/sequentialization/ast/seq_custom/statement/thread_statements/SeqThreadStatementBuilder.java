@@ -345,10 +345,10 @@ public class SeqThreadStatementBuilder {
     CExpression pthreadTObject = PthreadUtil.extractPthreadT(cfaEdge);
     MPORThread createdThread =
         ThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadTObject));
-    FunctionParameterAssignment argumentAssignment =
-        pFunctionStatements.startRoutineArgumentAssignments.get(pThreadEdge);
+    FunctionParameterAssignment startRoutineArgAssignment =
+        pFunctionStatements.startRoutineArgAssignments.get(pThreadEdge);
     return new SeqThreadCreationStatement(
-        argumentAssignment,
+        startRoutineArgAssignment,
         createdThread,
         pThread,
         pPcVariables,

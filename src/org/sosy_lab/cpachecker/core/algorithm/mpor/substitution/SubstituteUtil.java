@@ -10,11 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -22,9 +21,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteUtil {
@@ -79,57 +79,35 @@ public class SubstituteUtil {
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
   public static ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>
-      mapPointerAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+      mapPointerAssignments(ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
 
     // step 1: map pointers to memory locations assigned to them, including other pointers
-    ImmutableSetMultimap.Builder<CVariableDeclaration, CSimpleDeclaration> initialBuilder =
+    ImmutableSetMultimap.Builder<CVariableDeclaration, CSimpleDeclaration> rPointerAssignments =
         ImmutableSetMultimap.builder();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      if (!substituteEdge.pointerAssignment.isEmpty()) {
-        assert substituteEdge.pointerAssignment.size() <= 1
-            : "a single edge can have at most 1 pointer assignments";
-        Map.Entry<CVariableDeclaration, CSimpleDeclaration> singleEntry =
-            substituteEdge.pointerAssignment.entrySet().iterator().next();
-        initialBuilder.put(singleEntry.getKey(), singleEntry.getValue());
-      }
-    }
-    ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> initialMap =
-        initialBuilder.build();
-    // step 2: update the map so that only non-pointer variables are in the values
-    ImmutableSetMultimap.Builder<CVariableDeclaration, CSimpleDeclaration> rFinal =
-        ImmutableSetMultimap.builder();
-    for (var entry : initialMap.entries()) {
-      rFinal.putAll(
-          entry.getKey(),
-          findAllVariablesAssignedToPointer(entry.getKey(), initialMap, new HashSet<>()));
-    }
-    return rFinal.build();
-  }
-
-  private static ImmutableSet<CSimpleDeclaration> findAllVariablesAssignedToPointer(
-      CSimpleDeclaration pPointer,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      Set<CVariableDeclaration> pVisitedPointers) {
-
-    ImmutableSet.Builder<CSimpleDeclaration> rLocations = ImmutableSet.builder();
-    if (pPointer instanceof CVariableDeclaration pointerVariable) {
-      if (pPointerAssignments.containsKey(pointerVariable)) {
-        for (CSimpleDeclaration simpleDeclaration : pPointerAssignments.get(pointerVariable)) {
-          if (simpleDeclaration.getType() instanceof CPointerType) {
-            if (pVisitedPointers.add(pointerVariable)) {
-              // for pointers, recursively find all variables assigned to the pointer
-              rLocations.addAll(
-                  findAllVariablesAssignedToPointer(
-                      simpleDeclaration, pPointerAssignments, pVisitedPointers));
+    for (MPORThread thread : pClauses.keySet()) {
+      for (SeqThreadStatementClause clause : pClauses.get(thread)) {
+        for (SeqThreadStatement statement : clause.getAllStatements()) {
+          // pointer assignments from thread creations (= ghost statement by sequentialization)
+          /*if (statement instanceof SeqThreadCreationStatement threadCreation) {
+            FunctionParameterAssignment argAssignment = threadCreation.getStartRoutineArgAssignment();
+            assert argAssignment.isPointer()
+                : "start_routine arg assignments must be pointer assignments";
+            if (argAssignment.)
+          }*/
+          // "normal" pointer assignments from statements
+          for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
+            if (!substituteEdge.pointerAssignment.isEmpty()) {
+              assert substituteEdge.pointerAssignment.size() <= 1
+                  : "a single edge can have at most 1 pointer assignments";
+              Map.Entry<CVariableDeclaration, CSimpleDeclaration> singleEntry =
+                  substituteEdge.pointerAssignment.entrySet().iterator().next();
+              rPointerAssignments.put(singleEntry.getKey(), singleEntry.getValue());
             }
-          } else {
-            // for non-pointer variables, just add the variable itself
-            rLocations.add(simpleDeclaration);
           }
         }
       }
     }
-    return rLocations.build();
+    return rPointerAssignments.build();
   }
 
   public static ImmutableSet<CParameterDeclaration> findAllMainFunctionArgs(
