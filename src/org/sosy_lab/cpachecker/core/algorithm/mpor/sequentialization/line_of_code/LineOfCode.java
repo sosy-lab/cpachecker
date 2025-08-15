@@ -22,10 +22,6 @@ public class LineOfCode {
     return new LineOfCode(pCode);
   }
 
-  public static LineOfCode empty() {
-    return new LineOfCode(SeqSyntax.EMPTY_STRING);
-  }
-
   public LineOfCode cloneWithCode(String pCode) {
     return LineOfCode.of(pCode);
   }

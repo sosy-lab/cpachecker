@@ -80,8 +80,7 @@ public class Sequentialization {
               "// Assertion fails from the function "
                   + SeqToken.__SEQUENTIALIZATION_ERROR__
                   + " mark faulty sequentializations."),
-          LineOfCode.of("// All other assertion fails are induced by faulty input programs."),
-          LineOfCode.empty());
+          LineOfCode.of("// All other assertion fails are induced by faulty input programs."));
 
   public static final String inputReachErrorDummy =
       SeqExpressionBuilder.buildReachError(

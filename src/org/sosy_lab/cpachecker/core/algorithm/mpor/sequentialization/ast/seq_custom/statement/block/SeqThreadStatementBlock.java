@@ -66,7 +66,9 @@ public class SeqThreadStatementBlock implements SeqStatement {
     }
     Optional<String> suffix =
         tryBuildSuffixByMultiControlStatementEncoding(options, statements, thread);
-    lines.add(suffix.isPresent() ? LineOfCode.of(suffix.orElseThrow()) : LineOfCode.empty());
+    if (suffix.isPresent()) {
+      lines.add(LineOfCode.of(suffix.orElseThrow()));
+    }
     return LineOfCodeUtil.buildString(lines.build());
   }
 

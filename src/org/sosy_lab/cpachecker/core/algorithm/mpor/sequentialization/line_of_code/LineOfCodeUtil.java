@@ -86,9 +86,6 @@ public class LineOfCodeUtil {
         }
       }
     }
-    if (pOptions.comments) {
-      rOriginalDeclarations.add(LineOfCode.empty());
-    }
     return rOriginalDeclarations.build();
   }
 
@@ -123,9 +120,6 @@ public class LineOfCodeUtil {
         rGlobalDeclarations.add(LineOfCodeUtil.buildLineOfCode(globalDeclaration));
       }
     }
-    if (pOptions.comments) {
-      rGlobalDeclarations.add(LineOfCode.empty());
-    }
     return rGlobalDeclarations.build();
   }
 
@@ -157,9 +151,6 @@ public class LineOfCodeUtil {
         }
       }
     }
-    if (pOptions.comments) {
-      rLocalDeclarations.add(LineOfCode.empty());
-    }
     return rLocalDeclarations.build();
   }
 
@@ -181,9 +172,6 @@ public class LineOfCodeUtil {
         }
       }
     }
-    if (pOptions.comments) {
-      rParameterDeclarations.add(LineOfCode.empty());
-    }
     return rParameterDeclarations.build();
   }
 
@@ -200,9 +188,6 @@ public class LineOfCodeUtil {
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
       rArgDeclarations.add(LineOfCodeUtil.buildLineOfCode(mainArg.getDeclaration()));
-    }
-    if (pOptions.comments) {
-      rArgDeclarations.add(LineOfCode.empty());
     }
     return rArgDeclarations.build();
   }
@@ -223,9 +208,6 @@ public class LineOfCodeUtil {
             LineOfCodeUtil.buildLineOfCode(startRoutineArgDeclaration));
       }
     }
-    if (pOptions.comments) {
-      rStartRoutineArgDeclarations.add(LineOfCode.empty());
-    }
     return rStartRoutineArgDeclarations.build();
   }
 
@@ -242,9 +224,6 @@ public class LineOfCodeUtil {
         rStartRoutineExitDeclarations.add(
             LineOfCode.of(exitVariable.orElseThrow().getDeclaration().toASTString()));
       }
-    }
-    if (pOptions.comments) {
-      rStartRoutineExitDeclarations.add(LineOfCode.empty());
     }
     return rStartRoutineExitDeclarations.build();
   }
@@ -283,7 +262,6 @@ public class LineOfCodeUtil {
 
     // pc
     if (pOptions.comments) {
-      rDeclarations.add(LineOfCode.empty());
       rDeclarations.add(LineOfCode.of(SeqComment.PC_DECLARATION));
     }
     for (CVariableDeclaration pcDeclaration : pPcDeclarations) {
@@ -319,9 +297,6 @@ public class LineOfCodeUtil {
     rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.ASSUME.toASTString()));
     // main should always be duplicate
     rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.MAIN.toASTString()));
-    if (pOptions.comments) {
-      rFunctionDeclarations.add(LineOfCode.empty());
-    }
     return rFunctionDeclarations.build();
   }
 

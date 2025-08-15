@@ -170,20 +170,15 @@ public class SeqMainFunction extends SeqFunction {
     // add if next_thread is a non-determinism source
     if (options.nondeterminismSource.isNextThreadNondeterministic()) {
       if (options.comments) {
-        rBody.add(LineOfCode.empty());
         rBody.add(LineOfCode.of(SeqComment.NEXT_THREAD_NONDET));
       }
       rBody.add(LineOfCode.of(nextThreadAssignment.toASTString()));
-      if (options.comments) {
-        rBody.add(LineOfCode.empty());
-      }
       for (CFunctionCallStatement nextThreadAssumption : nextThreadAssumptions) {
         rBody.add(LineOfCode.of(nextThreadAssumption.toASTString()));
       }
       // assumptions over next_thread being active (pc != -1)
       if (nextThreadActiveAssumption.isPresent()) {
         if (options.comments) {
-          rBody.add(LineOfCode.empty());
           rBody.add(LineOfCode.of(SeqComment.NEXT_THREAD_ACTIVE));
         }
         CFunctionCallStatement assumption = nextThreadActiveAssumption.orElseThrow();
@@ -191,7 +186,6 @@ public class SeqMainFunction extends SeqFunction {
       }
     } else {
       if (options.comments) {
-        rBody.add(LineOfCode.empty());
         rBody.add(LineOfCode.of(SeqComment.ACTIVE_THREAD_COUNT));
       }
       rBody.add(LineOfCode.of(countAssumption.orElseThrow().toASTString()));
@@ -199,7 +193,6 @@ public class SeqMainFunction extends SeqFunction {
 
     // add all thread simulation control flow statements
     if (options.comments) {
-      rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(SeqComment.THREAD_SIMULATION_CONTROL_FLOW));
     }
     rBody.addAll(
@@ -364,10 +357,6 @@ public class SeqMainFunction extends SeqFunction {
       CVariableDeclaration varDeclaration = (CVariableDeclaration) threadVariable.getDeclaration();
       rDeclarations.add(LineOfCode.of(varDeclaration.toASTString()));
     }
-    if (pOptions.comments) {
-      rDeclarations.add(LineOfCode.empty());
-    }
-
     return rDeclarations.build();
   }
 }

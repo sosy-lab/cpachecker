@@ -236,11 +236,6 @@ public class GlobalVariableFinder {
 
     if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.getType() instanceof CPointerType) {
-        if (!pPointerAssignments.containsKey(variableDeclaration)) {
-          System.out.println(variableDeclaration);
-          System.out.println("not in ");
-          System.out.println(pPointerAssignments);
-        }
         assert pPointerAssignments.containsKey(variableDeclaration);
         for (CSimpleDeclaration rightHandSide : pPointerAssignments.get(variableDeclaration)) {
           recursivelyFindGlobalVariablesByPointerDereference(
