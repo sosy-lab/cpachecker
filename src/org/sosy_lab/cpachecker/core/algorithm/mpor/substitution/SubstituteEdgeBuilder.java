@@ -81,6 +81,7 @@ public class SubstituteEdgeBuilder {
         CDeclaration declaration = declarationEdge.getDeclaration();
         // we only substitute variables, not functions or types
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
+          System.out.println(variableDeclaration);
           MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
           CVariableDeclaration declarationSubstitute =
               pSubstitution.getVariableDeclarationSubstitute(

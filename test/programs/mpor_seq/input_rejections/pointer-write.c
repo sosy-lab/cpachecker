@@ -13,6 +13,8 @@ int x = 42;
 int y = -42;
 int z = 0;
 int yy = 10;
+int zz = 0;
+int * pointer_init = &zz;
 void * start_routine(void * arg)
 {
   int * pointer_arg;
@@ -36,6 +38,7 @@ int pointer_function(int * param)
   *param = *param + 1;
   int * pointer_e;
   param = pointer_e;
+  *pointer_init = 3;
   pointer_e = &z;
   *pointer_e = 100;
   int * pointer_f = pointer_a;
@@ -46,7 +49,9 @@ int main()
 {
   pthread_t t1, t2;
   pthread_create(&t1, 0, start_routine, &yy);
-  pthread_create(&t2, 0, start_routine, 0);
+  int local_arg = 0;
+  pthread_create(&t2, 0, start_routine, &local_arg);
+  zz++;
   pointer_a = &y;
   *pointer_a = 42;
   pointer_a = &x;

@@ -73,7 +73,8 @@ public class SeqMainFunction extends SeqFunction {
   /** The thread-specific clauses in the while loop. */
   private final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
-  private final ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments;
+  private final Optional<ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>>
+      pointerAssignments;
 
   private final ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
       pointerParameterAssignments;
@@ -102,7 +103,7 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
+      Optional<ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>> pPointerAssignments,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
@@ -252,7 +253,7 @@ public class SeqMainFunction extends SeqFunction {
               firstBlock,
               labelClauseMap,
               labelBlockMap,
-              pointerAssignments,
+              pointerAssignments.orElseThrow(),
               pointerParameterAssignments,
               pBitVectorVariables.orElseThrow());
       rInitializations.addAll(

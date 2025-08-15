@@ -132,10 +132,11 @@ public class MPORSubstitutionBuilder {
     for (var entry : dummyGlobalSubstitutes.entrySet()) {
       CVariableDeclaration variableDeclaration = entry.getKey();
       CIdExpression idExpression = entry.getValue();
+      assert idExpression.getDeclaration() instanceof CVariableDeclaration;
       CInitializer initializer = variableDeclaration.getInitializer();
       // TODO handle CInitializerList
       if (initializer instanceof CInitializerExpression initializerExpression) {
-        CInitializerExpression initExprSub =
+        CInitializerExpression substituteInitializerExpression =
             substituteInitializerExpression(
                 initializerExpression,
                 dummySubstitution.substitute(
@@ -146,9 +147,12 @@ public class MPORSubstitutionBuilder {
                     false,
                     false,
                     Optional.empty()));
-        CVariableDeclaration finalSub =
-            substituteVariableDeclaration(variableDeclaration, initExprSub);
-        rFinalSubstitutes.put(finalSub, idExpression);
+        CVariableDeclaration finalSubstitute =
+            substituteVariableDeclaration(
+                (CVariableDeclaration) idExpression.getDeclaration(),
+                substituteInitializerExpression);
+        CIdExpression finalIdExpression = SeqExpressionBuilder.buildIdExpression(finalSubstitute);
+        rFinalSubstitutes.put(variableDeclaration, finalIdExpression);
       } else {
         rFinalSubstitutes.put(variableDeclaration, idExpression);
       }

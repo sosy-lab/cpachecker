@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Map;
@@ -23,8 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteUtil {
@@ -79,27 +76,23 @@ public class SubstituteUtil {
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
   public static ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>
-      mapPointerAssignments(ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
+      mapPointerAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     ImmutableSetMultimap.Builder<CVariableDeclaration, CSimpleDeclaration> rPointerAssignments =
         ImmutableSetMultimap.builder();
-    for (MPORThread thread : pClauses.keySet()) {
-      for (SeqThreadStatementClause clause : pClauses.get(thread)) {
-        for (SeqThreadStatement statement : clause.getAllStatements()) {
-          for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
-            if (!substituteEdge.pointerAssignment.isEmpty()) {
-              assert substituteEdge.pointerAssignment.size() == 1
-                  : "a single edge can have at most 1 pointer assignments";
-              Map.Entry<CVariableDeclaration, CSimpleDeclaration> singleEntry =
-                  substituteEdge.pointerAssignment.entrySet().iterator().next();
-              rPointerAssignments.put(singleEntry.getKey(), singleEntry.getValue());
-            }
-          }
-        }
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+      if (!substituteEdge.pointerAssignment.isEmpty()) {
+        assert substituteEdge.pointerAssignment.size() == 1
+            : "a single edge can have at most 1 pointer assignments";
+        Map.Entry<CVariableDeclaration, CSimpleDeclaration> singleEntry =
+            substituteEdge.pointerAssignment.entrySet().iterator().next();
+        rPointerAssignments.put(singleEntry.getKey(), singleEntry.getValue());
       }
     }
     return rPointerAssignments.build();
   }
+
+  // Main Function Arg =============================================================================
 
   public static ImmutableSet<CParameterDeclaration> findAllMainFunctionArgs(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {

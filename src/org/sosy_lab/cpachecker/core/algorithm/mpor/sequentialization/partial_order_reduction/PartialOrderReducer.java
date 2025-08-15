@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -37,6 +36,7 @@ public class PartialOrderReducer {
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
+      Optional<ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>> pPointerAssignments,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -44,7 +44,7 @@ public class PartialOrderReducer {
 
     if (pOptions.linkReduction) {
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments =
-          SubstituteUtil.mapPointerAssignments(pClauses);
+          pPointerAssignments.orElseThrow();
       ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
           pointerParameterAssignments =
               SeqThreadStatementClauseUtil.mapPointerParameterAssignments(pClauses);

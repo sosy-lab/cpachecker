@@ -11,12 +11,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -50,6 +53,7 @@ public class SeqThreadStatementClauseBuilder {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      Optional<ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>> pPointerAssignments,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
@@ -73,6 +77,7 @@ public class SeqThreadStatementClauseBuilder {
             pOptions,
             pBitVectorVariables,
             pPcVariables,
+            pPointerAssignments,
             atomicBlocks,
             pBinaryExpressionBuilder,
             pLogger);

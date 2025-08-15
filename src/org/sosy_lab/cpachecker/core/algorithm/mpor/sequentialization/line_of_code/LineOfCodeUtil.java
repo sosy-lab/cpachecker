@@ -345,21 +345,23 @@ public class LineOfCodeUtil {
     rFunctionDefinitions.addAll(reachError.buildDefinition());
     SeqAssumeFunction assume = new SeqAssumeFunction(pBinaryExpressionBuilder);
     rFunctionDefinitions.addAll(assume.buildDefinition());
+    // map pointer assignments only if link reduction is enabled (need global mem location info)
+    Optional<ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>> pointerAssignments =
+        pOptions.linkReduction
+            ? Optional.of(SubstituteUtil.mapPointerAssignments(pSubstituteEdges.values()))
+            : Optional.empty();
     // create clauses in main method
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses =
         SeqThreadStatementClauseBuilder.buildClauses(
             pOptions,
             pSubstitutions,
             pSubstituteEdges,
+            pointerAssignments,
             pBitVectorVariables,
             pPcVariables,
             pThreadSimulationVariables,
             pBinaryExpressionBuilder,
             pLogger);
-    // TODO don't call this method twice but pass parameter
-    //  (also make optional, only required with bitvectors)
-    ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments =
-        SubstituteUtil.mapPointerAssignments(clauses);
     SeqMainFunction mainFunction =
         new SeqMainFunction(
             pOptions,

@@ -220,6 +220,7 @@ public class GlobalVariableFinder {
     return rGlobalVariables.build();
   }
 
+  // TODO prevent infinite recursion when ptr = ptr;
   /**
    * Finds the set of {@link CVariableDeclaration}s that are associated by the given pointer
    * dereference, i.e. the set of global variables whose addresses are at some point in the program
@@ -235,6 +236,11 @@ public class GlobalVariableFinder {
 
     if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.getType() instanceof CPointerType) {
+        if (!pPointerAssignments.containsKey(variableDeclaration)) {
+          System.out.println(variableDeclaration);
+          System.out.println("not in ");
+          System.out.println(pPointerAssignments);
+        }
         assert pPointerAssignments.containsKey(variableDeclaration);
         for (CSimpleDeclaration rightHandSide : pPointerAssignments.get(variableDeclaration)) {
           recursivelyFindGlobalVariablesByPointerDereference(
