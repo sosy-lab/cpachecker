@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SortContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.VariableContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.VerifyCallContext;
 
-public class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
+class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
   private final StatementToAstConverter statementConverter;
 

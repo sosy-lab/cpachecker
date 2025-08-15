@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.ScriptContext;
 
-public class ScriptToAstConverter extends AbstractAntlrToAstConverter<K3Script> {
+class ScriptToAstConverter extends AbstractAntlrToAstConverter<K3Script> {
 
   private final CommandToAstConverter commandToAstConverter;
 

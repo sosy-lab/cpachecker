@@ -14,7 +14,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3BaseVisitor;
 
-public class AbstractAntlrToAstConverter<T> extends K3BaseVisitor<T> {
+class AbstractAntlrToAstConverter<T> extends K3BaseVisitor<T> {
 
   protected K3Scope scope;
   private final Optional<Path> filePath;

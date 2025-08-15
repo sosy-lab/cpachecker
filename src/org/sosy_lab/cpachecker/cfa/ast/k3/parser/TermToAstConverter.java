@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.ApplicationTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.VariableTermContext;
 
-public class TermToAstConverter extends AbstractAntlrToAstConverter<K3Term> {
+class TermToAstConverter extends AbstractAntlrToAstConverter<K3Term> {
   public TermToAstConverter(K3Scope pScope, Path pFilePath) {
     super(pScope, pFilePath);
   }

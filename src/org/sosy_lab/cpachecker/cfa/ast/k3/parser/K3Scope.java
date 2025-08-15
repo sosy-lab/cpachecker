@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 
-public class K3Scope {
+class K3Scope {
 
   private final Map<String, K3SimpleDeclaration> globalVariables;
 

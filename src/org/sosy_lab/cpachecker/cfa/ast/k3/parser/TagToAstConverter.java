@@ -13,11 +13,10 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3RelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AssertPropertyContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.TagAttributeContext;
 
-public class TagToAstConverter extends AbstractAntlrToAstConverter<K3TagAttribute> {
+class TagToAstConverter extends AbstractAntlrToAstConverter<K3TagAttribute> {
   private final TermToAstConverter termToAstConverter;
 
   public TagToAstConverter(K3Scope pScope, Path pFilePath) {

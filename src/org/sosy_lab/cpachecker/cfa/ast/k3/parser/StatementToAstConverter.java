@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AttributeCon
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SequenceStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.StatementContext;
 
-public class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
+class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
 
   private final TermToAstConverter termToAstConverter;
   private final TagToAstConverter tagToAstConverter;
