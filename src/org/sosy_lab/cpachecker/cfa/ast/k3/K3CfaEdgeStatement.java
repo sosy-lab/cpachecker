@@ -10,9 +10,10 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class K3ExecutionStatement extends K3Statement
+public abstract sealed class K3ExecutionStatement extends K3Statement implements AStatement
     permits K3AssignmentStatement {
   @Serial private static final long serialVersionUID = 5250154309306501123L;
 
