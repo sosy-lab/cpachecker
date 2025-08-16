@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+
 public sealed class CStatementEdge extends AStatementEdge implements CCfaEdge
     permits CFunctionSummaryStatementEdge {
 

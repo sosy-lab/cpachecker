@@ -111,7 +111,8 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
     scope.addProcedureDeclaration(procedureDeclaration);
 
-    return new K3ProcedureDefinitionCommand(procedureDeclaration, body);
+    return new K3ProcedureDefinitionCommand(
+        fileLocationFromContext(ctx), procedureDeclaration, body);
   }
 
   @Override

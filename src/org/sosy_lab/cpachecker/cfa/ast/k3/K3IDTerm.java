@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public final class K3IDTerm implements K3Term {
   @Serial private static final long serialVersionUID = 5782817996036730363L;
@@ -59,5 +60,15 @@ public final class K3IDTerm implements K3Term {
   @Override
   public int hashCode() {
     return variable.hashCode();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3TermVisitor<R, X> v) throws X {
+    return v.accept(this);
+  }
+
+  @Override
+  public Type getExpressionType() {
+    return variable.getType();
   }
 }

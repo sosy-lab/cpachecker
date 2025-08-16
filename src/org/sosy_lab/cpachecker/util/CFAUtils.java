@@ -105,8 +105,11 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AstNode;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IDTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3OldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SymbolApplicationTerm;
@@ -1167,7 +1170,10 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(K3ProcedureDeclaration pK3ProcedureDeclaration) {
-      return ImmutableList.of();
+      return FluentIterable.from(pK3ProcedureDeclaration.getParameters())
+          .append(pK3ProcedureDeclaration.getLocalVariables())
+          .append(pK3ProcedureDeclaration.getReturnValues())
+          .toList();
     }
 
     @Override
@@ -1176,8 +1182,13 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<? extends AAstNode> accept(K3OldTerm pK3OldTerm) throws NoException {
+      return ImmutableList.of(pK3OldTerm.getTerm());
+    }
+
+    @Override
     public Iterable<? extends AAstNode> accept(K3SymbolApplicationTerm pK3SymbolApplicationTerm) {
-      return ImmutableList.of();
+      return pK3SymbolApplicationTerm.getTerms();
     }
 
     @Override
@@ -1187,17 +1198,28 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> accept(K3SequenceStatement pK3SequenceStatement) {
-      return ImmutableList.of();
+      return pK3SequenceStatement.getStatements();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(K3AssumeStatement pK3AssumeStatement) {
-      return ImmutableList.of();
+      return ImmutableList.of(pK3AssumeStatement.getTerm());
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(K3AssignmentStatement pK3AssignmentStatement) {
-      return ImmutableList.of();
+      return ImmutableList.copyOf(pK3AssignmentStatement.getAssignments().values());
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(K3ProcedureCallStatement pK3ProcedureCallStatement)
+        throws NoException {
+      ImmutableList.Builder<K3AstNode> builder = ImmutableList.builder();
+      builder.add(pK3ProcedureCallStatement.getProcedureDeclaration());
+      return builder
+          .addAll(pK3ProcedureCallStatement.getArguments())
+          .addAll(pK3ProcedureCallStatement.getReturnVariables())
+          .build();
     }
 
     @Override
@@ -1207,7 +1229,7 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> accept(K3AssertTag pK3AssertTag) {
-      return ImmutableList.of();
+      return ImmutableList.of(pK3AssertTag.getTerm());
     }
   }
 }

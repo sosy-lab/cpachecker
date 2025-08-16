@@ -12,8 +12,10 @@ import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class K3ProcedureType implements K3Type {
+public final class K3ProcedureType implements K3Type, AFunctionType {
 
   @Serial private static final long serialVersionUID = 5728816904538462642L;
   private final FileLocation fileLocation;
@@ -86,5 +88,20 @@ public final class K3ProcedureType implements K3Type {
     result = prime * result + localVariableTypes.hashCode();
     result = prime * result + outputType.hashCode();
     return result;
+  }
+
+  @Override
+  public Type getReturnType() {
+    return new K3ProductType(outputType);
+  }
+
+  @Override
+  public List<? extends Type> getParameters() {
+    return getInputType();
+  }
+
+  @Override
+  public boolean takesVarArgs() {
+    return false;
   }
 }

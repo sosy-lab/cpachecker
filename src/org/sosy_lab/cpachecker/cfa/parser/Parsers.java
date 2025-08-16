@@ -107,6 +107,8 @@ public class Parsers {
       "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
   private static final String LLVM_CLANG_PARSER_CLASS =
       "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParserWithClang";
+  private static final String K3_PARSER_CLASS =
+      "org.sosy_lab.cpachecker.cfa.parser.k3.K3ToCfaParser";
 
   private static WeakReference<ClassLoader> loadedClassLoader = new WeakReference<>(null);
 
@@ -117,6 +119,8 @@ public class Parsers {
   private static WeakReference<Constructor<? extends Parser>> loadedLlvmParser =
       new WeakReference<>(null);
   private static WeakReference<Constructor<? extends Parser>> loadedLlvmClangParser =
+      new WeakReference<>(null);
+  private static WeakReference<Constructor<? extends Parser>> loadedK3Parser =
       new WeakReference<>(null);
 
   private static final AtomicInteger loadingCount = new AtomicInteger(0);
@@ -269,6 +273,35 @@ public class Parsers {
       }
     } catch (ReflectiveOperationException e) {
       throw new Classes.UnexpectedCheckedException("Failed to create LLVM parser", e);
+    }
+  }
+
+  public static Parser getK3Parser(
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final MachineModel pMachineModel,
+      final ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
+    try {
+      Constructor<? extends Parser> parserConstructor = loadedK3Parser.get();
+
+      if (parserConstructor == null) {
+        ClassLoader classLoader = getClassLoader(pLogger);
+
+        @SuppressWarnings("unchecked")
+        Class<? extends Parser> parserClass =
+            (Class<? extends Parser>) classLoader.loadClass(K3_PARSER_CLASS);
+        parserConstructor =
+            parserClass.getConstructor(
+                LogManager.class, Configuration.class, MachineModel.class, ShutdownNotifier.class);
+        parserConstructor.setAccessible(true);
+        loadedK3Parser = new WeakReference<>(parserConstructor);
+      }
+
+      return parserConstructor.newInstance(pLogger, pConfig, pMachineModel, pShutdownNotifier);
+    } catch (ReflectiveOperationException e) {
+      throw new Classes.UnexpectedCheckedException("Failed to create K3 parser", e);
     }
   }
 }

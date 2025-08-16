@@ -12,7 +12,8 @@ package org.sosy_lab.cpachecker.cfa;
 public enum Language {
   C("C"),
   JAVA("Java"),
-  LLVM("LLVM IR");
+  LLVM("LLVM IR"),
+  K3("K3");
 
   private final String name;
 

@@ -8,6 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+public interface K3TermVisitor<R, X extends Exception> {
 
-public sealed interface K3Term extends K3AstNode, K3RelationalTerm
-    permits K3ApplicationTerm, K3IDTerm {}
+  R accept(K3OldTerm pK3OldTerm) throws X;
+
+  R accept(K3SymbolApplicationTerm pK3SymbolApplicationTerm) throws X;
+
+  R accept(K3IDTerm pK3IDTerm) throws X;
+}

@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3ToAstParser.K3ParseException;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3ToAstParser.K3AstParseException;
 
 public class K3ParserTest {
 
@@ -36,20 +36,20 @@ public class K3ParserTest {
     return Path.of("test", "programs", "k3").toAbsolutePath().toString();
   }
 
-  private void testScriptParsing(Path inputPath, K3Script output) throws K3ParseException {
+  private void testScriptParsing(Path inputPath, K3Script output) throws K3AstParseException {
 
     String programString;
     try {
       programString = Joiner.on("\n").join(Files.readAllLines(inputPath));
     } catch (IOException pE) {
-      throw new K3ParseException("Could not read input file: " + inputPath, pE);
+      throw new K3AstParseException("Could not read input file: " + inputPath, pE);
     }
     K3Script parsed = K3ToAstParser.parseScript(programString);
     assert parsed.equals(output) : "Parsed object does not match expected object";
   }
 
   @Test
-  public void parseSimpleCorrectProgram() throws K3ParseException {
+  public void parseSimpleCorrectProgram() throws K3AstParseException {
     K3ParameterDeclaration x =
         new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x");
     K3ParameterDeclaration y =
@@ -74,6 +74,7 @@ public class K3ParserTest {
                 new K3VariableDeclarationCommand(w),
                 new K3VariableDeclarationCommand(z),
                 new K3ProcedureDefinitionCommand(
+                    FileLocation.DUMMY,
                     procedureDeclaration,
                     new K3SequenceStatement(
                         ImmutableList.of(
@@ -119,7 +120,7 @@ public class K3ParserTest {
   }
 
   @Test
-  public void parseSimpleIncorrectProgram() throws K3ParseException {
+  public void parseSimpleIncorrectProgram() throws K3AstParseException {
     K3ParameterDeclaration x =
         new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x");
     K3ParameterDeclaration y =
@@ -144,6 +145,7 @@ public class K3ParserTest {
                 new K3VariableDeclarationCommand(w),
                 new K3VariableDeclarationCommand(z),
                 new K3ProcedureDefinitionCommand(
+                    FileLocation.DUMMY,
                     procedureDeclaration,
                     new K3SequenceStatement(
                         ImmutableList.of(

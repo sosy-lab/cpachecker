@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class K3ProcedureDeclaration extends AbstractDeclaration implements K3Declaration {
+public final class K3ProcedureDeclaration extends AFunctionDeclaration implements K3Declaration {
   @Serial private static final long serialVersionUID = 5272479408537906183L;
   private List<K3ParameterDeclaration> parameters;
   private List<K3ParameterDeclaration> localVariables;
@@ -30,7 +30,6 @@ public final class K3ProcedureDeclaration extends AbstractDeclaration implements
     // anonymous parameters and no function declaration using only the types
     super(
         pFileLocation,
-        true,
         new K3ProcedureType(
             pFileLocation,
             FluentIterable.from(pParameters).transform(K3ParameterDeclaration::getType).toList(),
@@ -38,10 +37,17 @@ public final class K3ProcedureDeclaration extends AbstractDeclaration implements
                 .transform(K3ParameterDeclaration::getType)
                 .toList(),
             FluentIterable.from(pReturnValues).transform(K3ParameterDeclaration::getType).toList()),
-        pName);
+        pName,
+        pName,
+        pParameters);
     parameters = pParameters;
     localVariables = pLocalVariables;
     returnValues = pReturnValues;
+  }
+
+  public static K3ProcedureDeclaration mainFunctionDeclaration() {
+    return new K3ProcedureDeclaration(
+        FileLocation.DUMMY, "__VERIFIER_MAIN", List.of(), List.of(), List.of());
   }
 
   @Override

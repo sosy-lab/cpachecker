@@ -13,7 +13,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class K3Statement implements K3AstNode
-    permits K3ControlFlowStatement, K3ExecutionStatement {
+    permits K3ControlFlowStatement, K3CfaEdgeStatement {
 
   @Serial private static final long serialVersionUID = -2682818218051235918L;
   private final FileLocation fileLocation;

@@ -9,15 +9,18 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class K3ProcedureDefinitionCommand implements K3Command {
 
   @Serial private static final long serialVersionUID = -109324745114809038L;
+  private final FileLocation fileLocation;
   private final K3ProcedureDeclaration procedureDeclaration;
   private final K3Statement body;
 
   public K3ProcedureDefinitionCommand(
-      K3ProcedureDeclaration pProcedureDeclaration, K3Statement pBody) {
+      FileLocation pFileLocation, K3ProcedureDeclaration pProcedureDeclaration, K3Statement pBody) {
+    fileLocation = pFileLocation;
     procedureDeclaration = pProcedureDeclaration;
     body = pBody;
   }
@@ -47,5 +50,9 @@ public final class K3ProcedureDefinitionCommand implements K3Command {
     result = prime * result + procedureDeclaration.hashCode();
     result = prime * result + body.hashCode();
     return result;
+  }
+
+  public FileLocation getFileLocation() {
+    return fileLocation;
   }
 }

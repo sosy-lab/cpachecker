@@ -9,5 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 public interface K3ExecutionStatementVisitor<R, X extends Exception> {
-  R visit(K3AssignmentStatement pK3AssignmentStatement);
+  R visit(K3AssignmentStatement pK3AssignmentStatement) throws X;
+
+  R visit(K3ProcedureCallStatement pK3ProcedureCallStatement) throws X;
 }

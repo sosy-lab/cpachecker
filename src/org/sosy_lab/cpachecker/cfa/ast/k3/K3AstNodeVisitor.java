@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 public interface K3AstNodeVisitor<R, X extends Exception>
     extends K3ControlFlowStatementVisitor<R, X>,
         K3ExecutionStatementVisitor<R, X>,
-        K3TagAttributeVisitor<R, X> {
+        K3TagAttributeVisitor<R, X>,
+        K3TermVisitor<R, X> {
   R visit(K3VariableDeclaration pK3VariableDeclaration);
 
   R visit(K3ProcedureDeclaration pK3ProcedureDeclaration);

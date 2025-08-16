@@ -14,9 +14,10 @@ import java.io.Serial;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.ast.AStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class K3AssignmentStatement extends K3ExecutionStatement {
+public final class K3AssignmentStatement extends K3CfaEdgeStatement {
   @Serial private static final long serialVersionUID = 5878865332404007544L;
   private final Map<K3VariableDeclaration, K3Term> assignments;
 
@@ -79,5 +80,10 @@ public final class K3AssignmentStatement extends K3ExecutionStatement {
     result = result * prime + Objects.hashCode(assignments);
     result = prime * result + super.hashCode();
     return result;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(AStatementVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 }

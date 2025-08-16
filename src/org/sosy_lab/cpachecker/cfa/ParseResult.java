@@ -127,4 +127,17 @@ public record ParseResult(
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
         Optional.of(pCfaNodeToAstParametersInScope));
   }
+
+  public ParseResult withFileNames(List<Path> pFileNames) {
+    return new ParseResult(
+        functions,
+        cfaNodes,
+        globalDeclarations,
+        pFileNames,
+        astStructure,
+        commentLocations,
+        blocks,
+        cfaNodeToAstLocalVariablesInScope,
+        cfaNodeToAstParametersInScope);
+  }
 }

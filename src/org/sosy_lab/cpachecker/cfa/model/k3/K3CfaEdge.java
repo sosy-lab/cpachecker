@@ -6,8 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.k3;
+package org.sosy_lab.cpachecker.cfa.model.k3;
 
-
-public sealed interface K3Term extends K3AstNode, K3RelationalTerm
-    permits K3ApplicationTerm, K3IDTerm {}
+public interface K3CfaEdge {}

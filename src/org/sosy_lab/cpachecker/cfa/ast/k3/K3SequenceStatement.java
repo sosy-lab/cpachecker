@@ -28,6 +28,10 @@ public final class K3SequenceStatement extends K3ControlFlowStatement {
     fileLocation = pFileLocation;
   }
 
+  public List<K3Statement> getStatements() {
+    return statements;
+  }
+
   @Override
   public <R, X extends Exception> R accept(K3ControlFlowStatementVisitor<R, X> v) throws X {
     return v.accept(this);
