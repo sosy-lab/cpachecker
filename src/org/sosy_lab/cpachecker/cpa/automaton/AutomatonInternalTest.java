@@ -387,7 +387,7 @@ public class AutomatonInternalTest {
     private final AutomatonExpressionArguments args =
         new AutomatonExpressionArguments(null, null, null, null, null);
 
-    public ASTMatcherSubject(FailureMetadata pMetadata, String pPattern) {
+    ASTMatcherSubject(FailureMetadata pMetadata, String pPattern) {
       super(pMetadata, pPattern);
       pattern = pPattern;
     }
@@ -405,7 +405,7 @@ public class AutomatonInternalTest {
       return matcher.matches(sourceAST, args);
     }
 
-    public Matches matches(final String src) throws InterruptedException {
+    Matches matches(final String src) throws InterruptedException {
       boolean matches;
       try {
         matches = matches0(src);
@@ -431,7 +431,7 @@ public class AutomatonInternalTest {
       };
     }
 
-    public void doesNotMatch(String src) throws InterruptedException {
+    void doesNotMatch(String src) throws InterruptedException {
       try {
         if (matches0(src)) {
           if (args.getTransitionVariables().isEmpty()) {

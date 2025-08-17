@@ -25,7 +25,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -40,6 +39,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -151,6 +153,14 @@ public class SMGCPAValueVisitorTest {
 
   private SMGOptions options;
 
+  private CFAEdge dummyCFAEdge =
+      new BlankEdge(
+          "dummy edge",
+          FileLocation.DUMMY,
+          CFANode.newDummyCFANode(),
+          CFANode.newDummyCFANode(),
+          "dummy for tests");
+
   @Before
   public void init() throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
@@ -167,9 +177,7 @@ public class SMGCPAValueVisitorTest {
 
     currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
 
-    visitor =
-        new SMGCPAValueVisitor(
-            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
   }
 
   private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
@@ -193,7 +201,7 @@ public class SMGCPAValueVisitorTest {
             AnalysisDirection.FORWARD);
 
     return new ConstraintsSolver(
-        config, smtSolver, formulaManager, converter, new ConstraintsStatistics());
+        config, MACHINE_MODEL, smtSolver, formulaManager, converter, new ConstraintsStatistics());
   }
 
   // Resets state and visitor to an empty state
@@ -206,9 +214,7 @@ public class SMGCPAValueVisitorTest {
             evaluator,
             new SMGCPAStatistics());
 
-    visitor =
-        new SMGCPAValueVisitor(
-            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
   }
 
   /*
@@ -226,7 +232,7 @@ public class SMGCPAValueVisitorTest {
               true,
               ComplexTypeKind.STRUCT);
 
-      // Create a Value that we want to be mapped to a SMGValue to write into the struct
+      // Create a Value that we want to be mapped to an SMGValue to write into the struct
       Value intValue = new NumericValue(i);
       Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
 
@@ -259,7 +265,7 @@ public class SMGCPAValueVisitorTest {
   /*
    * This tests the struct field read (*struct).field with pointers as values.
    * We test pointers of all types. We also fill the struct first completely and don't reset.
-   * The result should always be a AddressExpression with the correct address value and no offset.
+   * The result should always be an AddressExpression with the correct address value and no offset.
    */
   @Test
   public void readStructDerefWithPointerValuesTest()
@@ -301,7 +307,7 @@ public class SMGCPAValueVisitorTest {
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
 
-        // The return should always be a AddressExpression with the address as memory address
+        // The return should always be an AddressExpression with the address as memory address
         assertThat(resultValue).isInstanceOf(AddressExpression.class);
         assertThat(((AddressExpression) resultValue).getMemoryAddress())
             .isEqualTo(addresses.get(i));
@@ -317,7 +323,7 @@ public class SMGCPAValueVisitorTest {
    * This tests the struct field read struct->field with pointers as values.
    * Struct is a pointer variable, pointing to the struct on the heap.
    * We test pointers of all types. We also fill the struct first completely and don't reset.
-   * The result should always be a AddressExpression with the correct address value and no offset.
+   * The result should always be an AddressExpression with the correct address value and no offset.
    */
   @Test
   public void readFieldDerefWithPointerValuesTest()
@@ -361,7 +367,7 @@ public class SMGCPAValueVisitorTest {
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
 
-        // The return should always be a AddressExpression with the address as memory address
+        // The return should always be an AddressExpression with the address as memory address
         assertThat(resultValue).isInstanceOf(AddressExpression.class);
         assertThat(((AddressExpression) resultValue).getMemoryAddress())
             .isEqualTo(addresses.get(i));
@@ -376,7 +382,7 @@ public class SMGCPAValueVisitorTest {
   /*
    * This tests the struct field read struct.field with pointers as values.
    * The struct is on the stack. We test pointers of all types. We also fill the struct first completely and don't reset.
-   * The result should always be a AddressExpression with the correct address value and no offset.
+   * The result should always be an AddressExpression with the correct address value and no offset.
    */
   @Test
   public void readFieldFromStackWithPointerValuesTest() throws CPATransferException {
@@ -415,7 +421,7 @@ public class SMGCPAValueVisitorTest {
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
 
-        // The return should always be a AddressExpression with the address as memory address
+        // The return should always be an AddressExpression with the address as memory address
         assertThat(resultValue).isInstanceOf(AddressExpression.class);
         assertThat(((AddressExpression) resultValue).getMemoryAddress())
             .isEqualTo(addresses.get(i));
@@ -468,7 +474,7 @@ public class SMGCPAValueVisitorTest {
   public void readFieldDerefPointerExplicitlyTest()
       throws InvalidConfigurationException, CPATransferException {
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
-      // Create a Value that we want to be mapped to a SMGValue to write into the struct
+      // Create a Value that we want to be mapped to an SMGValue to write into the struct
       Value intValue = new NumericValue(i);
       Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
 
@@ -518,7 +524,7 @@ public class SMGCPAValueVisitorTest {
         COMPOSITE_VARIABLE_NAME, 0, POINTER_SIZE_IN_BITS, addressValue);
 
     for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
-      // Create a Value that we want to be mapped to a SMGValue to write into the struct
+      // Create a Value that we want to be mapped to an SMGValue to write into the struct
       Value intValue = new NumericValue(i);
 
       writeToHeapObjectByAddress(
@@ -564,7 +570,7 @@ public class SMGCPAValueVisitorTest {
               false,
               ComplexTypeKind.STRUCT);
 
-      // Create a Value that we want to be mapped to a SMGValue to write into the struct
+      // Create a Value that we want to be mapped to an SMGValue to write into the struct
       Value intValue = new NumericValue(i);
 
       // Now create the SMGState, SPC and SMG with the struct already present and values written to
@@ -639,7 +645,7 @@ public class SMGCPAValueVisitorTest {
    * Now read int, we read:
    * 0000 0001 0000 0000
    * which is 256 as an int
-   * Currently we read by type exactly and this means that we can only read types
+   * Currently, we read by type exactly and this means that we can only read types
    * with the exact size of the value last written. 0 always works!
    */
   @Test
@@ -691,7 +697,7 @@ public class SMGCPAValueVisitorTest {
         COMPOSITE_VARIABLE_NAME, getLargestSizeInBitsForListOfCType(STRUCT_UNION_TEST_TYPES));
 
     for (int k = 0; k < STRUCT_UNION_TEST_TYPES.size(); k++) {
-      // Create a Value that we want to be mapped to a SMGValue to write into the struct
+      // Create a Value that we want to be mapped to an SMGValue to write into the struct
       Value intValue = new NumericValue(k + 1);
 
       // Write to the stack union; Note: this is always offset 0!
@@ -922,7 +928,7 @@ public class SMGCPAValueVisitorTest {
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // Create a Value that we want to be mapped to an SMGValue to write into the array depending
         // on the type
         Value arrayValue = transformInputIntoValue(currentValueArrayType, k);
 
@@ -947,8 +953,9 @@ public class SMGCPAValueVisitorTest {
       SMGObject objectForAddressValue =
           currentState.dereferencePointer(addressValueArray).get(0).getSMGObject();
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
-        // We need a mapping from each value representing a address to a SMGValue that is mapped to
-        // a SMGPointsToEdge (modeling the pointer). We simply use numeric values for this. We
+        // We need a mapping from each value representing an address to an SMGValue that is mapped
+        // to
+        // an SMGPointsToEdge (modeling the pointer). We simply use numeric values for this. We
         // remember the pointer values such that the index is the same as the location of the
         // pointer in the array.
         Value address = addPointerToMemory(objectForAddressValue, j * sizeOfCurrentTypeInBits);
@@ -1064,7 +1071,7 @@ public class SMGCPAValueVisitorTest {
       writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
       // Stack variable holding the address (the pointer) to the address of the array
       addStackVariableToMemoryModel(addressToAddressVariableName, POINTER_SIZE_IN_BITS);
-      // We need a mapping from addressForAddressValue to a SMGValue that is mapped to a
+      // We need a mapping from addressForAddressValue to an SMGValue that is mapped to a
       // SMGPointsToEdge (modeling the pointer)
       SMGObject objectForAddressValue =
           currentState.getMemoryModel().getStackFrames().peek().getVariable(arrayVariableName);
@@ -1075,7 +1082,7 @@ public class SMGCPAValueVisitorTest {
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // Create a Value that we want to be mapped to an SMGValue to write into the array depending
         // on the type
         Value arrayValue = transformInputIntoValue(currentArrayType, k);
 
@@ -1222,7 +1229,7 @@ public class SMGCPAValueVisitorTest {
       // Now write some distinct values into the array, for signed we want to test negatives!
       // Also create pointers
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // Create a Value that we want to be mapped to an SMGValue to write into the array depending
         // on the type
         Value arrayValue = transformInputIntoValue(currentArrayType, k);
 
@@ -1452,7 +1459,7 @@ public class SMGCPAValueVisitorTest {
       // Now write some distinct values into the array, for signed we want to test negatives!
       // Also create pointers
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // Create a Value that we want to be mapped to an SMGValue to write into the array depending
         // on the type
         Value arrayValue = transformInputIntoValue(currentArrayType, k);
 
@@ -1551,7 +1558,7 @@ public class SMGCPAValueVisitorTest {
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-        // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+        // Create a Value that we want to be mapped to an SMGValue to write into the array depending
         // on the type
         Value arrayValue = transformInputIntoValue(currentArrayType, k);
 
@@ -1976,7 +1983,7 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName + typeToTest,
-              CDefaults.forType(typeToTest, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY));
 
       CUnaryExpression amperVar = wrapInAmper(new CIdExpression(FileLocation.DUMMY, decl));
 
@@ -2577,7 +2584,7 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(typeToTest, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY));
 
       CUnaryExpression sizeOfVar = wrapInSizeof(new CIdExpression(FileLocation.DUMMY, decl));
 
@@ -2666,7 +2673,7 @@ public class SMGCPAValueVisitorTest {
 
       // Write every possible values once
       for (int i = 0; i < j; i++) {
-        // Create a Value that we want to be mapped to a SMGValue to write into the union
+        // Create a Value that we want to be mapped to an SMGValue to write into the union
         Value intValue = new NumericValue(j);
 
         // Write to the stack union; Note: this is always offset 0!
@@ -3010,7 +3017,7 @@ public class SMGCPAValueVisitorTest {
         variableName, getSizeInBitsForListOfCTypeWithPadding(testTypesList));
 
     for (int i = 0; i < testTypesList.size(); i++) {
-      // Create a Value that we want to be mapped to a SMGValue to write into the struct
+      // Create a Value that we want to be mapped to an SMGValue to write into the struct
       Value intValue = new NumericValue(i);
 
       // Write to the stack var
@@ -3048,7 +3055,7 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            CDefaults.forType(structPointerType, FileLocation.DUMMY));
+            CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY));
 
     CIdExpression structVarExpr = new CIdExpression(FileLocation.DUMMY, declararation);
 
@@ -3121,7 +3128,7 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(structPointerType, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY));
     } else {
       declararation =
           new CVariableDeclaration(
@@ -3132,7 +3139,7 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(elaboratedType, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, elaboratedType, FileLocation.DUMMY));
     }
 
     return new CIdExpression(FileLocation.DUMMY, declararation);
@@ -3192,7 +3199,7 @@ public class SMGCPAValueVisitorTest {
 
     // Now write some distinct values into the array, for signed we want to test negatives!
     for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-      // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+      // Create a Value that we want to be mapped to an SMGValue to write into the array depending
       // on the type
       Value arrayValue = transformInputIntoValue(arrayElementType, k);
 
@@ -3227,7 +3234,7 @@ public class SMGCPAValueVisitorTest {
     // Fill struct completely
     for (int i = 0; i < listOfTypes.size(); i++) {
       CType currentType = listOfTypes.get(i);
-      // Create a Value that we want to be mapped to a SMGValue to write into the struct
+      // Create a Value that we want to be mapped to an SMGValue to write into the struct
       Value intValue = transformInputIntoValue(currentType, i);
       // write the value into the struct on the heap
       writeToHeapObjectByAddress(
@@ -3240,7 +3247,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   /*
-   * Creates a array on the heap with TEST_ARRAY_LENGTH entries filled via
+   * Creates an array on the heap with TEST_ARRAY_LENGTH entries filled via
    * transformInputIntoValue() by indice position with the type entered and the
    * stack variable accessable via the String that is pointing to the array on the heap.
    * Check return value with checkValue()!
@@ -3260,7 +3267,7 @@ public class SMGCPAValueVisitorTest {
 
     // Now write some distinct values into the array, for signed we want to test negatives!
     for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-      // Create a Value that we want to be mapped to a SMGValue to write into the array depending
+      // Create a Value that we want to be mapped to an SMGValue to write into the array depending
       // on the type
       Value arrayValue = transformInputIntoValue(currentArrayType, k);
 
@@ -3303,9 +3310,7 @@ public class SMGCPAValueVisitorTest {
         currentState.copyAndAddLocalVariable(
             new NumericValue(BigInteger.valueOf(sizeInBits)), variableName, null);
 
-    visitor =
-        new SMGCPAValueVisitor(
-            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
   }
 
   /*
@@ -3334,15 +3339,13 @@ public class SMGCPAValueVisitorTest {
             BigInteger.valueOf(writeSizeInBits),
             smgValue);
 
-    visitor =
-        new SMGCPAValueVisitor(
-            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
   }
 
   /**
-   * Creates a SMGObject of the entered size. Then creates a pointer (points to edge) to it at the
-   * offset entered. Then the pointer is mapped to a SMGValue that is mapped to the entered value as
-   * address value. The global state and visitor are updated with the new items.
+   * Creates an SMGObject of the entered size. Then creates a pointer (points to edge) to it at the
+   * offset entered. Then the pointer is mapped to an SMGValue that is mapped to the entered value
+   * as address value. The global state and visitor are updated with the new items.
    *
    * @param offset in bits of the pointer. Essentially where the pointer starts in the object.
    * @param size of the object in bits.
@@ -3357,7 +3360,7 @@ public class SMGCPAValueVisitorTest {
         SMGObject.of(0, new NumericValue(BigInteger.valueOf(size)), BigInteger.valueOf(0));
     spc = spc.copyAndAddHeapObject(smgHeapObject);
 
-    // Mapping to the smg points to edge
+    // Mapping to the SMG points to edge
     spc =
         spc.copyAndAddPointerFromAddressToMemory(
             addressValue,
@@ -3369,9 +3372,7 @@ public class SMGCPAValueVisitorTest {
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
     currentState = currentState.copyAndReplaceMemoryModel(spc);
-    visitor =
-        new SMGCPAValueVisitor(
-            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
   }
 
   /**
@@ -3386,9 +3387,7 @@ public class SMGCPAValueVisitorTest {
         currentState.searchOrCreateAddress(pTarget, BigInteger.valueOf(offset));
 
     currentState = addressAndState.getState();
-    visitor =
-        new SMGCPAValueVisitor(
-            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
     return addressAndState.getValue();
   }
 
@@ -3401,7 +3400,7 @@ public class SMGCPAValueVisitorTest {
     Preconditions.checkArgument(
         objectAndOffset.getOffsetForObject().asNumericValue().longValue() == 0);
 
-    // Mapping to the smg points to edge
+    // Mapping to the SMG points to edge
     ValueAndSMGState newPointerValueAndState =
         currentState.searchOrCreateAddress(
             objectAndOffset.getSMGObject(), BigInteger.valueOf(offset));
@@ -3409,9 +3408,7 @@ public class SMGCPAValueVisitorTest {
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
-    visitor =
-        new SMGCPAValueVisitor(
-            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
     return newPointerValueAndState.getValue();
   }
 
@@ -3441,9 +3438,7 @@ public class SMGCPAValueVisitorTest {
             spc.getSMGValueFromValue(valueToWrite).orElseThrow());
 
     currentState = currentState.copyAndReplaceMemoryModel(spc);
-    visitor =
-        new SMGCPAValueVisitor(
-            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
   }
 
   /**
@@ -3496,7 +3491,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   /**
-   * Access an array thats on the stack via subscript. The index used is also a variable on the
+   * Access an array that's on the stack via subscript. The index used is also a variable on the
    * stack. Example: array[index]
    *
    * @param arrayVariableName qualified name of the array on the stack.
@@ -3957,8 +3952,8 @@ public class SMGCPAValueVisitorTest {
    * @return some Value for the type and input value.
    */
   private @Nullable Value transformInputIntoValue(CType valueType, int numValue) {
-    if (valueType instanceof CSimpleType) {
-      if (((CSimpleType) valueType).hasSignedSpecifier()) {
+    if (valueType instanceof CSimpleType cSimpleType) {
+      if (cSimpleType.hasSignedSpecifier()) {
         // Make every second number negative
         return new NumericValue(numValue % 2 == 0 ? numValue : -numValue);
       } else {

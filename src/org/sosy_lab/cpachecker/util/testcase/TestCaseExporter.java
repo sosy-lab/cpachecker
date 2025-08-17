@@ -255,16 +255,15 @@ public class TestCaseExporter {
                     Charset.defaultCharset())) {
 
               switch (type) {
-                case HARNESS:
+                case HARNESS -> {
                   Optional<String> harness =
                       harnessExporter.writeHarness(
                           rootState, relevantStates, relevantEdges, pCexInfo);
                   if (harness.isPresent()) {
                     writer.write(harness.orElseThrow());
                   }
-                  break;
-                default:
-                  throw new AssertionError("Unknown test case format.");
+                }
+                default -> throw new AssertionError("Unknown test case format.");
               }
             }
           }
@@ -332,20 +331,17 @@ public class TestCaseExporter {
                     Charset.defaultCharset())) {
 
               switch (pType) {
-                case PLAIN:
-                  writer.write(
-                      inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated));
-                  break;
-                case METADATA:
-                  XMLTestCaseExport.writeXMLMetadata(
-                      writer, cfa, pSpec.orElse(null), producerString);
-                  break;
-                case XML:
-                  writer.write(
-                      inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE));
-                  break;
-                default:
-                  throw new AssertionError("Unknown test case format.");
+                case PLAIN ->
+                    writer.write(
+                        inputListToFormattedString(
+                            nextInputs, TestCaseExporter::printLineSeparated));
+                case METADATA ->
+                    XMLTestCaseExport.writeXMLMetadata(
+                        writer, cfa, pSpec.orElse(null), producerString);
+                case XML ->
+                    writer.write(
+                        inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE));
+                default -> throw new AssertionError("Unknown test case format.");
               }
             }
             nextInputs = mutateInputValues(pOrigInputs);
@@ -405,11 +401,11 @@ public class TestCaseExporter {
   }
 
   private String unpack(final AAstNode pInputValue) {
-    if (pInputValue instanceof CCastExpression) {
-      return unpack(((CCastExpression) pInputValue).getOperand());
+    if (pInputValue instanceof CCastExpression cCastExpression) {
+      return unpack(cCastExpression.getOperand());
     } else {
-      if (plainLiteralValue && pInputValue instanceof ALiteralExpression) {
-        return String.valueOf(((ALiteralExpression) pInputValue).getValue());
+      if (plainLiteralValue && pInputValue instanceof ALiteralExpression aLiteralExpression) {
+        return String.valueOf(aLiteralExpression.getValue());
       }
       return pInputValue.toASTString();
     }

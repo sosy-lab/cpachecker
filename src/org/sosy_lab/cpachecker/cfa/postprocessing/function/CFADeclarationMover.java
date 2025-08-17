@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/** This class moves the declarations inside of each function to the beginning of them. */
+/** This class moves the declarations inside each function to the beginning of them. */
 public class CFADeclarationMover {
 
   LogManager logger;
@@ -117,8 +117,8 @@ public class CFADeclarationMover {
   private CFAEdge moveEdgeToOtherPredecessor(CFAEdge edge, CFANode pred) {
     CFANode succ = edge.getSuccessor();
     succ.removeEnteringEdge(edge);
-    switch (edge.getEdgeType()) {
-      case AssumeEdge:
+    return switch (edge.getEdgeType()) {
+      case AssumeEdge -> {
         edge =
             new CAssumeEdge(
                 edge.getRawStatement(),
@@ -131,8 +131,9 @@ public class CFADeclarationMover {
                 ((CAssumeEdge) edge).isArtificialIntermediate());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case BlankEdge:
+        yield edge;
+      }
+      case BlankEdge -> {
         edge =
             new BlankEdge(
                 edge.getRawStatement(),
@@ -142,8 +143,9 @@ public class CFADeclarationMover {
                 edge.getDescription());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case DeclarationEdge:
+        yield edge;
+      }
+      case DeclarationEdge -> {
         edge =
             new CDeclarationEdge(
                 edge.getRawStatement(),
@@ -153,8 +155,9 @@ public class CFADeclarationMover {
                 ((CDeclarationEdge) edge).getDeclaration());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case ReturnStatementEdge:
+        yield edge;
+      }
+      case ReturnStatementEdge -> {
         edge =
             new CReturnStatementEdge(
                 edge.getRawStatement(),
@@ -164,8 +167,9 @@ public class CFADeclarationMover {
                 (FunctionExitNode) edge.getSuccessor());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case StatementEdge:
+        yield edge;
+      }
+      case StatementEdge -> {
         edge =
             new CStatementEdge(
                 edge.getRawStatement(),
@@ -175,17 +179,16 @@ public class CFADeclarationMover {
                 edge.getSuccessor());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case CallToReturnEdge:
-      case FunctionReturnEdge:
-      default:
-        throw new AssertionError("should never happen");
-    }
+        yield edge;
+      }
+      case FunctionCallEdge, CallToReturnEdge, FunctionReturnEdge ->
+          throw new AssertionError("should never happen");
+    };
   }
 
   private void moveDeclEdgeToNewLocation(CDeclarationEdge edge, CFANode pred, CFANode succ) {
     CDeclaration decl = edge.getDeclaration();
-    if (!(decl instanceof CVariableDeclaration)) {
+    if (!(decl instanceof CVariableDeclaration varDecl)) {
       throw new AssertionError("Only variable declaration edges should be moved!");
     }
 
@@ -194,16 +197,16 @@ public class CFADeclarationMover {
     // with the initializer expression as righthandside)
     CFANode actPred = edge.getPredecessor();
     CFANode actSucc = edge.getSuccessor();
-    CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+
     CInitializer init = varDecl.getInitializer();
-    if (init instanceof CInitializerExpression) {
+    if (init instanceof CInitializerExpression cInitializerExpression) {
       actPred.removeLeavingEdge(edge);
       actSucc.removeEnteringEdge(edge);
       CExpressionAssignmentStatement stmt =
           new CExpressionAssignmentStatement(
               varDecl.getFileLocation(),
               new CIdExpression(varDecl.getFileLocation(), varDecl),
-              ((CInitializerExpression) init).getExpression());
+              cInitializerExpression.getExpression());
       CStatementEdge midEdge =
           new CStatementEdge(
               edge.getRawStatement(), stmt, edge.getFileLocation(), actPred, actSucc);
@@ -281,19 +284,19 @@ public class CFADeclarationMover {
 
     private final List<CFAEdge> edges;
 
-    public DeclarationCollector() {
+    DeclarationCollector() {
       edges = new ArrayList<>();
     }
 
-    public List<CFAEdge> getCollectedDeclarations() {
+    List<CFAEdge> getCollectedDeclarations() {
       return edges;
     }
 
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
       // only sum up variabledeclarations
-      if (edge instanceof ADeclarationEdge
-          && (((ADeclarationEdge) edge).getDeclaration() instanceof AVariableDeclaration)) {
+      if (edge instanceof ADeclarationEdge aDeclarationEdge
+          && (aDeclarationEdge.getDeclaration() instanceof AVariableDeclaration)) {
         edges.add(edge);
       }
       return TraversalProcess.CONTINUE;

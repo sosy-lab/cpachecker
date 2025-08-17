@@ -79,7 +79,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Used to store the types of the cfa that are lost when only a single or a block of statements of
+ * Used to store the types of the CFA that are lost when only a single or a block of statements of
  * the original program is parsed.
  */
 public class CProgramScope implements Scope {
@@ -149,8 +149,8 @@ public class CProgramScope implements Scope {
   }
 
   private static String getComplexDeclarationName(CSimpleDeclaration pDeclaration) {
-    if (pDeclaration instanceof CComplexTypeDeclaration) {
-      CComplexType complexType = ((CComplexTypeDeclaration) pDeclaration).getType();
+    if (pDeclaration instanceof CComplexTypeDeclaration cComplexTypeDeclaration) {
+      CComplexType complexType = cComplexTypeDeclaration.getType();
       if (complexType != null) {
         String name = complexType.getName();
         String originalName = complexType.getOrigName();
@@ -247,11 +247,11 @@ public class CProgramScope implements Scope {
   /**
    * Creates an object of this class.
    *
-   * <p>When a single or a block of statements is supposed to be parsed, first a cfa for the whole
+   * <p>When a single or a block of statements is supposed to be parsed, first a CFA for the whole
    * program has to be parsed to generate complex types for the variables. These types and
    * declarations are stored in this scope.
    *
-   * @param pCFA the cfa of the program, where single or block of statements are supposed to be
+   * @param pCFA the CFA of the program, where single or block of statements are supposed to be
    *     parsed
    */
   public CProgramScope(CFA pCFA, LogManager pLogger) {
@@ -393,8 +393,8 @@ public class CProgramScope implements Scope {
       return result;
     }
     CType typdefResult = lookupTypedef(pName);
-    if (typdefResult instanceof CComplexType) {
-      return (CComplexType) typdefResult;
+    if (typdefResult instanceof CComplexType cComplexType) {
+      return cComplexType;
     }
     return null;
   }
@@ -566,12 +566,11 @@ public class CProgramScope implements Scope {
     }
 
     // If the types are not composite types, we are done
-    if (!(pA instanceof CCompositeType)) {
+    if (!(pA instanceof CCompositeType aComp)) {
       pResolved.add(ab);
       return true;
     }
 
-    CCompositeType aComp = (CCompositeType) pA;
     CCompositeType bComp = (CCompositeType) pB;
 
     // Check member count
@@ -677,8 +676,8 @@ public class CProgramScope implements Scope {
             .transformAndConcat(CFAUtils::traverseRecursively);
     if (pEdge instanceof ADeclarationEdge declarationEdge) {
       ADeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof AFunctionDeclaration) {
-        nodes = Iterables.concat(nodes, ((AFunctionDeclaration) declaration).getParameters());
+      if (declaration instanceof AFunctionDeclaration aFunctionDeclaration) {
+        nodes = Iterables.concat(nodes, aFunctionDeclaration.getParameters());
       }
     }
     return nodes;
@@ -696,8 +695,8 @@ public class CProgramScope implements Scope {
                     astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration)
             .filter(
                 astNode -> {
-                  if (astNode instanceof CIdExpression) {
-                    return ((CIdExpression) astNode).getDeclaration() != null;
+                  if (astNode instanceof CIdExpression cIdExpression) {
+                    return cIdExpression.getDeclaration() != null;
                   }
                   return true;
                 });
@@ -788,15 +787,15 @@ public class CProgramScope implements Scope {
 
     private final Set<CType> collectedTypes;
 
-    public TypeCollector() {
+    TypeCollector() {
       this(new HashSet<>());
     }
 
-    public TypeCollector(Set<CType> pCollectedTypes) {
+    TypeCollector(Set<CType> pCollectedTypes) {
       collectedTypes = pCollectedTypes;
     }
 
-    public Set<CType> getCollectedTypes() {
+    Set<CType> getCollectedTypes() {
       return Collections.unmodifiableSet(collectedTypes);
     }
 

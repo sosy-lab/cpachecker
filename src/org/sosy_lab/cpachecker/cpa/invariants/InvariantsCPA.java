@@ -106,7 +106,7 @@ public class InvariantsCPA
     @Option(
         secure = true,
         description =
-            "determine variables relevant to the decision whether or not a target path assume edge"
+            "determine variables relevant to the decision whether a target path assume edge"
                 + " is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
 
@@ -503,7 +503,7 @@ public class InvariantsCPA
     int prevSize = -1;
     while (pRelevantVariables.size() > prevSize && !reachesLimit(pRelevantVariables, pLimit)) {
       // we cannot throw an interrupted exception during #getInitialState, but the analysis
-      // will be shutdown afterwards by another notifier so we can safely end computation here
+      // will be shut down afterward by another notifier so we can safely end computation here
       shutdownNotifier.shutdownIfNecessary();
       prevSize = pRelevantVariables.size();
       expandOnce(pRelevantVariables, pRelevantLocation, pLimit);
@@ -708,7 +708,7 @@ public class InvariantsCPA
 
     private ConditionAdjuster defaultInner;
 
-    public CompoundConditionAdjuster(InvariantsCPA pCPA) {
+    CompoundConditionAdjuster(InvariantsCPA pCPA) {
       cpa = Objects.requireNonNull(pCPA);
       innerAdjusters.add(new InterestingVariableLimitAdjuster(pCPA));
       innerAdjusters.add(new FormulaDepthAdjuster(pCPA));
@@ -875,7 +875,7 @@ public class InvariantsCPA
 
     private final InvariantsCPA cpa;
 
-    public AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
+    AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
       cpa = pCPA;
     }
 

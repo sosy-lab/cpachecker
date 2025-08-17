@@ -325,7 +325,8 @@ public class DirectedGraph {
 
     Node n = nameMapping.get(var);
     if (n == null) {
-      nameMapping.put(var, n = new Node());
+      n = new Node();
+      nameMapping.put(var, n);
     } else if (!n.isValid()) {
 
       do {
@@ -350,7 +351,8 @@ public class DirectedGraph {
     for (Map.Entry<String, Node> entry : entrySet) {
       DirectedGraph.Node val = entry.getValue();
       while (!val.isValid()) {
-        entry.setValue(val = val.getReplacement());
+        val = val.getReplacement();
+        entry.setValue(val);
       }
     }
 

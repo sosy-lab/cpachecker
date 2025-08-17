@@ -101,7 +101,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws CPATransferException, InterruptedException {
     // The Callstack-CPA is not able to handle a recursion of the form f-g-f,
     // because the operation Reduce splits it into f-g and g-f.
-    // Thus we check for recursion here and (if we do not handle recursion here)
+    // Thus, we check for recursion here and (if we do not handle recursion here)
     // set a flag for the Callstack-CPA, such that it knows about the recursion.
     final boolean foundRecursion = isRecursiveCall(node);
     if (foundRecursion) {
@@ -164,7 +164,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws CPAException, InterruptedException {
 
     // Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
-    // do an CPA analysis to get the complete reachset
+    // do a CPA analysis to get the complete reachset
     // if lastElement is error State
     // -> return lastElement and break at precision adjustment
     // else
@@ -338,10 +338,10 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
     ARGState rootOfBlock = null;
     if (bamPccManager.isPCCEnabled()) {
-      if (!(reached.getFirstState() instanceof ARGState)) {
+      if (!(reached.getFirstState() instanceof ARGState aRGState)) {
         throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
       }
-      rootOfBlock = BAMARGUtils.copyARG((ARGState) reached.getFirstState());
+      rootOfBlock = BAMARGUtils.copyARG(aRGState);
     }
 
     // use 'reducedResult' for cache and 'statesForFurtherAnalysis' as return value,
@@ -364,7 +364,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       final Collection<AbstractState> reducedResult,
       final Collection<AbstractState> cachedReturnStates)
       throws CPAException, InterruptedException {
-    return reducedResult; // dummy implementation, overridden in sub-class
+    return reducedResult; // dummy implementation, overridden in subclass
   }
 
   /**

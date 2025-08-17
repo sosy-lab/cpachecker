@@ -168,7 +168,7 @@ class EclipseCParser implements CParser {
     return parseSomething(
         ImmutableList.of(new FileContentToParse(pFileName, pCode)),
         sourceOriginMapping,
-        pScope instanceof CProgramScope ? ((CProgramScope) pScope) : CProgramScope.empty(),
+        pScope instanceof CProgramScope cProgramScope ? cProgramScope : CProgramScope.empty(),
         (fileName, content) -> {
           Preconditions.checkArgument(content instanceof FileContentToParse);
           return wrapCode(fileName, ((FileContentToParse) content).getFileContent());
@@ -190,7 +190,7 @@ class EclipseCParser implements CParser {
 
     IASTFunctionDefinition func = (IASTFunctionDefinition) declarations[0];
     IASTStatement body = func.getBody();
-    if (!(body instanceof IASTCompoundStatement)) {
+    if (!(body instanceof IASTCompoundStatement iASTCompoundStatement)) {
       throw new CParserException(
           "Function has an unexpected "
               + body.getClass().getSimpleName()
@@ -198,7 +198,7 @@ class EclipseCParser implements CParser {
               + func.getRawSignature());
     }
 
-    return ((IASTCompoundStatement) body).getStatements();
+    return iASTCompoundStatement.getStatements();
   }
 
   private ASTConverter prepareTemporaryConverter(Scope scope) {
@@ -304,7 +304,7 @@ class EclipseCParser implements CParser {
           .precomputed();
 
   /**
-   * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for
+   * Builds the CFA out of a list of pairs of translation units and their appropriate prefixes for
    * static variables
    *
    * @param asts a List of Pairs of translation units and the appropriate prefix for static

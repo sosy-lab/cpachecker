@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
@@ -118,8 +119,11 @@ public class ConstraintsSolver {
 
   private ConstraintsStatistics stats;
 
+  private final MachineModel machineModel;
+
   public ConstraintsSolver(
       final Configuration pConfig,
+      final MachineModel pMachineModel,
       final Solver pSolver,
       final FormulaManagerView pFormulaManager,
       final CtoFormulaConverter pConverter,
@@ -134,6 +138,7 @@ public class ConstraintsSolver {
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
     stats = pStats;
+    machineModel = pMachineModel;
 
     if (doCaching) {
       cache = new MatchingConstraintsCache();
@@ -352,7 +357,7 @@ public class ConstraintsSolver {
   }
 
   private FormulaCreator getFormulaCreator(String pFunctionName) {
-    return new FormulaCreatorUsingCConverter(converter, pFunctionName);
+    return new FormulaCreatorUsingCConverter(machineModel, converter, pFunctionName);
   }
 
   /**
@@ -441,7 +446,7 @@ public class ConstraintsSolver {
     private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
 
-    public SupersetConstraintsCache(final ConstraintsCache pDelegate) {
+    SupersetConstraintsCache(final ConstraintsCache pDelegate) {
       delegate = pDelegate;
     }
 
@@ -519,7 +524,7 @@ public class ConstraintsSolver {
     private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
 
-    public SubsetConstraintsCache(final ConstraintsCache pDelegate) {
+    SubsetConstraintsCache(final ConstraintsCache pDelegate) {
       delegate = pDelegate;
     }
 
@@ -614,15 +619,15 @@ public class ConstraintsSolver {
     private Result result;
     private Optional<ImmutableList<ValueAssignment>> modelAssignment;
 
-    public static CacheResult getSat(ImmutableList<ValueAssignment> pModelAssignment) {
+    static CacheResult getSat(ImmutableList<ValueAssignment> pModelAssignment) {
       return new CacheResult(Result.SAT, Optional.of(pModelAssignment));
     }
 
-    public static CacheResult getUnsat() {
+    static CacheResult getUnsat() {
       return UNSAT_SINGLETON;
     }
 
-    public static CacheResult getUnknown() {
+    static CacheResult getUnknown() {
       return UNKNOWN_SINGLETON;
     }
 
@@ -631,15 +636,15 @@ public class ConstraintsSolver {
       modelAssignment = pModelAssignment;
     }
 
-    public boolean isSat() {
+    boolean isSat() {
       return result.equals(Result.SAT);
     }
 
-    public boolean isUnsat() {
+    boolean isUnsat() {
       return result.equals(Result.UNSAT);
     }
 
-    public ImmutableList<ValueAssignment> getModelAssignment() {
+    ImmutableList<ValueAssignment> getModelAssignment() {
       checkState(modelAssignment.isPresent(), "No model exists");
       return modelAssignment.orElseThrow();
     }

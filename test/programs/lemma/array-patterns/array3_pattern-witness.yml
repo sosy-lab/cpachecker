@@ -28,7 +28,7 @@
           line: 83
           column: 2
           function: main 
-        value: "sum2 == ACSL(_L_SUM_2(array2, count))"
+        value: "sum2 == ACSL(_L_SUM(array2, count))"
         format: c_expression
     - invariant:
         type: loop_invariant

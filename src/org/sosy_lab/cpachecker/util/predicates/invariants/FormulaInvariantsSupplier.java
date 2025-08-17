@@ -55,7 +55,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated) {
     aggregatedReached = pAggregated;
-    updateInvariants(); // at initialization we want to update the invariants the first time
+    updateInvariants(); // at initialization, we want to update the invariants the first time
   }
 
   @Override
@@ -93,7 +93,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     private final PathFormula context;
     private final PathFormulaManager pfgmr;
 
-    protected AddPointerInformationVisitor(
+    AddPointerInformationVisitor(
         FormulaManagerView pFmgr, PathFormula pContext, PathFormulaManager pPfmgr) {
       super(pFmgr);
       pfgmr = pPfmgr;
@@ -139,11 +139,11 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
     private final LazyLocationMapping lazyLocationMapping;
 
-    public ReachedSetBasedFormulaSupplier(LazyLocationMapping pLazyLocationMapping) {
+    ReachedSetBasedFormulaSupplier(LazyLocationMapping pLazyLocationMapping) {
       lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
     }
 
-    public BooleanFormula getInvariantFor(
+    BooleanFormula getInvariantFor(
         CFANode pLocation,
         Optional<CallstackStateEqualsWrapper> pCallstackInformation,
         FormulaManagerView fmgr) {
@@ -219,7 +219,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     private final FormulaManagerView fmgr;
     private final PathFormulaManager pfmgr;
 
-    public InvariantsCacheKey(
+    InvariantsCacheKey(
         CFANode pNode,
         Optional<CallstackStateEqualsWrapper> pCallstackInformation,
         FormulaManagerView pFormulaManager,

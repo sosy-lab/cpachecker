@@ -158,6 +158,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
+  private final MachineModel machineModel;
+
   // Data structures for handling goto
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
   private final Multimap<String, GotoInformation> gotoLabelNeeded = ArrayListMultimap.create();
@@ -215,6 +217,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     parseContext = pParseContext;
     checkBinding = pCheckBinding;
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
+    machineModel = pMachine;
 
     shouldVisitDeclarations = true;
     shouldVisitEnumerators = true;
@@ -256,7 +259,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   void finish() {
 
     // cleanup unnecessary nodes and edges, that were created before.
-    // cfaNodes were collected with with a FORWARD-search,
+    // cfaNodes were collected with a FORWARD-search,
     // so all unnecessary nodes are only reachable with BACKWARD-search.
     // we only disconnect them from the CFA and let garbage collection do the rest
     for (CFANode node : cfaNodes) {
@@ -310,14 +313,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       // because the change has less impact.
       return PROCESS_SKIP;
 
-    } else if (declaration instanceof IASTSimpleDeclaration) {
-      return handleSimpleDeclaration((IASTSimpleDeclaration) declaration);
+    } else if (declaration instanceof IASTSimpleDeclaration iASTSimpleDeclaration) {
+      return handleSimpleDeclaration(iASTSimpleDeclaration);
 
-    } else if (declaration instanceof IASTFunctionDefinition) {
-      return handleFunctionDefinition((IASTFunctionDefinition) declaration);
+    } else if (declaration instanceof IASTFunctionDefinition iASTFunctionDefinition) {
+      return handleFunctionDefinition(iASTFunctionDefinition);
 
-    } else if (declaration instanceof IASTProblemDeclaration) {
-      visit(((IASTProblemDeclaration) declaration).getProblem());
+    } else if (declaration instanceof IASTProblemDeclaration iASTProblemDeclaration) {
+      visit(iASTProblemDeclaration.getProblem());
       return PROCESS_SKIP;
 
     } else if (declaration instanceof IASTASMDeclaration) {
@@ -404,7 +407,8 @@ class CFAFunctionBuilder extends ASTVisitor {
           return prevNode;
 
         } else if (options.initializeAllVariables()) {
-          CInitializer initializer = CDefaults.forType(newD.getType(), newD.getFileLocation());
+          CInitializer initializer =
+              CDefaults.forType(machineModel, newD.getType(), newD.getFileLocation());
           newD =
               new CVariableDeclaration(
                   newD.getFileLocation(),
@@ -641,38 +645,38 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       scope.enterBlock();
       // Do nothing, just continue visiting
-    } else if (statement instanceof IASTExpressionStatement) {
-      handleExpressionStatement((IASTExpressionStatement) statement, fileloc);
-    } else if (statement instanceof IASTIfStatement) {
-      handleIfStatement((IASTIfStatement) statement, fileloc);
-    } else if (statement instanceof IASTWhileStatement) {
-      handleWhileStatement((IASTWhileStatement) statement, fileloc);
-    } else if (statement instanceof IASTForStatement) {
-      return handleForStatement((IASTForStatement) statement, fileloc);
-    } else if (statement instanceof IASTBreakStatement) {
-      handleBreakStatement((IASTBreakStatement) statement, fileloc);
-    } else if (statement instanceof IASTContinueStatement) {
-      handleContinueStatement((IASTContinueStatement) statement, fileloc);
-    } else if (statement instanceof IASTLabelStatement) {
-      handleLabelStatement((IASTLabelStatement) statement, fileloc);
-    } else if (statement instanceof IASTGotoStatement) {
-      handleGotoStatement((IASTGotoStatement) statement, fileloc);
-    } else if (statement instanceof IASTReturnStatement) {
-      handleReturnStatement((IASTReturnStatement) statement, fileloc);
-    } else if (statement instanceof IASTSwitchStatement) {
-      return handleSwitchStatement((IASTSwitchStatement) statement, fileloc);
-    } else if (statement instanceof IASTCaseStatement) {
-      handleCaseStatement((IASTCaseStatement) statement, fileloc);
-    } else if (statement instanceof IASTDefaultStatement) {
-      handleDefaultStatement((IASTDefaultStatement) statement, fileloc);
+    } else if (statement instanceof IASTExpressionStatement iASTExpressionStatement) {
+      handleExpressionStatement(iASTExpressionStatement, fileloc);
+    } else if (statement instanceof IASTIfStatement iASTIfStatement) {
+      handleIfStatement(iASTIfStatement, fileloc);
+    } else if (statement instanceof IASTWhileStatement iASTWhileStatement) {
+      handleWhileStatement(iASTWhileStatement, fileloc);
+    } else if (statement instanceof IASTForStatement iASTForStatement) {
+      return handleForStatement(iASTForStatement, fileloc);
+    } else if (statement instanceof IASTBreakStatement iASTBreakStatement) {
+      handleBreakStatement(iASTBreakStatement, fileloc);
+    } else if (statement instanceof IASTContinueStatement iASTContinueStatement) {
+      handleContinueStatement(iASTContinueStatement, fileloc);
+    } else if (statement instanceof IASTLabelStatement iASTLabelStatement) {
+      handleLabelStatement(iASTLabelStatement, fileloc);
+    } else if (statement instanceof IASTGotoStatement iASTGotoStatement) {
+      handleGotoStatement(iASTGotoStatement, fileloc);
+    } else if (statement instanceof IASTReturnStatement iASTReturnStatement) {
+      handleReturnStatement(iASTReturnStatement, fileloc);
+    } else if (statement instanceof IASTSwitchStatement iASTSwitchStatement) {
+      return handleSwitchStatement(iASTSwitchStatement, fileloc);
+    } else if (statement instanceof IASTCaseStatement iASTCaseStatement) {
+      handleCaseStatement(iASTCaseStatement, fileloc);
+    } else if (statement instanceof IASTDefaultStatement iASTDefaultStatement) {
+      handleDefaultStatement(iASTDefaultStatement, fileloc);
     } else if (statement instanceof IASTNullStatement) {
       // We really don't care about blank statements
     } else if (statement instanceof IASTDeclarationStatement) {
       // these are handled by visit(IASTDeclaration)
-    } else if (statement instanceof IASTProblemStatement) {
-      visit(((IASTProblemStatement) statement).getProblem());
-    } else if (statement instanceof IASTDoStatement) {
-      handleDoWhileStatement((IASTDoStatement) statement, fileloc);
+    } else if (statement instanceof IASTProblemStatement iASTProblemStatement) {
+      visit(iASTProblemStatement.getProblem());
+    } else if (statement instanceof IASTDoStatement iASTDoStatement) {
+      handleDoWhileStatement(iASTDoStatement, fileloc);
     } else {
       throw parseContext.parseError(
           "Unknown AST node " + statement.getClass().getSimpleName(), statement);
@@ -691,9 +695,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode lastNode = null;
     String rawSignature = exprStatement.getRawSignature();
 
-    if (exprStatement.getExpression() instanceof IASTExpressionList) {
-      for (IASTExpression exp :
-          ((IASTExpressionList) exprStatement.getExpression()).getExpressions()) {
+    if (exprStatement.getExpression() instanceof IASTExpressionList iASTExpressionList) {
+      for (IASTExpression exp : iASTExpressionList.getExpressions()) {
         CStatement statement = astCreator.convertExpressionToStatement(exp);
         lastNode = createIASTExpressionStatementEdges(rawSignature, fileloc, prevNode, statement);
         prevNode = lastNode;
@@ -721,14 +724,13 @@ class CFAFunctionBuilder extends ASTVisitor {
         // Example: void f(){}; int main(){(0, f());}
         resultIsUsed = false;
 
-      } else if (statement instanceof CExpressionStatement) {
+      } else if (statement instanceof CExpressionStatement cExpressionStatement) {
         // this may be code where the resulting value of a ternary operator is not used, e.g. (x ?
         // f() : g())
         List<Pair<IASTExpression, CIdExpression>> tempVars =
             sideAssignmentStack.getConditionalExpressions();
         if ((tempVars.size() == 1)
-            && (tempVars.get(0).getSecond()
-                == ((CExpressionStatement) statement).getExpression())) {
+            && (tempVars.get(0).getSecond() == cExpressionStatement.getExpression())) {
           resultIsUsed = false;
         }
       }
@@ -1129,8 +1131,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       @Nullable CFANode lastNode) {
     assert expression != null;
 
-    if (expression instanceof IASTExpressionList) {
-      IASTExpression[] expressions = ((IASTExpressionList) expression).getExpressions();
+    if (expression instanceof IASTExpressionList iASTExpressionList) {
+      IASTExpression[] expressions = iASTExpressionList.getExpressions();
       CFANode nextNode = null;
 
       for (int i = 0; i < expressions.length; i++) {
@@ -1153,8 +1155,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       // this is just a placeholder signalising that the sideeffects do not
       // need to have a return value
       if (stmt == null
-          || (stmt instanceof CExpressionStatement
-              && ((CExpressionStatement) stmt).getExpression() == CIntegerLiteralExpression.ZERO)) {
+          || (stmt instanceof CExpressionStatement cExpressionStatement
+              && cExpressionStatement.getExpression() == CIntegerLiteralExpression.ZERO)) {
         return handleAllSideEffects(prevNode, fileLocation, rawSignature, false);
       } else {
         prevNode = handleAllSideEffects(prevNode, fileLocation, rawSignature, true);
@@ -1274,12 +1276,11 @@ class CFAFunctionBuilder extends ASTVisitor {
       Set<CFANode> pInnerNodes) {
 
     // unwrap (a)
-    if (condition instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression) condition).getOperator()
-            == IASTUnaryExpression.op_bracketedPrimary) {
+    if (condition instanceof IASTUnaryExpression iASTUnaryExpression
+        && iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
       return buildConditionTree(
           pRawSignature,
-          ((IASTUnaryExpression) condition).getOperand(),
+          iASTUnaryExpression.getOperand(),
           fileLocation,
           rootNode,
           thenNode,
@@ -1292,11 +1293,11 @@ class CFAFunctionBuilder extends ASTVisitor {
           pInnerNodes);
 
       // !a --> switch branches
-    } else if (condition instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression) condition).getOperator() == IASTUnaryExpression.op_not) {
+    } else if (condition instanceof IASTUnaryExpression iASTUnaryExpression
+        && iASTUnaryExpression.getOperator() == IASTUnaryExpression.op_not) {
       buildConditionTree(
           pRawSignature,
-          ((IASTUnaryExpression) condition).getOperand(),
+          iASTUnaryExpression.getOperand(),
           fileLocation,
           rootNode,
           elseNode,
@@ -1310,8 +1311,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       return Optional.empty();
 
       // a && b
-    } else if (condition instanceof IASTBinaryExpression
-        && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalAnd) {
+    } else if (condition instanceof IASTBinaryExpression iASTBinaryExpression
+        && iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalAnd) {
       // This case is not necessary,
       // but it prevents the need for a temporary variable in the common case of
       // "if (a && b)"
@@ -1319,7 +1320,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       pInnerNodes.add(innerNode);
       buildConditionTree(
           pRawSignature,
-          ((IASTBinaryExpression) condition).getOperand1(),
+          iASTBinaryExpression.getOperand1(),
           fileLocation,
           rootNode,
           innerNode,
@@ -1332,7 +1333,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           pInnerNodes);
       buildConditionTree(
           pRawSignature,
-          ((IASTBinaryExpression) condition).getOperand2(),
+          iASTBinaryExpression.getOperand2(),
           fileLocation,
           innerNode,
           thenNode,
@@ -1346,8 +1347,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       return Optional.empty();
 
       // a || b
-    } else if (condition instanceof IASTBinaryExpression
-        && ((IASTBinaryExpression) condition).getOperator() == IASTBinaryExpression.op_logicalOr) {
+    } else if (condition instanceof IASTBinaryExpression iASTBinaryExpression
+        && iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_logicalOr) {
       // This case is not necessary,
       // but it prevents the need for a temporary variable in the common case of
       // "if (a || b)"
@@ -1355,7 +1356,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       pInnerNodes.add(innerNode);
       buildConditionTree(
           pRawSignature,
-          ((IASTBinaryExpression) condition).getOperand1(),
+          iASTBinaryExpression.getOperand1(),
           fileLocation,
           rootNode,
           thenNode,
@@ -1368,7 +1369,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           pInnerNodes);
       buildConditionTree(
           pRawSignature,
-          ((IASTBinaryExpression) condition).getOperand2(),
+          iASTBinaryExpression.getOperand2(),
           fileLocation,
           innerNode,
           thenNode,
@@ -1422,18 +1423,17 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final Condition kind = astCreator.getConditionKind(exp);
     switch (kind) {
-      case ALWAYS_FALSE:
+      case ALWAYS_FALSE -> {
         // no edge connecting rootNode with thenNode,
         // so the "then" branch won't be connected to the rest of the CFA
-
         final BlankEdge falseEdge =
             new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, elseNode, "");
         addToCFA(falseEdge);
 
         // reset side assignments which are not necessary
         return CIntegerLiteralExpression.ZERO;
-
-      case ALWAYS_TRUE:
+      }
+      case ALWAYS_TRUE -> {
         final BlankEdge trueEdge =
             new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, thenNode, "");
         addToCFA(trueEdge);
@@ -1441,12 +1441,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         // no edge connecting prevNode with elseNode,
         // so the "else" branch won't be connected to the rest of the CFA
         return CIntegerLiteralExpression.ONE;
-
-      case NORMAL:
-        break;
-
-      default:
-        throw new AssertionError();
+      }
+      case NORMAL -> {}
     }
 
     if (furtherThenComputation) {
@@ -1483,7 +1479,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   /**
-   * This method adds 2 edges to the cfa: 1. trueEdge from rootNode to thenNode and 2. falseEdge
+   * This method adds 2 edges to the CFA: 1. trueEdge from rootNode to thenNode and 2. falseEdge
    * from rootNode to elseNode.
    *
    * @category conditions
@@ -1665,7 +1661,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     addToCFA(new BlankEdge("", onlyFirstLine(fileLocation), prevNode, loopInit, "for"));
 
     // loopStart is the Node before the loop itself,
-    // it is the the one after the init edge(s)
+    // it is the one after the init edge(s)
     final CFANode loopStart =
         createInitEdgeForForLoop(forStatement.getInitializerStatement(), fileLocation, loopInit);
     loopStart.setLoopStart();
@@ -1750,17 +1746,17 @@ class CFAFunctionBuilder extends ASTVisitor {
   private CFANode createInitEdgeForForLoop(
       final IASTStatement statement, final FileLocation fileLocation, CFANode prevNode) {
 
-    if (statement instanceof IASTDeclarationStatement) {
+    if (statement instanceof IASTDeclarationStatement iASTDeclarationStatement) {
       // "int counter = 0;"
-      final IASTDeclaration decl = ((IASTDeclarationStatement) statement).getDeclaration();
-      if (!(decl instanceof IASTSimpleDeclaration)) {
+      final IASTDeclaration decl = iASTDeclarationStatement.getDeclaration();
+      if (!(decl instanceof IASTSimpleDeclaration iASTSimpleDeclaration)) {
         throw parseContext.parseError("Unexpected declaration in header of for loop", decl);
       }
-      return createEdgeForDeclaration((IASTSimpleDeclaration) decl, fileLocation, prevNode);
+      return createEdgeForDeclaration(iASTSimpleDeclaration, fileLocation, prevNode);
 
-    } else if (statement instanceof IASTExpressionStatement) {
+    } else if (statement instanceof IASTExpressionStatement iASTExpressionStatement) {
       // "counter = 0;"
-      IASTExpression expression = ((IASTExpressionStatement) statement).getExpression();
+      IASTExpression expression = iASTExpressionStatement.getExpression();
       return createEdgeForExpression(expression, fileLocation, prevNode, null);
 
     } else if (statement instanceof IASTNullStatement) {
@@ -1791,8 +1787,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       final BlankEdge blankEdge = new BlankEdge("", fileLocation, loopStart, firstLoopNode, "");
       addToCFA(blankEdge);
 
-    } else if (condition instanceof IASTExpressionList) {
-      IASTExpression[] expl = ((IASTExpressionList) condition).getExpressions();
+    } else if (condition instanceof IASTExpressionList iASTExpressionList) {
+      IASTExpression[] expl = iASTExpressionList.getExpressions();
       for (int i = 0; i < expl.length - 1; i++) {
         loopStart = createEdgeForExpression(expl[i], fileLocation, loopStart, null);
       }
@@ -1932,16 +1928,11 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // if there is a range, this has to be handled in another way,
     // the expression is split up, and the bounds are tested
-    if (right instanceof IASTBinaryExpression
-        && ((IASTBinaryExpression) right).getOperator() == IASTBinaryExpression.op_ellipses) {
+    if (right instanceof IASTBinaryExpression iASTBinaryExpression
+        && iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_ellipses) {
       nextCaseStartsAtNode =
           handleCaseRangeStatement(
-              (IASTBinaryExpression) right,
-              switchExpr,
-              rootNode,
-              caseNode,
-              notCaseNode,
-              fileLocation);
+              iASTBinaryExpression, switchExpr, rootNode, caseNode, notCaseNode, fileLocation);
     } else {
       nextCaseStartsAtNode =
           handleCaseSingleStatement(
@@ -2192,15 +2183,16 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private CFANode handleConditionalExpression(
       final CFANode prevNode, final IASTExpression condExp, final @Nullable CIdExpression tempVar) {
-    if (condExp instanceof IASTConditionalExpression) {
-      return handleTernaryOperator((IASTConditionalExpression) condExp, prevNode, tempVar);
-    } else if (condExp instanceof IASTBinaryExpression) {
-      return handleShortcuttingOperators((IASTBinaryExpression) condExp, prevNode, tempVar);
-    } else if (condExp instanceof IGNUASTCompoundStatementExpression) {
+    if (condExp instanceof IASTConditionalExpression iASTConditionalExpression) {
+      return handleTernaryOperator(iASTConditionalExpression, prevNode, tempVar);
+    } else if (condExp instanceof IASTBinaryExpression iASTBinaryExpression) {
+      return handleShortcuttingOperators(iASTBinaryExpression, prevNode, tempVar);
+    } else if (condExp
+        instanceof IGNUASTCompoundStatementExpression iGNUASTCompoundStatementExpression) {
       return handleCompoundStatementExpression(
-          (IGNUASTCompoundStatementExpression) condExp, prevNode, tempVar);
-    } else if (condExp instanceof IASTExpressionList) {
-      return handleExpressionList((IASTExpressionList) condExp, prevNode, tempVar);
+          iGNUASTCompoundStatementExpression, prevNode, tempVar);
+    } else if (condExp instanceof IASTExpressionList iASTExpressionList) {
+      return handleExpressionList(iASTExpressionList, prevNode, tempVar);
     } else {
       throw new AssertionError();
     }
@@ -2234,23 +2226,23 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CStatement stmt = null;
     if (tempVar != null) {
-      if (exp instanceof CAssignment) {
+      if (exp instanceof CAssignment cAssignment) {
         CFANode lastNode = newCFANode();
         CFAEdge edge =
             new CStatementEdge(
                 exp.toASTString(), (CStatement) exp, lastExpLocation, prevNode, lastNode);
         addToCFA(edge);
         prevNode = lastNode;
-        stmt = createStatement(lastExpLocation, tempVar, ((CAssignment) exp).getLeftHandSide());
+        stmt = createStatement(lastExpLocation, tempVar, cAssignment.getLeftHandSide());
       } else {
         stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide) exp);
       }
-    } else if (exp instanceof CStatement) {
-      stmt = (CStatement) exp;
-    } else if (!(exp instanceof CRightHandSide)) {
+    } else if (exp instanceof CStatement cStatement) {
+      stmt = cStatement;
+    } else if (!(exp instanceof CRightHandSide cRightHandSide)) {
       throw parseContext.parseError("invalid expression type", lastExp);
     } else {
-      stmt = createStatement(lastExpLocation, null, (CRightHandSide) exp);
+      stmt = createStatement(lastExpLocation, null, cRightHandSide);
     }
     CFANode lastNode = newCFANode();
     CFAEdge edge =
@@ -2290,8 +2282,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert loopDepth == loopStartStack.size();
 
     IASTStatement lastStatement = statements[statements.length - 1];
-    if (lastStatement instanceof IASTProblemStatement) {
-      throw parseContext.parseError((IASTProblemStatement) lastStatement);
+    if (lastStatement instanceof IASTProblemStatement iASTProblemStatement) {
+      throw parseContext.parseError(iASTProblemStatement);
     }
 
     // If we do not need a return value, last statement is also easy.
@@ -2310,7 +2302,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       return locStack.pop();
     }
 
-    if (!(lastStatement instanceof IASTExpressionStatement)) {
+    if (!(lastStatement instanceof IASTExpressionStatement iASTExpressionStatement)) {
       throw parseContext.parseError(
           "Unsupported statement type "
               + lastStatement.getClass().getSimpleName()
@@ -2320,19 +2312,18 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // Now we need to convert the last statement and get a value that we can assign to tempVar.
     CAstNode exp =
-        astCreator.convertExpressionWithSideEffects(
-            ((IASTExpressionStatement) lastStatement).getExpression());
+        astCreator.convertExpressionWithSideEffects(iASTExpressionStatement.getExpression());
 
     CFANode middleNode = locStack.pop();
     CRightHandSide rhs;
-    if (exp instanceof CRightHandSide) {
+    if (exp instanceof CRightHandSide cRightHandSide) {
       middleNode =
           handleAllSideEffects(
               middleNode,
               astCreator.getLocation(lastStatement),
               lastStatement.getRawSignature(),
               true);
-      rhs = (CRightHandSide) exp;
+      rhs = cRightHandSide;
     } else {
       Verify.verify(
           exp instanceof CAssignment,
@@ -2380,16 +2371,13 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // create the four condition edges
     switch (binExp.getOperator()) {
-      case IASTBinaryExpression.op_logicalAnd:
-        createConditionEdges(
-            binExp.getOperand1(), fileLocation, rootNode, intermediateNode, elseNode);
-        break;
-      case IASTBinaryExpression.op_logicalOr:
-        createConditionEdges(
-            binExp.getOperand1(), fileLocation, rootNode, thenNode, intermediateNode);
-        break;
-      default:
-        throw new AssertionError();
+      case IASTBinaryExpression.op_logicalAnd ->
+          createConditionEdges(
+              binExp.getOperand1(), fileLocation, rootNode, intermediateNode, elseNode);
+      case IASTBinaryExpression.op_logicalOr ->
+          createConditionEdges(
+              binExp.getOperand1(), fileLocation, rootNode, thenNode, intermediateNode);
+      default -> throw new AssertionError();
     }
     createConditionEdges(binExp.getOperand2(), fileLocation, intermediateNode, thenNode, elseNode);
 
@@ -2445,7 +2433,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (condExp.getPositiveResultExpression() == null) {
       // Converting the logical-condition expression twice may cause problems,
       // for example if it defines labels inside it.
-      // Thus we reuse the condition expression returned by createConditionEdges,
+      // Thus, we reuse the condition expression returned by createConditionEdges,
       // if possible.
       if (condition.isPresent()) {
         createEdgesForTernaryOperatorBranch(
@@ -2620,22 +2608,20 @@ class CFAFunctionBuilder extends ASTVisitor {
       leftHandSide.accept(checkBinding);
       // create assignments
 
-      if (rightHandSide instanceof CExpression) {
-        return new CExpressionAssignmentStatement(
-            fileLoc, leftHandSide, (CExpression) rightHandSide);
-      } else if (rightHandSide instanceof CFunctionCallExpression) {
-        return new CFunctionCallAssignmentStatement(
-            fileLoc, leftHandSide, (CFunctionCallExpression) rightHandSide);
+      if (rightHandSide instanceof CExpression cExpression) {
+        return new CExpressionAssignmentStatement(fileLoc, leftHandSide, cExpression);
+      } else if (rightHandSide instanceof CFunctionCallExpression cFunctionCallExpression) {
+        return new CFunctionCallAssignmentStatement(fileLoc, leftHandSide, cFunctionCallExpression);
       } else {
         throw new AssertionError();
       }
 
     } else {
       // create ordinary statements
-      if (rightHandSide instanceof CExpression) {
-        return new CExpressionStatement(fileLoc, (CExpression) rightHandSide);
-      } else if (rightHandSide instanceof CFunctionCallExpression) {
-        return new CFunctionCallStatement(fileLoc, (CFunctionCallExpression) rightHandSide);
+      if (rightHandSide instanceof CExpression cExpression) {
+        return new CExpressionStatement(fileLoc, cExpression);
+      } else if (rightHandSide instanceof CFunctionCallExpression cFunctionCallExpression) {
+        return new CFunctionCallStatement(fileLoc, cFunctionCallExpression);
       } else {
         throw new AssertionError();
       }
@@ -2658,15 +2644,15 @@ class CFAFunctionBuilder extends ASTVisitor {
       fileLoc = checkNotNull(pFileLoc);
     }
 
-    public CFANode getPrevNode() {
+    CFANode getPrevNode() {
       return prevNode;
     }
 
-    public IASTGotoStatement getGotoStatement() {
+    IASTGotoStatement getGotoStatement() {
       return gotoStatement;
     }
 
-    public FileLocation getFileLoc() {
+    FileLocation getFileLoc() {
       return fileLoc;
     }
   }

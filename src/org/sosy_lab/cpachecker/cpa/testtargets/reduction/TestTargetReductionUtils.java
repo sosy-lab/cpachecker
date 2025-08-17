@@ -331,11 +331,11 @@ public final class TestTargetReductionUtils {
   }
 
   public static boolean isInputEdge(CFAEdge pEdge) {
-    if (pEdge instanceof DummyInputCFAEdge) {
-      return ((DummyInputCFAEdge) pEdge).providesInput();
+    if (pEdge instanceof DummyInputCFAEdge dummyInputCFAEdge) {
+      return dummyInputCFAEdge.providesInput();
     }
-    if (pEdge instanceof AStatementEdge
-        && ((AStatementEdge) pEdge).getStatement() instanceof AFunctionCall functionCall) {
+    if (pEdge instanceof AStatementEdge aStatementEdge
+        && aStatementEdge.getStatement() instanceof AFunctionCall functionCall) {
       AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
       AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
 

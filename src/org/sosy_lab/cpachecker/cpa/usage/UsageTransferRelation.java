@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -210,62 +209,37 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
   private void handleEdge(CFAEdge pCfaEdge) throws CPATransferException {
 
     switch (pCfaEdge.getEdgeType()) {
-      case DeclarationEdge:
-        {
-          CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
-          handleDeclaration(declEdge);
-          break;
-        }
-
-      // if edge is a statement edge, e.g. a = b + c
-      case StatementEdge:
-        {
-          CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-          handleStatement(statementEdge.getStatement());
-          break;
-        }
-
-      case AssumeEdge:
-        {
-          visitStatement(((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
-          break;
-        }
-
-      case FunctionCallEdge:
-        {
-          handleFunctionCall((CFunctionCallEdge) pCfaEdge);
-          break;
-        }
-
-      case FunctionReturnEdge:
-      case ReturnStatementEdge:
-      case BlankEdge:
-      case CallToReturnEdge:
-        break;
-
-      default:
-        throw new UnrecognizedCFAEdgeException(pCfaEdge);
+      case DeclarationEdge -> {
+        CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
+        handleDeclaration(declEdge);
+        // if edge is a statement edge, e.g. a = b + c
+      }
+      case StatementEdge -> {
+        CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
+        handleStatement(statementEdge.getStatement());
+      }
+      case AssumeEdge -> visitStatement(((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
+      case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) pCfaEdge);
+      case FunctionReturnEdge, ReturnStatementEdge, BlankEdge, CallToReturnEdge -> {}
     }
   }
 
   private void handleFunctionCall(CFunctionCallEdge edge) throws HandleCodeException {
     CFunctionCall statement = edge.getFunctionCall();
 
-    if (statement instanceof CFunctionCallAssignmentStatement) {
+    if (statement instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
       /*
        * a = f(b)
        */
-      CFunctionCallExpression right =
-          ((CFunctionCallAssignmentStatement) statement).getRightHandSide();
-      CExpression variable = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
+      CFunctionCallExpression right = cFunctionCallAssignmentStatement.getRightHandSide();
+      CExpression variable = cFunctionCallAssignmentStatement.getLeftHandSide();
 
       visitStatement(variable, Access.WRITE);
       // expression - only name of function
       handleFunctionCallExpression(variable, right);
 
-    } else if (statement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
-          null, ((CFunctionCallStatement) statement).getFunctionCallExpression());
+    } else if (statement instanceof CFunctionCallStatement cFunctionCallStatement) {
+      handleFunctionCallExpression(null, cFunctionCallStatement.getFunctionCallExpression());
 
     } else {
       throw new HandleCodeException("No function found");
@@ -291,8 +265,8 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       return;
     }
 
-    if (init instanceof CInitializerExpression) {
-      CExpression initExpression = ((CInitializerExpression) init).getExpression();
+    if (init instanceof CInitializerExpression cInitializerExpression) {
+      CExpression initExpression = cInitializerExpression.getExpression();
       // Use EdgeType assignment for initializer expression to avoid mistakes related to expressions
       // "int CPACHECKER_TMP_0 = global;"
       visitStatement(initExpression, Access.READ);
@@ -337,23 +311,22 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
       visitStatement(left, Access.WRITE);
 
-      if (right instanceof CExpression) {
-        visitStatement((CExpression) right, Access.READ);
+      if (right instanceof CExpression cExpression) {
+        visitStatement(cExpression, Access.READ);
 
-      } else if (right instanceof CFunctionCallExpression) {
-        handleFunctionCallExpression(left, (CFunctionCallExpression) right);
+      } else if (right instanceof CFunctionCallExpression cFunctionCallExpression) {
+        handleFunctionCallExpression(left, cFunctionCallExpression);
 
       } else {
         throw new HandleCodeException(
             "Unrecognised type of right side of assignment: " + assignment.toASTString());
       }
 
-    } else if (pStatement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
-          null, ((CFunctionCallStatement) pStatement).getFunctionCallExpression());
+    } else if (pStatement instanceof CFunctionCallStatement cFunctionCallStatement) {
+      handleFunctionCallExpression(null, cFunctionCallStatement.getFunctionCallExpression());
 
-    } else if (pStatement instanceof CExpressionStatement) {
-      visitStatement(((CExpressionStatement) pStatement).getExpression(), Access.WRITE);
+    } else if (pStatement instanceof CExpressionStatement cExpressionStatement) {
+      visitStatement(cExpressionStatement.getExpression(), Access.WRITE);
 
     } else {
       throw new HandleCodeException("Unrecognized statement: " + pStatement.toASTString());

@@ -184,8 +184,8 @@ class CFABuilder extends ASTVisitor {
 
     sideAssignmentStack.enterBlock();
 
-    if (declaration instanceof IASTSimpleDeclaration) {
-      return handleSimpleDeclaration((IASTSimpleDeclaration) declaration);
+    if (declaration instanceof IASTSimpleDeclaration iASTSimpleDeclaration) {
+      return handleSimpleDeclaration(iASTSimpleDeclaration);
 
     } else if (declaration instanceof IASTFunctionDefinition fd) {
       functionDeclarations.get(functionDeclarations.size() - 1).getFirst().add(fd);
@@ -218,8 +218,8 @@ class CFABuilder extends ASTVisitor {
       sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
-    } else if (declaration instanceof IASTProblemDeclaration) {
-      visit(((IASTProblemDeclaration) declaration).getProblem());
+    } else if (declaration instanceof IASTProblemDeclaration iASTProblemDeclaration) {
+      visit(iASTProblemDeclaration.getProblem());
       sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
@@ -267,11 +267,11 @@ class CFABuilder extends ASTVisitor {
         globalDeclarations.add(
             new GlobalDeclaration((ADeclaration) astNode, rawSignature, fileScope));
         globalDecls.add(Pair.of((ADeclaration) astNode, rawSignature));
-      } else if (astNode instanceof CVariableDeclaration) {
+      } else if (astNode instanceof CVariableDeclaration cVariableDeclaration) {
         // If the initializer of a global struct contains a type-id expression,
-        // a temporary variable is created and we need to support this.
+        // a temporary variable is created, and we need to support this.
         // We detect this case if the initializer of the temp variable is an initializer list.
-        CInitializer initializer = ((CVariableDeclaration) astNode).getInitializer();
+        CInitializer initializer = cVariableDeclaration.getInitializer();
         if (initializer instanceof CInitializerList) {
           globalDeclarations.add(
               new GlobalDeclaration((ADeclaration) astNode, rawSignature, fileScope));
@@ -288,9 +288,9 @@ class CFABuilder extends ASTVisitor {
     for (CDeclaration newD : newDs) {
       boolean used = true;
 
-      if (newD instanceof CVariableDeclaration) {
+      if (newD instanceof CVariableDeclaration cVariableDeclaration) {
 
-        CInitializer init = ((CVariableDeclaration) newD).getInitializer();
+        CInitializer init = cVariableDeclaration.getInitializer();
         if (init != null) {
           init.accept(checkBinding);
 
@@ -302,12 +302,12 @@ class CFABuilder extends ASTVisitor {
         }
 
         fileScope.registerDeclaration(newD);
-      } else if (newD instanceof CFunctionDeclaration) {
-        fileScope.registerFunctionDeclaration((CFunctionDeclaration) newD);
-      } else if (newD instanceof CComplexTypeDeclaration) {
-        used = fileScope.registerTypeDeclaration((CComplexTypeDeclaration) newD);
-      } else if (newD instanceof CTypeDefDeclaration) {
-        used = fileScope.registerTypeDeclaration((CTypeDefDeclaration) newD);
+      } else if (newD instanceof CFunctionDeclaration cFunctionDeclaration) {
+        fileScope.registerFunctionDeclaration(cFunctionDeclaration);
+      } else if (newD instanceof CComplexTypeDeclaration cComplexTypeDeclaration) {
+        used = fileScope.registerTypeDeclaration(cComplexTypeDeclaration);
+      } else if (newD instanceof CTypeDefDeclaration cTypeDefDeclaration) {
+        used = fileScope.registerTypeDeclaration(cTypeDefDeclaration);
       }
 
       if (used && !eliminateableDuplicates.contains(newD.toASTString())) {

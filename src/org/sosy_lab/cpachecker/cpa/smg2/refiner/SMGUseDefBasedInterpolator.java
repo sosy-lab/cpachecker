@@ -68,7 +68,7 @@ public class SMGUseDefBasedInterpolator {
   /** the machine model in use */
   private final MachineModel machineModel;
 
-  /** The cfa of this analysis */
+  /** The CFA of this analysis */
   private final CFA cfa;
 
   private final SMGOptions options;
@@ -258,8 +258,8 @@ public class SMGUseDefBasedInterpolator {
 
       CExpression arrayLength = pArrayType.getLength();
 
-      if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+      if (arrayLength instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        int length = cIntegerLiteralExpression.getValue().intValue();
 
         return createMemoryLocationsForArray(length, pArrayType.getType());
       }
@@ -272,15 +272,13 @@ public class SMGUseDefBasedInterpolator {
     public ImmutableList<MemoryLocation> visit(final CCompositeType pCompositeType) {
       withinComplexType = true;
 
-      switch (pCompositeType.getKind()) {
-        case STRUCT:
-          return createMemoryLocationsForStructure(pCompositeType);
-        case UNION:
-          return createMemoryLocationsForUnion(pCompositeType);
-        case ENUM: // there is no such kind of CompositeType
-        default:
-          throw new AssertionError();
-      }
+      return switch (pCompositeType.getKind()) {
+        case STRUCT -> createMemoryLocationsForStructure(pCompositeType);
+        case UNION -> createMemoryLocationsForUnion(pCompositeType);
+        case ENUM ->
+            // there is no such kind of CompositeType
+            throw new AssertionError();
+      };
     }
 
     @Override
@@ -292,13 +290,8 @@ public class SMGUseDefBasedInterpolator {
         return definition.accept(this);
       }
 
-      switch (pElaboratedType.getKind()) {
-        case ENUM:
-        case STRUCT: // TODO: UNDEFINED
-        case UNION: // TODO: UNDEFINED
-        default:
-          return createSingleMemoryLocation(model.getSizeofInt());
-      }
+      // TODO handle ENUM/STRUCT/UNION specifically
+      return createSingleMemoryLocation(model.getSizeofInt());
     }
 
     @Override

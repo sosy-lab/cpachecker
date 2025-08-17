@@ -49,7 +49,7 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm
     private final Precision precision;
     private final boolean handlePredicateStates;
 
-    public ExtendedNodeSelectionARGPass(final Precision pRootPrecision, final ARGState pRoot) {
+    ExtendedNodeSelectionARGPass(final Precision pRootPrecision, final ARGState pRoot) {
       super(pRoot);
       precision = pRootPrecision;
       handlePredicateStates =

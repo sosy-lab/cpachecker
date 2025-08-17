@@ -12,7 +12,7 @@ import com.google.common.collect.ComparisonChain;
 import java.math.BigInteger;
 
 /**
- * Edge from (SMG-)object to (SMG-)value. May have a offset and a type. We do not use the type
+ * Edge from (SMG-)object to (SMG-)value. May have an offset and a type. We do not use the type
  * itself, but simply the size of the type used in bits. In essence, the object has the value of the
  * specified type at the position specified by the offset.
  */

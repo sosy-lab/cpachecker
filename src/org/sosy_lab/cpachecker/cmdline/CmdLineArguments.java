@@ -77,7 +77,7 @@ class CmdLineArguments {
           // For every argument, the main name (--long-form) needs to come first.
           new PropertyAddingCmdLineArgument("--stats", "-stats")
               .settingProperty("statistics.print", "true")
-              .withDescription("collect statistics during the analysis and print them afterwards"),
+              .withDescription("collect statistics during the analysis and print them afterward"),
           new PropertyAddingCmdLineArgument("--no-output-files", "-noout")
               .settingProperty("output.disable", "true")
               .withDescription("disable all output (except directly specified files)"),

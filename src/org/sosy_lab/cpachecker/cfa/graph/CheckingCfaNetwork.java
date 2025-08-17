@@ -58,7 +58,7 @@ public class CheckingCfaNetwork implements CfaNetwork {
    */
   public static CfaNetwork wrapIfAssertionsEnabled(CfaNetwork pCfaNetwork) {
     CfaNetwork cfaNetwork = checkNotNull(pCfaNetwork);
-    // Even though this is bad practice in general, the assert statement is used for its side-effect
+    // Even though this is bad practice in general, the assert statement is used for its side effect
     // (wrapping the specified `CfaNetwork` if evaluated).
     // The checks defined in this class can be rather expensive, so we only want to run them if Java
     // assertions are enabled.

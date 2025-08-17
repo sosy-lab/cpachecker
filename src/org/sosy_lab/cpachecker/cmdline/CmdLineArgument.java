@@ -57,7 +57,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     if (this == o) {
       return true;
     }
-    return o instanceof CmdLineArgument && names.equals(((CmdLineArgument) o).names);
+    return o instanceof CmdLineArgument cmdLineArgument && names.equals(cmdLineArgument.names);
   }
 
   @Override

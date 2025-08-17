@@ -142,10 +142,11 @@ final class SliceToCfaConversion {
         return relevantFunctionDeclaration;
       }
 
-      if (cfaNode instanceof CFunctionEntryNode && astNode instanceof CVariableDeclaration) {
+      if (cfaNode instanceof CFunctionEntryNode cFunctionEntryNode
+          && astNode instanceof CVariableDeclaration) {
 
         if (relevantFunctionDeclaration.getType().getReturnType() != CVoidType.VOID) {
-          return ((CFunctionEntryNode) cfaNode).getReturnVariable().orElseThrow();
+          return cFunctionEntryNode.getReturnVariable().orElseThrow();
         }
 
         // return type of function is void, so no return variable exists
@@ -195,8 +196,8 @@ final class SliceToCfaConversion {
       String functionName = node.getFunction().getQualifiedName();
       allNodes.put(functionName, node);
 
-      if (node instanceof FunctionEntryNode) {
-        functionEntryNodes.put(functionName, (FunctionEntryNode) node);
+      if (node instanceof FunctionEntryNode functionEntryNode) {
+        functionEntryNodes.put(functionName, functionEntryNode);
       }
     }
 

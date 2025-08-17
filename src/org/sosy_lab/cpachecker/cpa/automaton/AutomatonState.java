@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 /**
- * This class combines a AutomatonInternal State with a variable Configuration. Instances of this
+ * This class combines an AutomatonInternal State with a variable Configuration. Instances of this
  * class are passed to the CPAchecker as AbstractState.
  */
 public class AutomatonState
@@ -412,10 +412,10 @@ public class AutomatonState
       String right = parts.get(1);
       AutomatonVariable var = vars.get(left);
       if (var != null) {
-        if (var instanceof AutomatonIntVariable) {
+        if (var instanceof AutomatonIntVariable automatonIntVariable) {
           try {
             int val = Integer.parseInt(right);
-            ((AutomatonIntVariable) var).setValue(val);
+            automatonIntVariable.setValue(val);
           } catch (NumberFormatException e) {
             throw new InvalidQueryException(
                 "The Query \""

@@ -47,7 +47,7 @@ public interface Waitlist extends Iterable<AbstractState> {
 
   /**
    * Removes an abstract state, if it is contained. This method uses equals() for containment
-   * checks. Implementations need not to optimize their data structure for this method.
+   * checks. Implementations need not optimize their data structure for this method.
    */
   boolean remove(AbstractState state);
 

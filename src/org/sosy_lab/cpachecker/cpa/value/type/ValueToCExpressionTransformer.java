@@ -8,27 +8,29 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> {
 
-  private final SymbolicExpressionToCExpressionTransformer symbolicTransformer =
-      new SymbolicExpressionToCExpressionTransformer();
+  private final SymbolicExpressionToCExpressionTransformer symbolicTransformer;
 
-  private CType type;
+  private final MachineModel machineModel;
+  private final CType type;
 
-  public ValueToCExpressionTransformer(CType pTypeOfValue) {
+  public ValueToCExpressionTransformer(MachineModel pMachineModel, CType pTypeOfValue) {
+    symbolicTransformer = new SymbolicExpressionToCExpressionTransformer(pMachineModel);
+    machineModel = pMachineModel;
     type = pTypeOfValue;
   }
 
@@ -72,14 +74,14 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
 
   @Override
   public CExpression visit(NumericValue pValue) {
-    if (type instanceof CSimpleType) {
-      switch (((CSimpleType) type).getType()) {
-        case FLOAT:
-        case DOUBLE:
-          return visitFloatingValue(pValue, (CSimpleType) type);
-        default:
+    if (type instanceof CSimpleType cSimpleType) {
+      switch (cSimpleType.getType()) {
+        case FLOAT, DOUBLE -> {
+          return visitFloatingValue(pValue, cSimpleType);
+        }
+        default -> {
           // DO NOTHING
-          break;
+        }
       }
     }
 
@@ -87,50 +89,9 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   }
 
   private CExpression visitFloatingValue(NumericValue pValue, CSimpleType pType) {
-    boolean isInfinite;
-    boolean isNegative;
-    boolean isNan;
-    switch (pType.getType()) {
-      case FLOAT:
-        {
-          float val = pValue.floatValue();
-          isInfinite = Float.isInfinite(val);
-          isNegative = val < 0;
-          isNan = Float.isNaN(val);
-          break;
-        }
-      case DOUBLE:
-        {
-          double val = pValue.doubleValue();
-          isInfinite = Double.isInfinite(val);
-          isNegative = val < 0;
-          isNan = Double.isNaN(val);
-          break;
-        }
-      default:
-        throw new AssertionError("Unhandled type: " + pType);
-    }
-
-    assert !(isInfinite && isNan);
-
-    if (isInfinite) {
-      if (isNegative) {
-        return CFloatLiteralExpression.forNegativeInfinity(FileLocation.DUMMY, pType);
-      } else {
-        return CFloatLiteralExpression.forPositiveInfinity(FileLocation.DUMMY, pType);
-      }
-    } else if (isNan) {
-      return createNanExpression(pType);
-    } else {
-      return new CFloatLiteralExpression(FileLocation.DUMMY, pType, pValue.bigDecimalValue());
-    }
-  }
-
-  private CExpression createNanExpression(CSimpleType pType) {
-    // Represent NaN by '0/0', until CFloats are used by CFloatLiteralExpression
-    CExpression zero = new CFloatLiteralExpression(FileLocation.DUMMY, pType, BigDecimal.ZERO);
-    return new CBinaryExpression(
-        FileLocation.DUMMY, pType, pType, zero, zero, CBinaryExpression.BinaryOperator.DIVIDE);
+    FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, pType);
+    return new CFloatLiteralExpression(
+        FileLocation.DUMMY, machineModel, pType, pValue.floatingPointValue(precision));
   }
 
   @Override

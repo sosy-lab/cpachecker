@@ -435,8 +435,8 @@ class DynamicMemoryHandler {
           addAllFields(memberType);
         }
       }
-    } else if (type instanceof CArrayType) {
-      final CType elementType = checkIsSimplified(((CArrayType) type).getType());
+    } else if (type instanceof CArrayType cArrayType) {
+      final CType elementType = checkIsSimplified(cArrayType.getType());
       addAllFields(elementType);
     }
   }
@@ -476,23 +476,23 @@ class DynamicMemoryHandler {
    * @return The value, if the expression is an integer literal, or {@code null}
    */
   private static @Nullable Long tryEvaluateExpression(CExpression e) {
-    if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().longValueExact();
+    if (e instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      return cIntegerLiteralExpression.getValue().longValueExact();
     }
     return null;
   }
 
   /**
-   * Returns, whether a expression is a {@code sizeof} expression.
+   * Returns, whether an expression is a {@code sizeof} expression.
    *
    * @param e The C expression.
    * @return True, if the expression is a {@code sizeof} expression, false otherwise.
    */
   private static boolean isSizeof(final CExpression e) {
-    return (e instanceof CUnaryExpression
-            && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF)
-        || (e instanceof CTypeIdExpression
-            && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF);
+    return (e instanceof CUnaryExpression cUnaryExpression
+            && cUnaryExpression.getOperator() == UnaryOperator.SIZEOF)
+        || (e instanceof CTypeIdExpression cTypeIdExpression
+            && cTypeIdExpression.getOperator() == TypeIdOperator.SIZEOF);
   }
 
   /**
@@ -503,10 +503,9 @@ class DynamicMemoryHandler {
    *     otherwise.
    */
   private static boolean isSizeofMultiple(final CExpression e) {
-    return e instanceof CBinaryExpression
-        && ((CBinaryExpression) e).getOperator() == BinaryOperator.MULTIPLY
-        && (isSizeof(((CBinaryExpression) e).getOperand1())
-            || isSizeof(((CBinaryExpression) e).getOperand2()));
+    return e instanceof CBinaryExpression cBinaryExpression
+        && cBinaryExpression.getOperator() == BinaryOperator.MULTIPLY
+        && (isSizeof(cBinaryExpression.getOperand1()) || isSizeof(cBinaryExpression.getOperand2()));
   }
 
   /**
@@ -516,12 +515,12 @@ class DynamicMemoryHandler {
    * @return The size of the expression.
    */
   private @Nullable CType getSizeofType(CExpression e) {
-    if (e instanceof CUnaryExpression
-        && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
-      return typeHandler.getSimplifiedType(((CUnaryExpression) e).getOperand());
-    } else if (e instanceof CTypeIdExpression
-        && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF) {
-      return typeHandler.simplifyType(((CTypeIdExpression) e).getType());
+    if (e instanceof CUnaryExpression cUnaryExpression
+        && cUnaryExpression.getOperator() == UnaryOperator.SIZEOF) {
+      return typeHandler.getSimplifiedType(cUnaryExpression.getOperand());
+    } else if (e instanceof CTypeIdExpression cTypeIdExpression
+        && cTypeIdExpression.getOperator() == TypeIdOperator.SIZEOF) {
+      return typeHandler.simplifyType(cTypeIdExpression.getType());
     } else {
       return null;
     }
@@ -586,8 +585,8 @@ class DynamicMemoryHandler {
   }
 
   private static CType unwrapPointers(final CType type) {
-    if (type instanceof CPointerType) {
-      return unwrapPointers(((CPointerType) type).getType());
+    if (type instanceof CPointerType cPointerType) {
+      return unwrapPointers(cPointerType.getType());
     }
     return type;
   }
@@ -779,9 +778,9 @@ class DynamicMemoryHandler {
       }
     }
 
-    if (lhs instanceof CIdExpression) {
+    if (lhs instanceof CIdExpression cIdExpression) {
       // If LHS is a variable, remove previous points-to bindings containing it
-      pts.removeDeferredAllocationPointer(((CIdExpression) lhs).getDeclaration().getQualifiedName())
+      pts.removeDeferredAllocationPointer(cIdExpression.getDeclaration().getQualifiedName())
           .forEach(d -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises

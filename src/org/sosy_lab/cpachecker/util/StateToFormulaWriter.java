@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class allows to export the information of abstract states as SMT-formula. Therefore we
+ * This class allows to export the information of abstract states as SMT-formula. Therefore, we
  * filter the abstract states for matching {@link FormulaReportingState}s and retrieve the formula
  * from there. Then we export the formulas in a fixed line-based format, which allows re-usage with
  * a further predicate analysis.
@@ -79,7 +79,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
       secure = true,
       description =
           "instead of writing the exact state-representation as a single formula, write its atoms"
-              + " as a list of formulas. Therefore we ignore operators for conjunction and"
+              + " as a list of formulas. Therefore, we ignore operators for conjunction and"
               + " disjunction.")
   private FormulaSplitter splitFormulas = FormulaSplitter.LOCATION;
 
@@ -219,19 +219,15 @@ public class StateToFormulaWriter implements StatisticsProvider {
         states.stream().map(state -> state.getFormulaApproximation(fmgr));
 
     switch (splitFormulas) {
-      case LOCATION:
-        // create the disjunction of the found states for the current location
-        formulas = Stream.of(formulas.collect(bfmgr.toDisjunction()));
-        break;
-      case STATE:
+      case LOCATION ->
+          // create the disjunction of the found states for the current location
+          formulas = Stream.of(formulas.collect(bfmgr.toDisjunction()));
+      case STATE -> {
         // do not merge different location-formulas, nothing to do
-        break;
-      case ATOM:
-        // atomize formulas
-        formulas = formulas.flatMap(f -> fmgr.extractAtoms(f, false).stream());
-        break;
-      default:
-        throw new AssertionError("unknown option");
+      }
+      case ATOM ->
+          // atomize formulas
+          formulas = formulas.flatMap(f -> fmgr.extractAtoms(f, false).stream());
     }
 
     // filter out formulas with no information

@@ -142,7 +142,7 @@ public class SMGCPATransferRelationTest {
   private static final BigInteger TEST_ARRAY_LENGTH = BigInteger.valueOf(50);
   /*
    * Declaration tests:
-   *   declare variable without value and use afterwards
+   *   declare variable without value and use afterward
    *   declare with simple value and use
    *   declare stack array and use
    *   declare stack array with value
@@ -215,7 +215,7 @@ public class SMGCPATransferRelationTest {
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithoutInitializer(variableName, type, false, false));
-    // Since we declare variables we know there will be only 1 state afterwards
+    // Since we declare variables we know there will be only 1 state afterward
     assertThat(statesAfterDecl).hasSize(1);
     // This state must have a local variable the size of the type used (on the current stack frame)
     // The state should not have any errors
@@ -275,7 +275,7 @@ public class SMGCPATransferRelationTest {
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithInitializer(variableName, type, false, false, initList));
-    // Since we declare variables we know there will be only 1 state afterwards
+    // Since we declare variables we know there will be only 1 state afterward
     assertThat(statesAfterDecl).hasSize(1);
     // This state must have a local variable the size of the type used (on the current stack frame)
     // The state should not have any errors
@@ -343,7 +343,7 @@ public class SMGCPATransferRelationTest {
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithoutInitializer(variableName, type, false, false));
-    // Since we declare variables we know there will be only 1 state afterwards
+    // Since we declare variables we know there will be only 1 state afterward
     assertThat(statesAfterDecl).hasSize(1);
     // This state must have a local variable the size of the type used (on the current stack frame)
     // The state should not have any errors
@@ -466,7 +466,7 @@ public class SMGCPATransferRelationTest {
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithInitializer(variableName, type, false, false, initList));
-    // Since we declare variables we know there will be only 1 state afterwards
+    // Since we declare variables we know there will be only 1 state afterward
     assertThat(statesAfterDecl).hasSize(1);
     // This state must have a local variable the size of the type used (on the current stack frame)
     // The state should not have any errors
@@ -537,7 +537,7 @@ public class SMGCPATransferRelationTest {
         List<ValueAndSMGState> readValueAndState =
             state.readValue(memoryObject, offsetOfArrayInBits, sizeOfArrayInBits, null);
         Preconditions.checkArgument(readValueAndState.size() == 1);
-        // There is a overflow happening here! a char is filled with a too large value
+        // There is an overflow happening here! a char is filled with a too large value
         // TODO: error check
         assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
 
@@ -599,7 +599,7 @@ public class SMGCPATransferRelationTest {
               null,
               declareVariableWithoutInitializer(
                   variableName, makeArrayTypeFor(type, TEST_ARRAY_LENGTH), false, false));
-      // Since we declare variables we know there will be only 1 state afterwards
+      // Since we declare variables we know there will be only 1 state afterward
       assertThat(statesAfterDecl).hasSize(1);
       // This state must have a local variable the size of the type used (on the current stack
       // frame)
@@ -654,7 +654,7 @@ public class SMGCPATransferRelationTest {
               null,
               declareVariableWithInitializer(
                   variableName, makeArrayTypeFor(type, TEST_ARRAY_LENGTH), false, false, initList));
-      // Since we declare variables we know there will be only 1 state afterwards
+      // Since we declare variables we know there will be only 1 state afterward
       assertThat(statesAfterDecl).hasSize(1);
       // This state must have a local variable the size of the type used (on the current stack
       // frame)
@@ -701,7 +701,7 @@ public class SMGCPATransferRelationTest {
       List<SMGState> statesAfterDecl =
           transferRelation.handleDeclarationEdge(
               null, declareVariableWithoutInitializer(variableName, type, false, false));
-      // Since we declare variables we know there will be only 1 state afterwards
+      // Since we declare variables we know there will be only 1 state afterward
       assertThat(statesAfterDecl).hasSize(1);
       // This state must have a local variable the size of the type used (on the current stackframe)
       // The state should not have any errors
@@ -744,7 +744,7 @@ public class SMGCPATransferRelationTest {
       List<SMGState> statesAfterDecl =
           transferRelation.handleDeclarationEdge(
               null, declareVariableWithInitializer(variableName, type, false, false, initializer));
-      // Since we declare variables we know there will be only 1 state afterwards
+      // Since we declare variables we know there will be only 1 state afterward
       assertThat(statesAfterDecl).hasSize(1);
       // This state must have a local variable the size of the type used (on the current stack
       // frame)
@@ -757,7 +757,7 @@ public class SMGCPATransferRelationTest {
       // SMG sizes are in bits!
       BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
       assertThat(memoryObject.getSize().asNumericValue().bigIntegerValue()).isEqualTo(expectedSize);
-      // further, in the memory there must be a SMGValue that maps to the Value entered
+      // further, in the memory there must be an SMGValue that maps to the Value entered
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, BigInteger.ZERO, expectedSize, null);
       Preconditions.checkArgument(readValueAndState.size() == 1);
@@ -792,7 +792,7 @@ public class SMGCPATransferRelationTest {
             transferRelation.handleDeclarationEdge(
                 null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
 
-        // Since we declare variables we know there will be only 1 state afterwards
+        // Since we declare variables we know there will be only 1 state afterward
         assertThat(statesAfterDecl).hasSize(1);
         // We check the variable later
         SMGState stateAfterDecl = statesAfterDecl.get(0);
@@ -913,7 +913,7 @@ public class SMGCPATransferRelationTest {
         BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
         assertThat(memoryObject.getSize().asNumericValue().bigIntegerValue())
             .isEqualTo(expectedSize);
-        // further, in the memory there must be a SMGValue that is a pointer (points to edge)
+        // further, in the memory there must be an SMGValue that is a pointer (points to edge)
         // leading to the larger memory field with the size of malloc
         List<ValueAndSMGState> readValueAndState =
             stateAfterMallocAssignSuccess.readValue(
@@ -977,7 +977,7 @@ public class SMGCPATransferRelationTest {
                               "SomeTypeNotQual",
                               "SomeTypeNotQual",
                               "SomeType",
-                              CDefaults.forType(sizeofType, FileLocation.DUMMY))),
+                              CDefaults.forType(MACHINE_MODEL, sizeofType, FileLocation.DUMMY))),
                       CUnaryExpression.UnaryOperator.SIZEOF),
                   BinaryOperator.MULTIPLY);
 
@@ -986,7 +986,7 @@ public class SMGCPATransferRelationTest {
               transferRelation.handleDeclarationEdge(
                   null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
 
-          // Since we declare variables we know there will be only 1 state afterwards
+          // Since we declare variables we know there will be only 1 state afterward
           assertThat(statesAfterDecl).hasSize(1);
           // We check the variable later
           SMGState stateAfterDecl = statesAfterDecl.get(0);
@@ -1112,7 +1112,7 @@ public class SMGCPATransferRelationTest {
           BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
           assertThat(memoryObject.getSize().asNumericValue().bigIntegerValue())
               .isEqualTo(expectedSize);
-          // further, in the memory there must be a SMGValue that is a pointer (points to edge)
+          // further, in the memory there must be an SMGValue that is a pointer (points to edge)
           // leading to the larger memory field with the size of malloc
           List<ValueAndSMGState> readValueAndState =
               stateAfterMallocAssignSuccess.readValue(
@@ -1159,7 +1159,7 @@ public class SMGCPATransferRelationTest {
     // SMG sizes are in bits!
     BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
     assertThat(memoryObject.getSize().asNumericValue().bigIntegerValue()).isEqualTo(expectedSize);
-    // further, in the memory there must be a SMGValue that is a pointer (points to edge)
+    // further, in the memory there must be an SMGValue that is a pointer (points to edge)
     // leading to the larger memory field with the size of malloc
     List<ValueAndSMGState> readValueAndState =
         stateAfterMallocAssignFailure.readValue(memoryObject, BigInteger.ZERO, expectedSize, null);
@@ -1901,7 +1901,7 @@ public class SMGCPATransferRelationTest {
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithInitializer(variableName, type, false, false, initializer));
-    // Since we declare variables we know there will be only 1 state afterwards
+    // Since we declare variables we know there will be only 1 state afterward
     assertThat(statesAfterDecl).hasSize(1);
     // This state must have a local variable the size of the type used (on the current stack
     // frame)
@@ -1946,7 +1946,7 @@ public class SMGCPATransferRelationTest {
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithInitializer(variableName, arrayType, false, false, initList));
-    // Since we declare variables we know there will be only 1 state afterwards
+    // Since we declare variables we know there will be only 1 state afterward
     assertThat(statesAfterDecl).hasSize(1);
     // This state must have a local variable the size of the type used (on the current stack
     // frame)
@@ -2001,7 +2001,7 @@ public class SMGCPATransferRelationTest {
 
       Collection<SMGState> statesAfterAssign =
           transferRelation.handleStatementEdge(null, assignmentExpr);
-      // Since we assign variables we know there will be only 1 state afterwards
+      // Since we assign variables we know there will be only 1 state afterward
       assertThat(statesAfterAssign).hasSize(1);
       SMGState newState = state;
       for (SMGState stateAS : statesAfterAssign) {
@@ -2042,7 +2042,7 @@ public class SMGCPATransferRelationTest {
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
 
-    // Since we declare variables we know there will be only 1 state afterwards
+    // Since we declare variables we know there will be only 1 state afterward
     assertThat(statesAfterDecl).hasSize(1);
     // We check the variable later
     SMGState stateAfterDecl = statesAfterDecl.get(0);
@@ -2148,7 +2148,7 @@ public class SMGCPATransferRelationTest {
 
       Collection<SMGState> statesAfterAssign =
           transferRelation.handleStatementEdge(null, assignmentExpr);
-      // Since we assign variables we know there will be only 1 state afterwards
+      // Since we assign variables we know there will be only 1 state afterward
       assertThat(statesAfterAssign).hasSize(1);
       SMGState newState = lastState;
       for (SMGState stateAS : statesAfterAssign) {
@@ -2195,7 +2195,7 @@ public class SMGCPATransferRelationTest {
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithInitializer(variableName, structType, false, false, initList));
-    // Since we declare variables we know there will be only 1 state afterwards
+    // Since we declare variables we know there will be only 1 state afterward
     assertThat(statesAfterDecl).hasSize(1);
     // This state must have a local variable the size of the type used (on the current stack frame)
     // The state should not have any errors
@@ -2212,7 +2212,7 @@ public class SMGCPATransferRelationTest {
   /*
    * Declare a struct with the types entered, the values entered in the order entered on the heap.
    * Then a variable with the address of this array is made with the variableName. This uses the ->
-   * operator. But the SMG2 CPA translates this always to (struct*).field so its the same.
+   * operator. But the SMG2 CPA translates this always to (struct*).field so it's the same.
    * Returns the last state acquired, but also sets the transfer relation with this state, so it can be ignored.
    *
    * This is tested in a dedicated test and therefore save to use in other tests!
@@ -2229,7 +2229,7 @@ public class SMGCPATransferRelationTest {
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
 
-    // Since we declare variables we know there will be only 1 state afterwards
+    // Since we declare variables we know there will be only 1 state afterward
     assertThat(statesAfterDecl).hasSize(1);
     // We check the variable later
     SMGState stateAfterDecl = statesAfterDecl.get(0);
@@ -2341,7 +2341,7 @@ public class SMGCPATransferRelationTest {
       Collection<SMGState> statesAfterAssign =
           transferRelation.handleStatementEdge(null, assignExpr);
 
-      // Since we assign variables we know there will be only 1 state afterwards
+      // Since we assign variables we know there will be only 1 state afterward
       assertThat(statesAfterAssign).hasSize(1);
       SMGState stateAfterAssign = stateAfterDecl;
       for (SMGState stateAS : statesAfterAssign) {

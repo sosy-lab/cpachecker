@@ -622,13 +622,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * @throws SMGException in case of a critical error.
    */
   private String getExtendedQualifiedName(CExpression expr) throws SMGException {
-    if (expr instanceof CIdExpression) {
-      return ((CIdExpression) expr).getDeclaration().getQualifiedName();
+    if (expr instanceof CIdExpression cIdExpression) {
+      return cIdExpression.getDeclaration().getQualifiedName();
     } else if (expr instanceof CArraySubscriptExpression) {
       return expr.toQualifiedASTString();
-    } else if (expr instanceof CFieldReference) {
-      return ((CFieldReference) expr).getFieldOwner().toQualifiedASTString()
-          + ((CFieldReference) expr).getFieldName();
+    } else if (expr instanceof CFieldReference cFieldReference) {
+      return cFieldReference.getFieldOwner().toQualifiedASTString()
+          + cFieldReference.getFieldName();
     } else if (expr instanceof CPointerExpression) {
       return expr.toQualifiedASTString();
     }
@@ -639,12 +639,12 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * Tests if getExtendedQualifiedName() will succeed.
    *
    * @param expr current CExpression
-   * @return true if the expression is handleable by the assigning visitor
+   * @return whether the expression is handleable by the assigning visitor
    */
   private boolean isNestingHandleable(CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      return isNestingHandleable(((CBinaryExpression) expr).getOperand1())
-          && isNestingHandleable(((CBinaryExpression) expr).getOperand2());
+    if (expr instanceof CBinaryExpression cBinaryExpression) {
+      return isNestingHandleable(cBinaryExpression.getOperand1())
+          && isNestingHandleable(cBinaryExpression.getOperand2());
     } else {
       return expr instanceof CIdExpression
           || expr instanceof CArraySubscriptExpression
@@ -751,12 +751,12 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
       throws CPATransferException {
 
-    if (pExpression instanceof CBinaryExpression) {
-      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
+    if (pExpression instanceof CBinaryExpression cBinaryExpression) {
+      return createConstraint(cBinaryExpression, pFactory, pTruthAssumption);
 
-    } else if (pExpression instanceof CIdExpression) {
+    } else if (pExpression instanceof CIdExpression cIdExpression) {
       // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-      return createConstraint((CIdExpression) pExpression, pFactory, pTruthAssumption);
+      return createConstraint(cIdExpression, pFactory, pTruthAssumption);
 
     } else {
       throw new AssertionError("Unhandled expression type " + pExpression.getClass());

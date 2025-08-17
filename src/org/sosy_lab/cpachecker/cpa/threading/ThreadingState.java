@@ -305,7 +305,7 @@ public class ThreadingState
   }
 
   /**
-   * check, whether one of the outgoing edges can be visited without requiring a already used lock.
+   * check, whether one of the outgoing edges can be visited without requiring an already used lock.
    */
   private boolean hasDeadlock() throws UnrecognizedCodeException {
     FluentIterable<CFAEdge> edges = FluentIterable.from(getOutgoingEdges());
@@ -349,11 +349,11 @@ public class ThreadingState
   private boolean isWaitingForOtherThread(CFAEdge edge) throws UnrecognizedCodeException {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       AStatement statement = ((AStatementEdge) edge).getStatement();
-      if (statement instanceof AFunctionCall) {
+      if (statement instanceof AFunctionCall aFunctionCall) {
         AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          final String functionName = aIdExpression.getName();
           if (THREAD_JOIN.equals(functionName)) {
             final String joiningThread = extractParamName(statement, 0);
             // check whether other thread is running and has at least one outgoing edge,
@@ -387,15 +387,15 @@ public class ThreadingState
       num = pNum;
     }
 
-    public AbstractState getLocation() {
+    AbstractState getLocation() {
       return location;
     }
 
-    public AbstractState getCallstack() {
+    AbstractState getCallstack() {
       return callstack.getState();
     }
 
-    public int getNum() {
+    int getNum() {
       return num;
     }
 

@@ -344,8 +344,8 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     if (decl instanceof CVariableDeclaration vdecl) {
       if (importantVars.remove(vdecl.getQualifiedName())) {
         final CInitializer initializer = vdecl.getInitializer();
-        if (initializer instanceof CInitializerExpression) {
-          final CExpression init = ((CInitializerExpression) initializer).getExpression();
+        if (initializer instanceof CInitializerExpression cInitializerExpression) {
+          final CExpression init = cInitializerExpression.getExpression();
           CFAUtils.getVariableNamesOfExpression(init).copyInto(importantVars);
         }
         return true;
@@ -368,9 +368,9 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleStatement(CStatementEdge edge, Collection<String> importantVars) {
     final AStatement statement = edge.getStatement();
 
-    if (statement instanceof CAssignment) {
+    if (statement instanceof CAssignment cAssignment) {
       // expression is an assignment operation, e.g. a = b;
-      return handleAssignment((CAssignment) statement, importantVars);
+      return handleAssignment(cAssignment, importantVars);
 
     } else if (statement instanceof CFunctionCallStatement) {
       // call of external function, "scanf(...)" without assignment
@@ -390,13 +390,13 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     final CExpression lhs = statement.getLeftHandSide();
 
     // a = ?
-    if (lhs instanceof CIdExpression) {
-      if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
+    if (lhs instanceof CIdExpression cIdExpression) {
+      if (importantVars.remove(cIdExpression.getDeclaration().getQualifiedName())) {
         final ARightHandSide rhs = statement.getRightHandSide();
 
         // a = b + c
-        if (rhs instanceof CExpression) {
-          CFAUtils.getVariableNamesOfExpression((CExpression) rhs).copyInto(importantVars);
+        if (rhs instanceof CExpression cExpression) {
+          CFAUtils.getVariableNamesOfExpression(cExpression).copyInto(importantVars);
           return true;
 
           // a = f(x)
@@ -444,8 +444,8 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement cAssignment) {
       CExpression lhs = cAssignment.getLeftHandSide();
-      if (lhs instanceof CIdExpression) {
-        if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
+      if (lhs instanceof CIdExpression cIdExpression) {
+        if (importantVars.remove(cIdExpression.getDeclaration().getQualifiedName())) {
           Optional<CVariableDeclaration> returnVar = edge.getFunctionEntry().getReturnVariable();
           if (returnVar.isPresent()) {
             importantVars.add(returnVar.orElseThrow().getQualifiedName());
@@ -469,7 +469,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   }
 
   /**
-   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore each arg
+   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore, each arg
    * ("x") assigned to a param ("int a") of the function.
    */
   private boolean handleFunctionCall(CFunctionCallEdge edge, Collection<String> importantVars) {

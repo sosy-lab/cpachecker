@@ -89,8 +89,8 @@ public class BlockGraphModification {
     for (CFANode node : clone.nodes()) {
       String functionName = node.getFunction().getQualifiedName();
       allNodes.put(functionName, node);
-      if (node instanceof FunctionEntryNode) {
-        functionEntryNodes.put(functionName, (FunctionEntryNode) node);
+      if (node instanceof FunctionEntryNode functionEntryNode) {
+        functionEntryNodes.put(functionName, functionEntryNode);
       }
     }
     return new MutableCFA(functionEntryNodes, allNodes, clone.getMetadata());
@@ -239,7 +239,7 @@ public class BlockGraphModification {
     MappingInformation blockMapping =
         createMappingBetweenOriginalAndInstrumentedCFA(pOriginalCfa, pMutableCfa);
     ImmutableSet<CFANode> blockEnds =
-        transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getFinalLocation());
+        transformedImmutableSetCopy(pBlockGraph.getNodes(), BlockNode::getFinalLocation);
     ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
     ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
     for (CFANode originalBlockEnd : blockEnds) {

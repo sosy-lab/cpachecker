@@ -426,8 +426,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       final AbstractState pFakeEnablerState, final CAssumeEdge pAssumeEdge, final boolean pLastEdge)
       throws CPATransferException, InterruptedException {
 
-    switch (enablerCPA) {
-      case PREDICATE:
+    return switch (enablerCPA) {
+      case PREDICATE -> {
         PathFormulaManager pfm = predCPA.getPathFormulaManager();
         PredicateAbstractionManager pam = predCPA.getPredicateManager();
         PredicateAbstractState predFakeState = (PredicateAbstractState) pFakeEnablerState;
@@ -457,11 +457,9 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
           predFakeState =
               PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(pf, predFakeState);
         }
-        return predFakeState;
-      case APRON:
-      case INTERVAL:
-      case OCTAGON:
-      case VALUE:
+        yield predFakeState;
+      }
+      case APRON, INTERVAL, OCTAGON, VALUE -> {
         Collection<? extends AbstractState> nextFakeStateResult =
             enablerTransfer.getAbstractSuccessorsForEdge(
                 pFakeEnablerState, SingletonPrecision.getInstance(), pAssumeEdge);
@@ -470,13 +468,12 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
               Level.INFO,
               "Adding error explaining condition makes path infeasible, enabler knows of"
                   + " infeasibility of error, but still try to exclude path");
-          return pFakeEnablerState;
+          yield pFakeEnablerState;
         }
         // use first element as one possible reason for failure path
-        return nextFakeStateResult.iterator().next();
-      default:
-        throw new AssertionError("case should never happen");
-    }
+        yield nextFakeStateResult.iterator().next();
+      }
+    };
   }
 
   private CFANode createFakeEdge(final CExpression pAssumeExpr, final CFANode pPredecessor) {
@@ -698,8 +695,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 }

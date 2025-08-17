@@ -119,7 +119,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    * @return List of character-literal expressions
    */
   public List<CCharLiteralExpression> expandStringLiteral(final CArrayType type) {
-    // The string literal is is always NULL terminated, but a string in an array might be not.
+    // The string literal is always NULL terminated, but a string in an array might be not.
     // We handle this below.
     final String s = getContentWithoutNullTerminator();
     final int length = type.getLengthAsInt().orElse(s.length() + 1);

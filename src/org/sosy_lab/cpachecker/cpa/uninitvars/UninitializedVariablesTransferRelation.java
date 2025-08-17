@@ -88,15 +88,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   private void handleEdge(final CFAEdge cfaEdge, final UninitializedVariablesState successor)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException {
     switch (cfaEdge.getEdgeType()) {
-      case DeclarationEdge:
-        handleDeclaration(successor, (CDeclarationEdge) cfaEdge);
-        break;
-
-      case StatementEdge:
-        handleStatement(successor, ((CStatementEdge) cfaEdge).getStatement(), cfaEdge);
-        break;
-
-      case ReturnStatementEdge:
+      case DeclarationEdge -> handleDeclaration(successor, (CDeclarationEdge) cfaEdge);
+      case StatementEdge ->
+          handleStatement(successor, ((CStatementEdge) cfaEdge).getStatement(), cfaEdge);
+      case ReturnStatementEdge -> {
         // this is the return-statement of a function
         // set a local variable tracking the return statement's initialization status
         if (isExpressionUninitialized(
@@ -105,32 +100,24 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         } else {
           setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
         }
-        break;
-
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         // handle statement like a = func(x) in the CFunctionSummaryEdge
         CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
         CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
         handleStatement(successor, functionReturnEdge.getFunctionCall(), ctrEdge);
-        break;
-
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         // just check if there are uninitialized variable usages
         if (printWarnings) {
           isExpressionUninitialized(successor, ((CAssumeEdge) cfaEdge).getExpression(), cfaEdge);
         }
-        break;
-
-      case FunctionCallEdge:
-        // on calling a function, check initialization status of the parameters
-        handleFunctionCall(successor, (CFunctionCallEdge) cfaEdge);
-        break;
-
-      case BlankEdge:
-        break;
-
-      default:
-        throw new UnrecognizedCFAEdgeException(cfaEdge);
+      }
+      case FunctionCallEdge ->
+          // on calling a function, check initialization status of the parameters
+          handleFunctionCall(successor, (CFunctionCallEdge) cfaEdge);
+      case BlankEdge -> {}
+      default -> throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
   }
 
@@ -188,11 +175,11 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   private void handleDeclaration(
       UninitializedVariablesState element, CDeclarationEdge declarationEdge) {
 
-    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration decl)) {
       // typedefs etc. do not concern this CPA
       return;
     }
-    CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
+
     String varName = decl.getName();
     if (decl.isGlobal()) {
       globalVars.add(varName);
@@ -274,7 +261,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       UninitializedVariablesState element, CStatement expression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
 
-    if (expression instanceof CFunctionCallStatement) {
+    if (expression instanceof CFunctionCallStatement cFunctionCallStatement) {
       // in case of a return edge, remove the local context of the function from which we returned
       if (cfaEdge instanceof FunctionSummaryEdge) {
         element.returnFromFunction();
@@ -283,19 +270,16 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       // just check if there are uninitialized variable usages
       if (printWarnings) {
         for (CExpression param :
-            ((CFunctionCallStatement) expression)
-                .getFunctionCallExpression()
-                .getParameterExpressions()) {
+            cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
           isExpressionUninitialized(element, param, cfaEdge);
         }
       }
 
-    } else if (expression instanceof CExpressionStatement) {
+    } else if (expression instanceof CExpressionStatement cExpressionStatement) {
 
       // just check if there are uninitialized variable usages
       if (printWarnings) {
-        isExpressionUninitialized(
-            element, ((CExpressionStatement) expression).getExpression(), cfaEdge);
+        isExpressionUninitialized(element, cExpressionStatement.getExpression(), cfaEdge);
       }
 
     } else if (expression instanceof CAssignment assignExpression) {
@@ -316,10 +300,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     CExpression op1 = expression.getLeftHandSide();
     CRightHandSide op2 = expression.getRightHandSide();
 
-    if (op1 instanceof CIdExpression) {
+    if (op1 instanceof CIdExpression cIdExpression) {
       // assignment to simple variable
 
-      String leftName = ((CIdExpression) op1).getName();
+      String leftName = cIdExpression.getName();
 
       if (isExpressionUninitialized(element, op2, cfaEdge)) {
         setUninitialized(element, leftName);
@@ -327,10 +311,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         setInitialized(element, leftName);
       }
 
-    } else if (op1 instanceof CFieldReference) {
+    } else if (op1 instanceof CFieldReference cFieldReference) {
       // for field references, don't change the initialization status in case of a pointer
       // dereference
-      if (((CFieldReference) op1).isPointerDereference()) {
+      if (cFieldReference.isPointerDereference()) {
         if (printWarnings) {
           isExpressionUninitialized(element, op1, cfaEdge);
           isExpressionUninitialized(element, op2, cfaEdge);
@@ -375,7 +359,8 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   }
 
   private boolean isStructType(CType t) {
-    return t instanceof CCompositeType && ((CCompositeType) t).getKind() == ComplexTypeKind.STRUCT;
+    return t instanceof CCompositeType cCompositeType
+        && cCompositeType.getKind() == ComplexTypeKind.STRUCT;
   }
 
   @SuppressWarnings("ShortCircuitBoolean")
@@ -386,8 +371,8 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       // e.g. empty parameter list
       return false;
 
-    } else if (expression instanceof CIdExpression) {
-      String variable = ((CIdExpression) expression).getName();
+    } else if (expression instanceof CIdExpression cIdExpression) {
+      String variable = cIdExpression.getName();
       if (element.isUninitialized(variable)) {
         addWarning(cfaEdge, variable, expression, element);
         return true;
@@ -425,17 +410,15 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         return isExpressionUninitialized(element, unaryExpression.getOperand(), cfaEdge);
       }
 
-    } else if (expression instanceof CPointerExpression) {
-      return isExpressionUninitialized(
-          element, ((CPointerExpression) expression).getOperand(), cfaEdge);
+    } else if (expression instanceof CPointerExpression cPointerExpression) {
+      return isExpressionUninitialized(element, cPointerExpression.getOperand(), cfaEdge);
 
     } else if (expression instanceof CBinaryExpression binExpression) {
       return isExpressionUninitialized(element, binExpression.getOperand1(), cfaEdge)
           | isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
 
-    } else if (expression instanceof CCastExpression) {
-      return isExpressionUninitialized(
-          element, ((CCastExpression) expression).getOperand(), cfaEdge);
+    } else if (expression instanceof CCastExpression cCastExpression) {
+      return isExpressionUninitialized(element, cCastExpression.getOperand(), cfaEdge);
 
     } else if (expression instanceof CFunctionCallExpression funcExpression) {
       // if the FunctionCallExpression is associated with a statement edge, then this is

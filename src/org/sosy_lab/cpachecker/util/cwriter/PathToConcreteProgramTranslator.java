@@ -23,7 +23,7 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
   /**
    * Transform a single linear path into C code. The path needs to be loop free.
    *
-   * <p>TODO: Detect loops in the paths and signal an error. Currently when there are loops, the
+   * <p>TODO: Detect loops in the paths and signal an error. Currently, when there are loops, the
    * generated C code is invalid because there is a goto to a missing label.
    *
    * @param pPath The path.
@@ -42,7 +42,7 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
    * Transform a set of paths into C code. All paths need to have a single root, and all paths need
    * to be loop free.
    *
-   * <p>TODO: Detect loops in the paths and signal an error. Currently when there are loops, the
+   * <p>TODO: Detect loops in the paths and signal an error. Currently, when there are loops, the
    * generated C code is invalid because there is a goto to a missing label.
    *
    * <p>TODO: Using CFAPathWithAssumptions does not make sense for translatePaths, because

@@ -44,9 +44,4 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
 
-  <tasks name="array1_pattern_buggy-expected-unknown">
-    <include>../programs/lemma/array-pattern-buggy/array1_pattern_buggy-expected-timeout.yml</include>
-    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
-  </tasks>
-
 </benchmark>

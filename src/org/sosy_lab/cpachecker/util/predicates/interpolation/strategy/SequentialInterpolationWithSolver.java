@@ -21,7 +21,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class SequentialInterpolationWithSolver extends ITPStrategy {
 
   /**
-   * This strategy uses a SMT solver that directly computes a sequence of inductive interpolants.
+   * This strategy uses an SMT solver that directly computes a sequence of inductive interpolants.
    * Currently all SMT solvers except MathSat support this.
    */
   public SequentialInterpolationWithSolver(

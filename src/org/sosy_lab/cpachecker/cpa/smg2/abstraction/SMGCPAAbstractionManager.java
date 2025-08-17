@@ -1073,8 +1073,8 @@ public class SMGCPAAbstractionManager {
     }
 
     int addSize = 1;
-    if (root instanceof SMGSinglyLinkedListSegment) {
-      addSize = ((SMGSinglyLinkedListSegment) root).getMinLength();
+    if (root instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      addSize = sMGSinglyLinkedListSegment.getMinLength();
     }
 
     for (SMGHasValueEdge hve : smg.getEdges(root)) {
@@ -1385,7 +1385,7 @@ public class SMGCPAAbstractionManager {
     // We abort after we find 1 valid pointer for the candidate
     ImmutableList<SMGHasValueEdge> sortedPointersList =
         ImmutableList.sortedCopyOf(Comparator.comparing(SMGHasValueEdge::getOffset), setOfPointers);
-    // If there are no targets that match this one, this is either a end part or not a list
+    // If there are no targets that match this one, this is either an end part or not a list
     if (setOfPointers.isEmpty()) {
       return Optional.empty();
     }
