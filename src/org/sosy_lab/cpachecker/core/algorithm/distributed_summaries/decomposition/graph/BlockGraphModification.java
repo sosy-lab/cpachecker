@@ -59,7 +59,7 @@ public class BlockGraphModification {
   public record Modification(CFA cfa, BlockGraph blockGraph, ModificationMetadata metadata) {}
 
   /**
-   * Metadata about a modification of a CFA and its block graph.
+   * DssMetadata about a modification of a CFA and its block graph.
    *
    * @param originalCfa CFA that was modified
    * @param originalBlockGraph block graph that was used as reference for modification

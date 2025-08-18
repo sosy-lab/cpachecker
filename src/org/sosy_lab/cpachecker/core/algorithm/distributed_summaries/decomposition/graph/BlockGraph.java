@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -56,7 +57,7 @@ public class BlockGraph {
     return roots;
   }
 
-  public ImmutableSet<BlockNode> getNodes() {
+  public ImmutableSet<@NonNull BlockNode> getNodes() {
     return nodes;
   }
 
@@ -227,7 +228,7 @@ public class BlockGraph {
   @Override
   public String toString() {
     return "BlockGraph{"
-        + ", nodes="
+        + "nodes="
         + nodes.stream().map(BlockNode::getId).collect(Collectors.joining(", "))
         + '}';
   }
