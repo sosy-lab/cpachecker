@@ -236,14 +236,17 @@ public class GlobalVariableFinder {
 
     if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.getType() instanceof CPointerType) {
-        assert pPointerAssignments.containsKey(variableDeclaration);
-        for (CSimpleDeclaration rightHandSide : pPointerAssignments.get(variableDeclaration)) {
-          recursivelyFindGlobalVariablesByPointerDereference(
-              rightHandSide,
-              pGlobalVariables,
-              pCallContext,
-              pPointerAssignments,
-              pPointerParameterAssignments);
+        // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
+        // and then dereferenced -> the pointer is not associated with the address of a global var
+        if (pPointerAssignments.containsKey(variableDeclaration)) {
+          for (CSimpleDeclaration rightHandSide : pPointerAssignments.get(variableDeclaration)) {
+            recursivelyFindGlobalVariablesByPointerDereference(
+                rightHandSide,
+                pGlobalVariables,
+                pCallContext,
+                pPointerAssignments,
+                pPointerParameterAssignments);
+          }
         }
       } else {
         pGlobalVariables.add(variableDeclaration);
