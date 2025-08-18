@@ -1,0 +1,26 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+format_version: '2.1'
+
+additional_information:
+  task_type: validation
+  verification:
+    - property_file: ../../../config/properties/unreach-call.prp
+      expected verdict: unknown
+
+input_files: 
+  - 'array1_pattern-false.c'
+
+properties:
+  - property_file: ../../../config/properties/unreach-call.prp
+    expected verdict: unknown
+
+options:
+  language: C
+  data_model: ILP32
+
