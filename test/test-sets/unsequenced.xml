@@ -9,97 +9,21 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="30 min" hardtimelimit="31 min" memlimit="15 GB" cpuCores="4">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="5 min" hardtimelimit="6 min" memlimit="15 GB" cpuCores="2">
 
     <require cpuModel="Intel Core i7-10700 @ 2.90 GHz" />
 
     <resultfiles>**/witness.*</resultfiles>
 
     <option name="--unseqBehaviorAnalysis" />
-    <option name="--heap" />
-    <option name="10000M" />
+    <option name="--heap">10000M</option>
     <option name="--benchmark" />
 
-    <rundefinition name="SV-COMP25_unreach-call">
-        <tasks name="ReachSafety-Arrays">
-            <includesfile>../../../sv-benchmarks/c/Arrays.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-BitVectors">
-            <includesfile>../../../sv-benchmarks/c/BitVectors.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-ControlFlow">
-            <includesfile>../../../sv-benchmarks/c/ControlFlow.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-ECA">
-            <includesfile>../../../sv-benchmarks/c/ECA.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-Floats">
-            <includesfile>../../../sv-benchmarks/c/Floats.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-Heap">
-            <includesfile>../../../sv-benchmarks/c/Heap.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/LinkedLists.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-Loops">
-            <includesfile>../../../sv-benchmarks/c/Loops.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-ProductLines">
-            <includesfile>../../../sv-benchmarks/c/ProductLines.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-Recursive">
-            <includesfile>../../../sv-benchmarks/c/Recursive.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-Sequentialized">
-            <includesfile>../../../sv-benchmarks/c/Sequentialized.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-XCSP">
-            <includesfile>../../../sv-benchmarks/c/XCSP.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-Combinations">
-            <includesfile>../../../sv-benchmarks/c/Combinations.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-Hardware">
-            <includesfile>../../../sv-benchmarks/c/Hardware.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-Hardness">
-            <includesfile>../../../sv-benchmarks/c/Hardness.set</includesfile>
-        </tasks>
-        <tasks name="ReachSafety-Fuzzle">
-            <includesfile>../../../sv-benchmarks/c/Fuzzle.set</includesfile>
-        </tasks>
-
-        <tasks name="ConcurrencySafety-Main">
-            <includesfile>../../../sv-benchmarks/c/Concurrency.set</includesfile>
-        </tasks>
-
-        <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
-            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-AWS-C-Common.set</includesfile>
-        </tasks>
-        <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
-            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
-            <excludesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large.set</excludesfile>
-        </tasks>
-        <tasks name="SoftwareSystems-DeviceDriversLinux64Large-ReachSafety">
-            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large.set</includesfile>
-        </tasks>
-        <tasks name="SoftwareSystems-Other-ReachSafety">
-            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-coreutils.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-BusyBox.set</includesfile>
-            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-OpenBSD.set</includesfile>
-        </tasks>
-        <tasks name="SoftwareSystems-uthash-ReachSafety">
-            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
-        </tasks>
-        <tasks name="SoftwareSystems-Intel-TDX-Module-ReachSafety">
-            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-Intel-TDX-Module.set</includesfile>
+    <rundefinition name="unseq">
+        <tasks name="ReachSafety">
+            <includesfile>../../../sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
         </tasks>
     </rundefinition>
 
-    <columns>
-        <column title="status" />
-        <column title="cpu_time" />
-        <column title="memory" />
-    </columns>
 </benchmark>
+
