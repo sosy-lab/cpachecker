@@ -357,6 +357,22 @@ public class ExpressionTransformer
         factory.notEqual(memoryRegionSizeValue, zeroValue, calculationType, calculationType);
   }
 
+  public Constraint getGreaterEqualsZeroConstraint(
+      Value valueLargerEqZero, CType calculationType, SMGState currentState) {
+    SymbolicExpression zeroValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(createNumericValue(BigInteger.ZERO), calculationType);
+
+    SymbolicExpression value =
+        SymbolicValueFactory.getInstance()
+            .asConstant(valueLargerEqZero, calculationType)
+            .copyForState(currentState);
+
+    // value >= 0
+    return (Constraint)
+        factory.greaterThanOrEqual(value, zeroValue, calculationType, calculationType);
+  }
+
   /**
    * Builds a constraint for the equality of the given size to 0.
    *

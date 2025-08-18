@@ -269,4 +269,12 @@ public class ConstraintFactory {
     // Yes this does add a != 0 constraint on the value correctly.
     return transformer.getNotEqualsZeroConstraint(valueNotEqZero, calculationType, currentState);
   }
+
+  public Constraint getGreaterEqualsZeroConstraint(
+      Value valueGreaterEqZero, CType calculationType, SMGState currentState) {
+    // valueGreaterEqZero >= 0
+    final ExpressionTransformer transformer = getCTransformer();
+    return transformer.getGreaterEqualsZeroConstraint(
+        valueGreaterEqZero, calculationType, currentState);
+  }
 }
