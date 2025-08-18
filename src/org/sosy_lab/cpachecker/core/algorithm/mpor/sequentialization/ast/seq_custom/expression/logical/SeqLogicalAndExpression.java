@@ -54,11 +54,15 @@ public class SeqLogicalAndExpression implements SeqLogicalExpression {
           "either both CExpression or SeqExpression operands must be present");
     }
     return SeqSyntax.BRACKET_LEFT
+        + SeqSyntax.BRACKET_LEFT
         + left
+        + SeqSyntax.BRACKET_RIGHT
         + SeqSyntax.SPACE
         + getOperator()
         + SeqSyntax.SPACE
+        + SeqSyntax.BRACKET_LEFT
         + right
+        + SeqSyntax.BRACKET_RIGHT
         + SeqSyntax.BRACKET_RIGHT;
   }
 

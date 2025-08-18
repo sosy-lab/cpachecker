@@ -63,18 +63,15 @@ public class BitVectorEvaluationUtil {
 
   // Conjunction and Disjunction ===================================================================
 
-  /** Creates a logical conjunction of the given terms: {@code A && B && C ...}. */
-  static BitVectorEvaluationExpression buildSparseLogicalConjunction(
-      ImmutableList<SeqExpression> pSparseExpressions) {
+  /** Creates a logical conjunction of the given terms: {@code A || B || C ...}. */
+  static BitVectorEvaluationExpression buildSparseLogicalDisjunction(
+      ImmutableList<SeqExpression> pExpressions) {
 
-    SeqExpression logicalConjunction =
-        BitVectorEvaluationUtil.logicalConjunction(pSparseExpressions);
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalConjunction));
-  }
-
-  /** Creates a conjunction of the given terms i.e. {@code (A && B && C && ...)}. */
-  static SeqExpression logicalConjunction(ImmutableCollection<SeqExpression> pTerms) {
-    return nestLogicalExpressions(pTerms, SeqLogicalOperator.AND);
+    if (pExpressions.isEmpty()) {
+      return BitVectorEvaluationExpression.empty();
+    }
+    SeqExpression logicalDisjunction = BitVectorEvaluationUtil.logicalDisjunction(pExpressions);
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalDisjunction));
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A || B || C || ...)}. */

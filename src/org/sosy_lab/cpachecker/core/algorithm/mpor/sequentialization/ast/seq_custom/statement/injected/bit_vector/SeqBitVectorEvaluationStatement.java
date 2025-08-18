@@ -8,16 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqFunctionCallExpressions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStatement {
@@ -45,13 +40,7 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
       // no evaluation due to no global accesses -> just goto
       return gotoStatement.toASTString();
     } else {
-      // TODO build an assumption instead (and don't negate evaluation expression)
-      SeqIfExpression ifExpression = new SeqIfExpression(evaluationExpression);
-      CFunctionCallStatement abortCall =
-          SeqStatementBuilder.buildFunctionCallStatement(SeqFunctionCallExpressions.ABORT);
-      return ifExpression.toASTString()
-          + SeqSyntax.SPACE
-          + SeqStringUtil.wrapInCurlyBracketsInwards(abortCall.toASTString());
+      return SeqAssumptionBuilder.buildAssumption(evaluationExpression.toASTString());
     }
   }
 

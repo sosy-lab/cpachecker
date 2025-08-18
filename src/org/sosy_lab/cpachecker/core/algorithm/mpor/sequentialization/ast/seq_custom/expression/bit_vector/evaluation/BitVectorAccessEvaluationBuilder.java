@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
@@ -116,7 +115,7 @@ public class BitVectorAccessEvaluationBuilder {
     CIntegerLiteralExpression directBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
             pBitVectorVariables.getGlobalVariableIds(), pDirectVariables);
-    return buildFullDenseLogicalNot(
+    return buildFullDenseBinaryAnd(
         directBitVector, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
   }
 
@@ -130,11 +129,11 @@ public class BitVectorAccessEvaluationBuilder {
     CExpression directBitVector =
         pBitVectorVariables.getDenseDirectBitVectorByAccessType(
             BitVectorAccessType.ACCESS, pActiveThread);
-    return buildFullDenseLogicalNot(
+    return buildFullDenseBinaryAnd(
         directBitVector, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
   }
 
-  private static BitVectorEvaluationExpression buildFullDenseLogicalNot(
+  private static BitVectorEvaluationExpression buildFullDenseBinaryAnd(
       CExpression pDirectBitVector,
       ImmutableSet<MPORThread> pOtherThreads,
       BitVectorVariables pBitVectorVariables,
@@ -146,8 +145,7 @@ public class BitVectorAccessEvaluationBuilder {
     CBinaryExpression binaryExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
             pDirectBitVector, rightHandSide, BinaryOperator.BINARY_AND);
-    SeqLogicalNotExpression logicalNot = new SeqLogicalNotExpression(binaryExpression);
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalNot));
+    return new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
   }
 
   private static CExpression buildFullDenseRightHandSide(
@@ -185,15 +183,12 @@ public class BitVectorAccessEvaluationBuilder {
             BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
                 pOtherThreads, accessVariables);
         // create logical not -> !(B || C || ...)
-        SeqLogicalNotExpression logicalNot =
-            new SeqLogicalNotExpression(BitVectorEvaluationUtil.logicalDisjunction(otherVariables));
-        sparseExpressions.add(logicalNot);
+        SeqExpression logicalDisjunction =
+            BitVectorEvaluationUtil.logicalDisjunction(otherVariables);
+        sparseExpressions.add(logicalDisjunction);
       }
     }
-    ImmutableList<SeqExpression> expressions = sparseExpressions.build();
-    return expressions.isEmpty()
-        ? BitVectorEvaluationExpression.empty()
-        : BitVectorEvaluationUtil.buildSparseLogicalConjunction(expressions);
+    return BitVectorEvaluationUtil.buildSparseLogicalDisjunction(sparseExpressions.build());
   }
 
   private static BitVectorEvaluationExpression buildFullSparseEvaluation(
@@ -219,9 +214,11 @@ public class BitVectorAccessEvaluationBuilder {
           BitVectorEvaluationUtil.buildSparseDirectBitVector(globalVariable, pDirectVariables);
       SeqLogicalAndExpression logicalAnd =
           new SeqLogicalAndExpression(directBitVector, disjunction);
-      // create logical not -> !(A && (B || C || ...))
-      sparseExpressions.add(new SeqLogicalNotExpression(logicalAnd));
+      sparseExpressions.add(logicalAnd);
     }
-    return BitVectorEvaluationUtil.buildSparseLogicalConjunction(sparseExpressions.build());
+    // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
+    SeqExpression logicalDisjunction =
+        BitVectorEvaluationUtil.logicalDisjunction(sparseExpressions.build());
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalDisjunction));
   }
 }

@@ -25,12 +25,21 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAssumptionBuilder {
 
   public static CFunctionCallStatement buildAssumption(CExpression pCondition) {
     return SeqStatementBuilder.buildFunctionCallStatement(buildAssumptionExpression(pCondition));
+  }
+
+  public static String buildAssumption(String pCondition) {
+    return SeqFunctionDeclaration.ASSUME.getName()
+        + SeqSyntax.BRACKET_LEFT
+        + pCondition
+        + SeqSyntax.BRACKET_RIGHT
+        + SeqSyntax.SEMICOLON;
   }
 
   private static CFunctionCallExpression buildAssumptionExpression(CExpression pCondition) {
