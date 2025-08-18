@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -70,7 +70,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -78,11 +80,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
@@ -92,6 +96,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -318,9 +323,8 @@ public class SMGTransferRelation
             successorsBuilder.add(currentState);
           }
 
-          Preconditions.checkArgument(targetPointer instanceof SymbolicIdentifier);
-          Preconditions.checkArgument(
-              ((SymbolicIdentifier) targetPointer).getRepresentedLocation().isPresent());
+          checkArgument(targetPointer instanceof SymbolicIdentifier);
+          checkArgument(((SymbolicIdentifier) targetPointer).getRepresentedLocation().isPresent());
           MemoryLocation locationInPrevStackFrame =
               ((SymbolicIdentifier) targetPointer).getRepresentedLocation().orElseThrow();
           Optional<SMGObject> maybeKnownMemory =
@@ -391,7 +395,7 @@ public class SMGTransferRelation
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall summaryExpr = functionReturnEdge.getFunctionCall();
 
-    Preconditions.checkArgument(
+    checkArgument(
         state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
             == functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
@@ -406,7 +410,7 @@ public class SMGTransferRelation
           state.getMemoryModel().getReturnObjectForCurrentStackFrame();
       // There should always be a return memory object in the case of a
       // CFunctionCallAssignmentStatement!
-      Preconditions.checkArgument(returnObject.isPresent());
+      checkArgument(returnObject.isPresent());
       // Read the return object with its type
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(leftValueType)
@@ -416,7 +420,7 @@ public class SMGTransferRelation
 
         for (SMGState stateWithNewVar :
             createVariableOnTheSpotForPreviousStackframe(leftValue, currentState)) {
-          Preconditions.checkArgument(leftValue instanceof CIdExpression);
+          checkArgument(leftValue instanceof CIdExpression);
           String leftHandSideVarName =
               ((CIdExpression) leftValue).getDeclaration().getQualifiedName();
           // We are still on the stackframe of the function call!
@@ -424,7 +428,7 @@ public class SMGTransferRelation
               stateWithNewVar
                   .getMemoryModel()
                   .getObjectForVisibleVariableFromPreviousStackframe(leftHandSideVarName);
-          Preconditions.checkArgument(maybeTargetVariableMemory.isPresent());
+          checkArgument(maybeTargetVariableMemory.isPresent());
 
           stateBuilder.add(
               stateWithNewVar
@@ -613,7 +617,7 @@ public class SMGTransferRelation
                     parameterType,
                     callEdge.getFileLocation(),
                     stringExpr);
-            Preconditions.checkArgument(statesWithString.size() == 1);
+            checkArgument(statesWithString.size() == 1);
             currentState = statesWithString.get(0);
           }
         }
@@ -621,7 +625,7 @@ public class SMGTransferRelation
         List<ValueAndSMGState> addressesAndStates =
             evaluator.createAddress(cParamExp, currentState, callEdge);
 
-        Preconditions.checkArgument(addressesAndStates.size() == 1);
+        checkArgument(addressesAndStates.size() == 1);
         valueAndState = addressesAndStates.get(0);
       } else {
         // Evaluate the CExpr into a Value
@@ -632,7 +636,7 @@ public class SMGTransferRelation
 
         // If this ever fails; we need to take all states/values into account, meaning we would need
         // to proceed from this point onwards with all of them with all following operations
-        Preconditions.checkArgument(valuesAndStates.size() == 1);
+        checkArgument(valuesAndStates.size() == 1);
         valueAndState = valuesAndStates.get(0);
       }
       readValuesInOrderBuilder.add(valueAndState.getValue());
@@ -704,7 +708,7 @@ public class SMGTransferRelation
       // area with the variable name
       List<SMGStateAndOptionalSMGObjectAndOffset> knownMemoriesAndStates =
           currentState.dereferencePointer(paramValue);
-      Preconditions.checkArgument(knownMemoriesAndStates.size() == 1);
+      checkArgument(knownMemoriesAndStates.size() == 1);
       SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemoriesAndStates.get(0);
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
@@ -741,7 +745,7 @@ public class SMGTransferRelation
             currentState.dereferencePointer(addrParamValue.getMemoryAddress());
 
         // Nothing can materialize here
-        Preconditions.checkArgument(derefedPointerOffsetAndState.size() == 1);
+        checkArgument(derefedPointerOffsetAndState.size() == 1);
         currentState = derefedPointerOffsetAndState.get(0).getSMGState();
 
         if (!derefedPointerOffsetAndState.get(0).hasSMGObjectAndOffset()) {
@@ -761,7 +765,7 @@ public class SMGTransferRelation
 
       } else if (paramValue instanceof SymbolicIdentifier symbParamValue) {
         // Local struct to local struct copy
-        Preconditions.checkArgument(symbParamValue.getRepresentedLocation().isPresent());
+        checkArgument(symbParamValue.getRepresentedLocation().isPresent());
 
         MemoryLocation locationInPrevStackFrame =
             symbParamValue.getRepresentedLocation().orElseThrow();
@@ -909,7 +913,7 @@ public class SMGTransferRelation
           if (e.isSolverException()) {
             throw e.getSolverException();
           } else {
-            Preconditions.checkArgument(e.isInterruptedException());
+            checkArgument(e.isInterruptedException());
             throw e.getInterruptedException();
           }
         }
@@ -1044,7 +1048,8 @@ public class SMGTransferRelation
       if (cfa != null
           && cFuncDecl.getQualifiedName().equals(cfa.getMainFunction().getFunctionName())) {
         if (cFuncDecl.getParameters() != null) {
-          currentState = handleComplexEntryFunctionParameterInitialization(currentState, cFuncDecl);
+          currentState =
+              handleComplexEntryFunctionParameterInitialization(currentState, cFuncDecl, edge);
         }
       }
     } else if (cDecl instanceof CComplexTypeDeclaration) {
@@ -1064,15 +1069,22 @@ public class SMGTransferRelation
     return ImmutableList.of(currentState);
   }
 
-  // Init main() parameters if there are any (complex entry function)
+  // Init main() parameters, if there are any (complex entry function).
   private SMGState handleComplexEntryFunctionParameterInitialization(
-      SMGState pState, CFunctionDeclaration cFuncDecl) throws CPATransferException {
-    SMGState currentState = pState;
-    // C11 standard:
-    // If they are declared, the parameters to the main function shall obey the following
-    // constraints:
-    // — The value of argc shall be non-negative.
-    // — argv[argc] shall be a null pointer.
+      SMGState pState, CFunctionDeclaration cFuncDecl, CFAEdge pEdge) throws CPATransferException {
+    // 5.1.2.2.1 Program startup:
+    // The function called at program startup is named main. The implementation declares no
+    // prototype for this function. It shall be defined with a return type of int and with no
+    // parameters ... or with two parameters (referred to here as argc and argv, though any names
+    // may be used, as they are local to the function in which they are declared)
+    // Note: a third argument is also permitted, see below.
+    // Note: the naming of these arguments can be chosen freely!
+    checkArgument(
+        cFuncDecl.getParameters().size() == 2 || cFuncDecl.getParameters().isEmpty(),
+        "Number of arguments in entry function: %s, disallowed in current analysis. Choose either 0"
+            + " or 2 arguments for the chosen analysis.",
+        cFuncDecl.getParameters().size());
+
     // — If the value of argc is greater than zero, the array members argv[0] through
     // argv[argc-1] inclusive shall contain pointers to strings, which are given
     // implementation-defined values by the host environment prior to program startup. The
@@ -1088,19 +1100,70 @@ public class SMGTransferRelation
     // — The parameters argc and argv and the strings pointed to by the argv array shall
     // be modifiable by the program, and retain their last-stored values between program
     // startup and program termination.
-    for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
-      CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
+
+    // TODO: third arg.
+    // J.5.1 Environment arguments:
+    // In a hosted environment, the main function receives a third argument, char *envp[],
+    // that points to a null-terminated array of pointers to char, each of which points to a string
+    // that provides information about the environment for this execution of the program
+    // (5.1.2.2.1)
+    SMGState currentState = pState;
+    List<CParameterDeclaration> parameters = cFuncDecl.getParameters();
+    Value argcValue = null;
+    for (int p = 0; p < parameters.size(); p++) {
+      CParameterDeclaration parameter = parameters.get(p);
+      CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameter.getType());
       Value paramSizeInBits = new NumericValue(evaluator.getBitSizeof(currentState, paramType));
+
+      // The type of argv needs to be char *argv[] or char ** argv
       if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
+
+        checkArgument(p > 0);
+        // — argv[argc] shall be a null pointer.
         currentState =
             currentState.copyAndAddLocalVariable(
-                paramSizeInBits, parameters.getQualifiedName(), paramType, true);
+                paramSizeInBits, parameter.getQualifiedName(), paramType, true);
+
+      } else if (paramType.getCanonicalType() instanceof CSimpleType simpleType
+          && simpleType.getType() == CBasicType.INT) {
+
+        // argc type: either int, or int can be replaced by a typedef name defined as int
+        // — The value of argc shall be non-negative.
+        // argc is some nondet > 0, tied to the length of the argv array
+        if (!options.trackPredicates()) {
+          // Value Analysis can't track this accurately
+          currentState =
+              currentState.copyAndAddLocalVariable(
+                  paramSizeInBits, parameter.getQualifiedName(), paramType);
+
+        } else {
+
+          checkArgument(p == 0);
+          SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+          Value grEqZeroValue = factory.newIdentifier(null);
+          final ConstraintFactory constraintFactory =
+              ConstraintFactory.getInstance(
+                  currentState, evaluator.getMachineModel(), logger, options, evaluator, pEdge);
+
+          final Constraint geEqZeroConstraint =
+              constraintFactory.getGreaterEqualsZeroConstraint(
+                  grEqZeroValue, simpleType, currentState);
+
+          currentState = currentState.addConstraint(geEqZeroConstraint);
+          currentState =
+              evaluator.writeValueToNewVariableBasedOnTypes(
+                  grEqZeroValue,
+                  paramType,
+                  simpleType,
+                  parameter.getQualifiedName(),
+                  currentState,
+                  pEdge);
+
+          argcValue = grEqZeroValue;
+        }
+
       } else {
-        // argc and argv are also allocated here if they are in the program
-        // argc is some nondet > 1 while argv is non-null array of unknown values size argc
-        currentState =
-            currentState.copyAndAddLocalVariable(
-                paramSizeInBits, parameters.getQualifiedName(), paramType);
+        throw new SMGException("Disallowed parameter type " + paramType + " in entry function");
       }
     }
     return currentState;
@@ -1113,7 +1176,7 @@ public class SMGTransferRelation
       CFAEdge cfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    Preconditions.checkArgument(element instanceof SMGState);
+    checkArgument(element instanceof SMGState);
 
     List<SMGState> toStrengthen = new ArrayList<>();
     List<SMGState> result = new ArrayList<>();
@@ -1306,7 +1369,7 @@ public class SMGTransferRelation
 
     if (valueToWrite instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
-      Preconditions.checkArgument(SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType));
+      checkArgument(SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType));
       // A SymbolicIdentifier with location is used to copy entire variable structures (i.e.
       // arrays/structs etc.)
       return ImmutableList.of(
@@ -1319,7 +1382,7 @@ public class SMGTransferRelation
 
     } else if (valueToWrite instanceof AddressExpression) {
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType)) {
-        Preconditions.checkArgument(
+        checkArgument(
             rightHandSideType.equals(leftHandSideType)
                 || rightHandSideType.canBeAssignedFrom(leftHandSideType));
         // This is a copy based on a pointer
@@ -1350,7 +1413,7 @@ public class SMGTransferRelation
                   addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
-          Preconditions.checkArgument(newAddressesAndStates.size() == 1);
+          checkArgument(newAddressesAndStates.size() == 1);
           ValueAndSMGState newAddressAndState = newAddressesAndStates.get(0);
           currentState = newAddressAndState.getState();
           properPointer = newAddressAndState.getValue();
@@ -1390,7 +1453,7 @@ public class SMGTransferRelation
                   addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
-          Preconditions.checkArgument(newAddressesAndStates.size() == 1);
+          checkArgument(newAddressesAndStates.size() == 1);
           ValueAndSMGState newAddressAndState = newAddressesAndStates.get(0);
           currentState = newAddressAndState.getState();
           valueToWrite = newAddressAndState.getValue();
@@ -1398,7 +1461,7 @@ public class SMGTransferRelation
           // Offset unknown/symbolic. This is not usable!
           valueToWrite = UnknownValue.getInstance();
         }
-        Preconditions.checkArgument(
+        checkArgument(
             sizeInBits.isNumericValue()
                 && sizeInBits
                         .asNumericValue()
