@@ -6,19 +6,29 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// Benchmark case extracted from project https://github.com/dceara/tanalysis/blob/master/tanalysis/tests/func_tests/
+
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int a = 1;
-    int x = __VERIFIER_nondet_int();
+    int a, b, c;
+    a = __VERIFIER_nondet_int();
+    b = 2;
+    c = 3;
 
-    for (int i = 0; i < x; ++ i) {
-        a = a * x;
-        for (int j = 0; x; j++) {
-            a = x;
-        }
+    while (a) {
+      if (b > 1) {
+        c = b;
+        b--;
+      }
     }
 
-    __VERIFIER_is_public(a, 1);
+    while (a) {
+      b = 100;
+    }
+
+    c = 10;
+
+    __VERIFIER_is_public(b, 1);
 }

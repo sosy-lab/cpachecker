@@ -27,6 +27,7 @@ int main() {
 //    int g = __VERIFIER_nondet_int();
 
     // `sizeof(1)` assigns an untainted value to `x`. `x` is now expected to be public
-    a = __alignof__(int);
-    __VERIFIER_is_public(a, 1);
+    int b;
+    b = sizeof(a);
+    __VERIFIER_is_public(b, 0);
 }

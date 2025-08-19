@@ -13,14 +13,32 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 typedef struct {
     int a;
-    int b;
+    char c1;
+    char c2;
+    char c3;
+    char c4;
 } t1;
 
-int main()
-{
-    t1* p;
-    free((void*)p);
+typedef struct {
+    int a;
+    int b;
+} t2;
 
-    // TODO: which result do we expect here? And what is p?
-    __VERIFIER_is_public(p, 1);
+typedef struct {
+    int a;
+    int b;
+    int c;
+} t3;
+
+int main() {
+    t1* s1;
+    t2 s2;
+    t3* s3;
+    s2.a = 10;
+    s2.b = 10;
+    s1 = (t1*)(&s2);        // T(s1) = U
+    s3 = (t3*)(&s2);        // T(s3) = T
+
+    __VERIFIER_is_public(s1, 1);
+    __VERIFIER_is_public(s3, 1);
 }

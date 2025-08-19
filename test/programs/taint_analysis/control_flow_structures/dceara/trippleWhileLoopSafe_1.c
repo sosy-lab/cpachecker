@@ -13,12 +13,8 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main(int arg) {
     int a, b, c;
-    int a1, b1, c1;
-    int a2, b2, c2;
     a = c = 0;
     b = __VERIFIER_nondet_int();
-    a1 = b1 = c1 = 0;
-    a2 = b2 = c2 = 0;
 
     while (a < 1) {
         while (b < 1) {
@@ -34,6 +30,9 @@ int main(int arg) {
     __VERIFIER_is_public(b, 0);
     __VERIFIER_is_public(c, 0);
 
+    int a1, b1, c1;
+    a1 = b1 = c1 = 0;
+
     while (a1 < 1) {
         while (b1 < arg) {
             while (c1 < 1) {
@@ -48,8 +47,11 @@ int main(int arg) {
     __VERIFIER_is_public(b1, 0);
     __VERIFIER_is_public(c1, 0);
 
+    int a2, b2, c2;
+    a2 = b2 = c2 = 0;
+
     while (a2 < 1) {
-        while (b2 < arg) {
+        while (arg) {
             while (c2 < 1) {
                 c2++;
             }

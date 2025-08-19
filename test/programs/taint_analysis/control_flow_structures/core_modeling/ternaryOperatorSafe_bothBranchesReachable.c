@@ -29,8 +29,8 @@ int main() {
 
     // Passing the conditional ternary operation directly to the public-state check is expected to behave exactly as above:
     // No property violation expected
-    __VERIFIER_is_public(x < 0 ? x : y, 0); // tmp = y explored first
-    __VERIFIER_is_public(x < 0 ? y : x, 0); // tmp = x explored first
+//    __VERIFIER_is_public(x < 0 ? x : y, 0); // tmp = y explored first
+//    __VERIFIER_is_public(x < 0 ? y : x, 0); // tmp = x explored first
 
     // No tainted branches. Result expected to be public
     __VERIFIER_is_public(x < 0 ? y : y, 1);

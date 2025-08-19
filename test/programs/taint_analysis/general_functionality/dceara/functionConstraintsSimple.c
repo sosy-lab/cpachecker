@@ -8,27 +8,33 @@
 
 // Benchmark case extracted from project https://github.com/dceara/tanalysis/blob/master/tanalysis/tests/func_tests/
 
-extern int __VERIFIER_nondet_int();
+extern int __VERIFIER_nondet_char();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
-// TODO
-void strcpy(char* dest, char* source) {
 
-    if (__VERIFIER_is_public(dest, 0)
-            || (__VERIFIER_is_public(dest, 1) && __VERIFIER_is_public(source, 1))) {
-        dest = source;
-    }
+void strcpy(char* dest, char* source) {
+    dest = source;
 }
 
 int main() {
     char* src;
     char* dst;
 
-//    dst = __VERIFIER_nondet_char();
-    dst = 2;
+    dst = __VERIFIER_nondet_char();
     src = 0;
+
+    strcpy(dst, src); // dest tainted => operation allowed
+    __VERIFIER_is_public(dst, 0);
+
     src = __VERIFIER_nondet_char();
     strcpy(dst, src); // dest tainted => operation allowed
+    __VERIFIER_is_public(dst, 0);
+
+    dst = 2;
+    __VERIFIER_set_public(src, 1);
     strcpy(dst, src); // dest untainted + src untainted => operation allowed
+    __VERIFIER_is_public(dst, 1);
+
     src = __VERIFIER_nondet_char();
     strcpy(dst, src); // dest untainted + src tainted => operation not allowed
+    __VERIFIER_is_public(dst, 0);
 }
