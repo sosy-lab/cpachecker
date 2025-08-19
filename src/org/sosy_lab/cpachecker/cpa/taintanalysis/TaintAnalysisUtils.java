@@ -229,7 +229,6 @@ public class TaintAnalysisUtils {
             case GREATER_EQUAL -> BigInteger.valueOf(value1.compareTo(value2) >= 0 ? 1 : 0);
             case EQUALS -> BigInteger.valueOf(value1.equals(value2) ? 1 : 0);
             case NOT_EQUALS -> BigInteger.valueOf(value1.equals(value2) ? 0 : 1);
-            default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
           };
 
       return new CIntegerLiteralExpression(
