@@ -1,554 +1,611 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.math.LongMath.saturatedAdd;
+import static com.google.common.math.LongMath.saturatedMultiply;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.Longs;
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
-/**
- * An abstract domain representing integers as intervals.
- */
-public abstract sealed class Interval
-        permits Interval.ReachableInterval, Interval.Unreachable {
+public final class Interval implements Serializable {
+  @Serial private static final long serialVersionUID = 4223098080993616295L;
 
-  public static Interval unreachable() {
-    return new Unreachable();
-  }
+  /** the lower bound of the interval */
+  private final Long low;
 
-  public static Interval unknown() {
-    return new ReachableInterval(InfInt.negInf(), InfInt.posInf());
-  }
+  /** the upper bound of the interval */
+  private final Long high;
 
-  public static Interval of(InfInt lowerLimit, InfInt upperLimit) {
-    return new ReachableInterval(lowerLimit, upperLimit);
-  }
+  public static final Interval EMPTY = new Interval(null, null);
+  public static final Interval UNBOUND = new Interval(Long.MIN_VALUE, Long.MAX_VALUE);
+  public static final Interval BOOLEAN_INTERVAL = new Interval(0L, 1L);
+  public static final Interval ZERO = new Interval(0L, 0L);
+  public static final Interval ONE = new Interval(1L, 1L);
 
-  public static Interval of(InfInt lowerLimit, long upperLimit) {
-    return new ReachableInterval(lowerLimit, InfInt.of(upperLimit));
-  }
+  /**
+   * This method acts as constructor for a single-value interval.
+   *
+   * @param value for the lower and upper bound
+   */
+  public Interval(Long value) {
+    low = value;
 
-  public static Interval of(long lowerLimit, InfInt upperLimit) {
-    return new ReachableInterval(InfInt.of(lowerLimit), upperLimit);
-  }
+    high = value;
 
-  public static Interval of(long lowerLimit, long upperLimit) {
-    return new ReachableInterval(InfInt.of(lowerLimit), InfInt.of(upperLimit));
-  }
-
-  public static Interval of(long bothLimits) {
-    return new ReachableInterval(InfInt.of(bothLimits), InfInt.of(bothLimits));
+    isSane();
   }
 
   /**
-   * The join operation.
+   * This method acts as constructor for a long-based interval.
    *
-   * @param other another value.
-   * @return the joined value.
+   * @param pLow the lower bound
+   * @param pHigh the upper bound
    */
-  abstract Interval join(Interval other);
+  public Interval(Long pLow, Long pHigh) {
+    this.low = pLow;
+    this.high = pHigh;
+    isSane();
+  }
+
+  private boolean isSane() {
+    checkState((low == null) == (high == null), "invalid empty interval");
+    checkState(low == null || low <= high, "low cannot be larger than high");
+
+    return true;
+  }
 
   /**
-   * The meet operation.
+   * This method returns the lower bound of the interval.
    *
-   * @param other another value.
-   * @return the intersection of both values.
+   * @return the lower bound
    */
-  abstract Interval meet(Interval other);
+  public Long getLow() {
+    return low;
+  }
 
   /**
-   * The widening operation.
+   * This method returns the upper bound of the interval.
    *
-   * @param other another value.
-   * @return the widened value.
+   * @return the upper bound
    */
-  abstract Interval widen(Interval other);
+  public Long getHigh() {
+    return high;
+  }
 
-
-  /**
-   * The addition transformation.
-   *
-   * @param other another value.
-   * @return the sum of both.
-   */
-  abstract Interval add(Interval other);
-
-  /**
-   * The subtraction transformation.
-   *
-   * @param other another value.
-   * @return the difference of both.
-   */
-  abstract Interval subtract(Interval other);
-
-  /**
-   * The addition transformation.
-   *
-   * @param constant an integer.
-   * @return the transformed value.
-   */
-  abstract Interval addConstant(long constant);
-
-  /**
-   * The subtraction transformation.
-   *
-   * @param constant an integer.
-   * @return the transformed value.
-   */
-  abstract Interval subtractConstant(long constant);
-
-  /**
-   * The multiplication transformation.
-   *
-   * @param other another value.
-   * @return the product of both.
-   */
-  abstract Interval multiply(Interval other);
-
-  /**
-   * The multiplication transformation.
-   *
-   * @param constant an integer.
-   * @return the transformed value.
-   */
-  abstract Interval multiplyByConstant(long constant);
-
-  /**
-   * The division transformation.
-   *
-   * @param other another value.
-   * @return the division of both.
-   */
-  abstract Interval divide(Interval other);
-
-  /**
-   * The division transformation.
-   *
-   * @param constant an integer.
-   * @return the transformed value.
-   */
-  abstract Interval divideByConstant(long constant);
-
-  /**
-   * The modulo transformation.
-   *
-   * @param other another value.
-   * @return the modulo of both.
-   */
-  abstract Interval modulo(Interval other);
-
-  /**
-   * The modulo transformation.
-   *
-   * @param constant an integer.
-   * @return the modulo.
-   */
-  abstract Interval modulo(long constant);
-
-  /**
-   * The absolute value transformation.
-   *
-   * @return the absolute value.
-   */
-  abstract Interval absoluteValue();
-
-  /**
-   * The negation transformation. Inverses the sign in the concrete. Equal to
-   * multiplication by -1.
-   *
-   * @return the transformed value.
-   */
-  abstract Interval negate();
-
-  abstract boolean isGreaterThan(Interval other);
-
-  abstract boolean isGreaterEqualThan(Interval other);
-
-  abstract boolean isEqual(Interval other);
-
-  abstract boolean mayBeGreaterThan(Interval other);
-
-  abstract boolean mayBeGreaterEqualThan(Interval other);
-
-  abstract boolean isReachable();
-
-  /**
-   * An {@link Interval}, that is not unreachable.
-   */
-  public final static class ReachableInterval extends Interval {
-
-    private final InfInt lowerLimit;
-    private final InfInt upperLimit;
-
-    public ReachableInterval(InfInt pLowerLimit, InfInt pUpperLimit) {
-      this.lowerLimit = pLowerLimit;
-      this.upperLimit = pUpperLimit;
-    }
-
-    @Override
-    public Interval join(Interval other) {
-      if (other instanceof ReachableInterval reachableOther) {
-        var lower = InfInt.min(this.lowerLimit, reachableOther.lowerLimit);
-        var upper = InfInt.max(this.upperLimit, reachableOther.upperLimit);
-        return new ReachableInterval(lower, upper);
-      }
-      return this;
-    }
-
-
-    @Override
-    public Interval meet(Interval other) {
-      if (other instanceof ReachableInterval reachableOther) {
-        var lower = InfInt.max(this.lowerLimit, reachableOther.lowerLimit);
-        var upper = InfInt.min(this.upperLimit, reachableOther.upperLimit);
-
-        if (!lower.isGreaterThan(upper)) {
-          return new ReachableInterval(lower, upper);
-        }
-      }
-
-      return new Unreachable();
-    }
-
-    /**
-     * The abstract widening operator. See: Cousot, P., Cousot, R. (1992). Comparing the Galois
-     * connection and widening/narrowing approaches to abstract interpretation. In: Bruynooghe, M.,
-     * Wirsing, M. (eds) Programming Language Implementation and Logic Programming. PLILP 1992.
-     * Lecture Notes in Computer Science, vol 631. Springer, Berlin, Heidelberg. <a
-     * href="https://doi.org/10.1007/3-540-55844-6_142">https://doi.org/10.1007/3-540-55844-6_142</a>.
-     *
-     * @param other the interval to widen this with.
-     * @return the widened interval.
-     */
-    @Override
-    public Interval widen(Interval other) {
-      if (other instanceof ReachableInterval reachableOther) {
-        var lower = this.lowerLimit;
-        var upper = this.upperLimit;
-
-        if (reachableOther.lowerLimit.isLessThan(this.lowerLimit)) {
-          lower = InfInt.negInf();
-        }
-        if (reachableOther.upperLimit.isGreaterThan(this.upperLimit)) {
-          upper = InfInt.posInf();
-        }
-        return new ReachableInterval(lower, upper);
-      }
-      return this;
-    }
-
-    @Override
-    public String toString() {
-      return "[%s, %s]".formatted(lowerLimit, upperLimit);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (other instanceof ReachableInterval reachableOther) {
-        return this.lowerLimit.equals(reachableOther.lowerLimit)
-            && this.upperLimit.equals(reachableOther.upperLimit);
-      }
+  @Override
+  public boolean equals(Object other) {
+    if (other == null || getClass() != other.getClass()) {
       return false;
     }
+    Interval another = (Interval) other;
+    return Objects.equals(low, another.low) && Objects.equals(high, another.high);
+  }
 
-    @Override
-    public Interval add(Interval value) {
-      if (value instanceof ReachableInterval reachableValue) {
-        return new ReachableInterval(
-            lowerLimit.add(reachableValue.lowerLimit),
-            upperLimit.add(reachableValue.upperLimit)
-        );
+  @Override
+  public int hashCode() {
+    return Objects.hash(low, high);
+  }
+
+  /**
+   * This method creates a new interval instance representing the union of this interval with
+   * another interval.
+   *
+   * <p>The lower bound and upper bound of the new interval is the minimum of both lower bounds and
+   * the maximum of both upper bounds, respectively.
+   *
+   * @param other the other interval
+   * @return the new interval with the respective bounds
+   */
+  public Interval union(Interval other) {
+    Long newLow;
+    if (this.low != null) {
+      if (other.low != null) {
+        newLow = Math.min(low, other.low);
+      } else {
+        newLow = this.low;
       }
-      return new Unreachable();
+    } else {
+      newLow = other.low;
     }
 
-    @Override
-    public ReachableInterval negate() {
-      return new ReachableInterval(upperLimit.negate(), lowerLimit.negate());
-    }
-
-    @Override
-    public Interval subtract(Interval value) {
-      return add(value.negate());
-    }
-
-    @Override
-    public Interval addConstant(long constant) {
-      return add(of(constant, constant));
-    }
-
-    @Override
-    public Interval subtractConstant(long constant) {
-      return addConstant(-constant);
-    }
-
-    @Override
-    public Interval multiply(Interval other) {
-      if (other instanceof ReachableInterval reachableOther) {
-        var lowerBound = InfInt.min(
-            this.lowerLimit.multiply(reachableOther.lowerLimit),
-            this.lowerLimit.multiply(reachableOther.upperLimit),
-            this.upperLimit.multiply(reachableOther.lowerLimit),
-            this.upperLimit.multiply(reachableOther.upperLimit)
-        );
-        var upperBound = InfInt.max(
-            this.lowerLimit.multiply(reachableOther.lowerLimit),
-            this.lowerLimit.multiply(reachableOther.upperLimit),
-            this.upperLimit.multiply(reachableOther.lowerLimit),
-            this.upperLimit.multiply(reachableOther.upperLimit)
-        );
-        return new ReachableInterval(lowerBound, upperBound);
+    Long newHigh;
+    if (this.high != null) {
+      if (other.high != null) {
+        newHigh = Math.max(high, other.high);
+      } else {
+        newHigh = this.high;
       }
-      return new Unreachable();
+    } else {
+      newHigh = other.high;
     }
 
-    @Override
-    public Interval multiplyByConstant(long constant) {
-      return new ReachableInterval(this.lowerLimit.multiply(constant), this.upperLimit.multiply(constant));
-    }
+    return new Interval(newLow, newHigh);
+  }
 
-    @Override
-    public Interval divide(Interval other) {
-      if (other instanceof ReachableInterval reachableOther) {
-        var otherLower = reachableOther.lowerLimit;
-        var otherUpper = reachableOther.upperLimit;
-
-        if (otherLower.equals(InfInt.of(0)) && otherUpper.equals(InfInt.of(0))) {
-          throw new ArithmeticException("Cannot divide by zero interval.");
-        }
-        otherLower = otherLower.equals(InfInt.of(0)) ? InfInt.of(1) : otherLower;
-        otherUpper = otherUpper.equals(InfInt.of(0)) ? InfInt.of(-1) : otherUpper;
-
-        var lower = InfInt.min(
-            this.lowerLimit.divide(otherLower),
-            this.lowerLimit.divide(otherUpper),
-            this.upperLimit.divide(otherLower),
-            this.upperLimit.divide(otherUpper)
-        );
-
-        var upper = InfInt.max(
-            this.lowerLimit.divide(otherLower),
-            this.lowerLimit.divide(otherUpper),
-            this.upperLimit.divide(otherLower),
-            this.upperLimit.divide(otherUpper)
-        );
-        return new ReachableInterval(lower, upper);
-      }
-      return new Unreachable();
-    }
-
-    @Override
-    public Interval divideByConstant(long constant) {
-      if (constant == 0) {
-        throw new ArithmeticException("Cannot divide by zero.");
-      }
-      return new ReachableInterval(this.lowerLimit.divide(constant), this.upperLimit.divide(constant));
-    }
-
-
-    /**
-     * To simplify implementation, modulo of intervals is implemented
-     */
-    @Override
-    public Interval modulo(Interval other) {
-      if (other instanceof ReachableInterval reachableOther) {
-        var divisor = reachableOther.absoluteValue();
-        divisor = new ReachableInterval(divisor.lowerLimit, divisor.upperLimit.subtract(1));
-
-        if (this.lowerLimit.isGreaterEqualThan(InfInt.of(0))) {
-          return new ReachableInterval(InfInt.of(0), InfInt.min(this.upperLimit, divisor.upperLimit));
-        }
-
-        if (this.upperLimit.isLessThan(InfInt.of(0))) {
-          return new ReachableInterval(InfInt.max(this.lowerLimit, divisor.negate().lowerLimit), InfInt.of(0));
-        }
-
-        return new ReachableInterval(InfInt.max(this.lowerLimit, divisor.negate().lowerLimit), InfInt.min(this.upperLimit, divisor.upperLimit));
-      }
-      return unreachable();
-    }
-
-    @Override
-    public Interval modulo(long constant) {
-      return new ReachableInterval(this.lowerLimit.modulo(constant), this.upperLimit.modulo(constant));
-    }
-
-    @Override
-    public ReachableInterval absoluteValue() {
-      if (this.lowerLimit.isLessEqualThan(InfInt.of(0)) && this.upperLimit.isGreaterEqualThan(InfInt.of(0))) {
-        return new ReachableInterval(InfInt.of(0), InfInt.max(this.lowerLimit.negate(), this.upperLimit));
-      }
-      if (this.lowerLimit.isLessEqualThan(InfInt.of(0)) && this.upperLimit.isLessEqualThan(InfInt.of(0))) {
-        return new ReachableInterval(this.upperLimit.negate(), this.lowerLimit.negate());
-      }
-      return this;
-    }
-
-    @Override
-    public boolean isGreaterThan(Interval other) {
-      Objects.requireNonNull(other);
-      if (other instanceof ReachableInterval reachableOther) {
-        return this.lowerLimit.isGreaterThan(reachableOther.upperLimit);
-      }
-      return false;
-    }
-
-    @Override
-    public boolean mayBeGreaterThan(Interval other) {
-      Objects.requireNonNull(other);
-      if (other instanceof ReachableInterval reachableOther) {
-        return this.upperLimit.isGreaterThan(reachableOther.lowerLimit);
-      }
-      return false;
-    }
-
-    @Override
-    public boolean isGreaterEqualThan(Interval other) {
-      Objects.requireNonNull(other);
-      if (other instanceof ReachableInterval reachableOther) {
-        return this.lowerLimit.isGreaterEqualThan(reachableOther.upperLimit);
-      }
-      return false;
-    }
-
-    @Override
-    public boolean mayBeGreaterEqualThan(Interval other) {
-      Objects.requireNonNull(other);
-      if (other instanceof ReachableInterval reachableOther) {
-        return this.upperLimit.isGreaterEqualThan(reachableOther.lowerLimit);
-      }
-      return false;
-    }
-
-    @Override
-    public boolean isEqual(Interval other) {
-      Objects.requireNonNull(other);
-      if (other instanceof ReachableInterval reachableOther) {
-        return this.upperLimit.equals(reachableOther.upperLimit)
-            && this.lowerLimit.equals(reachableOther.lowerLimit)
-            && this.lowerLimit.equals(this.upperLimit);
-      }
-      return false;
-    }
-
-    @Override
-    public boolean isReachable() {
-      return true;
+  /**
+   * This method creates a new interval instance representing the intersection of this interval with
+   * another interval.
+   *
+   * <p>The lower bound and upper bound of the new interval is the maximum of both lower bounds and
+   * the minimum of both upper bounds, respectively.
+   *
+   * @param other the other interval
+   * @return the new interval with the respective bounds
+   */
+  public Interval intersect(Interval other) {
+    if (intersects(other)) {
+      return new Interval(Math.max(low, other.low), Math.min(high, other.high));
+    } else {
+      return EMPTY;
     }
   }
 
-  final static class Unreachable extends Interval {
+  /**
+   * This method determines if this interval is definitely greater than the other interval.
+   *
+   * @param other interval to compare with
+   * @return true if the lower bound of this interval is always strictly greater than the upper
+   *     bound of the other interval, else false
+   */
+  public boolean isGreaterThan(Interval other) {
+    return !isEmpty() && !other.isEmpty() && low > other.high;
+  }
 
-    @Override
-    public Interval join(Interval other) {
-      return other;
+  /**
+   * This method determines if this interval is definitely greater or equal than the other interval.
+   * The equality is only satisfied for one single value!
+   *
+   * @param other interval to compare with
+   * @return true if the lower bound of this interval is always strictly greater or equal than the
+   *     upper bound of the other interval, else false
+   */
+  public boolean isGreaterOrEqualThan(Interval other) {
+    return !isEmpty() && !other.isEmpty() && low >= other.high;
+  }
+
+  /**
+   * Determines if this interval is definitely equal to the other interval.
+   *
+   * @param other the other interval.
+   * @return true if they are definitely equal.
+   */
+  public boolean isEqualTo(Interval other) {
+    return !isEmpty()
+        && !other.isEmpty()
+        && low.equals(other.low)
+        && high.equals(other.high)
+        && low.equals(high);
+  }
+
+  /**
+   * This method determines if this interval maybe greater than the other interval.
+   *
+   * @param other interval to compare with
+   * @return true if the upper bound of this interval is strictly greater than the lower bound of
+   *     the other interval, else false
+   */
+  public boolean mayBeGreaterThan(Interval other) {
+    return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high > other.low);
+  }
+
+  /**
+   * This method determines if this interval maybe greater or equal than the other interval.
+   *
+   * @param other interval to compare with
+   * @return true if the upper bound of this interval is strictly greater than the lower bound of
+   *     the other interval, else false
+   */
+  public boolean mayBeGreaterOrEqualThan(Interval other) {
+    return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high >= other.low);
+  }
+
+  /**
+   * New interval instance after the modulo computation.
+   *
+   * @param other the other interval
+   * @return the new interval with the respective bounds.
+   */
+  public Interval modulo(Interval other) {
+    if (other.contains(ZERO)) {
+      return Interval.UNBOUND;
     }
 
-    @Override
-    public Interval meet(Interval other) {
-      return this;
+    // The interval doesn't contain zero, hence low and high has to be of the same sign.
+    // In that case we can call an absolute value on both, as "% (-x)" is the same as "% x".
+    other = new Interval(Math.abs(other.low), Math.abs(other.high));
+
+    long newHigh;
+    long newLow;
+
+    // New high of the interval can't be higher than the highest value in the divisor.
+    // If the divisible element is positive, it is also bounded by it's highest number,
+    // or by the absolute value of the lowest number.
+    // (-1 % 6 CAN be either -1 or 5 according to the C standard).
+    long top;
+    if (low >= 0) {
+      top = high;
+    } else {
+      if (low == Long.MIN_VALUE) {
+        top = Long.MAX_VALUE;
+      } else {
+        top = Math.max(Math.abs(low), high);
+      }
+    }
+    newHigh = Math.min(top, other.high - 1);
+
+    // Separate consideration for the case where the divisible number can be negative.
+    if (low >= 0) { // If the divisible interval is all positive, the lowest we can ever get is 0.
+
+      // We can only get zero if we include 0 or the number higher than the smallest value of the
+      // other interval.
+      if (low == 0 || high >= other.low) {
+        newLow = 0;
+      } else {
+        newLow = low;
+      }
+    } else {
+      // The remainder can go negative, but it can not be more negative than the negation of the
+      // highest value
+      // of the other interval plus 1.
+      // (e.g. X mod 14 can not be lower than -13)
+
+      // Remember, <low> is negative in this branch.
+      newLow = Math.max(low, 1 - other.high);
     }
 
-    @Override
-    public Interval widen(Interval other) {
-      return other;
+    Interval out = new Interval(newLow, newHigh);
+    return out;
+  }
+
+  /**
+   * This method returns a new interval with a limited, i.e. higher, lower bound.
+   *
+   * @param other the interval to limit this interval
+   * @return the new interval with the upper bound of this interval and the lower bound set to the
+   *     maximum of this interval's and the other interval's lower bound or an empty interval if
+   *     this interval is less than the other interval.
+   */
+  public Interval limitLowerBoundBy(Interval other) {
+    Interval interval = null;
+
+    if (isEmpty() || other.isEmpty() || high < other.low) {
+      interval = EMPTY;
+    } else {
+      interval = new Interval(Math.max(low, other.low), high);
     }
 
-    @Override
-    public String toString() {
-      return "⊥";
+    return interval;
+  }
+
+  /**
+   * This method returns a new interval with a limited, i.e. lower, upper bound.
+   *
+   * @param other the interval to limit this interval
+   * @return the new interval with the lower bound of this interval and the upper bound set to the
+   *     minimum of this interval's and the other interval's upper bound or an empty interval if
+   *     this interval is greater than the other interval.
+   */
+  public Interval limitUpperBoundBy(Interval other) {
+    Interval interval = null;
+
+    if (isEmpty() || other.isEmpty() || low > other.high) {
+      interval = EMPTY;
+    } else {
+      interval = new Interval(low, Math.min(high, other.high));
     }
 
-    @Override
-    public boolean equals(Object other) {
-      return other instanceof Unreachable;
-    }
+    return interval;
+  }
 
-    @Override
-    public Interval add(Interval value) {
-      return this;
-    }
-
-    @Override
-    public Interval negate() {
-      return this;
-    }
-
-    @Override
-    boolean isGreaterThan(Interval other) {
+  /**
+   * This method determines if this interval intersects with another interval.
+   *
+   * @param other the other interval
+   * @return true if the intervals intersect, else false
+   */
+  public boolean intersects(Interval other) {
+    if (isEmpty() || other.isEmpty()) {
       return false;
     }
 
-    @Override
-    boolean isGreaterEqualThan(Interval other) {
-      return false;
+    return (low >= other.low && low <= other.high)
+        || (high >= other.low && high <= other.high)
+        || (low <= other.low && high >= other.high);
+  }
+
+  /**
+   * This method determines if this interval contains another interval.
+   *
+   * <p>The method still returns true, if the borders match. An empty interval does not contain any
+   * interval and is not contained in any interval either. So if the callee or parameter is an empty
+   * interval, this method will return false.
+   *
+   * @param other the other interval
+   * @return true if this interval contains the other interval, else false
+   */
+  public boolean contains(Interval other) {
+    return (!isEmpty() && !other.isEmpty() && low <= other.low && other.high <= high);
+  }
+
+  /**
+   * This method adds an interval from this interval, overflow is handled by setting the bound to
+   * Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   *
+   * @param interval the interval to add
+   * @return a new interval with the respective bounds
+   */
+  public Interval plus(Interval interval) {
+    if (isEmpty() || interval.isEmpty()) {
+      return EMPTY;
     }
 
-    @Override
-    boolean isEqual(Interval other) {
-      return false;
+    return new Interval(saturatedAdd(low, interval.low), saturatedAdd(high, interval.high));
+  }
+
+  /**
+   * This method adds a constant offset to this interval, overflow is handled by setting the bound
+   * to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   *
+   * @param offset the constant offset to add
+   * @return a new interval with the respective bounds
+   */
+  public Interval plus(Long offset) {
+    return plus(new Interval(offset, offset));
+  }
+
+  /**
+   * This method subtracts an interval from this interval, overflow is handled by setting the bound
+   * to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   *
+   * @param other interval to subtract
+   * @return a new interval with the respective bounds
+   */
+  public Interval minus(Interval other) {
+    return plus(other.negate());
+  }
+
+  /**
+   * This method subtracts a constant offset to this interval, overflow is handled by setting the
+   * bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   *
+   * @param offset the constant offset to subtract
+   * @return a new interval with the respective bounds
+   */
+  public Interval minus(Long offset) {
+    return plus(-offset);
+  }
+
+  /**
+   * This method multiplies this interval with another interval. In case of an overflow
+   * Long.MAX_VALUE and Long.MIN_VALUE are used instead.
+   *
+   * @param other interval to multiply this interval with
+   * @return new interval that represents the result of the multiplication of the two intervals
+   */
+  public Interval times(Interval other) {
+    long[] values = {
+      saturatedMultiply(low, other.low),
+      saturatedMultiply(low, other.high),
+      saturatedMultiply(high, other.low),
+      saturatedMultiply(high, other.high),
+    };
+
+    return new Interval(Longs.min(values), Longs.max(values));
+  }
+
+  /**
+   * This method divides this interval by another interval. If the other interval contains "0" an
+   * unbound interval is returned.
+   *
+   * @param other interval to divide this interval by
+   * @return new interval that represents the result of the division of the two intervals
+   */
+  public Interval divide(Interval other) {
+    // other interval contains "0", return unbound interval
+    if (other.contains(ZERO)) {
+      return UNBOUND;
+    } else {
+      long[] values = {low / other.low, low / other.high, high / other.low, high / other.high};
+
+      return new Interval(Longs.min(values), Longs.max(values));
+    }
+  }
+
+  /**
+   * This method performs an arithmetical left shift of the interval bounds.
+   *
+   * @param offset Interval offset to perform an arithmetical left shift on the interval bounds. If
+   *     the offset maybe less than zero an unbound interval is returned.
+   * @return new interval that represents the result of the arithmetical left shift
+   */
+  public Interval shiftLeft(Interval offset) {
+    // create an unbound interval upon trying to shift by a possibly negative offset
+    if (ZERO.mayBeGreaterThan(offset)) {
+      return UNBOUND;
+    } else {
+      // if lower bound is negative, shift it by upper bound of offset, else by lower bound of
+      // offset
+      Long newLow = low << ((low < 0L) ? offset.high : offset.low);
+
+      // if upper bound is negative, shift it by lower bound of offset, else by upper bound of
+      // offset
+      Long newHigh = high << ((high < 0L) ? offset.low : offset.high);
+
+      if ((low < 0 && newLow > low) || (high > 0 && newHigh < high)) {
+        return UNBOUND;
+      } else {
+        return new Interval(newLow, newHigh);
+      }
+    }
+  }
+
+  /**
+   * This method performs an arithmetical right shift of the interval bounds. If the offset maybe
+   * less than zero an unbound interval is returned.
+   *
+   * @param offset Interval offset to perform an arithmetical right shift on the interval bounds
+   * @return new interval that represents the result of the arithmetical right shift
+   */
+  public Interval shiftRight(Interval offset) {
+    // create an unbound interval upon trying to shift by a possibly negative offset
+    if (ZERO.mayBeGreaterThan(offset)) {
+      return UNBOUND;
+    } else {
+      // if lower bound is negative, shift it by lower bound of offset, else by upper bound of
+      // offset
+      Long newLow = low >> ((low < 0L) ? offset.low : offset.high);
+
+      // if upper bound is negative, shift it by upper bound of offset, else by lower bound of
+      // offset
+      Long newHigh = high >> ((high < 0L) ? offset.high : offset.low);
+
+      return new Interval(newLow, newHigh);
+    }
+  }
+
+  /**
+   * This method negates this interval.
+   *
+   * @return new negated interval
+   */
+  public Interval negate() {
+    return new Interval(saturatedMultiply(high, -1L), saturatedMultiply(low, -1L));
+  }
+
+  /**
+   * This method determines whether the interval is empty or not.
+   *
+   * @return true, if the interval is empty, i.e. the lower and upper bounds are null
+   */
+  public boolean isEmpty() {
+    return low == null && high == null;
+  }
+
+  public boolean isUnbound() {
+    return !isEmpty() && low == Long.MIN_VALUE && high == Long.MAX_VALUE;
+  }
+
+  @Override
+  public String toString() {
+    if (isUnbound()) {
+      return "⊤";
+    }
+    String lowString;
+    if (low == null) {
+      lowString = "?";
+    } else if (low == Long.MIN_VALUE) {
+      lowString = "-∞";
+    } else {
+      lowString = Long.toString(low);
     }
 
-    @Override
-    boolean mayBeGreaterThan(Interval other) {
-      return false;
+    String highString;
+    if (high == null) {
+      highString = "?";
+    } else if (high == Long.MAX_VALUE) {
+      highString = "∞";
+    } else {
+      highString = Long.toString(high);
+    }
+    return "[%s; %s]".formatted(lowString, highString);
+  }
+
+  /**
+   * This method is a factory method for a lower bounded interval.
+   *
+   * @param lowerBound the lower bound to set
+   * @return a lower bounded interval, i.e. the lower bound is set to the given lower bound, the
+   *     upper bound is set to Long.MAX_VALUE
+   */
+  public static Interval createLowerBoundedInterval(Long lowerBound) {
+    return new Interval(lowerBound, Long.MAX_VALUE);
+  }
+
+  /**
+   * This method is a factory method for an upper bounded interval.
+   *
+   * @param upperBound the upper bound to set
+   * @return an upper bounded interval, i.e. the lower bound is set to Long.MIN_VALUE, the upper
+   *     bound is set to the given upper bound
+   */
+  public static Interval createUpperBoundedInterval(Long upperBound) {
+    return new Interval(Long.MIN_VALUE, upperBound);
+  }
+
+  /**
+   * Returns the unique concrete value that is abstracted by this interval, if upper bound is the
+   * same is the lower bound. Returns an empty optional otherwise. This is being used in normalizing
+   * expressions for FunArray.
+   *
+   * @return the unique concrete value abstracted by this interval.
+   */
+  public Optional<Long> getUniqueConcreteValue() {
+    if (low.equals(high)) {
+      return Optional.of(low);
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Returns a collection of intervals describing the relative complement or set difference with
+   * another interval.
+   *
+   * @param subtrahend the other interval.
+   * @return the relative complement.
+   */
+  public Collection<Interval> getRelativeComplement(Interval subtrahend) {
+    List<Interval> result = new ArrayList<>();
+
+    if (!intersects(subtrahend)) {
+      return ImmutableSet.of(this);
     }
 
-    @Override
-    boolean mayBeGreaterEqualThan(Interval other) {
-      return false;
+    if (low < subtrahend.low) {
+      result.add(new Interval(low, subtrahend.low - 1));
     }
 
-    @Override
-    public Interval subtract(Interval value) {
-      return this;
+    if (high > subtrahend.high) {
+      result.add(new Interval(subtrahend.high + 1, high));
+    }
+    return ImmutableSet.copyOf(result);
+  }
+
+  /**
+   * The abstract widening operator. See: Cousot, P., Cousot, R. (1992). Comparing the Galois
+   * connection and widening/narrowing approaches to abstract interpretation. In: Bruynooghe, M.,
+   * Wirsing, M. (eds) Programming Language Implementation and Logic Programming. PLILP 1992.
+   * Lecture Notes in Computer Science, vol 631. Springer, Berlin, Heidelberg. <a
+   * href="https://doi.org/10.1007/3-540-55844-6_142">https://doi.org/10.1007/3-540-55844-6_142</a>.
+   *
+   * @param other the interval to widen this with.
+   * @return the widened interval.
+   */
+  public Interval widen(Interval other) {
+    Long lower = this.low;
+    Long upper = this.high;
+
+    if (other.getLow() < this.low) {
+      lower = Long.MIN_VALUE;
     }
 
-    @Override
-    public Interval addConstant(long constant) {
-      return this;
+    if (other.getHigh() > this.high) {
+      upper = Long.MAX_VALUE;
     }
-
-    @Override
-    public Interval subtractConstant(long constant) {
-      return this;
-    }
-
-    @Override
-    public Interval multiply(Interval other) {
-      return this;
-    }
-
-    @Override
-    public Interval multiplyByConstant(long constant) {
-      return this;
-    }
-
-    @Override
-    public Interval divide(Interval other) {
-      return this;
-    }
-
-    @Override
-    public Interval divideByConstant(long constant) {
-      return this;
-    }
-
-    @Override
-    public Interval modulo(Interval other) {
-      return this;
-    }
-
-    @Override
-    public Interval modulo(long constant) {
-      return this;
-    }
-
-    @Override
-    public Interval absoluteValue() {
-      return this;
-    }
-
-    @Override
-    public boolean isReachable() {
-      return false;
-    }
+    return new Interval(lower, upper);
   }
 }
