@@ -64,13 +64,13 @@ apt-get install --yes \
         libtool                  \
         shtool                   \
         patchelf                 \
-        openjdk-17-jdk           \
+        openjdk-21-jdk           \
         python3                  \
         curl                     \
         maven
 
 # Set JAVA_HOME for the JNI header
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64/
 
 # Create a temporary volume for the build
 mkdir /build

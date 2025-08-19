@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
 import java.io.Serial;
 import java.math.BigInteger;
@@ -762,7 +761,7 @@ public abstract class AbstractExpressionValueVisitor
   private Value handleBuiltinFunction2(
       String pName, List<Value> pArguments, BiFunction<FloatValue, FloatValue, Value> pOperation) {
     checkArgument(pArguments.size() == 2);
-    Value parameter1 = pArguments.get(0);
+    Value parameter1 = pArguments.getFirst();
     Value parameter2 = pArguments.get(1);
 
     if (parameter1.isExplicitlyKnown() && parameter2.isExplicitlyKnown()) {
@@ -980,7 +979,7 @@ public abstract class AbstractExpressionValueVisitor
           // We only need the return value and can ignore the integer part that needs to be written
           // to the pointer in the 2nd argument
           if (parameterValues.size() == 2) {
-            Value value = parameterValues.get(0);
+            Value value = parameterValues.getFirst();
             if (value.isExplicitlyKnown()) {
               FloatValue arg =
                   castToFloat(
@@ -1799,7 +1798,7 @@ public abstract class AbstractExpressionValueVisitor
     long concreteArraySize;
     final JType elementType = pJArrayCreationExpression.getExpressionType().getElementType();
 
-    for (JExpression sizeExpression : Lists.reverse(pJArrayCreationExpression.getLength())) {
+    for (JExpression sizeExpression : pJArrayCreationExpression.getLength().reverse()) {
       currentDimension++;
       lastArrayValue = currentArrayValue;
       Value sizeValue = sizeExpression.accept(this);

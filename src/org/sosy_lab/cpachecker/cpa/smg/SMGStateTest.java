@@ -281,7 +281,7 @@ public class SMGStateTest {
 
     add.get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    add.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add.getFirst().getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
     UnmodifiableSMGState newState = add.get(1).getSmgState();
 
@@ -289,7 +289,7 @@ public class SMGStateTest {
 
     add2.get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    add2.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add2.getFirst().getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
   @Test
@@ -338,7 +338,7 @@ public class SMGStateTest {
     List<SMGAddressValueAndState> valAndStates1 = smg1State.getPointerFromValue(value6);
 
     assertThat(valAndStates1).hasSize(1);
-    SMGState newState = valAndStates1.get(0).getSmgState();
+    SMGState newState = valAndStates1.getFirst().getSmgState();
     newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -414,7 +414,7 @@ public class SMGStateTest {
     List<SMGAddressValueAndState> valAndStates1 = smg1State.getPointerFromValue(value6);
 
     assertThat(valAndStates1).hasSize(1);
-    SMGState newState = valAndStates1.get(0).getSmgState();
+    SMGState newState = valAndStates1.getFirst().getSmgState();
     newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 

@@ -148,8 +148,6 @@ class ASTConverter {
 
   private static final boolean NOT_FINAL = false;
 
-  private static final int FIRST = 0;
-
   private final LogManager logger;
 
   private Scope scope;
@@ -1161,7 +1159,7 @@ class ASTConverter {
       FileLocation pLocation,
       boolean isRightOperandArray) {
 
-    final JType firstElement = pConcreteTypes.remove(FIRST);
+    final JType firstElement = pConcreteTypes.removeFirst();
     if (!(firstElement instanceof JClassType jClassType)) {
       if (isRightOperandArray) {
         return firstElement.equals(pLeftOperand.getExpressionType())

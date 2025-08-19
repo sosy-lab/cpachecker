@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -105,12 +104,12 @@ public final class ErrorPathShrinker {
     }
 
     // create reverse iterator, from lastNode to firstNode
-    final Iterator<CFAEdge> revIterator = Lists.reverse(targetPath).iterator();
+    final Iterator<CFAEdge> revIterator = targetPath.reversed().iterator();
 
     // create reverse iterator of path containing assumptions
     Iterator<CFAEdgeWithAssumptions> revAssumIterator = null;
     if (assumePath != null) {
-      revAssumIterator = Lists.reverse(assumePath).iterator();
+      revAssumIterator = assumePath.reversed().iterator();
     }
 
     // Set for storing the important variables
@@ -326,7 +325,7 @@ public final class ErrorPathShrinker {
   private boolean isSwitchStatement(final AExpression assumeExp) {
 
     // path can be empty at the end of a functionCall ("if (a) return b;")
-    if (!shortPath.isEmpty() && shortPath.iterator().next().getSecond()) {
+    if (!shortPath.isEmpty() && shortPath.getFirst().getSecond()) {
       final CFAEdge lastEdge = shortPath.getFirst().getFirst().getCFAEdge();
 
       // check, if the last edge was an assumption

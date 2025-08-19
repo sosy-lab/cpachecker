@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -118,8 +119,6 @@ public class AssumptionToEdgeAllocator {
 
   private final LogManager logger;
   private final MachineModel machineModel;
-
-  private static final int FIRST = 0;
 
   @Option(
       secure = true,
@@ -519,7 +518,7 @@ public class AssumptionToEdgeAllocator {
       ValueLiterals pValueLiterals, CLeftHandSide pLValue) {
 
     Set<SubExpressionValueLiteral> subValues = pValueLiterals.getSubExpressionValueLiteral();
-    Set<AExpressionStatement> statements = new LinkedHashSet<>();
+    SequencedSet<AExpressionStatement> statements = new LinkedHashSet<>();
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
 
     if (!pValueLiterals.hasUnknownValueLiteral()) {
@@ -683,12 +682,12 @@ public class AssumptionToEdgeAllocator {
 
     List<String> fieldNameList = new ArrayList<>();
     CFieldReference reference = pIastFieldReference;
-    fieldNameList.add(FIRST, reference.getFieldName());
+    fieldNameList.addFirst(reference.getFieldName());
 
     while (reference.getFieldOwner() instanceof CFieldReference
         && !reference.isPointerDereference()) {
       reference = (CFieldReference) reference.getFieldOwner();
-      fieldNameList.add(FIRST, reference.getFieldName());
+      fieldNameList.addFirst(reference.getFieldName());
     }
 
     if (reference.getFieldOwner() instanceof CIdExpression idExpression) {

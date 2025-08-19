@@ -147,7 +147,7 @@ public class SMGCPAExpressionEvaluator {
           findOrcreateNewPointer(addressExpression.getMemoryAddress(), offset, currentState);
       Preconditions.checkArgument(pointers.size() == 1);
       // It is impossible for 0+ list abstractions to happen in this context -> only 1 return value
-      return pointers.get(0);
+      return pointers.getFirst();
     }
   }
 
@@ -1754,7 +1754,7 @@ public class SMGCPAExpressionEvaluator {
         currentState.dereferencePointer(firstAddress);
     Preconditions.checkArgument(maybefirstMemorysAndOffsets.size() == 1);
     SMGStateAndOptionalSMGObjectAndOffset maybefirstMemoryAndOffset =
-        maybefirstMemorysAndOffsets.get(0);
+        maybefirstMemorysAndOffsets.getFirst();
     currentState = maybefirstMemoryAndOffset.getSMGState();
     if (!maybefirstMemoryAndOffset.hasSMGObjectAndOffset()) {
       // The value is unknown and therefore does not point to a valid memory location
@@ -1783,7 +1783,7 @@ public class SMGCPAExpressionEvaluator {
         currentState.dereferencePointer(secondAddress);
     Preconditions.checkArgument(maybeSecondMemorysAndOffsets.size() == 1);
     SMGStateAndOptionalSMGObjectAndOffset maybeSecondMemoryAndOffset =
-        maybeSecondMemorysAndOffsets.get(0);
+        maybeSecondMemorysAndOffsets.getFirst();
     currentState = maybeSecondMemoryAndOffset.getSMGState();
     if (!maybeSecondMemoryAndOffset.hasSMGObjectAndOffset()) {
       // The value is unknown and therefore does not point to a valid memory location
@@ -2174,7 +2174,7 @@ public class SMGCPAExpressionEvaluator {
 
     // There can only be one declaration result state
     return handleInitializerForDeclaration(
-        handleVariableDeclarationWithoutInizializer(currentState, pVarDecl).get(0),
+        handleVariableDeclarationWithoutInizializer(currentState, pVarDecl).getFirst(),
         varName,
         pVarDecl,
         cType,
@@ -2468,7 +2468,7 @@ public class SMGCPAExpressionEvaluator {
         List<CDesignator> designators = ((CDesignatedInitializer) initializer).getDesignators();
         initializer = designatedInittializer.getRightHandSide();
         Preconditions.checkArgument(designators.size() == 1);
-        String fieldName = ((CFieldDesignator) designators.get(0)).getFieldName();
+        String fieldName = ((CFieldDesignator) designators.getFirst()).getFieldName();
 
         listCounter = 0;
         for (CCompositeType.CCompositeTypeMemberDeclaration memberNameAndType : memberDecls) {
@@ -2501,7 +2501,7 @@ public class SMGCPAExpressionEvaluator {
 
       // If this ever fails: branch into the new states and perform the rest of the loop on both!
       Preconditions.checkArgument(newStates.size() == 1);
-      currentState = newStates.get(0);
+      currentState = newStates.getFirst();
       listCounter++;
     }
     return ImmutableList.of(currentState);
@@ -2553,7 +2553,7 @@ public class SMGCPAExpressionEvaluator {
       // If this ever fails we have to split the rest of the initializer such that all states are
       // treated the same from this point onwards
       Preconditions.checkArgument(newStates.size() == 1);
-      currentState = newStates.get(0);
+      currentState = newStates.getFirst();
     }
 
     return ImmutableList.of(currentState);

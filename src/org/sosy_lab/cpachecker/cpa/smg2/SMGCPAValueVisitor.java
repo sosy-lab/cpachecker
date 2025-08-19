@@ -1128,35 +1128,30 @@ public class SMGCPAValueVisitor
       SMGState currentState = valueAndState.getState();
       Value value = valueAndState.getValue();
 
+      ValueAndSMGState newValueAndState;
       if (value instanceof SymbolicValue) {
-        builder.add(
+        newValueAndState =
             ValueAndSMGState.of(
                 createSymbolicExpression(value, operandType, unaryOperator, returnType),
-                currentState));
-        continue;
+                currentState);
       } else if (!value.isNumericValue()) {
         logger.logf(
             Level.FINE,
             "Returned unknown due to invalid argument %s for unary operator %s.",
             value,
             unaryOperator);
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
-        continue;
+        newValueAndState = ValueAndSMGState.ofUnknownValue(currentState);
+      } else {
+        final NumericValue numericValue = (NumericValue) value;
+        final NumericValue newValue =
+            switch (unaryOperator) {
+              case MINUS -> numericValue.negate();
+              case TILDE -> new NumericValue(~numericValue.longValue());
+              default -> throw new AssertionError("Unknown unary operator: " + unaryOperator);
+            };
+        newValueAndState = ValueAndSMGState.of(newValue, currentState);
       }
-
-      final NumericValue numericValue = (NumericValue) value;
-      switch (unaryOperator) {
-        case MINUS -> {
-          builder.add(ValueAndSMGState.of(numericValue.negate(), currentState));
-          continue;
-        }
-        case TILDE -> {
-          builder.add(
-              ValueAndSMGState.of(new NumericValue(~numericValue.longValue()), currentState));
-          continue;
-        }
-        default -> throw new AssertionError("Unknown unary operator: " + unaryOperator);
-      }
+      builder.add(newValueAndState);
     }
     return builder.build();
   }
@@ -1267,7 +1262,7 @@ public class SMGCPAValueVisitor
                     sizeInBits,
                     returnType,
                     e)
-                .get(0);
+                .getFirst();
         currentState = readValueAndState.getState();
 
         if (returnType instanceof CPointerType) {
@@ -1559,7 +1554,7 @@ public class SMGCPAValueVisitor
       SMGState pState,
       BiFunction<FloatValue, FloatValue, Value> pOperation) {
     checkArgument(pArguments.size() == 2);
-    Value parameter1 = pArguments.get(0);
+    Value parameter1 = pArguments.getFirst();
     Value parameter2 = pArguments.get(1);
 
     if (parameter1.isExplicitlyKnown() && parameter2.isExplicitlyKnown()) {
@@ -1613,9 +1608,9 @@ public class SMGCPAValueVisitor
           List<ValueAndSMGState> newValuesAndStates =
               vv.evaluate(currParamExp, SMGCPAExpressionEvaluator.getCanonicalType(currParamExp));
           Preconditions.checkArgument(newValuesAndStates.size() == 1);
-          Value newValue = newValuesAndStates.get(0).getValue();
+          Value newValue = newValuesAndStates.getFirst().getValue();
           // CPA access has side effects! Always take the newest state!
-          currentState = newValuesAndStates.get(0).getState();
+          currentState = newValuesAndStates.getFirst().getState();
 
           parameterValuesBuilder.add(newValue);
         }
@@ -1829,7 +1824,7 @@ public class SMGCPAValueVisitor
         } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
           // FIXME: Assign the integer part to the pointer from the second parameter
           if (parameterValues.size() == 2) {
-            Value value = parameterValues.get(0);
+            Value value = parameterValues.getFirst();
             if (value.isExplicitlyKnown()) {
               FloatValue arg =
                   castToFloat(

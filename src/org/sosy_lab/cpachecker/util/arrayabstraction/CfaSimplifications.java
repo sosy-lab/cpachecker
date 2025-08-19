@@ -18,7 +18,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.sosy_lab.common.configuration.Configuration;
@@ -86,7 +86,7 @@ final class CfaSimplifications {
         continue;
       }
 
-      Set<ArrayAccess> remainingArrayAccesses =
+      SequencedSet<ArrayAccess> remainingArrayAccesses =
           new LinkedHashSet<>(ArrayAccess.findArrayAccesses(edge));
 
       // finished array access ---> substitute for finished array access

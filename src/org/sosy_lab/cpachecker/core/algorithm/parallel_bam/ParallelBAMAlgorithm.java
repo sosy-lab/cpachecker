@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -124,10 +123,10 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
 
     ThreadFactory threadFactory =
-        new ThreadFactoryBuilder()
-            .setDaemon(true) // for killing hanging threads at program exit
-            .setNameFormat("ParallelBAM-thread-%d")
-            .build();
+        Thread.ofPlatform()
+            .daemon() // for killing hanging threads at program exit
+            .name("ParallelBAM-thread-", 0)
+            .factory();
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores, threadFactory);
     final List<Throwable> errors = Collections.synchronizedList(new ArrayList<>());
     final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
@@ -282,7 +281,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       }
       // if there was no other type of exception, we can throw the CPAException directly.
       if (cpaExceptions.size() == 1) {
-        throw cpaExceptions.get(0);
+        throw cpaExceptions.getFirst();
       } else {
         throw new CompoundException(cpaExceptions);
       }

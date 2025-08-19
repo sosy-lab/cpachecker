@@ -19,6 +19,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -88,7 +90,7 @@ public class InvariantStrengthenings {
         return pInvariant;
       }
 
-      Set<BooleanFormula> relevantLiterals = new LinkedHashSet<>();
+      SequencedSet<BooleanFormula> relevantLiterals = new LinkedHashSet<>();
 
       if (pAssertedInvariants.isPresent()) {
         pProver.pop(); // Pop asserted invariants
@@ -143,7 +145,8 @@ public class InvariantStrengthenings {
         throws InterruptedException, CPATransferException, SolverException {
       BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
 
-      Map<BooleanFormula, SymbolicCandiateInvariant> remainingLiterals = new LinkedHashMap<>();
+      SequencedMap<BooleanFormula, SymbolicCandiateInvariant> remainingLiterals =
+          new LinkedHashMap<>();
 
       for (BooleanFormula literal :
           SymbolicCandiateInvariant.getConjunctionOperands(

@@ -311,7 +311,7 @@ class AssignmentFormulaHandler {
 
     // Handle full-span assignments upfront, this is better than via the loop below.
     if (rhsList.size() == 1) {
-      final ResolvedPartialAssignmentRhs rhs = rhsList.get(0);
+      final ResolvedPartialAssignmentRhs rhs = rhsList.getFirst();
       final PartialSpan rhsSpan = rhs.span();
       if (rhsSpan.isFullSpan(lhsBitSize) && lhsBitSize == targetBitSize) {
 
@@ -747,7 +747,7 @@ class AssignmentFormulaHandler {
         region = regionMgr.makeMemoryRegion(lvalueType);
       } else { // CCompositeType
         CCompositeTypeMemberDeclaration memberDeclaration =
-            ((CCompositeType) lvalueType).getMembers().get(0);
+            ((CCompositeType) lvalueType).getMembers().getFirst();
         region = regionMgr.makeMemoryRegion(lvalueType, memberDeclaration);
       }
       // for lvalueType

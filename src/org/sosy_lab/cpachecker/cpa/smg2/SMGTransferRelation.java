@@ -614,7 +614,7 @@ public class SMGTransferRelation
                     callEdge.getFileLocation(),
                     stringExpr);
             Preconditions.checkArgument(statesWithString.size() == 1);
-            currentState = statesWithString.get(0);
+            currentState = statesWithString.getFirst();
           }
         }
         // Implicit & on the array expr
@@ -622,7 +622,7 @@ public class SMGTransferRelation
             evaluator.createAddress(cParamExp, currentState, callEdge);
 
         Preconditions.checkArgument(addressesAndStates.size() == 1);
-        valueAndState = addressesAndStates.get(0);
+        valueAndState = addressesAndStates.getFirst();
       } else {
         // Evaluate the CExpr into a Value
         // Note: this evaluates local arrays into pointers!!!!!
@@ -633,7 +633,7 @@ public class SMGTransferRelation
         // If this ever fails; we need to take all states/values into account, meaning we would need
         // to proceed from this point onwards with all of them with all following operations
         Preconditions.checkArgument(valuesAndStates.size() == 1);
-        valueAndState = valuesAndStates.get(0);
+        valueAndState = valuesAndStates.getFirst();
       }
       readValuesInOrderBuilder.add(valueAndState.getValue());
       currentState = valueAndState.getState();
@@ -705,7 +705,7 @@ public class SMGTransferRelation
       List<SMGStateAndOptionalSMGObjectAndOffset> knownMemoriesAndStates =
           currentState.dereferencePointer(paramValue);
       Preconditions.checkArgument(knownMemoriesAndStates.size() == 1);
-      SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemoriesAndStates.get(0);
+      SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemoriesAndStates.getFirst();
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
         throw new SMGException("Could not associate a local array in a new function.");
@@ -742,13 +742,13 @@ public class SMGTransferRelation
 
         // Nothing can materialize here
         Preconditions.checkArgument(derefedPointerOffsetAndState.size() == 1);
-        currentState = derefedPointerOffsetAndState.get(0).getSMGState();
+        currentState = derefedPointerOffsetAndState.getFirst().getSMGState();
 
-        if (!derefedPointerOffsetAndState.get(0).hasSMGObjectAndOffset()) {
+        if (!derefedPointerOffsetAndState.getFirst().hasSMGObjectAndOffset()) {
           throw new SMGException("Usage of unknown variable in function " + callEdge);
         }
 
-        Value offsetForObject = derefedPointerOffsetAndState.get(0).getOffsetForObject();
+        Value offsetForObject = derefedPointerOffsetAndState.getFirst().getOffsetForObject();
         if (!offsetForObject.isNumericValue()) {
           throw new SMGException(
               "Usage of symbolic offsets in function arguments for structs not supported at the"
@@ -756,7 +756,7 @@ public class SMGTransferRelation
                   + callEdge);
         }
         offsetSource = offsetForObject.asNumericValue().bigIntegerValue();
-        memorySource = derefedPointerOffsetAndState.get(0).getSMGObject();
+        memorySource = derefedPointerOffsetAndState.getFirst().getSMGObject();
         sizeOfNewVariable = evaluator.subtractBitOffsetValues(memorySource.getSize(), offsetSource);
 
       } else if (paramValue instanceof SymbolicIdentifier symbParamValue) {
@@ -1325,7 +1325,7 @@ public class SMGTransferRelation
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
-          ValueAndSMGState newAddressAndState = newAddressesAndStates.get(0);
+          ValueAndSMGState newAddressAndState = newAddressesAndStates.getFirst();
           currentState = newAddressAndState.getState();
           properPointer = newAddressAndState.getValue();
         }
@@ -1365,7 +1365,7 @@ public class SMGTransferRelation
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
-          ValueAndSMGState newAddressAndState = newAddressesAndStates.get(0);
+          ValueAndSMGState newAddressAndState = newAddressesAndStates.getFirst();
           currentState = newAddressAndState.getState();
           valueToWrite = newAddressAndState.getValue();
         } else {

@@ -16,7 +16,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -246,9 +246,9 @@ final class TransformableArray {
 
   public static ImmutableSet<TransformableArray> findTransformableArrays(CFA pCfa) {
 
-    Set<CDeclarationEdge> unproblematicArrayDeclarationEdges =
+    SequencedSet<CDeclarationEdge> unproblematicArrayDeclarationEdges =
         new LinkedHashSet<>(findArrayDeclarationEdges(pCfa));
-    Set<CDeclarationEdge> relevantArrayDeclarationEdges = new LinkedHashSet<>();
+    SequencedSet<CDeclarationEdge> relevantArrayDeclarationEdges = new LinkedHashSet<>();
 
     for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
 

@@ -247,7 +247,7 @@ public class SMGCPATest0 {
       Value ptrToFirstNotAbstr = ptrToFirstNotAbstrAndState.getValue();
       currentState =
           currentState.writeValueWithChecks(
-              derefedFirstAbstrListElem.get(0).getSMGObject(),
+              derefedFirstAbstrListElem.getFirst().getSMGObject(),
               new NumericValue(pfo),
               numericPointerSizeInBits,
               ptrToFirstNotAbstr,
@@ -288,13 +288,13 @@ public class SMGCPATest0 {
     List<SMGStateAndOptionalSMGObjectAndOffset> derefedLastAbstrListElem =
         currentState.dereferencePointer(listPtrs[listLength - 3]);
     assertThat(derefedLastAbstrListElem).hasSize(1);
-    assertThat(derefedLastAbstrListElem.get(0).hasSMGObjectAndOffset()).isTrue();
+    assertThat(derefedLastAbstrListElem.getFirst().hasSMGObjectAndOffset()).isTrue();
     ValueAndSMGState ptrToLastAndState =
         currentState.searchOrCreateAddress(listSegmentBack, otherPtrOffset);
     currentState = ptrToLastAndState.getState();
     currentState =
         currentState.writeValueWithChecks(
-            derefedLastAbstrListElem.get(0).getSMGObject(),
+            derefedLastAbstrListElem.getFirst().getSMGObject(),
             new NumericValue(nfo),
             numericPointerSizeInBits,
             ptrToLastAndState.getValue(),

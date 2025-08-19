@@ -406,7 +406,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
           params.size() == 1,
           "atexit() takes one argument, but it was called with %s",
           params.size());
-      CExpression argExpr = params.get(0);
+      CExpression argExpr = params.getFirst();
       ExpressionValueVisitor evaluator = new ExpressionValueVisitor(pNewState);
       FunctionPointerTarget target = argExpr.accept(evaluator);
       // Note: We want AtExitState.peek() to only return NullTarget when the stack is actually

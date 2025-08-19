@@ -260,7 +260,7 @@ public class LocalTransferRelation
       List<CExpression> parameters = right.getParameterExpressions();
       // Usually it looks like 'priv = netdev_priv(dev)'
       // Other cases will be handled if they appear
-      CExpression targetParam = parameters.get(0);
+      CExpression targetParam = parameters.getFirst();
       // TODO How it works with *a = f(b) ?
       AbstractIdentifier paramId = createId(targetParam, dereference);
       alias(pSuccessor, leftId, paramId);

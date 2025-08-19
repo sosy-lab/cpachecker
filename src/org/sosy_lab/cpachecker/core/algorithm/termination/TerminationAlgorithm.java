@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -797,7 +798,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
 
-    private final Set<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
+    private final SequencedSet<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
 
     private final Multimap<String, CVariableDeclaration> localDeclarations =
         MultimapBuilder.hashKeys().linkedHashSetValues().build();

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -61,7 +60,7 @@ public class AdditionalInfoExtractor {
           // We assume that there is only 1 error info per state (as the SV-COMP rules dictate)
           edgeWithAdditionalInfo.addInfo(
               SMGConvertingTags.NOTE,
-              SMGAdditionalInfo.of(errorInfos.get(0).getErrorDescription(), Level.ERROR));
+              SMGAdditionalInfo.of(errorInfos.getFirst().getErrorDescription(), Level.ERROR));
           errorInfos = null;
         }
 
@@ -75,7 +74,7 @@ public class AdditionalInfoExtractor {
         pathWithExtendedInfo.add(edgeWithAdditionalInfo);
       }
     }
-    return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
+    return CFAPathWithAdditionalInfo.of(pathWithExtendedInfo.reversed());
   }
 
   /**
@@ -96,7 +95,7 @@ public class AdditionalInfoExtractor {
         if (!containsInvalidElement(smgState, elem)) {
           visitedElems.add(elem);
           if (!prevSMGState.getErrorInfo().isEmpty()) {
-            for (Object additionalElem : prevSMGState.getErrorInfo().get(0).getInvalidChain()) {
+            for (Object additionalElem : prevSMGState.getErrorInfo().getFirst().getInvalidChain()) {
               if (!visitedElems.contains(additionalElem)
                   && !invalidChain.contains(additionalElem)) {
                 toCheck.add(additionalElem);

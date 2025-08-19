@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -142,7 +143,7 @@ public final class FunctionCallDumper {
       return functionCalls.keySet();
     }
 
-    Set<String> calls = new LinkedHashSet<>();
+    SequencedSet<String> calls = new LinkedHashSet<>();
     Deque<String> worklist = new ArrayDeque<>();
     worklist.push(mainFunction);
     while (!worklist.isEmpty()) {

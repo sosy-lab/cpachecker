@@ -20,6 +20,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -788,6 +789,9 @@ public class PolicyIterationManager {
    * @param generatorState State to abstract
    * @return Abstracted state if the state is reachable, empty optional otherwise.
    */
+  @SuppressFBWarnings(
+      value = "SF_SWITCH_NO_DEFAULT",
+      justification = "false alarm, maybe https://github.com/spotbugs/spotbugs/issues/3617")
   private PolicyAbstractedState performAbstraction(
       final PolicyIntermediateState generatorState,
       int locationID,
@@ -1015,7 +1019,7 @@ public class PolicyIterationManager {
 
     // Abstraction required if not all predecessors, SSA forms,
     // and pointer target sets are the same.
-    PolicyBound firstBound = policyBounds.get(0);
+    PolicyBound firstBound = policyBounds.getFirst();
     for (PolicyBound bound : policyBounds) {
       if (!bound.getPredecessor().equals(firstBound.getPredecessor())
           || !bound.getFormula().getSsa().equals(firstBound.getFormula().getSsa())

@@ -220,21 +220,21 @@ public class SignState
 
     if (parts.size() == 2) {
 
-      if (isSIGN(parts.get(0))) {
+      if (isSIGN(parts.getFirst())) {
         // pProperty = value <= varName
-        Sign value = Sign.valueOf(parts.get(0));
+        Sign value = Sign.valueOf(parts.getFirst());
         Sign varName = getSignForVariable(parts.get(1));
         return varName.covers(value);
 
       } else if (isSIGN(parts.get(1))) {
         // pProperty = varName <= value
-        Sign varName = getSignForVariable(parts.get(0));
+        Sign varName = getSignForVariable(parts.getFirst());
         Sign value = Sign.valueOf(parts.get(1));
         return value.covers(varName);
 
       } else {
         // pProperty = varName1 <= varName2
-        Sign varName1 = getSignForVariable(parts.get(0));
+        Sign varName1 = getSignForVariable(parts.getFirst());
         Sign varName2 = getSignForVariable(parts.get(1));
         return varName2.covers(varName1);
       }

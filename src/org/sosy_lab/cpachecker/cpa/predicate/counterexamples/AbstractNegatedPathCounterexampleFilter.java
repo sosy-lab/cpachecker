@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
-import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +61,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T>
     List<CFAEdge> edges = counterexample.getTargetPath().getInnerEdges();
 
     int cutPoint = edges.size() - 1; // Position of last AssumeEdge in path
-    for (CFAEdge edge : Lists.reverse(edges)) {
+    for (CFAEdge edge : edges.reversed()) {
       if (edge instanceof AssumeEdge) {
         break;
       }

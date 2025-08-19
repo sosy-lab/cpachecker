@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
@@ -384,12 +385,12 @@ public class ARGToCTranslator {
 
         if (truthAssumption && elseCond != null) {
           currentBlock.addStatement(new SimpleStatement(edgeToChild, elseCond));
-          currentBlock.addStatement(result.get(0).getCurrentBlock());
+          currentBlock.addStatement(result.getFirst().getCurrentBlock());
         }
 
         ARGEdge newEdge = new ARGEdge(currentElement, child, edgeToChild, newBlock);
         if (truthAssumption) {
-          result.add(0, newEdge);
+          result.addFirst(newEdge);
         } else {
           result.add(newEdge);
         }
@@ -421,7 +422,7 @@ public class ARGToCTranslator {
     for (ARGState child : childrenOfElement) {
       CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
 
-      Set<AExpression> conditions = new LinkedHashSet<>();
+      SequencedSet<AExpression> conditions = new LinkedHashSet<>();
       if (edgeToChild instanceof CAssumeEdge assumeEdge) {
         if (assumeEdge.getTruthAssumption()) {
           conditions.add(assumeEdge.getExpression());
@@ -593,7 +594,7 @@ public class ARGToCTranslator {
         assert !(innerEdge instanceof CFunctionCallEdge || innerEdge instanceof CFunctionReturnEdge)
             : "Unexpected edge " + innerEdge + " in dynmaic multi edge";
         if (innerEdge instanceof CReturnStatementEdge returnEdge) {
-          assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
+          assert (innerEdges.getLast() == innerEdge);
 
           String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
           String returnVar;
@@ -956,7 +957,7 @@ public class ARGToCTranslator {
             if (getRealTruthAssumption((CAssumeEdge) edge)) {
               assumeInfo.add(Pair.of(child, decInfo));
             } else {
-              assumeInfo.add(0, Pair.of(child, decInfo));
+              assumeInfo.addFirst(Pair.of(child, decInfo));
             }
           } else {
             waitlist.push(Pair.of(child, decInfo));
@@ -981,7 +982,7 @@ public class ARGToCTranslator {
       probs = new ArrayList<>(decProblems.get(key));
       probVars = new ArrayList<>();
 
-      for (Entry<CDeclaration, String> prob : probs.get(0).entrySet()) {
+      for (Entry<CDeclaration, String> prob : probs.getFirst().entrySet()) {
         boolean containAll = true;
         boolean different = false;
         for (int i = 1; i < probs.size(); i++) {
@@ -1074,8 +1075,7 @@ public class ARGToCTranslator {
     DeclarationInfo fromFunctionReturn() {
       checkState(!calleeFunDecInfos.isEmpty());
       return new DeclarationInfo(
-          calleeFunDecInfos.get(calleeFunDecInfos.size() - 1),
-          calleeFunDecInfos.subList(0, calleeFunDecInfos.size() - 1));
+          calleeFunDecInfos.getLast(), calleeFunDecInfos.subList(0, calleeFunDecInfos.size() - 1));
     }
   }
 }

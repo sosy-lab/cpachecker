@@ -369,7 +369,7 @@ public class TemplatePrecision implements Precision {
           if (callEdge.getArguments().isEmpty()) {
             continue;
           }
-          CExpression expression = callEdge.getArguments().get(0);
+          CExpression expression = callEdge.getArguments().getFirst();
           template = expressionToSingleTemplate(expression);
         }
 

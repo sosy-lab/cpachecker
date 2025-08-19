@@ -42,7 +42,7 @@ public class StringUtil {
           if (currentNumber != lastNumber + 1) {
             builder.append(",").append(currentNumber);
             // stay in state 1
-          } else if (currentNumber.equals(numbers.last())) {
+          } else if (currentNumber.equals(numbers.getLast())) {
             builder.append(",").append(currentNumber);
             state = -1; // we should be finished, next transition would lead to exception
           } else {
@@ -54,7 +54,7 @@ public class StringUtil {
           if (currentNumber != lastNumber + 1) {
             builder.append(",").append(lastNumber).append(",").append(currentNumber);
             state = 1;
-          } else if (currentNumber.equals(numbers.last())) {
+          } else if (currentNumber.equals(numbers.getLast())) {
             builder.append("-").append(currentNumber);
             state = -1; // we should be finished, next transition would lead to exception
           } else {
@@ -66,7 +66,7 @@ public class StringUtil {
           if (currentNumber != lastNumber + 1) {
             builder.append("-").append(lastNumber).append(",").append(currentNumber);
             state = 1;
-          } else if (currentNumber.equals(numbers.last())) {
+          } else if (currentNumber.equals(numbers.getLast())) {
             builder.append("-").append(currentNumber);
             state = -1; // we should be finished, next transition would lead to exception
           } else {

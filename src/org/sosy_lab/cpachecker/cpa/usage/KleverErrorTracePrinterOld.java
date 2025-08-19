@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -120,7 +119,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     List<CFAEdge> path = usage.getPath();
 
     CFAEdge warning =
-        Lists.reverse(path).stream()
+        path.reversed().stream()
             .filter(e -> Objects.equals(e.getSuccessor(), usage.getCFANode()))
             .filter(e -> e.toString().contains(pId.getName()))
             .findFirst()

@@ -156,7 +156,7 @@ class DynamicMemoryHandler {
     List<CExpression> parameters = e.getParameterExpressions();
 
     if (functionName.equals(CALLOC_FUNCTION) && parameters.size() == 2) {
-      CExpression param0 = parameters.get(0);
+      CExpression param0 = parameters.getFirst();
       CExpression param1 = parameters.get(1);
 
       // Build expression for param0 * param1 as new parameter.
@@ -191,7 +191,7 @@ class DynamicMemoryHandler {
 
     } else if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.get(0));
+        parameters = Collections.singletonList(parameters.getFirst());
       } else {
         throw new UnrecognizedCodeException(
             String.format(
@@ -237,7 +237,7 @@ class DynamicMemoryHandler {
     // as it might refer to another function if this method is called from handleMemoryAllocation()
     if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.get(0));
+        parameters = Collections.singletonList(parameters.getFirst());
       } else {
         throw new UnrecognizedCodeException(
             String.format(
@@ -248,7 +248,7 @@ class DynamicMemoryHandler {
       }
     }
 
-    final CExpression parameter = parameters.get(0);
+    final CExpression parameter = parameters.getFirst();
     Long size = null;
     final CType newType;
     if (isSizeof(parameter)) {
@@ -357,8 +357,8 @@ class DynamicMemoryHandler {
     if (errorConditions.isEnabled()) {
       final Formula operand =
           expressionVisitor.asValueFormula(
-              parameters.get(0).accept(expressionVisitor),
-              typeHandler.getSimplifiedType(parameters.get(0)));
+              parameters.getFirst().accept(expressionVisitor),
+              typeHandler.getSimplifiedType(parameters.getFirst()));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
       for (String base : pts.getAllBases()) {

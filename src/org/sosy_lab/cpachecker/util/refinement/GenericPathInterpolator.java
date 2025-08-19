@@ -17,6 +17,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -193,7 +194,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
     pErrorPathPrefix = sliceErrorPath(pErrorPathPrefix);
 
-    Map<ARGState, I> pathInterpolants = new LinkedHashMap<>(pErrorPathPrefix.size());
+    SequencedMap<ARGState, I> pathInterpolants = new LinkedHashMap<>(pErrorPathPrefix.size());
 
     PathIterator pathIterator = pErrorPathPrefix.pathIterator();
     Deque<S> callstack = new ArrayDeque<>();

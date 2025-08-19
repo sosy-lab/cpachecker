@@ -103,9 +103,7 @@ public class MemoryLocationExtractor {
   }
 
   public MemoryLocation getMemoryLocation(AExpression pLhs) throws UnrecognizedCodeException {
-    if (pLhs instanceof AIdExpression aIdExpression) {
-      return getMemoryLocation(aIdExpression);
-    } else if (pLhs instanceof CFieldReference fieldRef) {
+    if (pLhs instanceof CFieldReference fieldRef) {
       String varName = fieldRef.getFieldName();
       CExpression owner = fieldRef.getFieldOwner();
       return getFieldReferenceMemoryLocation(varName, owner, fieldRef.isPointerDereference());
@@ -113,6 +111,8 @@ public class MemoryLocationExtractor {
       String varName = fieldRef.getName();
       JIdExpression owner = fieldRef.getReferencedVariable();
       return getFieldReferenceMemoryLocation(varName, owner, false);
+    } else if (pLhs instanceof AIdExpression aIdExpression) {
+      return getMemoryLocation(aIdExpression);
     } else if (pLhs instanceof CArraySubscriptExpression arraySubscript) {
       CExpression subscript = arraySubscript.getSubscriptExpression();
       CExpression owner = arraySubscript.getArrayExpression();

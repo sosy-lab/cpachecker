@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -24,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -96,14 +94,11 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       CyclicBarrier barrier = new CyclicBarrier(numThreads);
       CommonResult result = new CommonResult(numThreads);
 
-      ThreadFactory threadFactory =
-          new ThreadFactoryBuilder()
-              .setNameFormat("ARGProofCheckerParallelStrategy-checkCertificate-%d")
-              .build();
+      Thread.Builder threadBuilder =
+          Thread.ofPlatform().name("ARGProofCheckerParallelStrategy-checkCertificate-", 0);
       for (int i = 0; i < helper.length; i++) {
         helper[i] = new StateCheckingHelper(barrier, result, propChecker, checker);
-        helperThreads[i] = threadFactory.newThread(helper[i]);
-        helperThreads[i].start();
+        helperThreads[i] = threadBuilder.start(helper[i]);
       }
 
       // check BAMARG blocks

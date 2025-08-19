@@ -161,7 +161,7 @@ public class CustomInstruction {
     int BracketCounter = 0;
 
     if (!inputVariables.isEmpty()) {
-      String last = inputVariables.get(inputVariables.size() - 1);
+      String last = inputVariables.getLast();
       for (String variable : inputVariables) {
         if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(variable, false));
@@ -177,7 +177,7 @@ public class CustomInstruction {
     }
 
     if (!outputVariables.isEmpty()) {
-      String last = outputVariables.get(outputVariables.size() - 1);
+      String last = outputVariables.getLast();
       for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");
@@ -382,7 +382,7 @@ public class CustomInstruction {
     int BracketCounter = 0;
 
     if (!inputVariables.isEmpty()) {
-      String last = inputVariables.get(inputVariables.size() - 1);
+      String last = inputVariables.getLast();
       for (String variable : inputVariables) {
         if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(map.get(variable), false));
@@ -395,7 +395,7 @@ public class CustomInstruction {
     }
 
     if (!outputVariables.isEmpty()) {
-      String last = outputVariables.get(outputVariables.size() - 1);
+      String last = outputVariables.getLast();
       for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");

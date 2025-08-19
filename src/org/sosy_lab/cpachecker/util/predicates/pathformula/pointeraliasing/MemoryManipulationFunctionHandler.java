@@ -123,7 +123,7 @@ class MemoryManipulationFunctionHandler {
     final List<CExpression> arguments = functionCall.getParameterExpressions();
     verify(arguments.size() == 3);
 
-    CExpression destination = arguments.get(0);
+    CExpression destination = arguments.getFirst();
     final CExpression secondArgument = arguments.get(1);
     final CExpression sizeInBytes = arguments.get(2);
 

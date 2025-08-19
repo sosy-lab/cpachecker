@@ -231,7 +231,7 @@ public class SMGJoinAbstractionManager {
           Map<Integer, List<SMGAbstractionCandidate>> pAlreadyFoundCandidates) {
 
     SMGAbstractionCandidate template =
-        pAlreadyFoundCandidates.values().iterator().next().iterator().next();
+        pAlreadyFoundCandidates.values().iterator().next().getFirst();
 
     if (template instanceof GenericAbstractionCandidate genericAbstractionCandidate) {
       return Optional.of(genericAbstractionCandidate.createTemplate(machineModel));

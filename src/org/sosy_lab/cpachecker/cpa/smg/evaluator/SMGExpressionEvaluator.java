@@ -277,7 +277,7 @@ public class SMGExpressionEvaluator {
     List<SMGExplicitValueAndState> result = evaluateExplicitValue(smgState, cfaEdge, rValue);
 
     if (result.size() == 1) {
-      return result.get(0).getObject();
+      return result.getFirst().getObject();
     } else {
       return SMGUnknownValue.INSTANCE;
     }
@@ -473,8 +473,7 @@ public class SMGExpressionEvaluator {
             SMGObject target = addressValue.getObject();
             SMGExplicitValue addressOffset = addressValue.getOffset();
 
-            SMGExplicitValue newAddressOffset;
-            newAddressOffset =
+            SMGExplicitValue newAddressOffset =
                 switch (binaryOperator) {
                   case PLUS -> addressOffset.add(pointerOffsetValue);
                   case MINUS -> {
