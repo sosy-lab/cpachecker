@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 public enum MultiControlStatementEncoding {
   /** Used when the next thread is chosen deterministically. */
   NONE,
-  BINARY_IF_TREE,
+  BINARY_SEARCH_TREE,
   IF_ELSE_CHAIN,
   SWITCH_CASE;
 

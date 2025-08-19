@@ -43,8 +43,8 @@ public class MultiControlStatementBuilder {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
-      case BINARY_IF_TREE ->
-          new SeqBinaryIfTreeStatement(
+      case BINARY_SEARCH_TREE ->
+          new SeqBinarySearchTreeStatement(
               pExpression,
               pPrecedingStatements,
               pStatements,

@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Represents a binary search tree with {@code if-else} branches. */
-public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
+public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
 
   private final CLeftHandSide expression;
 
@@ -47,7 +47,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  SeqBinaryIfTreeStatement(
+  SeqBinarySearchTreeStatement(
       CLeftHandSide pExpression,
       ImmutableList<CStatement> pPrecedingStatements,
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
@@ -79,7 +79,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
 
   @Override
   public MultiControlStatementEncoding getEncoding() {
-    return MultiControlStatementEncoding.BINARY_IF_TREE;
+    return MultiControlStatementEncoding.BINARY_SEARCH_TREE;
   }
 
   /**

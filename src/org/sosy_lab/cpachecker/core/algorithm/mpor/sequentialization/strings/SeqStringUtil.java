@@ -50,7 +50,7 @@ public class SeqStringUtil {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build suffix for control encoding " + pOptions.controlEncodingStatement);
-      case BINARY_IF_TREE, IF_ELSE_CHAIN -> {
+      case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
         if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
           yield SeqToken._continue + SeqSyntax.SEMICOLON;
         } else {
