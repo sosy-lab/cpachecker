@@ -21,7 +21,6 @@ import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -345,11 +344,8 @@ public class TaintAnalysisState
     joinedPredecessors.add(this);
     joinedPredecessors.add(pOther);
 
-    TaintAnalysisState joinedState =
-        new TaintAnalysisState(
-            joinedTaintedVars, joinedUntaintedVars, joinEvaluatedValues, joinedPredecessors);
-
-    return joinedState;
+    return new TaintAnalysisState(
+        joinedTaintedVars, joinedUntaintedVars, joinEvaluatedValues, joinedPredecessors);
   }
 
   private boolean isEachVariableMappedToTheSameValue(
