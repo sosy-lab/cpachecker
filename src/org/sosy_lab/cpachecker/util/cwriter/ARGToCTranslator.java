@@ -560,41 +560,17 @@ public class ARGToCTranslator {
   }
 
   private CompoundStatement processEdge(
-      ARGState currentElement, ARGState childElement, CFAEdge edge, CompoundStatement currentBlock)
+      ARGState currentElement,
+      ARGState childElement,
+      @Nullable CFAEdge edge,
+      CompoundStatement currentBlock)
       throws CPAException {
-    if (edge instanceof CFunctionCallEdge functionCallEdge) {
-      // if this is a function call edge we need to inline it
-      currentBlock = processFunctionCall(functionCallEdge, currentBlock);
-    } else if (edge instanceof CReturnStatementEdge returnEdge) {
-      if (returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
-
-        String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
-        String returnVar;
-
-        if (childElement.isCovered()) {
-          returnVar = " __return_" + getCovering(childElement).getStateId();
-        } else {
-          returnVar = " __return_" + childElement.getStateId();
-          addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
-        }
-        currentBlock.addStatement(new SimpleStatement(edge, returnVar + " = " + retval + ";"));
-      }
-    } else if (edge instanceof CFunctionReturnEdge returnEdge) {
-      // assumes that ReturnStateEdge is followed by FunctionReturnEdge
-      currentBlock =
-          processReturnStatementCall(
-              returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
-    } else if (edge == null) {
-      // assume that this is the case due to dynamic multi edges
-      List<CFAEdge> innerEdges = currentElement.getEdgesToChild(childElement);
-      StringBuilder edgeStatementCodes = new StringBuilder();
-      for (CFAEdge innerEdge : innerEdges) {
-        assert innerEdge.getEdgeType() != CFAEdgeType.AssumeEdge
-            : "Unexpected assume edge in dynamic multi edge " + innerEdge;
-        assert !(innerEdge instanceof CFunctionCallEdge || innerEdge instanceof CFunctionReturnEdge)
-            : "Unexpected edge " + innerEdge + " in dynmaic multi edge";
-        if (innerEdge instanceof CReturnStatementEdge returnEdge) {
-          assert (innerEdges.getLast() == innerEdge);
+    switch (edge) {
+      case CFunctionCallEdge functionCallEdge ->
+          // if this is a function call edge we need to inline it
+          currentBlock = processFunctionCall(functionCallEdge, currentBlock);
+      case CReturnStatementEdge returnEdge -> {
+        if (returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
           String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
           String returnVar;
@@ -605,22 +581,56 @@ public class ARGToCTranslator {
             returnVar = " __return_" + childElement.getStateId();
             addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
           }
-          edgeStatementCodes.append(returnVar + " = " + retval + ";");
-        } else {
-          edgeStatementCodes.append(processSimpleEdge(innerEdge));
+          currentBlock.addStatement(new SimpleStatement(edge, returnVar + " = " + retval + ";"));
         }
-        edgeStatementCodes.append("\n");
       }
-      currentBlock.addStatement(new SimpleStatement(edge, edgeStatementCodes.toString()));
-    } else if (mustHandleDefaultReturn(edge)) {
-      processDefaultReturn(
-          (CFunctionDeclaration)
-              ((FunctionExitNode) edge.getSuccessor()).getEntryNode().getFunctionDefinition(),
-          childElement.getStateId());
-    } else {
-      String statement = processSimpleEdge(edge);
-      if (!statement.isEmpty()) {
-        currentBlock.addStatement(new SimpleStatement(edge, statement));
+      case CFunctionReturnEdge returnEdge ->
+          // assumes that ReturnStateEdge is followed by FunctionReturnEdge
+          currentBlock =
+              processReturnStatementCall(
+                  returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
+      case null -> {
+        // assume that this is the case due to dynamic multi edges
+        List<CFAEdge> innerEdges = currentElement.getEdgesToChild(childElement);
+        StringBuilder edgeStatementCodes = new StringBuilder();
+        for (CFAEdge innerEdge : innerEdges) {
+          assert innerEdge.getEdgeType() != CFAEdgeType.AssumeEdge
+              : "Unexpected assume edge in dynamic multi edge " + innerEdge;
+          assert !(innerEdge instanceof CFunctionCallEdge
+                  || innerEdge instanceof CFunctionReturnEdge)
+              : "Unexpected edge " + innerEdge + " in dynmaic multi edge";
+          if (innerEdge instanceof CReturnStatementEdge returnEdge) {
+            assert (innerEdges.getLast() == innerEdge);
+
+            String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
+            String returnVar;
+
+            if (childElement.isCovered()) {
+              returnVar = " __return_" + getCovering(childElement).getStateId();
+            } else {
+              returnVar = " __return_" + childElement.getStateId();
+              addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
+            }
+            edgeStatementCodes.append(returnVar + " = " + retval + ";");
+          } else {
+            edgeStatementCodes.append(processSimpleEdge(innerEdge));
+          }
+          edgeStatementCodes.append("\n");
+        }
+        currentBlock.addStatement(new SimpleStatement(edge, edgeStatementCodes.toString()));
+      }
+      default -> {
+        if (mustHandleDefaultReturn(edge)) {
+          processDefaultReturn(
+              (CFunctionDeclaration)
+                  ((FunctionExitNode) edge.getSuccessor()).getEntryNode().getFunctionDefinition(),
+              childElement.getStateId());
+        } else {
+          String statement = processSimpleEdge(edge);
+          if (!statement.isEmpty()) {
+            currentBlock.addStatement(new SimpleStatement(edge, statement));
+          }
+        }
       }
     }
 
