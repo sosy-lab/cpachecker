@@ -116,8 +116,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       Set<CIdExpression> pGeneratedVars,
       Map<CIdExpression, CExpression> pValues) {
 
-    logger.logf(Level.FINEST, "Killed %s, generated %s", pKilledVars, pGeneratedVars);
-
     Set<CIdExpression> newTaintedVars = new HashSet<>(pState.getTaintedVariables());
     Set<CIdExpression> newUntaintedVars = new HashSet<>(pState.getUntaintedVariables());
 
