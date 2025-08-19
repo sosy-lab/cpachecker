@@ -223,17 +223,14 @@ public final class CCfaTransformer {
         return newNode;
       }
 
-      if (pOldNode instanceof CFALabelNode cFALabelNode) {
-        newNode = newCfaLabelNode(cFALabelNode);
-      } else if (pOldNode instanceof CFunctionEntryNode cFunctionEntryNode) {
-        newNode = newCFunctionEntryNode(cFunctionEntryNode);
-      } else if (pOldNode instanceof FunctionExitNode functionExitNode) {
-        newNode = newFunctionExitNode(functionExitNode);
-      } else if (pOldNode instanceof CFATerminationNode cFATerminationNode) {
-        newNode = newCfaTerminationNode(cFATerminationNode);
-      } else {
-        newNode = newCfaNode(pOldNode);
-      }
+      newNode =
+          switch (pOldNode) {
+            case CFALabelNode cFALabelNode -> newCfaLabelNode(cFALabelNode);
+            case CFunctionEntryNode cFunctionEntryNode -> newCFunctionEntryNode(cFunctionEntryNode);
+            case FunctionExitNode functionExitNode -> newFunctionExitNode(functionExitNode);
+            case CFATerminationNode cFATerminationNode -> newCfaTerminationNode(cFATerminationNode);
+            default -> newCfaNode(pOldNode);
+          };
 
       oldNodeToNewNode.put(pOldNode, newNode);
 

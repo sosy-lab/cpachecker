@@ -165,22 +165,21 @@ public class ApronTransferRelation
       throws CPATransferException {
 
     if (expression instanceof CLiteralExpression) {
-      if (expression instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-        return handleLiteralBooleanExpression(
-            cIntegerLiteralExpression.asLong(), truthAssumption, state);
-
-      } else if (expression instanceof CCharLiteralExpression cCharLiteralExpression) {
-        return handleLiteralBooleanExpression(
-            cCharLiteralExpression.getCharacter(), truthAssumption, state);
-
-      } else if (expression instanceof CFloatLiteralExpression floatExpression) {
-        // only when the float is exactly zero the condition is wrong, for all other float values it
-        // is true
-        int val = floatExpression.getValue().isZero() ? 0 : 1;
-        return handleLiteralBooleanExpression(val, truthAssumption, state);
-      } else {
-        return Collections.singleton(state);
-      }
+      return switch (expression) {
+        case CIntegerLiteralExpression cIntegerLiteralExpression ->
+            handleLiteralBooleanExpression(
+                cIntegerLiteralExpression.asLong(), truthAssumption, state);
+        case CCharLiteralExpression cCharLiteralExpression ->
+            handleLiteralBooleanExpression(
+                cCharLiteralExpression.getCharacter(), truthAssumption, state);
+        case CFloatLiteralExpression floatExpression -> {
+          // only when the float is exactly zero the condition is wrong, for all other float values
+          // it is true
+          int val = floatExpression.getValue().isZero() ? 0 : 1;
+          yield handleLiteralBooleanExpression(val, truthAssumption, state);
+        }
+        default -> Collections.singleton(state);
+      };
 
     } else if (expression instanceof CBinaryExpression) {
       return handleBinaryAssumption(expression, truthAssumption);

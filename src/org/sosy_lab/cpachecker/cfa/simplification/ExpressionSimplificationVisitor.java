@@ -69,14 +69,15 @@ public class ExpressionSimplificationVisitor
   }
 
   private @Nullable NumericValue getValue(CExpression expr) {
-    if (expr instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-      return new NumericValue(cIntegerLiteralExpression.getValue());
-    } else if (expr instanceof CCharLiteralExpression cCharLiteralExpression) {
-      return new NumericValue((int) cCharLiteralExpression.getCharacter());
-    } else if (expr instanceof CFloatLiteralExpression cFloatLiteralExpression) {
-      return new NumericValue(cFloatLiteralExpression.getValue());
-    }
-    return null;
+    return switch (expr) {
+      case CIntegerLiteralExpression cIntegerLiteralExpression ->
+          new NumericValue(cIntegerLiteralExpression.getValue());
+      case CCharLiteralExpression cCharLiteralExpression ->
+          new NumericValue((int) cCharLiteralExpression.getCharacter());
+      case CFloatLiteralExpression cFloatLiteralExpression ->
+          new NumericValue(cFloatLiteralExpression.getValue());
+      default -> null;
+    };
   }
 
   /**

@@ -288,26 +288,27 @@ class CFABuilder extends ASTVisitor {
     for (CDeclaration newD : newDs) {
       boolean used = true;
 
-      if (newD instanceof CVariableDeclaration cVariableDeclaration) {
+      switch (newD) {
+        case CVariableDeclaration cVariableDeclaration -> {
+          CInitializer init = cVariableDeclaration.getInitializer();
+          if (init != null) {
+            init.accept(checkBinding);
 
-        CInitializer init = cVariableDeclaration.getInitializer();
-        if (init != null) {
-          init.accept(checkBinding);
-
-          // save global initialized variable in map to check duplicates
-          if (!globalInitializedVariables.add(newD.getName())) {
-            throw parseContext.parseError(
-                "Variable " + newD.getName() + " initialized for the second time", newD);
+            // save global initialized variable in map to check duplicates
+            if (!globalInitializedVariables.add(newD.getName())) {
+              throw parseContext.parseError(
+                  "Variable " + newD.getName() + " initialized for the second time", newD);
+            }
           }
+          fileScope.registerDeclaration(newD);
         }
-
-        fileScope.registerDeclaration(newD);
-      } else if (newD instanceof CFunctionDeclaration cFunctionDeclaration) {
-        fileScope.registerFunctionDeclaration(cFunctionDeclaration);
-      } else if (newD instanceof CComplexTypeDeclaration cComplexTypeDeclaration) {
-        used = fileScope.registerTypeDeclaration(cComplexTypeDeclaration);
-      } else if (newD instanceof CTypeDefDeclaration cTypeDefDeclaration) {
-        used = fileScope.registerTypeDeclaration(cTypeDefDeclaration);
+        case CFunctionDeclaration cFunctionDeclaration ->
+            fileScope.registerFunctionDeclaration(cFunctionDeclaration);
+        case CComplexTypeDeclaration cComplexTypeDeclaration ->
+            used = fileScope.registerTypeDeclaration(cComplexTypeDeclaration);
+        case CTypeDefDeclaration cTypeDefDeclaration ->
+            used = fileScope.registerTypeDeclaration(cTypeDefDeclaration);
+        default -> throw new AssertionError();
       }
 
       if (used && !eliminateableDuplicates.contains(newD.toASTString())) {

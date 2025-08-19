@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -131,40 +130,45 @@ public class MemoryAccessExtractor {
       }
       case StatementEdge -> {
         AStatementEdge statementEdge = (AStatementEdge) edge;
-        AStatement statement = statementEdge.getStatement();
-        if (statement instanceof AExpressionAssignmentStatement expressionAssignmentStatement) {
-          writeLocationBuilder.addAll(
-              getInvolvedVariableTypes(
-                  expressionAssignmentStatement.getLeftHandSide(), statementEdge));
-          readLocationBuilder.addAll(
-              getInvolvedVariableTypes(
-                  expressionAssignmentStatement.getRightHandSide(), statementEdge));
-        } else if (statement instanceof AExpressionStatement aExpressionStatement) {
-          readLocationBuilder.addAll(
-              getInvolvedVariableTypes(aExpressionStatement.getExpression(), statementEdge));
-        } else if (statement
-            instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
-          String functionName = getFunctionName(functionCallAssignmentStatement);
-          if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-            throw new CPATransferException("DataRaceCPA does not support function " + functionName);
+        switch (statementEdge.getStatement()) {
+          case AExpressionAssignmentStatement expressionAssignmentStatement -> {
+            writeLocationBuilder.addAll(
+                getInvolvedVariableTypes(
+                    expressionAssignmentStatement.getLeftHandSide(), statementEdge));
+            readLocationBuilder.addAll(
+                getInvolvedVariableTypes(
+                    expressionAssignmentStatement.getRightHandSide(), statementEdge));
           }
-          writeLocationBuilder.addAll(
-              getInvolvedVariableTypes(
-                  functionCallAssignmentStatement.getLeftHandSide(), statementEdge));
-          AFunctionCallExpression functionCallExpression =
-              functionCallAssignmentStatement.getFunctionCallExpression();
-          for (AExpression expression : functionCallExpression.getParameterExpressions()) {
-            readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
+          case AExpressionStatement aExpressionStatement ->
+              readLocationBuilder.addAll(
+                  getInvolvedVariableTypes(aExpressionStatement.getExpression(), statementEdge));
+          case AFunctionCallAssignmentStatement functionCallAssignmentStatement -> {
+            String functionName = getFunctionName(functionCallAssignmentStatement);
+            if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
+              throw new CPATransferException(
+                  "DataRaceCPA does not support function " + functionName);
+            }
+            writeLocationBuilder.addAll(
+                getInvolvedVariableTypes(
+                    functionCallAssignmentStatement.getLeftHandSide(), statementEdge));
+            AFunctionCallExpression functionCallExpression =
+                functionCallAssignmentStatement.getFunctionCallExpression();
+            for (AExpression expression : functionCallExpression.getParameterExpressions()) {
+              readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
+            }
           }
-        } else if (statement instanceof AFunctionCallStatement functionCallStatement) {
-          String functionName = getFunctionName(functionCallStatement);
-          if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-            throw new CPATransferException("DataRaceCPA does not support function " + functionName);
+          case AFunctionCallStatement functionCallStatement -> {
+            String functionName = getFunctionName(functionCallStatement);
+            if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
+              throw new CPATransferException(
+                  "DataRaceCPA does not support function " + functionName);
+            }
+            for (AExpression expression :
+                functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+              readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
+            }
           }
-          for (AExpression expression :
-              functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-            readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
-          }
+          default -> {}
         }
       }
       case FunctionReturnEdge, BlankEdge, CallToReturnEdge -> {}

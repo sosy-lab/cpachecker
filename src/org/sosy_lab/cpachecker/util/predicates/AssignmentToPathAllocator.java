@@ -208,30 +208,28 @@ public class AssignmentToPathAllocator {
 
       String typeName = getTypeString(pCExp.getExpressionType());
 
-      if (pCExp instanceof CBinaryExpression binExp) {
-
-        String opString = binExp.getOperator().getOperator();
-
-        switch (binExp.getOperator()) {
-          case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
-          default -> {
-            // default
+      return switch (pCExp) {
+        case CBinaryExpression binExp -> {
+          String opString = binExp.getOperator().getOperator();
+          switch (binExp.getOperator()) {
+            case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
+            default -> {
+              // default
+            }
           }
+          yield typeName + "_" + opString + "_";
         }
-
-        return typeName + "_" + opString + "_";
-
-      } else if (pCExp instanceof CUnaryExpression unExp) {
-        String op = unExp.getOperator().getOperator();
-
-        return typeName + "_" + op + "_";
-      } else if (pCExp instanceof CCastExpression castExp) {
-        CType type2 = castExp.getOperand().getExpressionType();
-        String typeName2 = getTypeString(type2);
-        return "__cast_" + typeName2 + "_to_" + typeName + "__";
-      }
-
-      return "";
+        case CUnaryExpression unExp -> {
+          String op = unExp.getOperator().getOperator();
+          yield typeName + "_" + op + "_";
+        }
+        case CCastExpression castExp -> {
+          CType type2 = castExp.getOperand().getExpressionType();
+          String typeName2 = getTypeString(type2);
+          yield "__cast_" + typeName2 + "_to_" + typeName + "__";
+        }
+        default -> "";
+      };
     }
 
     private String getTypeString(CType pExpressionType) {

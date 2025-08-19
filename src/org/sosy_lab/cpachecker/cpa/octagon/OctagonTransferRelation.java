@@ -204,22 +204,21 @@ public class OctagonTransferRelation
 
       // A constant value
     } else if (expression instanceof CLiteralExpression) {
-      if (expression instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-        return handleLiteralBooleanExpression(
-            cIntegerLiteralExpression.asLong(), truthAssumption, state);
-
-      } else if (expression instanceof CCharLiteralExpression cCharLiteralExpression) {
-        return handleLiteralBooleanExpression(
-            cCharLiteralExpression.getCharacter(), truthAssumption, state);
-
-      } else if (expression instanceof CFloatLiteralExpression floatLiteral) {
-        // only when the float is exactly zero the condition is wrong, for all other float values it
-        // is true
-        int val = floatLiteral.getValue().isZero() ? 0 : 1;
-        return handleLiteralBooleanExpression(val, truthAssumption, state);
-      } else {
-        return Collections.singleton(state);
-      }
+      return switch (expression) {
+        case CIntegerLiteralExpression cIntegerLiteralExpression ->
+            handleLiteralBooleanExpression(
+                cIntegerLiteralExpression.asLong(), truthAssumption, state);
+        case CCharLiteralExpression cCharLiteralExpression ->
+            handleLiteralBooleanExpression(
+                cCharLiteralExpression.getCharacter(), truthAssumption, state);
+        case CFloatLiteralExpression floatLiteral -> {
+          // only when the float is exactly zero the condition is wrong, for all other float values
+          // it is true
+          int val = floatLiteral.getValue().isZero() ? 0 : 1;
+          yield handleLiteralBooleanExpression(val, truthAssumption, state);
+        }
+        default -> Collections.singleton(state);
+      };
 
       // a cast, we ignore this cast and call this method again with the casts operand
     } else if (expression instanceof CCastExpression cCastExpression) {
