@@ -298,8 +298,10 @@ public class NumStatementsNondeterministicSimulation {
               pOtherThreads,
               pBitVectorVariables.orElseThrow(),
               pBinaryExpressionBuilder);
+      // the usual bit vector expression is true if there is a conflict
+      //  -> negate (we want no conflict if we ignore K == 0)
       return new SeqLogicalOrExpression(
-          new CToSeqExpression(pKGreaterZero), bitVectorEvaluationExpression);
+          new CToSeqExpression(pKGreaterZero), bitVectorEvaluationExpression.negate());
     } else {
       return new CToSeqExpression(pKGreaterZero);
     }

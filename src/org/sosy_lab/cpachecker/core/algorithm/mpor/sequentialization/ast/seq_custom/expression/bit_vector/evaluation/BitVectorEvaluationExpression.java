@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -40,6 +41,17 @@ public class BitVectorEvaluationExpression implements SeqExpression {
       return logicalExpression.orElseThrow().toASTString();
     }
     return SeqSyntax.EMPTY_STRING;
+  }
+
+  public SeqLogicalNotExpression negate() {
+    if (binaryExpression.isPresent()) {
+      return new SeqLogicalNotExpression(binaryExpression.orElseThrow());
+    }
+    if (logicalExpression.isPresent()) {
+      return new SeqLogicalNotExpression(logicalExpression.orElseThrow());
+    }
+    throw new IllegalArgumentException(
+        "cannot negate, both binary- and logical expressions are empty");
   }
 
   public boolean isEmpty() {
