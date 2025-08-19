@@ -624,7 +624,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
         if (initializer instanceof CInitializerList initList) {
           // initialize arrays pointing to the RegularImmutableList containing its
-          // elements in the taitned/untainted variables map
+          // elements in the tainted/untainted variables map
           List<CInitializer> initializerList = initList.getInitializers();
 
           for (CInitializer init : initializerList) {
