@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -54,7 +55,7 @@ public class TaintAnalysisUtils {
   public static Collection<TaintAnalysisState> getStatesWithSingeValueMapping(
       TaintAnalysisState joinState) {
 
-    Map<CIdExpression, List<CExpression>> evaluatedValuesWithMultipleMapping =
+    Map<CExpression, List<CExpression>> evaluatedValuesWithMultipleMapping =
         joinState.getEvaluatedValues();
 
     int numberOfMergedStates = 0;
@@ -90,11 +91,11 @@ public class TaintAnalysisUtils {
 
     for (TaintAnalysisState outdatedState : statesWithOutdatedTaint) {
 
-      Set<CIdExpression> taintedVariables =
+      Set<CExpression> taintedVariables =
           new HashSet<>(stateWithUpdatedTaint.getTaintedVariables());
       taintedVariables.removeIf(var -> !outdatedState.getEvaluatedValues().containsKey(var));
 
-      Set<CIdExpression> untaintedVariables =
+      Set<CExpression> untaintedVariables =
           new HashSet<>(stateWithUpdatedTaint.getUntaintedVariables());
       untaintedVariables.removeIf(var -> !outdatedState.getEvaluatedValues().containsKey(var));
 
@@ -151,7 +152,7 @@ public class TaintAnalysisUtils {
 
   @Nullable
   public static CExpression evaluateExpression(
-      CExpression expression, Map<CIdExpression, CExpression> evaluatedValues) {
+      CExpression expression, Map<CExpression, CExpression> evaluatedValues) {
 
     // TODO: Use visitor (?)
     if (expression instanceof CLiteralExpression literalExpression) {
