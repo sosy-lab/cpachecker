@@ -887,12 +887,13 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
           if (exprToCheck instanceof CIdExpression expr) {
             try {
-              int varMustBePublic = TaintAnalysisUtils.evaluateExpressionToInteger(newPublicState);
-              int varIsCurrentlyTainted = taintedVariables.contains(expr) ? 1 : 0;
+              boolean varMustBePublic =
+                  TaintAnalysisUtils.evaluateExpressionToInteger(newPublicState) == 1;
+              boolean varIsCurrentlyTainted = taintedVariables.contains(expr);
 
-              if (varIsCurrentlyTainted == 1 && varMustBePublic == 1) {
+              if (varIsCurrentlyTainted && varMustBePublic) {
                 killedVars.add(expr);
-              } else if (varIsCurrentlyTainted == 0 && varMustBePublic == 0) {
+              } else if (!varIsCurrentlyTainted && !varMustBePublic) {
                 generatedVars.add(expr);
               }
 
