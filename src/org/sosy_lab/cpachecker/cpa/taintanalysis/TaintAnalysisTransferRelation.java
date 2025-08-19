@@ -880,8 +880,19 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           Set<CIdExpression> exprToCheckParams = TaintAnalysisUtils.getAllVarsAsCExpr(exprToCheck);
           expressionIsTainted = taintedVariables.stream().anyMatch(exprToCheckParams::contains);
 
-          checkInformationFlowViolation(
-              pState, pCfaEdge, expectedPublicity, expressionIsTainted, exprToCheck);
+          boolean varShouldBePublic = expectedPublicity == 1;
+
+          if (varShouldBePublic == expressionIsTainted) {
+            logger.logf(
+                Level.WARNING,
+                "Information flow violation at %s: Variable '%s' was expected to be %s, but is %s",
+                pCfaEdge.getFileLocation(),
+                exprToCheck.toASTString(),
+                varShouldBePublic ? "public" : "tainted",
+                expressionIsTainted ? "tainted" : "public");
+
+            pState.setViolatesProperty();
+          }
 
           newStates.add(generateNewState(pState, killedVars, generatedVars, values));
         }
@@ -993,28 +1004,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return ImmutableList.copyOf(newStates);
-  }
-
-  private void checkInformationFlowViolation(
-      TaintAnalysisState pState,
-      CStatementEdge pCfaEdge,
-      int expectedPublicity,
-      boolean isCurrentlyTainted,
-      CExpression firstArg) {
-    // TODO: move this body to the method-caller
-    boolean varShouldBePublic = expectedPublicity == 1;
-
-    if (varShouldBePublic == isCurrentlyTainted) {
-      logger.logf(
-          Level.WARNING,
-          "Information flow violation at %s: Variable '%s' was expected to be %s, but is %s",
-          pCfaEdge.getFileLocation(),
-          firstArg.toASTString(),
-          varShouldBePublic ? "public" : "tainted",
-          isCurrentlyTainted ? "tainted" : "public");
-
-      pState.setViolatesProperty();
-    }
   }
 
   private boolean isSource(CFunctionCall pStatement) {
