@@ -280,7 +280,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           }
         }
         case BlankEdge -> {
-          newStates.add(handleBlankEdge(state, (BlankEdge) cfaEdge));
+          if (cfaEdge instanceof BlankEdge blankEdge) {
+            newStates.add(handleBlankEdge(state, blankEdge));
+          }
         }
         case CallToReturnEdge -> {
           if (cfaEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
