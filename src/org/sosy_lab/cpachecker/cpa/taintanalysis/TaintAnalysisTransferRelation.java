@@ -195,7 +195,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (edgeLeavesControlStructure(cfaEdge)) {
-      incomingState = incomingState.joinThisStateWithNextMergePointStates();
+      incomingState = incomingState.forceJoin();
     }
 
     Collection<TaintAnalysisState> extractedStates =

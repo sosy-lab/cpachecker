@@ -384,52 +384,23 @@ public class TaintAnalysisState
     return this.violatesProperty;
   }
 
-  public TaintAnalysisState joinThisStateWithNextMergePointStates() {
+  public TaintAnalysisState forceJoin() {
 
-    if (mergePoints.size() > 1) {
+    List<TaintAnalysisState> statesToJoin =
+        new ArrayList<>(
+            targetStates.stream()
+                .filter(
+                    s ->
+                        s.nonTrivialPathStartStates.size() <= this.nonTrivialPathStartStates.size())
+                .toList());
 
-      List<TaintAnalysisState> allOtherPathStarts = new ArrayList<>(allPathStartStates);
+    statesToJoin.add(this);
 
-      allOtherPathStarts.removeIf(s -> s.isContainedIn(this.nonTrivialPathStartStates));
+    if (statesToJoin.size() > 1) {
 
-      boolean allOtherPathsWereExplored = false;
-      if (!allOtherPathStarts.isEmpty()) {
-        // when a path start state has successors, it was already explored
-        allOtherPathsWereExplored =
-            allOtherPathStarts.stream().noneMatch(s -> s.successors.isEmpty());
-      }
-
-      if (allOtherPathsWereExplored) {
-
-        if (mergePoints.size() > 1) {
-
-          // collect the merge point states and states with property violation that have the same or
-          // less number of non-trivial path start states than this merge point. (i.e., that is
-          // before the next merge point)
-          List<TaintAnalysisState> nextMergePointStates =
-              new ArrayList<>(
-                  targetStates.stream()
-                      .filter(
-                          s ->
-                              s.nonTrivialPathStartStates.size()
-                                  <= this.nonTrivialPathStartStates.size())
-                      .toList());
-
-          nextMergePointStates.addAll(mergePoints);
-          nextMergePointStates.removeIf(
-              s -> s.nonTrivialPathStartStates.size() > this.nonTrivialPathStartStates.size());
-
-          TaintAnalysisState bigJoin = joinAllStates(nextMergePointStates);
-
-          // Consume the merge points
-          for (TaintAnalysisState nextMergePointState : nextMergePointStates) {
-            nextMergePointState.setMergePoint(false);
-          }
-
-          return bigJoin;
-        }
-      }
+      return joinAllStates(statesToJoin);
     }
+
     return this;
   }
 
