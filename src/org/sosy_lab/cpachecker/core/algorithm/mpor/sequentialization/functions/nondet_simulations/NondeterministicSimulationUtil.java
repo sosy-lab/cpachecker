@@ -134,6 +134,7 @@ public class NondeterministicSimulationUtil {
   // r and K injections ============================================================================
 
   static SeqThreadStatementBlock injectRoundGotoIntoBlock(
+      MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
       CBinaryExpression pRSmallerK,
       CExpressionAssignmentStatement pRIncrement,
@@ -142,13 +143,15 @@ public class NondeterministicSimulationUtil {
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withGoto =
-          tryInjectRoundGotoIntoStatement(pRSmallerK, pRIncrement, statement, pLabelClauseMap);
+          tryInjectRoundGotoIntoStatement(
+              pOptions, pRSmallerK, pRIncrement, statement, pLabelClauseMap);
       newStatements.add(withGoto);
     }
     return pBlock.cloneWithStatements(newStatements.build());
   }
 
   private static SeqThreadStatement tryInjectRoundGotoIntoStatement(
+      MPOROptions pOptions,
       CBinaryExpression pRSmallerK,
       CExpressionAssignmentStatement pRIncrement,
       SeqThreadStatement pStatement,
@@ -158,8 +161,12 @@ public class NondeterministicSimulationUtil {
       // int target is present -> retrieve label by pc from map
       int targetPc = pStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
-        return injectRoundGotoIntoStatementByTargetPc(
-            targetPc, pRSmallerK, pRIncrement, pStatement, pLabelClauseMap);
+        SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+        // if the target is a loop start, inject only if backward loop goto are allowed
+        if (!target.getFirstBlock().isLoopStart() || !pOptions.noBackwardLoopGoto) {
+          return injectRoundGotoIntoStatementByTargetPc(
+              targetPc, pRSmallerK, pRIncrement, pStatement, pLabelClauseMap);
+        }
       }
     }
     if (pStatement.getTargetGoto().isPresent()) {

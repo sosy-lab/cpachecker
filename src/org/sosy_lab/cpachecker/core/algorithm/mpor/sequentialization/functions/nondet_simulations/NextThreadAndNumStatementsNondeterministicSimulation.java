@@ -139,7 +139,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       throws UnrecognizedCodeException {
 
     ImmutableList<SeqThreadStatementClause> clauses =
-        buildSingleThreadClausesWithoutCount(pClauses, pBinaryExpressionBuilder);
+        buildSingleThreadClausesWithoutCount(pOptions, pClauses, pBinaryExpressionBuilder);
     CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.id);
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
@@ -177,6 +177,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
   }
 
   private static ImmutableList<SeqThreadStatementClause> buildSingleThreadClausesWithoutCount(
+      MPOROptions pOptions,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -195,7 +196,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         newBlocks.add(
             NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-                block, rSmallerK, rIncrement, labelClauseMap));
+                pOptions, block, rSmallerK, rIncrement, labelClauseMap));
       }
       updatedClauses.add(clause.cloneWithBlocks(newBlocks.build()));
     }

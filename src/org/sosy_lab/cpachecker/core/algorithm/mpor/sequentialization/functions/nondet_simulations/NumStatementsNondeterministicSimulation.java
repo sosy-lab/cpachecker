@@ -315,7 +315,7 @@ public class NumStatementsNondeterministicSimulation {
 
     ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
     ImmutableList<SeqThreadStatementClause> clauses =
-        buildSingleThreadClausesWithCount(pThread, pClauses, pBinaryExpressionBuilder);
+        buildSingleThreadClausesWithCount(pOptions, pThread, pClauses, pBinaryExpressionBuilder);
     CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.id);
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
@@ -346,6 +346,7 @@ public class NumStatementsNondeterministicSimulation {
   }
 
   private static ImmutableList<SeqThreadStatementClause> buildSingleThreadClausesWithCount(
+      MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -369,7 +370,13 @@ public class NumStatementsNondeterministicSimulation {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         newBlocks.add(
             injectCountAndRoundGotoIntoBlock(
-                block, countIncrement, countDecrement, rSmallerK, rIncrement, labelClauseMap));
+                pOptions,
+                block,
+                countIncrement,
+                countDecrement,
+                rSmallerK,
+                rIncrement,
+                labelClauseMap));
       }
       updatedClauses.add(clause.cloneWithBlocks(newBlocks.build()));
     }
@@ -379,6 +386,7 @@ public class NumStatementsNondeterministicSimulation {
   // Count injection ===============================================================================
 
   private static SeqThreadStatementBlock injectCountAndRoundGotoIntoBlock(
+      MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
       CExpressionAssignmentStatement pCountIncrement,
       CExpressionAssignmentStatement pCountDecrement,
@@ -387,6 +395,7 @@ public class NumStatementsNondeterministicSimulation {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     return NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
+        pOptions,
         injectCountUpdatesIntoBlock(pBlock, pCountIncrement, pCountDecrement),
         pRSmallerK,
         pRIncrement,
