@@ -562,9 +562,9 @@ public class ARGToCTranslator {
   private CompoundStatement processEdge(
       ARGState currentElement, ARGState childElement, CFAEdge edge, CompoundStatement currentBlock)
       throws CPAException {
-    if (edge instanceof CFunctionCallEdge) {
+    if (edge instanceof CFunctionCallEdge functionCallEdge) {
       // if this is a function call edge we need to inline it
-      currentBlock = processFunctionCall(edge, currentBlock);
+      currentBlock = processFunctionCall(functionCallEdge, currentBlock);
     } else if (edge instanceof CReturnStatementEdge returnEdge) {
       if (returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
@@ -791,14 +791,13 @@ public class ARGToCTranslator {
     return "";
   }
 
-  private CompoundStatement processFunctionCall(CFAEdge pCFAEdge, CompoundStatement currentBlock) {
+  private CompoundStatement processFunctionCall(
+      CFunctionCallEdge pCFAEdge, CompoundStatement currentBlock) {
     CompoundStatement newBlock = new InlinedFunction(currentBlock);
     currentBlock.addStatement(newBlock);
 
-    CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge) pCFAEdge;
-
-    List<CExpression> actualParams = lFunctionCallEdge.getArguments();
-    CFunctionEntryNode fn = lFunctionCallEdge.getSuccessor();
+    List<CExpression> actualParams = pCFAEdge.getArguments();
+    CFunctionEntryNode fn = pCFAEdge.getSuccessor();
     List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
     List<Statement> actualParamAssignStatements = new ArrayList<>();
