@@ -1249,6 +1249,17 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
+  private Optional<IfElement> getOutermostIfStatementForEdge(CFAEdge pCfaEdge) {
+    // Get all the if-structures that contain this statement and get the smallest starting line
+    // to recognize the outermost if statement
+    return getIfStructuresOfCurrentStatement(pCfaEdge).stream()
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .min(
+            Comparator.comparingInt(
+                ifElement -> ifElement.getCompleteElement().location().getStartingLineNumber()));
+  }
+
   private boolean isTmpPartOfTernaryExpressionAssignment(AStatementEdge statementEdge) {
 
     AStatement statement = statementEdge.getStatement();
