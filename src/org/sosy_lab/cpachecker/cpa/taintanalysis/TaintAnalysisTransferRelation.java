@@ -94,7 +94,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           "__VERIFIER_nondet_float",
           "__VERIFIER_nondet_double",
           "__VERIFIER_nondet_char");
-  //  private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
   private final @Nullable LoopStructure loopStructure;
