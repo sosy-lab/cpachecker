@@ -788,16 +788,15 @@ public class ApronTransferRelation
   }
 
   private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {
-    String variableName = null;
-    if (left instanceof CArraySubscriptExpression cArraySubscriptExpression) {
-      variableName = cArraySubscriptExpression.getArrayExpression().toASTString();
-    } else if (left instanceof CPointerExpression cPointerExpression) {
-      variableName = cPointerExpression.getOperand().toASTString();
-    } else if (left instanceof CFieldReference cFieldReference) {
-      variableName = cFieldReference.getFieldOwner().toASTString();
-    } else {
-      variableName = left.toASTString();
-    }
+    String variableName =
+        switch (left) {
+          case CArraySubscriptExpression cArraySubscriptExpression ->
+              cArraySubscriptExpression.getArrayExpression().toASTString();
+          case CPointerExpression cPointerExpression ->
+              cPointerExpression.getOperand().toASTString();
+          case CFieldReference cFieldReference -> cFieldReference.getFieldOwner().toASTString();
+          default -> left.toASTString();
+        };
 
     if (!isGlobal(left)) {
       return MemoryLocation.forLocalVariable(pFunctionName, variableName);
