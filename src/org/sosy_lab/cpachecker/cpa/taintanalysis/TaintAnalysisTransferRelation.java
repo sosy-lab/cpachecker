@@ -194,7 +194,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       throw new CPATransferException("state has the wrong format");
     }
 
-    if (incomingState.isMergePoint()) {
+    if (edgeLeavesControlStructure(cfaEdge)) {
       incomingState = incomingState.joinThisStateWithNextMergePointStates();
     }
 
@@ -300,46 +300,40 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    for (TaintAnalysisState newState : newStates) {
-      checkMergeState(newState, cfaEdge);
-    }
-
     return newStates;
   }
 
-  private void checkMergeState(TaintAnalysisState pState, CFAEdge pCfaEdge) {
+  private boolean edgeLeavesControlStructure(CFAEdge pCfaEdge) {
+    CFANode predecessorNode = pCfaEdge.getPredecessor();
     CFANode successorNode = pCfaEdge.getSuccessor();
 
-    boolean isMergePoint = false;
+    if (predecessorNode.getNumEnteringEdges() == 0) {
+      return false;
+    }
 
-    if (successorNode.getNumLeavingEdges() == 1) {
+    CFAEdge firstPredecessorEdge = predecessorNode.getEnteringEdge(0);
 
-      for (int i = 0; i < successorNode.getNumLeavingEdges(); i++) {
+    boolean predecessorEdgeIsInControlStructure = isInControlStructure(firstPredecessorEdge);
 
-        CFAEdge nextLeavingEdge = successorNode.getLeavingEdge(i);
-        if (!isInControlStructure(nextLeavingEdge)) {
-          isMergePoint = true;
-        } else {
-          isMergePoint = false;
+    int endingLineNumberOfOutermostControlStructureOfEdge =
+        getEndingLineNumberOfOutermostControlStructureOfThisEdge(firstPredecessorEdge);
+
+    if (predecessorEdgeIsInControlStructure) {
+
+      if (successorNode.getNumLeavingEdges() > 0) {
+
+        int startingLineNumberOfLeavingEdge =
+            successorNode.getLeavingEdge(0).getFileLocation().getStartingLineNumber();
+
+        boolean nextEdgeIsOutsideTheControlStructure =
+            endingLineNumberOfOutermostControlStructureOfEdge < startingLineNumberOfLeavingEdge;
+
+        if (nextEdgeIsOutsideTheControlStructure) {
+          return true;
         }
       }
     }
-
-    isMergePoint = isMergePoint && successorNode.getNumEnteringEdges() == 2;
-
-    if (isMergePoint) {
-
-      for (int i = 0; i < successorNode.getNumEnteringEdges(); i++) {
-        CFAEdge nextEnteringEdge = successorNode.getEnteringEdge(i);
-        isMergePoint =
-            (isMergePoint && nextEnteringEdge instanceof AssumeEdge)
-                || nextEnteringEdge instanceof BlankEdge;
-      }
-    }
-
-    if (isMergePoint) {
-      pState.setMergePoint(true);
-    }
+    return false;
   }
 
   private Map<CIdExpression, CExpression> extractOneToOneMappings(

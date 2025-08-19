@@ -41,7 +41,6 @@ public class TaintAnalysisState
 
   private boolean violatesProperty = false;
   private boolean isPathStart = false;
-  private boolean isMergePoint = false;
 
   private final Set<CIdExpression> taintedVariables = new HashSet<>();
   private final Set<CIdExpression> untaintedVariables = new HashSet<>();
@@ -50,12 +49,10 @@ public class TaintAnalysisState
 
   private final List<TaintAnalysisState> predecessors = new ArrayList<>();
   private final List<TaintAnalysisState> successors = new ArrayList<>();
-
   private final List<TaintAnalysisState> siblingStates = new ArrayList<>();
   private final List<TaintAnalysisState> nonTrivialPathStartStates = new ArrayList<>();
 
   private static final List<TaintAnalysisState> allPathStartStates = new ArrayList<>();
-  private static final List<TaintAnalysisState> mergePoints = new ArrayList<>();
   private static final List<TaintAnalysisState> targetStates = new ArrayList<>();
 
   public TaintAnalysisState(
@@ -110,10 +107,6 @@ public class TaintAnalysisState
     }
   }
 
-  public boolean isMergePoint() {
-    return isMergePoint;
-  }
-
   public boolean isSuccessorOfJoinedState() {
     return this.predecessors.size() > 1;
   }
@@ -122,20 +115,7 @@ public class TaintAnalysisState
     return isPathStart;
   }
 
-  public void setMergePoint(boolean pMergePoint) {
-
-    isMergePoint = pMergePoint;
-
-    if (pMergePoint) {
-      if (!this.isContainedIn(mergePoints)) {
-        mergePoints.add(this);
-      }
-    } else {
-      mergePoints.remove(this);
-    }
-  }
-
-  public List<TaintAnalysisState> getNonTrivialPathStartStates() {
+  public Set<TaintAnalysisState> getNonTrivialPathStartStates() {
     return nonTrivialPathStartStates;
   }
 
