@@ -184,62 +184,62 @@ class CFABuilder extends ASTVisitor {
 
     sideAssignmentStack.enterBlock();
 
-    if (declaration instanceof IASTSimpleDeclaration iASTSimpleDeclaration) {
-      return handleSimpleDeclaration(iASTSimpleDeclaration);
+    return switch (declaration) {
+      case IASTSimpleDeclaration iASTSimpleDeclaration ->
+          handleSimpleDeclaration(iASTSimpleDeclaration);
 
-    } else if (declaration instanceof IASTFunctionDefinition fd) {
-      functionDeclarations.getLast().getFirst().add(fd);
-
-      // add forward declaration to list of global declarations
-      CFunctionDeclaration functionDefinition = astCreator.convert(fd);
-      if (sideAssignmentStack.hasPreSideAssignments()
-          || sideAssignmentStack.hasPostSideAssignments()) {
-        throw parseContext.parseError("Function definition has side effect", fd);
+      case IASTFunctionDefinition fd -> {
+        functionDeclarations.getLast().getFirst().add(fd);
+        // add forward declaration to list of global declarations
+        CFunctionDeclaration functionDefinition = astCreator.convert(fd);
+        if (sideAssignmentStack.hasPreSideAssignments()
+            || sideAssignmentStack.hasPostSideAssignments()) {
+          throw parseContext.parseError("Function definition has side effect", fd);
+        }
+        fileScope.registerFunctionDeclaration(functionDefinition);
+        if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
+          globalDeclarations.add(
+              new GlobalDeclaration(
+                  functionDefinition,
+                  fd.getDeclSpecifier().getRawSignature()
+                      + " "
+                      + fd.getDeclarator().getRawSignature(),
+                  fileScope));
+          globalDecls.add(
+              Pair.of(
+                  functionDefinition,
+                  fd.getDeclSpecifier().getRawSignature()
+                      + " "
+                      + fd.getDeclarator().getRawSignature()));
+          eliminateableDuplicates.add(functionDefinition.toASTString());
+        }
+        sideAssignmentStack.leaveBlock();
+        yield PROCESS_SKIP;
       }
-
-      fileScope.registerFunctionDeclaration(functionDefinition);
-      if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
-        globalDeclarations.add(
-            new GlobalDeclaration(
-                functionDefinition,
-                fd.getDeclSpecifier().getRawSignature()
-                    + " "
-                    + fd.getDeclarator().getRawSignature(),
-                fileScope));
-        globalDecls.add(
-            Pair.of(
-                functionDefinition,
-                fd.getDeclSpecifier().getRawSignature()
-                    + " "
-                    + fd.getDeclarator().getRawSignature()));
-        eliminateableDuplicates.add(functionDefinition.toASTString());
+      case IASTProblemDeclaration iASTProblemDeclaration -> {
+        visit(iASTProblemDeclaration.getProblem());
+        sideAssignmentStack.leaveBlock();
+        yield PROCESS_SKIP;
       }
-
-      sideAssignmentStack.leaveBlock();
-      return PROCESS_SKIP;
-
-    } else if (declaration instanceof IASTProblemDeclaration iASTProblemDeclaration) {
-      visit(iASTProblemDeclaration.getProblem());
-      sideAssignmentStack.leaveBlock();
-      return PROCESS_SKIP;
-
-    } else if (declaration instanceof IASTASMDeclaration) {
-      // TODO Assembler code is ignored here
-      encounteredAsm = true;
-      @Nullable IASTFileLocation fileloc = declaration.getFileLocation();
-      if (fileloc != null) {
-        logger.log(
-            Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
-      } else {
-        logger.log(Level.FINER, "Ignoring inline assembler code at unknown line.");
+      case IASTASMDeclaration asm -> {
+        // TODO Assembler code is ignored here
+        encounteredAsm = true;
+        @Nullable IASTFileLocation fileloc = declaration.getFileLocation();
+        if (fileloc != null) {
+          logger.log(
+              Level.FINER,
+              "Ignoring inline assembler code at line",
+              fileloc.getStartingLineNumber());
+        } else {
+          logger.log(Level.FINER, "Ignoring inline assembler code at unknown line.");
+        }
+        sideAssignmentStack.leaveBlock();
+        yield PROCESS_SKIP;
       }
-      sideAssignmentStack.leaveBlock();
-      return PROCESS_SKIP;
-
-    } else {
-      throw parseContext.parseError(
-          "Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
-    }
+      default ->
+          throw parseContext.parseError(
+              "Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
+    };
   }
 
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {

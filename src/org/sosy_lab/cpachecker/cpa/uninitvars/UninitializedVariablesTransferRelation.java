@@ -260,35 +260,30 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       UninitializedVariablesState element, CStatement expression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
 
-    if (expression instanceof CFunctionCallStatement cFunctionCallStatement) {
-      // in case of a return edge, remove the local context of the function from which we returned
-      if (cfaEdge instanceof FunctionSummaryEdge) {
-        element.returnFromFunction();
-      }
-      // a mere function call (func(a)) does not change the initialization status of variables
-      // just check if there are uninitialized variable usages
-      if (printWarnings) {
-        for (CExpression param :
-            cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-          isExpressionUninitialized(element, param, cfaEdge);
+    switch (expression) {
+      case CFunctionCallStatement cFunctionCallStatement -> {
+        // in case of a return edge, remove the local context of the function from which we returned
+        if (cfaEdge instanceof FunctionSummaryEdge) {
+          element.returnFromFunction();
+        }
+        // a mere function call (func(a)) does not change the initialization status of variables
+        // just check if there are uninitialized variable usages
+        if (printWarnings) {
+          for (CExpression param :
+              cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+            isExpressionUninitialized(element, param, cfaEdge);
+          }
         }
       }
-
-    } else if (expression instanceof CExpressionStatement cExpressionStatement) {
-
-      // just check if there are uninitialized variable usages
-      if (printWarnings) {
-        isExpressionUninitialized(element, cExpressionStatement.getExpression(), cfaEdge);
+      case CExpressionStatement cExpressionStatement -> {
+        // just check if there are uninitialized variable usages
+        if (printWarnings) {
+          isExpressionUninitialized(element, cExpressionStatement.getExpression(), cfaEdge);
+        }
       }
-
-    } else if (expression instanceof CAssignment assignExpression) {
-      // expression is an assignment operation, e.g. a = b or a = a+b;
-
-      // a = b
-      handleAssign(element, assignExpression, cfaEdge);
-
-    } else {
-      throw new UnrecognizedCodeException("unknown statement", cfaEdge, expression);
+      case CAssignment assignExpression -> // a = b
+          handleAssign(element, assignExpression, cfaEdge);
+      default -> throw new UnrecognizedCodeException("unknown statement", cfaEdge, expression);
     }
   }
 

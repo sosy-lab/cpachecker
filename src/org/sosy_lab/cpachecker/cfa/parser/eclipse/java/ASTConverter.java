@@ -673,22 +673,17 @@ class ASTConverter {
 
     JAstNode node = convertExpressionWithSideEffects(s.getExpression());
 
-    if (node instanceof JExpressionAssignmentStatement jExpressionAssignmentStatement) {
-      return jExpressionAssignmentStatement;
-
-    } else if (node
-        instanceof JMethodInvocationAssignmentStatement jMethodInvocationAssignmentStatement) {
-      return jMethodInvocationAssignmentStatement;
-
-    } else if (node instanceof JMethodInvocationExpression jMethodInvocationExpression) {
-      return new JMethodInvocationStatement(getFileLocation(s), jMethodInvocationExpression);
-
-    } else if (node instanceof JExpression jExpression) {
-      return new JExpressionStatement(getFileLocation(s), jExpression);
-
-    } else {
-      throw new AssertionError("Unhandled node type " + node.getClass().getCanonicalName());
-    }
+    return switch (node) {
+      case JExpressionAssignmentStatement jExpressionAssignmentStatement ->
+          jExpressionAssignmentStatement;
+      case JMethodInvocationAssignmentStatement jMethodInvocationAssignmentStatement ->
+          jMethodInvocationAssignmentStatement;
+      case JMethodInvocationExpression jMethodInvocationExpression ->
+          new JMethodInvocationStatement(getFileLocation(s), jMethodInvocationExpression);
+      case JExpression jExpression -> new JExpressionStatement(getFileLocation(s), jExpression);
+      default ->
+          throw new AssertionError("Unhandled node type " + node.getClass().getCanonicalName());
+    };
   }
 
   /**
@@ -2348,27 +2343,22 @@ class ASTConverter {
           convertExpressionWithSideEffects(
               e.getRightHandSide()); // right-hand side may have a method call
 
-      if (rightHandSide instanceof JExpression jExpression) {
-        // a = b
-        return new JExpressionAssignmentStatement(fileLoc, leftHandSide, jExpression);
-
-      } else if (rightHandSide instanceof JMethodInvocationExpression jMethodInvocationExpression) {
-        // a = f()
-        return new JMethodInvocationAssignmentStatement(
-            fileLoc, leftHandSide, jMethodInvocationExpression);
-
-      } else if (rightHandSide instanceof JAssignment jAssignment) {
-
-        // TODO We need the assignments to be evaluated from left to right
-        // e.g. x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
-        preSideAssignments.add(rightHandSide);
-
-        return new JExpressionAssignmentStatement(
-            fileLoc, leftHandSide, jAssignment.getLeftHandSide());
-
-      } else {
-        throw new CFAGenerationRuntimeException("Expression is not free of side effects");
-      }
+      return switch (rightHandSide) {
+        case JExpression jExpression -> /* a = b */
+            new JExpressionAssignmentStatement(fileLoc, leftHandSide, jExpression);
+        case JMethodInvocationExpression jMethodInvocationExpression -> /* a = f() */
+            new JMethodInvocationAssignmentStatement(
+                fileLoc, leftHandSide, jMethodInvocationExpression);
+        case JAssignment jAssignment -> {
+          // TODO We need the assignments to be evaluated from left to right
+          // e.g. x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
+          preSideAssignments.add(rightHandSide);
+          yield new JExpressionAssignmentStatement(
+              fileLoc, leftHandSide, jAssignment.getLeftHandSide());
+        }
+        default ->
+            throw new CFAGenerationRuntimeException("Expression is not free of side effects");
+      };
 
     } else {
       // a += b etc.

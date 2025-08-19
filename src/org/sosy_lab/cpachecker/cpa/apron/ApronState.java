@@ -793,17 +793,13 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   abstract static class Texpr0NodeTraversal<T> {
 
     T visit(Texpr0Node node) {
-      if (node instanceof Texpr0BinNode texpr0BinNode) {
-        return visit(texpr0BinNode);
-      } else if (node instanceof Texpr0CstNode texpr0CstNode) {
-        return visit(texpr0CstNode);
-      } else if (node instanceof Texpr0DimNode texpr0DimNode) {
-        return visit(texpr0DimNode);
-      } else if (node instanceof Texpr0UnNode texpr0UnNode) {
-        return visit(texpr0UnNode);
-      }
-
-      throw new AssertionError("Unhandled Texpr0Node subclass.");
+      return switch (node) {
+        case Texpr0BinNode texpr0BinNode -> visit(texpr0BinNode);
+        case Texpr0CstNode texpr0CstNode -> visit(texpr0CstNode);
+        case Texpr0DimNode texpr0DimNode -> visit(texpr0DimNode);
+        case Texpr0UnNode texpr0UnNode -> visit(texpr0UnNode);
+        default -> throw new AssertionError("Unhandled Texpr0Node subclass.");
+      };
     }
 
     abstract T visit(Texpr0BinNode node);
@@ -846,14 +842,11 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       if (pNode.isScalar()) {
         double value;
         Scalar scalar = pNode.getConstant().inf();
-        if (scalar instanceof DoubleScalar doubleScalar) {
-          value = doubleScalar.get();
-        } else if (scalar instanceof MpqScalar mpqScalar) {
-          value = mpqScalar.get().doubleValue();
-        } else if (scalar instanceof MpfrScalar mpfrScalar) {
-          value = mpfrScalar.get().doubleValue(Mpfr.RNDN);
-        } else {
-          throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
+        switch (scalar) {
+          case DoubleScalar doubleScalar -> value = doubleScalar.get();
+          case MpqScalar mpqScalar -> value = mpqScalar.get().doubleValue();
+          case MpfrScalar mpfrScalar -> value = mpfrScalar.get().doubleValue(Mpfr.RNDN);
+          default -> throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
         }
         if (DoubleMath.isMathematicalInteger(value)) {
           // TODO fix size, machineModel needed?

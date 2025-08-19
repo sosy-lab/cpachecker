@@ -1464,25 +1464,26 @@ public class AssumptionToEdgeAllocator {
     }
 
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
-      if (pValue instanceof Rational rationalValue) {
-        FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pType);
-        return ExplicitValueLiteral.valueOf(
-            FloatValue.fromRational(format, rationalValue), machineModel, pType);
-      } else if (pValue instanceof Double doubleValue) {
-        return ExplicitValueLiteral.valueOf(
-            FloatValue.fromDouble(doubleValue), machineModel, pType);
-      } else if (pValue instanceof Float floatValue) {
-        return ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), machineModel, pType);
-      } else if (pValue instanceof FloatValue floatValue) {
-        return ExplicitValueLiteral.valueOf(floatValue, machineModel, pType);
-      } else if (pValue instanceof FloatingPointNumber floatingPointNumber) {
-        return ExplicitValueLiteral.valueOf(
-            FloatValue.fromFloatingPointNumber(floatingPointNumber), machineModel, pType);
-      }
-      throw new UnsupportedOperationException(
-          String.format(
-              "Can't handle the value `%s` of type `%s` as a floating point number.",
-              pValue, pValue.getClass().getSimpleName()));
+      return switch (pValue) {
+        case Rational rationalValue -> {
+          FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pType);
+          yield ExplicitValueLiteral.valueOf(
+              FloatValue.fromRational(format, rationalValue), machineModel, pType);
+        }
+        case Double doubleValue ->
+            ExplicitValueLiteral.valueOf(FloatValue.fromDouble(doubleValue), machineModel, pType);
+        case Float floatValue ->
+            ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), machineModel, pType);
+        case FloatValue floatValue -> ExplicitValueLiteral.valueOf(floatValue, machineModel, pType);
+        case FloatingPointNumber floatingPointNumber ->
+            ExplicitValueLiteral.valueOf(
+                FloatValue.fromFloatingPointNumber(floatingPointNumber), machineModel, pType);
+        default ->
+            throw new UnsupportedOperationException(
+                String.format(
+                    "Can't handle the value `%s` of type `%s` as a floating point number.",
+                    pValue, pValue.getClass().getSimpleName()));
+      };
     }
 
     void resolveStruct(
@@ -2191,27 +2192,27 @@ public class AssumptionToEdgeAllocator {
   private static Optional<BigInteger> getFieldOffset(
       CType ownerType, String fieldName, MachineModel pMachineModel) {
 
-    if (ownerType instanceof CElaboratedType cElaboratedType) {
-      CType realType = cElaboratedType.getRealType();
-      if (realType == null) {
-        return Optional.empty();
+    return switch (ownerType) {
+      case CElaboratedType cElaboratedType -> {
+        CType realType = cElaboratedType.getRealType();
+        if (realType == null) {
+          yield Optional.empty();
+        }
+        yield getFieldOffset(realType.getCanonicalType(), fieldName, pMachineModel);
       }
-
-      return getFieldOffset(realType.getCanonicalType(), fieldName, pMachineModel);
-    } else if (ownerType instanceof CCompositeType cCompositeType) {
-      BigInteger fieldOffsetInBits = pMachineModel.getFieldOffsetInBits(cCompositeType, fieldName);
-      return bitsToByte(fieldOffsetInBits, pMachineModel); // TODO this looses values of bit fields
-    } else if (ownerType instanceof CPointerType cPointerType) {
-
-      /* We do not explicitly transform x->b,
-      so when we try to get the field b the ownerType of x
-      is a pointer type.*/
-
-      CType type = cPointerType.getType().getCanonicalType();
-      return getFieldOffset(type, fieldName, pMachineModel);
-    }
-
-    throw new AssertionError();
+      case CCompositeType cCompositeType -> {
+        BigInteger fieldOffsetInBits =
+            pMachineModel.getFieldOffsetInBits(cCompositeType, fieldName);
+        yield bitsToByte(fieldOffsetInBits, pMachineModel); // TODO this looses values of bit fields
+      }
+      case CPointerType cPointerType -> {
+        // We do not explicitly transform x->b, so when we try to get the field b the ownerType of x
+        // is a pointer type.
+        CType type = cPointerType.getType().getCanonicalType();
+        yield getFieldOffset(type, fieldName, pMachineModel);
+      }
+      default -> throw new AssertionError();
+    };
   }
 
   private static Optional<BigInteger> bitsToByte(BigInteger bits, MachineModel pMachineModel) {

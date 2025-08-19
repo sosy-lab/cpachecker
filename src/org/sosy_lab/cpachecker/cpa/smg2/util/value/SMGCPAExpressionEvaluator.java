@@ -260,31 +260,26 @@ public class SMGCPAExpressionEvaluator {
    * @return the offset in bits of a field as a {@link BigInteger}.
    */
   public BigInteger getFieldOffsetInBits(CType ownerExprType, String pFieldName) {
-    if (ownerExprType instanceof CElaboratedType cElaboratedType) {
-
-      // CElaboratedType is either a struct, union or enum. getRealType returns the correct type
-      CType realType = cElaboratedType.getRealType();
-
-      if (realType == null) {
-        // TODO: This is possible, i don't know when however, handle once i find out.
-        throw new AssertionError();
+    return switch (ownerExprType) {
+      case CElaboratedType cElaboratedType -> {
+        // CElaboratedType is either a struct, union or enum. getRealType returns the correct type
+        CType realType = cElaboratedType.getRealType();
+        if (realType == null) {
+          // TODO: This is possible, i don't know when however, handle once i find out.
+          throw new AssertionError();
+        }
+        yield getFieldOffsetInBits(realType, pFieldName);
       }
+      case CCompositeType cCompositeType ->
+          // Struct or Union type
+          machineModel.getFieldOffsetInBits(cCompositeType, pFieldName);
 
-      return getFieldOffsetInBits(realType, pFieldName);
-    } else if (ownerExprType instanceof CCompositeType cCompositeType) {
+      case CPointerType cPointerType ->
+          // structPointer -> field or (*structPointer).field
+          getFieldOffsetInBits(getCanonicalType(cPointerType.getType()), pFieldName);
 
-      // Struct or Union type
-      return machineModel.getFieldOffsetInBits(cCompositeType, pFieldName);
-    } else if (ownerExprType instanceof CPointerType cPointerType) {
-
-      // structPointer -> field or (*structPointer).field
-      CType type = getCanonicalType(cPointerType.getType());
-
-      return getFieldOffsetInBits(type, pFieldName);
-    }
-
-    // Should never happen
-    throw new AssertionError();
+      default -> throw new AssertionError();
+    };
   }
 
   /**

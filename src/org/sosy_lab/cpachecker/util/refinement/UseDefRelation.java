@@ -366,24 +366,24 @@ public class UseDefRelation {
    * initializer.
    */
   private Set<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer initializer) {
-    if (initializer instanceof CDesignatedInitializer cDesignatedInitializer) {
-      // e.g. .x=b or .p.x.=1  as part of struct initialization
-      return getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide());
+    return switch (initializer) {
+      case CDesignatedInitializer cDesignatedInitializer ->
+          // e.g. .x=b or .p.x.=1  as part of struct initialization
+          getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide());
 
-    } else if (initializer instanceof CInitializerList cInitializerList) {
-      // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-      Set<ASimpleDeclaration> readVars = new HashSet<>();
-
-      for (CInitializer initializerList : cInitializerList.getInitializers()) {
-        readVars.addAll(getVariablesUsedForInitialization(initializerList));
+      case CInitializerList cInitializerList -> {
+        // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
+        Set<ASimpleDeclaration> readVars = new HashSet<>();
+        for (CInitializer initializerList : cInitializerList.getInitializers()) {
+          readVars.addAll(getVariablesUsedForInitialization(initializerList));
+        }
+        yield readVars;
       }
+      case AInitializerExpression aInitializerExpression ->
+          acceptAll(aInitializerExpression.getExpression());
 
-      return readVars;
-    } else if (initializer instanceof AInitializerExpression aInitializerExpression) {
-      return acceptAll(aInitializerExpression.getExpression());
-    } else {
-      throw new AssertionError("Missing case for if-then-else statement.");
-    }
+      default -> throw new AssertionError("Missing case for if-then-else statement.");
+    };
   }
 
   private void handleAssignments(AAssignment assignment, CFAEdge edge, ARGState state) {

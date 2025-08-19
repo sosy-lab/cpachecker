@@ -312,24 +312,23 @@ class CFAFunctionBuilder extends ASTVisitor {
       // we should blacklist declarations in places we don't want, so for now I choose the latter
       // because the change has less impact.
       return PROCESS_SKIP;
-
-    } else if (declaration instanceof IASTSimpleDeclaration iASTSimpleDeclaration) {
-      return handleSimpleDeclaration(iASTSimpleDeclaration);
-
-    } else if (declaration instanceof IASTFunctionDefinition iASTFunctionDefinition) {
-      return handleFunctionDefinition(iASTFunctionDefinition);
-
-    } else if (declaration instanceof IASTProblemDeclaration iASTProblemDeclaration) {
-      visit(iASTProblemDeclaration.getProblem());
-      return PROCESS_SKIP;
-
-    } else if (declaration instanceof IASTASMDeclaration) {
-      return ignoreASMDeclaration(declaration);
-
-    } else {
-      throw parseContext.parseError(
-          "Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
     }
+
+    return switch (declaration) {
+      case IASTSimpleDeclaration decl -> handleSimpleDeclaration(decl);
+
+      case IASTFunctionDefinition func -> handleFunctionDefinition(func);
+
+      case IASTProblemDeclaration problemDeclaration -> {
+        visit(problemDeclaration.getProblem());
+        yield PROCESS_SKIP;
+      }
+      case IASTASMDeclaration asm -> ignoreASMDeclaration(declaration);
+
+      default ->
+          throw parseContext.parseError(
+              "Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
+    };
   }
 
   /**
@@ -634,52 +633,55 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     // Handle each kind of expression
-    if (statement instanceof IASTCompoundStatement) {
-      ASTNodeProperty property = statement.getPropertyInParent();
-      if (property == IGNUASTCompoundStatementExpression.STATEMENT) {
-        // IGNUASTCompoundStatementExpression content is already handled
-        return PROCESS_SKIP;
-      } else if (property == IASTCompoundStatement.NESTED_STATEMENT) {
-        blockStarts.push(locStack.peek());
+    switch (statement) {
+      case IASTCompoundStatement compoundStatement -> {
+        ASTNodeProperty property = statement.getPropertyInParent();
+        if (property == IGNUASTCompoundStatementExpression.STATEMENT) {
+          // IGNUASTCompoundStatementExpression content is already handled
+          return PROCESS_SKIP;
+        } else if (property == IASTCompoundStatement.NESTED_STATEMENT) {
+          blockStarts.push(locStack.peek());
+        }
+        scope.enterBlock();
+        // Do nothing, just continue visiting
       }
+      case IASTExpressionStatement iASTExpressionStatement ->
+          handleExpressionStatement(iASTExpressionStatement, fileloc);
+      case IASTIfStatement iASTIfStatement -> handleIfStatement(iASTIfStatement, fileloc);
+      case IASTWhileStatement iASTWhileStatement ->
+          handleWhileStatement(iASTWhileStatement, fileloc);
+      case IASTForStatement iASTForStatement -> {
+        return handleForStatement(iASTForStatement, fileloc);
+      }
+      case IASTBreakStatement iASTBreakStatement ->
+          handleBreakStatement(iASTBreakStatement, fileloc);
+      case IASTContinueStatement iASTContinueStatement ->
+          handleContinueStatement(iASTContinueStatement, fileloc);
+      case IASTLabelStatement iASTLabelStatement ->
+          handleLabelStatement(iASTLabelStatement, fileloc);
+      case IASTGotoStatement iASTGotoStatement -> handleGotoStatement(iASTGotoStatement, fileloc);
+      case IASTReturnStatement iASTReturnStatement ->
+          handleReturnStatement(iASTReturnStatement, fileloc);
+      case IASTSwitchStatement iASTSwitchStatement -> {
+        return handleSwitchStatement(iASTSwitchStatement, fileloc);
+      }
+      case IASTCaseStatement iASTCaseStatement -> handleCaseStatement(iASTCaseStatement, fileloc);
+      case IASTDefaultStatement iASTDefaultStatement ->
+          handleDefaultStatement(iASTDefaultStatement, fileloc);
 
-      scope.enterBlock();
-      // Do nothing, just continue visiting
-    } else if (statement instanceof IASTExpressionStatement iASTExpressionStatement) {
-      handleExpressionStatement(iASTExpressionStatement, fileloc);
-    } else if (statement instanceof IASTIfStatement iASTIfStatement) {
-      handleIfStatement(iASTIfStatement, fileloc);
-    } else if (statement instanceof IASTWhileStatement iASTWhileStatement) {
-      handleWhileStatement(iASTWhileStatement, fileloc);
-    } else if (statement instanceof IASTForStatement iASTForStatement) {
-      return handleForStatement(iASTForStatement, fileloc);
-    } else if (statement instanceof IASTBreakStatement iASTBreakStatement) {
-      handleBreakStatement(iASTBreakStatement, fileloc);
-    } else if (statement instanceof IASTContinueStatement iASTContinueStatement) {
-      handleContinueStatement(iASTContinueStatement, fileloc);
-    } else if (statement instanceof IASTLabelStatement iASTLabelStatement) {
-      handleLabelStatement(iASTLabelStatement, fileloc);
-    } else if (statement instanceof IASTGotoStatement iASTGotoStatement) {
-      handleGotoStatement(iASTGotoStatement, fileloc);
-    } else if (statement instanceof IASTReturnStatement iASTReturnStatement) {
-      handleReturnStatement(iASTReturnStatement, fileloc);
-    } else if (statement instanceof IASTSwitchStatement iASTSwitchStatement) {
-      return handleSwitchStatement(iASTSwitchStatement, fileloc);
-    } else if (statement instanceof IASTCaseStatement iASTCaseStatement) {
-      handleCaseStatement(iASTCaseStatement, fileloc);
-    } else if (statement instanceof IASTDefaultStatement iASTDefaultStatement) {
-      handleDefaultStatement(iASTDefaultStatement, fileloc);
-    } else if (statement instanceof IASTNullStatement) {
-      // We really don't care about blank statements
-    } else if (statement instanceof IASTDeclarationStatement) {
-      // these are handled by visit(IASTDeclaration)
-    } else if (statement instanceof IASTProblemStatement iASTProblemStatement) {
-      visit(iASTProblemStatement.getProblem());
-    } else if (statement instanceof IASTDoStatement iASTDoStatement) {
-      handleDoWhileStatement(iASTDoStatement, fileloc);
-    } else {
-      throw parseContext.parseError(
-          "Unknown AST node " + statement.getClass().getSimpleName(), statement);
+      case IASTNullStatement nullStatement -> {
+        // We really don't care about blank statements
+      }
+      case IASTDeclarationStatement declarationStatement -> {
+        // these are handled by visit(IASTDeclaration)
+      }
+      case IASTProblemStatement iASTProblemStatement -> visit(iASTProblemStatement.getProblem());
+
+      case IASTDoStatement iASTDoStatement -> handleDoWhileStatement(iASTDoStatement, fileloc);
+
+      default ->
+          throw parseContext.parseError(
+              "Unknown AST node " + statement.getClass().getSimpleName(), statement);
     }
 
     return PROCESS_CONTINUE;
@@ -2183,19 +2185,17 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private CFANode handleConditionalExpression(
       final CFANode prevNode, final IASTExpression condExp, final @Nullable CIdExpression tempVar) {
-    if (condExp instanceof IASTConditionalExpression iASTConditionalExpression) {
-      return handleTernaryOperator(iASTConditionalExpression, prevNode, tempVar);
-    } else if (condExp instanceof IASTBinaryExpression iASTBinaryExpression) {
-      return handleShortcuttingOperators(iASTBinaryExpression, prevNode, tempVar);
-    } else if (condExp
-        instanceof IGNUASTCompoundStatementExpression iGNUASTCompoundStatementExpression) {
-      return handleCompoundStatementExpression(
-          iGNUASTCompoundStatementExpression, prevNode, tempVar);
-    } else if (condExp instanceof IASTExpressionList iASTExpressionList) {
-      return handleExpressionList(iASTExpressionList, prevNode, tempVar);
-    } else {
-      throw new AssertionError();
-    }
+    return switch (condExp) {
+      case IASTConditionalExpression iASTConditionalExpression ->
+          handleTernaryOperator(iASTConditionalExpression, prevNode, tempVar);
+      case IASTBinaryExpression iASTBinaryExpression ->
+          handleShortcuttingOperators(iASTBinaryExpression, prevNode, tempVar);
+      case IGNUASTCompoundStatementExpression iGNUASTCompoundStatementExpression ->
+          handleCompoundStatementExpression(iGNUASTCompoundStatementExpression, prevNode, tempVar);
+      case IASTExpressionList iASTExpressionList ->
+          handleExpressionList(iASTExpressionList, prevNode, tempVar);
+      default -> throw new AssertionError();
+    };
   }
 
   /**

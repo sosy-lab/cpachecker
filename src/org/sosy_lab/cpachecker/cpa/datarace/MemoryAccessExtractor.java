@@ -204,19 +204,23 @@ public class MemoryAccessExtractor {
 
   private Set<OverapproximatingMemoryLocation> getInvolvedVariableTypes(
       CInitializer pCInitializer, CFAEdge pCfaEdge) {
-    if (pCInitializer instanceof CDesignatedInitializer cDesignatedInitializer) {
-      return getInvolvedVariableTypes(cDesignatedInitializer.getRightHandSide(), pCfaEdge);
-    } else if (pCInitializer instanceof CInitializerExpression cInitializerExpression) {
-      return getInvolvedVariableTypes(cInitializerExpression.getExpression(), pCfaEdge);
-    } else if (pCInitializer instanceof CInitializerList cInitializerList) {
-      ImmutableSet.Builder<OverapproximatingMemoryLocation> resultBuilder = ImmutableSet.builder();
-      for (CInitializer initializer : cInitializerList.getInitializers()) {
-        resultBuilder.addAll(getInvolvedVariableTypes(initializer, pCfaEdge));
+    return switch (pCInitializer) {
+      case CDesignatedInitializer cDesignatedInitializer ->
+          getInvolvedVariableTypes(cDesignatedInitializer.getRightHandSide(), pCfaEdge);
+
+      case CInitializerExpression cInitializerExpression ->
+          getInvolvedVariableTypes(cInitializerExpression.getExpression(), pCfaEdge);
+
+      case CInitializerList cInitializerList -> {
+        ImmutableSet.Builder<OverapproximatingMemoryLocation> resultBuilder =
+            ImmutableSet.builder();
+        for (CInitializer initializer : cInitializerList.getInitializers()) {
+          resultBuilder.addAll(getInvolvedVariableTypes(initializer, pCfaEdge));
+        }
+        yield resultBuilder.build();
       }
-      return resultBuilder.build();
-    } else {
-      throw new AssertionError("Unhandled C initializer:" + pCInitializer);
-    }
+      default -> throw new AssertionError("Unhandled C initializer:" + pCInitializer);
+    };
   }
 
   /**

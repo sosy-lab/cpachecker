@@ -92,100 +92,88 @@ class ASTTypeConverter {
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
   private CType convert0(IType t) {
-    if (t instanceof IBasicType iBasicType) {
-      return conv(iBasicType);
+    return switch (t) {
+      case IBasicType iBasicType -> conv(iBasicType);
 
-    } else if (t instanceof IPointerType iPointerType) {
-      return conv(iPointerType);
+      case IPointerType iPointerType -> conv(iPointerType);
 
-    } else if (t instanceof ITypedef iTypedef) {
-      return conv(iTypedef);
+      case ITypedef iTypedef -> conv(iTypedef);
 
-    } else if (t instanceof ICompositeType ct) {
-      ComplexTypeKind kind =
-          switch (ct.getKey()) {
-            case ICompositeType.k_struct -> ComplexTypeKind.STRUCT;
-            case ICompositeType.k_union -> ComplexTypeKind.UNION;
-            default ->
-                throw new CFAGenerationRuntimeException(
-                    "Unknown key " + ct.getKey() + " for composite type " + t);
-          };
-      String name = ct.getName();
-      String qualifiedName = kind.toASTString() + " " + name;
-
-      @Nullable CComplexType oldType = scope.lookupType(qualifiedName);
-
-      // We have seen this type already.
-      // Replace it with a CElaboratedType.
-      if (oldType != null) {
-        return new CElaboratedType(
-            false, false, kind, oldType.getName(), oldType.getOrigName(), oldType);
-      }
-
-      // empty linkedList for the Fields of the struct, they are created afterward
-      // with the right references in case of pointers to a struct of the same type
-      // otherwise they would not point to the correct struct
-      // TODO: volatile and const cannot be checked here until no, so both is set
-      //       to false
-      CCompositeType compType = new CCompositeType(false, false, kind, name, name);
-
-      // We need to cache compType before converting the type of its fields!
-      // Otherwise, we run into an infinite recursion if the type of one field
-      // is (a pointer to) the struct itself.
-      // In order to prevent a recursive reference from compType to itself,
-      // we cheat and put a CElaboratedType instance in the map.
-      // This means that wherever the ICompositeType instance appears, it will be
-      // replaced by a CElaboratedType.
-      CElaboratedType elaborateType =
-          new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType);
-      parseContext.rememberCType(t, elaborateType, filePrefix);
-
-      compType.setMembers(conv(ct.getFields()));
-
-      return compType;
-
-    } else if (t instanceof IFunctionType ft) {
-      IType[] parameters = ft.getParameterTypes();
-      List<CType> newParameters = new ArrayList<>(parameters.length);
-      for (IType p : parameters) {
-        if (p instanceof IBasicType iBasicType && iBasicType.getKind() == IBasicType.Kind.eVoid) {
-          // there may be a function declaration f(void), which is equal to f()
-          // we don't want this dummy parameter "void"
-          assert parameters.length == 1;
-        } else {
-          newParameters.add(convert(p));
+      case ICompositeType ct -> {
+        ComplexTypeKind kind =
+            switch (ct.getKey()) {
+              case ICompositeType.k_struct -> ComplexTypeKind.STRUCT;
+              case ICompositeType.k_union -> ComplexTypeKind.UNION;
+              default ->
+                  throw new CFAGenerationRuntimeException(
+                      "Unknown key " + ct.getKey() + " for composite type " + t);
+            };
+        String name = ct.getName();
+        String qualifiedName = kind.toASTString() + " " + name;
+        @Nullable CComplexType oldType = scope.lookupType(qualifiedName);
+        // We have seen this type already.
+        // Replace it with a CElaboratedType.
+        if (oldType != null) {
+          yield new CElaboratedType(
+              false, false, kind, oldType.getName(), oldType.getOrigName(), oldType);
         }
+        // empty linkedList for the Fields of the struct, they are created afterward
+        // with the right references in case of pointers to a struct of the same type
+        // otherwise they would not point to the correct struct
+        // TODO: volatile and const cannot be checked here until no, so both is set
+        //       to false
+        CCompositeType compType = new CCompositeType(false, false, kind, name, name);
+        // We need to cache compType before converting the type of its fields!
+        // Otherwise, we run into an infinite recursion if the type of one field
+        // is (a pointer to) the struct itself.
+        // In order to prevent a recursive reference from compType to itself,
+        // we cheat and put a CElaboratedType instance in the map.
+        // This means that wherever the ICompositeType instance appears, it will be
+        // replaced by a CElaboratedType.
+        CElaboratedType elaborateType =
+            new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType);
+        parseContext.rememberCType(t, elaborateType, filePrefix);
+        compType.setMembers(conv(ct.getFields()));
+        yield compType;
       }
-
-      // TODO varargs
-      return new CFunctionType(convert(ft.getReturnType()), newParameters, false);
-
-    } else if (t instanceof ICArrayType iCArrayType) {
-      return conv(iCArrayType);
-
-    } else if (t instanceof IQualifierType iQualifierType) {
-      return conv(iQualifierType);
-
-    } else if (t instanceof IEnumeration iEnumeration) {
-      return conv(iEnumeration);
-
-    } else if (t instanceof IProblemType iProblemType) {
-      // Of course, the obvious idea would be to throw an exception here.
-      // However, CDT seems to give us ProblemTypes even for perfectly legal C code,
-      // e.g. in cdaudio_safe.i.cil.c
-      return new CProblemType(t + ": " + iProblemType.getMessage());
-
-    } else if (t instanceof IProblemBinding problem) {
-      if (problem.getASTNode().getRawSignature().equals("__label__")) {
-        // This is a "local label" (a GNU C extension).
-        // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
-        return new CProblemType(problem.getASTNode().getRawSignature());
+      case IFunctionType ft -> {
+        IType[] parameters = ft.getParameterTypes();
+        List<CType> newParameters = new ArrayList<>(parameters.length);
+        for (IType p : parameters) {
+          if (p instanceof IBasicType iBasicType && iBasicType.getKind() == IBasicType.Kind.eVoid) {
+            // there may be a function declaration f(void), which is equal to f()
+            // we don't want this dummy parameter "void"
+            assert parameters.length == 1;
+          } else {
+            newParameters.add(convert(p));
+          }
+        }
+        // TODO varargs
+        yield new CFunctionType(convert(ft.getReturnType()), newParameters, false);
       }
-      throw parseContext.parseError(problem.getMessage(), problem.getASTNode());
+      case ICArrayType iCArrayType -> conv(iCArrayType);
 
-    } else {
-      throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
-    }
+      case IQualifierType iQualifierType -> conv(iQualifierType);
+
+      case IEnumeration iEnumeration -> conv(iEnumeration);
+
+      case IProblemType iProblemType -> {
+        // Of course, the obvious idea would be to throw an exception here.
+        // However, CDT seems to give us ProblemTypes even for perfectly legal C code,
+        // e.g. in cdaudio_safe.i.cil.c
+        yield new CProblemType(t + ": " + iProblemType.getMessage());
+      }
+      case IProblemBinding problem -> {
+        if (problem.getASTNode().getRawSignature().equals("__label__")) {
+          // This is a "local label" (a GNU C extension).
+          // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
+          yield new CProblemType(problem.getASTNode().getRawSignature());
+        }
+        throw parseContext.parseError(problem.getMessage(), problem.getASTNode());
+      }
+      default ->
+          throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
+    };
   }
 
   private CType conv(final IBasicType t) {
