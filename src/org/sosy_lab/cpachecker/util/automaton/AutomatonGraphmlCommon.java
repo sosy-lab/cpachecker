@@ -532,51 +532,59 @@ public final class AutomatonGraphmlCommon {
   }
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
-    if (edge instanceof BlankEdge) {
-      if (isMainFunctionEntry(edge)) {
-        return false;
-      }
-      if (edge.getSuccessor() instanceof FunctionExitNode functionExitNode) {
-        return isEmptyStub(functionExitNode.getEntryNode());
-      }
-      if (AutomatonGraphmlCommon.treatAsTrivialAssume(edge)) {
-        return false;
-      }
-      if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
-        return false;
-      }
-      return true;
-    } else if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
-      return isEmptyStub(cFunctionCallEdge.getSuccessor());
-    } else if (edge instanceof CFunctionReturnEdge cFunctionReturnEdge) {
-      return isEmptyStub(cFunctionReturnEdge.getFunctionEntry());
-    } else if (edge instanceof CDeclarationEdge declEdge) {
-      CDeclaration decl = declEdge.getDeclaration();
-      if (decl instanceof CFunctionDeclaration) {
+    switch (edge) {
+      case BlankEdge blankEdge -> {
+        if (isMainFunctionEntry(edge)) {
+          return false;
+        }
+        if (edge.getSuccessor() instanceof FunctionExitNode functionExitNode) {
+          return isEmptyStub(functionExitNode.getEntryNode());
+        }
+        if (AutomatonGraphmlCommon.treatAsTrivialAssume(edge)) {
+          return false;
+        }
+        if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+          return false;
+        }
         return true;
-      } else if (decl instanceof CTypeDeclaration) {
+      }
+      case CFunctionCallEdge cFunctionCallEdge -> {
+        return isEmptyStub(cFunctionCallEdge.getSuccessor());
+      }
+      case CFunctionReturnEdge cFunctionReturnEdge -> {
+        return isEmptyStub(cFunctionReturnEdge.getFunctionEntry());
+      }
+      case CDeclarationEdge declEdge -> {
+        CDeclaration decl = declEdge.getDeclaration();
+        if (decl instanceof CFunctionDeclaration) {
+          return true;
+        } else if (decl instanceof CTypeDeclaration) {
+          return true;
+        } else if (decl instanceof CVariableDeclaration varDecl) {
+          if (Ascii.toUpperCase(varDecl.getName()).startsWith(CPACHECKER_TMP_PREFIX)) {
+            return true; // Dirty hack; would be better if these edges had no file location
+          }
+          if (isSplitDeclaration(edge)) {
+            return true;
+          }
+        }
+      }
+      case CFunctionSummaryStatementEdge summaryEdge -> {
         return true;
-      } else if (decl instanceof CVariableDeclaration varDecl) {
-        if (Ascii.toUpperCase(varDecl.getName()).startsWith(CPACHECKER_TMP_PREFIX)) {
-          return true; // Dirty hack; would be better if these edges had no file location
-        }
-        if (isSplitDeclaration(edge)) {
-          return true;
+      }
+      case AStatementEdge statementEdge -> {
+        AStatement statement = statementEdge.getStatement();
+        if (statement instanceof AExpressionStatement expressionStatement) {
+          AExpression expression = expressionStatement.getExpression();
+          if ((expression instanceof AIdExpression idExpression)
+              && Ascii.toUpperCase(idExpression.getName()).startsWith(CPACHECKER_TMP_PREFIX)) {
+            return true;
+          }
+        } else {
+          return isTmpPartOfTernaryExpressionAssignment(statementEdge);
         }
       }
-    } else if (edge instanceof CFunctionSummaryStatementEdge) {
-      return true;
-    } else if (edge instanceof AStatementEdge statementEdge) {
-      AStatement statement = statementEdge.getStatement();
-      if (statement instanceof AExpressionStatement expressionStatement) {
-        AExpression expression = expressionStatement.getExpression();
-        if ((expression instanceof AIdExpression idExpression)
-            && Ascii.toUpperCase(idExpression.getName()).startsWith(CPACHECKER_TMP_PREFIX)) {
-          return true;
-        }
-      } else {
-        return isTmpPartOfTernaryExpressionAssignment(statementEdge);
-      }
+      case null /*TODO check if null is necessary*/, default -> {}
     }
 
     return false;

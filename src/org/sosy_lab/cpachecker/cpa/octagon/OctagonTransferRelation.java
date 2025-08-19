@@ -455,16 +455,17 @@ public class OctagonTransferRelation
     }
 
     OctagonNumericValue rightVal = OctagonIntValue.ZERO;
-    if (right instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-      rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
-    } else if (right instanceof CCharLiteralExpression cCharLiteralExpression) {
-      rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
-    } else if (right instanceof CFloatLiteralExpression cFloatLiteralExpression) {
-      rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
-
-      // we cannot handle strings, so just return the previous state
-    } else {
-      return Collections.singleton(pState);
+    switch (right) {
+      case CIntegerLiteralExpression cIntegerLiteralExpression ->
+          rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
+      case CCharLiteralExpression cCharLiteralExpression ->
+          rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
+      case CFloatLiteralExpression cFloatLiteralExpression ->
+          rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+      case null /*TODO check if null is necessary*/, default -> {
+        // we cannot handle strings, so just return the previous state
+        return Collections.singleton(pState);
+      }
     }
 
     Set<OctagonState> possibleStates = new HashSet<>();
@@ -530,21 +531,25 @@ public class OctagonTransferRelation
       BinaryOperator op,
       boolean truthAssumption) {
     OctagonNumericValue leftVal = OctagonIntValue.ZERO;
-    if (left instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-      leftVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
-    } else if (left instanceof CCharLiteralExpression cCharLiteralExpression) {
-      leftVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
-    } else if (left instanceof CFloatLiteralExpression cFloatLiteralExpression) {
-      leftVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+    switch (left) {
+      case CIntegerLiteralExpression cIntegerLiteralExpression ->
+          leftVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
+      case CCharLiteralExpression cCharLiteralExpression ->
+          leftVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
+      case CFloatLiteralExpression cFloatLiteralExpression ->
+          leftVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+      case null /*TODO check if null is necessary*/, default -> {}
     }
 
     OctagonNumericValue rightVal = OctagonIntValue.ZERO;
-    if (right instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-      rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
-    } else if (right instanceof CCharLiteralExpression cCharLiteralExpression) {
-      rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
-    } else if (right instanceof CFloatLiteralExpression cFloatLiteralExpression) {
-      rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+    switch (right) {
+      case CIntegerLiteralExpression cIntegerLiteralExpression ->
+          rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
+      case CCharLiteralExpression cCharLiteralExpression ->
+          rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
+      case CFloatLiteralExpression cFloatLiteralExpression ->
+          rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+      case null /*TODO check if null is necessary*/, default -> {}
     }
 
     if (truthAssumption == isOperatorSatisfied(op, leftVal, rightVal)) {

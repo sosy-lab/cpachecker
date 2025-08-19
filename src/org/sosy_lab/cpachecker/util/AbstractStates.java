@@ -67,21 +67,25 @@ public final class AbstractStates {
       return pType.cast(pState);
 
       // optimization for single-wrapper states (would work without)
-    } else if (pState instanceof AbstractSingleWrapperState abstractSingleWrapperState) {
-      AbstractState wrapped = abstractSingleWrapperState.getWrappedState();
-      return extractStateByType(wrapped, pType);
-
-    } else if (pState
-        instanceof AbstractSerializableSingleWrapperState abstractSerializableSingleWrapperState) {
-      AbstractState wrapped = abstractSerializableSingleWrapperState.getWrappedState();
-      return extractStateByType(wrapped, pType);
-
-    } else if (pState instanceof AbstractWrapperState abstractWrapperState) {
-      for (AbstractState wrapped : abstractWrapperState.getWrappedStates()) {
-        T result = extractStateByType(wrapped, pType);
-        if (result != null) {
-          return result;
+    } else {
+      switch (pState) {
+        case AbstractSingleWrapperState abstractSingleWrapperState -> {
+          AbstractState wrapped = abstractSingleWrapperState.getWrappedState();
+          return extractStateByType(wrapped, pType);
         }
+        case AbstractSerializableSingleWrapperState abstractSerializableSingleWrapperState -> {
+          AbstractState wrapped = abstractSerializableSingleWrapperState.getWrappedState();
+          return extractStateByType(wrapped, pType);
+        }
+        case AbstractWrapperState abstractWrapperState -> {
+          for (AbstractState wrapped : abstractWrapperState.getWrappedStates()) {
+            T result = extractStateByType(wrapped, pType);
+            if (result != null) {
+              return result;
+            }
+          }
+        }
+        case null /*TODO check if null is necessary*/, default -> {}
       }
     }
 

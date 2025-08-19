@@ -1635,61 +1635,60 @@ class ASTConverter {
   @VisibleForTesting
   static Optional<Class<?>> getClassOfJType(
       JType pJType, Set<ImportDeclaration> pImportDeclarations) {
-    if (pJType instanceof JSimpleType jSimpleType) {
-      return Optional.of(getClassOfPrimitiveType(jSimpleType));
-    }
-    if (pJType instanceof JClassOrInterfaceType jClassOrInterfaceType) {
-      final String jTypeName = jClassOrInterfaceType.getName();
-      Optional<ImportDeclaration> matchingImportDeclaration =
-          getMatchingImportDeclaration(jTypeName, pImportDeclarations);
-      Optional<Class<?>> cls = Optional.empty();
-      if (matchingImportDeclaration.isPresent()) {
-        try {
-          cls =
-              Optional.of(
-                  Class.forName(
-                      matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName()));
-        } catch (ClassNotFoundException e) {
-          cls = Optional.empty();
+    return switch (pJType) {
+      case JSimpleType jSimpleType -> Optional.of(getClassOfPrimitiveType(jSimpleType));
+
+      case JClassOrInterfaceType jClassOrInterfaceType -> {
+        final String jTypeName = jClassOrInterfaceType.getName();
+        Optional<ImportDeclaration> matchingImportDeclaration =
+            getMatchingImportDeclaration(jTypeName, pImportDeclarations);
+        Optional<Class<?>> cls = Optional.empty();
+        if (matchingImportDeclaration.isPresent()) {
+          try {
+            cls =
+                Optional.of(
+                    Class.forName(
+                        matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName()));
+          } catch (ClassNotFoundException e) {
+            cls = Optional.empty();
+          }
         }
-      }
-      if (!cls.isPresent()) {
-        try {
-          cls = Optional.of(Class.forName(jTypeName));
+        if (!cls.isPresent()) {
+          try {
+            cls = Optional.of(Class.forName(jTypeName));
 
-        } catch (ClassNotFoundException e) {
-          cls = Optional.empty();
+          } catch (ClassNotFoundException e) {
+            cls = Optional.empty();
+          }
         }
-      }
-      if (!cls.isPresent()) {
-        try {
-          final String className = "java.lang." + jTypeName;
-          cls = Optional.of(Class.forName(className));
+        if (!cls.isPresent()) {
+          try {
+            final String className = "java.lang." + jTypeName;
+            cls = Optional.of(Class.forName(className));
 
-        } catch (ClassNotFoundException e) {
+          } catch (ClassNotFoundException e) {
 
-          cls = Optional.empty();
+            cls = Optional.empty();
+          }
         }
+        if (!cls.isPresent()) {
+          yield cls;
+        }
+        yield cls;
       }
-
-      if (!cls.isPresent()) {
-        return cls;
+      case JArrayType jArrayType -> {
+        final JType elementTypeOfJArrayType = jArrayType.getElementType();
+        Optional<Class<?>> typeOfArray =
+            getClassOfJType(elementTypeOfJArrayType, pImportDeclarations);
+        int dimensionsOfArray = jArrayType.getDimensions();
+        Class<?> array = Array.newInstance(typeOfArray.orElseThrow(), 0).getClass();
+        for (int i = 1; i < dimensionsOfArray; i++) {
+          array = Array.newInstance(array, 0).getClass();
+        }
+        yield Optional.of(array);
       }
-      return cls;
-    }
-    if (pJType instanceof JArrayType jArrayType) {
-      final JType elementTypeOfJArrayType = jArrayType.getElementType();
-      Optional<Class<?>> typeOfArray =
-          getClassOfJType(elementTypeOfJArrayType, pImportDeclarations);
-      int dimensionsOfArray = jArrayType.getDimensions();
-      Class<?> array = Array.newInstance(typeOfArray.orElseThrow(), 0).getClass();
-      for (int i = 1; i < dimensionsOfArray; i++) {
-        array = Array.newInstance(array, 0).getClass();
-      }
-      return Optional.of(array);
-    }
-
-    return Optional.empty();
+      case null /*TODO check if null is necessary*/, default -> Optional.empty();
+    };
   }
 
   @VisibleForTesting
