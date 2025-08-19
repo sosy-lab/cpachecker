@@ -679,31 +679,45 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     Set<CIdExpression> taintedVars = pState.getTaintedVariables();
 
-    boolean statementIsInControlStructure = isInControlStructure(pCfaEdge);
-
-    boolean statementIsControlledByTaintedVars =
-        isStatementControlledByTaintedVars(pCfaEdge, taintedVars);
-
     CExpression expr = initializer.getExpression();
-    boolean rhsIsTainted =
+    boolean taintedRHS =
         TaintAnalysisUtils.getAllVarsAsCExpr(expr).stream()
             .anyMatch(var -> taintedVars.contains(var));
 
-    if (statementIsInControlStructure) {
-      if (statementIsControlledByTaintedVars || rhsIsTainted) {
+    if (isInControlStructure(pCfaEdge)) {
+      if (isStatementControlledByTaintedVars(pCfaEdge, pState.getTaintedVariables())) {
+
         generatedVars.add(variableLHS);
+
       } else {
-        killedVars.add(variableLHS);
+
+        if (taintedRHS) {
+          generatedVars.add(variableLHS);
+        } else {
+          killedVars.add(variableLHS);
+        }
       }
+
     } else {
-      if (rhsIsTainted) {
+
+      if (taintedRHS) {
         generatedVars.add(variableLHS);
       } else {
         killedVars.add(variableLHS);
       }
     }
 
-    values.put(variableLHS, expr);
+    if (!loopConditionIsNull(pCfaEdge)) {
+      values.put(variableLHS, expr);
+    } else {
+      if (!varIsLoopIterationIndex(variableLHS, pCfaEdge)) {
+        if (!(expr instanceof CBinaryExpression)) {
+          values.put(variableLHS, expr);
+        }
+      }
+    }
+
+    //    values.put(variableLHS, expr);
   }
 
   private ImmutableList<TaintAnalysisState> handleStatementEdge(
