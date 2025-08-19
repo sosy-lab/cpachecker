@@ -52,7 +52,6 @@ public class TaintAnalysisState
   private final List<TaintAnalysisState> siblingStates = new ArrayList<>();
   private final List<TaintAnalysisState> nonTrivialPathStartStates = new ArrayList<>();
 
-  private static final List<TaintAnalysisState> allPathStartStates = new ArrayList<>();
   private static final List<TaintAnalysisState> targetStates = new ArrayList<>();
 
   public TaintAnalysisState(
@@ -74,19 +73,11 @@ public class TaintAnalysisState
           this.isPathStart = true;
           this.nonTrivialPathStartStates.add(this);
 
-          if (!this.isContainedIn(allPathStartStates)) {
-            allPathStartStates.add(this);
-          }
-
           this.siblingStates.addAll(predecessor.successors);
           for (TaintAnalysisState sibling : this.siblingStates) {
             sibling.isPathStart = true;
             sibling.nonTrivialPathStartStates.add(sibling);
             sibling.siblingStates.add(this);
-
-            if (!sibling.isContainedIn(allPathStartStates)) {
-              allPathStartStates.add(sibling);
-            }
           }
         }
 
