@@ -1204,9 +1204,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     assert ifElements != null;
     for (IfElement ifElement : ifElements) {
       if (ifElement.getCompleteElement().location().getStartingLineNumber()
-              < fileLocation.getStartingLineNumber()
+              <= fileLocation.getStartingLineNumber()
           && ifElement.getCompleteElement().location().getEndingLineNumber()
-              > fileLocation.getEndingLineNumber()) {
+              >= fileLocation.getEndingLineNumber()) {
         ifStructures.add(Optional.of(ifElement));
       }
     }
