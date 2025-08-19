@@ -19,7 +19,7 @@
 
     <rundefinition name="unseq">
         <tasks name="ReachSafety">
-            <includesfile>../../../sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/Unspecified-Behavior.set</includesfile>
         </tasks>
     </rundefinition>
 
