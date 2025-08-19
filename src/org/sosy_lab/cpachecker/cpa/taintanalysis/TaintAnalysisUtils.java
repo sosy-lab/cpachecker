@@ -213,6 +213,17 @@ public class TaintAnalysisUtils {
               yield value1.divide(value2);
             }
             case MODULO -> value1.mod(value2);
+            case BINARY_AND -> value1.and(value2);
+            case BINARY_OR -> value1.or(value2);
+            case BINARY_XOR -> value1.xor(value2);
+            case SHIFT_LEFT -> value1.shiftLeft(value2.intValue());
+            case SHIFT_RIGHT -> value1.shiftRight(value2.intValue());
+            case LESS_THAN -> BigInteger.valueOf(value1.compareTo(value2) < 0 ? 1 : 0);
+            case GREATER_THAN -> BigInteger.valueOf(value1.compareTo(value2) > 0 ? 1 : 0);
+            case LESS_EQUAL -> BigInteger.valueOf(value1.compareTo(value2) <= 0 ? 1 : 0);
+            case GREATER_EQUAL -> BigInteger.valueOf(value1.compareTo(value2) >= 0 ? 1 : 0);
+            case EQUALS -> BigInteger.valueOf(value1.equals(value2) ? 1 : 0);
+            case NOT_EQUALS -> BigInteger.valueOf(value1.equals(value2) ? 0 : 1);
             default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
           };
 
