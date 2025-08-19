@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedCollection;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,8 +50,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   // because ArrayList is much more memory efficient than e.g. LinkedHashSet.
   // Also, these collections are small and so a slow contains() method won't hurt.
   // To enforce set semantics, do not add elements except through addparent()!
-  private final Collection<ARGState> children = new ArrayList<>(1);
-  private final Collection<ARGState> parents = new ArrayList<>(1);
+  private final SequencedCollection<ARGState> children = new ArrayList<>(1);
+  private final SequencedCollection<ARGState> parents = new ArrayList<>(1);
 
   private ARGState mCoveredBy = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -85,8 +86,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
    *
    * @return An unmodifiable collection of ARGStates without duplicates.
    */
-  public Collection<ARGState> getParents() {
-    return Collections.unmodifiableCollection(parents);
+  public SequencedCollection<ARGState> getParents() {
+    return Collections.unmodifiableSequencedCollection(parents);
   }
 
   public void addParent(ARGState pOtherParent) {
@@ -108,9 +109,9 @@ public class ARGState extends AbstractSerializableSingleWrapperState
    *
    * @return An unmodifiable collection of ARGStates without duplicates.
    */
-  public Collection<ARGState> getChildren() {
+  public SequencedCollection<ARGState> getChildren() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    return Collections.unmodifiableCollection(children);
+    return Collections.unmodifiableSequencedCollection(children);
   }
 
   /**

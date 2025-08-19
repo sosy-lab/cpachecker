@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -143,13 +142,13 @@ public class ARGUtils {
       if (children.size() > 2) {
         return true;
       } else if (children.size() == 2) {
-        ARGState firstChild = children.get(0);
+        ARGState firstChild = children.getFirst();
         ARGState secondChild = children.get(1);
         List<CFAEdge> edgesToFirstChild = current.getEdgesToChild(firstChild);
         if (edgesToFirstChild.size() > 1) {
           return true;
         }
-        CFAEdge edgeToFirstChild = edgesToFirstChild.iterator().next();
+        CFAEdge edgeToFirstChild = edgesToFirstChild.getFirst();
         if (!(edgeToFirstChild instanceof AssumeEdge assumeEdge)) {
           return true;
         }
@@ -157,7 +156,7 @@ public class ARGUtils {
         if (edgesToSecondChild.size() > 1) {
           return true;
         }
-        CFAEdge edgeToSecondChild = edgesToSecondChild.iterator().next();
+        CFAEdge edgeToSecondChild = edgesToSecondChild.getFirst();
         if (!(edgeToSecondChild instanceof AssumeEdge)) {
           return true;
         }
@@ -255,7 +254,7 @@ public class ARGUtils {
       return Optional.empty();
     }
 
-    return Optional.of(new ARGPath(Lists.reverse(states)));
+    return Optional.of(new ARGPath(states.reversed()));
   }
 
   public static ARGPath getOnePathFromTo(final Predicate<ARGState> pIsStart, final ARGState pEnd) {
@@ -321,7 +320,7 @@ public class ARGUtils {
         currentARGState = parentElement;
       }
     }
-    return new ARGPath(Lists.reverse(states));
+    return new ARGPath(states.reversed());
   }
 
   /**
@@ -401,7 +400,7 @@ public class ARGUtils {
     ARGState currentElement = root;
     while (!currentElement.getChildren().isEmpty()) {
       states.add(currentElement);
-      currentElement = currentElement.getChildren().iterator().next();
+      currentElement = currentElement.getChildren().getFirst();
     }
     states.add(currentElement);
     return new ARGPath(states);
@@ -643,7 +642,7 @@ public class ARGUtils {
       @Nullable CounterexampleInfo pCounterExample)
       throws IOException {
 
-    ARGState rootState = pPaths.iterator().next().getFirstState();
+    ARGState rootState = pPaths.getFirst().getFirstState();
 
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
 
@@ -1278,17 +1277,17 @@ public class ARGUtils {
     // Loop until all paths reached the root
     while (!paths.isEmpty()) {
       // Expand currently considered path
-      List<ARGState> curPath = paths.remove(paths.size() - 1);
+      List<ARGState> curPath = paths.removeLast();
       Preconditions.checkNotNull(curPath);
       // If there is no more to expand - add this path and continue
-      if (curPath.get(curPath.size() - 1) == root) {
-        results.add(new ARGPath(Lists.reverse(curPath)));
+      if (curPath.getLast() == root) {
+        results.add(new ARGPath(curPath.reversed()));
 
         continue;
       }
 
       // Add all parents of currently first state on the current path
-      for (ARGState parentElement : curPath.get(curPath.size() - 1).getParents()) {
+      for (ARGState parentElement : curPath.getLast().getParents()) {
         ImmutableList.Builder<ARGState> tmp =
             ImmutableList.builderWithExpectedSize(curPath.size() + 1);
         tmp.addAll(curPath);

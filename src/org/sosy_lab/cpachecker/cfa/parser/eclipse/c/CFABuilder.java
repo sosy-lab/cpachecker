@@ -188,7 +188,7 @@ class CFABuilder extends ASTVisitor {
       return handleSimpleDeclaration(iASTSimpleDeclaration);
 
     } else if (declaration instanceof IASTFunctionDefinition fd) {
-      functionDeclarations.get(functionDeclarations.size() - 1).getFirst().add(fd);
+      functionDeclarations.getLast().getFirst().add(fd);
 
       // add forward declaration to list of global declarations
       CFunctionDeclaration functionDefinition = astCreator.convert(fd);

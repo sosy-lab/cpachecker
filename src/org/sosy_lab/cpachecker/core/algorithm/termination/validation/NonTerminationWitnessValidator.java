@@ -192,7 +192,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           "Expect that only violation witness is part of the specification.");
     }
 
-    witness = pSpecificationAutomata.get(0);
+    witness = pSpecificationAutomata.getFirst();
     witnessAutomatonName = AUTOMATANAMEPREFIX + witness.getName();
 
     Scope scope =
@@ -206,7 +206,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 scope,
                 cfa.getLanguage(),
                 pShutdownNotifier)
-            .get(0);
+            .getFirst();
     terminationAutomatonName = AUTOMATANAMEPREFIX + terminationAutomaton.getName();
 
     statistics = new NonTerminationValidationStatistics();
@@ -556,7 +556,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Preconditions.checkArgument(
           cpa instanceof ARGCPA, "Require ARGCPA to check validity of recurrent set:");
 
-      ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().get(0);
+      ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().getFirst();
 
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
@@ -756,7 +756,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         }
 
         if (initialCandidate.size() == 1) {
-          return new ARGState(initialCandidate.get(0), null);
+          return new ARGState(initialCandidate.getFirst(), null);
         }
       }
     } catch (CPATransferException e) {
@@ -852,7 +852,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               return false;
             }
 
-            if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression cBinaryExpression)) {
+            if (!(amState.getAssumptions().getFirst()
+                instanceof CBinaryExpression cBinaryExpression)) {
               logger.log(
                   Level.INFO, "Found a disallowed assumption. Only support binary assumptions.");
               return false;
@@ -1069,7 +1070,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
             scope,
             cfa.getLanguage(),
             shutdown)
-        .get(0);
+        .getFirst();
   }
 
   @Override

@@ -705,7 +705,7 @@ public class CFAUtils {
     waitlist.offer(ImmutableList.of(pNode));
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
-      CFANode pathSucc = currentPath.get(currentPath.size() - 1);
+      CFANode pathSucc = currentPath.getLast();
       List<BlankEdge> leavingBlankEdges =
           CFAUtils.leavingEdges(pathSucc).filter(BlankEdge.class).toList();
       if (pathSucc.getNumLeavingEdges() <= 0
@@ -725,7 +725,7 @@ public class CFAUtils {
     blankPaths.clear();
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
-      CFANode pathPred = currentPath.get(0);
+      CFANode pathPred = currentPath.getFirst();
       List<BlankEdge> enteringBlankEdges =
           CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
       if (pathPred.getNumEnteringEdges() <= 0

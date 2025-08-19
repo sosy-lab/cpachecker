@@ -1019,7 +1019,7 @@ public class PolicyIterationManager {
 
     // Abstraction required if not all predecessors, SSA forms,
     // and pointer target sets are the same.
-    PolicyBound firstBound = policyBounds.get(0);
+    PolicyBound firstBound = policyBounds.getFirst();
     for (PolicyBound bound : policyBounds) {
       if (!bound.getPredecessor().equals(firstBound.getPredecessor())
           || !bound.getFormula().getSsa().equals(firstBound.getFormula().getSsa())

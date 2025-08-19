@@ -372,7 +372,7 @@ public class HarnessExporter {
           }
           if (sequenceHandledSuccessfully && visited.add(lastSuccInSequence)) {
             stack.push(lastSuccInSequence);
-            CFAEdge lastEdgeInSequence = edges.get(edges.size() - 1);
+            CFAEdge lastEdgeInSequence = edges.getLast();
             lastEdgeStack.push(lastEdgeInSequence);
           }
         }

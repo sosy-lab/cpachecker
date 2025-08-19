@@ -331,7 +331,7 @@ public class SMGCPABuiltins {
       for (ValueAndSMGState argumentStrAndState :
           pCFCExpression
               .getParameterExpressions()
-              .get(0)
+              .getFirst()
               .accept(new SMGCPAValueVisitor(evaluator, checkedState, pCfaEdge, logger, options))) {
         Value argStr = argumentStrAndState.getValue();
         // TODO: Model errors etc.
@@ -372,7 +372,7 @@ public class SMGCPABuiltins {
 
   private CExpression evaluateCFunctionCallToFirstParameterForVA(
       CFunctionCallExpression cFCExpression) {
-    CExpression firstArg = cFCExpression.getParameterExpressions().get(0);
+    CExpression firstArg = cFCExpression.getParameterExpressions().getFirst();
     while (firstArg instanceof CCastExpression) {
       firstArg = ((CCastExpression) firstArg).getOperand();
     }
@@ -392,7 +392,7 @@ public class SMGCPABuiltins {
       throws CPATransferException {
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the destination
-    CExpression destArg = cFCExpression.getParameterExpressions().get(0);
+    CExpression destArg = cFCExpression.getParameterExpressions().getFirst();
     Preconditions.checkArgument(destArg instanceof CIdExpression);
     CIdExpression destIdArg = (CIdExpression) destArg;
     // The second argument is the source
@@ -411,7 +411,7 @@ public class SMGCPABuiltins {
             sizeInBits,
             SMGCPAExpressionEvaluator.getCanonicalType(srcIdArg));
     Preconditions.checkArgument(addressesAndStates.size() == 1);
-    ValueAndSMGState addressAndState = addressesAndStates.get(0);
+    ValueAndSMGState addressAndState = addressesAndStates.getFirst();
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
       // Critical error, should never happen
@@ -471,10 +471,7 @@ public class SMGCPABuiltins {
     CExpression secondArg = cFCExpression.getParameterExpressions().get(1);
     StackFrame currentStack = pState.getMemoryModel().getStackFrames().peek();
     CParameterDeclaration paramDecl =
-        currentStack
-            .getFunctionDefinition()
-            .getParameters()
-            .get(currentStack.getFunctionDefinition().getParameters().size() - 1);
+        currentStack.getFunctionDefinition().getParameters().getLast();
     if (!paramDecl.getType().equals(secondArg.getExpressionType())) {
       // Log warning (gcc only throws a warning and it works anyway)
       logger.logf(
@@ -527,7 +524,7 @@ public class SMGCPABuiltins {
               cfaEdge);
       // Unlikely that someone throws an abstracted list into a var args
       Preconditions.checkArgument(writtenStates.size() == 1);
-      currentState = writtenStates.get(0);
+      currentState = writtenStates.getFirst();
       offset = offset.add(sizeInBitsVarArg);
     }
 
@@ -543,7 +540,7 @@ public class SMGCPABuiltins {
     // Get the CExpression for the first argument
     List<CExpression> argsExpr = cFCExpression.getParameterExpressions();
     Preconditions.checkArgument(argsExpr.size() == 1);
-    CExpression fpExpr = argsExpr.get(0);
+    CExpression fpExpr = argsExpr.getFirst();
 
     // Evaluate the expression
     SMGCPAValueVisitor valueVisitor =
@@ -552,8 +549,8 @@ public class SMGCPABuiltins {
     Preconditions.checkArgument(evalStates.size() == 1);
 
     // Get the value for the expression and the new state
-    Value atExitAddressValue = evalStates.get(0).getValue();
-    SMGState newState = evalStates.get(0).getState();
+    Value atExitAddressValue = evalStates.getFirst().getValue();
+    SMGState newState = evalStates.getFirst().getState();
 
     if (atExitAddressValue instanceof AddressExpression pAddressExpression) {
       Preconditions.checkArgument(
@@ -652,7 +649,7 @@ public class SMGCPABuiltins {
               List<SMGStateAndOptionalSMGObjectAndOffset> deref =
                   currentState.dereferencePointer(address);
               Preconditions.checkArgument(deref.size() == 1);
-              SMGStateAndOptionalSMGObjectAndOffset targetAndState = deref.get(0);
+              SMGStateAndOptionalSMGObjectAndOffset targetAndState = deref.getFirst();
               currentState = targetAndState.getSMGState();
               if (targetAndState.hasSMGObjectAndOffset()) {
                 SMGObject derefedObj = targetAndState.getSMGObject();
@@ -960,11 +957,12 @@ public class SMGCPABuiltins {
         }
       }
       // The size is always given in bytes, we want bit size
-      CType sizeType = functionCall.getParameterExpressions().get(0).getExpressionType();
+      CType sizeType = functionCall.getParameterExpressions().getFirst().getExpressionType();
       if (!sizeValue.isNumericValue()) {
         sizeType =
             SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                functionCall.getParameterExpressions().get(0).getExpressionType(), machineModel);
+                functionCall.getParameterExpressions().getFirst().getExpressionType(),
+                machineModel);
       }
       Value sizeInBits = evaluator.multiplyBitOffsetValues(sizeValue, BigInteger.valueOf(8));
 
@@ -1005,7 +1003,7 @@ public class SMGCPABuiltins {
         stateWithNewHeap =
             stateWithNewHeap
                 .writeToZero(addressToNewRegion, functionCall.getExpressionType(), edge)
-                .get(0);
+                .getFirst();
       }
       resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
     } else {
@@ -1287,7 +1285,7 @@ public class SMGCPABuiltins {
                   charValue,
                   CNumericTypes.CHAR,
                   cfaEdge)
-              .get(0);
+              .getFirst();
     } else {
       // Write each char on its own
       for (int c = 0; c < count; c++) {
@@ -1300,7 +1298,7 @@ public class SMGCPABuiltins {
                     charValue,
                     CNumericTypes.CHAR,
                     cfaEdge)
-                .get(0);
+                .getFirst();
       }
     }
     // Since this returns the pointer of the buffer we check the offset of the AddressExpression, if
@@ -1311,7 +1309,7 @@ public class SMGCPABuiltins {
       ValueAndSMGState newPointerAndState =
           evaluator
               .findOrcreateNewPointer(bufferMemoryAddress, bufferOffsetInBits, currentState)
-              .get(0);
+              .getFirst();
       return ValueAndSMGState.of(newPointerAndState.getValue(), newPointerAndState.getState());
     }
   }
@@ -2475,7 +2473,7 @@ public class SMGCPABuiltins {
         new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
 
     for (ValueAndSMGState argumentOneAndState :
-        functionCall.getParameterExpressions().get(0).accept(valueVisitor)) {
+        functionCall.getParameterExpressions().getFirst().accept(valueVisitor)) {
       for (ValueAndSMGState argumentTwoAndState :
           getAllocateFunctionParameter(1, functionCall, argumentOneAndState.getState(), cfaEdge)) {
 
@@ -2539,7 +2537,7 @@ public class SMGCPABuiltins {
       // undefined beh
       return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
     }
-    CType sizeType = functionCall.getParameterExpressions().get(0).getExpressionType();
+    CType sizeType = functionCall.getParameterExpressions().getFirst().getExpressionType();
     if (pSizeValue.isNumericValue()) {
       sizeInBits =
           new NumericValue(
@@ -2549,7 +2547,8 @@ public class SMGCPABuiltins {
         if (!pSizeValue.isNumericValue()) {
           sizeType =
               SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                  functionCall.getParameterExpressions().get(0).getExpressionType(), machineModel);
+                  functionCall.getParameterExpressions().getFirst().getExpressionType(),
+                  machineModel);
         }
         sizeInBits = evaluator.multiplyBitOffsetValues(pSizeValue, BigInteger.valueOf(8));
       } else {

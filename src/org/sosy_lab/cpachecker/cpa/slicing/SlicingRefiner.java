@@ -426,7 +426,7 @@ public class SlicingRefiner implements Refiner {
         List<InfeasiblePrefix> prefixes = prefixProvider.extractInfeasiblePrefixes(pPath);
         if (!prefixes.isEmpty()) {
           Set<CFAEdge> prefixAssumeEdges =
-              prefixes.get(0).getPath().getInnerEdges().stream()
+              prefixes.getFirst().getPath().getInnerEdges().stream()
                   .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
                   .collect(ImmutableSet.toImmutableSet());
           criteriaEdges.addAll(prefixAssumeEdges);

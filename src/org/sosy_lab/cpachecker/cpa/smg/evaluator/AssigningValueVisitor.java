@@ -164,7 +164,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
         return;
       }
 
-      SMGAddress addressOfField = addressOfFields.get(0).getObject();
+      SMGAddress addressOfField = addressOfFields.getFirst().getObject();
 
       if (addressOfField.isUnknown()) {
         return;
@@ -233,7 +233,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
       return;
     }
 
-    SMGAddress addressOfField = addressOfFields.get(0).getObject();
+    SMGAddress addressOfField = addressOfFields.getFirst().getObject();
 
     if (addressOfField.isUnknown()) {
       return;

@@ -317,7 +317,7 @@ public class FaultLocalizationWithTraceFormula
               new VariableCountScoring(),
               new SetSizeScoring(),
               new MinimalLineDistanceScoring(
-                  pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
+                  pTraceFormula.getPostCondition().getEdgesForPostCondition().getFirst()));
       case ERRINV, UNSAT ->
           FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),

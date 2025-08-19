@@ -13,7 +13,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -178,7 +177,7 @@ public class NullPointerChecks {
       ((CAssumeEdge) edge).getExpression().accept(visitor);
     }
 
-    for (CExpression exp : Lists.reverse(visitor.dereferencedExpressions)) {
+    for (CExpression exp : visitor.dereferencedExpressions.reversed()) {
       edge = insertNullPointerCheck(edge, exp, cfa, targetNode, builder);
     }
   }

@@ -263,14 +263,15 @@ public class SignTransferRelation
       return Optional.empty();
     }
     if (result.size() == 1) {
-      return Optional.of(result.get(0));
+      return Optional.of(result.getFirst());
     }
     try {
-      Sign leftResultSign = result.get(0).accept(new SignCExpressionVisitor(pCFAEdge, state, this));
+      Sign leftResultSign =
+          result.getFirst().accept(new SignCExpressionVisitor(pCFAEdge, state, this));
       Sign rightResultSign =
           result.get(1).accept(new SignCExpressionVisitor(pCFAEdge, state, this));
       if (leftResultSign.covers(rightResultSign)) {
-        return Optional.of(result.get(0));
+        return Optional.of(result.getFirst());
       } else {
         return Optional.of(result.get(1));
       }

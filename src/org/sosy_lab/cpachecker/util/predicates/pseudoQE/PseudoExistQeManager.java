@@ -100,10 +100,10 @@ public class PseudoExistQeManager implements StatisticsProvider {
           // TODO this code assumes that equality has exactly two arguments.
           // We might have more than two.
           // check those functions that represent equality
-          if (boundVars.contains(pArgs.get(0))) {
-            return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
+          if (boundVars.contains(pArgs.getFirst())) {
+            return ImmutableMap.of(pArgs.getFirst(), pArgs.get(1));
           } else if (boundVars.contains(pArgs.get(1))) {
-            return ImmutableMap.of(pArgs.get(1), pArgs.get(0));
+            return ImmutableMap.of(pArgs.get(1), pArgs.getFirst());
           } else {
             return null;
           }

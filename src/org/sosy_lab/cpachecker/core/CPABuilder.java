@@ -230,7 +230,7 @@ public class CPABuilder {
     }
 
     List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue);
-    String cpaNameFromOption = optionParts.get(0);
+    String cpaNameFromOption = optionParts.getFirst();
     String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaNameFromOption);
     Class<?> cpaClass = getCPAClass(optionName, cpaNameFromOption);
 
@@ -321,7 +321,7 @@ public class CPABuilder {
     if (cpaConfig.isPlaceholder) {
       if (cpaConfig.equals(SPECIFICATION_PLACEHOLDER)) {
         if (cpas.size() == 1) {
-          return cpas.get(0);
+          return cpas.getFirst();
         } else {
           String count = cpas.isEmpty() ? "none" : Integer.toString(cpas.size());
           throw new InvalidConfigurationException(

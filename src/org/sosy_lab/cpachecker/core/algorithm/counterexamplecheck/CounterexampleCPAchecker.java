@@ -216,7 +216,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       }
 
       if (provideCEXInfoFromCEXCheck) {
-        CFAEdge targetEdge = pErrorState.getParents().iterator().next().getEdgeToChild(pErrorState);
+        CFAEdge targetEdge = pErrorState.getParents().getFirst().getEdgeToChild(pErrorState);
         lConfigBuilder.setOption(
             "testcase.targets.edge",
             targetEdge.getPredecessor().getNodeNumber()

@@ -325,7 +325,7 @@ class EclipseCParser implements CParser {
 
       // we don't need any file prefix if we only have one file
       if (asts.size() == 1) {
-        builder.analyzeTranslationUnit(asts.get(0), "", pScope);
+        builder.analyzeTranslationUnit(asts.getFirst(), "", pScope);
 
         // in case of several files we need to add a file prefix to global variables
         // as there could be several equally named files in different directories

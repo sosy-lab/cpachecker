@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.Ignore;
@@ -192,7 +193,7 @@ public class WitnessExporterTest {
       Map<String, String> pOverrideOptions,
       TempCompressedFilePath pWitnessPath)
       throws Exception {
-    Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
+    SequencedMap<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
     overrideOptions.put(
         "counterexample.export.graphml", pWitnessPath.uncompressedFilePath.toString());
     if (pGenerationConfig.equals(WitnessGenerationConfig.K_INDUCTION)) {
@@ -262,7 +263,7 @@ public class WitnessExporterTest {
       TempCompressedFilePath witnessPath,
       WitnessType witnessType)
       throws Exception {
-    Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
+    SequencedMap<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
     final String validationConfigFile;
     String specification = pSpecification;
     switch (witnessType) {

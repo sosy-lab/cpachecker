@@ -213,7 +213,7 @@ public class FaultLocalizationByImport implements Algorithm {
         }
         FaultScoring[] scoringArray = new FaultScoring[scorings.size()];
         for (int i = 0; i < scorings.size(); i++) {
-          scoringArray[i] = instantiateScoring(scorings.get(i), edgeList.get(edgeList.size() - 1));
+          scoringArray[i] = instantiateScoring(scorings.get(i), edgeList.getLast());
         }
         FaultScoring finalScoring = FaultRankingUtils.concatHeuristics(scoringArray);
 
@@ -237,7 +237,7 @@ public class FaultLocalizationByImport implements Algorithm {
                   FluentIterable.from(reachedSet)
                       .filter(AbstractStates::isTargetState)
                       .toList()
-                      .get(0);
+                      .getFirst();
           errorLocation = AbstractStates.extractLocation(target);
         }
         reachedSet.clear();
@@ -248,7 +248,7 @@ public class FaultLocalizationByImport implements Algorithm {
                 path -> Sets.intersection(ImmutableSet.copyOf(path), edges).size());
         List<CFAEdge> bestPath =
             Collections.max(findAllPaths(cfa.getMainFunction(), errorLocation), mostIntersections);
-        errorEdge = bestPath.get(bestPath.size() - 1);
+        errorEdge = bestPath.getLast();
         ARGState currState = null;
         LocationStateFactory factory =
             new LocationStateFactory(cfa, AnalysisDirection.FORWARD, config);
@@ -268,7 +268,7 @@ public class FaultLocalizationByImport implements Algorithm {
                 new CompositeState(
                     ImmutableList.of(
                         new ConfigurableTargetState(true),
-                        factory.getState(bestPath.get(bestPath.size() - 1).getSuccessor()))),
+                        factory.getState(bestPath.getLast().getSuccessor()))),
                 currState);
         reachedSet.addNoWaitlist(target, new Precision() {});
         logger.log(Level.INFO, "Apply rankings/explanations right away...");
@@ -482,9 +482,9 @@ public class FaultLocalizationByImport implements Algorithm {
       waitlist.add(new ArrayList<>(ImmutableList.of(leavingEdge)));
     }
     while (!waitlist.isEmpty()) {
-      List<CFAEdge> path = waitlist.remove(0);
+      List<CFAEdge> path = waitlist.removeFirst();
       Set<CFAEdge> covered = ImmutableSet.copyOf(path);
-      CFAEdge lastEdge = path.get(path.size() - 1);
+      CFAEdge lastEdge = path.getLast();
       CFANode currentTail = lastEdge.getSuccessor();
       if (currentTail.equals(pEnd)) {
         finished.add(path);

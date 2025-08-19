@@ -281,7 +281,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       }
       // if there was no other type of exception, we can throw the CPAException directly.
       if (cpaExceptions.size() == 1) {
-        throw cpaExceptions.get(0);
+        throw cpaExceptions.getFirst();
       } else {
         throw new CompoundException(cpaExceptions);
       }

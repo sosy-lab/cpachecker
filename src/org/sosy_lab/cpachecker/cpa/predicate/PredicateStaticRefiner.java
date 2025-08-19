@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -231,7 +232,7 @@ final class PredicateStaticRefiner extends StaticRefiner
 
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       ARGState root = (ARGState) reached.getFirstState();
-      ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size() - 1);
+      ARGState targetState = abstractionStatesTrace.getLast();
 
       PredicatePrecision heuristicPrecision;
       predicateExtractionTime.start();
@@ -423,7 +424,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     Iterable<CFANode> targetLocations = AbstractStates.extractLocations(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
-    Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    SequencedSet<AssumeEdge> assumeEdges = new LinkedHashSet<>();
 
     Multimap<String, AStatementEdge> directlyAffectingStatements =
         buildDirectlyAffectingStatements();

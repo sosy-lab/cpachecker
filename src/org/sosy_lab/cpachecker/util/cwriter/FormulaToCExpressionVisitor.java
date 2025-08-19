@@ -75,9 +75,11 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
     final String result =
         switch (functionDeclaration.getKind()) {
           case NOT, UMINUS, BV_NEG, FP_NEG, BV_NOT ->
-              operatorFromFunctionDeclaration(functionDeclaration, f) + cache.get(newArgs.get(0));
+              operatorFromFunctionDeclaration(functionDeclaration, f)
+                  + cache.get(newArgs.getFirst());
           case EQ_ZERO, GTE_ZERO ->
-              cache.get(newArgs.get(0)) + operatorFromFunctionDeclaration(functionDeclaration, f);
+              cache.get(newArgs.getFirst())
+                  + operatorFromFunctionDeclaration(functionDeclaration, f);
           case FP_ROUND_EVEN,
               FP_ROUND_AWAY,
               FP_ROUND_POSITIVE,
@@ -97,13 +99,15 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
           case ITE ->
               String.format(
                   "%s ? %s : %s",
-                  cache.get(newArgs.get(0)), cache.get(newArgs.get(1)), cache.get(newArgs.get(2)));
+                  cache.get(newArgs.getFirst()),
+                  cache.get(newArgs.get(1)),
+                  cache.get(newArgs.get(2)));
           default -> {
             if (functionDeclaration.getName().equals("`bvextract_31_31_32`")) {
               // TODO The naming of this SMT function is specific to one solver
               // and the handling in this manner is likely not correct in all cases (unsigned vars)
               // and it is specific to one particular bitwidth, all of which it should not be.
-              yield cache.get(newArgs.get(0)) + " < 0";
+              yield cache.get(newArgs.getFirst()) + " < 0";
             }
 
             List<String> expressions = new ArrayList<>(newArgs.size());

@@ -98,7 +98,7 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
               && (pNode.getChildren().size() > 1
                   || (!pNode.isCovered()
                       && (pNode.getChildren().isEmpty()
-                          || pNode.getParents().iterator().next().getChildren().size() > 1))));
+                          || pNode.getParents().getFirst().getChildren().size() > 1))));
     }
 
     @Override

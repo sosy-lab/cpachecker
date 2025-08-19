@@ -441,7 +441,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // segment point. Therefore, instead of creating a location record the way as is for
     // assumptions,
     // this needs to be done using another function
-    CFAEdge lastEdge = edges.get(edges.size() - 1);
+    CFAEdge lastEdge = edges.getLast();
     segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge, astCFARelation)));
 
     exportEntries(
