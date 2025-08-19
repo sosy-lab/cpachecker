@@ -110,10 +110,11 @@ public class TaintAnalysisUtils {
           .removeIf(
               inheritedPathStartState ->
                   !inheritedPathStartState.isContainedIn(
-                      outdatedState.getNonTrivialPathStartStates()));
+                      outdatedState.getNonTrivialPathStartStates().stream().toList()));
 
       if (outdatedState.isPathStart()
-          && !outdatedState.isContainedIn(updatedState.getNonTrivialPathStartStates())) {
+          && !outdatedState.isContainedIn(
+              updatedState.getNonTrivialPathStartStates().stream().toList())) {
 
         updatedState.getNonTrivialPathStartStates().add(outdatedState);
       }

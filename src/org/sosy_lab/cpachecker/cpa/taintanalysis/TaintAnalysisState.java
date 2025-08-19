@@ -50,7 +50,7 @@ public class TaintAnalysisState
   private final List<TaintAnalysisState> predecessors = new ArrayList<>();
   private final List<TaintAnalysisState> successors = new ArrayList<>();
   private final List<TaintAnalysisState> siblingStates = new ArrayList<>();
-  private final List<TaintAnalysisState> nonTrivialPathStartStates = new ArrayList<>();
+  private final Set<TaintAnalysisState> nonTrivialPathStartStates = new HashSet<>();
 
   private static final List<TaintAnalysisState> targetStates = new ArrayList<>();
 
@@ -91,7 +91,7 @@ public class TaintAnalysisState
 
       for (TaintAnalysisState pathStartState : predecessor.nonTrivialPathStartStates) {
 
-        if (!pathStartState.isContainedIn(this.nonTrivialPathStartStates)) {
+        if (!pathStartState.isContainedIn(this.nonTrivialPathStartStates.stream().toList())) {
           this.nonTrivialPathStartStates.add(pathStartState);
         }
       }
@@ -150,6 +150,7 @@ public class TaintAnalysisState
       if (allPredecessorsViolateProperty) {
         other.setViolatesProperty();
       }
+
       return true;
     }
 
@@ -169,6 +170,7 @@ public class TaintAnalysisState
     if (allPredecessorsViolateProperty) {
       other.setViolatesProperty();
     }
+
     return true;
   }
 
@@ -176,7 +178,7 @@ public class TaintAnalysisState
 
     boolean otherContainsAllThisPathStarts =
         this.nonTrivialPathStartStates.stream()
-            .allMatch(s -> s.isContainedIn(pOther.nonTrivialPathStartStates));
+            .allMatch(s -> s.isContainedIn(pOther.nonTrivialPathStartStates.stream().toList()));
 
     if (!otherContainsAllThisPathStarts) {
       return false;
