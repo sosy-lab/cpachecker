@@ -445,8 +445,7 @@ public class TaintAnalysisState
    *     otherwise
    */
   public boolean isContainedIn(List<TaintAnalysisState> pStates) {
-    return pStates.stream()
-        .anyMatch(s -> System.identityHashCode(s) == System.identityHashCode(this));
+    return pStates.stream().anyMatch(s -> s == this);
   }
 
   @Override
