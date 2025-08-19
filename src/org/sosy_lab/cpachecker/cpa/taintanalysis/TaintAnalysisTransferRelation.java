@@ -1335,6 +1335,88 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return loopIterationIndexBuilder.build();
   }
 
+  private int getEndingLineNumberOfOutermostControlStructureOfThisEdge(CFAEdge pCfaEdge) {
+
+    Optional<IfElement> outermostIfStatementForEdge = getOutermostIfStatementForEdge(pCfaEdge);
+
+    Optional<Loop> loopForStatement = getLoopForStatement(pCfaEdge.getSuccessor());
+
+    if (loopForStatement.isEmpty()) {
+      loopForStatement = getLoopForStatement(pCfaEdge.getPredecessor());
+    }
+
+    Loop outermostLoopForEdge = null;
+    if (loopForStatement.isPresent()) {
+      outermostLoopForEdge = getOutermostLoopForEdge(loopForStatement.orElseThrow());
+    }
+
+    int invalidLocationNumber = -1;
+    int startingLineNumberOfOutermostIfElementOfThisEdge = invalidLocationNumber;
+    int endingLineNumberOfOutermostIfElementOfThisEdge = invalidLocationNumber;
+    int startingLineNumberOfOutermostLoopOfThisEdge = invalidLocationNumber;
+    int endingLineNumberOfOutermostLoopOfThisEdge = invalidLocationNumber;
+
+    if (outermostIfStatementForEdge.isPresent()) {
+      startingLineNumberOfOutermostIfElementOfThisEdge =
+          outermostIfStatementForEdge
+              .orElseThrow()
+              .getCompleteElement()
+              .location()
+              .getStartingLineNumber();
+
+      endingLineNumberOfOutermostIfElementOfThisEdge =
+          outermostIfStatementForEdge
+              .orElseThrow()
+              .getCompleteElement()
+              .location()
+              .getEndingLineNumber();
+    }
+
+    if (outermostLoopForEdge != null) {
+      startingLineNumberOfOutermostLoopOfThisEdge =
+          outermostLoopForEdge
+              .getIncomingEdges()
+              .iterator()
+              .next()
+              .getFileLocation()
+              .getStartingLineNumber();
+
+      endingLineNumberOfOutermostLoopOfThisEdge =
+          outermostLoopForEdge.getInnerLoopEdges().stream()
+              .filter(edge -> edge.getFileLocation().isRealLocation())
+              .mapToInt(edge -> edge.getFileLocation().getEndingLineNumber())
+              .max()
+              .orElseThrow(() -> new IllegalStateException("No valid edge found"));
+    }
+
+    int endingLineNumberOfOutermostControlStructureOfThisEdge;
+    if (startingLineNumberOfOutermostIfElementOfThisEdge != invalidLocationNumber
+        && startingLineNumberOfOutermostLoopOfThisEdge != invalidLocationNumber
+        && endingLineNumberOfOutermostLoopOfThisEdge != invalidLocationNumber
+        && startingLineNumberOfOutermostLoopOfThisEdge
+            != endingLineNumberOfOutermostIfElementOfThisEdge) {
+
+      endingLineNumberOfOutermostControlStructureOfThisEdge =
+          Math.max(
+              endingLineNumberOfOutermostIfElementOfThisEdge,
+              endingLineNumberOfOutermostLoopOfThisEdge);
+
+    } else if (startingLineNumberOfOutermostIfElementOfThisEdge == invalidLocationNumber
+        && endingLineNumberOfOutermostIfElementOfThisEdge == invalidLocationNumber) {
+      endingLineNumberOfOutermostControlStructureOfThisEdge =
+          endingLineNumberOfOutermostLoopOfThisEdge;
+
+    } else if (startingLineNumberOfOutermostLoopOfThisEdge == invalidLocationNumber
+        && endingLineNumberOfOutermostLoopOfThisEdge == invalidLocationNumber) {
+      endingLineNumberOfOutermostControlStructureOfThisEdge =
+          endingLineNumberOfOutermostIfElementOfThisEdge;
+    } else {
+      endingLineNumberOfOutermostControlStructureOfThisEdge = invalidLocationNumber;
+    }
+
+    return endingLineNumberOfOutermostControlStructureOfThisEdge;
+  }
+
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pState,
