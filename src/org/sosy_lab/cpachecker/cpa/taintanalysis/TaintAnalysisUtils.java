@@ -183,6 +183,10 @@ public class TaintAnalysisUtils {
     } else if (expression instanceof CCastExpression castExpression) {
       // For cast expressions, evaluate the inner expression
       return evaluateExpression(castExpression.getOperand(), evaluatedValues);
+    } else if (expression instanceof CArraySubscriptExpression arraySubscriptExpression) {
+
+      return evaluateExpression(
+          evaluatedValues.getOrDefault(arraySubscriptExpression, null), evaluatedValues);
     }
 
     return null;

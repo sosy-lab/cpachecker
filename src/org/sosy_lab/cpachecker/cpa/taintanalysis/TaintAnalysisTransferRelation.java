@@ -628,8 +628,37 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           // elements in the tainted/untainted variables map
           List<CInitializer> initializerList = initList.getInitializers();
 
+          int index = 0;
           for (CInitializer init : initializerList) {
+
             if (init instanceof CInitializerExpression initExpr) {
+
+              if (pDeclaration.getType() instanceof CArrayType) {
+
+                CArraySubscriptExpression arraySubscriptExpression =
+                    new CArraySubscriptExpression(
+                        initExpr.getFileLocation(),
+                        initExpr.getExpression().getExpressionType(),
+                        variableLHS,
+                        new CIntegerLiteralExpression(
+                            initExpr.getFileLocation(),
+                            initExpr.getExpression().getExpressionType(),
+                            BigInteger.valueOf(index)));
+
+                index++;
+
+                boolean initExprIsTainted =
+                    TaintAnalysisUtils.getAllVarsAsCExpr(initExpr.getExpression()).stream()
+                        .anyMatch(var -> pState.getTaintedVariables().contains(var));
+
+                if (initExprIsTainted) {
+                  generatedVars.add(arraySubscriptExpression);
+                  values.put(arraySubscriptExpression, initExpr.getExpression());
+                } else {
+                  killedVars.add(arraySubscriptExpression);
+                  values.put(arraySubscriptExpression, initExpr.getExpression());
+                }
+              }
 
               handleTaintPropagationForDeclarationInitializer(
                   pState, initExpr, generatedVars, variableLHS, killedVars, values, pCfaEdge);
@@ -787,12 +816,18 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         if (arrayExpr instanceof CIdExpression arrayVariable) {
           if (taintedRHS) {
             generatedVars.add(arrayVariable);
+            generatedVars.add(arraySubscriptLHS);
           }
 
-          values.put(arrayVariable, rhs);
-          // here we don't sanitize the lhs when the rhs is clean,
-          // because the array could have more tainted elements.
-          // TODO: Sanitize array when all contained elements are untainted?
+          if (!loopConditionIsNull(pCfaEdge)) {
+            values.put(arraySubscriptLHS, rhs);
+          } else {
+            if (!varIsLoopIterationIndex(arraySubscriptLHS, pCfaEdge)) {
+              if (!(rhs instanceof CBinaryExpression)) {
+                values.put(arraySubscriptLHS, rhs);
+              }
+            }
+          }
         }
 
       } else if (lhs instanceof CPointerExpression pointerLHS) {
