@@ -77,7 +77,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
   }
 
   public SeqThreadStatement getFirstStatement() {
-    return statements.get(0);
+    return statements.getFirst();
   }
 
   public ImmutableList<SeqThreadStatement> getStatements() {

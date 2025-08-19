@@ -99,11 +99,11 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
     // TODO actually use the CExpression keys
     if (size == 1) {
       // single element -> just place statement without any control flow
-      pTree.add(LineOfCode.of(pCurrentStatements.get(0).getValue().toASTString()));
+      pTree.add(LineOfCode.of(pCurrentStatements.getFirst().getValue().toASTString()));
 
     } else if (size == 2) {
       // only two elements -> create if and else leafs with ==
-      int low = pAllStatements.indexOf(pCurrentStatements.get(0));
+      int low = pAllStatements.indexOf(pCurrentStatements.getFirst());
       pTree.add(buildIfEqualsLeaf(pAllStatements.get(low).getValue(), low, pPc));
       pTree.add(buildElseLeaf(pCurrentStatements.get(1).getValue()));
 

@@ -52,7 +52,7 @@ public class ThreadNode {
 
   public ThreadEdge firstLeavingEdge() {
     checkArgument(!leavingEdges.isEmpty(), "cannot get first leaving edge, list is empty");
-    return leavingEdges.get(0);
+    return leavingEdges.getFirst();
   }
 
   public ImmutableList<ThreadEdge> leavingEdges() {

@@ -50,7 +50,7 @@ public class SeqThreadStatementClause implements SeqStatement {
 
   public SeqThreadStatementClause(ImmutableList<SeqThreadStatementBlock> pBlocks) {
     id = getNewId();
-    labelNumber = pBlocks.get(0).getLabel().labelNumber;
+    labelNumber = pBlocks.getFirst().getLabel().labelNumber;
     blocks = pBlocks;
   }
 
@@ -76,7 +76,7 @@ public class SeqThreadStatementClause implements SeqStatement {
   }
 
   public SeqThreadStatementBlock getFirstBlock() {
-    return blocks.get(0);
+    return blocks.getFirst();
   }
 
   public ImmutableList<SeqThreadStatementBlock> getMergedBlocks() {

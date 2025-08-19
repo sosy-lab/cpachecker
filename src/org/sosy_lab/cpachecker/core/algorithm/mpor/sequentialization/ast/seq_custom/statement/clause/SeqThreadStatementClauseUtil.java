@@ -305,7 +305,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap = mapLabelNumberToBlock(clauses);
       // create set to track which blocks were placed already
       ImmutableList<SeqThreadStatementBlock> reorderedBlocks =
-          reorderBlocks(firstBlocks.get(0), labelBlockMap);
+          reorderBlocks(firstBlocks.getFirst(), labelBlockMap);
       assert SeqValidator.validateEqualBlocks(reorderedBlocks, allBlocks)
           : "block sets must be equal before and after reordering";
       rNoBackwardGoto.putAll(thread, buildClausesFromReorderedBlocks(reorderedBlocks, firstBlocks));

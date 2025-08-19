@@ -50,7 +50,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
     checkArgument(
         pCondAssignment.size() == 1, "assume_abort_if_not call must have exactly 1 parameter");
 
-    condAssignment = pCondAssignment.get(0);
+    condAssignment = pCondAssignment.getFirst();
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);

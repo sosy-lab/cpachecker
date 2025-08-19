@@ -277,7 +277,7 @@ public class MPORSubstitutionBuilder {
             if (startRoutineDeclaration.getType().equals(startRoutineType)) {
               // start_routines only have one parameter
               CParameterDeclaration parameterDeclaration =
-                  startRoutineDeclaration.getParameters().get(0);
+                  startRoutineDeclaration.getParameters().getFirst();
               String varName =
                   SeqNameUtil.buildStartRoutineArgName(
                       pOptions,

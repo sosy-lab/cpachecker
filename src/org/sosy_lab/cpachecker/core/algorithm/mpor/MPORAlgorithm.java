@@ -299,7 +299,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException {
     // just use the first input file name for naming purposes
-    Path firstInputFilePath = inputCfa.getFileNames().get(0);
+    Path firstInputFilePath = inputCfa.getFileNames().getFirst();
     String inputFileName = firstInputFilePath.toString();
     String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
     Sequentialization sequentialization = buildSequentialization(inputFileName, outputFileName);

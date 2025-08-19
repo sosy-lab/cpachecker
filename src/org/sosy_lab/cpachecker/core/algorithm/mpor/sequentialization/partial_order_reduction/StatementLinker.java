@@ -187,7 +187,7 @@ public class StatementLinker {
         temporary.addAll(0, clause.getMergedBlocks());
         SeqThreadStatementClause mergedClause =
             clause.cloneWithMergedBlocks(ImmutableList.copyOf(temporary));
-        rMerged.add(0, mergedClause);
+        rMerged.addFirst(mergedClause);
         temporary.clear();
       }
     }

@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
@@ -147,7 +146,7 @@ public class SeqThreadStatementClauseBuilder {
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
-      SeqThreadStatementClause first = clauses.get(0);
+      SeqThreadStatementClause first = clauses.getFirst();
       SeqThreadStatementClause nonBlank =
           SeqPruner.recursivelyFindNonBlankClause(Optional.empty(), first, labelClauseMap);
       if (SeqThreadStatementClauseUtil.isConsecutiveLabelPath(first, nonBlank, labelClauseMap)) {
@@ -228,10 +227,6 @@ public class SeqThreadStatementClauseBuilder {
       statements.add(SeqThreadStatementBuilder.buildBlankStatement(pcLeftHandSide, targetPc));
 
     } else {
-      boolean isAssume = leavingEdges.get(0).cfaEdge instanceof CAssumeEdge;
-      // TODO these assertions can be removed later, just checking if the CFA behaves as expected
-      assert !isAssume || leavingEdges.size() == 2
-          : "if there is an assume edge, the node must have exactly two assume edges";
       statements.addAll(
           SeqThreadStatementBuilder.buildStatementsFromThreadNode(
               pThread,
