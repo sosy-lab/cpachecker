@@ -827,32 +827,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
           } else {
 
-            boolean noRemainingTaintedArrayElements = true;
-
-            if (arraySubscriptLHS.getSubscriptExpression() instanceof CIdExpression subscriptVar) {
-              if (subscriptVar.getDeclaration() instanceof CVariableDeclaration arrayVarDec) {
-                if (arrayVarDec.getInitializer() instanceof CInitializerExpression iExpr) {
-                  if (iExpr.getExpression() instanceof CIntegerLiteralExpression iExprValue) {
-                    for (CExpression taintedVar : pState.getTaintedVariables()) {
-                      if (taintedVar instanceof CArraySubscriptExpression taintedVarSubscriptExpr) {
-                        if (!iExprValue.equals(taintedVarSubscriptExpr.getSubscriptExpression())) {
-                        } else {
-                          if (taintedVarSubscriptExpr.getArrayExpression().equals(arrayExpr)) {
-                            noRemainingTaintedArrayElements = false;
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-              if (noRemainingTaintedArrayElements) {
-                // untaint the array
-                killedVars.add(arrayVariable);
-              }
-            } else {
-              killedVars.add(arraySubscriptLHS);
-            }
+            handleArraySanitization(
+                pState, arraySubscriptLHS, arrayVariable, arrayExpr, killedVars);
           }
 
           if (!loopConditionIsNull(pCfaEdge)) {
@@ -946,40 +922,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                 generatedVars.add(arraySubscriptLHS);
 
               } else {
-
-                boolean noRemainingTaintedArrayElements = true;
-
-                if (arraySubscriptLHS.getSubscriptExpression()
-                    instanceof CIdExpression subscriptVar) {
-                  if (subscriptVar.getDeclaration() instanceof CVariableDeclaration arrayVarDec) {
-                    if (arrayVarDec.getInitializer() instanceof CInitializerExpression iExpr) {
-                      if (iExpr.getExpression() instanceof CIntegerLiteralExpression iExprValue) {
-                        for (CExpression taintedVar : pState.getTaintedVariables()) {
-                          if (taintedVar
-                              instanceof CArraySubscriptExpression taintedVarSubscriptExpr) {
-                            if (!iExprValue.equals(
-                                taintedVarSubscriptExpr.getSubscriptExpression())) {
-                            } else {
-                              if (taintedVarSubscriptExpr.getArrayExpression().equals(arrayExpr)) {
-                                noRemainingTaintedArrayElements = false;
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-
-                  if (noRemainingTaintedArrayElements) {
-                    // untaint the array
-                    killedVars.add(arrayVariable);
-                  }
-
-                } else {
-                  if (varIsCurrentlyTainted && varMustBePublic) {
-                    killedVars.add(arrayVariable);
-                  }
-                }
+                handleArraySanitization(
+                    pState, arraySubscriptLHS, arrayVariable, arrayExpr, killedVars);
               }
             }
           } else if (exprToCheck instanceof CPointerExpression) {
@@ -1126,6 +1070,52 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return ImmutableList.copyOf(newStates);
+  }
+
+  private void handleArraySanitization(
+      TaintAnalysisState pState,
+      CArraySubscriptExpression arraySubscriptLHS,
+      CIdExpression arrayVariable,
+      CExpression arrayExpr,
+      Set<CExpression> killedVars) {
+    boolean noRemainingTaintedArrayElements = true;
+
+    CExpression index = null;
+
+    if (arraySubscriptLHS.getSubscriptExpression() instanceof CIdExpression subscriptVar) {
+
+      index = evaluatedValues.get(subscriptVar);
+
+    } else if (arraySubscriptLHS.getSubscriptExpression()
+        instanceof CIntegerLiteralExpression iExprValue) {
+
+      index = iExprValue;
+    }
+
+    if (index instanceof CIntegerLiteralExpression iExprValue) {
+
+      for (CExpression taintedVar : pState.getTaintedVariables()) {
+        if (taintedVar instanceof CArraySubscriptExpression taintedVarSubscriptExpr) {
+          // The same array is referenced
+          if (taintedVarSubscriptExpr.getArrayExpression().equals(arrayExpr)) {
+            // with the same index
+            if (iExprValue.equals(taintedVarSubscriptExpr.getSubscriptExpression())) {
+              killedVars.add(taintedVar);
+            } else {
+              noRemainingTaintedArrayElements = false;
+            }
+          }
+        }
+      }
+
+      if (noRemainingTaintedArrayElements) {
+        // untaint the array
+        killedVars.add(arrayVariable);
+      }
+
+    } else {
+      killedVars.add(arraySubscriptLHS);
+    }
   }
 
   private boolean isSource(CFunctionCall pStatement) {
