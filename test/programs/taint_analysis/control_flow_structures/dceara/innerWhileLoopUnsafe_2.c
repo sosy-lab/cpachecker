@@ -25,6 +25,14 @@ int main() {
         a++;
     }
 
-    __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(b, 1);
+    a1 = 0;
+    while (a1 < 1) {
+        while (b1) {
+            b1++;
+        }
+        a1++;
+    }
+
+    __VERIFIER_is_public(a1, 1);
+    __VERIFIER_is_public(b1, 1);
 }

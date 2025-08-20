@@ -1141,6 +1141,13 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testInnerWhileLoopUnsafe_2() throws Exception {
+    TestResults results =
+        runCPAchecker("innerWhileLoopUnsafe_2.c", CATEGORY_CONTROL_FLOW_STRUCTURES + SOURCE_DCEARA);
+    results.assertIsUnsafe();
+  }
+
+  @Test
   public void testTrippleWhileLoopSafe_1() throws Exception {
     TestResults results =
         runCPAchecker("trippleWhileLoopSafe_1.c", CATEGORY_CONTROL_FLOW_STRUCTURES + SOURCE_DCEARA);
