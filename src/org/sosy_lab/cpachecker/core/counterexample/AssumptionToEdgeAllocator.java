@@ -1139,9 +1139,11 @@ public class AssumptionToEdgeAllocator {
         BinaryOperator binaryOperator = binaryExp.getOperator();
 
         CType elementType =
-            addressType instanceof CPointerType pointerType
-                ? pointerType.getType().getCanonicalType()
-                : ((CArrayType) addressType).getType().getCanonicalType();
+            switch (addressType) {
+              case CPointerType pointerType -> pointerType.getType().getCanonicalType();
+              case CArrayType arrayType -> arrayType.getType().getCanonicalType();
+              default -> throw new AssertionError();
+            };
 
         return switch (binaryOperator) {
           case PLUS, MINUS -> {
