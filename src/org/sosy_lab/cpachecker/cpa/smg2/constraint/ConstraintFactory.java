@@ -277,4 +277,11 @@ public class ConstraintFactory {
     return transformer.getGreaterEqualsZeroConstraint(
         valueGreaterEqZero, calculationType, currentState);
   }
+
+  public Constraint getGreaterZeroConstraint(
+      Value valueGreaterZero, CType calculationType, SMGState currentState) {
+    // valueGreaterZero > 0
+    final ExpressionTransformer transformer = getCTransformer();
+    return transformer.getGreaterZeroConstraint(valueGreaterZero, calculationType, currentState);
+  }
 }
