@@ -290,8 +290,7 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    i = CTypes.withConstSetTo(i, isConst);
-    i = CTypes.withVolatileSetTo(i, isVolatile);
+    i = CTypes.withQualifiersSetTo(i, isConst, isVolatile);
 
     assert i instanceof CProblemType || (isConst == i.isConst() && isVolatile == i.isVolatile());
     return i;

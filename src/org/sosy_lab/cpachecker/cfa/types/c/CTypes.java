@@ -184,76 +184,12 @@ public final class CTypes {
    * <p>If you want to set the const flag to a constant, prefer {@link #withoutConst(CType)} and
    * {@link #withConst(CType)}.
    */
-  @SuppressWarnings("unchecked") // method always creates instances of exact same class
   public static <T extends CType> T withConstSetTo(T type, boolean newConstValue) {
     if (type instanceof CProblemType) {
       return type;
     }
 
-    if (type.isConst() == newConstValue) {
-      return type;
-    }
-
-    return (T)
-        switch (type) {
-          case CArrayType t ->
-              new CArrayType(newConstValue, t.isVolatile(), t.getType(), t.getLength());
-          case CCompositeType t ->
-              new CCompositeType(
-                  newConstValue,
-                  t.isVolatile(),
-                  t.getKind(),
-                  t.getMembers(),
-                  t.getName(),
-                  t.getOrigName());
-
-          case CElaboratedType t ->
-              new CElaboratedType(
-                  newConstValue,
-                  t.isVolatile(),
-                  t.getKind(),
-                  t.getName(),
-                  t.getOrigName(),
-                  t.getRealType());
-          case CEnumType t ->
-              new CEnumType(
-                  newConstValue,
-                  t.isVolatile(),
-                  t.getCompatibleType(),
-                  t.getEnumerators(),
-                  t.getName(),
-                  t.getOrigName());
-          case CFunctionType t -> {
-            checkArgument(!newConstValue, "Cannot create const function type, this is undefined");
-            yield t;
-          }
-          case CPointerType t -> new CPointerType(newConstValue, t.isVolatile(), t.getType());
-
-          case CProblemType t -> throw new AssertionError(); // handled above
-
-          case CSimpleType t ->
-              new CSimpleType(
-                  newConstValue,
-                  t.isVolatile(),
-                  t.getType(),
-                  t.hasLongSpecifier(),
-                  t.hasShortSpecifier(),
-                  t.hasSignedSpecifier(),
-                  t.hasUnsignedSpecifier(),
-                  t.hasComplexSpecifier(),
-                  t.hasImaginarySpecifier(),
-                  t.hasLongLongSpecifier());
-
-          case CTypedefType t ->
-              new CTypedefType(newConstValue, t.isVolatile(), t.getName(), t.getRealType());
-
-          case CVoidType t -> CVoidType.create(newConstValue, t.isVolatile());
-
-          case CBitFieldType pCBitFieldType ->
-              new CBitFieldType(
-                  withConstSetTo(pCBitFieldType.getType(), newConstValue),
-                  pCBitFieldType.getBitFieldSize());
-        };
+    return withQualifiersSetTo(type, newConstValue, type.isVolatile());
   }
 
   /**
@@ -286,30 +222,49 @@ public final class CTypes {
    * <p>If you want to set the volatile flag to a constant, prefer {@link #withoutVolatile(CType)}
    * and {@link #withVolatile(CType)}.
    */
-  @SuppressWarnings("unchecked") // method always creates instances of exact same class
   public static <T extends CType> T withVolatileSetTo(T type, boolean newVolatileValue) {
     if (type instanceof CProblemType) {
       return type;
     }
+    return withQualifiersSetTo(type, type.isConst(), newVolatileValue);
+  }
 
-    if (type.isVolatile() == newVolatileValue) {
+  /**
+   * Return a copy of a given type that has the "const" and "volatile" flags set to the given
+   * values.
+   *
+   * <p>This method only changes the outermost const/volatile flags.
+   *
+   * <p>If you want to set the const or volatile flags to a constant, prefer one of the methods in
+   * this class that does not take a boolean parameter.
+   */
+  @SuppressWarnings("unchecked") // method always creates instances of exact same class
+  public static <T extends CType> T withQualifiersSetTo(
+      T type, boolean newConstValue, boolean newVolatileValue) {
+    if (type instanceof CProblemType) {
       return type;
     }
+
+    if (type.isConst() == newConstValue && type.isVolatile() == newVolatileValue) {
+      return type;
+    }
+
     return (T)
         switch (type) {
           case CArrayType t ->
-              new CArrayType(t.isConst(), newVolatileValue, t.getType(), t.getLength());
+              new CArrayType(newConstValue, newVolatileValue, t.getType(), t.getLength());
           case CCompositeType t ->
               new CCompositeType(
-                  t.isConst(),
+                  newConstValue,
                   newVolatileValue,
                   t.getKind(),
                   t.getMembers(),
                   t.getName(),
                   t.getOrigName());
+
           case CElaboratedType t ->
               new CElaboratedType(
-                  t.isConst(),
+                  newConstValue,
                   newVolatileValue,
                   t.getKind(),
                   t.getName(),
@@ -317,22 +272,25 @@ public final class CTypes {
                   t.getRealType());
           case CEnumType t ->
               new CEnumType(
-                  t.isConst(),
+                  newConstValue,
                   newVolatileValue,
                   t.getCompatibleType(),
                   t.getEnumerators(),
                   t.getName(),
                   t.getOrigName());
           case CFunctionType t -> {
+            checkArgument(!newConstValue, "Cannot create const function type, this is undefined");
             checkArgument(
-                !newVolatileValue, "Cannot create const function type, this is undefined");
+                !newVolatileValue, "Cannot create volatile function type, this is undefined");
             yield t;
           }
-          case CPointerType t -> new CPointerType(t.isConst(), newVolatileValue, t.getType());
+          case CPointerType t -> new CPointerType(newConstValue, newVolatileValue, t.getType());
+
           case CProblemType t -> throw new AssertionError(); // handled above
+
           case CSimpleType t ->
               new CSimpleType(
-                  t.isConst(),
+                  newConstValue,
                   newVolatileValue,
                   t.getType(),
                   t.hasLongSpecifier(),
@@ -342,12 +300,15 @@ public final class CTypes {
                   t.hasComplexSpecifier(),
                   t.hasImaginarySpecifier(),
                   t.hasLongLongSpecifier());
+
           case CTypedefType t ->
-              new CTypedefType(t.isConst(), newVolatileValue, t.getName(), t.getRealType());
-          case CVoidType t -> CVoidType.create(t.isConst(), newVolatileValue);
+              new CTypedefType(newConstValue, newVolatileValue, t.getName(), t.getRealType());
+
+          case CVoidType t -> CVoidType.create(newConstValue, newVolatileValue);
+
           case CBitFieldType pCBitFieldType ->
               new CBitFieldType(
-                  withVolatileSetTo(pCBitFieldType.getType(), newVolatileValue),
+                  withQualifiersSetTo(pCBitFieldType.getType(), newConstValue, newVolatileValue),
                   pCBitFieldType.getBitFieldSize());
         };
   }
@@ -531,9 +492,7 @@ public final class CTypes {
    * @return a copy of <code>pType</code> without qualifiers
    */
   public static <T extends CType> T copyDequalified(T pType) {
-    pType = withoutConst(pType);
-    pType = withoutVolatile(pType);
-    return pType;
+    return withQualifiersSetTo(pType, false, false);
   }
 
   /**
