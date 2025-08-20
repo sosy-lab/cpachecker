@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -85,7 +86,7 @@ public class BitVectorVariables {
   public ImmutableSet<CExpression> getOtherDenseReachableBitVectorsByAccessType(
       BitVectorAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
 
-    ImmutableSet.Builder<CExpression> rVariables = ImmutableSet.builder();
+    Builder<CExpression> rVariables = ImmutableSet.builder();
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
       if (pOtherThreads.contains(variable.thread)) {
         rVariables.add(variable.reachableVariable.orElseThrow());
@@ -102,6 +103,17 @@ public class BitVectorVariables {
       case ACCESS -> denseAccessBitVectors.orElseThrow();
       case READ -> denseReadBitVectors.orElseThrow();
       case WRITE -> denseWriteBitVectors.orElseThrow();
+    };
+  }
+
+  public ImmutableMap<CVariableDeclaration, SparseBitVector> getSparseBitVectorByAccessType(
+      BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE sparse bit vectors");
+      case ACCESS -> sparseAccessBitVectors.orElseThrow();
+      case READ -> throw new IllegalArgumentException("no READ sparse bit vectors");
+      case WRITE -> sparseWriteBitVectors.orElseThrow();
     };
   }
 

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import java.util.logging.Level;
@@ -21,16 +20,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorAccessEvaluationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.conflict.SeqConflictOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -160,7 +157,7 @@ public class ConflictResolver {
       SeqThreadStatementBlock targetBlock = pLabelBlockMap.get(targetPc);
       // build conflict order statement (with bit vector evaluations based on pTargetBlock)
       BitVectorEvaluationExpression lastBitVectorEvaluation =
-          buildLastBitVectorEvaluation(
+          BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
               pOptions,
               pLabelBlockMap,
               pPointerAssignments,
@@ -176,33 +173,5 @@ public class ConflictResolver {
       // no valid target pc -> no conflict order required
       return pStatement;
     }
-  }
-
-  private static BitVectorEvaluationExpression buildLastBitVectorEvaluation(
-      MPOROptions pOptions,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
-      SeqThreadStatementBlock pTargetBlock,
-      BitVectorVariables pBitVectorVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    LastDenseBitVector lastBitVector =
-        pBitVectorVariables.getLastDenseBitVectorByAccessType(BitVectorAccessType.ACCESS);
-    ImmutableSet<CVariableDeclaration> directVariables =
-        GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-            pLabelBlockMap,
-            pPointerAssignments,
-            pPointerParameterAssignments,
-            pTargetBlock,
-            BitVectorAccessType.ACCESS);
-    return BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
-        pOptions,
-        ImmutableSet.of(lastBitVector.reachableVariable),
-        directVariables,
-        pBitVectorVariables,
-        pBinaryExpressionBuilder);
   }
 }

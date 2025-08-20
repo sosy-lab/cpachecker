@@ -51,7 +51,7 @@ public class BitVectorAccessEvaluationBuilder {
     };
   }
 
-  public static BitVectorEvaluationExpression buildDenseEvaluation(
+  static BitVectorEvaluationExpression buildDenseEvaluation(
       MPOROptions pOptions,
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
@@ -71,14 +71,15 @@ public class BitVectorAccessEvaluationBuilder {
   static BitVectorEvaluationExpression buildSparseEvaluation(
       MPOROptions pOptions,
       ImmutableListMultimap<CVariableDeclaration, SeqExpression> pSparseBitVectorMap,
-      ImmutableSet<CVariableDeclaration> pDirectVariables,
+      ImmutableSet<CVariableDeclaration> pDirectAccessVariables,
       BitVectorVariables pBitVectorVariables) {
 
     if (pOptions.bitVectorEvaluationPrune) {
       return buildPrunedSparseEvaluation(
-          pSparseBitVectorMap, pDirectVariables, pBitVectorVariables);
+          pSparseBitVectorMap, pDirectAccessVariables, pBitVectorVariables);
     } else {
-      return buildFullSparseEvaluation(pSparseBitVectorMap, pDirectVariables, pBitVectorVariables);
+      return buildFullSparseEvaluation(
+          pSparseBitVectorMap, pDirectAccessVariables, pBitVectorVariables);
     }
   }
 
