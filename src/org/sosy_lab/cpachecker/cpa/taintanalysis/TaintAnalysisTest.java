@@ -477,13 +477,57 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testTaintByPointerAndAddressOperatorsSafe() throws Exception {
     TestResults results =
         runCPAchecker(
             "taintByPointerAndAddressOperatorsSafe.c", CATEGORY_POINTERS + SOURCE_CORE_MODELING);
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testTaintByPointerAndAddressOperatorsUnsafe_1() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "taintByPointerAndAddressOperatorsUnsafe_1.c",
+            CATEGORY_POINTERS + SOURCE_CORE_MODELING);
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByPointerAndAddressOperatorsUnsafe_2() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "taintByPointerAndAddressOperatorsUnsafe_2.c",
+            CATEGORY_POINTERS + SOURCE_CORE_MODELING);
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByPointerAndAddressOperatorsUnsafe_3() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "taintByPointerAndAddressOperatorsUnsafe_3.c",
+            CATEGORY_POINTERS + SOURCE_CORE_MODELING);
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByPointerAndAddressOperatorsUnsafe_4() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "taintByPointerAndAddressOperatorsUnsafe_4.c",
+            CATEGORY_POINTERS + SOURCE_CORE_MODELING);
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByPointerAndAddressOperatorsUnsafe_5() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "taintByPointerAndAddressOperatorsUnsafe_5.c",
+            CATEGORY_POINTERS + SOURCE_CORE_MODELING);
+    results.assertIsUnsafe();
   }
 
   @Test

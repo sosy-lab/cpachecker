@@ -15,34 +15,42 @@ int main() {
     int y = 1;
     int *ptr = &y;
 
-    // taint y directly
+    // taint y
     __VERIFIER_set_public(y, 0);
 
     // y's pointer is expected to be tainted
     __VERIFIER_is_public(*ptr, 0); // = y
     __VERIFIER_is_public(ptr, 0); // &y
 
-    // sanitize only the pointer `ptr`
-//    __VERIFIER_set_public(ptr, 1);
+    // sanitize the pointer `ptr`
+    __VERIFIER_set_public(ptr, 1);
 
-    // TODO: I incline my self for not letting pointers to be directly sanitized:
-    //       the pointed data remains unchanged and therefore still contains sensitive information.
-//    __VERIFIER_is_public(*ptr, 0); // = z
-//    __VERIFIER_is_public(ptr, 0); // &z
-//    __VERIFIER_is_public(y, 0);
+    // sanitizes the pointed value
+    __VERIFIER_is_public(*ptr, 1); // = y
+    __VERIFIER_is_public(ptr, 1); // &y
+    __VERIFIER_is_public(y, 1);
+
+    // taint the pointer
+    __VERIFIER_set_public(*ptr, 0);
+
+    // taints the pointed value
+    __VERIFIER_is_public(*ptr, 0); // = y
+    __VERIFIER_is_public(ptr, 0); // &y 1
+    __VERIFIER_is_public(y, 0);
 
     int z = 1;
+    // point the pointer to the mem. address an untainted variable
     ptr = &z;
 
     // z and its current pointer are expected to be untainted now
     __VERIFIER_is_public(*ptr, 1); // t(*ptr) = t(z) = U
-    __VERIFIER_is_public(ptr, 1); // t(ptr) = t(&z) = U -> // TODO: can the mem. address of an untainted variable be tainted, i.e., contain sensitive information?
+    __VERIFIER_is_public(ptr, 1); // t(ptr) = t(&z) = U
 
-    // the change of pointed value should not have effect on `y`.
+    // the override of the the pointer should not have effect on its old value
     __VERIFIER_is_public(y, 0);
 
     // taint `z` by dereference, assigning a tainted value to it
-    *ptr = x;
+    *ptr = x; // t(z) = t(*ptr) = t(x) = T
 
     // z and its current pointer are expected to be tainted now
     __VERIFIER_is_public(*ptr, 0); // = z
@@ -52,8 +60,8 @@ int main() {
     // sanitize x
     __VERIFIER_set_public(x, 1);
 
-    // Sanitize of `x` should not have effect in `ptr`, since `ptr` still points to `y`.
-    // y and its pointer ptr are expected to remain tainted
+    // Sanitize of `x` should not have effect in `ptr`, since `ptr` still points to `z`.
+    // z and its pointer are expected to remain tainted
     __VERIFIER_is_public(*ptr, 0);
     __VERIFIER_is_public(ptr, 0);
     __VERIFIER_is_public(z, 0);
