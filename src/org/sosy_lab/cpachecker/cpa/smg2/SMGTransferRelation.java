@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -1107,8 +1109,9 @@ public class SMGTransferRelation
     // that points to a null-terminated array of pointers to char, each of which points to a string
     // that provides information about the environment for this execution of the program
     // (5.1.2.2.1)
-    SMGState currentState = pState;
+
     List<CParameterDeclaration> parameters = cFuncDecl.getParameters();
+    SMGState currentState = pState;
     Value argcValue = null;
     for (int p = 0; p < parameters.size(); p++) {
       CParameterDeclaration parameter = parameters.get(p);
@@ -1119,10 +1122,69 @@ public class SMGTransferRelation
       if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
 
         checkArgument(p > 0);
-        // — argv[argc] shall be a null pointer.
+        if (!options.trackPredicates()) {
+          // Value Analysis can't track this accurately
         currentState =
             currentState.copyAndAddLocalVariable(
                 paramSizeInBits, parameter.getQualifiedName(), paramType, true);
+
+        } else {
+
+          // TODO: Fill with generative edge to generate pointers to nondet null-terminated strings.
+          // TODO: handle/build nondet null-terminated strings.
+          // TODO: generate pointers and strings when reading the edge, and cut it out.
+          // TODO: handle cleanup of the generated pointers and memory. (just make it stack mem)
+          Value argcValueInBits = evaluator.multiplyBitOffsetValues(checkNotNull(argcValue), BigInteger.valueOf(8));
+          currentState =
+              currentState.copyAndAddLocalVariable(
+                  evaluator.addBitOffsetValues(argcValueInBits, BigInteger.valueOf(8)),
+                  parameter.getQualifiedName(), paramType);
+
+          // — argv[argc] shall be a null pointer.
+          Value addressToZero = new NumericValue(0);
+          BigInteger sizeOfPointer = evaluator.getBitSizeof(pState, CPointerType.POINTER_TO_CHAR);
+          currentState =
+              currentState.writeToStackOrGlobalVariable(
+                  parameter.getQualifiedName(),
+                  argcValueInBits,
+                  new NumericValue(sizeOfPointer),
+                  addressToZero,
+                  CPointerType.POINTER_TO_CHAR,
+                  pEdge);
+
+          // argv[0][0] == '\0' is automatically handled by the generative edge.
+          SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+          Value greaterZeroSize = factory.newIdentifier(null);
+          final ConstraintFactory constraintFactory =
+              ConstraintFactory.getInstance(
+                  currentState, evaluator.getMachineModel(), logger, options, evaluator, pEdge);
+
+          final Constraint greaterZeroConstraint =
+              constraintFactory.getGreaterZeroConstraint(
+                  greaterZeroSize, CNumericTypes.INT, currentState);
+
+          currentState = currentState.addConstraint(greaterZeroConstraint);
+          Value greaterZeroSizeInBits = evaluator.multiplyBitOffsetValues(greaterZeroSize, BigInteger.valueOf(8));
+          ValueAndSMGState pointerAndState = evaluator.createHeapMemoryAndPointer(currentState, greaterZeroSizeInBits);
+          Value pointerToNondetString = pointerAndState.getValue();
+          currentState = pointerAndState.getState();
+          // null terminate the nondet string
+          currentState = currentState.writeToZero(pointerToNondetString, );
+          // nondet the rest of the string
+          currentState = currentState.writeValueTo(pointerToNondetString, );
+
+          // Build pointer towards the string and set nesting level
+          Value generativePointers;
+
+          currentState =
+              currentState.writeToStackOrGlobalVariable(
+                  parameter.getQualifiedName(),
+                  new NumericValue(BigInteger.ZERO),
+                  argcValueInBits,
+                  generativePointers,
+                  CPointerType.POINTER_TO_CHAR,
+                  pEdge);
+        }
 
       } else if (paramType.getCanonicalType() instanceof CSimpleType simpleType
           && simpleType.getType() == CBasicType.INT) {
@@ -1166,6 +1228,7 @@ public class SMGTransferRelation
         throw new SMGException("Disallowed parameter type " + paramType + " in entry function");
       }
     }
+
     return currentState;
   }
 
