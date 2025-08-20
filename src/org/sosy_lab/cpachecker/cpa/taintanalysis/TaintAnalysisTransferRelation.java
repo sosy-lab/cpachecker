@@ -637,7 +637,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
               if (pDeclaration.getType() instanceof CArrayType) {
 
-                CArraySubscriptExpression arraySubscriptExpression =
+                CArraySubscriptExpression arrayElement =
                     new CArraySubscriptExpression(
                         initExpr.getFileLocation(),
                         initExpr.getExpression().getExpressionType(),
@@ -654,11 +654,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                         .anyMatch(var -> pState.getTaintedVariables().contains(var));
 
                 if (initExprIsTainted) {
-                  generatedVars.add(arraySubscriptExpression);
-                  values.put(arraySubscriptExpression, initExpr.getExpression());
+                  generatedVars.add(arrayElement);
+                  values.put(arrayElement, initExpr.getExpression());
                 } else {
-                  killedVars.add(arraySubscriptExpression);
-                  values.put(arraySubscriptExpression, initExpr.getExpression());
+                  killedVars.add(arrayElement);
+                  values.put(arrayElement, initExpr.getExpression());
                 }
               }
 
@@ -812,13 +812,46 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         }
 
       } else if (lhs instanceof CArraySubscriptExpression arraySubscriptLHS) {
+
         // If the LHS is an array element and the RHS contains a tainted variable,
         // mark the array variable as tainted
         CExpression arrayExpr = arraySubscriptLHS.getArrayExpression();
+
         if (arrayExpr instanceof CIdExpression arrayVariable) {
+
           if (taintedRHS) {
+
             generatedVars.add(arrayVariable);
             generatedVars.add(arraySubscriptLHS);
+
+          } else {
+
+            boolean noRemainingTaintedArrayElements = true;
+
+            if (arraySubscriptLHS.getSubscriptExpression() instanceof CIdExpression subscriptVar) {
+              if (subscriptVar.getDeclaration() instanceof CVariableDeclaration arrayVarDec) {
+                if (arrayVarDec.getInitializer() instanceof CInitializerExpression iExpr) {
+                  if (iExpr.getExpression() instanceof CIntegerLiteralExpression iExprValue) {
+                    for (CExpression taintedVar : pState.getTaintedVariables()) {
+                      if (taintedVar instanceof CArraySubscriptExpression taintedVarSubscriptExpr) {
+                        if (!iExprValue.equals(taintedVarSubscriptExpr.getSubscriptExpression())) {
+                        } else {
+                          if (taintedVarSubscriptExpr.getArrayExpression().equals(arrayExpr)) {
+                            noRemainingTaintedArrayElements = false;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              if (noRemainingTaintedArrayElements) {
+                // untaint the array
+                killedVars.add(arrayVariable);
+              }
+            } else {
+              killedVars.add(arraySubscriptLHS);
+            }
           }
 
           if (!loopConditionIsNull(pCfaEdge)) {
@@ -885,24 +918,71 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           CExpression exprToCheck = params.get(0);
           CExpression newPublicState = params.get(1);
 
+          boolean varMustBePublic =
+              TaintAnalysisUtils.evaluateExpressionToInteger(newPublicState) == 1;
+          boolean varIsCurrentlyTainted = taintedVariables.contains(exprToCheck);
+
           if (exprToCheck instanceof CIdExpression expr) {
-            try {
-              boolean varMustBePublic =
-                  TaintAnalysisUtils.evaluateExpressionToInteger(newPublicState) == 1;
-              boolean varIsCurrentlyTainted = taintedVariables.contains(expr);
 
-              if (varIsCurrentlyTainted && varMustBePublic) {
-                killedVars.add(expr);
-              } else if (!varIsCurrentlyTainted && !varMustBePublic) {
-                generatedVars.add(expr);
+            if (varIsCurrentlyTainted && varMustBePublic) {
+              killedVars.add(expr);
+            } else if (!varIsCurrentlyTainted && !varMustBePublic) {
+              generatedVars.add(expr);
+            }
+
+          } else if (exprToCheck instanceof CArraySubscriptExpression arraySubscriptLHS) {
+
+            // If the LHS is an array element and the RHS contains a tainted variable,
+            // mark the array variable as tainted
+            CExpression arrayExpr = arraySubscriptLHS.getArrayExpression();
+
+            if (arrayExpr instanceof CIdExpression arrayVariable) {
+
+              if (!varIsCurrentlyTainted && !varMustBePublic) {
+
+                generatedVars.add(arrayVariable);
+                generatedVars.add(arraySubscriptLHS);
+
+              } else {
+
+                boolean noRemainingTaintedArrayElements = true;
+
+                if (arraySubscriptLHS.getSubscriptExpression()
+                    instanceof CIdExpression subscriptVar) {
+                  if (subscriptVar.getDeclaration() instanceof CVariableDeclaration arrayVarDec) {
+                    if (arrayVarDec.getInitializer() instanceof CInitializerExpression iExpr) {
+                      if (iExpr.getExpression() instanceof CIntegerLiteralExpression iExprValue) {
+                        for (CExpression taintedVar : pState.getTaintedVariables()) {
+                          if (taintedVar
+                              instanceof CArraySubscriptExpression taintedVarSubscriptExpr) {
+                            if (!iExprValue.equals(
+                                taintedVarSubscriptExpr.getSubscriptExpression())) {
+                            } else {
+                              if (taintedVarSubscriptExpr.getArrayExpression().equals(arrayExpr)) {
+                                noRemainingTaintedArrayElements = false;
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  if (noRemainingTaintedArrayElements) {
+                    // untaint the array
+                    killedVars.add(arrayVariable);
+                  }
+
+                } else {
+                  if (varIsCurrentlyTainted && varMustBePublic) {
+                    killedVars.add(arrayVariable);
+                  }
+                }
               }
-
-            } catch (CPATransferException e) {
-              throw new CPATransferException("Error processing setPublic call", e);
             }
           } else if (exprToCheck instanceof CPointerExpression) {
             logger.logf(Level.INFO, "exprToCheck is a pointer expression");
-          } // TODO: else if (exprToCheck instanceof CArraySubscriptExpression arraySubscript) {}
+          }
         }
         newStates.add(generateNewState(pState, killedVars, generatedVars, values));
 
@@ -912,13 +992,14 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         if (params.size() == 2) {
 
           CExpression exprToCheck = params.get(0);
-          CExpression taintCheck = params.get(1);
-          int expectedPublicity = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
-          boolean expressionIsTainted;
-
           Set<CIdExpression> exprToCheckParams = TaintAnalysisUtils.getAllVarsAsCExpr(exprToCheck);
-          expressionIsTainted = taintedVariables.stream().anyMatch(exprToCheckParams::contains);
 
+          CExpression taintCheck = params.get(1);
+
+          boolean expressionIsTainted =
+              taintedVariables.stream().anyMatch(exprToCheckParams::contains);
+
+          int expectedPublicity = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
           boolean varShouldBePublic = expectedPublicity == 1;
 
           if (varShouldBePublic == expressionIsTainted) {
