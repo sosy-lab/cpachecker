@@ -821,15 +821,32 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
         if (arrayExpr instanceof CIdExpression arrayVariable) {
 
-          if (taintedRHS) {
+          if (isInControlStructure(pCfaEdge)) {
+            if (isStatementControlledByTaintedVars(pCfaEdge, taintedVariables)) {
 
-            generatedVars.add(arrayVariable);
-            generatedVars.add(arraySubscriptLHS);
+              generatedVars.add(arrayVariable);
+              generatedVars.add(arraySubscriptLHS);
+
+            } else {
+
+              if (taintedRHS) {
+                generatedVars.add(arrayVariable);
+                generatedVars.add(arraySubscriptLHS);
+              } else {
+                handleArraySanitization(
+                    pState, arraySubscriptLHS, arrayVariable, arrayExpr, killedVars);
+              }
+            }
 
           } else {
 
-            handleArraySanitization(
-                pState, arraySubscriptLHS, arrayVariable, arrayExpr, killedVars);
+            if (taintedRHS) {
+              generatedVars.add(arrayVariable);
+              generatedVars.add(arraySubscriptLHS);
+            } else {
+              handleArraySanitization(
+                  pState, arraySubscriptLHS, arrayVariable, arrayExpr, killedVars);
+            }
           }
 
           if (!loopConditionIsNull(pCfaEdge)) {
