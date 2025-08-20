@@ -24,17 +24,21 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.GlobalVariableFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorEvaluationBuilder {
+
+  // variable only i.e. no literal expressions =====================================================
 
   public static BitVectorEvaluationExpression buildVariableOnlyEvaluation(
       MPOROptions pOptions,
@@ -69,6 +73,8 @@ public class BitVectorEvaluationBuilder {
     };
   }
 
+  // last bit vector evaluations (conflict reduction) ==============================================
+
   public static BitVectorEvaluationExpression buildLastBitVectorEvaluation(
       MPOROptions pOptions,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -87,8 +93,6 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               "conflictReduction must be enabled to build evaluation expression");
       case ACCESS_ONLY -> {
-        LastDenseBitVector lastAccessBitVector =
-            pBitVectorVariables.getLastDenseBitVectorByAccessType(BitVectorAccessType.ACCESS);
         ImmutableSet<CVariableDeclaration> directAccessVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap,
@@ -96,18 +100,11 @@ public class BitVectorEvaluationBuilder {
                 pPointerParameterAssignments,
                 pTargetBlock,
                 BitVectorAccessType.ACCESS);
-        yield BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
-            pOptions,
-            ImmutableSet.of(lastAccessBitVector.reachableVariable),
-            directAccessVariables,
-            pBitVectorVariables,
-            pBinaryExpressionBuilder);
+        yield buildLastAccessBitVectorEvaluationByEncoding(
+            pOptions, directAccessVariables,
+            pBitVectorVariables, pBinaryExpressionBuilder);
       }
       case READ_AND_WRITE -> {
-        LastDenseBitVector lastWriteBitVector =
-            pBitVectorVariables.getLastDenseBitVectorByAccessType(BitVectorAccessType.WRITE);
-        LastDenseBitVector lastAccessBitVector =
-            pBitVectorVariables.getLastDenseBitVectorByAccessType(BitVectorAccessType.ACCESS);
         ImmutableSet<CVariableDeclaration> directReadVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap,
@@ -122,10 +119,8 @@ public class BitVectorEvaluationBuilder {
                 pPointerParameterAssignments,
                 pTargetBlock,
                 BitVectorAccessType.WRITE);
-        yield BitVectorReadWriteEvaluationBuilder.buildDenseEvaluation(
+        yield buildLastReadWriteBitVectorEvaluationByEncoding(
             pOptions,
-            ImmutableSet.of(lastWriteBitVector.reachableVariable),
-            ImmutableSet.of(lastAccessBitVector.reachableVariable),
             directReadVariables,
             directWriteVariables,
             pBitVectorVariables,
@@ -133,6 +128,103 @@ public class BitVectorEvaluationBuilder {
       }
     };
   }
+
+  private static BitVectorEvaluationExpression buildLastAccessBitVectorEvaluationByEncoding(
+      MPOROptions pOptions,
+      ImmutableSet<CVariableDeclaration> pDirectAccessVariables,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pOptions.bitVectorEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+      case BINARY, DECIMAL, HEXADECIMAL -> {
+        LastDenseBitVector lastAccessBitVector =
+            pBitVectorVariables.getLastDenseBitVectorByAccessType(BitVectorAccessType.ACCESS);
+        ImmutableSet<CExpression> otherAccessBitVectors =
+            ImmutableSet.of(lastAccessBitVector.reachableVariable);
+        yield BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
+            pOptions,
+            otherAccessBitVectors,
+            pDirectAccessVariables,
+            pBitVectorVariables,
+            pBinaryExpressionBuilder);
+      }
+      case SPARSE -> {
+        ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseAccessMap =
+            mapGlobalVariablesToLastSparseBitVectorsByAccessType(
+                pDirectAccessVariables, pBitVectorVariables, BitVectorAccessType.ACCESS);
+        yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
+            pOptions, sparseAccessMap, pDirectAccessVariables, pBitVectorVariables);
+      }
+    };
+  }
+
+  private static BitVectorEvaluationExpression buildLastReadWriteBitVectorEvaluationByEncoding(
+      MPOROptions pOptions,
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pOptions.bitVectorEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+      case BINARY, DECIMAL, HEXADECIMAL -> {
+        LastDenseBitVector lastWriteBitVector =
+            pBitVectorVariables.getLastDenseBitVectorByAccessType(BitVectorAccessType.WRITE);
+        LastDenseBitVector lastAccessBitVector =
+            pBitVectorVariables.getLastDenseBitVectorByAccessType(BitVectorAccessType.ACCESS);
+        yield BitVectorReadWriteEvaluationBuilder.buildDenseEvaluation(
+            pOptions,
+            ImmutableSet.of(lastWriteBitVector.reachableVariable),
+            ImmutableSet.of(lastAccessBitVector.reachableVariable),
+            pDirectReadVariables,
+            pDirectWriteVariables,
+            pBitVectorVariables,
+            pBinaryExpressionBuilder);
+      }
+      case SPARSE -> {
+        ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseWriteMap =
+            mapGlobalVariablesToLastSparseBitVectorsByAccessType(
+                pDirectReadVariables, pBitVectorVariables, BitVectorAccessType.WRITE);
+        ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseAccessMap =
+            mapGlobalVariablesToLastSparseBitVectorsByAccessType(
+                pDirectWriteVariables, pBitVectorVariables, BitVectorAccessType.ACCESS);
+        yield BitVectorReadWriteEvaluationBuilder.buildSparseEvaluation(
+            pOptions,
+            sparseWriteMap,
+            sparseAccessMap,
+            pDirectReadVariables,
+            pDirectWriteVariables,
+            pBitVectorVariables);
+      }
+    };
+  }
+
+  private static ImmutableListMultimap<CVariableDeclaration, SeqExpression>
+      mapGlobalVariablesToLastSparseBitVectorsByAccessType(
+          ImmutableSet<CVariableDeclaration> pDirectVariables,
+          BitVectorVariables pBitVectorVariables,
+          BitVectorAccessType pAccessType) {
+
+    Builder<CVariableDeclaration, SeqExpression> rMap = ImmutableListMultimap.builder();
+    ImmutableMap<CVariableDeclaration, LastSparseBitVector> lastSparseBitVectors =
+        pBitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
+    for (var entry : lastSparseBitVectors.entrySet()) {
+      CVariableDeclaration variableDeclaration = entry.getKey();
+      if (pDirectVariables.contains(variableDeclaration)) {
+        rMap.put(variableDeclaration, new CToSeqExpression(entry.getValue().variable));
+      }
+    }
+    return rMap.build();
+  }
+
+  // bit vector evaluations by accessed global variables (bit vector reduction) ====================
 
   public static BitVectorEvaluationExpression buildEvaluationByDirectVariableAccesses(
       MPOROptions pOptions,

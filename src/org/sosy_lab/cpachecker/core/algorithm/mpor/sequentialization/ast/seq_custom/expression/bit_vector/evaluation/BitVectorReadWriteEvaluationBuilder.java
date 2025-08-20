@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class BitVectorReadWriteEvaluationBuilder {
+class BitVectorReadWriteEvaluationBuilder {
 
   static BitVectorEvaluationExpression buildVariableOnlyEvaluationByEncoding(
       MPOROptions pOptions,

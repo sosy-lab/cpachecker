@@ -37,6 +37,12 @@ public class BitVectorVariables {
 
   private final Optional<LastDenseBitVector> lastDenseWriteBitVector;
 
+  private final Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>>
+      lastSparseAccessBitVector;
+
+  private final Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>>
+      lastSparseWriteBitVector;
+
   // TODO last sparse access/write bit vectors
 
   public BitVectorVariables(
@@ -47,7 +53,9 @@ public class BitVectorVariables {
       Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseAccessBitVectors,
       Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseWriteBitVectors,
       Optional<LastDenseBitVector> pLastDenseAccessBitVector,
-      Optional<LastDenseBitVector> pLastDenseWriteBitVector) {
+      Optional<LastDenseBitVector> pLastDenseWriteBitVector,
+      Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>> pLastSparseAccessBitVector,
+      Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>> pLastSparseWriteBitVector) {
 
     numGlobalVariables = pGlobalVariableIds.size();
     globalVariableIds = pGlobalVariableIds;
@@ -58,6 +66,8 @@ public class BitVectorVariables {
     sparseWriteBitVectors = pSparseWriteBitVectors;
     lastDenseAccessBitVector = pLastDenseAccessBitVector;
     lastDenseWriteBitVector = pLastDenseWriteBitVector;
+    lastSparseAccessBitVector = pLastSparseAccessBitVector;
+    lastSparseWriteBitVector = pLastSparseWriteBitVector;
   }
 
   public CExpression getDenseDirectBitVectorByAccessType(
@@ -123,6 +133,28 @@ public class BitVectorVariables {
       case ACCESS -> lastDenseAccessBitVector.orElseThrow();
       case READ -> throw new IllegalArgumentException("no READ access type last dense bit vector");
       case WRITE -> lastDenseWriteBitVector.orElseThrow();
+    };
+  }
+
+  public Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>>
+      tryGetLastSparseBitVectorByAccessType(BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type last dense bit vector");
+      case ACCESS -> lastSparseAccessBitVector;
+      case READ -> throw new IllegalArgumentException("no READ access type last dense bit vector");
+      case WRITE -> lastSparseWriteBitVector;
+    };
+  }
+
+  public ImmutableMap<CVariableDeclaration, LastSparseBitVector> getLastSparseBitVectorByAccessType(
+      BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type last dense bit vector");
+      case ACCESS -> lastSparseAccessBitVector.orElseThrow();
+      case READ -> throw new IllegalArgumentException("no READ access type last dense bit vector");
+      case WRITE -> lastSparseWriteBitVector.orElseThrow();
     };
   }
 

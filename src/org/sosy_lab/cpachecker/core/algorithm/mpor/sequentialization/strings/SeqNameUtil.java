@@ -278,6 +278,45 @@ public class SeqNameUtil {
             + variableName;
   }
 
+  public static String buildLastReachableSparseBitVectorNameByAccessType(
+      MPOROptions pOptions,
+      CVariableDeclaration pVariableDeclaration,
+      BitVectorAccessType pAccessType) {
+
+    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
+    String variableName = pVariableDeclaration.getName();
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("cannot build name for NONE access type");
+      case ACCESS ->
+          buildLastSparseBitVectorName(pOptions, SeqToken.a, SeqToken.ACCESS, variableName);
+      case READ -> buildLastSparseBitVectorName(pOptions, SeqToken.r, SeqToken.READ, variableName);
+      case WRITE ->
+          buildLastSparseBitVectorName(pOptions, SeqToken.w, SeqToken.WRITE, variableName);
+    };
+  }
+
+  private static String buildLastSparseBitVectorName(
+      MPOROptions pOptions, String pAccessTypeShort, String pAccessTypeLong, String pVariableName) {
+
+    return pOptions.shortVariableNames
+        ? SeqToken.last
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.b
+            + SeqToken.r
+            + pAccessTypeShort
+            + SeqSyntax.UNDERSCORE
+            + pVariableName
+        : SeqToken.LAST
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.REACHABLE
+            + SeqSyntax.UNDERSCORE
+            + pAccessTypeLong
+            + SeqSyntax.UNDERSCORE
+            + pVariableName;
+  }
+
   // Mutex =========================================================================================
 
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */

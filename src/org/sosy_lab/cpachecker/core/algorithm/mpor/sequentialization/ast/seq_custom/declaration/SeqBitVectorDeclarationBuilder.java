@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.SparseBitVectorValueExpression;
@@ -23,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.DenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -126,21 +128,31 @@ public class SeqBitVectorDeclarationBuilder {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
           createSparseBitVectorDeclarations(
-              pBitVectorVariables.getSparseAccessBitVectors().values(), pThreads);
+              pBitVectorVariables.getSparseAccessBitVectors().values(),
+              pBitVectorVariables.tryGetLastSparseBitVectorByAccessType(BitVectorAccessType.ACCESS),
+              pThreads);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
                   createSparseBitVectorDeclarations(
-                      pBitVectorVariables.getSparseAccessBitVectors().values(), pThreads))
+                      pBitVectorVariables.getSparseAccessBitVectors().values(),
+                      pBitVectorVariables.tryGetLastSparseBitVectorByAccessType(
+                          BitVectorAccessType.ACCESS),
+                      pThreads))
               .addAll(
                   createSparseBitVectorDeclarations(
-                      pBitVectorVariables.getSparseWriteBitVectors().values(), pThreads))
+                      pBitVectorVariables.getSparseWriteBitVectors().values(),
+                      pBitVectorVariables.tryGetLastSparseBitVectorByAccessType(
+                          BitVectorAccessType.WRITE),
+                      pThreads))
               .build();
     };
   }
 
   private static ImmutableList<SeqBitVectorDeclaration> createSparseBitVectorDeclarations(
-      ImmutableCollection<SparseBitVector> pSparseBitVectors, ImmutableList<MPORThread> pThreads) {
+      ImmutableCollection<SparseBitVector> pSparseBitVectors,
+      Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>> pLastSparseBitVectors,
+      ImmutableList<MPORThread> pThreads) {
 
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (SparseBitVector sparseBitVector : pSparseBitVectors) {
@@ -151,6 +163,15 @@ public class SeqBitVectorDeclarationBuilder {
         SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(false);
         SeqBitVectorDeclaration declaration =
             new SeqBitVectorDeclaration(BitVectorDataType.__UINT8_T, variable, initializer);
+        rDeclarations.add(declaration);
+      }
+    }
+    if (pLastSparseBitVectors.isPresent()) {
+      for (var entry : pLastSparseBitVectors.orElseThrow().entrySet()) {
+        SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(false);
+        SeqBitVectorDeclaration declaration =
+            new SeqBitVectorDeclaration(
+                BitVectorDataType.__UINT8_T, entry.getValue().variable, initializer);
         rDeclarations.add(declaration);
       }
     }
