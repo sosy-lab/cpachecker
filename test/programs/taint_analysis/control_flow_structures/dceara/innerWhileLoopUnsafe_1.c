@@ -15,8 +15,6 @@ int main() {
     int a, b;
     int a1, b1;
     a = b = 0;
-    a1 = b1 = __VERIFIER_nondet_int();
-    int x = __VERIFIER_nondet_int();
 
     while (a < 1) {
         while (b < 1) {
@@ -25,6 +23,8 @@ int main() {
         a++;
     }
 
-    __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(b, 1);
+    __VERIFIER_is_public(a, 0);
+    __VERIFIER_is_public(b, 0);
+
+    return 0;
 }

@@ -11,12 +11,11 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
+int main(int argc) {
     int a, b;
     int a1, b1;
     a = b = 0;
     a1 = b1 = __VERIFIER_nondet_int();
-    int x = __VERIFIER_nondet_int();
 
     while (a < 10) {
         while (b < 20) {
@@ -30,12 +29,15 @@ int main() {
 
     a1 = 0;
     while (a1 < 10) {
-        while (b1) { // <- with this it works, but it is not terminating when using a condition like b1 < x
+        while (b1 < argc) {
             b1++;
         }
         a1++;
     }
 
+
     __VERIFIER_is_public(a1, 1);
     __VERIFIER_is_public(b1, 0);
+
+    return 0;
 }
