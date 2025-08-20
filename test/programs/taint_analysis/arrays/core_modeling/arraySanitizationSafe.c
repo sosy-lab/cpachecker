@@ -17,25 +17,35 @@ int main() {
     // taint flows to d
     int d[2] = {x, y};
 
-    // Individual elements of the array `d` cannot be sanitized when `d` is tainted.
-    // neither by setting them public
-    for (int i = 0; i < sizeof(d) / sizeof(d[0]); i++) {
-        __VERIFIER_set_public(d[i], 1);
-    }
+    // Despite sanitizing array elements individually, their taint status will remain tainted
+    // until all vars have been untainted. Is at least one tainted var in the array, the array
+    // and the rest of the elements are considered tainted.
+    // One can sanitize the array by setting all elements public
+    __VERIFIER_set_public(d[0], 1);
+    __VERIFIER_is_public(d[0], 0);
+
+    __VERIFIER_set_public(d[1], 1);
+    __VERIFIER_is_public(d[0], 1);
+    __VERIFIER_is_public(d[1], 1);
+
+    __VERIFIER_set_public(d, 0);
+    __VERIFIER_is_public(d, 0);
+
+    __VERIFIER_is_public(d[0], 0);
+    __VERIFIER_is_public(d[1], 0);
 
     // or by redefining them
     for (int i = 0; i < sizeof(d) / sizeof(d[0]); i++) {
         d[i] = 1;
     }
 
-    // The array and its elements are expected to remain tainted
-    __VERIFIER_is_public(d, 0);
+    __VERIFIER_is_public(d, 1);
     for (int i = 0; i < sizeof(d) / sizeof(d[0]); i++) {
-        __VERIFIER_is_public(d[i], 0);
+        __VERIFIER_is_public(d[i], 1);
     }
 
     // A new definition of an array, like d = {1, 2, 3} is not posible in C. Making the sanitization by array-redefinition not possible.
-    // Sanitize the whole array `d`
+    // But we can sanitize the whole array
     __VERIFIER_set_public(d, 1);
 
     // array `d` and its components are now expected to be untainted

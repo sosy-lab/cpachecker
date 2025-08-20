@@ -17,18 +17,9 @@ int main() {
     // taint flows to d
     int d[2] = {x, y};
 
-    // Individual elements of the array `d` cannot be sanitized when `d` is tainted.
-    // neither by setting them public
-    for (int i = 0; i < sizeof(d) / sizeof(d[0]); i++) {
-        __VERIFIER_set_public(d[i], 1);
-    }
-
-    // or by redefining them
     for (int i = 0; i < sizeof(d) / sizeof(d[0]); i++) {
         d[i] = 1;
     }
 
-    // Information-flow violation:
-    // array `d` is expected to remain tainted
-    __VERIFIER_is_public(d, 1);
+    __VERIFIER_is_public(d, 0);
 }
