@@ -46,7 +46,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     name = Optional.empty();
   }
 
-  private SMGObject(int pNestingLevel, Value pSize, BigInteger pOffset, String objectName) {
+  protected SMGObject(int pNestingLevel, Value pSize, BigInteger pOffset, String objectName) {
     Preconditions.checkNotNull(pOffset);
     Preconditions.checkNotNull(pSize);
     nestingLevel = pNestingLevel;
@@ -175,6 +175,18 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     } else {
       return name.orElseThrow() + "[" + offset + ", " + sizeToPrint + ")";
     }
+  }
+
+  public boolean hasName() {
+    return name.isPresent();
+  }
+
+  /**
+   * Returns the name of the object if it has one, else throws {@link
+   * java.util.NoSuchElementException}.
+   */
+  public String getName() {
+    return name.orElseThrow();
   }
 
   /** Returns true if the checked {@link SMGObject} is the null instance. */
