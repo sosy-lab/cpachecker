@@ -305,7 +305,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     if (isBinaryExpressionThatMayOverflow(exp)) {
       CBinaryExpression binexp = (CBinaryExpression) exp;
       BinaryOperator binop = binexp.getOperator();
-      CType calculationType = CTypes.copyDequalified(binexp.getCalculationType());
+      CType calculationType = CTypes.withoutQualifiers(binexp.getCalculationType());
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
       if (trackAdditiveOperations
@@ -333,7 +333,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
         }
       }
     } else if (exp instanceof CUnaryExpression unaryexp) {
-      CType calculationType = CTypes.copyDequalified(exp.getExpressionType());
+      CType calculationType = CTypes.withoutQualifiers(exp.getExpressionType());
 
       if (unaryexp.getOperator().equals(CUnaryExpression.UnaryOperator.MINUS)
           && lowerBounds.get(calculationType) != null) {

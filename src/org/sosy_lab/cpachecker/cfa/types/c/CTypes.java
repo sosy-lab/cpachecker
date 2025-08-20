@@ -230,6 +230,17 @@ public final class CTypes {
   }
 
   /**
+   * Return a copy of a given type that has the "const" and "volatile" flags removed. If the type
+   * already has no qualifiers, it is returned unchanged.
+   *
+   * <p>This method only eliminates the outermost qualifiers, if present, i.e., it does not change a
+   * non-const non-volatile pointer to a const volatile int.
+   */
+  public static <T extends CType> T withoutQualifiers(T type) {
+    return withQualifiersSetTo(type, false, false);
+  }
+
+  /**
    * Return a copy of a given type that has the "const" and "volatile" flags set to the given
    * values.
    *
@@ -435,8 +446,8 @@ public final class CTypes {
         // C-Standard §6.7.6.3 (15, last sentence in parentheses):
         // "... each parameter declared with qualified type is taken
         // as having the unqualified version of its declared type."
-        paramOfA = copyDequalified(paramOfA);
-        paramOfB = copyDequalified(paramOfB);
+        paramOfA = withoutQualifiers(paramOfA);
+        paramOfB = withoutQualifiers(paramOfB);
 
         if (!areTypesCompatible(paramOfA, paramOfB)) {
           return false;
@@ -482,17 +493,6 @@ public final class CTypes {
       pType = new CPointerType(pType.isConst(), pType.isVolatile(), pType);
     }
     return pType;
-  }
-
-  /**
-   * Creates an instance of {@link CType} that is an exact copy of <code>pType</code>, but is
-   * guaranteed to not be qualified as either <code>const</code> or <code>volatile</code>.
-   *
-   * @param pType the {@link CType} to copy without qualifiers
-   * @return a copy of <code>pType</code> without qualifiers
-   */
-  public static <T extends CType> T copyDequalified(T pType) {
-    return withQualifiersSetTo(pType, false, false);
   }
 
   /**

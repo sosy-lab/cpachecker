@@ -412,8 +412,8 @@ public final class CInitializers {
       final CType currentType = currentSubobject.getExpressionType().getCanonicalType();
 
       // Ignore modifiers const and volatile for equality checks.
-      CType currentTypeWithoutModifier = CTypes.copyDequalified(currentType);
-      CType targetTypeWithoutModifier = CTypes.copyDequalified(targetType);
+      CType currentTypeWithoutModifier = CTypes.withoutQualifiers(currentType);
+      CType targetTypeWithoutModifier = CTypes.withoutQualifiers(targetType);
       if (targetTypeWithoutModifier.equals(currentTypeWithoutModifier)) {
         break;
       }

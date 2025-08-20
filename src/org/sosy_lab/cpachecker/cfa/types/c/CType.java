@@ -105,8 +105,8 @@ public sealed interface CType extends Type
 
     // Cf. C-Standard §6.5.16.1 (1), second constraint.
     if (leftHandSide instanceof CCompositeType && rightHandSide instanceof CCompositeType) {
-      CType plainCompositeLeft = CTypes.copyDequalified(leftHandSide);
-      CType plainCompositeRight = CTypes.copyDequalified(rightHandSide);
+      CType plainCompositeLeft = CTypes.withoutQualifiers(leftHandSide);
+      CType plainCompositeRight = CTypes.withoutQualifiers(rightHandSide);
 
       return CTypes.areTypesCompatible(plainCompositeLeft, plainCompositeRight);
     }
@@ -134,8 +134,8 @@ public sealed interface CType extends Type
               && (leftPointedToType.isVolatile() || !rightPointedToType.isVolatile()))
           && ((leftPointedToType instanceof CVoidType || rightPointedToType instanceof CVoidType)
               || CTypes.areTypesCompatible(
-                  CTypes.copyDequalified(leftPointedToType),
-                  CTypes.copyDequalified(rightPointedToType))));
+                  CTypes.withoutQualifiers(leftPointedToType),
+                  CTypes.withoutQualifiers(rightPointedToType))));
     }
 
     // Cf. C-Standard §6.3.2.1 (3)
