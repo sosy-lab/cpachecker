@@ -2887,6 +2887,7 @@ public class SMGCPAExpressionEvaluator {
     }
   }
 
+  // TODO: Why is this not fixed at *8 ?
   public Value multiplyBitOffsetValues(Value leftValue, BigInteger rightValue) throws SMGException {
     return multiplyBitOffsetValues(leftValue, new NumericValue(rightValue));
   }

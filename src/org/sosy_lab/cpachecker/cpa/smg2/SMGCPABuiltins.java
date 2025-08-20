@@ -894,9 +894,9 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Handles all allocation methods i.e. malloc Returns the pointer Value to the new memory region
-   * (that may be written to 0 for the correct function i.e. calloc). This also returns a state for
-   * the failure of the allocation function if the option is enabled.
+   * Handles all heap allocation methods e.g. malloc. Returns the pointer Value to the new memory
+   * region (that may be written to 0 for the correct function i.e. calloc). This also returns a
+   * state for the failure of the allocation function if the option is enabled.
    *
    * @param functionCall the {@link CFunctionCallExpression} that lead to this function call.
    * @param pState current {@link SMGState}.
