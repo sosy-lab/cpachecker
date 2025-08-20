@@ -41,10 +41,6 @@ public class SeqDeclarations {
         buildVariableDeclaration(
             true, SeqSimpleType.INT, SeqToken.last_thread, SeqInitializer.INT_0);
 
-    public static final CVariableDeclaration LAST_THREAD_UNSIGNED =
-        buildVariableDeclaration(
-            true, SeqSimpleType.UNSIGNED_INT, SeqToken.last_thread, SeqInitializer.INT_0);
-
     // next_thread
 
     public static final CVariableDeclaration NEXT_THREAD_SIGNED =

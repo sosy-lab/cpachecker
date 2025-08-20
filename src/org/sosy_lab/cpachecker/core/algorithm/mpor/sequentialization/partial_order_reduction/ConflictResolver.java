@@ -17,22 +17,20 @@ import com.google.common.collect.ImmutableTable;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorAccessEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.conflict.SeqConflictOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -48,7 +46,6 @@ public class ConflictResolver {
       ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
           pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables,
-      PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -61,9 +58,7 @@ public class ConflictResolver {
     }
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rResolved =
         ImmutableListMultimap.builder();
-    ImmutableSet<MPORThread> allThreads = pClauses.keySet();
     for (MPORThread activeThread : pClauses.keySet()) {
-      ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(allThreads, activeThread);
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(activeThread);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses);
@@ -73,12 +68,10 @@ public class ConflictResolver {
               pOptions,
               pClauses.get(activeThread),
               activeThread,
-              otherThreads,
               labelBlockMap,
               pPointerAssignments,
               pPointerParameterAssignments,
               pBitVectorVariables,
-              pPcVariables,
               pBinaryExpressionBuilder));
     }
     return rResolved.build();
@@ -90,13 +83,11 @@ public class ConflictResolver {
       MPOROptions pOptions,
       ImmutableList<SeqThreadStatementClause> pClauses,
       MPORThread pActiveThread,
-      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
           pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables,
-      PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -109,12 +100,10 @@ public class ConflictResolver {
                 pOptions,
                 mergedBlock,
                 pActiveThread,
-                pOtherThreads,
                 pLabelBlockMap,
                 pPointerAssignments,
                 pPointerParameterAssignments,
                 pBitVectorVariables,
-                pPcVariables,
                 pBinaryExpressionBuilder));
       }
       rWithOrders.add(clause.cloneWithBlocks(newBlocks.build()));
@@ -126,13 +115,11 @@ public class ConflictResolver {
       MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
       MPORThread pActiveThread,
-      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
           pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables,
-      PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -143,12 +130,10 @@ public class ConflictResolver {
               pOptions,
               statement,
               pActiveThread,
-              pOtherThreads,
               pLabelBlockMap,
               pPointerAssignments,
               pPointerParameterAssignments,
               pBitVectorVariables,
-              pPcVariables,
               pBinaryExpressionBuilder));
     }
     return pBlock.cloneWithStatements(newStatements.build());
@@ -158,40 +143,34 @@ public class ConflictResolver {
       MPOROptions pOptions,
       SeqThreadStatement pStatement,
       MPORThread pActiveThread,
-      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
           pPointerParameterAssignments,
       BitVectorVariables pBitVectorVariables,
-      PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    if (pActiveThread.isMain()) {
+      // do not inject for main thread, because last_thread < 0 never holds
+      return pStatement;
+    }
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pStatement.getTargetPc())) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       SeqThreadStatementBlock targetBlock = pLabelBlockMap.get(targetPc);
       // build conflict order statement (with bit vector evaluations based on pTargetBlock)
-      ImmutableMap<MPORThread, BitVectorEvaluationExpression> bitVectorEvaluationPairs =
-          buildBitVectorEvaluationPairs(
+      BitVectorEvaluationExpression lastBitVectorEvaluation =
+          buildLastBitVectorEvaluation(
               pOptions,
-              pOtherThreads,
               pLabelBlockMap,
               pPointerAssignments,
               pPointerParameterAssignments,
               targetBlock,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
-      // use integer literal expressions for next_thread, the information is known
-      CIntegerLiteralExpression nextThreadExpression =
-          SeqExpressionBuilder.buildIntegerLiteralExpression(pActiveThread.id);
       SeqConflictOrderStatement conflictOrderStatement =
           new SeqConflictOrderStatement(
-              pOptions,
-              nextThreadExpression,
-              bitVectorEvaluationPairs,
-              pPcVariables,
-              pBinaryExpressionBuilder);
+              pActiveThread, lastBitVectorEvaluation, pBinaryExpressionBuilder);
       return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(conflictOrderStatement));
     } else {
       // no valid target pc -> no conflict order required
@@ -199,34 +178,31 @@ public class ConflictResolver {
     }
   }
 
-  private static ImmutableMap<MPORThread, BitVectorEvaluationExpression>
-      buildBitVectorEvaluationPairs(
-          MPOROptions pOptions,
-          ImmutableSet<MPORThread> pOtherThreads,
-          ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-          ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-          ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-              pPointerParameterAssignments,
-          SeqThreadStatementBlock pTargetBlock,
-          BitVectorVariables pBitVectorVariables,
-          CBinaryExpressionBuilder pBinaryExpressionBuilder)
-          throws UnrecognizedCodeException {
+  private static BitVectorEvaluationExpression buildLastBitVectorEvaluation(
+      MPOROptions pOptions,
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+          pPointerParameterAssignments,
+      SeqThreadStatementBlock pTargetBlock,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<MPORThread, BitVectorEvaluationExpression> rPairs = ImmutableMap.builder();
-    for (MPORThread otherThread : pOtherThreads) {
-      BitVectorEvaluationExpression evaluationExpression =
-          BitVectorEvaluationBuilder.buildEvaluationByDirectVariableAccesses(
-              pOptions,
-              // use the single other thread for the bit vector evaluation (pair wise!)
-              ImmutableSet.of(otherThread),
-              pLabelBlockMap,
-              pPointerAssignments,
-              pPointerParameterAssignments,
-              pTargetBlock,
-              pBitVectorVariables,
-              pBinaryExpressionBuilder);
-      rPairs.put(otherThread, evaluationExpression);
-    }
-    return rPairs.buildOrThrow();
+    LastDenseBitVector lastBitVector =
+        pBitVectorVariables.getLastDenseBitVectorByAccessType(BitVectorAccessType.ACCESS);
+    ImmutableSet<CVariableDeclaration> directVariables =
+        GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            pLabelBlockMap,
+            pPointerAssignments,
+            pPointerParameterAssignments,
+            pTargetBlock,
+            BitVectorAccessType.ACCESS);
+    return BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
+        pOptions,
+        ImmutableSet.of(lastBitVector.reachableVariable),
+        directVariables,
+        pBitVectorVariables,
+        pBinaryExpressionBuilder);
   }
 }

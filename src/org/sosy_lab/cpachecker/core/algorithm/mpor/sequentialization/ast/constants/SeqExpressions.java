@@ -60,6 +60,8 @@ public class SeqExpressions {
     public static final CIntegerLiteralExpression INT_EXIT_PC =
         buildIntegerLiteralExpression(Sequentialization.EXIT_PC);
 
+    public static final CIntegerLiteralExpression INT_MINUS_1 = buildIntegerLiteralExpression(-1);
+
     public static final CIntegerLiteralExpression INT_0 = buildIntegerLiteralExpression(0);
 
     public static final CIntegerLiteralExpression INT_1 = buildIntegerLiteralExpression(1);
@@ -84,7 +86,7 @@ public class SeqExpressions {
 
     // TODO we should use the separate signed/unsigned declarations here
     public static final CIdExpression LAST_THREAD =
-        buildIdExpression(SeqVariableDeclaration.LAST_THREAD_UNSIGNED);
+        buildIdExpression(SeqVariableDeclaration.LAST_THREAD_SIGNED);
 
     // TODO we should use the separate signed/unsigned declarations here
     public static final CIdExpression NEXT_THREAD =

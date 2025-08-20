@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.DenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -101,6 +102,17 @@ public class SeqBitVectorDeclarationBuilder {
                 type, denseBitVector.reachableVariable.orElseThrow(), initializer);
         rDeclarations.add(reachableDeclaration);
       }
+    }
+    if (pBitVectorVariables.isLastDenseBitVectorPresentByAccessType(pAccessType)) {
+      LastDenseBitVector lastDenseBitVector =
+          pBitVectorVariables.getLastDenseBitVectorByAccessType(pAccessType);
+      BitVectorValueExpression initializer =
+          BitVectorUtil.buildBitVectorExpression(
+              pOptions, pBitVectorVariables.getGlobalVariableIds(), ImmutableSet.of());
+      // reachable last bit vector
+      SeqBitVectorDeclaration reachableDeclaration =
+          new SeqBitVectorDeclaration(type, lastDenseBitVector.reachableVariable, initializer);
+      rDeclarations.add(reachableDeclaration);
     }
     return rDeclarations.build();
   }

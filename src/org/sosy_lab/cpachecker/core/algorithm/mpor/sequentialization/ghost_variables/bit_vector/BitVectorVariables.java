@@ -32,13 +32,21 @@ public class BitVectorVariables {
 
   private final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseWriteBitVectors;
 
+  private final Optional<LastDenseBitVector> lastDenseAccessBitVector;
+
+  private final Optional<LastDenseBitVector> lastDenseWriteBitVector;
+
+  // TODO last sparse access/write bit vectors
+
   public BitVectorVariables(
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
       Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseAccessBitVectors,
-      Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseWriteBitVectors) {
+      Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseWriteBitVectors,
+      Optional<LastDenseBitVector> pLastDenseAccessBitVector,
+      Optional<LastDenseBitVector> pLastDenseWriteBitVector) {
 
     numGlobalVariables = pGlobalVariableIds.size();
     globalVariableIds = pGlobalVariableIds;
@@ -47,6 +55,8 @@ public class BitVectorVariables {
     denseWriteBitVectors = pDenseWriteBitVectors;
     sparseAccessBitVectors = pSparseAccessBitVectors;
     sparseWriteBitVectors = pSparseWriteBitVectors;
+    lastDenseAccessBitVector = pLastDenseAccessBitVector;
+    lastDenseWriteBitVector = pLastDenseWriteBitVector;
   }
 
   public CExpression getDenseDirectBitVectorByAccessType(
@@ -95,6 +105,15 @@ public class BitVectorVariables {
     };
   }
 
+  public LastDenseBitVector getLastDenseBitVectorByAccessType(BitVectorAccessType pAccessType) {
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type last dense bit vector");
+      case ACCESS -> lastDenseAccessBitVector.orElseThrow();
+      case READ -> throw new IllegalArgumentException("no READ access type last dense bit vector");
+      case WRITE -> lastDenseWriteBitVector.orElseThrow();
+    };
+  }
+
   // Boolean Helpers ===============================================================================
 
   public boolean areSparseBitVectorsEmpty() {
@@ -103,6 +122,15 @@ public class BitVectorVariables {
 
   public boolean areSparseAccessBitVectorsEmpty() {
     return sparseAccessBitVectors.isEmpty();
+  }
+
+  public boolean isLastDenseBitVectorPresentByAccessType(BitVectorAccessType pAccessType) {
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type last dense bit vector");
+      case ACCESS -> lastDenseAccessBitVector.isPresent();
+      case READ -> false;
+      case WRITE -> lastDenseWriteBitVector.isPresent();
+    };
   }
 
   // Getters =======================================================================================

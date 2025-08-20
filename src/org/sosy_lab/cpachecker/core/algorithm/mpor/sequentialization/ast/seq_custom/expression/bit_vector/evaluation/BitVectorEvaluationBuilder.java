@@ -10,15 +10,20 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
@@ -141,7 +146,7 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               "bitVectorReduction must be enabled to build evaluation expression");
       case ACCESS_ONLY ->
-          BitVectorAccessEvaluationBuilder.buildEvaluationByEncoding(
+          buildAccessEvaluationByEncoding(
               pOptions,
               pOtherThreads,
               pDirectAccessVariables,
@@ -156,5 +161,59 @@ public class BitVectorEvaluationBuilder {
               pBitVectorVariables,
               pBinaryExpressionBuilder);
     };
+  }
+
+  private static BitVectorEvaluationExpression buildAccessEvaluationByEncoding(
+      MPOROptions pOptions,
+      ImmutableSet<MPORThread> pOtherThreads,
+      ImmutableSet<CVariableDeclaration> pDirectVariables,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pOptions.bitVectorEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+      case BINARY, DECIMAL, HEXADECIMAL -> {
+        ImmutableSet<CExpression> otherBitVectors =
+            pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
+                BitVectorAccessType.ACCESS, pOtherThreads);
+        yield BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
+            pOptions,
+            otherBitVectors,
+            pDirectVariables,
+            pBitVectorVariables,
+            pBinaryExpressionBuilder);
+      }
+      case SPARSE -> {
+        ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseBitVectorMap =
+            mapGlobalVariablesToSparseBitVectors(
+                pOtherThreads, pDirectVariables, pBitVectorVariables);
+        yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
+            pOptions, sparseBitVectorMap, pDirectVariables, pBitVectorVariables);
+      }
+    };
+  }
+
+  private static ImmutableListMultimap<CVariableDeclaration, SeqExpression>
+      mapGlobalVariablesToSparseBitVectors(
+          ImmutableSet<MPORThread> pOtherThreads,
+          ImmutableSet<CVariableDeclaration> pDirectVariables,
+          BitVectorVariables pBitVectorVariables) {
+
+    ImmutableListMultimap.Builder<CVariableDeclaration, SeqExpression> rMap =
+        ImmutableListMultimap.builder();
+    for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
+      CVariableDeclaration globalVariable = entry.getKey();
+      if (pDirectVariables.contains(globalVariable)) {
+        ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
+        ImmutableList<SeqExpression> otherVariables =
+            BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
+                pOtherThreads, accessVariables);
+        rMap.putAll(globalVariable, otherVariables);
+      }
+    }
+    return rMap.build();
   }
 }

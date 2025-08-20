@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -42,19 +41,14 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   private final ImmutableList<SeqThreadStatement> statements;
 
-  /** The thread executing this block. */
-  private final MPORThread thread;
-
   public SeqThreadStatementBlock(
       MPOROptions pOptions,
       SeqBlockLabelStatement pLabel,
-      ImmutableList<SeqThreadStatement> pStatements,
-      MPORThread pThread) {
+      ImmutableList<SeqThreadStatement> pStatements) {
 
     options = pOptions;
     label = pLabel;
     statements = pStatements;
-    thread = pThread;
   }
 
   @Override
@@ -64,8 +58,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
     for (SeqThreadStatement statement : statements) {
       lines.add(LineOfCode.of(statement.toASTString() + SeqSyntax.SPACE));
     }
-    Optional<String> suffix =
-        tryBuildSuffixByMultiControlStatementEncoding(options, statements, thread);
+    Optional<String> suffix = tryBuildSuffixByMultiControlStatementEncoding(options, statements);
     if (suffix.isPresent()) {
       lines.add(LineOfCode.of(suffix.orElseThrow()));
     }
@@ -114,13 +107,13 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   public SeqThreadStatementBlock cloneWithLabelNumber(int pLabelNumber) {
     return new SeqThreadStatementBlock(
-        options, label.cloneWithLabelNumber(pLabelNumber), statements, thread);
+        options, label.cloneWithLabelNumber(pLabelNumber), statements);
   }
 
   public SeqThreadStatementBlock cloneWithStatements(
       ImmutableList<SeqThreadStatement> pStatements) {
 
-    return new SeqThreadStatementBlock(options, label, pStatements, thread);
+    return new SeqThreadStatementBlock(options, label, pStatements);
   }
 
   public boolean startsAtomicBlock() {
@@ -136,8 +129,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
   }
 
   private static Optional<String> tryBuildSuffixByMultiControlStatementEncoding(
-      MPOROptions pOptions, ImmutableList<SeqThreadStatement> pStatements, MPORThread pThread)
-      throws UnrecognizedCodeException {
+      MPOROptions pOptions, ImmutableList<SeqThreadStatement> pStatements) {
 
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
       return Optional.empty();
@@ -145,6 +137,6 @@ public class SeqThreadStatementBlock implements SeqStatement {
     if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
       return Optional.empty();
     }
-    return Optional.of(SeqStringUtil.buildSuffixByMultiControlStatementEncoding(pOptions, pThread));
+    return Optional.of(SeqStringUtil.buildSuffixByMultiControlStatementEncoding(pOptions));
   }
 }

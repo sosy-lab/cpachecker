@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.DenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionReturnValueAssignment;
@@ -104,6 +105,9 @@ public class GhostVariableUtil {
     Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseAccessBitVectors =
         buildSparseBitVectorsByAccessType(
             pOptions, pThreads, pAllGlobalVariables, BitVectorAccessType.ACCESS);
+    // last bit vector used to store the bit vector of a thread before context switch
+    Optional<LastDenseBitVector> lastDenseAccessBitVector =
+        tryBuildLastDenseBitVectorByAccessType(pOptions, BitVectorAccessType.ACCESS);
     return Optional.of(
         new BitVectorVariables(
             pGlobalVariableIds,
@@ -111,6 +115,8 @@ public class GhostVariableUtil {
             Optional.empty(),
             Optional.empty(),
             sparseAccessBitVectors,
+            Optional.empty(),
+            lastDenseAccessBitVector,
             Optional.empty()));
   }
 
@@ -134,6 +140,11 @@ public class GhostVariableUtil {
     Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseWriteBitVectors =
         buildSparseBitVectorsByAccessType(
             pOptions, pThreads, pAllGlobalVariables, BitVectorAccessType.WRITE);
+    // last bit vector used to store the bit vector of a thread before context switch
+    Optional<LastDenseBitVector> lastDenseAccessBitVector =
+        tryBuildLastDenseBitVectorByAccessType(pOptions, BitVectorAccessType.ACCESS);
+    Optional<LastDenseBitVector> lastDenseWriteBitVector =
+        tryBuildLastDenseBitVectorByAccessType(pOptions, BitVectorAccessType.WRITE);
     return Optional.of(
         new BitVectorVariables(
             pGlobalVariableIds,
@@ -141,7 +152,9 @@ public class GhostVariableUtil {
             denseReadBitVectors,
             denseWriteBitVectors,
             sparseAccessBitVectors,
-            sparseWriteBitVectors));
+            sparseWriteBitVectors,
+            lastDenseAccessBitVector,
+            lastDenseWriteBitVector));
   }
 
   private static ImmutableMap<CVariableDeclaration, Integer> assignGlobalVariableIds(
@@ -182,7 +195,7 @@ public class GhostVariableUtil {
 
     if (pOptions.kIgnoreZeroReduction) {
       String directReadName =
-          SeqNameUtil.buildDirectBitVectorNameByAccessType(pOptions, pThread.id, pAccessType);
+          SeqNameUtil.buildDirectDenseBitVectorNameByAccessType(pOptions, pThread.id, pAccessType);
       // these declarations are not actually used, we only need it for the CIdExpression
       CVariableDeclaration directDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
@@ -200,7 +213,7 @@ public class GhostVariableUtil {
       return Optional.empty();
     }
     String reachableReadName =
-        SeqNameUtil.buildReachableBitVectorNameByAccessType(pOptions, pThread.id, pAccessType);
+        SeqNameUtil.buildReachableDenseBitVectorNameByAccessType(pOptions, pThread.id, pAccessType);
     // these declarations are not actually used, we only need it for the CIdExpression
     CVariableDeclaration reachableDeclaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
@@ -244,6 +257,25 @@ public class GhostVariableUtil {
               pOptions, thread, pVariableDeclaration, pAccessType));
     }
     return rAccessVariables.buildOrThrow();
+  }
+
+  // Last Bit Vectors ==============================================================================
+
+  private static Optional<LastDenseBitVector> tryBuildLastDenseBitVectorByAccessType(
+      MPOROptions pOptions, BitVectorAccessType pAccessType) {
+
+    if (!pOptions.conflictReduction) {
+      return Optional.empty();
+    }
+    String reachableReadName =
+        SeqNameUtil.buildLastReachableDenseBitVectorNameByAccessType(pOptions, pAccessType);
+    // these declarations are not actually used, we only need it for the CIdExpression
+    CVariableDeclaration lastDeclaration =
+        SeqDeclarationBuilder.buildVariableDeclaration(
+            false, SeqSimpleType.INT, reachableReadName, SeqInitializer.INT_0);
+    CIdExpression lastIdExpression = SeqExpressionBuilder.buildIdExpression(lastDeclaration);
+    return Optional.of(
+        new LastDenseBitVector(lastIdExpression, pAccessType, pOptions.bitVectorEncoding));
   }
 
   // Function Variables ============================================================================

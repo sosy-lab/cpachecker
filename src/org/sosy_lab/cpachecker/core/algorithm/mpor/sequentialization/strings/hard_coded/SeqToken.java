@@ -107,6 +107,10 @@ public class SeqToken {
 
   public static final String L = "L";
 
+  public static final String last = "last";
+
+  public static final String LAST = "LAST";
+
   public static final String last_thread = "last_thread";
 
   public static final String ldv_assume = "ldv_assume";

@@ -9,14 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -53,45 +51,41 @@ public class BitVectorAccessEvaluationBuilder {
     };
   }
 
-  /**
-   * Builds a pruned evaluation expression for the given bit vectors based on the direct access
-   * variables.
-   */
-  static BitVectorEvaluationExpression buildEvaluationByEncoding(
+  public static BitVectorEvaluationExpression buildDenseEvaluation(
       MPOROptions pOptions,
-      ImmutableSet<MPORThread> pOtherThreads,
+      ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.bitVectorEncoding) {
-      case NONE ->
-          throw new IllegalArgumentException(
-              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
-      case BINARY, DECIMAL, HEXADECIMAL -> {
-        if (pOptions.bitVectorEvaluationPrune) {
-          yield buildPrunedDenseEvaluation(
-              pOtherThreads, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
-        } else {
-          yield buildFullDenseEvaluation(
-              pOtherThreads, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
-        }
-      }
-      case SPARSE -> {
-        if (pOptions.bitVectorEvaluationPrune) {
-          yield buildPrunedSparseEvaluation(pOtherThreads, pDirectVariables, pBitVectorVariables);
-        } else {
-          yield buildFullSparseEvaluation(pOtherThreads, pDirectVariables, pBitVectorVariables);
-        }
-      }
-    };
+    if (pOptions.bitVectorEvaluationPrune) {
+      return buildPrunedDenseEvaluation(
+          pOtherBitVectors, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+    } else {
+      return buildFullDenseEvaluation(
+          pOtherBitVectors, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+    }
+  }
+
+  static BitVectorEvaluationExpression buildSparseEvaluation(
+      MPOROptions pOptions,
+      ImmutableListMultimap<CVariableDeclaration, SeqExpression> pSparseBitVectorMap,
+      ImmutableSet<CVariableDeclaration> pDirectVariables,
+      BitVectorVariables pBitVectorVariables) {
+
+    if (pOptions.bitVectorEvaluationPrune) {
+      return buildPrunedSparseEvaluation(
+          pSparseBitVectorMap, pDirectVariables, pBitVectorVariables);
+    } else {
+      return buildFullSparseEvaluation(pSparseBitVectorMap, pDirectVariables, pBitVectorVariables);
+    }
   }
 
   // Dense Access Bit Vectors ======================================================================
 
   private static BitVectorEvaluationExpression buildPrunedDenseEvaluation(
-      ImmutableSet<MPORThread> pOtherThreads,
+      ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -102,11 +96,11 @@ public class BitVectorAccessEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     return buildFullDenseEvaluation(
-        pOtherThreads, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+        pOtherBitVectors, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
   }
 
   private static BitVectorEvaluationExpression buildFullDenseEvaluation(
-      ImmutableSet<MPORThread> pOtherThreads,
+      ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -115,8 +109,7 @@ public class BitVectorAccessEvaluationBuilder {
     CIntegerLiteralExpression directBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
             pBitVectorVariables.getGlobalVariableIds(), pDirectVariables);
-    return buildFullDenseBinaryAnd(
-        directBitVector, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+    return buildFullDenseBinaryAnd(directBitVector, pOtherBitVectors, pBinaryExpressionBuilder);
   }
 
   private static BitVectorEvaluationExpression buildFullDenseVariableOnlyEvaluation(
@@ -129,41 +122,31 @@ public class BitVectorAccessEvaluationBuilder {
     CExpression directBitVector =
         pBitVectorVariables.getDenseDirectBitVectorByAccessType(
             BitVectorAccessType.ACCESS, pActiveThread);
+    ImmutableSet<CExpression> otherReachableBitVectors =
+        pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
+            BitVectorAccessType.ACCESS, pOtherThreads);
     return buildFullDenseBinaryAnd(
-        directBitVector, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+        directBitVector, otherReachableBitVectors, pBinaryExpressionBuilder);
   }
 
   private static BitVectorEvaluationExpression buildFullDenseBinaryAnd(
       CExpression pDirectBitVector,
-      ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables,
+      ImmutableSet<CExpression> pOtherBitVectors,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     CExpression rightHandSide =
-        buildFullDenseRightHandSide(pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
+        BitVectorEvaluationUtil.binaryDisjunction(pOtherBitVectors, pBinaryExpressionBuilder);
     CBinaryExpression binaryExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
             pDirectBitVector, rightHandSide, BinaryOperator.BINARY_AND);
     return new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
   }
 
-  private static CExpression buildFullDenseRightHandSide(
-      ImmutableSet<MPORThread> pOtherThreads,
-      BitVectorVariables pBitVectorVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableSet<CExpression> otherBitVectors =
-        pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-            BitVectorAccessType.ACCESS, pOtherThreads);
-    return BitVectorEvaluationUtil.binaryDisjunction(otherBitVectors, pBinaryExpressionBuilder);
-  }
-
   // Sparse Access Bit Vectors =====================================================================
 
   private static BitVectorEvaluationExpression buildPrunedSparseEvaluation(
-      ImmutableSet<MPORThread> pOtherThreads,
+      ImmutableListMultimap<CVariableDeclaration, SeqExpression> pSparseBitVectorMap,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables) {
 
@@ -174,17 +157,12 @@ public class BitVectorAccessEvaluationBuilder {
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
-      SparseBitVector sparseBitVector = entry.getValue();
-      ImmutableMap<MPORThread, CIdExpression> accessVariables = sparseBitVector.variables;
       // if the LHS (current variable) is not accessed, then the entire && expression is 0 -> prune
       if (pDirectVariables.contains(globalVariable)) {
         // if the LHS is 1, then we can simplify A && (B || C || ...) to just (B || C || ...)
-        ImmutableList<SeqExpression> otherVariables =
-            BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
-                pOtherThreads, accessVariables);
         // create logical not -> !(B || C || ...)
         SeqExpression logicalDisjunction =
-            BitVectorEvaluationUtil.logicalDisjunction(otherVariables);
+            BitVectorEvaluationUtil.logicalDisjunction(pSparseBitVectorMap.get(globalVariable));
         sparseExpressions.add(logicalDisjunction);
       }
     }
@@ -192,7 +170,7 @@ public class BitVectorAccessEvaluationBuilder {
   }
 
   private static BitVectorEvaluationExpression buildFullSparseEvaluation(
-      ImmutableSet<MPORThread> pOtherThreads,
+      ImmutableListMultimap<CVariableDeclaration, SeqExpression> pSparseBitVectorMap,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables) {
 
@@ -203,12 +181,9 @@ public class BitVectorAccessEvaluationBuilder {
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
-      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
-      ImmutableList<SeqExpression> otherVariables =
-          BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
-              pOtherThreads, accessVariables);
       // create logical disjunction -> (B || C || ...)
-      SeqExpression disjunction = BitVectorEvaluationUtil.logicalDisjunction(otherVariables);
+      SeqExpression disjunction =
+          BitVectorEvaluationUtil.logicalDisjunction(pSparseBitVectorMap.get(globalVariable));
       // create logical and -> (A && (B || C || ...))
       SeqExpression directBitVector =
           BitVectorEvaluationUtil.buildSparseDirectBitVector(globalVariable, pDirectVariables);

@@ -75,7 +75,6 @@ public class SeqThreadStatementClauseBuilder {
         PartialOrderReducer.reduce(
             pOptions,
             pBitVectorVariables,
-            pPcVariables,
             pPointerAssignments,
             atomicBlocks,
             pBinaryExpressionBuilder,
@@ -240,7 +239,7 @@ public class SeqThreadStatementClauseBuilder {
     SeqBlockLabelStatement blockLabelStatement =
         buildBlockLabelStatement(pOptions, pThread.id, labelPc);
     SeqThreadStatementBlock block =
-        new SeqThreadStatementBlock(pOptions, blockLabelStatement, statements.build(), pThread);
+        new SeqThreadStatementBlock(pOptions, blockLabelStatement, statements.build());
     SeqThreadStatementClause clause = new SeqThreadStatementClause(block);
     return Optional.of(clause);
   }

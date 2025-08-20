@@ -8,23 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.conflict;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -34,96 +31,50 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqConflictOrderStatement implements SeqInjectedStatement {
 
-  private final MPOROptions options;
+  private final MPORThread activeThread;
 
-  private final CExpression nextThreadExpression;
-
-  private final ImmutableMap<MPORThread, BitVectorEvaluationExpression> bitVectorEvaluationPairs;
-
-  private final PcVariables pcVariables;
+  private final BitVectorEvaluationExpression lastBitVectorEvaluation;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public SeqConflictOrderStatement(
-      MPOROptions pOptions,
-      CExpression pNextThreadExpression,
-      ImmutableMap<MPORThread, BitVectorEvaluationExpression> pBitVectorEvaluationPairs,
-      PcVariables pPcVariables,
+      MPORThread pActiveThread,
+      BitVectorEvaluationExpression pLastBitVectorEvaluation,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
-    options = pOptions;
-    nextThreadExpression = pNextThreadExpression;
-    bitVectorEvaluationPairs = pBitVectorEvaluationPairs;
-    pcVariables = pPcVariables;
+    checkArgument(
+        !pActiveThread.isMain(), "cannot build SeqConflictOrderStatement for main thread");
+    activeThread = pActiveThread;
+    lastBitVectorEvaluation = pLastBitVectorEvaluation;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> lines = ImmutableList.builder();
-
-    SeqIfExpression ifLastThreadNotNextThread =
-        new SeqIfExpression(
-            binaryExpressionBuilder.buildBinaryExpression(
-                SeqIdExpression.LAST_THREAD, nextThreadExpression, BinaryOperator.NOT_EQUALS));
-    ImmutableMap<CExpression, SeqConflictAssumptionStatement> assumptionStatements =
-        buildConflictAssumptionStatements(
-            options,
-            nextThreadExpression,
-            bitVectorEvaluationPairs,
-            pcVariables,
-            binaryExpressionBuilder);
-    SeqMultiControlStatement multiControlStatement =
-        MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-            options,
-            options.controlEncodingConflict,
+    // last thread != -1
+    CBinaryExpression lastThreadNotMinusOne =
+        binaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.LAST_THREAD,
-            ImmutableList.of(),
-            assumptionStatements,
-            binaryExpressionBuilder);
-
-    lines.add(
-        LineOfCode.of(
-            SeqStringUtil.appendCurlyBracketRight(ifLastThreadNotNextThread.toASTString())));
-    lines.add(LineOfCode.of(multiControlStatement.toASTString()));
+            SeqIntegerLiteralExpression.INT_MINUS_1,
+            BinaryOperator.NOT_EQUALS);
+    // last_thread < n
+    CBinaryExpression lastThreadLessThanThreadId =
+        binaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpression.LAST_THREAD,
+            SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id),
+            BinaryOperator.LESS_THAN);
+    // if (last_thread != -1 && last_thread < n)
+    SeqIfExpression ifExpression =
+        new SeqIfExpression(
+            new SeqLogicalAndExpression(lastThreadNotMinusOne, lastThreadLessThanThreadId));
+    // assume(*no conflict*)
+    String assumeCall =
+        SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.negate().toASTString());
+    // add all LOC
+    lines.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
+    lines.add(LineOfCode.of(assumeCall));
     lines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     return LineOfCodeUtil.buildString(lines.build());
-  }
-
-  private static ImmutableMap<CExpression, SeqConflictAssumptionStatement>
-      buildConflictAssumptionStatements(
-          MPOROptions pOptions,
-          CExpression pNextThreadExpression,
-          ImmutableMap<MPORThread, BitVectorEvaluationExpression> pBitVectorEvaluationPairs,
-          PcVariables pPcVariables,
-          CBinaryExpressionBuilder pBinaryExpressionBuilder)
-          throws UnrecognizedCodeException {
-
-    ImmutableMap.Builder<CExpression, SeqConflictAssumptionStatement> rStatements =
-        ImmutableMap.builder();
-    for (var entry : pBitVectorEvaluationPairs.entrySet()) {
-      MPORThread otherThread = entry.getKey();
-      CLeftHandSide pcLeftHandSide = pPcVariables.getPcLeftHandSide(otherThread.id);
-      CExpression lastThreadExpression =
-          SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
-              pOptions.controlEncodingConflict,
-              SeqIdExpression.LAST_THREAD,
-              otherThread.id,
-              pBinaryExpressionBuilder);
-      CBinaryExpression assumptionExpression =
-          pBinaryExpressionBuilder.buildBinaryExpression(
-              pNextThreadExpression,
-              SeqExpressionBuilder.buildIntegerLiteralExpression(otherThread.id),
-              BinaryOperator.LESS_THAN);
-      SeqConflictAssumptionStatement assumptionStatement =
-          new SeqConflictAssumptionStatement(
-              pOptions,
-              pcLeftHandSide,
-              entry.getValue(),
-              assumptionExpression,
-              pBinaryExpressionBuilder);
-      rStatements.put(lastThreadExpression, assumptionStatement);
-    }
-    return rStatements.buildOrThrow();
   }
 }

@@ -144,29 +144,30 @@ public class SeqNameUtil {
 
   // Dense Bit Vectors =============================================================================
 
-  public static String buildDirectBitVectorNameByAccessType(
+  public static String buildDirectDenseBitVectorNameByAccessType(
       MPOROptions pOptions, int pThreadId, BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("cannot build name for NONE access type");
-      case ACCESS -> buildBitVectorAccessName(pOptions, true, pThreadId);
-      case READ -> buildBitVectorReadName(pOptions, true, pThreadId);
-      case WRITE -> buildBitVectorWriteName(pOptions, true, pThreadId);
+      case ACCESS -> buildDenseBitVectorAccessName(pOptions, true, pThreadId);
+      case READ -> buildDenseBitVectorReadName(pOptions, true, pThreadId);
+      case WRITE -> buildDenseBitVectorWriteName(pOptions, true, pThreadId);
     };
   }
 
-  public static String buildReachableBitVectorNameByAccessType(
+  public static String buildReachableDenseBitVectorNameByAccessType(
       MPOROptions pOptions, int pThreadId, BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("cannot build name for NONE access type");
-      case ACCESS -> buildBitVectorAccessName(pOptions, false, pThreadId);
-      case READ -> buildBitVectorReadName(pOptions, false, pThreadId);
-      case WRITE -> buildBitVectorWriteName(pOptions, false, pThreadId);
+      case ACCESS -> buildDenseBitVectorAccessName(pOptions, false, pThreadId);
+      case READ -> buildDenseBitVectorReadName(pOptions, false, pThreadId);
+      case WRITE -> buildDenseBitVectorWriteName(pOptions, false, pThreadId);
     };
   }
 
-  private static String buildBitVectorAccessName(
+  // TODO parametrize short / long access type
+  private static String buildDenseBitVectorAccessName(
       MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
 
     return pOptions.shortVariableNames
@@ -179,7 +180,7 @@ public class SeqNameUtil {
             + SeqToken.ACCESS;
   }
 
-  private static String buildBitVectorReadName(
+  private static String buildDenseBitVectorReadName(
       MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
 
     return pOptions.shortVariableNames
@@ -192,7 +193,7 @@ public class SeqNameUtil {
             + SeqToken.READ;
   }
 
-  private static String buildBitVectorWriteName(
+  private static String buildDenseBitVectorWriteName(
       MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
 
     return pOptions.shortVariableNames
@@ -203,6 +204,31 @@ public class SeqNameUtil {
             + (pIsDirect ? SeqToken.DIRECT : SeqToken.REACHABLE)
             + SeqSyntax.UNDERSCORE
             + SeqToken.WRITE;
+  }
+
+  public static String buildLastReachableDenseBitVectorNameByAccessType(
+      MPOROptions pOptions, BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("cannot build name for NONE access type");
+      case ACCESS -> buildLastDenseBitVectorName(pOptions, SeqToken.a, SeqToken.ACCESS);
+      case READ -> buildLastDenseBitVectorName(pOptions, SeqToken.r, SeqToken.READ);
+      case WRITE -> buildLastDenseBitVectorName(pOptions, SeqToken.w, SeqToken.WRITE);
+    };
+  }
+
+  private static String buildLastDenseBitVectorName(
+      MPOROptions pOptions, String pAccessTypeShort, String pAccessTypeLong) {
+
+    return pOptions.shortVariableNames
+        ? SeqToken.last + SeqSyntax.UNDERSCORE + SeqToken.b + SeqToken.r + pAccessTypeShort
+        : SeqToken.LAST
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + SeqToken.REACHABLE
+            + SeqSyntax.UNDERSCORE
+            + pAccessTypeLong;
   }
 
   // Sparse Bit Vector =============================================================================

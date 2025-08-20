@@ -242,13 +242,9 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rDeclarations = ImmutableList.builder();
 
-    // last_thread
+    // last_thread is always signed so that we can assign -1 when the current thread terminates
     if (pOptions.conflictReduction) {
-      if (pOptions.signedNondet) {
-        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_SIGNED.toASTString()));
-      } else {
-        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_UNSIGNED.toASTString()));
-      }
+      rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_SIGNED.toASTString()));
     }
 
     // next_thread
