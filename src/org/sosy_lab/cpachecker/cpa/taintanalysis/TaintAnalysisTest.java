@@ -1514,6 +1514,13 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testSimpleTaintByPointerUnsafe_2() throws Exception {
+    TestResults results =
+        runCPAchecker("simpleTaintByPointerUnsafe_2.c", CATEGORY_POINTERS + SOURCE_CORE_MODELING);
+    results.assertIsUnsafe();
+  }
+
+  @Test
   public void testTaintMainArgsSafe() throws Exception {
     TestResults results = runCPAchecker("taintMainArgsSafe.c", CATEGORY_GENERAL_FUNCTIONALITY);
     results.assertIsSafe();

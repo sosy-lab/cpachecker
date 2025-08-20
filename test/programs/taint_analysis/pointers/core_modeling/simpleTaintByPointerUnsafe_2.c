@@ -15,6 +15,5 @@ int main() {
 
     a = 2;
 
-    __VERIFIER_is_public(p, 1);
-    __VERIFIER_is_public(*p, 1);
+    __VERIFIER_is_public(*p, 0);
 }
