@@ -300,7 +300,9 @@ if HAS_SSECLIENT:
                         run_ids.discard(run_id)
                         if self._shutdown or self._new_runs or len(run_ids) == 0:
                             break
-
+                    elif line.starts with(":"):
+                            # Heartbeat ping, silently skip
+                            continue
                     else:
                         logging.warning("Received invalid message %s", data)
 
