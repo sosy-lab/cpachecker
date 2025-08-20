@@ -54,9 +54,7 @@ public class SeqStringUtil {
         if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
           yield SeqToken._continue + SeqSyntax.SEMICOLON;
         } else {
-          // for only NUM_STATEMENTS nondeterminism, goto thread end to continue in next thread
-          SeqGotoStatement gotoThreadEnd = new SeqGotoStatement(pThread.endLabel.orElseThrow());
-          yield gotoThreadEnd.toASTString();
+          yield SeqSyntax.EMPTY_STRING;
         }
       }
       case SWITCH_CASE ->

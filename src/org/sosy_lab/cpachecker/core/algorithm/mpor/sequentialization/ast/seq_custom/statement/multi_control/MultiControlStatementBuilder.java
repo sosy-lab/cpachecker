@@ -20,9 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadEndLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class MultiControlStatementBuilder {
 
@@ -34,8 +31,6 @@ public class MultiControlStatementBuilder {
       ImmutableList<CStatement> pPrecedingStatements,
       // ImmutableMap retains insertion order when using ImmutableMap.Builder
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
-      Optional<SeqThreadEndLabelStatement> pThreadEndLabel,
-      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     // TODO add default error statement for binary tree and if-else chain
@@ -45,34 +40,11 @@ public class MultiControlStatementBuilder {
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
       case BINARY_SEARCH_TREE ->
           new SeqBinarySearchTreeStatement(
-              pExpression,
-              pPrecedingStatements,
-              pStatements,
-              pThreadEndLabel,
-              pLastThreadUpdate,
-              pBinaryExpressionBuilder);
-      case IF_ELSE_CHAIN ->
-          new SeqIfElseChainStatement(
-              pPrecedingStatements, pStatements, pThreadEndLabel, pLastThreadUpdate);
+              pExpression, pPrecedingStatements, pStatements, pBinaryExpressionBuilder);
+      case IF_ELSE_CHAIN -> new SeqIfElseChainStatement(pPrecedingStatements, pStatements);
       case SWITCH_CASE ->
-          new SeqSwitchStatement(
-              pOptions, pExpression, pPrecedingStatements, pLastThreadUpdate, pStatements);
+          new SeqSwitchStatement(pOptions, pExpression, pPrecedingStatements, pStatements);
     };
-  }
-
-  static ImmutableList<LineOfCode> buildThreadEndLabel(
-      Optional<SeqThreadEndLabelStatement> pThreadEndLabel,
-      Optional<CExpressionAssignmentStatement> pLastThreadUpdate) {
-
-    ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
-    if (pThreadEndLabel.isPresent()) {
-      rLines.add(LineOfCode.of(pThreadEndLabel.orElseThrow().toASTString()));
-      if (pLastThreadUpdate.isEmpty()) {
-        // add empty statement ';', otherwise the C Parser rejects the program
-        rLines.add(LineOfCode.of(SeqSyntax.SEMICOLON));
-      }
-    }
-    return rLines.build();
   }
 
   public static ImmutableList<CStatement> buildPrecedingStatements(

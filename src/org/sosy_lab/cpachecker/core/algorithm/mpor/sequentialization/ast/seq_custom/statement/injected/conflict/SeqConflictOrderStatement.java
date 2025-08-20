@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -81,8 +80,6 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
             SeqIdExpression.LAST_THREAD,
             ImmutableList.of(),
             assumptionStatements,
-            Optional.empty(),
-            Optional.empty(),
             binaryExpressionBuilder);
 
     lines.add(

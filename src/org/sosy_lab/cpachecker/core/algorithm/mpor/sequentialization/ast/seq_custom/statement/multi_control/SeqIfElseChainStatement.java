@@ -10,15 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadEndLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -31,20 +28,12 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
 
   private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
 
-  private final Optional<SeqThreadEndLabelStatement> threadEndLabel;
-
-  private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
-
   SeqIfElseChainStatement(
       ImmutableList<CStatement> pPrecedingStatements,
-      ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
-      Optional<SeqThreadEndLabelStatement> pThreadEndLabel,
-      Optional<CExpressionAssignmentStatement> pLastThreadUpdate) {
+      ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
 
     precedingStatements = pPrecedingStatements;
     statements = pStatements;
-    threadEndLabel = pThreadEndLabel;
-    lastThreadUpdate = pLastThreadUpdate;
   }
 
   @Override
@@ -52,11 +41,6 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
     ImmutableList.Builder<LineOfCode> ifElseChain = ImmutableList.builder();
     ifElseChain.addAll(LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
     ifElseChain.addAll(buildIfElseChain(statements));
-    ifElseChain.addAll(
-        MultiControlStatementBuilder.buildThreadEndLabel(threadEndLabel, lastThreadUpdate));
-    if (lastThreadUpdate.isPresent()) {
-      ifElseChain.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
-    }
     return LineOfCodeUtil.buildString(ifElseChain.build());
   }
 

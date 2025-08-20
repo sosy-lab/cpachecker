@@ -12,11 +12,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -25,7 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadEndLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -41,25 +38,17 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
 
   private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
 
-  private final Optional<SeqThreadEndLabelStatement> threadEndLabel;
-
-  private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
-
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   SeqBinarySearchTreeStatement(
       CLeftHandSide pExpression,
       ImmutableList<CStatement> pPrecedingStatements,
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
-      Optional<SeqThreadEndLabelStatement> pThreadEndLabel,
-      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     expression = pExpression;
     precedingStatements = pPrecedingStatements;
     statements = pStatements;
-    threadEndLabel = pThreadEndLabel;
-    lastThreadUpdate = pLastThreadUpdate;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
@@ -70,10 +59,6 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
     ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     recursivelyBuildTree(statementList, statementList, expression, tree);
-    tree.addAll(MultiControlStatementBuilder.buildThreadEndLabel(threadEndLabel, lastThreadUpdate));
-    if (lastThreadUpdate.isPresent()) {
-      tree.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
-    }
     return LineOfCodeUtil.buildString(tree.build());
   }
 

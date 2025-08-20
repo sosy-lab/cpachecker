@@ -88,8 +88,6 @@ public class NextThreadNondeterministicSimulation {
                   Optional.empty(),
                   Optional.empty()),
               expressionClauseMap,
-              Optional.empty(),
-              Optional.empty(),
               pBinaryExpressionBuilder);
 
       rStatements.put(clauseExpression, multiControlStatement);

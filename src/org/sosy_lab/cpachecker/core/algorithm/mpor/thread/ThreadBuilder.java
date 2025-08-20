@@ -45,8 +45,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadEndLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -134,8 +132,7 @@ public class ThreadBuilder {
         startRoutineExitVariable,
         localVariables,
         threadCfa,
-        tryBuildKVariable(pOptions, newThreadId),
-        tryBuildThreadEndLabel(pOptions, newThreadId));
+        tryBuildKVariable(pOptions, newThreadId));
   }
 
   private static ThreadCFA buildThreadCfa(
@@ -306,19 +303,6 @@ public class ThreadBuilder {
               SeqInitializer.INT_0);
       CIdExpression KVariable = SeqExpressionBuilder.buildIdExpression(declaration);
       return Optional.of(KVariable);
-    }
-    return Optional.empty();
-  }
-
-  private static Optional<SeqThreadEndLabelStatement> tryBuildThreadEndLabel(
-      MPOROptions pOptions, int pThreadId) {
-
-    if (!pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
-      if (!pOptions.controlEncodingStatement.equals(MultiControlStatementEncoding.SWITCH_CASE)) {
-        SeqThreadEndLabelStatement threadEndLabel =
-            new SeqThreadEndLabelStatement(SeqNameUtil.buildThreadPrefix(pOptions, pThreadId));
-        return Optional.of(threadEndLabel);
-      }
     }
     return Optional.empty();
   }

@@ -151,12 +151,6 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
             pPcVariables.getPcLeftHandSide(pThread.id),
             clauses,
             pBinaryExpressionBuilder);
-    Optional<CExpressionAssignmentStatement> lastThreadUpdate =
-        pOptions.conflictReduction
-            ? Optional.of(
-                SeqStatementBuilder.buildLastThreadAssignment(
-                    SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id)))
-            : Optional.empty();
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
@@ -171,8 +165,6 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
                 : Optional.empty(),
             Optional.of(pRReset)),
         expressionClauseMap,
-        pThread.endLabel,
-        lastThreadUpdate,
         pBinaryExpressionBuilder);
   }
 

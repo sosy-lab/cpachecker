@@ -10,10 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -42,8 +40,6 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
 
   private final ImmutableList<CStatement> precedingStatements;
 
-  private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
-
   /**
    * No restriction to literal expressions as keys because e.g. {@code case 1 + 2:} i.e. a {@link
    * CBinaryExpression} is allowed in C.
@@ -54,13 +50,11 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
       MPOROptions pOptions,
       CLeftHandSide pSwitchExpression,
       ImmutableList<CStatement> pPrecedingStatements,
-      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
 
     options = pOptions;
     switchExpression = new SeqSwitchExpression(pSwitchExpression);
     precedingStatements = pPrecedingStatements;
-    lastThreadUpdate = pLastThreadUpdate;
     statements = pStatements;
   }
 
@@ -72,9 +66,6 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
         LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(switchExpression.toASTString())));
     switchCase.addAll(buildCases(options, statements));
     switchCase.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
-    if (lastThreadUpdate.isPresent()) {
-      switchCase.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
-    }
     return LineOfCodeUtil.buildString(switchCase.build());
   }
 

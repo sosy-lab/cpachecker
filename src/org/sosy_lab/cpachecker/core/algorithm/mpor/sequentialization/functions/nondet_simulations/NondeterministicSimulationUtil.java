@@ -83,9 +83,6 @@ public class NondeterministicSimulationUtil {
         // the outer multi control statement never has an assumption
         ImmutableList.of(),
         pInnerMultiControlStatements,
-        // the outer multi control statement never updates last_thread
-        Optional.empty(),
-        Optional.empty(),
         pBinaryExpressionBuilder);
   }
 

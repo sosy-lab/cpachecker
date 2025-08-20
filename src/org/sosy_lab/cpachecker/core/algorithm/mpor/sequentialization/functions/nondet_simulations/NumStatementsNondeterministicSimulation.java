@@ -338,8 +338,6 @@ public class NumStatementsNondeterministicSimulation {
                 ? ImmutableList.of(assumption.orElseThrow())
                 : ImmutableList.of(),
             expressionClauseMap,
-            pThread.endLabel,
-            tryBuildLastThreadUpdate(pOptions, pThread),
             pBinaryExpressionBuilder);
 
     rLines.addAll(
@@ -435,19 +433,5 @@ public class NumStatementsNondeterministicSimulation {
       }
     }
     return pStatement;
-  }
-
-  // last_thread update ============================================================================
-
-  private static Optional<CExpressionAssignmentStatement> tryBuildLastThreadUpdate(
-      MPOROptions pOptions, MPORThread pThread) {
-
-    if (!pOptions.conflictReduction) {
-      // without conflict reductions, there is no need for storing last_thread
-      return Optional.empty();
-    }
-    CIntegerLiteralExpression integerLiteralExpression =
-        SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id);
-    return Optional.of(SeqStatementBuilder.buildLastThreadAssignment(integerLiteralExpression));
   }
 }
