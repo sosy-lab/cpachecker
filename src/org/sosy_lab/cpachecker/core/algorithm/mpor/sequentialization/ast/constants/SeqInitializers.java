@@ -27,6 +27,9 @@ public class SeqInitializers {
     private static final CInitializer INT_EXIT_PC =
         buildInitializerExpression(SeqIntegerLiteralExpression.INT_EXIT_PC);
 
+    public static final CInitializer INT_MINUS_1 =
+        buildInitializerExpression(SeqIntegerLiteralExpression.INT_MINUS_1);
+
     public static final CInitializer INT_0 =
         buildInitializerExpression(SeqIntegerLiteralExpression.INT_0);
 

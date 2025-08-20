@@ -39,7 +39,7 @@ public class SeqDeclarations {
 
     public static final CVariableDeclaration LAST_THREAD_SIGNED =
         buildVariableDeclaration(
-            true, SeqSimpleType.INT, SeqToken.last_thread, SeqInitializer.INT_0);
+            true, SeqSimpleType.INT, SeqToken.last_thread, SeqInitializer.INT_MINUS_1);
 
     // next_thread
 

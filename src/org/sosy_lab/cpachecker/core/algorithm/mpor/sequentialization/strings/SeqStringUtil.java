@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqInjectedBitVectorStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.conflict.SeqLastUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqCountUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -241,10 +242,18 @@ public class SeqStringUtil {
       if (injectedStatement instanceof SeqInjectedBitVectorStatement bitVectorStatement) {
         // bit vector statements are last (more expensive than r < K)
         leftOver.add(bitVectorStatement);
-      } else {
-        rOrdered.add(injectedStatement);
       }
     }
+    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
+      if (injectedStatement instanceof SeqLastUpdateStatement lastUpdateStatement) {
+        // last updates are always last, i.e. placed where pc and bv updates are
+        leftOver.add(lastUpdateStatement);
+      }
+    }
+    rOrdered.addAll(
+        pInjectedStatements.stream()
+            .filter(stmt -> !leftOver.build().contains(stmt))
+            .collect(ImmutableList.toImmutableList()));
     rOrdered.addAll(leftOver.build());
     return rOrdered.build();
   }
