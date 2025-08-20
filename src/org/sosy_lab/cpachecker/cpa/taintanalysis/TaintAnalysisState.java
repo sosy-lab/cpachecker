@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -400,7 +401,8 @@ public class TaintAnalysisState
     }
 
     try {
-      TaintAnalysisState joinedState = pStatesToJoin.get(0);
+      LinkedList<TaintAnalysisState> linkedStatesToJoin = new LinkedList<>(pStatesToJoin);
+      TaintAnalysisState joinedState = linkedStatesToJoin.getFirst();
 
       for (int i = 1; i < pStatesToJoin.size(); i++) {
         joinedState = joinedState.join(pStatesToJoin.get(i));

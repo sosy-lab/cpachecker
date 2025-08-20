@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -349,11 +350,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       CExpression key = entry.getKey();
       List<CExpression> values = entry.getValue();
-
+      LinkedList<CExpression> linkedValues = new LinkedList<>(values);
       if (values.isEmpty()) {
         oneToOneMappings.put(key, null);
       } else if (values.size() == 1) {
-        oneToOneMappings.put(key, values.iterator().next());
+        oneToOneMappings.put(key, linkedValues.getFirst());
       } else {
         throw new IllegalStateException(
             "The mapping for key " + key + " contains more than one or no values: " + values);
@@ -915,7 +916,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
         if (params.size() == 2) {
 
-          CExpression exprToCheck = params.get(0);
+          LinkedList<CExpression> linkedParams = new LinkedList<>(params);
+          CExpression exprToCheck = linkedParams.getFirst();
           CExpression newPublicState = params.get(1);
 
           boolean varMustBePublic =
