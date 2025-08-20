@@ -167,11 +167,11 @@ public class SeqBitVectorDeclarationBuilder {
       }
     }
     if (pLastSparseBitVectors.isPresent()) {
-      for (var entry : pLastSparseBitVectors.orElseThrow().entrySet()) {
+      for (LastSparseBitVector sparseBitVector : pLastSparseBitVectors.orElseThrow().values()) {
         SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(false);
         SeqBitVectorDeclaration declaration =
             new SeqBitVectorDeclaration(
-                BitVectorDataType.__UINT8_T, entry.getValue().variable, initializer);
+                BitVectorDataType.__UINT8_T, sparseBitVector.variable, initializer);
         rDeclarations.add(declaration);
       }
     }

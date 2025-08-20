@@ -367,12 +367,11 @@ class BitVectorReadWriteEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-      CVariableDeclaration globalVariable = entry.getKey();
-
+    ImmutableSet<CVariableDeclaration> globalVariables =
+        pBitVectorVariables.getSparseAccessBitVectors().keySet();
+    for (CVariableDeclaration globalVariable : globalVariables) {
       ImmutableList<SeqExpression> otherWriteVariables = pSparseWriteMap.get(globalVariable);
       ImmutableList<SeqExpression> otherAccessVariables = pSparseAccessMap.get(globalVariable);
-
       sparseExpressions.add(
           buildFullSparseSingleVariableEvaluation(
               globalVariable,

@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableListMultimap.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -155,7 +154,7 @@ public class BitVectorEvaluationBuilder {
       case SPARSE -> {
         ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseAccessMap =
             mapGlobalVariablesToLastSparseBitVectorsByAccessType(
-                pDirectAccessVariables, pBitVectorVariables, BitVectorAccessType.ACCESS);
+                pBitVectorVariables, BitVectorAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
             pOptions, sparseAccessMap, pDirectAccessVariables, pBitVectorVariables);
       }
@@ -191,10 +190,10 @@ public class BitVectorEvaluationBuilder {
       case SPARSE -> {
         ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseWriteMap =
             mapGlobalVariablesToLastSparseBitVectorsByAccessType(
-                pDirectReadVariables, pBitVectorVariables, BitVectorAccessType.WRITE);
+                pBitVectorVariables, BitVectorAccessType.WRITE);
         ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseAccessMap =
             mapGlobalVariablesToLastSparseBitVectorsByAccessType(
-                pDirectWriteVariables, pBitVectorVariables, BitVectorAccessType.ACCESS);
+                pBitVectorVariables, BitVectorAccessType.ACCESS);
         yield BitVectorReadWriteEvaluationBuilder.buildSparseEvaluation(
             pOptions,
             sparseWriteMap,
@@ -208,18 +207,15 @@ public class BitVectorEvaluationBuilder {
 
   private static ImmutableListMultimap<CVariableDeclaration, SeqExpression>
       mapGlobalVariablesToLastSparseBitVectorsByAccessType(
-          ImmutableSet<CVariableDeclaration> pDirectVariables,
-          BitVectorVariables pBitVectorVariables,
-          BitVectorAccessType pAccessType) {
+          BitVectorVariables pBitVectorVariables, BitVectorAccessType pAccessType) {
 
-    Builder<CVariableDeclaration, SeqExpression> rMap = ImmutableListMultimap.builder();
+    ImmutableListMultimap.Builder<CVariableDeclaration, SeqExpression> rMap =
+        ImmutableListMultimap.builder();
     ImmutableMap<CVariableDeclaration, LastSparseBitVector> lastSparseBitVectors =
         pBitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
     for (var entry : lastSparseBitVectors.entrySet()) {
       CVariableDeclaration variableDeclaration = entry.getKey();
-      if (pDirectVariables.contains(variableDeclaration)) {
-        rMap.put(variableDeclaration, new CToSeqExpression(entry.getValue().variable));
-      }
+      rMap.put(variableDeclaration, new CToSeqExpression(entry.getValue().variable));
     }
     return rMap.build();
   }
@@ -348,10 +344,7 @@ public class BitVectorEvaluationBuilder {
       case SPARSE -> {
         ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseAccessMap =
             mapGlobalVariablesToSparseBitVectorsByAccessType(
-                pOtherThreads,
-                pDirectAccessVariables,
-                pBitVectorVariables,
-                BitVectorAccessType.ACCESS);
+                pOtherThreads, pBitVectorVariables, BitVectorAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
             pOptions, sparseAccessMap, pDirectAccessVariables, pBitVectorVariables);
       }
@@ -390,16 +383,10 @@ public class BitVectorEvaluationBuilder {
       case SPARSE -> {
         ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseWriteMap =
             mapGlobalVariablesToSparseBitVectorsByAccessType(
-                pOtherThreads,
-                pDirectReadVariables,
-                pBitVectorVariables,
-                BitVectorAccessType.WRITE);
+                pOtherThreads, pBitVectorVariables, BitVectorAccessType.WRITE);
         ImmutableListMultimap<CVariableDeclaration, SeqExpression> sparseAccessMap =
             mapGlobalVariablesToSparseBitVectorsByAccessType(
-                pOtherThreads,
-                pDirectWriteVariables,
-                pBitVectorVariables,
-                BitVectorAccessType.ACCESS);
+                pOtherThreads, pBitVectorVariables, BitVectorAccessType.ACCESS);
         yield BitVectorReadWriteEvaluationBuilder.buildSparseEvaluation(
             pOptions,
             sparseWriteMap,
@@ -414,19 +401,17 @@ public class BitVectorEvaluationBuilder {
   private static ImmutableListMultimap<CVariableDeclaration, SeqExpression>
       mapGlobalVariablesToSparseBitVectorsByAccessType(
           ImmutableSet<MPORThread> pOtherThreads,
-          ImmutableSet<CVariableDeclaration> pDirectVariables,
           BitVectorVariables pBitVectorVariables,
           BitVectorAccessType pAccessType) {
 
-    Builder<CVariableDeclaration, SeqExpression> rMap = ImmutableListMultimap.builder();
+    ImmutableListMultimap.Builder<CVariableDeclaration, SeqExpression> rMap =
+        ImmutableListMultimap.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
-      if (pDirectVariables.contains(globalVariable)) {
-        ImmutableMap<MPORThread, CIdExpression> variables = entry.getValue().variables;
-        ImmutableList<SeqExpression> otherVariables =
-            BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(pOtherThreads, variables);
-        rMap.putAll(globalVariable, otherVariables);
-      }
+      ImmutableMap<MPORThread, CIdExpression> variables = entry.getValue().variables;
+      ImmutableList<SeqExpression> otherVariables =
+          BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(pOtherThreads, variables);
+      rMap.putAll(globalVariable, otherVariables);
     }
     return rMap.build();
   }
