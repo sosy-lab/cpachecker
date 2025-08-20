@@ -1461,20 +1461,6 @@ public class TaintAnalysisTest {
 
   @Ignore
   @Test
-  public void testFreePtrSafe() throws Exception {
-    TestResults results = runCPAchecker("freePtrSafe.c", CATEGORY_POINTERS + SOURCE_DCEARA);
-    results.assertIsSafe();
-  }
-
-  @Ignore
-  @Test
-  public void testFreePtrUnsafe() throws Exception {
-    TestResults results = runCPAchecker("freePtrUnsafe.c", CATEGORY_POINTERS + SOURCE_DCEARA);
-    results.assertIsUnsafe();
-  }
-
-  @Ignore
-  @Test
   public void testSimpleInterProcPrintResultsSafe() throws Exception {
     TestResults results =
         runCPAchecker("simpleInterProcPrintResultsSafe.c", CATEGORY_FUNCTION_CALLS + SOURCE_DCEARA);
