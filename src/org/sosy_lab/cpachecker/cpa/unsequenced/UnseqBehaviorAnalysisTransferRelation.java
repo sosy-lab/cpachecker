@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -93,6 +94,7 @@ public class UnseqBehaviorAnalysisTransferRelation
       // if functioncall true, then record side effects inside it
       if (lhsExpr instanceof CIdExpression
           || lhsExpr instanceof CFieldReference
+          || lhsExpr instanceof CArraySubscriptExpression
           || (lhsExpr instanceof CPointerExpression pointerExpr
               && pointerExpr.getOperand() instanceof CIdExpression)) {
         mergeSideEffects(

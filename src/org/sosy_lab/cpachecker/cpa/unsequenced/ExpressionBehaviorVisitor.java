@@ -203,6 +203,18 @@ public class ExpressionBehaviorVisitor
     sideEffects.addAll(arrayBaseSummary.sideEffects());
     sideEffects.addAll(indexSummary.sideEffects());
 
+    CExpression base = arrayExpr.getArrayExpression();
+    if (base instanceof CIdExpression idExpr) {
+      MemoryLocation pointerLoc =
+          MemoryLocation.fromQualifiedName(idExpr.getDeclaration().getQualifiedName());
+
+      SideEffectInfo effect = new SideEffectInfo(
+          pointerLoc, accessType, cfaEdge, SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
+
+      sideEffects.add(effect);
+      logger.logf(Level.INFO, "[ARRAY] Record array access as pointer dereference: %s", effect);
+    }
+
     return ExpressionAnalysisSummary.of(sideEffects, new HashSet<>(), new HashMap<>());
   }
 
