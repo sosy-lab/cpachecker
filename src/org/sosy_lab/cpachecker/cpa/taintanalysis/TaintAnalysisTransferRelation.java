@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -902,6 +903,12 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
           if (exprToCheck instanceof CIdExpression expr) {
 
+            if (expr.getDeclaration().getType() instanceof CPointerType) {
+
+              handleTaintForPointerDereference(
+                  expr, varIsCurrentlyTainted, varMustBePublic, killedVars, generatedVars);
+            }
+
             if (varIsCurrentlyTainted && varMustBePublic) {
               killedVars.add(expr);
             } else if (!varIsCurrentlyTainted && !varMustBePublic) {
@@ -926,8 +933,19 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                     pState, arraySubscriptLHS, arrayVariable, arrayExpr, killedVars);
               }
             }
-          } else if (exprToCheck instanceof CPointerExpression) {
-            logger.logf(Level.INFO, "exprToCheck is a pointer expression");
+          } else if (exprToCheck instanceof CPointerExpression pointerExpr) {
+            CExpression operand = pointerExpr.getOperand();
+
+            if (operand instanceof CIdExpression operandAsCIdExpr
+                && operandAsCIdExpr.getDeclaration().getType() instanceof CPointerType) {
+
+              handleTaintForPointerDereference(
+                  operandAsCIdExpr,
+                  varIsCurrentlyTainted,
+                  varMustBePublic,
+                  killedVars,
+                  generatedVars);
+            }
           }
         }
         newStates.add(generateNewState(pState, killedVars, generatedVars, values));
@@ -1070,6 +1088,26 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return ImmutableList.copyOf(newStates);
+  }
+
+  private void handleTaintForPointerDereference(
+      CIdExpression operandAsCIdExpr,
+      boolean varIsCurrentlyTainted,
+      boolean varMustBePublic,
+      Set<CExpression> killedVars,
+      Set<CExpression> generatedVars) {
+
+    // dereference the pointer
+    List<CExpression> pointedVars =
+        TaintAnalysisUtils.getPointedVars(evaluatedValues, operandAsCIdExpr);
+
+    for (CExpression pointedVar : pointedVars) {
+      if (varIsCurrentlyTainted && varMustBePublic) {
+        killedVars.add(pointedVar);
+      } else if (!varIsCurrentlyTainted && !varMustBePublic) {
+        generatedVars.add(pointedVar);
+      }
+    }
   }
 
   private void handleArraySanitization(

@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -350,5 +351,19 @@ public class TaintAnalysisUtils {
     }
 
     return null;
+  }
+
+  public static List<CExpression> getPointedVars(
+      Map<CExpression, CExpression> pEvaluatedValues, CExpression pointer) {
+
+    List<CExpression> pointedVars = new ArrayList<>();
+    CExpression evaluatedValue = pEvaluatedValues.get(pointer);
+
+    if (!(evaluatedValue instanceof CLiteralExpression) && evaluatedValue != null) {
+      pointedVars.add(evaluatedValue);
+      pointedVars.addAll(getPointedVars(pEvaluatedValues, evaluatedValue));
+    }
+
+    return pointedVars;
   }
 }
