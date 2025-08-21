@@ -909,7 +909,27 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       } else if (lhs instanceof CFieldReference fieldRefLHS) {
 
-        CExpression fieldOwner = fieldRefLHS.getFieldOwner();
+        CExpression fieldOwner;
+        CExpression pointer;
+
+        if (fieldRefLHS.isPointerDereference()) {
+          pointer = fieldRefLHS.getFieldOwner();
+          fieldOwner = evaluatedValues.get(pointer);
+
+          for (CExpression variable : evaluatedValues.keySet()) {
+            if (variable instanceof CFieldReference cFieldRef) {
+              if (cFieldRef.getFieldOwner().equals(fieldOwner)) {
+                if (cFieldRef.getFieldName().equals(fieldRefLHS.getFieldName())) {
+                  fieldRefLHS = cFieldRef;
+                  break;
+                }
+              }
+            }
+          }
+
+        } else {
+          fieldOwner = fieldRefLHS.getFieldOwner();
+        }
 
         if (isInControlStructure(pCfaEdge)) {
           if (isStatementControlledByTaintedVars(pCfaEdge, taintedVariables)) {
