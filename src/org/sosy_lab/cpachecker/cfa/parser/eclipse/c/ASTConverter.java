@@ -797,7 +797,7 @@ class ASTConverter {
 
     // If there is no initializer, the variable cannot be const.
     // For others, we add it as our temporary variables are single-use.
-    CType type = CTypes.withQualifiersSetTo(pType, initializer != null, pType.isVolatile());
+    CType type = pType.withQualifiersSetTo(initializer != null, pType.isVolatile());
 
     if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {
       // Replace with pointer type.
@@ -1402,8 +1402,8 @@ class ASTConverter {
 
   private boolean areCompatibleTypes(CType a, CType b) {
     // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftypes_005fcompatible_005fp-3613
-    a = CTypes.withoutQualifiers(a.getCanonicalType());
-    b = CTypes.withoutQualifiers(b.getCanonicalType());
+    a = a.getCanonicalType().withoutQualifiers();
+    b = b.getCanonicalType().withoutQualifiers();
     if (a.equals(b)) {
       return true;
     }
@@ -2924,7 +2924,7 @@ class ASTConverter {
       if (pDeclarationType instanceof CPointerType cPointerType) {
         canonicalType = cPointerType.getType().getCanonicalType();
       }
-      return CTypes.withoutQualifiers(canonicalType).equals(CNumericTypes.CHAR);
+      return canonicalType.withoutQualifiers().equals(CNumericTypes.CHAR);
     }
     return false;
   }

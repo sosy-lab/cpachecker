@@ -81,7 +81,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -309,7 +308,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   private MemoryLocation toLocation(Type pType, String name) {
     Type type = pType;
     if (type instanceof CType cType) {
-      type = CTypes.withoutQualifiers(cType.getCanonicalType());
+      type = cType.getCanonicalType().withoutQualifiers();
     }
     if (isStructOrUnion(type)) {
       // TODO find a better way to handle this
@@ -491,7 +490,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       }
       type = innerType;
     }
-    String prefix = CTypes.withoutQualifiers(type).toString();
+    String prefix = type.withoutQualifiers().toString();
     String infix = ".";
     String suffix = pFieldName;
     // TODO use offsets instead
@@ -548,7 +547,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           @Override
           public LocationSet visit(CIdExpression pIastIdExpression)
               throws UnrecognizedCodeException {
-            CType type = CTypes.withoutQualifiers(pIastIdExpression.getExpressionType());
+            CType type = pIastIdExpression.getExpressionType().withoutQualifiers();
             final MemoryLocation location;
             if (isStructOrUnion(type)) {
               // TODO find a better way to handle this

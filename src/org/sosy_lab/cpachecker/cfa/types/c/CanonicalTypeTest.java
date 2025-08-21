@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withConst;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withVolatile;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
@@ -18,7 +16,7 @@ import org.junit.Test;
 public class CanonicalTypeTest {
 
   private static final CType VOLATILE_CONST_INT =
-      withVolatile(withConst(CNumericTypes.INT)).getCanonicalType();
+      CNumericTypes.INT.withConst().withVolatile().getCanonicalType();
 
   @Test
   public void simpleTypeChar() {

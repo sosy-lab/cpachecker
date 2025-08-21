@@ -55,13 +55,13 @@ public class CTypesTest {
   private static final CIdExpression VAR_CONST =
       new CIdExpression(
           FileLocation.DUMMY,
-          CTypes.withConst(CNumericTypes.INT),
+          CNumericTypes.INT.withConst(),
           "c",
           new CVariableDeclaration(
               FileLocation.DUMMY,
               true,
               CStorageClass.AUTO,
-              CTypes.withConst(CNumericTypes.INT),
+              CNumericTypes.INT.withConst(),
               "c",
               "c",
               "c",

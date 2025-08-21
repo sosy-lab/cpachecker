@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /** This Class contains functions, that convert types from C-source into CPAchecker-format. */
@@ -290,7 +289,7 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    i = CTypes.withQualifiersSetTo(i, isConst, isVolatile);
+    i = i.withQualifiersSetTo(isConst, isVolatile);
 
     assert i instanceof CProblemType || (isConst == i.isConst() && isVolatile == i.isVolatile());
     return i;
@@ -349,10 +348,10 @@ class ASTTypeConverter {
         // readd the information about isVolatile and isConst if they got lost in
         // the previous conversion
         if (dd.isConst()) {
-          ctype = CTypes.withConst(ctype);
+          ctype = ctype.withConst();
         }
         if (dd.isVolatile()) {
-          ctype = CTypes.withVolatile(ctype);
+          ctype = ctype.withVolatile();
         }
         return ctype;
       }
@@ -398,10 +397,10 @@ class ASTTypeConverter {
     }
 
     if (d.isConst()) {
-      type = CTypes.withConst(type);
+      type = type.withConst();
     }
     if (d.isVolatile()) {
-      type = CTypes.withVolatile(type);
+      type = type.withVolatile();
     }
 
     return type;

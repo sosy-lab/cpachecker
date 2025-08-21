@@ -92,6 +92,30 @@ public final class CProblemType implements CType {
 
   @Override
   @DoNotCall
+  public CProblemType withConst() {
+    return this;
+  }
+
+  @Override
+  @DoNotCall
+  public CProblemType withoutConst() {
+    return this;
+  }
+
+  @Override
+  @DoNotCall
+  public CProblemType withVolatile() {
+    return this;
+  }
+
+  @Override
+  @DoNotCall
+  public CProblemType withoutVolatile() {
+    return this;
+  }
+
+  @Override
+  @DoNotCall
   public CProblemType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
     return this;
   }

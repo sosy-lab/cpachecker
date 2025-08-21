@@ -153,88 +153,6 @@ public final class CTypes {
   }
 
   /**
-   * Return a copy of a given type that has the "const" flag not set. If the given type is already a
-   * non-const type, it is returned unchanged.
-   *
-   * <p>This method only eliminates the outermost const flag, if it is present, i.e., it does not
-   * change a non-const pointer to a const int.
-   */
-  public static <T extends CType> T withoutConst(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-    return withQualifiersSetTo(type, false, type.isVolatile());
-  }
-
-  /**
-   * Return a copy of a given type that has the "const" flag set. If the given type is already a
-   * const type, it is returned unchanged.
-   *
-   * <p>This method only adds the outermost const flag, if it is not present, i.e., it does not
-   * change a const pointer to a non-const int.
-   */
-  public static <T extends CType> T withConst(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-    return withQualifiersSetTo(type, true, type.isVolatile());
-  }
-
-  /**
-   * Return a copy of a given type that has the "volatile" flag not set. If the given type is
-   * already a non-volatile type, it is returned unchanged.
-   *
-   * <p>This method only eliminates the outermost volatile flag, if it is present, i.e., it does not
-   * change a non-volatile pointer to a volatile int.
-   */
-  public static <T extends CType> T withoutVolatile(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-    return withQualifiersSetTo(type, type.isConst(), false);
-  }
-
-  /**
-   * Return a copy of a given type that has the "volatile" flag set. If the given type is already a
-   * volatile type, it is returned unchanged.
-   *
-   * <p>This method only adds the outermost volatile flag, if it is not present, i.e., it does not
-   * change a volatile pointer to a non-volatile int.
-   */
-  public static <T extends CType> T withVolatile(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-    return withQualifiersSetTo(type, type.isConst(), true);
-  }
-
-  /**
-   * Return a copy of a given type that has the "const" and "volatile" flags removed. If the type
-   * already has no qualifiers, it is returned unchanged.
-   *
-   * <p>This method only eliminates the outermost qualifiers, if present, i.e., it does not change a
-   * non-const non-volatile pointer to a const volatile int.
-   */
-  public static <T extends CType> T withoutQualifiers(T type) {
-    return withQualifiersSetTo(type, false, false);
-  }
-
-  /**
-   * Return a copy of a given type that has the "const" and "volatile" flags set to the given
-   * values.
-   *
-   * <p>This method only changes the outermost const/volatile flags.
-   *
-   * <p>If you want to set the const or volatile flags to a constant, prefer one of the methods in
-   * this class that does not take a boolean parameter.
-   */
-  @SuppressWarnings("unchecked") // method always creates instances of exact same class
-  public static <T extends CType> T withQualifiersSetTo(
-      T type, boolean newConstValue, boolean newVolatileValue) {
-    return (T) type.withQualifiersSetTo(newConstValue, newVolatileValue);
-  }
-
-  /**
    * Implements a compatibility check for {@link CType}s according to C-Standard §6.2.7. This
    * definition is symmetric, therefore the order of the parameters doesn't matter. This definition
    * is especially stricter than assignment compatibility (cf. {@link
@@ -356,8 +274,8 @@ public final class CTypes {
         // C-Standard §6.7.6.3 (15, last sentence in parentheses):
         // "... each parameter declared with qualified type is taken
         // as having the unqualified version of its declared type."
-        paramOfA = withoutQualifiers(paramOfA);
-        paramOfB = withoutQualifiers(paramOfB);
+        paramOfA = paramOfA.withoutQualifiers();
+        paramOfB = paramOfB.withoutQualifiers();
 
         if (!areTypesCompatible(paramOfA, paramOfB)) {
           return false;

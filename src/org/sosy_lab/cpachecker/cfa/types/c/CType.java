@@ -105,8 +105,8 @@ public sealed interface CType extends Type
 
     // Cf. C-Standard §6.5.16.1 (1), second constraint.
     if (leftHandSide instanceof CCompositeType && rightHandSide instanceof CCompositeType) {
-      CType plainCompositeLeft = CTypes.withoutQualifiers(leftHandSide);
-      CType plainCompositeRight = CTypes.withoutQualifiers(rightHandSide);
+      CType plainCompositeLeft = leftHandSide.withoutQualifiers();
+      CType plainCompositeRight = rightHandSide.withoutQualifiers();
 
       return CTypes.areTypesCompatible(plainCompositeLeft, plainCompositeRight);
     }
@@ -134,8 +134,7 @@ public sealed interface CType extends Type
               && (leftPointedToType.isVolatile() || !rightPointedToType.isVolatile()))
           && ((leftPointedToType instanceof CVoidType || rightPointedToType instanceof CVoidType)
               || CTypes.areTypesCompatible(
-                  CTypes.withoutQualifiers(leftPointedToType),
-                  CTypes.withoutQualifiers(rightPointedToType))));
+                  leftPointedToType.withoutQualifiers(), rightPointedToType.withoutQualifiers())));
     }
 
     // Cf. C-Standard §6.3.2.1 (3)
@@ -149,12 +148,82 @@ public sealed interface CType extends Type
   }
 
   /**
+   * Return a copy of a given type that has the "const" flag not set. If the given type is already a
+   * non-const type, it is returned unchanged.
+   *
+   * <p>This method only eliminates the outermost const flag, if it is present, i.e., it does not
+   * change a non-const pointer to a const int.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   */
+  default CType withoutConst() {
+    return withQualifiersSetTo(false, isVolatile());
+  }
+
+  /**
+   * Return a copy of a given type that has the "const" flag set. If the given type is already a
+   * const type, it is returned unchanged.
+   *
+   * <p>This method only adds the outermost const flag, if it is not present, i.e., it does not
+   * change a const pointer to a non-const int.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   */
+  default CType withConst() {
+    return withQualifiersSetTo(true, isVolatile());
+  }
+
+  /**
+   * Return a copy of a given type that has the "volatile" flag not set. If the given type is
+   * already a non-volatile type, it is returned unchanged.
+   *
+   * <p>This method only eliminates the outermost volatile flag, if it is present, i.e., it does not
+   * change a non-volatile pointer to a volatile int.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   */
+  default CType withoutVolatile() {
+    return withQualifiersSetTo(isConst(), false);
+  }
+
+  /**
+   * Return a copy of a given type that has the "volatile" flag set. If the given type is already a
+   * volatile type, it is returned unchanged.
+   *
+   * <p>This method only adds the outermost volatile flag, if it is not present, i.e., it does not
+   * change a volatile pointer to a non-volatile int.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   */
+  default CType withVolatile() {
+    return withQualifiersSetTo(isConst(), true);
+  }
+
+  /**
+   * Return a copy of this type that has the "const" and "volatile" flags removed. If the type
+   * already has no qualifiers, it is returned unchanged.
+   *
+   * <p>This method only eliminates the outermost qualifiers, if present, i.e., it does not change a
+   * non-const non-volatile pointer to a const volatile int.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   */
+  default CType withoutQualifiers() {
+    return withQualifiersSetTo(false, false);
+  }
+
+  /**
    * Return a copy of this type that has the "const" and "volatile" flags set to the given values.
    *
    * <p>This method only changes the outermost const/volatile flags.
    *
    * <p>If you want to set the const or volatile flags to a constant, prefer one of the methods in
-   * {@link CTypes} that does not take a boolean parameter.
+   * this class that does not take a boolean parameter.
    *
    * <p>This method always returns an instance of the same type as it is called on, so it is safe to
    * cast the result.
