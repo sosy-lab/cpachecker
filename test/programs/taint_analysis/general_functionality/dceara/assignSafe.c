@@ -8,9 +8,6 @@
 
 // Benchmark case extracted from project https://github.com/dceara/tanalysis/blob/master/tanalysis/tests/func_tests/
 
-// We use an extern function sizeOf to, conceptually, emulate the original sizeof.
-// The actual functionality of sizeof is not relevant here, but the information flow is.
-
 extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern int __VERIFIER_is_public(int variable, int booleanFlag);

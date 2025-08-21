@@ -1,3 +1,14 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+// Benchmark was collected from http://www.cs.princeton.edu/∼aartig/benchmarks/ifc bench.zip.
+// from the paper "Lazy Self-composition for Security Verification"
+
 extern int nd(void);
 extern void __VERIFIER_error(void) __attribute__((noreturn));
 #define assert(X) if(!(X)){__VERIFIER_error();}

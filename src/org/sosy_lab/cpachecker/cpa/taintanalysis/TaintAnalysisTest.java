@@ -1731,18 +1731,18 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testModAdd() throws Exception {
+  public void testModAdd_2048() throws Exception {
     TestResults results =
         runCPAchecker(
-            "mod_add_4096.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+            "mod_add_2048.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsSafe();
   }
 
   @Test
-  public void testModAdd_2() throws Exception {
+  public void testModAdd_4096() throws Exception {
     TestResults results =
         runCPAchecker(
-            "mod_add_2048.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+            "mod_add_4096.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsSafe();
   }
 
