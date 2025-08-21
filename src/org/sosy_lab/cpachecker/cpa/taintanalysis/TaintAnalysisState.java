@@ -401,8 +401,7 @@ public class TaintAnalysisState
     }
 
     try {
-      LinkedList<TaintAnalysisState> linkedStatesToJoin = new LinkedList<>(pStatesToJoin);
-      TaintAnalysisState joinedState = linkedStatesToJoin.getFirst();
+      TaintAnalysisState joinedState = pStatesToJoin.get(0);
 
       for (int i = 1; i < pStatesToJoin.size(); i++) {
         joinedState = joinedState.join(pStatesToJoin.get(i));

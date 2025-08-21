@@ -352,11 +352,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       CExpression key = entry.getKey();
       List<CExpression> values = entry.getValue();
-      LinkedList<CExpression> linkedValues = new LinkedList<>(values);
+
       if (values.isEmpty()) {
         oneToOneMappings.put(key, null);
       } else if (values.size() == 1) {
-        oneToOneMappings.put(key, linkedValues.getFirst());
+        oneToOneMappings.put(key, values.iterator().next());
       } else {
         throw new IllegalStateException(
             "The mapping for key " + key + " contains more than one or no values: " + values);
@@ -986,8 +986,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
         if (params.size() == 2) {
 
-          LinkedList<CExpression> linkedParams = new LinkedList<>(params);
-          CExpression exprToCheck = linkedParams.getFirst();
+          CExpression exprToCheck = params.get(0);
           CExpression newPublicState = params.get(1);
 
           boolean varMustBePublic =
