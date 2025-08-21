@@ -12,45 +12,51 @@ extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int x, b1, b2, y;
-    x = 3;
-//    scanf("%d", &x);
+//    int x, b1, b2, y;
+    int x, y;
     x = __VERIFIER_nondet_int();
 
-    b1 = even(10);
-    __VERIFIER_is_public(b1, 0);
-
-    b2 = odd(x);
-    __VERIFIER_is_public(b2, 0);
+    // calls to even and odd are mutual recursion and therefore not supported by our analysis
+//    b1 = even(10);
+//    __VERIFIER_is_public(b1, 1);
+//
+//    b2 = odd(x);
+//    __VERIFIER_is_public(b2, 1);
 
     y = compute(x);
     __VERIFIER_is_public(y, 1);
 }
 
-int even(int x) {
-    if (x == 0)
-        return 1;
-    else
-        return odd(x - 1);
-}
+//int even(int x) {
+//    if (x == 0)
+//        return 1;
+//    else
+//        return odd(x - 1);
+//}
 
-int odd(int x) {
-    if (x == 1)
-        return 0;
-    else
-        return even(x - 1);
-}
+//int odd(int x) {
+//    if (x == 1)
+//        return 0;
+//    else
+//        return even(x - 1);
+//}
 
 int compute(int x) {
-    int sum, i;
+    int sum, i, y;
 
     if (x == 2)
         sum = __VERIFIER_nondet_int();
     else
         sum = 0;
 
-    for (i = 0; i < x; ++ i)
-        sum += i;
+    // t(sum) = T + U = T
 
-    return sum;
+    for (i = 0; i < x; ++ i) {
+        sum += i;
+        while (x) {
+            i++;
+        }
+    }
+
+    return sum; // t(sum) = T + U = T
 }

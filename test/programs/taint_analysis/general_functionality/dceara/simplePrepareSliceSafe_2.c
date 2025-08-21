@@ -11,8 +11,6 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-#include <stdio.h>
-
 int main(int argc) {
     int a = 3;
 

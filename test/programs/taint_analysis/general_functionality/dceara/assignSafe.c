@@ -15,19 +15,18 @@ extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
+int main(int argc) {
+    int a, b, d, e;
+    a = b = d = e = __VERIFIER_nondet_int(); // all tainted
+    a = 2;
+    b = argc;                                //T(b) = G(argc)
+    d = a + b + d;                           //T(d) = U + G(argc) + T = T
+    e = a + b + b;                           //T(d) = U + G(argc) + G(argc) = G(argc)
 
-    // All variables start tainted
-    int a = __VERIFIER_nondet_int();
-//    int b = __VERIFIER_nondet_int();
-//    int c = __VERIFIER_nondet_int();
-//    int d = __VERIFIER_nondet_int();
-//    int e = __VERIFIER_nondet_int();
-//    int f = __VERIFIER_nondet_int();
-//    int g = __VERIFIER_nondet_int();
-
-    // `sizeof(1)` assigns an untainted value to `x`. `x` is now expected to be public
-    int b;
-    b = sizeof(a);
+    __VERIFIER_is_public(a, 1);
     __VERIFIER_is_public(b, 0);
+    __VERIFIER_is_public(d, 0);
+    __VERIFIER_is_public(e, 0);
+
+    return 0;
 }

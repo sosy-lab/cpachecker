@@ -894,11 +894,17 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testAssignSafe() throws Exception {
     TestResults results =
         runCPAchecker("assignSafe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_DCEARA);
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSizeofAllignof() throws Exception {
+    TestResults results =
+        runCPAchecker("sizeof_allignof.c", CATEGORY_FUNCTION_CALLS + SOURCE_DCEARA);
     results.assertIsSafe();
   }
 
@@ -1392,14 +1398,12 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testSimpleCastSafe_2() throws Exception {
     TestResults results = runCPAchecker("simpleCastSafe_2.c", CATEGORY_CAST + SOURCE_DCEARA);
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testSimpleCastSafe_3() throws Exception {
     TestResults results = runCPAchecker("simpleCastSafe_3.c", CATEGORY_CAST + SOURCE_DCEARA);
@@ -1489,15 +1493,6 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
-  @Test
-  public void testSimpleInterProcPrintResultsSafe() throws Exception {
-    TestResults results =
-        runCPAchecker("simpleInterProcPrintResultsSafe.c", CATEGORY_FUNCTION_CALLS + SOURCE_DCEARA);
-    results.assertIsSafe();
-  }
-
-  @Ignore
   @Test
   public void testSimplePrepareSliceSafe_2() throws Exception {
     TestResults results =
@@ -1529,7 +1524,6 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testPaperExampleUnsafe() throws Exception {
     TestResults results =

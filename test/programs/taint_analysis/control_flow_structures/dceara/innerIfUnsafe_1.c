@@ -11,27 +11,29 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
+int main(int argc, int argc2) {
 
     int a = __VERIFIER_nondet_int();
     int b = __VERIFIER_nondet_int();
     int c = __VERIFIER_nondet_int();
-    int x = __VERIFIER_nondet_int();
 
-    if (x) {
+    if (argc) { // t(argc) = T
         if (2) {
-            b = 2;
+            b = 2; // t(b) = U
             c = 3; // t(c) = U
         } else {
             c = 2; // t(c) = U
         }
     } else {
-        c = x; // t(c) = t(x) = T
+        c = argc2; // t(c) = T
     }
 
-    // t(c) = U + U + T = T
+    // t(a) = T
+    __VERIFIER_is_public(a, 1);
 
-    // b and c is expected to be tainted
+    // t(b) = T + U = T
     __VERIFIER_is_public(b, 1);
+
+    // t(c) = U + T = T
     __VERIFIER_is_public(c, 1);
 }
