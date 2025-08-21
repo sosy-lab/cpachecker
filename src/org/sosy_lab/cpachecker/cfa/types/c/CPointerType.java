@@ -125,4 +125,12 @@ public final class CPointerType implements CType {
     return new CPointerType(
         isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType());
   }
+
+  @Override
+  public CPointerType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+      return this;
+    }
+    return new CPointerType(pNewConstValue, pNewVolatileValue, getType());
+  }
 }

@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
@@ -233,76 +231,7 @@ public final class CTypes {
   @SuppressWarnings("unchecked") // method always creates instances of exact same class
   public static <T extends CType> T withQualifiersSetTo(
       T type, boolean newConstValue, boolean newVolatileValue) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-
-    if (type.isConst() == newConstValue && type.isVolatile() == newVolatileValue) {
-      return type;
-    }
-
-    return (T)
-        switch (type) {
-          case CArrayType t ->
-              new CArrayType(newConstValue, newVolatileValue, t.getType(), t.getLength());
-          case CCompositeType t ->
-              new CCompositeType(
-                  newConstValue,
-                  newVolatileValue,
-                  t.getKind(),
-                  t.getMembers(),
-                  t.getName(),
-                  t.getOrigName());
-
-          case CElaboratedType t ->
-              new CElaboratedType(
-                  newConstValue,
-                  newVolatileValue,
-                  t.getKind(),
-                  t.getName(),
-                  t.getOrigName(),
-                  t.getRealType());
-          case CEnumType t ->
-              new CEnumType(
-                  newConstValue,
-                  newVolatileValue,
-                  t.getCompatibleType(),
-                  t.getEnumerators(),
-                  t.getName(),
-                  t.getOrigName());
-          case CFunctionType t -> {
-            checkArgument(!newConstValue, "Cannot create const function type, this is undefined");
-            checkArgument(
-                !newVolatileValue, "Cannot create volatile function type, this is undefined");
-            yield t;
-          }
-          case CPointerType t -> new CPointerType(newConstValue, newVolatileValue, t.getType());
-
-          case CProblemType t -> throw new AssertionError(); // handled above
-
-          case CSimpleType t ->
-              new CSimpleType(
-                  newConstValue,
-                  newVolatileValue,
-                  t.getType(),
-                  t.hasLongSpecifier(),
-                  t.hasShortSpecifier(),
-                  t.hasSignedSpecifier(),
-                  t.hasUnsignedSpecifier(),
-                  t.hasComplexSpecifier(),
-                  t.hasImaginarySpecifier(),
-                  t.hasLongLongSpecifier());
-
-          case CTypedefType t ->
-              new CTypedefType(newConstValue, newVolatileValue, t.getName(), t.getRealType());
-
-          case CVoidType t -> CVoidType.create(newConstValue, newVolatileValue);
-
-          case CBitFieldType pCBitFieldType ->
-              new CBitFieldType(
-                  withQualifiersSetTo(pCBitFieldType.getType(), newConstValue, newVolatileValue),
-                  pCBitFieldType.getBitFieldSize());
-        };
+    return (T) type.withQualifiersSetTo(newConstValue, newVolatileValue);
   }
 
   /**

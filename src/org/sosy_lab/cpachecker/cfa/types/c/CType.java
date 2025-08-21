@@ -147,4 +147,21 @@ public sealed interface CType extends Type
     // default case
     return false;
   }
+
+  /**
+   * Return a copy of this type that has the "const" and "volatile" flags set to the given values.
+   *
+   * <p>This method only changes the outermost const/volatile flags.
+   *
+   * <p>If you want to set the const or volatile flags to a constant, prefer one of the methods in
+   * {@link CTypes} that does not take a boolean parameter.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   *
+   * @implNote When implementing this method, please strengthen the return type to the type itself.
+   *     Every implementation of this method should return exactly the same kind of type as it is
+   *     called on.
+   */
+  CType withQualifiersSetTo(boolean newConstValue, boolean newVolatileValue);
 }

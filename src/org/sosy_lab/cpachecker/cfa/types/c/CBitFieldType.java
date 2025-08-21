@@ -148,4 +148,13 @@ public final class CBitFieldType implements CType {
         && bitFieldSize == other.bitFieldSize
         && type.equals(other.type);
   }
+
+  @Override
+  public CBitFieldType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+    if (isConst() == pNewConstValue && isVolatile() == pNewVolatileValue) {
+      return this;
+    }
+    return new CBitFieldType(
+        type.withQualifiersSetTo(pNewConstValue, pNewVolatileValue), bitFieldSize);
+  }
 }

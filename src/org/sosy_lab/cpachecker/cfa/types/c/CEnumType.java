@@ -189,4 +189,18 @@ public final class CEnumType implements CComplexType {
         name,
         origName);
   }
+
+  @Override
+  public CEnumType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+      return this;
+    }
+    return new CEnumType(
+        pNewConstValue,
+        pNewVolatileValue,
+        getCompatibleType(),
+        getEnumerators(),
+        getName(),
+        getOrigName());
+  }
 }

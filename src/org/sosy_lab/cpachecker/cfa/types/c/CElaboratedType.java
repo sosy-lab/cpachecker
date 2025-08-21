@@ -217,4 +217,13 @@ public final class CElaboratedType implements CComplexType {
       return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
     }
   }
+
+  @Override
+  public CElaboratedType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+      return this;
+    }
+    return new CElaboratedType(
+        pNewConstValue, pNewVolatileValue, getKind(), getName(), getOrigName(), getRealType());
+  }
 }

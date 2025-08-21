@@ -116,4 +116,12 @@ public final class CTypedefType implements CType {
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
   }
+
+  @Override
+  public CTypedefType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+      return this;
+    }
+    return new CTypedefType(pNewConstValue, pNewVolatileValue, getName(), getRealType());
+  }
 }

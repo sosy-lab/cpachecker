@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.DoNotCall;
 import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -86,6 +87,12 @@ public final class CProblemType implements CType {
 
   @Override
   public CProblemType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    return this;
+  }
+
+  @Override
+  @DoNotCall
+  public CProblemType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
     return this;
   }
 }

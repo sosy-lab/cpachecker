@@ -251,4 +251,22 @@ public final class CSimpleType implements CType {
         isImaginary,
         isLongLong);
   }
+
+  @Override
+  public CSimpleType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+      return this;
+    }
+    return new CSimpleType(
+        pNewConstValue,
+        pNewVolatileValue,
+        getType(),
+        hasLongSpecifier(),
+        hasShortSpecifier(),
+        hasSignedSpecifier(),
+        hasUnsignedSpecifier(),
+        hasComplexSpecifier(),
+        hasImaginarySpecifier(),
+        hasLongLongSpecifier());
+  }
 }

@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.errorprone.annotations.InlineMe;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,5 +110,13 @@ public final class CVoidType implements CType {
   @Serial
   private Object readResolve() {
     return create(isConst, isVolatile);
+  }
+
+  @Override
+  @InlineMe(
+      replacement = "CVoidType.create(pNewConstValue, pNewVolatileValue)",
+      imports = "org.sosy_lab.cpachecker.cfa.types.c.CVoidType")
+  public CVoidType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+    return create(pNewConstValue, pNewVolatileValue);
   }
 }

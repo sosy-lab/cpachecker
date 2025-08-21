@@ -312,4 +312,13 @@ public final class CCompositeType implements CComplexType {
     }
     return result;
   }
+
+  @Override
+  public CCompositeType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+      return this;
+    }
+    return new CCompositeType(
+        pNewConstValue, pNewVolatileValue, getKind(), getMembers(), getName(), getOrigName());
+  }
 }

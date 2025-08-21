@@ -198,4 +198,12 @@ public final class CArrayType extends AArrayType implements CType {
         getType().getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile),
         length);
   }
+
+  @Override
+  public CArrayType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+      return this;
+    }
+    return new CArrayType(pNewConstValue, pNewVolatileValue, getType(), getLength());
+  }
 }

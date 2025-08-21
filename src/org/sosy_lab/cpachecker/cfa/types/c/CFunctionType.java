@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.DoNotCall;
 import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -153,5 +155,14 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
     }
     return new CFunctionType(
         getReturnType().getCanonicalType(), newParameterTypes.build(), takesVarArgs());
+  }
+
+  @Override
+  @DoNotCall
+  public final CFunctionType withQualifiersSetTo(
+      boolean pNewConstValue, boolean pNewVolatileValue) {
+    checkArgument(!pNewConstValue, "Cannot create const function type, this is undefined");
+    checkArgument(!pNewVolatileValue, "Cannot create volatile function type, this is undefined");
+    return this;
   }
 }
