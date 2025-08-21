@@ -20,13 +20,7 @@ int main(int argc) {
     int e = foo(a, foo(a, d)); // t(e) = t(a + (a + d)) = t(a) + t(a) + t(d) = U + U + T = T
     int f = *p; // t(f) = t(p) = T
 
-    __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(b, 0);
-    __VERIFIER_is_public(p, 0);
-    __VERIFIER_is_public(c, 0);
-    __VERIFIER_is_public(d, 0);
-    __VERIFIER_is_public(e, 0);
-    __VERIFIER_is_public(f, 0);
+    __VERIFIER_is_public(e, 1);
 }
 
 int foo(int x, int y) {

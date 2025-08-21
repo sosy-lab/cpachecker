@@ -1323,10 +1323,24 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testSimpleInterproceduralUnsafe_1() throws Exception {
+    TestResults results =
+        runCPAchecker("simpleInterproceduralUnsafe_1.c", CATEGORY_FUNCTION_CALLS + SOURCE_DCEARA);
+    results.assertIsUnsafe();
+  }
+
+  @Test
   public void testSimpleInterproceduralSafe_2() throws Exception {
     TestResults results =
         runCPAchecker("simpleInterproceduralSafe_2.c", CATEGORY_FUNCTION_CALLS + SOURCE_DCEARA);
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleInterproceduralUnsafe_2() throws Exception {
+    TestResults results =
+        runCPAchecker("simpleInterproceduralUnsafe_2.c", CATEGORY_FUNCTION_CALLS + SOURCE_DCEARA);
+    results.assertIsUnsafe();
   }
 
   @Test
