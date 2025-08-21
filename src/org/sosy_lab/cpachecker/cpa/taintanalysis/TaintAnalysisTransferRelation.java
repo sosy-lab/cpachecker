@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -757,8 +758,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         }
       }
     }
-
-    //    values.put(variableLHS, expr);
   }
 
   private ImmutableList<TaintAnalysisState> handleStatementEdge(
@@ -907,6 +906,48 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             }
           }
         }
+
+      } else if (lhs instanceof CFieldReference fieldRefLHS) {
+
+        CExpression fieldOwner = fieldRefLHS.getFieldOwner();
+
+        if (isInControlStructure(pCfaEdge)) {
+          if (isStatementControlledByTaintedVars(pCfaEdge, taintedVariables)) {
+
+            generatedVars.add(fieldRefLHS);
+            generatedVars.add(fieldOwner);
+
+          } else {
+
+            if (taintedRHS) {
+              generatedVars.add(fieldRefLHS);
+              generatedVars.add(fieldOwner);
+
+            } else {
+              handleFieldReferenceSanitization(pState, fieldRefLHS, fieldOwner, killedVars);
+            }
+          }
+
+        } else {
+
+          if (taintedRHS) {
+            generatedVars.add(fieldRefLHS);
+            generatedVars.add(fieldOwner);
+          } else {
+            handleFieldReferenceSanitization(pState, fieldRefLHS, fieldOwner, killedVars);
+          }
+        }
+
+        if (!loopConditionIsNull(pCfaEdge)) {
+          values.put(fieldRefLHS, rhs);
+        } else {
+          if (!varIsLoopIterationIndex(fieldRefLHS, pCfaEdge)) {
+            if (!(rhs instanceof CBinaryExpression)) {
+              values.put(fieldRefLHS, rhs);
+            }
+          }
+        }
+
       } else {
         logger.log(
             Level.INFO,
@@ -977,6 +1018,18 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                   varMustBePublic,
                   killedVars,
                   generatedVars);
+            }
+          } else if (exprToCheck instanceof CFieldReference fieldRefExpr) {
+
+            CExpression fieldOwner = fieldRefExpr.getFieldOwner();
+
+            if (!varIsCurrentlyTainted && !varMustBePublic) {
+
+              generatedVars.add(fieldRefExpr);
+              generatedVars.add(fieldOwner);
+
+            } else {
+              handleFieldReferenceSanitization(pState, fieldRefExpr, fieldOwner, killedVars);
             }
           }
         }
@@ -1111,7 +1164,46 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         } else {
           killedVars.add(arrayExpr);
         }
+      } else if (lhs instanceof CFieldReference fieldRefLHS) {
+
+        CExpression fieldOwner = fieldRefLHS.getFieldOwner();
+
+        if (isInControlStructure(pCfaEdge)) {
+          if (isStatementControlledByTaintedVars(pCfaEdge, taintedVariables)) {
+
+            generatedVars.add(fieldRefLHS);
+            generatedVars.add(fieldOwner);
+
+          } else {
+
+            if (isSource(functionCallAssignStmt) || rhsIsTainted) {
+              generatedVars.add(fieldRefLHS);
+              generatedVars.add(fieldOwner);
+
+            } else {
+              handleFieldReferenceSanitization(pState, fieldRefLHS, fieldOwner, killedVars);
+            }
+          }
+
+        } else {
+
+          if (isSource(functionCallAssignStmt) || rhsIsTainted) {
+            generatedVars.add(fieldRefLHS);
+            generatedVars.add(fieldOwner);
+          } else {
+            handleFieldReferenceSanitization(pState, fieldRefLHS, fieldOwner, killedVars);
+          }
+        }
+
+        if (!loopConditionIsNull(pCfaEdge)) {
+          values.put(fieldRefLHS, null);
+        } else {
+          if (!varIsLoopIterationIndex(fieldRefLHS, pCfaEdge)) {
+            values.put(fieldRefLHS, null);
+          }
+        }
       }
+
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
 
     } else {
@@ -1138,6 +1230,33 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       } else if (!varIsCurrentlyTainted && !varMustBePublic) {
         generatedVars.add(pointedVar);
       }
+    }
+  }
+
+  private void handleFieldReferenceSanitization(
+      TaintAnalysisState pState,
+      CFieldReference fieldRefExpr,
+      CExpression fieldOwner,
+      Set<CExpression> killedVars) {
+
+    boolean noRemainingTaintedFields = true;
+
+    for (CExpression taintedVar : pState.getTaintedVariables()) {
+      // The same field is referenced
+      if (taintedVar instanceof CFieldReference taintedVarRef) {
+        if (taintedVar.equals(fieldRefExpr)) {
+          killedVars.add(taintedVar);
+        } else {
+          if (taintedVarRef.getFieldOwner().equals(fieldOwner)) {
+            noRemainingTaintedFields = false;
+          }
+        }
+      }
+    }
+
+    if (noRemainingTaintedFields) {
+      // untaint the array
+      killedVars.add(fieldOwner);
     }
   }
 
