@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableListMultimap.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
@@ -67,7 +66,8 @@ public class ConflictResolver {
           "conflictReduction is enabled, but the program does not contain any global variables.");
       return pClauses; // no global variables -> no conflict resolving needed
     }
-    Builder<MPORThread, SeqThreadStatementClause> rResolved = ImmutableListMultimap.builder();
+    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rResolved =
+        ImmutableListMultimap.builder();
     for (MPORThread activeThread : pClauses.keySet()) {
       ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(activeThread);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =

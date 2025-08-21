@@ -14,7 +14,9 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqInjectedBitVectorStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.conflict.SeqConflictOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.conflict.SeqLastUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqCountUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
@@ -237,10 +240,17 @@ public class SeqStringUtil {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
-    ImmutableList.Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
+    List<SeqInjectedStatement> leftOver = new ArrayList<>();
+    // TODO add an option that lets user decide if conflict, or bit vector reduction is first
+    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
+      if (injectedStatement instanceof SeqConflictOrderStatement conflictOrderStatement) {
+        // place conflict order after r < K, otherwise output is unsound
+        leftOver.add(conflictOrderStatement);
+      }
+    }
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       if (injectedStatement instanceof SeqInjectedBitVectorStatement bitVectorStatement) {
-        // bit vector statements are last (more expensive than r < K)
+        // place conflict order after r < K, otherwise output is unsound
         leftOver.add(bitVectorStatement);
       }
     }
@@ -252,9 +262,9 @@ public class SeqStringUtil {
     }
     rOrdered.addAll(
         pInjectedStatements.stream()
-            .filter(stmt -> !leftOver.build().contains(stmt))
+            .filter(stmt -> !leftOver.contains(stmt))
             .collect(ImmutableList.toImmutableList()));
-    rOrdered.addAll(leftOver.build());
+    rOrdered.addAll(leftOver);
     return rOrdered.build();
   }
 }
