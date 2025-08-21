@@ -457,7 +457,6 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testTaintByMemberAccessOperationsSafe() throws Exception {
     TestResults results =
@@ -467,14 +466,31 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
-  public void testTaintByMemberAccessOperationsUnsafe() throws Exception {
+  public void testTaintByMemberAccessOperationsUnsafe_1() throws Exception {
     TestResults results =
         runCPAchecker(
-            "taintByMemberAccessOperationsUnsafe.c",
+            "taintByMemberAccessOperationsUnsafe_1.c",
             CATEGORY_STRUCTS_AND_MEMBER_ACCESS + SOURCE_CORE_MODELING);
-    results.assertIsSafe();
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByMemberAccessOperationsUnsafe_2() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "taintByMemberAccessOperationsUnsafe_2.c",
+            CATEGORY_STRUCTS_AND_MEMBER_ACCESS + SOURCE_CORE_MODELING);
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByMemberAccessOperationsUnsafe_3() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "taintByMemberAccessOperationsUnsafe_3.c",
+            CATEGORY_STRUCTS_AND_MEMBER_ACCESS + SOURCE_CORE_MODELING);
+    results.assertIsUnsafe();
   }
 
   @Test

@@ -19,16 +19,11 @@ int main() {
     struct Data *p;
 
     int x = __VERIFIER_nondet_int();
-    d.value = x;
+    d.value = 1;
     p = &d;
 
-    __VERIFIER_is_public(d.value, 0);
-    __VERIFIER_is_public(d, 0);
-
-    // Sanitize d.value
     __VERIFIER_set_public(d.value, 1);
 
-    // assign a tainted value to d.value via pointer dereference
     p->value = x;
-    __VERIFIER_is_public(p->value, 0);
+    __VERIFIER_is_public(p->value, 1);
 }
