@@ -293,17 +293,19 @@ public class TaintAnalysisState
       if (performFullJoinOfEvaluatedValues) {
 
         for (CExpression var : allVars) {
-          if (this.evaluatedValues.containsKey(var) && pOther.evaluatedValues.containsKey(var)) {
-            joinEvaluatedValues.put(var, this.evaluatedValues.get(var));
-          } else if (this.evaluatedValues.containsKey(var)
-              && !pOther.evaluatedValues.containsKey(var)) {
-            joinEvaluatedValues.put(var, this.evaluatedValues.get(var));
-          } else if (pOther.evaluatedValues.containsKey(var)
-              && !this.evaluatedValues.containsKey(var)) {
-            joinEvaluatedValues.put(var, pOther.evaluatedValues.get(var));
-          } else {
-            throw new IllegalStateException(
-                "At this point the variable must be contained in at least one map");
+          if (var != null) {
+            if (this.evaluatedValues.containsKey(var) && pOther.evaluatedValues.containsKey(var)) {
+              joinEvaluatedValues.put(var, this.evaluatedValues.get(var));
+            } else if (this.evaluatedValues.containsKey(var)
+                && !pOther.evaluatedValues.containsKey(var)) {
+              joinEvaluatedValues.put(var, this.evaluatedValues.get(var));
+            } else if (pOther.evaluatedValues.containsKey(var)
+                && !this.evaluatedValues.containsKey(var)) {
+              joinEvaluatedValues.put(var, pOther.evaluatedValues.get(var));
+            } else {
+              throw new IllegalStateException(
+                  "At this point the variable '" + var + "' must be contained in at least one map");
+            }
           }
         }
 
