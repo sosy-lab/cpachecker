@@ -17,9 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -52,25 +50,16 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> lines = ImmutableList.builder();
-    // last thread != -1
-    CBinaryExpression lastThreadNotMinusOne =
-        binaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.LAST_THREAD,
-            SeqIntegerLiteralExpression.INT_MINUS_1,
-            BinaryOperator.NOT_EQUALS);
     // last_thread < n
     CBinaryExpression lastThreadLessThanThreadId =
         binaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.LAST_THREAD,
             SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id),
             BinaryOperator.LESS_THAN);
-    // if (last_thread != -1 && last_thread < n)
-    SeqIfExpression ifExpression =
-        new SeqIfExpression(
-            new SeqLogicalAndExpression(lastThreadNotMinusOne, lastThreadLessThanThreadId));
-    // assume(*no conflict*)
-    String assumeCall =
-        SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.negate().toASTString());
+    // if (last_thread < n)
+    SeqIfExpression ifExpression = new SeqIfExpression(lastThreadLessThanThreadId);
+    // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
+    String assumeCall = SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.toASTString());
     // add all LOC
     lines.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
     lines.add(LineOfCode.of(assumeCall));

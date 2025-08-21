@@ -35,11 +35,11 @@ public class SeqDeclarations {
         buildVariableDeclaration(
             false, SeqArrayType.UNSIGNED_INT_ARRAY, SeqToken.pc, SeqInitializerList.EMPTY_LIST);
 
-    // last_thread
+    // last_thread, initialized with 0, but updated later in main()
 
-    public static final CVariableDeclaration LAST_THREAD_SIGNED =
+    public static final CVariableDeclaration LAST_THREAD_UNSIGNED =
         buildVariableDeclaration(
-            true, SeqSimpleType.INT, SeqToken.last_thread, SeqInitializer.INT_MINUS_1);
+            true, SeqSimpleType.UNSIGNED_INT, SeqToken.last_thread, SeqInitializer.INT_0);
 
     // next_thread
 

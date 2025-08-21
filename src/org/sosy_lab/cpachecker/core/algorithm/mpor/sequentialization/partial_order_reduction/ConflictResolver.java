@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
@@ -86,7 +85,12 @@ public class ConflictResolver {
       // step 2: inject updates to last_... variables
       rResolved.putAll(
           activeThread,
-          addLastUpdatesToClauses(pOptions, withConflictOrder, activeThread, pBitVectorVariables));
+          addLastUpdatesToClauses(
+              pOptions,
+              pClauses.keySet().size(),
+              withConflictOrder,
+              activeThread,
+              pBitVectorVariables));
     }
     return rResolved.build();
   }
@@ -196,6 +200,7 @@ public class ConflictResolver {
 
   private static ImmutableList<SeqThreadStatementClause> addLastUpdatesToClauses(
       MPOROptions pOptions,
+      int pNumThreads,
       ImmutableList<SeqThreadStatementClause> pClauses,
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables) {
@@ -205,7 +210,8 @@ public class ConflictResolver {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock mergedBlock : clause.getBlocks()) {
         newBlocks.add(
-            addLastUpdatesToBlock(pOptions, mergedBlock, pActiveThread, pBitVectorVariables));
+            addLastUpdatesToBlock(
+                pOptions, pNumThreads, mergedBlock, pActiveThread, pBitVectorVariables));
       }
       rWithOrders.add(clause.cloneWithBlocks(newBlocks.build()));
     }
@@ -214,6 +220,7 @@ public class ConflictResolver {
 
   private static SeqThreadStatementBlock addLastUpdatesToBlock(
       MPOROptions pOptions,
+      int pNumThreads,
       SeqThreadStatementBlock pBlock,
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables) {
@@ -221,13 +228,15 @@ public class ConflictResolver {
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       newStatements.add(
-          addLastUpdatesToStatement(pOptions, statement, pActiveThread, pBitVectorVariables));
+          addLastUpdatesToStatement(
+              pOptions, pNumThreads, statement, pActiveThread, pBitVectorVariables));
     }
     return pBlock.cloneWithStatements(newStatements.build());
   }
 
   private static SeqThreadStatement addLastUpdatesToStatement(
       MPOROptions pOptions,
+      int pNumThreads,
       SeqThreadStatement pStatement,
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables) {
@@ -235,10 +244,11 @@ public class ConflictResolver {
     if (pStatement.getTargetPc().isPresent()) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       if (targetPc == Sequentialization.EXIT_PC) {
-        // if a thread exits, set last_thread to -1
+        // if a thread exits, set last_thread to NUM_THREADS - 1
         CExpressionAssignmentStatement lastThreadExit =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
-                SeqIdExpression.LAST_THREAD, SeqIntegerLiteralExpression.INT_MINUS_1);
+                SeqIdExpression.LAST_THREAD,
+                SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads));
         SeqLastUpdateStatement lastUpdateStatement =
             new SeqLastUpdateStatement(lastThreadExit, ImmutableList.of());
         return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(lastUpdateStatement));

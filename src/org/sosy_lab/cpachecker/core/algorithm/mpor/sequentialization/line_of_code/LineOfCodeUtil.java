@@ -244,7 +244,7 @@ public class LineOfCodeUtil {
 
     // last_thread is always signed so that we can assign -1 when the current thread terminates
     if (pOptions.conflictReduction) {
-      rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_SIGNED.toASTString()));
+      rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_UNSIGNED.toASTString()));
     }
 
     // next_thread

@@ -150,6 +150,15 @@ public class SeqMainFunction extends SeqFunction {
             numThreadsVariable.getDeclaration(),
             threadSimulationVariables));
 
+    if (options.conflictReduction) {
+      // TODO is this dependent on nondet source?
+      CExpressionAssignmentStatement lastThreadAssignNumThreads =
+          SeqStatementBuilder.buildExpressionAssignmentStatement(
+              SeqIdExpression.LAST_THREAD,
+              SeqExpressionBuilder.buildIntegerLiteralExpression(clauses.keySet().size()));
+      rBody.add(LineOfCode.of(lastThreadAssignNumThreads.toASTString()));
+    }
+
     // add bit vector initializations
     rBody.addAll(buildBitVectorInitializations(clauses, bitVectorVariables));
 
@@ -160,11 +169,13 @@ public class SeqMainFunction extends SeqFunction {
     SeqSingleControlExpression loopHead = buildLoopHead(options, binaryExpressionBuilder);
     rBody.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(loopHead.toASTString())));
 
-    // add last_thread = next_thread assignment (before setting next_thread)
-    if (options.conflictReduction && options.nondeterminismSource.isNextThreadNondeterministic()) {
-      CExpressionAssignmentStatement assignment =
-          SeqStatementBuilder.buildLastThreadAssignment(SeqIdExpression.NEXT_THREAD);
-      rBody.add(LineOfCode.of(assignment.toASTString()));
+    if (options.conflictReduction) {
+      // add last_thread = next_thread assignment (before setting next_thread)
+      if (options.nondeterminismSource.isNextThreadNondeterministic()) {
+        CExpressionAssignmentStatement assignment =
+            SeqStatementBuilder.buildLastThreadAssignment(SeqIdExpression.NEXT_THREAD);
+        rBody.add(LineOfCode.of(assignment.toASTString()));
+      }
     }
 
     // add if next_thread is a non-determinism source
