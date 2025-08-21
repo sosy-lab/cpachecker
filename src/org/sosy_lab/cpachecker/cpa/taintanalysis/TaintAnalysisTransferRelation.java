@@ -521,29 +521,36 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
           if (pointer instanceof CIdExpression idPointerExpr) {
 
-            for (Map.Entry<CExpression, CExpression> entry : evaluatedValues.entrySet()) {
-              CExpression savedPointer = entry.getKey();
-              CExpression mappedValue = entry.getValue();
+            CExpression mappedValue = evaluatedValues.get(idPointerExpr);
+
+            if (isInControlStructure(pCfaEdge)) {
+              if (isStatementControlledByTaintedVars(pCfaEdge, pState.getTaintedVariables())) {
+                generatedVars.add(mappedValue);
+
+              } else {
+
+                if (returnVariableIsTainted) {
+                  generatedVars.add(mappedValue);
+                } else {
+                  killedVars.add(mappedValue);
+                }
+              }
+
+            } else {
 
               if (returnVariableIsTainted) {
-                if (pState.getUntaintedVariables().contains(savedPointer)) {
-                  if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
-                    if (savedPointer.equals(idPointerExpr)) {
-                      generatedVars.add(mappedValueAsIdExpr);
-                      values.put(mappedValueAsIdExpr, returnValue);
-                      break;
-                    }
-                  }
-                }
+                generatedVars.add(mappedValue);
               } else {
-                if (pState.getTaintedVariables().contains(savedPointer)) {
-                  if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
-                    if (savedPointer.equals(idPointerExpr)) {
-                      killedVars.add(mappedValueAsIdExpr);
-                      values.put(mappedValueAsIdExpr, returnValue);
-                      break;
-                    }
-                  }
+                killedVars.add(mappedValue);
+              }
+            }
+
+            if (!loopConditionIsNull(pCfaEdge)) {
+              values.put(mappedValue, returnValue);
+            } else {
+              if (!varIsLoopIterationIndex(mappedValue, pCfaEdge)) {
+                if (!(returnValue instanceof CBinaryExpression)) {
+                  values.put(mappedValue, returnValue);
                 }
               }
             }
@@ -865,29 +872,37 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         CExpression pointer = pointerLHS.getOperand();
 
         if (pointer instanceof CIdExpression idPointerExpr) {
-          for (Map.Entry<CExpression, CExpression> entry : evaluatedValues.entrySet()) {
-            CExpression savedPointer = entry.getKey();
-            CExpression mappedValue = entry.getValue();
+
+          CExpression mappedValue = evaluatedValues.get(idPointerExpr);
+
+          if (isInControlStructure(pCfaEdge)) {
+            if (isStatementControlledByTaintedVars(pCfaEdge, taintedVariables)) {
+              generatedVars.add(mappedValue);
+
+            } else {
+
+              if (taintedRHS) {
+                generatedVars.add(mappedValue);
+              } else {
+                killedVars.add(mappedValue);
+              }
+            }
+
+          } else {
 
             if (taintedRHS) {
-              if (pState.getUntaintedVariables().contains(savedPointer)) {
-                if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
-                  if (savedPointer.equals(idPointerExpr)) {
-                    generatedVars.add(mappedValueAsIdExpr);
-                    values.put(mappedValueAsIdExpr, rhs);
-                    break;
-                  }
-                }
-              }
+              generatedVars.add(mappedValue);
             } else {
-              if (taintedVariables.contains(savedPointer)) {
-                if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
-                  if (savedPointer.equals(idPointerExpr)) {
-                    killedVars.add(mappedValueAsIdExpr);
-                    values.put(mappedValueAsIdExpr, rhs);
-                    break;
-                  }
-                }
+              killedVars.add(mappedValue);
+            }
+          }
+
+          if (!loopConditionIsNull(pCfaEdge)) {
+            values.put(mappedValue, rhs);
+          } else {
+            if (!varIsLoopIterationIndex(mappedValue, pCfaEdge)) {
+              if (!(rhs instanceof CBinaryExpression)) {
+                values.put(mappedValue, rhs);
               }
             }
           }
@@ -1065,28 +1080,27 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
         if (pointer instanceof CIdExpression idPointerExpr) {
 
-          for (Map.Entry<CExpression, CExpression> entry : evaluatedValues.entrySet()) {
-            CExpression savedPointer = entry.getKey();
-            CExpression mappedValue = entry.getValue();
+          CExpression mappedValue = evaluatedValues.get(idPointerExpr);
+
+          if (isInControlStructure(pCfaEdge)) {
+            if (isStatementControlledByTaintedVars(pCfaEdge, taintedVariables)) {
+              generatedVars.add(mappedValue);
+
+            } else {
+
+              if (isSource(functionCallAssignStmt) || rhsIsTainted) {
+                generatedVars.add(mappedValue);
+              } else {
+                killedVars.add(mappedValue);
+              }
+            }
+
+          } else {
 
             if (isSource(functionCallAssignStmt) || rhsIsTainted) {
-              if (pState.getUntaintedVariables().contains(savedPointer)) {
-                if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
-                  if (savedPointer.equals(idPointerExpr)) {
-                    generatedVars.add(mappedValueAsIdExpr);
-                    break;
-                  }
-                }
-              }
+              generatedVars.add(mappedValue);
             } else {
-              if (taintedVariables.contains(savedPointer)) {
-                if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
-                  if (savedPointer.equals(idPointerExpr)) {
-                    killedVars.add(mappedValueAsIdExpr);
-                    break;
-                  }
-                }
-              }
+              killedVars.add(mappedValue);
             }
           }
         }
@@ -1133,6 +1147,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CIdExpression arrayVariable,
       CExpression arrayExpr,
       Set<CExpression> killedVars) {
+
     boolean noRemainingTaintedArrayElements = true;
 
     CExpression index = null;
