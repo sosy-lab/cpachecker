@@ -15,21 +15,21 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 int main() {
 
     // All variables start tainted
-    int a = __VERIFIER_nondet_int();
     int b = __VERIFIER_nondet_int();
+    int c = __VERIFIER_nondet_int();
 
-    if (0) {
-        a = 3; // unreachable
+    if (1) {
+        b = 3; // unreachable
     } else {
-        b = 4;
+        c = 4;
     }
 
-    // a is expected to remain tainted
-    __VERIFIER_is_public(a, 0);
-
-    // b is expected to be public
+    // b is expected to remain tainted
     __VERIFIER_is_public(b, 1);
 
-    // a + b is expected to be tainted by a
-    __VERIFIER_is_public(a + b, 0);
+    // c is expected to be public
+    __VERIFIER_is_public(c, 0);
+
+    // b + c is expected to be tainted by c
+    __VERIFIER_is_public(b + c, 0);
 }

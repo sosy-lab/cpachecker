@@ -18,4 +18,6 @@ int main() {
 
     // p points now to a tainted mem. address: t(p) = T
     __VERIFIER_is_public(p, 1);
+
+    return 0;
 }

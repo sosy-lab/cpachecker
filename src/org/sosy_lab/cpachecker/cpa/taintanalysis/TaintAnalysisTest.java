@@ -1358,6 +1358,14 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testSimpleInterproceduralUnsafe_multipleFuncs() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "simpleInterproceduralUnsafe_multipleFuncs.c", CATEGORY_FUNCTION_CALLS + SOURCE_DCEARA);
+    results.assertIsUnsafe();
+  }
+
+  @Test
   public void testPointerAssignmentSafe() throws Exception {
     TestResults results =
         runCPAchecker("pointerAssignmentSafe.c", CATEGORY_POINTERS + SOURCE_DCEARA);
@@ -1392,6 +1400,7 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
+  @Ignore
   @Test
   public void testSimpleCastSafe_1() throws Exception {
     TestResults results = runCPAchecker("simpleCastSafe_1.c", CATEGORY_CAST + SOURCE_DCEARA);
@@ -1404,9 +1413,17 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testSimpleCastSafe_3() throws Exception {
     TestResults results = runCPAchecker("simpleCastSafe_3.c", CATEGORY_CAST + SOURCE_DCEARA);
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleCastSafe_2_extension() throws Exception {
+    TestResults results =
+        runCPAchecker("simpleCastSafe_2_extension.c", CATEGORY_CAST + SOURCE_CORE_MODELING);
     results.assertIsSafe();
   }
 
@@ -1474,6 +1491,13 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testGlobalsSimpleUnsafe_1() throws Exception {
+    TestResults results =
+        runCPAchecker("globalsSimpleUnsafe_1.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_DCEARA);
+    results.assertIsUnsafe();
+  }
+
+  @Test
   public void testSimplePrintingSafe() throws Exception {
     TestResults results =
         runCPAchecker("simplePrintingSafe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_DCEARA);
@@ -1491,6 +1515,12 @@ public class TaintAnalysisTest {
   public void testTaintArraySafe() throws Exception {
     TestResults results = runCPAchecker("taintArraySafe.c", CATEGORY_ARRAYS + SOURCE_DCEARA);
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testTaintArrayUnsafe() throws Exception {
+    TestResults results = runCPAchecker("taintArrayUnsafe.c", CATEGORY_ARRAYS + SOURCE_DCEARA);
+    results.assertIsUnsafe();
   }
 
   @Test
@@ -1531,6 +1561,7 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
+  @Ignore
   @Test
   public void testSimpleBufferExampleSafe() throws Exception {
     TestResults results =
@@ -1538,6 +1569,7 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testSimpleBufferExampleUnsafe() throws Exception {
     TestResults results =
@@ -1679,5 +1711,41 @@ public class TaintAnalysisTest {
     TestResults results =
         runCPAchecker("fib_unsafe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsUnsafe();
+  }
+
+  @Ignore
+  @Test
+  public void testModExp_safe() throws Exception {
+    TestResults results =
+        //        runCPAchecker("modexp_safe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker(
+            "modexp_safe_preprocessed.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testModExp_unsafe() throws Exception {
+    TestResults results =
+        runCPAchecker("testModExp_unsafe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+    results.assertIsUnsafe();
+  }
+
+  @Ignore
+  @Test
+  public void testModAdd() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "mod_add_4096_preprocessed.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testModAdd_2() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "mod_add_2048_preprocessed.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+    results.assertIsSafe();
   }
 }

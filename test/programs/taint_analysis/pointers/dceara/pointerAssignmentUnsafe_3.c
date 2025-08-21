@@ -22,4 +22,6 @@ int main() {
 
     // b contains now the value of a: t(b) = t(a) = U
     __VERIFIER_is_public(b, 0);
+
+    return 0;
 }

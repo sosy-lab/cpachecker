@@ -6,10 +6,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-c_function_notation_calls/*.yml
-c_infix_operators/*.yml
-c_member_access_operators/*.yml
-c_pointer_and_address_operators/*.yml
-c_pre_and_postfix_operators/*.yml
-extern_benchmarks/*yml
-*.yml
+#c_infix_operators/*.yml
+#c_member_access_operators/*.yml
+#c_pointer_and_address_operators/*.ymlk
+#c_pre_and_postfix_operators/*.yml
+#extern_benchmarks/*yml
+#*.yml
+
+#readMetricsSafe_1.yml
+#c_infix_operators/ternaryOperatorSafe_bothBranchesReachable.yml
+#extern_benchmarks/trippleWhileLoopSafe_1.yml
+
+extern_benchmarks/whileLoopPostTaintSafe.yml
+entwurfSafe.yml

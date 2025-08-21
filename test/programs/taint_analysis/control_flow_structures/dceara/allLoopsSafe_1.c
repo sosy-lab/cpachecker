@@ -52,6 +52,8 @@ int main(int argc) {
     __VERIFIER_is_public(a1, 1);
     __VERIFIER_is_public(b1, 1);
     __VERIFIER_is_public(c1, 1);
+
+    return 0;
 }
 
 

@@ -11,13 +11,14 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
-    int a = 1;
-    int x = __VERIFIER_nondet_int();
+int main(int argc) {
+    int a = 0;
 
-    for (int i = 0; i < x; ++ i) {
-        a = a * x;
+    for (int i = 0; i < argc; ++ i) {
+        a++;
     }
 
     __VERIFIER_is_public(a, 1);
+
+    return 0;
 }

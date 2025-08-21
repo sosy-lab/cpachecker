@@ -11,14 +11,13 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
+int main(int argc) {
 
     int a = 0;
     int b = 0;
     int c = __VERIFIER_nondet_int();
-    int x = __VERIFIER_nondet_int();
 
-    if (a < x) {
+    if (a < argc) {
         b = 256;
     }
 
@@ -27,4 +26,6 @@ int main() {
     __VERIFIER_is_public(a, 1);
     __VERIFIER_is_public(b, 0);
     __VERIFIER_is_public(c, 1);
+
+   return 0;
 }

@@ -11,13 +11,18 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
-    int argc = __VERIFIER_nondet_int();
+int main(int argc) {
     int x = bar(0, 1, 2);
     int y = bar(0, 1, argc);
 
     __VERIFIER_is_public(x, 1);
     __VERIFIER_is_public(y, 0);
+
+    return 0;
+}
+
+int foo(int x3) {
+    return 10;
 }
 
 int bar(int x1, int y1, int z1) {
@@ -28,6 +33,3 @@ int foobar(int x2, int y2, int z2) {
     return x2 + foo(y2);
 }
 
-int foo(int x3) {
-    return 10;
-}

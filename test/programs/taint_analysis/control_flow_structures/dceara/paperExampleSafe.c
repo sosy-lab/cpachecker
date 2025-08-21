@@ -42,20 +42,15 @@ int main() {
 //}
 
 int compute(int x) {
-    int sum, i, y;
+    int sum, i;
 
     if (x == 2)
         sum = __VERIFIER_nondet_int();
     else
         sum = 0;
 
-    // t(sum) = T + U = T
-
     for (i = 0; i < x; ++ i) {
         sum += i;
-        while (x) {
-            i++;
-        }
     }
 
     return sum; // t(sum) = T + U = T

@@ -25,6 +25,6 @@ int main() {
     clean1[10] = 2;
     clean2[10] = 2;
 
-    __VERIFIER_is_public(buf1, 1);
-    __VERIFIER_is_public(buf2, 1);
+    __VERIFIER_is_public(buf1, 0);
+    __VERIFIER_is_public(buf2, 0);
 }

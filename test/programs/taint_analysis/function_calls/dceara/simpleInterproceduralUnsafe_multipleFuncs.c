@@ -12,28 +12,24 @@ extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main(int argc) {
+    int x = bar(0, 1, 2);
+    int y = bar(0, 1, argc);
 
-    int a[234];
-    int* b;
-    int* c;
-    int* d;
-    int tainted = __VERIFIER_nondet_int();
-
-    b = __VERIFIER_nondet_int();
-    __VERIFIER_is_public(b, 0);
-
-    a[2] = 2;
-    __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(a[2], 1);
-
-    a[tainted] = 354;
-    __VERIFIER_is_public(a, 1);
-
-    c[argc] = 23;
-    __VERIFIER_is_public(c, 1);
-
-    b[345] = tainted;
-    __VERIFIER_is_public(b, 0);
+    __VERIFIER_is_public(x, 0);
+    __VERIFIER_is_public(y, 1);
 
     return 0;
 }
+
+int foo(int x3) {
+    return 10;
+}
+
+int bar(int x1, int y1, int z1) {
+    return x1 + foobar(z1, x1, y1);
+}
+
+int foobar(int x2, int y2, int z2) {
+    return x2 + foo(y2);
+}
+

@@ -21,4 +21,6 @@ int main() {
     // and therefore is the assignment invalid.
     // t(q) = U
     __VERIFIER_is_public(q, 0);
+
+    return 0;
 }

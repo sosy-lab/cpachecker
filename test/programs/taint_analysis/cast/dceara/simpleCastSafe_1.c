@@ -12,8 +12,7 @@ extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int a = __VERIFIER_nondet_int();
-    int c = __VERIFIER_nondet_int();
+    int a = __VERIFIER_nondet_int(), c = __VERIFIER_nondet_int();
     char b;
 
     c = 0;
@@ -21,6 +20,8 @@ int main() {
     b = (int)((char)c);
 
     __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(b, 1);
+    __VERIFIER_is_public(b, 0); // I did not implement handling of casts. This expected result makes little sense to me. But I keep the original ground truth
     __VERIFIER_is_public(c, 1);
+
+    return 0;
 }

@@ -42,4 +42,6 @@ int main() {
     // a and c haven't been modified
     __VERIFIER_is_public(a, 1);
     __VERIFIER_is_public(c, 0);
+
+    return 0;
 }

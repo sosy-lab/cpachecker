@@ -11,29 +11,12 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
-    int a, b, c;
-    a = __VERIFIER_nondet_int();
-    b = 2;
-    c = 3;
+int main(int argc, char** argv) {
+  int c = 0;
 
-    if (a) {
-      while (b > 1) {
-        c = b;
-        b--;
-      }
-    }
+  do {
+      c++;
+  } while (c < argc);
 
-    __VERIFIER_is_public(a, 0);
-    __VERIFIER_is_public(b, 0);
-    __VERIFIER_is_public(c, 0);
-
-    if (a) {
-      b = 100;
-    }
-
-    c = 10;
-
-    __VERIFIER_is_public(b, 0);
-    __VERIFIER_is_public(c, 1);
+  __VERIFIER_is_public(c, 0);
 }

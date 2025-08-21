@@ -57,11 +57,12 @@ int main() {
     __VERIFIER_is_public(a, 0);
     __VERIFIER_is_public(b, 1);
 
+    return 0;
+
 }
 
 int foo(int* p) {
     int tainted = __VERIFIER_nondet_int();
     *p = tainted;
-    int a = 3;
     return 100;
 }

@@ -20,4 +20,6 @@ int main() {
 
     // p points now to an untainted memory address: t(p) = U
     __VERIFIER_is_public(p, 0);
+
+    return 0;
 }

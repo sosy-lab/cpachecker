@@ -14,18 +14,17 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 int global = 2;
 
 int main() {
-    __VERIFIER_is_public(global, 1);
 
-    taint_global();
-
+    foo();
     __VERIFIER_is_public(global, 0);
 
     untaint_global();
-
     __VERIFIER_is_public(global, 1);
+
+    return 0;
 }
 
-void taint_global() {
+void foo() {
     global = __VERIFIER_nondet_int();
 }
 

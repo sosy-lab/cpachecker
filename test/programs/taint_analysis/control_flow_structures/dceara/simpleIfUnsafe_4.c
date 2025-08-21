@@ -31,4 +31,6 @@ int main(int argc) {
 
     // t(b + c) = T + T = T
     __VERIFIER_is_public(b + c, 1);
+
+    return 0;
 }

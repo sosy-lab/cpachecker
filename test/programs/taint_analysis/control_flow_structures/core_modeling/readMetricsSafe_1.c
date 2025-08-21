@@ -11,9 +11,9 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-void main(int c) {
+void main() {
     int a;
-    int b = 3;
+    int c;
 
     if (c) {
         a = 2;
@@ -22,9 +22,9 @@ void main(int c) {
     }
 
     while (a < 10) {
-        b = __VERIFIER_nondet_int();
+        c = __VERIFIER_nondet_int();
     }
 
     __VERIFIER_is_public(a, 0);
-    __VERIFIER_is_public(b, 0);
+    __VERIFIER_is_public(c, 0);
 }

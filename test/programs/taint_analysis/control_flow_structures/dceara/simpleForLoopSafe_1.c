@@ -20,4 +20,6 @@ int main() {
     }
 
     __VERIFIER_is_public(a, 1);
+
+    return 0;
 }

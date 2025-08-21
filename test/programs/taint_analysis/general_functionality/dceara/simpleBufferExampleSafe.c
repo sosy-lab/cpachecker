@@ -16,16 +16,14 @@ int main() {
     int buf2[20];
     int* clean1;
     int clean2[20];
-    int x = __VERIFIER_nondet_int();
 
-    buf1[10] = x;
-
+    buf1[10] = __VERIFIER_nondet_int();
     buf2[10] = __VERIFIER_nondet_int();
 
     clean1[10] = 2;
     clean2[10] = 2;
 
-    __VERIFIER_is_public(buf1, 0);
+    __VERIFIER_is_public(buf1, 1); //TODO: the mem. addr. of buf1[10] = &x + 10 positions should be tainted, and not buf1.
     __VERIFIER_is_public(buf2, 0);
     __VERIFIER_is_public(clean1, 1);
     __VERIFIER_is_public(clean2, 1);

@@ -11,14 +11,14 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main(int arg) {
+int main(int argc) {
     int a, b, c;
     a = c = 0;
     b = __VERIFIER_nondet_int();
 
-    while (a < 1) {
-        while (b < 1) {
-            while (c < arg) {
+    while (a < 10) {
+        while (b < 10) {
+            while (c < argc) {
                 c++;
             }
             b++;
@@ -33,9 +33,9 @@ int main(int arg) {
     int a1, b1, c1;
     a1 = b1 = c1 = 0;
 
-    while (a1 < 1) {
-        while (b1 < arg) {
-            while (c1 < 1) {
+    while (a1 < 10) {
+        while (b1 < argc) {
+            while (c1 < 10) {
                 c1++;
             }
             b1++;
@@ -50,9 +50,9 @@ int main(int arg) {
     int a2, b2, c2;
     a2 = b2 = c2 = 0;
 
-    while (a2 < 1) {
-        while (arg) {
-            while (c2 < 1) {
+    while (a2 < 10) {
+        while (argc) {
+            while (c2 < 10) {
                 c2++;
             }
             b2++;

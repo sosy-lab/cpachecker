@@ -14,9 +14,11 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 int main() {
     int a = 2;
     int b = 2;
-    int c = foo(a, b);
+    int c = foo(a, b); // t(c) = t (a + b) = t(a) + t(b) = U + U = U
 
     __VERIFIER_is_public(c, 1);
+
+    return 0;
 }
 
 int foo(int x, int y) {

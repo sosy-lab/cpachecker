@@ -11,14 +11,13 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
+int main(int argc) {
     int x = 2;
-    int y = __VERIFIER_nondet_int();
 
-    while (x < y) {
+    while (x < argc) { // t(x < argc) = t(x) + t(argc) = U + T = T
         x++;
     }
 
-    // x is expected to be tainted by implicit taint propagation
+    // t(x) = t(x) + t(x > argc) = U + T = T
     __VERIFIER_is_public(x, 0);
 }

@@ -8,8 +8,6 @@
 
 // Benchmark case extracted from project https://github.com/dceara/tanalysis/blob/master/tanalysis/tests/func_tests/
 
-// Note that this benchmark is more related to pointers than to cast operations
-
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_nondet_char();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
@@ -24,8 +22,8 @@ int main() {
     // b expected to remain untainted
     __VERIFIER_is_public(b, 1);
 
-    // the following assign is not a valid assign
-    c = b;
+    // The original assing was c = b, which is not valid. It was replaced with the following:
+    c = &b; // t(c) = t(&b) = t(b) = t(a) = U
     __VERIFIER_is_public(c, 1);
 
     // For this to work, the compiler must implicitly cast `a` (`b`) to a memory address storing a char, something like `chars1 = (char *)&a;
@@ -36,4 +34,28 @@ int main() {
     // chars1 and chars2 are expected to be public
     __VERIFIER_is_public(chars1, 1);
     __VERIFIER_is_public(chars2, 1);
+
+
+    // Extension of the benchmark (not in the original file):
+
+    // later taint of b:
+    int x = __VERIFIER_nondet_int(); // tainted
+    b = &x;
+
+    // at this point c -> b -> &x -> tainted
+    __VERIFIER_is_public(*b, 0); // dereferences to x
+    __VERIFIER_is_public(b, 0); // points to x
+    __VERIFIER_is_public(**c, 0); // dereferences to x
+    __VERIFIER_is_public(*c, 0); // equivalent to b
+    __VERIFIER_is_public(c, 0); // points to b
+
+    x = 1;
+    b = &x;
+    // at this point c -> b -> &x -> not tainted
+    __VERIFIER_is_public(*b, 1); // dereferences to x
+    __VERIFIER_is_public(b, 1); // points to x
+
+    __VERIFIER_is_public(**c, 1); // dereferences to x
+    __VERIFIER_is_public(*c, 1); // equivalent to b
+    __VERIFIER_is_public(c, 1); // points to b
 }

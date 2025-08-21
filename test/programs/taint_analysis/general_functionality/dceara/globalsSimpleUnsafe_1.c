@@ -1,3 +1,4 @@
+
 // This file is part of CPAchecker,
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
@@ -11,29 +12,23 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main(int argc) {
+int global = 2;
 
-    int a[234];
-    int* b;
-    int* c;
-    int* d;
-    int tainted = __VERIFIER_nondet_int();
+int main() {
 
-    b = __VERIFIER_nondet_int();
-    __VERIFIER_is_public(b, 0);
+    foo();
+    __VERIFIER_is_public(global, 1);
 
-    a[2] = 2;
-    __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(a[2], 1);
-
-    a[tainted] = 354;
-    __VERIFIER_is_public(a, 1);
-
-    c[argc] = 23;
-    __VERIFIER_is_public(c, 1);
-
-    b[345] = tainted;
-    __VERIFIER_is_public(b, 0);
+    untaint_global();
+    __VERIFIER_is_public(global, 0);
 
     return 0;
+}
+
+void foo() {
+    global = __VERIFIER_nondet_int();
+}
+
+void untaint_global() {
+    global = 100;
 }

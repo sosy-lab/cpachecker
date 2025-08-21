@@ -20,20 +20,20 @@ int main(int argc) {
     int tainted = __VERIFIER_nondet_int();
 
     b = __VERIFIER_nondet_int();
-    __VERIFIER_is_public(b, 0);
+    __VERIFIER_is_public(b, 1);
 
     a[2] = 2;
-    __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(a[2], 1);
+    __VERIFIER_is_public(a, 0);
+    __VERIFIER_is_public(a[2], 0);
 
     a[tainted] = 354;
-    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(a, 0);
 
     c[argc] = 23;
-    __VERIFIER_is_public(c, 1);
+    __VERIFIER_is_public(c, 0);
 
     b[345] = tainted;
-    __VERIFIER_is_public(b, 0);
+    __VERIFIER_is_public(b, 1);
 
     return 0;
 }

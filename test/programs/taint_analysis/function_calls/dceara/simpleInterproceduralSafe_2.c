@@ -27,6 +27,8 @@ int main(int argc) {
     __VERIFIER_is_public(d, 0);
     __VERIFIER_is_public(e, 0);
     __VERIFIER_is_public(f, 0);
+
+    return 0;
 }
 
 int foo(int x, int y) {
