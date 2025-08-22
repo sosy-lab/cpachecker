@@ -750,7 +750,7 @@ class ASTConverter {
                 ((IASTExpressionStatement) lastStatement).getExpression();
             return convertType(lastExpression);
           } else {
-            return CVoidType.create(false, false);
+            return CVoidType.VOID;
           }
         }
       }

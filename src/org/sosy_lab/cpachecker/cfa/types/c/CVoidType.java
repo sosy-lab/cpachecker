@@ -27,9 +27,9 @@ public final class CVoidType implements CType {
 
   public static final CVoidType VOID = new CVoidType(false, false);
 
-  private static final CVoidType CONST_VOID = new CVoidType(true, false);
-  private static final CVoidType VOLATILE_VOID = new CVoidType(false, true);
-  private static final CVoidType CONST_VOLATILE_VOID = new CVoidType(true, true);
+  public static final CVoidType CONST_VOID = new CVoidType(true, false);
+  public static final CVoidType VOLATILE_VOID = new CVoidType(false, true);
+  public static final CVoidType CONST_VOLATILE_VOID = new CVoidType(true, true);
 
   public static CVoidType create(boolean pIsConst, boolean pIsVolatile) {
     if (pIsConst) {

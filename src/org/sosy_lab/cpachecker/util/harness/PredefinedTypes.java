@@ -102,7 +102,7 @@ public final class PredefinedTypes {
         CPointerType.POINTER_TO_VOID,
         ImmutableList.of(
             Predicate.isEqual(CPointerType.POINTER_TO_VOID),
-            Predicate.isEqual(new CPointerType(false, false, CVoidType.create(true, false))),
+            Predicate.isEqual(new CPointerType(false, false, CVoidType.CONST_VOID)),
             PredefinedTypes::isIntegerType));
   }
 
