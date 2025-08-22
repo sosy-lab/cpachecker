@@ -19,6 +19,7 @@
     <rundefinition>
         <option name="--predicateAnalysis--informationFlow"/>
         <option name="--no-output-files"/>
+        <option name="--preprocess"/>
         <option name="--heap">2000M</option>
         <tasks>
             <includesfile>../programs/taint_analysis/taint_analysis.set</includesfile>
