@@ -12,9 +12,9 @@
         "https://www.sosy-lab.org/benchexec/benchmark-3.30.dtd">
 <benchmark tool="cpachecker"
            displayName="Taint Analysis Benchmark Set"
-           timelimit="20 s"
-           hardtimelimit="20 s"
-           memlimit="1 GB"
+           timelimit="900 s"
+           hardtimelimit="960 s"
+           memlimit="15 GB"
            cpuCores="2">
 
     <option name="--predicateAnalysis--informationFlow"/>
