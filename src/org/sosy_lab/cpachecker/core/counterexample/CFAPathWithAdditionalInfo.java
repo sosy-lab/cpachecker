@@ -146,6 +146,10 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     return result.buildOrThrow();
   }
 
+  /**
+   * Get a mapping from CFAEdge to a Multimap of additional information objects without filters and checks.
+   * @return A map where each CFAEdge is associated with a Multimap containing its additional information,
+   */
   public Map<CFAEdge, Multimap<ConvertingTags, Object>> getAdditionalInfoAsMap() {
     return pathInfo.stream()
         .collect(

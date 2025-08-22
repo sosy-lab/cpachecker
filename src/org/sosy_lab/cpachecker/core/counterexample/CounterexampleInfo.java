@@ -227,6 +227,10 @@ public class CounterexampleInfo extends AbstractAppender {
         : additionalInfo.getAdditionalInfoMapping(targetPath);
   }
 
+  /**
+   * Get additional information for edges in the counterexample without filters or checks.
+   * @return a mapping from CFAEdge to a Multimap of additional information objects.
+   */
   public Map<CFAEdge, Multimap<ConvertingTags, Object>> getAdditionalInfoAsMap() {
     return additionalInfo.isEmpty()
            ? ImmutableMap.of()

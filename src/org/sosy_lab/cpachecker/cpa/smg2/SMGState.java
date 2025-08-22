@@ -2409,6 +2409,7 @@ public class SMGState
    *
    * @param unknownAddress the {@link Value} that is unknown to the memory model and was tried to be
    *     dereferenced.
+   * @param unknownObjectExpr the {@link CExpression} that lead to the dereference of the unknown
    * @return A new {@link SMGState} with the error info.
    */
   public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress, CExpression unknownObjectExpr) {
@@ -2576,6 +2577,7 @@ public class SMGState
    * region.
    *
    * @param invalidWriteRegion the invalid address pointing to nothing.
+   * @param expression the expression that lead to the invalid write.
    * @return A new SMGState with the error info.
    */
   public SMGState withInvalidWrite(SMGObject invalidWriteRegion, CExpression expression) {
@@ -2670,6 +2672,7 @@ public class SMGState
    * I.e. int bla = *pointer; With pointer failing to dereference because its pointing to 0.
    *
    * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
+   * @param nullObjectExpr the {@link CExpression} that lead to the dereference of the null
    * @return A new SMGState with the error info.
    */
   public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject, CExpression nullObjectExpr) {

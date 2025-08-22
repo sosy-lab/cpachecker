@@ -316,6 +316,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return ImmutableList.of();
   }
 
+  /**
+   * Check if the specification contains a memory safety property
+   * @return true if the specification contains a memory safety property, false otherwise
+   */
   private boolean specificationContainsMemSafety() {
     Set<Property> properties = getSpecification().getProperties();
     return properties.stream()
@@ -380,6 +384,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return defaultTargetWaypoint(pEdge);
   }
 
+  /**
+   * Check if the given SMGAdditionalInfo describes a dereferencing error
+   * @param pSMGAdditionalInfo the SMGAdditionalInfo to check
+   * @return true if the SMGAdditionalInfo describes a dereferencing error, false otherwise
+   */
   private boolean isDereferencingError(SMGAdditionalInfo pSMGAdditionalInfo) {
     // TODO: Maybe move Method to Counterexample or other more suitable Class
     return pSMGAdditionalInfo != null
@@ -389,6 +398,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             || pSMGAdditionalInfo.getValue().startsWith("Write to invalid memory region"));
   }
 
+  /**
+   * Check if the given SMGAdditionalInfo describes a memory tracking error
+   * @param pSMGAdditionalInfo the SMGAdditionalInfo to check
+   * @return true if the SMGAdditionalInfo describes a memory tracking error, false otherwise
+   */
   private boolean isMemtrackError(SMGAdditionalInfo pSMGAdditionalInfo) {
     // TODO: Maybe move Method to Counterexample or other more suitable Class
     return pSMGAdditionalInfo != null
@@ -396,6 +410,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         && pSMGAdditionalInfo.getValue().startsWith("Memory leak");
   }
 
+  /**
+   * Finds the edge that contains the error message within the CFAEdge-to-SMGAdditionalInfo-Mapping and returns the found Entry
+   * @param additionalInfo the CFAEdge-to-SMGAdditionalInfo-Mapping
+   * @return the Entry containing the error message, or null if no such entry exists
+   */
   private Entry<CFAEdge, Multimap<ConvertingTags, SMGAdditionalInfo>> getErrorEdgeAndSMGInfo(
       Map<CFAEdge, Multimap<ConvertingTags, Object>> additionalInfo) {
     return additionalInfo.entrySet().stream()
@@ -419,6 +438,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         .orElse(null);
   }
 
+  /**
+   * Tries to find the Edges where a pointer gets set to NULL or 0 which is later leads to the dereference error
+   * @param pCex the counterexample to analyze
+   * @return the list of edges that are potential causes for the dereference error
+   */
   private List<CFAEdge> getPotentialCausesForDereference(CounterexampleInfo pCex) {
     if (!specificationContainsMemSafety()) {
       return null;
@@ -479,6 +503,12 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return potentialErrorEdges;
   }
 
+  /**
+   * Filter the given edges for those that use the given expression
+   * @param edges the edges to filter
+   * @param expression the expression to filter for
+   * @return the list of edges that use the given expression
+   */
   private List<CFAEdge> filterEdgesUsingExpression(List<CFAEdge> edges, String expression) {
     String exprPattern =
         "(" + Pattern.quote(expression) + "|" + Pattern.quote("*" + expression) + ")";
@@ -496,6 +526,12 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return edgesThatUseExpression;
   }
 
+  /**
+   * Find all edges that use expression and all edges that point to that same expression via assignments
+   * @param pEdges the edges to search
+   * @param pExpression the expression to search for
+   * @return the list of edges that use the expression or point to it via assignments
+   */
   private List<CFAEdge> findAssignmentsOfExpressions(List<CFAEdge> pEdges, String pExpression) {
 
     Set<String> watchList = new HashSet<>();
@@ -681,6 +717,12 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build()), pPath);
   }
 
+  /**
+   * Conjunct two assumption Strings into one assumption String
+   * @param pAssumption1 the first assumption
+   * @param pAssumption2 the second assumption
+   * @return the conjunction of the two assumptions
+   */
   private static String addAssumptions(String pAssumption1, String pAssumption2) {
     if (pAssumption1.equals("0") || pAssumption2.equals("0")) {
       return "0";
