@@ -33,7 +33,9 @@ public class InstrumentationAutomaton {
     NOOVERFLOW,
     MEMCLEANUP,
     VALID_DEREF,
-    VALID_FREE
+    VALID_FREE,
+    MEMTRACK,
+    MEMSAFETY
   }
 
   /** The annotation is used to match a property of a CFA node. */
@@ -77,6 +79,8 @@ public class InstrumentationAutomaton {
       case MEMCLEANUP -> constructMemCleanupAutomaton();
       case VALID_DEREF -> constructValidDeref();
       case VALID_FREE -> constructValidFree();
+      case MEMTRACK -> constructMemTrack();
+      case MEMSAFETY -> constructMemSafety();
       default -> throw new IllegalArgumentException();
     }
   }
@@ -117,8 +121,10 @@ public class InstrumentationAutomaton {
     return originalType.toString();
   }
 
-  private InstrumentationState initializeMemorySafety(ImmutableList.Builder<InstrumentationTransition> builder) {
-    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.TRUE, this);
+  private InstrumentationState initializeMemorySafety(
+      ImmutableList.Builder<InstrumentationTransition> builder) {
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.TRUE, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.INIT, this);
     InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT, this);
 
     this.initialState = q1;
@@ -371,11 +377,19 @@ public class InstrumentationAutomaton {
                     + "}\\n"),
             InstrumentationOrder.BEFORE,
             q2);
-    builder.add(t1);
-    return q2;
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation("int __ignore__TMP = __init_memory_tracker();"),
+            InstrumentationOrder.BEFORE,
+            q3);
+    builder.add(t1, t2);
+    return q3;
   }
 
-  private InstrumentationState trackMemory(ImmutableList.Builder<InstrumentationTransition> builder) {
+  private InstrumentationState trackMemory(
+      ImmutableList.Builder<InstrumentationTransition> builder) {
     InstrumentationState q2 = initializeMemorySafety(builder);
 
     InstrumentationTransition t2 =
@@ -439,6 +453,43 @@ public class InstrumentationAutomaton {
     return q2;
   }
 
+  private InstrumentationState trackMemoryWhenExiting(
+      ImmutableList.Builder<InstrumentationTransition> builder) {
+    InstrumentationState q2 = trackMemory(builder);
+
+    InstrumentationTransition t6 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(abort)"),
+            new InstrumentationOperation("__check_memory_leaks();"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t7 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(exit)"),
+            new InstrumentationOperation("__check_memory_leaks();"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t8 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(return 0;)"),
+            new InstrumentationOperation("__check_memory_leaks();"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t9 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(reach_error)"),
+            new InstrumentationOperation("__check_memory_leaks();"),
+            InstrumentationOrder.BEFORE,
+            q2);
+
+    builder.add(t6, t7, t8, t9);
+    return q2;
+  }
+
   private void constructValidFree() {
     ImmutableList.Builder<InstrumentationTransition> builder = ImmutableList.builder();
     trackMemory(builder);
@@ -448,6 +499,27 @@ public class InstrumentationAutomaton {
   private void constructValidDeref() {
     ImmutableList.Builder<InstrumentationTransition> builder = ImmutableList.builder();
     InstrumentationState q2 = trackMemory(builder);
+
+    InstrumentationTransition t10 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("ptr_deref"),
+            new InstrumentationOperation("* ((typeof(x_instr_1)) __valid_ptr"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    builder.add(t10);
+    this.instrumentationTransitions = builder.build();
+  }
+
+  private void constructMemTrack() {
+    ImmutableList.Builder<InstrumentationTransition> builder = ImmutableList.builder();
+    trackMemoryWhenExiting(builder);
+    this.instrumentationTransitions = builder.build();
+  }
+
+  private void constructMemSafety() {
+    ImmutableList.Builder<InstrumentationTransition> builder = ImmutableList.builder();
+    InstrumentationState q2 = trackMemoryWhenExiting(builder);
 
     InstrumentationTransition t10 =
         new InstrumentationTransition(
