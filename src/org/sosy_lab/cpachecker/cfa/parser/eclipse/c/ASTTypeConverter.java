@@ -291,10 +291,7 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    i = i.withQualifiersSetTo(CTypeQualifiers.create(isConst, isVolatile));
-
-    assert i instanceof CProblemType || (isConst == i.isConst() && isVolatile == i.isVolatile());
-    return i;
+    return i.withQualifiersSetTo(CTypeQualifiers.create(isConst, isVolatile));
   }
 
   private CType conv(final IEnumeration e) {
@@ -348,13 +345,12 @@ class ASTTypeConverter {
           ctype = convert(dd.getDeclTypeExpression().getExpressionType());
         }
 
-        // readd the information about isVolatile and isConst if they got lost in
-        // the previous conversion
-        if (dd.isConst()) {
-          ctype = ctype.withConst();
-        }
-        if (dd.isVolatile()) {
-          ctype = ctype.withVolatile();
+        if (!(ctype instanceof CProblemType)) {
+          // We can have something like "const __typeof__(volatile int)", we need to combine inner
+          // and outer qualifier.
+          ctype =
+              ctype.withQualifiersSetTo(
+                  CTypeQualifiers.union(ctype.getQualifiers(), convertCTypeQualifiers(dd)));
         }
         return ctype;
       }
@@ -398,11 +394,11 @@ class ASTTypeConverter {
       type = convert(iType);
     }
 
-    if (d.isConst()) {
-      type = type.withConst();
-    }
-    if (d.isVolatile()) {
-      type = type.withVolatile();
+    if (!(type instanceof CProblemType)) {
+      // Should have only typedefs here, and these do not have qualifiers themselves.
+      verify(type instanceof CTypedefType);
+      verify(type.getQualifiers().equals(CTypeQualifiers.NONE));
+      type = type.withQualifiersSetTo(convertCTypeQualifiers(d));
     }
 
     return type;

@@ -37,6 +37,11 @@ public enum CTypeQualifiers {
     }
   }
 
+  /** Create an instance that combines all qualifiers from both inputs. */
+  public static CTypeQualifiers union(CTypeQualifiers a, CTypeQualifiers b) {
+    return create(a.isConst || b.isConst, a.isVolatile || b.isVolatile);
+  }
+
   public boolean isConst() {
     return isConst;
   }
