@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -75,8 +76,7 @@ class PointerTargetSetManager {
   static CType getFakeBaseType(long size) {
     return checkIsSimplified(
         new CArrayType(
-            false,
-            false,
+            CTypeQualifiers.create(false, false),
             CVoidType.VOID,
             new CIntegerLiteralExpression(
                 FileLocation.DUMMY, CNumericTypes.SIGNED_CHAR, BigInteger.valueOf(size))));
@@ -505,7 +505,8 @@ class PointerTargetSetManager {
               + Joiner.on("_and_")
                   .join(
                       Iterables.transform(members, m -> m.getType().toString().replace(" ", "_")));
-      return new CCompositeType(false, false, ComplexTypeKind.UNION, members, varName, varName);
+      return new CCompositeType(
+          CTypeQualifiers.create(false, false), ComplexTypeKind.UNION, members, varName, varName);
     }
 
     /**

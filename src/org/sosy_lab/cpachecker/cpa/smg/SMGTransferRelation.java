@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -489,7 +490,8 @@ public class SMGTransferRelation
       if (cParamType instanceof CArrayType) {
         cParamType =
             new CPointerType(
-                cParamType.isConst(), cParamType.isVolatile(), ((CArrayType) cParamType).getType());
+                CTypeQualifiers.create(cParamType.isConst(), cParamType.isVolatile()),
+                ((CArrayType) cParamType).getType());
       }
 
       SMGRegion newObject = values.get(i).getFirst();

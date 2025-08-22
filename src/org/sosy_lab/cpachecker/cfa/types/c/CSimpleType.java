@@ -253,8 +253,7 @@ public final class CSimpleType implements CType {
     }
 
     return new CSimpleType(
-        isConst() || pForceConst,
-        isVolatile() || pForceVolatile,
+        CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
         newType,
         isLong,
         isShort,

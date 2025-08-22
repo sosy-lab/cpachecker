@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetPattern.PointerTargetPatternBuilder;
 
@@ -177,8 +178,7 @@ class LvalueToPointerTargetPatternVisitor
         elementType = ((CPointerType) containerType).getType();
         containerType =
             new CArrayType(
-                containerType.isConst(), // TODO: Set array size
-                containerType.isVolatile(),
+                CTypeQualifiers.create(containerType.isConst(), containerType.isVolatile()),
                 elementType);
       } else {
         elementType = ((CArrayType) containerType).getType();

@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /**
@@ -35,7 +36,15 @@ public class BuiltinFunctions {
 
   private static final CType UNSPECIFIED_TYPE =
       new CSimpleType(
-          false, false, CBasicType.UNSPECIFIED, false, false, false, false, false, false, false);
+          CTypeQualifiers.create(false, false),
+          CBasicType.UNSPECIFIED,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false);
 
   private static final ImmutableMap<String, CType> supportedScanfFormatSpecifiers =
       ImmutableMap.<String, CType>builder()
@@ -115,7 +124,15 @@ public class BuiltinFunctions {
 
     if (isPopcountFunction(pFunctionName)) {
       return new CSimpleType(
-          false, false, CBasicType.INT, false, false, false, false, false, false, false);
+          CTypeQualifiers.create(false, false),
+          CBasicType.INT,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false);
     }
 
     return UNSPECIFIED_TYPE;

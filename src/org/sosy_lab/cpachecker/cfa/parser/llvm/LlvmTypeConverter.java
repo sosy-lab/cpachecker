@@ -90,8 +90,7 @@ class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getArrayLength()));
 
         yield new CArrayType(
-            isConst,
-            isVolatile,
+            CTypeQualifiers.create(isConst, isVolatile),
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
             arrayLength);
       }
@@ -100,7 +99,8 @@ class LlvmTypeConverter {
           logger.log(Level.WARNING, "Pointer address space not considered.");
         }
         yield new CPointerType(
-            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned, isConst));
+            CTypeQualifiers.create(isConst, isVolatile),
+            getCType(pLlvmType.getElementType(), isUnsigned, isConst));
       }
       case Vector -> {
         CIntegerLiteralExpression vectorLength =
@@ -110,8 +110,7 @@ class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getVectorSize()));
 
         yield new CArrayType(
-            isConst,
-            isVolatile,
+            CTypeQualifiers.create(isConst, isVolatile),
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
             vectorLength);
       }
@@ -134,8 +133,7 @@ class LlvmTypeConverter {
 
     if (typeCache.containsKey(pStructType.hashCode())) {
       return new CElaboratedType(
-          false,
-          false,
+          CTypeQualifiers.create(false, false),
           ComplexTypeKind.STRUCT,
           structName,
           origName,
@@ -143,7 +141,11 @@ class LlvmTypeConverter {
     }
 
     CCompositeType cStructType =
-        new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, structName, origName);
+        new CCompositeType(
+            CTypeQualifiers.create(isConst, isVolatile),
+            ComplexTypeKind.STRUCT,
+            structName,
+            origName);
     typeCache.put(pStructType.hashCode(), cStructType);
 
     List<TypeRef> memberTypes = pStructType.getStructElementTypes();

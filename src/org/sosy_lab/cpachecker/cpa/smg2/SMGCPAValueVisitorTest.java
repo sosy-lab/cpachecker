@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
@@ -299,7 +300,8 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_VARIABLE_NAME,
                 i,
                 transformedImmutableListCopy(
-                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(false, false, n)));
+                    STRUCT_UNION_TEST_TYPES,
+                    n -> new CPointerType(CTypeQualifiers.create(false, false), n)));
 
         List<ValueAndSMGState> resultList = fieldRef.accept(visitor);
 
@@ -357,7 +359,8 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_VARIABLE_NAME,
                 i,
                 transformedImmutableListCopy(
-                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(false, false, n)),
+                    STRUCT_UNION_TEST_TYPES,
+                    n -> new CPointerType(CTypeQualifiers.create(false, false), n)),
                 true,
                 ComplexTypeKind.STRUCT);
 
@@ -411,7 +414,8 @@ public class SMGCPAValueVisitorTest {
                 COMPOSITE_VARIABLE_NAME,
                 i,
                 transformedImmutableListCopy(
-                    STRUCT_UNION_TEST_TYPES, n -> new CPointerType(false, false, n)),
+                    STRUCT_UNION_TEST_TYPES,
+                    n -> new CPointerType(CTypeQualifiers.create(false, false), n)),
                 false,
                 ComplexTypeKind.STRUCT);
 
@@ -2884,7 +2888,7 @@ public class SMGCPAValueVisitorTest {
    */
   private CUnaryExpression wrapInAmper(CExpression exprToWrap) {
     CType typeOfExpr = exprToWrap.getExpressionType();
-    CType newType = new CPointerType(false, false, typeOfExpr);
+    CType newType = new CPointerType(CTypeQualifiers.create(false, false), typeOfExpr);
     return new CUnaryExpression(
         FileLocation.DUMMY, newType, exprToWrap, CUnaryExpression.UnaryOperator.AMPER);
   }
@@ -2945,10 +2949,19 @@ public class SMGCPAValueVisitorTest {
     List<CCompositeTypeMemberDeclaration> members = builder.build();
 
     CCompositeType structType =
-        new CCompositeType(false, false, ComplexTypeKind.STRUCT, members, "someName", "someName");
+        new CCompositeType(
+            CTypeQualifiers.create(false, false),
+            ComplexTypeKind.STRUCT,
+            members,
+            "someName",
+            "someName");
     CElaboratedType elaboratedType =
         new CElaboratedType(
-            false, false, ComplexTypeKind.STRUCT, "someName", "someName", structType);
+            CTypeQualifiers.create(false, false),
+            ComplexTypeKind.STRUCT,
+            "someName",
+            "someName",
+            structType);
     return MACHINE_MODEL.getSizeofInBits(elaboratedType).intValue();
   }
 
@@ -3038,13 +3051,23 @@ public class SMGCPAValueVisitorTest {
     List<CCompositeTypeMemberDeclaration> members = builder.build();
 
     CCompositeType structType =
-        new CCompositeType(false, false, ComplexTypeKind.STRUCT, members, structName, structName);
+        new CCompositeType(
+            CTypeQualifiers.create(false, false),
+            ComplexTypeKind.STRUCT,
+            members,
+            structName,
+            structName);
 
     CElaboratedType elaboratedType =
         new CElaboratedType(
-            false, false, ComplexTypeKind.STRUCT, structName, structName, structType);
+            CTypeQualifiers.create(false, false),
+            ComplexTypeKind.STRUCT,
+            structName,
+            structName,
+            structType);
 
-    CPointerType structPointerType = new CPointerType(false, false, elaboratedType);
+    CPointerType structPointerType =
+        new CPointerType(CTypeQualifiers.create(false, false), elaboratedType);
 
     CSimpleDeclaration declararation =
         new CVariableDeclaration(
@@ -3109,12 +3132,19 @@ public class SMGCPAValueVisitorTest {
     List<CCompositeTypeMemberDeclaration> members = builder.build();
 
     CCompositeType structType =
-        new CCompositeType(false, false, structOrUnion, members, structName, structName);
+        new CCompositeType(
+            CTypeQualifiers.create(false, false), structOrUnion, members, structName, structName);
 
     CElaboratedType elaboratedType =
-        new CElaboratedType(false, false, structOrUnion, structName, structName, structType);
+        new CElaboratedType(
+            CTypeQualifiers.create(false, false),
+            structOrUnion,
+            structName,
+            structName,
+            structType);
 
-    CPointerType structPointerType = new CPointerType(false, false, elaboratedType);
+    CPointerType structPointerType =
+        new CPointerType(CTypeQualifiers.create(false, false), elaboratedType);
 
     CSimpleDeclaration declararation;
 
@@ -3472,7 +3502,8 @@ public class SMGCPAValueVisitorTest {
     CInitializerList initializerList = new CInitializerList(FileLocation.DUMMY, builder.build());
      */
 
-    CArrayType arrayType = new CArrayType(false, false, elementType, length);
+    CArrayType arrayType =
+        new CArrayType(CTypeQualifiers.create(false, false), elementType, length);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration declararation =
@@ -3511,7 +3542,8 @@ public class SMGCPAValueVisitorTest {
     CIntegerLiteralExpression length =
         new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(lengthInt));
 
-    CArrayType arrayType = new CArrayType(false, false, elementType, length);
+    CArrayType arrayType =
+        new CArrayType(CTypeQualifiers.create(false, false), elementType, length);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration arrayDeclararation =
@@ -3557,7 +3589,7 @@ public class SMGCPAValueVisitorTest {
         new CIntegerLiteralExpression(
             FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(subscriptIndexInt));
 
-    CPointerType pointerType = new CPointerType(false, false, elementType);
+    CPointerType pointerType = new CPointerType(CTypeQualifiers.create(false, false), elementType);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration declararation =
@@ -3587,7 +3619,7 @@ public class SMGCPAValueVisitorTest {
    */
   public CArraySubscriptExpression arraySubscriptHeapAccessWithVariable(
       String variableName, String indexVariableName, CType indexVariableType, CType elementType) {
-    CPointerType pointerType = new CPointerType(false, false, elementType);
+    CPointerType pointerType = new CPointerType(CTypeQualifiers.create(false, false), elementType);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration arrayDeclararation =
@@ -3633,10 +3665,12 @@ public class SMGCPAValueVisitorTest {
             FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(arrayIndiceInt)));
 
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType =
+        new CPointerType(CTypeQualifiers.create(false, false), elementType);
     // The type for the returned value after the binary expr
     // TODO: why the f does this change?
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
+    CPointerType cPointerBinaryOperType =
+        new CPointerType(CTypeQualifiers.create(false, false), elementType);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration idDeclararation =
@@ -3692,7 +3726,8 @@ public class SMGCPAValueVisitorTest {
   public CPointerExpression pointerWithBinaryAccessFromExpression(
       String variableName, CType elementType, int innerIndiceInt, int outerindiceInt) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType =
+        new CPointerType(CTypeQualifiers.create(false, false), elementType);
     // The inner return type needs to be a nested ** type, since it adds 1 pointer itself we need 1
     // extra
     CPointerExpression inner = arrayPointerAccess(variableName, cPointerReturnType, innerIndiceInt);
@@ -3701,7 +3736,8 @@ public class SMGCPAValueVisitorTest {
             FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(outerindiceInt)));
 
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
+    CPointerType cPointerBinaryOperType =
+        new CPointerType(CTypeQualifiers.create(false, false), elementType);
 
     if (outerindiceInt == 0) {
       // *inner
@@ -3744,12 +3780,15 @@ public class SMGCPAValueVisitorTest {
             FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(Math.abs(indiceInt)));
 
     // The type for the returned value after the first deref type*
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType =
+        new CPointerType(CTypeQualifiers.create(false, false), elementType);
     // outermost type; type**
-    CPointerType cPointerPointerReturnType = new CPointerType(false, false, cPointerReturnType);
+    CPointerType cPointerPointerReturnType =
+        new CPointerType(CTypeQualifiers.create(false, false), cPointerReturnType);
     // The type for the returned value after the binary expr
     // TODO: why the f does this change?
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, elementType);
+    CPointerType cPointerBinaryOperType =
+        new CPointerType(CTypeQualifiers.create(false, false), elementType);
 
     // initializer = null because we model values/memory using the SMG!
     CVariableDeclaration declararation =
@@ -3809,9 +3848,11 @@ public class SMGCPAValueVisitorTest {
       CType indexVariableType,
       CType elementType) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType =
+        new CPointerType(CTypeQualifiers.create(false, false), elementType);
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+    CPointerType cPointerBinaryOperType =
+        new CPointerType(CTypeQualifiers.create(false, false), INT_TYPE);
 
     return buildCPointerExpressionFromBinary(
         cPointerReturnType,
@@ -3831,9 +3872,11 @@ public class SMGCPAValueVisitorTest {
       CType indexVariableType,
       CType elementType) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType =
+        new CPointerType(CTypeQualifiers.create(false, false), elementType);
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+    CPointerType cPointerBinaryOperType =
+        new CPointerType(CTypeQualifiers.create(false, false), INT_TYPE);
 
     return buildCPointerExpressionFromBinary(
         cPointerReturnType,
@@ -3853,9 +3896,11 @@ public class SMGCPAValueVisitorTest {
       CType indexVariableType,
       CType elementType) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, elementType);
+    CPointerType cPointerReturnType =
+        new CPointerType(CTypeQualifiers.create(false, false), elementType);
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+    CPointerType cPointerBinaryOperType =
+        new CPointerType(CTypeQualifiers.create(false, false), INT_TYPE);
 
     return buildCPointerExpressionFromBinary(
         cPointerReturnType,
@@ -3872,9 +3917,11 @@ public class SMGCPAValueVisitorTest {
   public CBinaryExpression arrayPointerMinusArrayPointer(
       String leftArrayVariableName, String rightArrayVariableName, CType arrayType) {
     // The type for the returned value after the pointer
-    CPointerType cPointerReturnType = new CPointerType(false, false, arrayType);
+    CPointerType cPointerReturnType =
+        new CPointerType(CTypeQualifiers.create(false, false), arrayType);
     // The type for the returned value after the binary expr
-    CPointerType cPointerBinaryOperType = new CPointerType(false, false, INT_TYPE);
+    CPointerType cPointerBinaryOperType =
+        new CPointerType(CTypeQualifiers.create(false, false), INT_TYPE);
 
     // In this case the operation and binary type are always equal!
     return new CBinaryExpression(

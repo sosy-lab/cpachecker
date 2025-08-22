@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -266,7 +267,10 @@ public class AssigningValueVisitorTest {
     NumericValue val1 = new NumericValue(Integer.valueOf(257));
     // same canoncial type
     assertThat(
-            visitor.invertCast(new CTypedefType(false, false, "myInt", signedInt), signedInt, val1))
+            visitor.invertCast(
+                new CTypedefType(CTypeQualifiers.create(false, false), "myInt", signedInt),
+                signedInt,
+                val1))
         .isEqualTo(val1);
 
     // not both CSimple Types

@@ -115,14 +115,19 @@ class ASTTypeConverter {
         // Replace it with a CElaboratedType.
         if (oldType != null) {
           yield new CElaboratedType(
-              false, false, kind, oldType.getName(), oldType.getOrigName(), oldType);
+              CTypeQualifiers.create(false, false),
+              kind,
+              oldType.getName(),
+              oldType.getOrigName(),
+              oldType);
         }
         // empty linkedList for the Fields of the struct, they are created afterward
         // with the right references in case of pointers to a struct of the same type
         // otherwise they would not point to the correct struct
         // TODO: volatile and const cannot be checked here until no, so both is set
         //       to false
-        CCompositeType compType = new CCompositeType(false, false, kind, name, name);
+        CCompositeType compType =
+            new CCompositeType(CTypeQualifiers.create(false, false), kind, name, name);
         // We need to cache compType before converting the type of its fields!
         // Otherwise, we run into an infinite recursion if the type of one field
         // is (a pointer to) the struct itself.
@@ -131,7 +136,8 @@ class ASTTypeConverter {
         // This means that wherever the ICompositeType instance appears, it will be
         // replaced by a CElaboratedType.
         CElaboratedType elaborateType =
-            new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType);
+            new CElaboratedType(
+                CTypeQualifiers.create(false, false), kind, name, compType.getOrigName(), compType);
         parseContext.rememberCType(t, elaborateType, filePrefix);
         compType.setMembers(conv(ct.getFields()));
         yield compType;
@@ -216,8 +222,7 @@ class ASTTypeConverter {
 
       // TODO why is there no isConst() and isVolatile() here?
       return new CSimpleType(
-          false,
-          false,
+          CTypeQualifiers.create(false, false),
           type,
           c.isLong(),
           c.isShort(),
@@ -233,7 +238,8 @@ class ASTTypeConverter {
   }
 
   private CPointerType conv(final IPointerType t) {
-    return new CPointerType(t.isConst(), t.isVolatile(), convert(t.getType()));
+    return new CPointerType(
+        CTypeQualifiers.create(t.isConst(), t.isVolatile()), convert(t.getType()));
   }
 
   private CTypedefType conv(final ITypedef t) {
@@ -244,10 +250,13 @@ class ASTTypeConverter {
 
     // We have seen this type already.
     if (oldType != null) {
-      return new CTypedefType(false, false, scope.getFileSpecificTypeName(name), oldType);
+      return new CTypedefType(
+          CTypeQualifiers.create(false, false), scope.getFileSpecificTypeName(name), oldType);
     } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
       return new CTypedefType(
-          false, false, scope.getFileSpecificTypeName(name), convert(t.getType()));
+          CTypeQualifiers.create(false, false),
+          scope.getFileSpecificTypeName(name),
+          convert(t.getType()));
     }
   }
 
@@ -281,7 +290,8 @@ class ASTTypeConverter {
         throw new CFAGenerationRuntimeException(e);
       }
     }
-    return new CArrayType(t.isConst(), t.isVolatile(), convert(t.getType()), length);
+    return new CArrayType(
+        CTypeQualifiers.create(t.isConst(), t.isVolatile()), convert(t.getType()), length);
   }
 
   private CType conv(final IQualifierType t) {
@@ -307,7 +317,8 @@ class ASTTypeConverter {
     } else {
       name = scope.getFileSpecificTypeName(name);
     }
-    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, name, origName, realType);
+    return new CElaboratedType(
+        CTypeQualifiers.create(false, false), ComplexTypeKind.ENUM, name, origName, realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
@@ -447,7 +458,7 @@ class ASTTypeConverter {
   /** returns a pointerType, that wraps the type. */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
     if (po instanceof IASTPointer p) {
-      return new CPointerType(p.isConst(), p.isVolatile(), type);
+      return new CPointerType(CTypeQualifiers.create(p.isConst(), p.isVolatile()), type);
 
     } else {
       throw parseContext.parseError("Unknown pointer operator", po);

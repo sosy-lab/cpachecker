@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -87,7 +88,15 @@ public final class SMGUtils {
     private final MachineModel model;
     private static final CType UNKNOWN =
         new CSimpleType(
-            false, false, CBasicType.UNSPECIFIED, false, false, false, false, false, false, false);
+            CTypeQualifiers.create(false, false),
+            CBasicType.UNSPECIFIED,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false);
 
     CFieldTypeVisitor(long pFieldOffset, MachineModel pModel) {
       fieldOffset = pFieldOffset;

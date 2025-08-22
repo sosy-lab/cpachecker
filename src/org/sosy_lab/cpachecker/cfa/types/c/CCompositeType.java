@@ -314,7 +314,10 @@ public final class CCompositeType implements CComplexType {
     }
     CCompositeType result =
         new CCompositeType(
-            isConst() || pForceConst, isVolatile() || pForceVolatile, kind, name, origName);
+            CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
+            kind,
+            name,
+            origName);
     if (members != null) {
       result.setMembers(members);
     }

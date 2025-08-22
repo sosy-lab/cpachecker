@@ -212,7 +212,11 @@ public final class CElaboratedType implements CComplexType {
         return this;
       }
       return new CElaboratedType(
-          isConst() || pForceConst, isVolatile() || pForceVolatile, kind, name, origName, null);
+          CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
+          kind,
+          name,
+          origName,
+          null);
     } else {
       return realType.getCanonicalType(isConst() || pForceConst, isVolatile() || pForceVolatile);
     }

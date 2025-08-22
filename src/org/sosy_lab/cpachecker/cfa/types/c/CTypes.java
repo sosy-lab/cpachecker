@@ -307,17 +307,19 @@ public final class CTypes {
       CExpression sizeExpression = ((CArrayType) pType).getLength();
 
       if (sizeExpression == null) {
-        pType = new CPointerType(false, false, innerType);
+        pType = new CPointerType(CTypeQualifiers.create(false, false), innerType);
       } else {
         // Adjusting an array type to a pointer of its stored
         // type discards the qualifiers of the array type and
         // instead qualifies the pointer with the qualifiers
         // used inside the size specifier brackets.
         CType sizeType = sizeExpression.getExpressionType();
-        pType = new CPointerType(sizeType.isConst(), sizeType.isVolatile(), innerType);
+        pType =
+            new CPointerType(
+                CTypeQualifiers.create(sizeType.isConst(), sizeType.isVolatile()), innerType);
       }
     } else if (pType instanceof CFunctionType) {
-      pType = new CPointerType(pType.isConst(), pType.isVolatile(), pType);
+      pType = new CPointerType(CTypeQualifiers.create(pType.isConst(), pType.isVolatile()), pType);
     }
     return pType;
   }

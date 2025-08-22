@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 @RunWith(Parameterized.class)
 @SuppressFBWarnings(
@@ -77,11 +78,17 @@ public class MachineModelGetOffsetTest {
               new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10), SECOND_BITFIELD_10),
           new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
           new CCompositeTypeMemberDeclaration(
-              new CArrayType(false, false, CNumericTypes.LONG_LONG_INT), LAST_INCOMPLETEARRAY));
+              new CArrayType(CTypeQualifiers.create(false, false), CNumericTypes.LONG_LONG_INT),
+              LAST_INCOMPLETEARRAY));
 
   // struct s { unsigned int a : 12; unsigned int b : 10; int c; long long d[]; };
   private static final CCompositeType STRUCT =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.create(false, false),
+          ComplexTypeKind.STRUCT,
+          FIELDS,
+          TEST_STRUCT,
+          TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_2 =
       ImmutableList.of(
@@ -94,7 +101,12 @@ public class MachineModelGetOffsetTest {
 
   // struct s { int a; long b : 15; long c : 18; char d; };
   private static final CCompositeType STRUCT_2 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_2, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.create(false, false),
+          ComplexTypeKind.STRUCT,
+          FIELDS_2,
+          TEST_STRUCT,
+          TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_3 =
       ImmutableList.of(
@@ -107,7 +119,12 @@ public class MachineModelGetOffsetTest {
 
   // struct s { int a; long b : 18; long c : 15; char d; };
   private static final CCompositeType STRUCT_3 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_3, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.create(false, false),
+          ComplexTypeKind.STRUCT,
+          FIELDS_3,
+          TEST_STRUCT,
+          TEST_STRUCT);
 
   @Parameter(0)
   public CCompositeType testStruct;

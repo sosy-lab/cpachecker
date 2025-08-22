@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 /** Utility class with helper methods for CTypes. */
 class CTypeUtils {
@@ -130,18 +131,19 @@ class CTypeUtils {
   static CType getBaseType(CType type) {
     checkIsSimplified(type);
     if (!(type instanceof CArrayType cArrayType)) {
-      return new CPointerType(false, false, type);
+      return new CPointerType(CTypeQualifiers.create(false, false), type);
     } else {
-      return new CPointerType(false, false, cArrayType.getType());
+      return new CPointerType(CTypeQualifiers.create(false, false), cArrayType.getType());
     }
   }
 
   static CType implicitCastToPointer(CType type) {
     checkIsSimplified(type);
     if (type instanceof CArrayType cArrayType) {
-      return new CPointerType(false, false, checkIsSimplified(cArrayType.getType()));
+      return new CPointerType(
+          CTypeQualifiers.create(false, false), checkIsSimplified(cArrayType.getType()));
     } else if (type instanceof CFunctionType) {
-      return new CPointerType(false, false, type);
+      return new CPointerType(CTypeQualifiers.create(false, false), type);
     } else {
       return type;
     }

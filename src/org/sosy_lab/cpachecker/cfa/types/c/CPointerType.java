@@ -17,11 +17,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public final class CPointerType implements CType {
 
   @Serial private static final long serialVersionUID = -6423006826454509009L;
-  public static final CPointerType POINTER_TO_VOID = new CPointerType(false, false, CVoidType.VOID);
+  public static final CPointerType POINTER_TO_VOID =
+      new CPointerType(CTypeQualifiers.create(false, false), CVoidType.VOID);
   public static final CPointerType POINTER_TO_CHAR =
-      new CPointerType(false, false, CNumericTypes.CHAR);
+      new CPointerType(CTypeQualifiers.create(false, false), CNumericTypes.CHAR);
   public static final CPointerType POINTER_TO_CONST_CHAR =
-      new CPointerType(false, false, CNumericTypes.CHAR.withConst());
+      new CPointerType(CTypeQualifiers.create(false, false), CNumericTypes.CHAR.withConst());
 
   private final CType type;
   private final CTypeQualifiers qualifiers;
@@ -119,7 +120,8 @@ public final class CPointerType implements CType {
   @Override
   public CPointerType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return new CPointerType(
-        isConst() || pForceConst, isVolatile() || pForceVolatile, type.getCanonicalType());
+        CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
+        type.getCanonicalType());
   }
 
   @Override

@@ -96,7 +96,7 @@ public final class CArrayType extends AArrayType implements CType {
    * implements this conversion properly and also the similar conversion for function types.
    */
   public CPointerType asPointerType() {
-    return new CPointerType(isConst(), isVolatile(), getType());
+    return new CPointerType(CTypeQualifiers.create(isConst(), isVolatile()), getType());
   }
 
   @Override
@@ -193,8 +193,7 @@ public final class CArrayType extends AArrayType implements CType {
     // on an array type always refer to the element type, not the array type.
     // So we push these modifiers down to the element type here.
     return new CArrayType(
-        false,
-        false,
+        CTypeQualifiers.create(false, false),
         getType().getCanonicalType(isConst() || pForceConst, isVolatile() || pForceVolatile),
         length);
   }

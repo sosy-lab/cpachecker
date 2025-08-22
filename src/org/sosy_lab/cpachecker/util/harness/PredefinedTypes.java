@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
@@ -102,7 +103,8 @@ public final class PredefinedTypes {
         CPointerType.POINTER_TO_VOID,
         ImmutableList.of(
             Predicate.isEqual(CPointerType.POINTER_TO_VOID),
-            Predicate.isEqual(new CPointerType(false, false, CVoidType.CONST_VOID)),
+            Predicate.isEqual(
+                new CPointerType(CTypeQualifiers.create(false, false), CVoidType.CONST_VOID)),
             PredefinedTypes::isIntegerType));
   }
 
@@ -144,7 +146,8 @@ public final class PredefinedTypes {
         CNumericTypes.INT,
         Collections.singletonList(
             Predicate.isEqual(
-                new CPointerType(false, false, CNumericTypes.CHAR.withConst()))));
+                new CPointerType(
+                    CTypeQualifiers.create(false, false), CNumericTypes.CHAR.withConst()))));
   }
 
   private static boolean isSwprintf(@Nullable AFunctionDeclaration pDeclaration) {

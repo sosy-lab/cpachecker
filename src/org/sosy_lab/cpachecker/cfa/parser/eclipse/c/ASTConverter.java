@@ -161,6 +161,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -467,7 +468,7 @@ class ASTConverter {
           exp =
               new CUnaryExpression(
                   exp.getFileLocation(),
-                  new CPointerType(type.isConst(), type.isVolatile(), type),
+                  new CPointerType(CTypeQualifiers.create(type.isConst(), type.isVolatile()), type),
                   exp,
                   UnaryOperator.AMPER);
         }
@@ -808,10 +809,13 @@ class ASTConverter {
       // that array types of operands are converted to pointer types except in a very few
       // specific cases (for which there will never be a temporary variable).
       // However, if the initializer is for an array, then of course we need to keep the array type.
-      type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
+      type =
+          new CPointerType(
+              CTypeQualifiers.create(type.isConst(), type.isVolatile()),
+              ((CArrayType) type).getType());
     } else if (type instanceof CFunctionType) {
       // Happens if function pointers are used in ternary expressions, for example.
-      type = new CPointerType(false, false, type);
+      type = new CPointerType(CTypeQualifiers.create(false, false), type);
     }
 
     CVariableDeclaration decl =
@@ -1486,8 +1490,7 @@ class ASTConverter {
       if (enumType != null) {
         type =
             new CElaboratedType(
-                type.isConst(),
-                type.isVolatile(),
+                CTypeQualifiers.create(type.isConst(), type.isVolatile()),
                 ComplexTypeKind.ENUM,
                 enumType.getName(),
                 enumType.getOrigName(),
@@ -1552,7 +1555,7 @@ class ASTConverter {
 
         CType type = typeConverter.convert(e.getExpressionType());
         if (containsProblemType(type)) {
-          type = new CPointerType(true, false, operandType);
+          type = new CPointerType(CTypeQualifiers.create(true, false), operandType);
         }
 
         // if none of the special cases before fits the default unaryExpression is created
@@ -1864,8 +1867,7 @@ class ASTConverter {
       // now replace type with an elaborated type referencing the new type
       type =
           new CElaboratedType(
-              type.isConst(),
-              type.isVolatile(),
+              CTypeQualifiers.create(type.isConst(), type.isVolatile()),
               complexType.getKind(),
               complexType.getName(),
               complexType.getOrigName(),
@@ -2057,8 +2059,7 @@ class ASTConverter {
       addSideEffectDeclarationForType(compositeType, getLocation(d));
       type =
           new CElaboratedType(
-              compositeType.isConst(),
-              compositeType.isVolatile(),
+              CTypeQualifiers.create(compositeType.isConst(), compositeType.isVolatile()),
               compositeType.getKind(),
               compositeType.getName(),
               compositeType.getOrigName(),
@@ -2296,7 +2297,9 @@ class ASTConverter {
           new CIntegerLiteralExpression(getLocation(initializer), CNumericTypes.INT, length);
 
       return new CArrayType(
-          arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
+          CTypeQualifiers.create(arrayType.isConst(), arrayType.isVolatile()),
+          arrayType.getType(),
+          lengthExp);
 
     } else if (initializer instanceof CASTLiteralExpression literalExpression
         && (arrayType.getType().equals(CNumericTypes.CHAR)
@@ -2313,7 +2316,9 @@ class ASTConverter {
               getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
 
       return new CArrayType(
-          arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
+          CTypeQualifiers.create(arrayType.isConst(), arrayType.isVolatile()),
+          arrayType.getType(),
+          lengthExp);
 
     } else {
       return arrayType;
@@ -2432,15 +2437,14 @@ class ASTConverter {
 
     // Copy const, volatile, and signedness from original type, rest from newType
     return new CSimpleType(
-        type.isConst(),
-        type.isVolatile(),
+        CTypeQualifiers.create(type.isConst(), type.isVolatile()),
         newType.getType(),
         newType.hasLongSpecifier(),
         newType.hasShortSpecifier(),
         type.hasSignedSpecifier(),
         type.hasUnsignedSpecifier(),
-        false, // checked above
-        false, // checked above
+        false,
+        false,
         newType.hasLongLongSpecifier());
   }
 
@@ -2453,7 +2457,7 @@ class ASTConverter {
       if (!isFunctionParameter && !isSafeAsArrayLength(lengthExp)) {
         lengthExp = createTemporaryVariableWithInitializer(getLocation(am), lengthExp);
       }
-      return new CArrayType(a.isConst(), a.isVolatile(), type, lengthExp);
+      return new CArrayType(CTypeQualifiers.create(a.isConst(), a.isVolatile()), type, lengthExp);
 
     } else {
       throw parseContext.parseError("Unknown array modifier", am);
@@ -2483,8 +2487,7 @@ class ASTConverter {
       // type of functions is implicitly int it not specified
       returnType =
           new CSimpleType(
-              t.isConst(),
-              t.isVolatile(),
+              CTypeQualifiers.create(t.isConst(), t.isVolatile()),
               CBasicType.INT,
               t.hasLongSpecifier(),
               t.hasShortSpecifier(),
@@ -2961,7 +2964,7 @@ class ASTConverter {
 
     CType type = declarator.type();
     if (type instanceof CFunctionTypeWithNames functionType) {
-      type = new CPointerType(false, false, functionType);
+      type = new CPointerType(CTypeQualifiers.create(false, false), functionType);
     }
 
     return new CParameterDeclaration(getLocation(p), type, declarator.name());

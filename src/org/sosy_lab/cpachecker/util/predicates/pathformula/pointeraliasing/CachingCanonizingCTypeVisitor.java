@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -50,7 +51,10 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
               && (!t.isVolatile() || !ignoreVolatile)
           ? t
           : new CArrayType(
-              !ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile(), type, t.getLength());
+              CTypeQualifiers.create(
+                  !ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile()),
+              type,
+              t.getLength());
     }
 
     @Override
@@ -71,8 +75,8 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
               && (!ignoreVolatile || !t.isVolatile())
           ? t
           : new CElaboratedType(
-              !ignoreConst && t.isConst(),
-              !ignoreVolatile && t.isVolatile(),
+              CTypeQualifiers.create(
+                  !ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile()),
               t.getKind(),
               t.getName(),
               t.getOrigName(),
@@ -88,7 +92,10 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
               && (!ignoreConst || !t.isConst())
               && (!ignoreVolatile || !t.isVolatile())
           ? t
-          : new CPointerType(!ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile(), type);
+          : new CPointerType(
+              CTypeQualifiers.create(
+                  !ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile()),
+              type);
     }
 
     @Override
@@ -101,7 +108,9 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
               && (!ignoreVolatile || !t.isVolatile())
           ? t
           : new CTypedefType(
-              !ignoreConst && t.isConst(), !ignoreConst && t.isVolatile(), t.getName(), realType);
+              CTypeQualifiers.create(!ignoreConst && t.isConst(), !ignoreConst && t.isVolatile()),
+              t.getName(),
+              realType);
     }
 
     @Override
@@ -157,8 +166,8 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
               && (!ignoreSignedness || !t.hasUnsignedSpecifier())
           ? t
           : new CSimpleType(
-              !ignoreConst && t.isConst(),
-              !ignoreVolatile && t.isVolatile(),
+              CTypeQualifiers.create(
+                  !ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile()),
               t.getType(),
               t.hasLongSpecifier(),
               t.hasShortSpecifier(),
@@ -180,7 +189,8 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
 
     @Override
     public CType visit(CVoidType t) {
-      return CVoidType.create(!ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile());
+      return CVoidType.create(
+          CTypeQualifiers.create(!ignoreConst && t.isConst(), !ignoreVolatile && t.isVolatile()));
     }
 
     private final boolean ignoreConst;
@@ -205,8 +215,9 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
       // Need to create our own instance because we will modify it to prevent recursion.
       canonicalType =
           new CCompositeType(
-              !typeVisitor.ignoreConst && canonicalType.isConst(),
-              !typeVisitor.ignoreVolatile && canonicalType.isVolatile(),
+              CTypeQualifiers.create(
+                  !typeVisitor.ignoreConst && canonicalType.isConst(),
+                  !typeVisitor.ignoreVolatile && canonicalType.isVolatile()),
               canonicalType.getKind(),
               canonicalType.getName(),
               canonicalType.getOrigName());

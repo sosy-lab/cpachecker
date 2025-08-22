@@ -35,13 +35,22 @@ public class CanonicalTypeTest {
 
     CType longType =
         new CSimpleType(
-            false, false, CBasicType.UNSPECIFIED, true, false, false, false, false, false, false);
+            CTypeQualifiers.create(false, false),
+            CBasicType.UNSPECIFIED,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false);
     assertThat(longType.getCanonicalType()).isEqualTo(CNumericTypes.SIGNED_LONG_INT);
   }
 
   @Test
   public void typedefQualifiers() {
-    CTypedefType typedef = new CTypedefType(true, true, "TYPEDEF", CNumericTypes.INT);
+    CTypedefType typedef =
+        new CTypedefType(CTypeQualifiers.create(true, true), "TYPEDEF", CNumericTypes.INT);
 
     // typedefs push their qualifiers to the target type (C11 § 6.7.3 (5))
     assertThat(typedef.getCanonicalType()).isEqualTo(VOLATILE_CONST_INT);
@@ -49,34 +58,36 @@ public class CanonicalTypeTest {
 
   @Test
   public void arrayQualifiers() {
-    CArrayType array = new CArrayType(true, true, CNumericTypes.INT);
+    CArrayType array = new CArrayType(CTypeQualifiers.create(true, true), CNumericTypes.INT);
 
     // arrays push their qualifiers to the element type (C11 § 6.7.3 (9))
-    CArrayType expected = new CArrayType(false, false, VOLATILE_CONST_INT);
+    CArrayType expected = new CArrayType(CTypeQualifiers.create(false, false), VOLATILE_CONST_INT);
     assertThat(array.getCanonicalType()).isEqualTo(expected);
   }
 
   @Test
   public void arrayTypedefQualifiers() {
-    CTypedefType typedef = new CTypedefType(true, false, "TYPEDEF", CNumericTypes.INT);
-    CArrayType array = new CArrayType(false, true, typedef);
+    CTypedefType typedef =
+        new CTypedefType(CTypeQualifiers.create(true, false), "TYPEDEF", CNumericTypes.INT);
+    CArrayType array = new CArrayType(CTypeQualifiers.create(false, true), typedef);
 
-    CArrayType expected = new CArrayType(false, false, VOLATILE_CONST_INT);
+    CArrayType expected = new CArrayType(CTypeQualifiers.create(false, false), VOLATILE_CONST_INT);
     assertThat(array.getCanonicalType()).isEqualTo(expected);
   }
 
   @Test
   public void typedefArrayQualifiers() {
-    CArrayType array = new CArrayType(false, true, CNumericTypes.INT);
-    CTypedefType typedef = new CTypedefType(true, false, "TYPEDEF", array);
+    CArrayType array = new CArrayType(CTypeQualifiers.create(false, true), CNumericTypes.INT);
+    CTypedefType typedef = new CTypedefType(CTypeQualifiers.create(true, false), "TYPEDEF", array);
 
-    CArrayType expected = new CArrayType(false, false, VOLATILE_CONST_INT);
+    CArrayType expected = new CArrayType(CTypeQualifiers.create(false, false), VOLATILE_CONST_INT);
     assertThat(typedef.getCanonicalType()).isEqualTo(expected);
   }
 
   @Test
   public void functionType() {
-    CTypedefType typedef = new CTypedefType(false, false, "TYPEDEF", CNumericTypes.INT);
+    CTypedefType typedef =
+        new CTypedefType(CTypeQualifiers.create(false, false), "TYPEDEF", CNumericTypes.INT);
     CFunctionType function = new CFunctionType(typedef, ImmutableList.of(typedef), false);
 
     CFunctionType expected =

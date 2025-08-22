@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -449,8 +450,9 @@ class MemoryManipulationFunctionHandler {
       return new CCastExpression(
           FileLocation.DUMMY,
           new CPointerType(
-              argument.getExpressionType().isConst(),
-              argument.getExpressionType().isVolatile(),
+              CTypeQualifiers.create(
+                  argument.getExpressionType().isConst(),
+                  argument.getExpressionType().isVolatile()),
               CNumericTypes.UNSIGNED_CHAR),
           argument);
     }
@@ -529,8 +531,7 @@ class MemoryManipulationFunctionHandler {
       // fuse the last two dimensions together
       idType =
           new CArrayType(
-              lastDimensionType.isConst(),
-              lastDimensionType.isVolatile(),
+              CTypeQualifiers.create(lastDimensionType.isConst(), lastDimensionType.isVolatile()),
               secondLastDimensionType.getType(),
               multipliedLength);
     }

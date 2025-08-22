@@ -183,8 +183,7 @@ public final class CEnumType implements CComplexType {
       return this;
     }
     return new CEnumType(
-        isConst() || pForceConst,
-        isVolatile() || pForceVolatile,
+        CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
         compatibleType,
         enumerators,
         name,

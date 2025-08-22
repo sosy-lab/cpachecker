@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -786,7 +787,7 @@ public class SMGCPATransferRelationTest {
       BigInteger sizeInBytes = BigInteger.valueOf(i);
 
       for (CType type : TEST_TYPES) {
-        CType pointerType = new CPointerType(false, false, type);
+        CType pointerType = new CPointerType(CTypeQualifiers.create(false, false), type);
 
         // Make a non-global and not external variable with the current type
         List<SMGState> statesAfterDecl =
@@ -804,7 +805,7 @@ public class SMGCPATransferRelationTest {
                 FileLocation.DUMMY,
                 new CIdExpression(
                     FileLocation.DUMMY,
-                    new CPointerType(false, false, pointerType),
+                    new CPointerType(CTypeQualifiers.create(false, false), pointerType),
                     variableName,
                     declareVariableWithoutInitializer(variableName, pointerType, false, false)),
                 makeMalloc(
@@ -957,7 +958,7 @@ public class SMGCPATransferRelationTest {
 
       for (CType type : TEST_TYPES) {
         for (CType sizeofType : TEST_TYPES) {
-          CType pointerType = new CPointerType(false, false, type);
+          CType pointerType = new CPointerType(CTypeQualifiers.create(false, false), type);
 
           CExpression binarySizeExpression =
               new CBinaryExpression(
@@ -997,7 +998,7 @@ public class SMGCPATransferRelationTest {
                   FileLocation.DUMMY,
                   new CIdExpression(
                       FileLocation.DUMMY,
-                      new CPointerType(false, false, pointerType),
+                      new CPointerType(CTypeQualifiers.create(false, false), pointerType),
                       variableName,
                       declareVariableWithoutInitializer(variableName, pointerType, false, false)),
                   makeMalloc(binarySizeExpression));
@@ -1686,26 +1687,26 @@ public class SMGCPATransferRelationTest {
               INT_TYPE,
               new CIdExpression(
                   FileLocation.DUMMY,
-                  new CPointerType(false, false, structType),
+                  new CPointerType(CTypeQualifiers.create(false, false), structType),
                   variableName1,
                   new CVariableDeclaration(
                       FileLocation.DUMMY,
                       false,
                       CStorageClass.AUTO,
-                      new CPointerType(false, false, structType),
+                      new CPointerType(CTypeQualifiers.create(false, false), structType),
                       variableName1,
                       variableName1,
                       variableName1,
                       null)),
               new CIdExpression(
                   FileLocation.DUMMY,
-                  new CPointerType(false, false, structType),
+                  new CPointerType(CTypeQualifiers.create(false, false), structType),
                   variableName2,
                   new CVariableDeclaration(
                       FileLocation.DUMMY,
                       false,
                       CStorageClass.AUTO,
-                      new CPointerType(false, false, structType),
+                      new CPointerType(CTypeQualifiers.create(false, false), structType),
                       variableName2,
                       variableName2,
                       variableName2,
@@ -1754,26 +1755,26 @@ public class SMGCPATransferRelationTest {
               INT_TYPE,
               new CIdExpression(
                   FileLocation.DUMMY,
-                  new CPointerType(false, false, testType),
+                  new CPointerType(CTypeQualifiers.create(false, false), testType),
                   variableName1,
                   new CVariableDeclaration(
                       FileLocation.DUMMY,
                       false,
                       CStorageClass.AUTO,
-                      new CPointerType(false, false, testType),
+                      new CPointerType(CTypeQualifiers.create(false, false), testType),
                       variableName1,
                       variableName1,
                       variableName1,
                       null)),
               new CIdExpression(
                   FileLocation.DUMMY,
-                  new CPointerType(false, false, testType),
+                  new CPointerType(CTypeQualifiers.create(false, false), testType),
                   variableName2,
                   new CVariableDeclaration(
                       FileLocation.DUMMY,
                       false,
                       CStorageClass.AUTO,
-                      new CPointerType(false, false, testType),
+                      new CPointerType(CTypeQualifiers.create(false, false), testType),
                       variableName2,
                       variableName2,
                       variableName2,
@@ -2031,7 +2032,7 @@ public class SMGCPATransferRelationTest {
   private SMGState declareArrayVariableWithSimpleTypeWithValuesOnTheHeap(
       int size, BigInteger[] values, String variableName, CType type) throws CPATransferException {
     Preconditions.checkArgument(values.length == size);
-    CType pointerType = new CPointerType(false, false, type);
+    CType pointerType = new CPointerType(CTypeQualifiers.create(false, false), type);
 
     CExpression sizeExpression =
         new CIntegerLiteralExpression(
@@ -2133,13 +2134,13 @@ public class SMGCPATransferRelationTest {
                   type,
                   new CIdExpression(
                       FileLocation.DUMMY,
-                      new CPointerType(false, false, type),
+                      new CPointerType(CTypeQualifiers.create(false, false), type),
                       variableName,
                       new CVariableDeclaration(
                           FileLocation.DUMMY,
                           false,
                           CStorageClass.AUTO,
-                          new CPointerType(false, false, type),
+                          new CPointerType(CTypeQualifiers.create(false, false), type),
                           variableName,
                           variableName,
                           variableName,
@@ -2221,7 +2222,7 @@ public class SMGCPATransferRelationTest {
    */
   private SMGState declareStructVariableWithSimpleTypeWithValuesOnTheHeap(
       BigInteger[] values, String variableName, CType type) throws CPATransferException {
-    CType pointerType = new CPointerType(false, false, type);
+    CType pointerType = new CPointerType(CTypeQualifiers.create(false, false), type);
 
     CExpression sizeExpression =
         new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, MACHINE_MODEL.getSizeof(type));
@@ -2241,7 +2242,7 @@ public class SMGCPATransferRelationTest {
             FileLocation.DUMMY,
             new CIdExpression(
                 FileLocation.DUMMY,
-                new CPointerType(false, false, pointerType),
+                new CPointerType(CTypeQualifiers.create(false, false), pointerType),
                 variableName,
                 declareVariableWithoutInitializer(variableName, pointerType, false, false)),
             makeMalloc(sizeExpression));
@@ -2423,13 +2424,21 @@ public class SMGCPATransferRelationTest {
     }
     CCompositeType realType =
         new CCompositeType(
-            false, false, complexTypeKind, typeBuilder.build(), structureName, structureName);
+            CTypeQualifiers.create(false, false),
+            complexTypeKind,
+            typeBuilder.build(),
+            structureName,
+            structureName);
     return new CElaboratedType(
-        false, false, complexTypeKind, structureName, structureName, realType);
+        CTypeQualifiers.create(false, false),
+        complexTypeKind,
+        structureName,
+        structureName,
+        realType);
   }
 
   private CType makeArrayTypeFor(CType elementType, CExpression length) {
-    return new CArrayType(false, false, elementType, length);
+    return new CArrayType(CTypeQualifiers.create(false, false), elementType, length);
   }
 
   private CType makeArrayTypeFor(CType elementType, BigInteger length) {
@@ -2438,7 +2447,7 @@ public class SMGCPATransferRelationTest {
   }
 
   private CType makePointerTypeFor(CType pointerType) {
-    return new CPointerType(false, false, pointerType);
+    return new CPointerType(CTypeQualifiers.create(false, false), pointerType);
   }
 
   private CInitializer makeCInitializerExpressionFor(CExpression expr) {
