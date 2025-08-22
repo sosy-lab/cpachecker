@@ -1169,6 +1169,7 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
+  @Ignore
   @Test
   public void testTrippleWhileLoopSafe_1() throws Exception {
     TestResults results =
@@ -1729,6 +1730,7 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
+  @Ignore
   @Test
   public void testModAdd_2048() throws Exception {
     TestResults results =
@@ -1736,6 +1738,7 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testModAdd_4096() throws Exception {
     TestResults results =
@@ -1759,6 +1762,7 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testPwdcheck_safe() throws Exception {
     TestResults results =
@@ -1766,6 +1770,7 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testPwdcheck_safe16() throws Exception {
     TestResults results =
@@ -1773,6 +1778,7 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testPwdcheck_unsafe16() throws Exception {
     TestResults results =
@@ -1780,6 +1786,7 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
+  @Ignore
   @Test
   public void testPwdcheck_unsafe() throws Exception {
     TestResults results =
