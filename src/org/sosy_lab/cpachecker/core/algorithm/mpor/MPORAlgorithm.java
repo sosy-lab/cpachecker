@@ -56,14 +56,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // TODO add shortFunctions Option (e.g. assume instead of __MPOR_SEQ__assume)
 
-  @Option(
-      secure = true,
-      description = "allow writing pointer variables? false may help memory safety tasks.")
+  @Option(secure = true, description = "allow input programs that write pointer variables?")
   private boolean allowPointerWrites = true;
 
   @Option(
       description =
-          "merge statements between __VERIFIER_atomic_begin and __VERIFIER_atomic_end via gotos?"
+          "merge statements between __VERIFIER_atomic_begin() and __VERIFIER_atomic_end() via goto?"
               + " setting this to false does not model the input programs behavior correctly.")
   private boolean atomicBlockMerge = true;
 
@@ -74,23 +72,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "prune and simplify bit vector evaluation expressions based on the previous bit vector "
-              + " assignments? true -> (should) improve verification performance")
+          "prune and simplify bit vector evaluation expressions based on perfect knowledge?")
   private boolean bitVectorEvaluationPrune = false;
 
-  @Option(
-      secure = true,
-      description =
-          "add partial order reduction (bit vectors storing global variable) in the"
-              + " sequentialization to reduce the state space?")
+  @Option(secure = true, description = "add ")
   // using optional for @Options is not allowed, unfortunately...
   private boolean bitVectorReduction = false;
 
   @Option(
       secure = true,
-      description =
-          "include comments with explaining trivia in the sequentialization? true ->"
-              + " bigger file size")
+      description = "include comments with trivia explaining the sequentialization?")
   private boolean comments = false;
 
   @Option(
@@ -98,29 +89,25 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "adds execution orders via assumptions for non-conflicting threads to reduce the state"
               + " space. it takes the previous and current thread and checks if they commute from"
-              + " the current location")
+              + " the current location.")
   private boolean conflictReduction = false;
 
   @Option(
       description =
-          "make labels for thread statements consecutive? i.e. 0 to n - 1 where n is the"
-              + " number of statements. disabling may result in first statements being "
-              + " unreachable.")
+          "make labels for thread statements consecutive? i.e. 0 to n - 1 where n is the number of"
+              + " statements. disabling may result in first statement being unreachable.")
   private boolean consecutiveLabels = true;
 
   @Option(
       secure = true,
       description =
-          "defines the syntax in which the next statement of a thread simulation is chosen."
-              + " may slow down or improve performance, depending on the verifier.")
+          "defines the syntax in which the next statement of a thread simulation is chosen.")
   private MultiControlStatementEncoding controlEncodingStatement =
       MultiControlStatementEncoding.SWITCH_CASE;
 
   @Option(
       secure = true,
-      description =
-          "defines the syntax in which the next thread executing a statement is chosen."
-              + " may slow down or improve performance, depending on the verifier.")
+      description = "defines the syntax in which the next thread executing a statement is chosen.")
   private MultiControlStatementEncoding controlEncodingThread = MultiControlStatementEncoding.NONE;
 
   @Option(
@@ -133,63 +120,51 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description = "set the C formatting style preset used by clang-format, if enabled.")
   private ClangFormatStyle formatStyle = ClangFormatStyle.WEBKIT;
 
-  @Option(
-      secure = true,
-      description =
-          "include original function declarations from input file? true -> bigger file size")
+  @Option(secure = true, description = "include original function declarations from input file?")
   private boolean inputFunctionDeclarations = false;
 
   // TODO make this secure by checking if all types for all variables are included
-  @Option(
-      description = "include original type declarations from input file? true -> bigger file size")
+  @Option(description = "include original type declarations from input file?")
   private boolean inputTypeDeclarations = true;
 
   @Option(
       secure = true,
-      description =
-          "assign K only when the respective thread is active i.e. lazily?"
-              + " may slow down or improve performance, depending on the verifier.")
+      description = "assign K only when the respective thread is active i.e. lazily?")
   private boolean kAssignLazy = true;
 
   @Option(
       secure = true,
-      description =
-          "bound K to the number of statements in a thread simulation via assumptions?"
-              + " may slow down or improve performance, depending on the verifier.")
+      description = "bound K to the number of statements in a thread simulation via assumptions?")
   private boolean kBound = false;
 
   // TODO not secure, resulted in false_positive verdicts
   @Option(
       description =
-          "ignore K == 0 if the current thread is not in a conflict with any other thread?"
-              + " reduces the amount of interleavings.")
+          "ignore K == 0 if the current thread is not in conflict with any other thread to reduce"
+              + " the state space?")
   private boolean kIgnoreZeroReduction = false;
 
   @Option(
       secure = true,
-      description =
-          "include CPAchecker license header in the sequentialization? true -> bigger file size")
+      description = "include CPAchecker license header in the sequentialization?")
   private boolean license = false;
 
   @Option(
       secure = true,
-      description =
-          "add partial order reduction (linking commuting statements via goto) in the "
-              + "sequentialization to reduce the state space?")
+      description = "link commuting statements via goto to reduce the state space?")
   private boolean linkReduction = true;
 
   @Option(
       description =
-          "when the loopIterations are finite and the number of statements as the sole "
-              + " nondeterminismSource, the last loop iteration only executes the main thread.")
+          "when loopIterations > 0 (i.e. finite) and nondeterminismSource=NUM_STATEMENTS, then the"
+              + " last loop iteration only executes the main thread.")
   private boolean loopFiniteMainThreadEnd = false;
 
   @Option(
       description =
           "the number of loop iterations to perform thread simulations. use 0 for an infinite loop"
               + " (while (1)). any number other than 0 is unsound, because the entire state space"
-              + " is not searched. when finite with the number of statements as the "
-              + " nondeterminismSource, the search always ends on the main thread.")
+              + " is not searched.")
   private int loopIterations = 0;
 
   @Option(
@@ -198,11 +173,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint()?")
   private boolean nondeterminismSigned = false;
 
-  @Option(
-      secure = true,
-      description =
-          "the source(s) of nondeterminism in the sequentialization. may slow down or improve"
-              + " performance, depending on the verifier.")
+  @Option(secure = true, description = "the source(s) of nondeterminism in the sequentialization.")
   private NondeterminismSource nondeterminismSource = NondeterminismSource.NUM_STATEMENTS;
 
   @Option(
@@ -216,7 +187,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "removes backward goto from loops. this option is independent from" + " noBackwardGoto.")
+          "removes backward goto from loops. this option is independent from noBackwardGoto.")
   private boolean noBackwardLoopGoto = false;
 
   @Option(
@@ -244,25 +215,23 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "how to determine if statements commute. distinguishing between global "
-              + " variable reads and writes, not just accesses, reduces the state space more but"
-              + "  may not be faster due to evaluation overhead.")
+          "how to determine if two threads commute from a location. READ_AND_WRITE reduces the"
+              + " state space more than ACCESS_ONLY, but introduces additional overhead (i.e."
+              + " number of variables, assignments, and bit vector evaluations)")
   private ReductionMode reductionMode = ReductionMode.NONE;
 
   // TODO also add option for scalar / array bit vectors
   @Option(
       secure = true,
       description =
-          "use separate int values (scalars) for tracking thread pcs instead of"
-              + " int arrays? may slow down or improve verification depending on the verifier and"
-              + " input program")
+          "use separate int values (scalars) for tracking thread pcs instead of int arrays?")
   private boolean scalarPc = true;
 
   @Option(
       secure = true,
       description =
-          "include additional reach_error marking sequentialization locations only reachable when"
-              + " transformation is erroneous?")
+          "include additional reach_error marking sequentialization locations that are only"
+              + " reachable when transformation is faulty?")
   private boolean sequentializationErrors = false;
 
   @Option(secure = true, description = "use shortened variable names, e.g. THREAD0 -> T0")
@@ -270,14 +239,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       description =
-          "test if CPAchecker can parse sequentialization? true -> less efficient, but more"
-              + " correctness guarantees")
+          "test if CPAchecker can parse sequentialization? note that it may take several seconds"
+              + " to parse a program")
   private boolean validateParse = true;
 
   @Option(
       description =
-          "test if all label pc (except 0) are target pc and all target pc (except -1) are label pc"
-              + " within a thread switch? true -> less efficient, but more correctness guarantees")
+          "test if all label pc (except initial) are target pc and all target pc (except "
+              + " termination) are label pc within a thread simulation?")
   private boolean validatePc = true;
 
   private final MPOROptions options;

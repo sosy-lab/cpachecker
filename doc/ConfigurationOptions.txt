@@ -258,47 +258,45 @@ analysis.algorithm.MPI = false
 # use MPOR algorithm for sequentializing a parallel C program
 analysis.algorithm.MPOR = false
 
-# allow writing pointer variables? false may help memory safety tasks.
+# allow input programs that write pointer variables?
 analysis.algorithm.MPOR.allowPointerWrites = true
 
-# merge statements between __VERIFIER_atomic_begin and __VERIFIER_atomic_end
-# via gotos? setting this to false does not model the input programs behavior
-# correctly.
+# merge statements between __VERIFIER_atomic_begin() and
+# __VERIFIER_atomic_end() via goto? setting this to false does not model the
+# input programs behavior correctly.
 analysis.algorithm.MPOR.atomicBlockMerge = true
 
 # the encoding of the partial order reduction bit vectors.
 analysis.algorithm.MPOR.bitVectorEncoding = NONE
   enum:     [NONE, BINARY, DECIMAL, HEXADECIMAL, SPARSE]
 
-# prune and simplify bit vector evaluation expressions based on the previous
-# bit vector  assignments? true -> (should) improve verification performance
+# prune and simplify bit vector evaluation expressions based on perfect
+# knowledge?
 analysis.algorithm.MPOR.bitVectorEvaluationPrune = false
 
-# add partial order reduction (bit vectors storing global variable) in the
-# sequentialization to reduce the state space?
+# add 
 analysis.algorithm.MPOR.bitVectorReduction = false
 
-# include comments with explaining trivia in the sequentialization? true ->
-# bigger file size
+# include comments with trivia explaining the sequentialization?
 analysis.algorithm.MPOR.comments = false
 
 # adds execution orders via assumptions for non-conflicting threads to reduce
 # the state space. it takes the previous and current thread and checks if
-# they commute from the current location
+# they commute from the current location.
 analysis.algorithm.MPOR.conflictReduction = false
 
 # make labels for thread statements consecutive? i.e. 0 to n - 1 where n is
-# the number of statements. disabling may result in first statements being 
+# the number of statements. disabling may result in first statement being
 # unreachable.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
 # defines the syntax in which the next statement of a thread simulation is
-# chosen. may slow down or improve performance, depending on the verifier.
+# chosen.
 analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
   enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
 # defines the syntax in which the next thread executing a statement is
-# chosen. may slow down or improve performance, depending on the verifier.
+# chosen.
 analysis.algorithm.MPOR.controlEncodingThread = NONE
   enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
@@ -309,44 +307,36 @@ analysis.algorithm.MPOR.formatCode = true
 analysis.algorithm.MPOR.formatStyle = WEBKIT
   enum:     [CHROMIUM, GNU, GOOGLE, LLVM, MICROSOFT, MOZILLA, WEBKIT]
 
-# include original function declarations from input file? true -> bigger file
-# size
+# include original function declarations from input file?
 analysis.algorithm.MPOR.inputFunctionDeclarations = false
 
-# include original type declarations from input file? true -> bigger file
-# size
+# include original type declarations from input file?
 analysis.algorithm.MPOR.inputTypeDeclarations = true
 
-# assign K only when the respective thread is active i.e. lazily? may slow
-# down or improve performance, depending on the verifier.
+# assign K only when the respective thread is active i.e. lazily?
 analysis.algorithm.MPOR.kAssignLazy = true
 
 # bound K to the number of statements in a thread simulation via assumptions?
-# may slow down or improve performance, depending on the verifier.
 analysis.algorithm.MPOR.kBound = false
 
-# ignore K == 0 if the current thread is not in a conflict with any other
-# thread? reduces the amount of interleavings.
+# ignore K == 0 if the current thread is not in conflict with any other
+# thread to reduce the state space?
 analysis.algorithm.MPOR.kIgnoreZeroReduction = false
 
-# include CPAchecker license header in the sequentialization? true -> bigger
-# file size
+# include CPAchecker license header in the sequentialization?
 analysis.algorithm.MPOR.license = false
 
-# add partial order reduction (linking commuting statements via goto) in the
-# sequentialization to reduce the state space?
+# link commuting statements via goto to reduce the state space?
 analysis.algorithm.MPOR.linkReduction = true
 
-# when the loopIterations are finite and the number of statements as the sole
-#  nondeterminismSource, the last loop iteration only executes the main
-# thread.
+# when loopIterations > 0 (i.e. finite) and
+# nondeterminismSource=NUM_STATEMENTS, then the last loop iteration only
+# executes the main thread.
 analysis.algorithm.MPOR.loopFiniteMainThreadEnd = false
 
 # the number of loop iterations to perform thread simulations. use 0 for an
 # infinite loop (while (1)). any number other than 0 is unsound, because the
-# entire state space is not searched. when finite with the number of
-# statements as the  nondeterminismSource, the search always ends on the main
-# thread.
+# entire state space is not searched.
 analysis.algorithm.MPOR.loopIterations = 0
 
 # removes backward goto, i.e. jumping to a line higher up in the program, by
@@ -362,8 +352,7 @@ analysis.algorithm.MPOR.noBackwardLoopGoto = false
 # __VERIFIER_nondet_uint()?
 analysis.algorithm.MPOR.nondeterminismSigned = false
 
-# the source(s) of nondeterminism in the sequentialization. may slow down or
-# improve performance, depending on the verifier.
+# the source(s) of nondeterminism in the sequentialization.
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
@@ -381,31 +370,30 @@ analysis.algorithm.MPOR.overwriteFiles = true
 # prune empty statements (with only pc writes) from the sequentialization?
 analysis.algorithm.MPOR.pruneEmptyStatements = true
 
-# how to determine if statements commute. distinguishing between global 
-# variable reads and writes, not just accesses, reduces the state space more
-# but  may not be faster due to evaluation overhead.
+# how to determine if two threads commute from a location. READ_AND_WRITE
+# reduces the state space more than ACCESS_ONLY, but introduces additional
+# overhead (i.e. number of variables, assignments, and bit vector
+# evaluations)
 analysis.algorithm.MPOR.reductionMode = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
 # use separate int values (scalars) for tracking thread pcs instead of int
-# arrays? may slow down or improve verification depending on the verifier and
-# input program
+# arrays?
 analysis.algorithm.MPOR.scalarPc = true
 
-# include additional reach_error marking sequentialization locations only
-# reachable when transformation is erroneous?
+# include additional reach_error marking sequentialization locations that are
+# only reachable when transformation is faulty?
 analysis.algorithm.MPOR.sequentializationErrors = false
 
 # use shortened variable names, e.g. THREAD0 -> T0
 analysis.algorithm.MPOR.shortVariableNames = true
 
-# test if CPAchecker can parse sequentialization? true -> less efficient, but
-# more correctness guarantees
+# test if CPAchecker can parse sequentialization? note that it may take
+# several seconds to parse a program
 analysis.algorithm.MPOR.validateParse = true
 
-# test if all label pc (except 0) are target pc and all target pc (except -1)
-# are label pc within a thread switch? true -> less efficient, but more
-# correctness guarantees
+# test if all label pc (except initial) are target pc and all target pc
+# (except  termination) are label pc within a thread simulation?
 analysis.algorithm.MPOR.validatePc = true
 
 # use MPV algorithm for checking multiple properties

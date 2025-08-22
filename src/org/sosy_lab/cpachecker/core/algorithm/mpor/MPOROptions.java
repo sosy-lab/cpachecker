@@ -95,7 +95,6 @@ public class MPOROptions {
   public final boolean sequentializationErrors;
 
   public final boolean shortVariableNames;
-  ;
 
   public final boolean validateParse;
 
