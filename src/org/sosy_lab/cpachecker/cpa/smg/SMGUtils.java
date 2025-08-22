@@ -88,7 +88,7 @@ public final class SMGUtils {
     private final MachineModel model;
     private static final CType UNKNOWN =
         new CSimpleType(
-            CTypeQualifiers.create(false, false),
+            CTypeQualifiers.NONE,
             CBasicType.UNSPECIFIED,
             false,
             false,

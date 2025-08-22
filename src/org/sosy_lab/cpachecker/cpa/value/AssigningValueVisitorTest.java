@@ -268,9 +268,7 @@ public class AssigningValueVisitorTest {
     // same canoncial type
     assertThat(
             visitor.invertCast(
-                new CTypedefType(CTypeQualifiers.create(false, false), "myInt", signedInt),
-                signedInt,
-                val1))
+                new CTypedefType(CTypeQualifiers.NONE, "myInt", signedInt), signedInt, val1))
         .isEqualTo(val1);
 
     // not both CSimple Types

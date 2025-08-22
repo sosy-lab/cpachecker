@@ -1329,15 +1329,7 @@ public class SMGCPAExpressionEvaluator {
     if (pMachineModel.getSizeof(canonicalType).intValueExact()
         >= pMachineModel.getSizeof(CNumericTypes.LONG_LONG_INT)) {
       return new CSimpleType(
-          CTypeQualifiers.create(false, false),
-          CBasicType.INT128,
-          false,
-          false,
-          true,
-          false,
-          false,
-          false,
-          false);
+          CTypeQualifiers.NONE, CBasicType.INT128, false, false, true, false, false, false, false);
     }
 
     return CNumericTypes.LONG_LONG_INT;
@@ -1371,7 +1363,7 @@ public class SMGCPAExpressionEvaluator {
     if (sizeOfMemoryAddressTypeInBits <= (sizeOfLongLongInt + 3)) {
       CType longDongInt =
           new CSimpleType(
-              CTypeQualifiers.create(false, false),
+              CTypeQualifiers.NONE,
               CBasicType.INT128,
               false,
               false,

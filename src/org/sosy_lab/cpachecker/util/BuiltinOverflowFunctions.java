@@ -170,7 +170,7 @@ public class BuiltinOverflowFunctions {
       return ImmutableList.of(
           type.orElseThrow(),
           type.orElseThrow(),
-          new CPointerType(CTypeQualifiers.create(false, false), type.orElseThrow()));
+          new CPointerType(CTypeQualifiers.NONE, type.orElseThrow()));
     } else {
       return ImmutableList.of();
     }

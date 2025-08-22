@@ -34,18 +34,10 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
 
     CCompositeType dummystruct =
         new CCompositeType(
-            CTypeQualifiers.create(false, false),
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(),
-            "dummy",
-            "dummy");
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, ImmutableList.of(), "dummy", "dummy");
     CCompositeType dummyunion =
         new CCompositeType(
-            CTypeQualifiers.create(false, false),
-            ComplexTypeKind.UNION,
-            ImmutableList.of(),
-            "dummy",
-            "dummy");
+            CTypeQualifiers.NONE, ComplexTypeKind.UNION, ImmutableList.of(), "dummy", "dummy");
     setDefault(CCompositeType.class, dummystruct);
 
     setDistinctValues(CCompositeType.class, dummystruct, dummyunion);

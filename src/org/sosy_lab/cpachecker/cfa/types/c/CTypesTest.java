@@ -68,36 +68,30 @@ public class CTypesTest {
               new CInitializerExpression(FileLocation.DUMMY, TWO)));
 
   private static final CArrayType CONSTANT_ARRAY =
-      new CArrayType(CTypeQualifiers.create(false, false), CNumericTypes.INT, TWO);
+      new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, TWO);
   private static final CArrayType VARIABLE_ARRAY =
-      new CArrayType(CTypeQualifiers.create(false, false), CNumericTypes.INT, VAR_N);
+      new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, VAR_N);
   private static final CArrayType UNKNOWN_ARRAY =
-      new CArrayType(CTypeQualifiers.create(false, false), CNumericTypes.INT);
+      new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT);
 
   @Parameters(name = "{0}")
   public static List<Object[]> parameters() {
 
     CCompositeType simpleStruct =
         new CCompositeType(
-            CTypeQualifiers.create(false, false),
-            ComplexTypeKind.STRUCT,
-            "simpleStruct",
-            "simpleStruct");
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "simpleStruct", "simpleStruct");
     simpleStruct.setMembers(
         ImmutableList.of(new CCompositeTypeMemberDeclaration(CNumericTypes.INT, "i")));
 
     CCompositeType arrayStruct =
         new CCompositeType(
-            CTypeQualifiers.create(false, false),
-            ComplexTypeKind.STRUCT,
-            "arrayStruct",
-            "arrayStruct");
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "arrayStruct", "arrayStruct");
     arrayStruct.setMembers(
         ImmutableList.of(new CCompositeTypeMemberDeclaration(CONSTANT_ARRAY, "a")));
 
     CCompositeType flexibleArrayStruct =
         new CCompositeType(
-            CTypeQualifiers.create(false, false),
+            CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
             "flexibleArrayStruct",
             "flexibleArrayStruct");
@@ -108,7 +102,7 @@ public class CTypesTest {
 
     CCompositeType variableArrayStruct =
         new CCompositeType(
-            CTypeQualifiers.create(false, false),
+            CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
             "variableArrayStruct",
             "variableArrayStruct");
@@ -122,42 +116,28 @@ public class CTypesTest {
         new Object[] {UNKNOWN_ARRAY, false, false, -1},
         new Object[] {VARIABLE_ARRAY, true, false, -1},
         new Object[] {
-          new CArrayType(CTypeQualifiers.create(false, false), CNumericTypes.INT, VAR_CONST),
-          true,
-          false,
-          -1,
+          new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, VAR_CONST), true, false, -1,
         },
         new Object[] {
-          new CArrayType(CTypeQualifiers.create(false, false), CONSTANT_ARRAY, TWO),
-          true,
-          true,
-          2 * 8,
+          new CArrayType(CTypeQualifiers.NONE, CONSTANT_ARRAY, TWO), true, true, 2 * 8,
         },
         new Object[] {
-          new CArrayType(CTypeQualifiers.create(false, false), CONSTANT_ARRAY), false, false, -1,
+          new CArrayType(CTypeQualifiers.NONE, CONSTANT_ARRAY), false, false, -1,
         },
         new Object[] {
-          new CArrayType(CTypeQualifiers.create(false, false), CONSTANT_ARRAY, VAR_N),
-          true,
-          false,
-          -1,
+          new CArrayType(CTypeQualifiers.NONE, CONSTANT_ARRAY, VAR_N), true, false, -1,
         },
         new Object[] {
-          new CArrayType(CTypeQualifiers.create(false, false), VARIABLE_ARRAY, TWO),
-          true,
-          false,
-          -1,
+          new CArrayType(CTypeQualifiers.NONE, VARIABLE_ARRAY, TWO), true, false, -1,
         },
         new Object[] {
-          new CElaboratedType(
-              CTypeQualifiers.create(false, false), ComplexTypeKind.ENUM, "e", "e", null),
+          new CElaboratedType(CTypeQualifiers.NONE, ComplexTypeKind.ENUM, "e", "e", null),
           true,
           true,
           4,
         },
         new Object[] {
-          new CElaboratedType(
-              CTypeQualifiers.create(false, false), ComplexTypeKind.STRUCT, "s", "s", null),
+          new CElaboratedType(CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "s", "s", null),
           false,
           false,
           -1,

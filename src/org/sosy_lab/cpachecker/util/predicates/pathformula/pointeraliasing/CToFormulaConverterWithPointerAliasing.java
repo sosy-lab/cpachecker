@@ -425,9 +425,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     CType type = typeHandler.getSimplifiedType(declaration);
     CType decayedType = typeHandler.getSimplifiedType(originalDeclaration);
     if (originalDeclaration instanceof CParameterDeclaration && decayedType instanceof CArrayType) {
-      decayedType =
-          new CPointerType(
-              CTypeQualifiers.create(false, false), ((CArrayType) decayedType).getType());
+      decayedType = new CPointerType(CTypeQualifiers.NONE, ((CArrayType) decayedType).getType());
     }
     Formula size;
     if (decayedType.isIncomplete()) {
@@ -565,8 +563,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         } else if (lhsType instanceof CPointerType cPointerType) {
           // TODO someone has to check if length must be fixed to string size here if yes replace
           // with stringExp.tranformTypeToArrayType
-          lhsArrayType =
-              new CArrayType(CTypeQualifiers.create(false, false), cPointerType.getType());
+          lhsArrayType = new CArrayType(CTypeQualifiers.NONE, cPointerType.getType());
         } else {
           throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }

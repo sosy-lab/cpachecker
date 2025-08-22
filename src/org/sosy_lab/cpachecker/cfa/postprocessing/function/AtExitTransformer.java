@@ -174,7 +174,7 @@ public class AtExitTransformer {
         // Add an edge to declare a tmp variable for the __CPACHECKER_atexit_next() call later
         CFANode n1 = mkNode(scope);
         CType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
-        CType fpointerType = new CPointerType(CTypeQualifiers.create(false, false), functionType);
+        CType fpointerType = new CPointerType(CTypeQualifiers.NONE, functionType);
         String var = mkTmpVariable();
         CVariableDeclaration declVar =
             new CVariableDeclaration(

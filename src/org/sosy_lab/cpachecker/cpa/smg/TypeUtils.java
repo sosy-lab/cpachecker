@@ -31,8 +31,7 @@ public final class TypeUtils {
               FileLocation.DUMMY,
               CNumericTypes.UNSIGNED_LONG_INT,
               BigInteger.valueOf(pSizeInBits / 8));
-      return new CArrayType(
-          CTypeQualifiers.create(false, false), CNumericTypes.SIGNED_CHAR, arrayLen);
+      return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.SIGNED_CHAR, arrayLen);
     } else {
       CSimpleType fieldType = CNumericTypes.SIGNED_CHAR;
       return new CBitFieldType(fieldType, pSizeInBits);

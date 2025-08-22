@@ -307,7 +307,7 @@ public final class CTypes {
       CExpression sizeExpression = ((CArrayType) pType).getLength();
 
       if (sizeExpression == null) {
-        pType = new CPointerType(CTypeQualifiers.create(false, false), innerType);
+        pType = new CPointerType(CTypeQualifiers.NONE, innerType);
       } else {
         // Adjusting an array type to a pointer of its stored
         // type discards the qualifiers of the array type and

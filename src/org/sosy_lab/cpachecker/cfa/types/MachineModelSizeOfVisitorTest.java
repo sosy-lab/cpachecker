@@ -65,11 +65,7 @@ public class MachineModelSizeOfVisitorTest {
   // struct s { unsigned int a : 12; unsigned int b : 10; int c; };
   private static final CCompositeType STRUCT_1 =
       new CCompositeType(
-          CTypeQualifiers.create(false, false),
-          ComplexTypeKind.STRUCT,
-          FIELDS,
-          TEST_STRUCT,
-          TEST_STRUCT);
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_2 =
       ImmutableList.of(
@@ -86,11 +82,7 @@ public class MachineModelSizeOfVisitorTest {
   // struct s { char a : 4; char b : 4; unsigned int c : 12; unsigned int d : 10; int e; };
   private static final CCompositeType STRUCT_2 =
       new CCompositeType(
-          CTypeQualifiers.create(false, false),
-          ComplexTypeKind.STRUCT,
-          FIELDS_2,
-          TEST_STRUCT,
-          TEST_STRUCT);
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_2, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_3 =
       ImmutableList.of(
@@ -107,11 +99,7 @@ public class MachineModelSizeOfVisitorTest {
   // struct s { char a : 4; char b : 5; unsigned int c : 12; unsigned int d : 10; int e; };
   private static final CCompositeType STRUCT_3 =
       new CCompositeType(
-          CTypeQualifiers.create(false, false),
-          ComplexTypeKind.STRUCT,
-          FIELDS_3,
-          TEST_STRUCT,
-          TEST_STRUCT);
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_3, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_4 =
       ImmutableList.of(
@@ -121,19 +109,14 @@ public class MachineModelSizeOfVisitorTest {
   // struct s { long long a : 8; };
   private static final CCompositeType STRUCT_4 =
       new CCompositeType(
-          CTypeQualifiers.create(false, false),
-          ComplexTypeKind.STRUCT,
-          FIELDS_4,
-          TEST_STRUCT,
-          TEST_STRUCT);
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_4, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_5 =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR),
           new CCompositeTypeMemberDeclaration(CNumericTypes.LONG_LONG_INT, LONGLONG),
           new CCompositeTypeMemberDeclaration(
-              new CPointerType(CTypeQualifiers.create(false, false), CNumericTypes.INT),
-              INT_POINTER),
+              new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT), INT_POINTER),
           new CCompositeTypeMemberDeclaration(
               new CBitFieldType(CNumericTypes.CHAR, 5), CHAR_BITFIELD_5),
           new CCompositeTypeMemberDeclaration(
@@ -150,11 +133,7 @@ public class MachineModelSizeOfVisitorTest {
   // int h : 2; void* i; };
   private static final CCompositeType STRUCT_5 =
       new CCompositeType(
-          CTypeQualifiers.create(false, false),
-          ComplexTypeKind.STRUCT,
-          FIELDS_5,
-          TEST_STRUCT,
-          TEST_STRUCT);
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_5, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_6 =
       ImmutableList.of(
@@ -167,11 +146,7 @@ public class MachineModelSizeOfVisitorTest {
   //  struct s { int a; long b : 15; long : 0; };
   private static final CCompositeType STRUCT_6 =
       new CCompositeType(
-          CTypeQualifiers.create(false, false),
-          ComplexTypeKind.STRUCT,
-          FIELDS_6,
-          TEST_STRUCT,
-          TEST_STRUCT);
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_6, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_7 =
       ImmutableList.of(
@@ -185,11 +160,7 @@ public class MachineModelSizeOfVisitorTest {
   // struct s { int a; long b : 15; long c : 18; char d; };
   private static final CCompositeType STRUCT_7 =
       new CCompositeType(
-          CTypeQualifiers.create(false, false),
-          ComplexTypeKind.STRUCT,
-          FIELDS_7,
-          TEST_STRUCT,
-          TEST_STRUCT);
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_7, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_8 =
       ImmutableList.of(
@@ -203,11 +174,7 @@ public class MachineModelSizeOfVisitorTest {
   // struct s { int a; long b : 15; long c : 9; char d; };
   private static final CCompositeType STRUCT_8 =
       new CCompositeType(
-          CTypeQualifiers.create(false, false),
-          ComplexTypeKind.STRUCT,
-          FIELDS_8,
-          TEST_STRUCT,
-          TEST_STRUCT);
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_8, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_9 =
       ImmutableList.of(
@@ -221,11 +188,7 @@ public class MachineModelSizeOfVisitorTest {
   // struct s { int a; long b : 15; long : 0; char d; };
   private static final CCompositeType STRUCT_9 =
       new CCompositeType(
-          CTypeQualifiers.create(false, false),
-          ComplexTypeKind.STRUCT,
-          FIELDS_9,
-          TEST_STRUCT,
-          TEST_STRUCT);
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_9, TEST_STRUCT, TEST_STRUCT);
 
   @Parameters(name = "{3}: {1}")
   public static Object[][] machineModels() {

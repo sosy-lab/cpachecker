@@ -609,7 +609,7 @@ public class CBinaryExpressionBuilder {
 
     if (t1.hasSignedSpecifier()) {
       return new CSimpleType(
-          CTypeQualifiers.create(false, false),
+          CTypeQualifiers.NONE,
           INT,
           t1.hasLongSpecifier(),
           false,
@@ -622,7 +622,7 @@ public class CBinaryExpressionBuilder {
 
     if (t2.hasSignedSpecifier()) {
       return new CSimpleType(
-          CTypeQualifiers.create(false, false),
+          CTypeQualifiers.NONE,
           INT,
           t2.hasLongSpecifier(),
           false,

@@ -36,7 +36,7 @@ public class BuiltinFunctions {
 
   private static final CType UNSPECIFIED_TYPE =
       new CSimpleType(
-          CTypeQualifiers.create(false, false),
+          CTypeQualifiers.NONE,
           CBasicType.UNSPECIFIED,
           false,
           false,
@@ -124,15 +124,7 @@ public class BuiltinFunctions {
 
     if (isPopcountFunction(pFunctionName)) {
       return new CSimpleType(
-          CTypeQualifiers.create(false, false),
-          CBasicType.INT,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false);
+          CTypeQualifiers.NONE, CBasicType.INT, false, false, false, false, false, false, false);
     }
 
     return UNSPECIFIED_TYPE;

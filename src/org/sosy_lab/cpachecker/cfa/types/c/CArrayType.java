@@ -185,7 +185,7 @@ public final class CArrayType extends AArrayType implements CType {
     // on an array type always refer to the element type, not the array type.
     // So we push these modifiers down to the element type here.
     return new CArrayType(
-        CTypeQualifiers.create(false, false),
+        CTypeQualifiers.NONE,
         getType().getCanonicalType(isConst() || pForceConst, isVolatile() || pForceVolatile),
         length);
   }

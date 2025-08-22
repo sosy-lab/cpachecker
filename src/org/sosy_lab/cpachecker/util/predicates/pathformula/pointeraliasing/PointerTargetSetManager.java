@@ -76,7 +76,7 @@ class PointerTargetSetManager {
   static CType getFakeBaseType(long size) {
     return checkIsSimplified(
         new CArrayType(
-            CTypeQualifiers.create(false, false),
+            CTypeQualifiers.NONE,
             CVoidType.VOID,
             new CIntegerLiteralExpression(
                 FileLocation.DUMMY, CNumericTypes.SIGNED_CHAR, BigInteger.valueOf(size))));
@@ -506,7 +506,7 @@ class PointerTargetSetManager {
                   .join(
                       Iterables.transform(members, m -> m.getType().toString().replace(" ", "_")));
       return new CCompositeType(
-          CTypeQualifiers.create(false, false), ComplexTypeKind.UNION, members, varName, varName);
+          CTypeQualifiers.NONE, ComplexTypeKind.UNION, members, varName, varName);
     }
 
     /**

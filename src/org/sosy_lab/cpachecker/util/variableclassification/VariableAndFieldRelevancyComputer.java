@@ -441,7 +441,7 @@ final class VariableAndFieldRelevancyComputer {
     // Currently, we don't pay attention to possible const and volatile modifiers
     if (compositeType.isConst() || compositeType.isVolatile()) {
       return new CCompositeType(
-          CTypeQualifiers.create(false, false),
+          CTypeQualifiers.NONE,
           compositeType.getKind(),
           compositeType.getMembers(),
           compositeType.getName(),

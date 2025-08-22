@@ -1602,7 +1602,7 @@ class CFABuilder {
   }
 
   private CType getPointerOfType(final CType type) {
-    return new CPointerType(CTypeQualifiers.create(false, false), type);
+    return new CPointerType(CTypeQualifiers.NONE, type);
   }
 
   private CExpression getReference(FileLocation fileLocation, CExpression expr) {

@@ -164,7 +164,7 @@ public abstract class EdgeReplacer {
       CUnaryExpression amper =
           new CUnaryExpression(
               nameExp.getFileLocation(),
-              new CPointerType(CTypeQualifiers.create(false, false), func.getExpressionType()),
+              new CPointerType(CTypeQualifiers.NONE, func.getExpressionType()),
               func,
               CUnaryExpression.UnaryOperator.AMPER);
       CFANode retNode = newCFANode(start.getFunction());

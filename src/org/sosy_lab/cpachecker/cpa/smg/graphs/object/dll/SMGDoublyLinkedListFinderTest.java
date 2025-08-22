@@ -36,7 +36,7 @@ public class SMGDoublyLinkedListFinderTest {
 
   private CSimpleType intType = CNumericTypes.SIGNED_INT;
   private final MachineModel MM = MachineModel.LINUX32;
-  private CType pointerType = new CPointerType(CTypeQualifiers.create(false, false), intType);
+  private CType pointerType = new CPointerType(CTypeQualifiers.NONE, intType);
   private final BigInteger ptrSize = MM.getSizeofInBits(pointerType);
 
   private CLangSMG smg1;

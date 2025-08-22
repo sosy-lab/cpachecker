@@ -18,11 +18,11 @@ public final class CPointerType implements CType {
 
   @Serial private static final long serialVersionUID = -6423006826454509009L;
   public static final CPointerType POINTER_TO_VOID =
-      new CPointerType(CTypeQualifiers.create(false, false), CVoidType.VOID);
+      new CPointerType(CTypeQualifiers.NONE, CVoidType.VOID);
   public static final CPointerType POINTER_TO_CHAR =
-      new CPointerType(CTypeQualifiers.create(false, false), CNumericTypes.CHAR);
+      new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR);
   public static final CPointerType POINTER_TO_CONST_CHAR =
-      new CPointerType(CTypeQualifiers.create(false, false), CNumericTypes.CHAR.withConst());
+      new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR.withConst());
 
   private final CType type;
   private final CTypeQualifiers qualifiers;

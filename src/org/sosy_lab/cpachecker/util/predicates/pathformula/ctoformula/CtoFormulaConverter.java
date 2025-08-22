@@ -820,7 +820,7 @@ public class CtoFormulaConverter {
 
     if (fromType instanceof CFunctionType) {
       // references to functions can be seen as function pointers
-      fromType = new CPointerType(CTypeQualifiers.create(false, false), fromType);
+      fromType = new CPointerType(CTypeQualifiers.NONE, fromType);
     }
 
     // This results in a signed type for pointers, which is what we need because GCC does sign

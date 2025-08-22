@@ -103,8 +103,7 @@ public final class PredefinedTypes {
         CPointerType.POINTER_TO_VOID,
         ImmutableList.of(
             Predicate.isEqual(CPointerType.POINTER_TO_VOID),
-            Predicate.isEqual(
-                new CPointerType(CTypeQualifiers.create(false, false), CVoidType.CONST_VOID)),
+            Predicate.isEqual(new CPointerType(CTypeQualifiers.NONE, CVoidType.CONST_VOID)),
             PredefinedTypes::isIntegerType));
   }
 
@@ -146,8 +145,7 @@ public final class PredefinedTypes {
         CNumericTypes.INT,
         Collections.singletonList(
             Predicate.isEqual(
-                new CPointerType(
-                    CTypeQualifiers.create(false, false), CNumericTypes.CHAR.withConst()))));
+                new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR.withConst()))));
   }
 
   private static boolean isSwprintf(@Nullable AFunctionDeclaration pDeclaration) {

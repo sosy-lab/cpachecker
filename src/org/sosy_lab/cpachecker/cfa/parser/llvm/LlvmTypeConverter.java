@@ -133,7 +133,7 @@ class LlvmTypeConverter {
 
     if (typeCache.containsKey(pStructType.hashCode())) {
       return new CElaboratedType(
-          CTypeQualifiers.create(false, false),
+          CTypeQualifiers.NONE,
           ComplexTypeKind.STRUCT,
           structName,
           origName,

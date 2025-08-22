@@ -634,7 +634,7 @@ public class AssumptionToEdgeAllocator {
     inner =
         new CCastExpression(
             pDereference.getFileLocation(),
-            new CPointerType(CTypeQualifiers.create(false, false), pTargetType),
+            new CPointerType(CTypeQualifiers.NONE, pTargetType),
             inner);
     return new CPointerExpression(pDereference.getFileLocation(), pTargetType, inner);
   }
@@ -653,7 +653,7 @@ public class AssumptionToEdgeAllocator {
       CUnaryExpression unaryExpression =
           new CUnaryExpression(
               pLValue.getFileLocation(),
-              new CPointerType(CTypeQualifiers.create(false, false), type),
+              new CPointerType(CTypeQualifiers.NONE, type),
               pLValue,
               CUnaryExpression.UnaryOperator.AMPER);
       return unaryExpression;

@@ -815,7 +815,7 @@ class ASTConverter {
               ((CArrayType) type).getType());
     } else if (type instanceof CFunctionType) {
       // Happens if function pointers are used in ternary expressions, for example.
-      type = new CPointerType(CTypeQualifiers.create(false, false), type);
+      type = new CPointerType(CTypeQualifiers.NONE, type);
     }
 
     CVariableDeclaration decl =
@@ -1555,7 +1555,7 @@ class ASTConverter {
 
         CType type = typeConverter.convert(e.getExpressionType());
         if (containsProblemType(type)) {
-          type = new CPointerType(CTypeQualifiers.create(true, false), operandType);
+          type = new CPointerType(CTypeQualifiers.CONST, operandType);
         }
 
         // if none of the special cases before fits the default unaryExpression is created
@@ -2964,7 +2964,7 @@ class ASTConverter {
 
     CType type = declarator.type();
     if (type instanceof CFunctionTypeWithNames functionType) {
-      type = new CPointerType(CTypeQualifiers.create(false, false), functionType);
+      type = new CPointerType(CTypeQualifiers.NONE, functionType);
     }
 
     return new CParameterDeclaration(getLocation(p), type, declarator.name());

@@ -115,19 +115,14 @@ class ASTTypeConverter {
         // Replace it with a CElaboratedType.
         if (oldType != null) {
           yield new CElaboratedType(
-              CTypeQualifiers.create(false, false),
-              kind,
-              oldType.getName(),
-              oldType.getOrigName(),
-              oldType);
+              CTypeQualifiers.NONE, kind, oldType.getName(), oldType.getOrigName(), oldType);
         }
         // empty linkedList for the Fields of the struct, they are created afterward
         // with the right references in case of pointers to a struct of the same type
         // otherwise they would not point to the correct struct
         // TODO: volatile and const cannot be checked here until no, so both is set
         //       to false
-        CCompositeType compType =
-            new CCompositeType(CTypeQualifiers.create(false, false), kind, name, name);
+        CCompositeType compType = new CCompositeType(CTypeQualifiers.NONE, kind, name, name);
         // We need to cache compType before converting the type of its fields!
         // Otherwise, we run into an infinite recursion if the type of one field
         // is (a pointer to) the struct itself.
@@ -136,8 +131,7 @@ class ASTTypeConverter {
         // This means that wherever the ICompositeType instance appears, it will be
         // replaced by a CElaboratedType.
         CElaboratedType elaborateType =
-            new CElaboratedType(
-                CTypeQualifiers.create(false, false), kind, name, compType.getOrigName(), compType);
+            new CElaboratedType(CTypeQualifiers.NONE, kind, name, compType.getOrigName(), compType);
         parseContext.rememberCType(t, elaborateType, filePrefix);
         compType.setMembers(conv(ct.getFields()));
         yield compType;
@@ -222,7 +216,7 @@ class ASTTypeConverter {
 
       // TODO why is there no isConst() and isVolatile() here?
       return new CSimpleType(
-          CTypeQualifiers.create(false, false),
+          CTypeQualifiers.NONE,
           type,
           c.isLong(),
           c.isShort(),
@@ -250,13 +244,10 @@ class ASTTypeConverter {
 
     // We have seen this type already.
     if (oldType != null) {
-      return new CTypedefType(
-          CTypeQualifiers.create(false, false), scope.getFileSpecificTypeName(name), oldType);
+      return new CTypedefType(CTypeQualifiers.NONE, scope.getFileSpecificTypeName(name), oldType);
     } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
       return new CTypedefType(
-          CTypeQualifiers.create(false, false),
-          scope.getFileSpecificTypeName(name),
-          convert(t.getType()));
+          CTypeQualifiers.NONE, scope.getFileSpecificTypeName(name), convert(t.getType()));
     }
   }
 
@@ -318,7 +309,7 @@ class ASTTypeConverter {
       name = scope.getFileSpecificTypeName(name);
     }
     return new CElaboratedType(
-        CTypeQualifiers.create(false, false), ComplexTypeKind.ENUM, name, origName, realType);
+        CTypeQualifiers.NONE, ComplexTypeKind.ENUM, name, origName, realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
