@@ -149,25 +149,21 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "assign K only when the respective thread is active i.e. lazily?"
               + " may slow down or improve performance, depending on the verifier.")
-  private boolean kAssignLazy;
+  private boolean kAssignLazy = true;
 
   @Option(
       secure = true,
       description =
           "bound K to the number of statements in a thread simulation via assumptions?"
               + " may slow down or improve performance, depending on the verifier.")
-  private boolean kBound;
+  private boolean kBound = false;
 
+  // TODO not secure, resulted in false_positive verdicts
   @Option(
-      secure = true,
       description =
           "ignore K == 0 if the current thread is not in a conflict with any other thread?"
               + " reduces the amount of interleavings.")
-  private boolean kIgnoreZeroReduction;
-
-  // TODO kThreadSeparate
-  //  use separate k for each thread (with k sum > 0), or one for each thread (should be used when
-  //  loopIterations > 0 to prevent infinite k = 0 interleaving)
+  private boolean kIgnoreZeroReduction = false;
 
   @Option(
       secure = true,
@@ -175,9 +171,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "include CPAchecker license header in the sequentialization? true -> bigger file size")
   private boolean license = false;
 
-  // TODO POR is currently not secure because we assume pointer parameters that are assigned global
-  //  variable addresses to commute
   @Option(
+      secure = true,
       description =
           "add partial order reduction (linking commuting statements via goto) in the "
               + "sequentialization to reduce the state space?")
@@ -196,6 +191,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " is not searched. when finite with the number of statements as the "
               + " nondeterminismSource, the search always ends on the main thread.")
   private int loopIterations = 0;
+
+  @Option(
+      secure = true,
+      description =
+          "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint()?")
+  private boolean nondeterminismSigned = false;
 
   @Option(
       secure = true,
@@ -266,13 +267,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(secure = true, description = "use shortened variable names, e.g. THREAD0 -> T0")
   private boolean shortVariableNames = true;
-
-  @Option(
-      secure = true,
-      description =
-          "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint()?"
-              + " in tests, signed generally slowed down verification performance.")
-  private boolean signedNondet = false;
 
   @Option(
       description =
@@ -380,6 +374,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               linkReduction,
               loopFiniteMainThreadEnd,
               loopIterations,
+              nondeterminismSigned,
               nondeterminismSource,
               noBackwardGoto,
               noBackwardLoopGoto,
@@ -391,7 +386,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               scalarPc,
               sequentializationErrors,
               shortVariableNames,
-              signedNondet,
               validateParse,
               validatePc);
     }

@@ -72,6 +72,8 @@ public class MPOROptions {
 
   public final int loopIterations;
 
+  public final boolean nondeterminismSigned;
+
   public final NondeterminismSource nondeterminismSource;
 
   public final boolean noBackwardGoto;
@@ -93,8 +95,7 @@ public class MPOROptions {
   public final boolean sequentializationErrors;
 
   public final boolean shortVariableNames;
-
-  public final boolean signedNondet;
+  ;
 
   public final boolean validateParse;
 
@@ -122,6 +123,7 @@ public class MPOROptions {
       boolean pLinkReduction,
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
+      boolean pNondeterminismSigned,
       NondeterminismSource pNondeterminismSource,
       boolean pNoBackwardGoto,
       boolean pNoBackwardLoopGoto,
@@ -133,7 +135,6 @@ public class MPOROptions {
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariableNames,
-      boolean pSignedNondet,
       boolean pValidateParse,
       boolean pValidatePc) {
 
@@ -166,6 +167,7 @@ public class MPOROptions {
     linkReduction = pLinkReduction;
     loopFiniteMainThreadEnd = pLoopFiniteMainThreadEnd;
     loopIterations = pLoopIterations;
+    nondeterminismSigned = pNondeterminismSigned;
     nondeterminismSource = pNondeterminismSource;
     noBackwardGoto = pNoBackwardGoto;
     noBackwardLoopGoto = pNoBackwardLoopGoto;
@@ -177,7 +179,6 @@ public class MPOROptions {
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
     shortVariableNames = pShortVariableNames;
-    signedNondet = pSignedNondet;
     validateParse = pValidateParse;
     validatePc = pValidatePc;
   }
@@ -200,14 +201,14 @@ public class MPOROptions {
       boolean pLinkReduction,
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
+      boolean pNondeterminismSigned,
       NondeterminismSource pNondeterminismSource,
       boolean pNoBackwardGoto,
       boolean pNoBackwardLoopGoto,
       ReductionMode pReductionMode,
       boolean pScalarPc,
       boolean pSequentializationErrors,
-      boolean pShortVariableNames,
-      boolean pSignedNondet) {
+      boolean pShortVariableNames) {
 
     return new MPOROptions(
         pAllowPointerWrites,
@@ -235,6 +236,7 @@ public class MPOROptions {
         pLinkReduction,
         pLoopFiniteMainThreadEnd,
         pLoopIterations,
+        pNondeterminismSigned,
         pNondeterminismSource,
         pNoBackwardGoto,
         pNoBackwardLoopGoto,
@@ -247,7 +249,6 @@ public class MPOROptions {
         pScalarPc,
         pSequentializationErrors,
         pShortVariableNames,
-        pSignedNondet,
         // no parse validation in unit tests -> tests are independent of implementation
         false,
         true);

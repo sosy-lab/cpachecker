@@ -116,7 +116,7 @@ public class NondeterministicSimulationUtil {
 
     return SeqStatementBuilder.buildFunctionCallAssignmentStatement(
         pKVariable,
-        pOptions.signedNondet
+        pOptions.nondeterminismSigned
             ? VerifierNondetFunctionType.INT.getFunctionCallExpression()
             : VerifierNondetFunctionType.UINT.getFunctionCallExpression());
   }

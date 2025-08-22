@@ -298,7 +298,7 @@ public class ThreadBuilder {
       CVariableDeclaration declaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               false,
-              pOptions.signedNondet ? SeqSimpleType.INT : SeqSimpleType.UNSIGNED_INT,
+              pOptions.nondeterminismSigned ? SeqSimpleType.INT : SeqSimpleType.UNSIGNED_INT,
               variableName,
               SeqInitializer.INT_0);
       CIdExpression KVariable = SeqExpressionBuilder.buildIdExpression(declaration);

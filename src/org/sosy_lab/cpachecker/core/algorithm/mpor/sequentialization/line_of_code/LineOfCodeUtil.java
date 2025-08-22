@@ -249,7 +249,7 @@ public class LineOfCodeUtil {
 
     // next_thread
     if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
-      if (pOptions.signedNondet) {
+      if (pOptions.nondeterminismSigned) {
         rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
       } else {
         rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
@@ -281,7 +281,7 @@ public class LineOfCodeUtil {
     }
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
     rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
-    if (pOptions.signedNondet) {
+    if (pOptions.nondeterminismSigned) {
       rFunctionDeclarations.add(
           LineOfCode.of(VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString()));
     } else {

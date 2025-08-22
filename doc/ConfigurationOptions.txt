@@ -319,15 +319,15 @@ analysis.algorithm.MPOR.inputTypeDeclarations = true
 
 # assign K only when the respective thread is active i.e. lazily? may slow
 # down or improve performance, depending on the verifier.
-analysis.algorithm.MPOR.kAssignLazy = no default value
+analysis.algorithm.MPOR.kAssignLazy = true
 
 # bound K to the number of statements in a thread simulation via assumptions?
 # may slow down or improve performance, depending on the verifier.
-analysis.algorithm.MPOR.kBound = no default value
+analysis.algorithm.MPOR.kBound = false
 
 # ignore K == 0 if the current thread is not in a conflict with any other
 # thread? reduces the amount of interleavings.
-analysis.algorithm.MPOR.kIgnoreZeroReduction = no default value
+analysis.algorithm.MPOR.kIgnoreZeroReduction = false
 
 # include CPAchecker license header in the sequentialization? true -> bigger
 # file size
@@ -357,6 +357,10 @@ analysis.algorithm.MPOR.noBackwardGoto = true
 # removes backward goto from loops. this option is independent from
 # noBackwardGoto.
 analysis.algorithm.MPOR.noBackwardLoopGoto = false
+
+# use signed __VERIFIER_nondet_int() instead of unsigned
+# __VERIFIER_nondet_uint()?
+analysis.algorithm.MPOR.nondeterminismSigned = false
 
 # the source(s) of nondeterminism in the sequentialization. may slow down or
 # improve performance, depending on the verifier.
@@ -394,11 +398,6 @@ analysis.algorithm.MPOR.sequentializationErrors = false
 
 # use shortened variable names, e.g. THREAD0 -> T0
 analysis.algorithm.MPOR.shortVariableNames = true
-
-# use signed __VERIFIER_nondet_int() instead of unsigned
-# __VERIFIER_nondet_uint()? in tests, signed generally slowed down
-# verification performance.
-analysis.algorithm.MPOR.signedNondet = false
 
 # test if CPAchecker can parse sequentialization? true -> less efficient, but
 # more correctness guarantees

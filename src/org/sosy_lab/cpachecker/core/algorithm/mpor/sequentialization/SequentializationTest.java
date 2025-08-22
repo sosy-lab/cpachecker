@@ -72,14 +72,14 @@ public class SequentializationTest {
             true,
             false,
             0,
+            true,
             NondeterminismSource.NUM_STATEMENTS,
             true,
             false,
             ReductionMode.READ_AND_WRITE,
             true,
             true,
-            false,
-            true);
+            false);
     testProgram(path, options);
   }
 
@@ -107,14 +107,14 @@ public class SequentializationTest {
             true,
             true,
             42,
+            true,
             NondeterminismSource.NUM_STATEMENTS,
             false,
             true,
             ReductionMode.ACCESS_ONLY,
             true,
             false,
-            false,
-            true);
+            false);
     testProgram(path, options);
   }
 
@@ -143,14 +143,14 @@ public class SequentializationTest {
             true,
             false,
             1,
+            true,
             NondeterminismSource.NEXT_THREAD,
             true,
             false,
             ReductionMode.READ_AND_WRITE,
             false,
             false,
-            false,
-            true);
+            false);
     testProgram(path, options);
   }
 
@@ -178,11 +178,11 @@ public class SequentializationTest {
             true,
             false,
             0,
+            true,
             NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
             false,
             true,
             ReductionMode.ACCESS_ONLY,
-            true,
             true,
             true,
             true);
@@ -211,12 +211,12 @@ public class SequentializationTest {
             true,
             false,
             7,
+            true,
             NondeterminismSource.NEXT_THREAD,
             true,
             true,
             ReductionMode.ACCESS_ONLY,
             false,
-            true,
             true,
             true);
     testProgram(path, options);
@@ -246,14 +246,14 @@ public class SequentializationTest {
             true,
             false,
             0,
+            true,
             NondeterminismSource.NEXT_THREAD,
             false,
             false,
             ReductionMode.READ_AND_WRITE,
             false,
             true,
-            false,
-            true);
+            false);
     testProgram(path, options);
   }
 
@@ -280,14 +280,14 @@ public class SequentializationTest {
             false,
             false,
             Integer.MAX_VALUE,
+            true,
             NondeterminismSource.NEXT_THREAD,
             true,
             false,
             ReductionMode.NONE,
             true,
             true,
-            false,
-            true);
+            false);
     testProgram(path, options);
   }
 
@@ -316,14 +316,14 @@ public class SequentializationTest {
             true,
             false,
             0,
+            true,
             NondeterminismSource.NEXT_THREAD,
             false,
             true,
             ReductionMode.ACCESS_ONLY,
             true,
             false,
-            false,
-            true);
+            false);
     testProgram(path, options);
   }
 
@@ -350,13 +350,13 @@ public class SequentializationTest {
             true,
             false,
             9999,
+            false,
             NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
             true,
             true,
             ReductionMode.READ_AND_WRITE,
             false,
             true,
-            false,
             false);
     testProgram(path, options);
   }
@@ -385,14 +385,14 @@ public class SequentializationTest {
             true,
             false,
             16,
+            false,
             NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
             false,
             false,
             ReductionMode.NONE,
             true,
             false,
-            true,
-            false);
+            true);
     testProgram(path, options);
   }
 
@@ -418,12 +418,12 @@ public class SequentializationTest {
             true,
             false,
             32,
+            true,
             NondeterminismSource.NEXT_THREAD,
             true,
             false,
             ReductionMode.ACCESS_ONLY,
             false,
-            true,
             true,
             true);
     testProgram(path, options);

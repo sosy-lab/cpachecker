@@ -126,10 +126,11 @@ public class SeqMainFunction extends SeqFunction {
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
 
-    nextThreadAssignment = SeqStatementBuilder.buildNextThreadAssignment(pOptions.signedNondet);
+    nextThreadAssignment =
+        SeqStatementBuilder.buildNextThreadAssignment(pOptions.nondeterminismSigned);
     nextThreadAssumptions =
         SeqAssumptionBuilder.buildNextThreadAssumption(
-            pOptions.signedNondet, numThreadsVariable, binaryExpressionBuilder);
+            pOptions.nondeterminismSigned, numThreadsVariable, binaryExpressionBuilder);
     nextThreadActiveAssumption =
         SeqAssumptionBuilder.buildNextThreadActiveAssumption(options, binaryExpressionBuilder);
 
@@ -345,7 +346,7 @@ public class SeqMainFunction extends SeqFunction {
       rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.R.toASTString()));
       if (pOptions.nondeterminismSource.equals(
           NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS)) {
-        if (pOptions.signedNondet) {
+        if (pOptions.nondeterminismSigned) {
           rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.K_SIGNED.toASTString()));
         } else {
           rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.K_UNSIGNED.toASTString()));
