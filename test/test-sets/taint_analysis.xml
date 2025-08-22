@@ -8,21 +8,87 @@
 <!-- -->
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.30//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.30.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.30//EN"
+        "https://www.sosy-lab.org/benchexec/benchmark-3.30.dtd">
 <benchmark tool="cpachecker"
            displayName="Taint Analysis Benchmark Set"
-           timelimit="900 s"
-           hardtimelimit="960 s"
-           memlimit="15 GB"
+           timelimit="20 s"
+           hardtimelimit="20 s"
+           memlimit="1 GB"
            cpuCores="2">
 
-    <rundefinition>
-        <option name="--predicateAnalysis--informationFlow"/>
-        <option name="--no-output-files"/>
-        <option name="--preprocess"/>
-        <option name="--heap">2000M</option>
+    <option name="--predicateAnalysis--informationFlow"/>
+    <option name="--no-output-files"/>
+    <option name="--heap">2000M</option>
+    <!--        <option name="&#45;&#45;try&#45;&#45;less&#45;&#45;memory"/>-->
+
+    <rundefinition name="arrays">
         <tasks>
-            <includesfile>../programs/taint_analysis/taint_analysis.set</includesfile>
+            <includesfile>../programs/taint_analysis/arrays.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="cast">
+        <tasks>
+            <includesfile>../programs/taint_analysis/cast.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="control_flow_structures">
+        <tasks>
+            <includesfile>../programs/taint_analysis/control_flow_structures.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="function_calls">
+        <tasks>
+            <includesfile>../programs/taint_analysis/function_calls.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="general_functionality">
+        <tasks>
+            <includesfile>../programs/taint_analysis/general_functionality.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="pointers">
+        <tasks>
+            <includesfile>../programs/taint_analysis/pointers.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="struct_and_member_access">
+        <tasks>
+            <includesfile>../programs/taint_analysis/struct_and_member_access.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="ifc-bench">
+        <option name="--preprocess"/>
+        <tasks>
+            <includesfile>../programs/taint_analysis/ifc-bench.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="dceara_set">
+        <tasks>
+            <includesfile>../programs/taint_analysis/dceara_benchmarks.set</includesfile>
+            <propertyfile>../../config/specification/information-flow.spc</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <rundefinition name="core_modeling">
+        <tasks>
+            <includesfile>../programs/taint_analysis/core_modeling.set</includesfile>
             <propertyfile>../../config/specification/information-flow.spc</propertyfile>
         </tasks>
     </rundefinition>
@@ -32,8 +98,9 @@
     <columns>
         <column title="time for safety analysis">Total time for safety analysis</column>
         <column title="time for lasso construction">Time for lassos construction</column>
-        <column title="time for non-termination analysis">Total time for non-termination analysis</column>
+        <column title="time for non-termination analysis">Total time for non-termination analysis
+        </column>
         <column title="time for termination analysis">Total time for termination analysis</column>
-        <column title="lassos">Number of analysed lassos</column>
+        <column title="lassos">Number of analyzed lassos</column>
     </columns>
 </benchmark>

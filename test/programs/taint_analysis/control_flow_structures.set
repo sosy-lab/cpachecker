@@ -6,22 +6,5 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-*.yml
-
-arrays/core_modeling/*.yml
-arrays/dceara/*.yml
-
-cast/core_modeling/*.yml
-cast/dceara/*.yml
-
 control_flow_structures/core_modeling/*.yml
 control_flow_structures/dceara/*.yml
-
-general_functionality/*.yml
-general_functionality/dceara/*.yml
-general_functionality/ifc-bench/*.yml
-
-pointers/core_modeling/*.yml
-pointers/dceara/*.yml
-
-structs_and_member_access/core_modeling/*.yml

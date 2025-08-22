@@ -1,0 +1,19 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+arrays/core_modeling/*.yml
+
+cast/core_modeling/*.yml
+
+control_flow_structures/core_modeling/*.yml
+
+general_functionality/*.yml
+
+pointers/core_modeling/*.yml
+
+structs_and_member_access/core_modeling/*.yml
