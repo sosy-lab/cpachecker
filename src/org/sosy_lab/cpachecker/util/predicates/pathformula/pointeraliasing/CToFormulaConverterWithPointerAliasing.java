@@ -831,10 +831,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       forcePointerAssignment = true;
       // note that it is necessary to make the new pointer lhsType here because of the possible rhs
       // cast to lhsType immediately after
-      lhsType =
-          new CPointerType(
-              CTypeQualifiers.create(lhsType.isConst(), lhsType.isVolatile()),
-              ((CArrayType) lhsType).getType());
+      lhsType = new CPointerType(lhsType.getQualifiers(), ((CArrayType) lhsType).getType());
     }
 
     if (rhs instanceof CExpression) {
@@ -978,7 +975,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       if (actualLength != null) {
         declarationType =
             new CArrayType(
-                CTypeQualifiers.create(declarationType.isConst(), declarationType.isVolatile()),
+                declarationType.getQualifiers(),
                 arrayType.getType(),
                 new CIntegerLiteralExpression(
                     declaration.getFileLocation(),

@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class ProgramDeclarations {
@@ -287,11 +286,7 @@ public class ProgramDeclarations {
       handledTypes.add(origName);
       CElaboratedType newType =
           new CElaboratedType(
-              CTypeQualifiers.create(type.isConst(), type.isVolatile()),
-              type.getKind(),
-              type.getOrigName(),
-              type.getOrigName(),
-              null);
+              type.getQualifiers(), type.getKind(), type.getOrigName(), type.getOrigName(), null);
       for (String name : origNamesToQualifiedNames.get(origName)) {
         if (elaboratedTypes.containsKey(name)) {
           CElaboratedType elabType = elaboratedTypes.get(name);

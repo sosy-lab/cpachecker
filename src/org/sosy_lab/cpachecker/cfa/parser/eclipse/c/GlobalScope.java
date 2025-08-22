@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 /**
  * Implementation of {@link Scope} for the global scope (i.e., outside functions). Allows to
@@ -365,17 +364,13 @@ class GlobalScope extends AbstractScope {
       case CCompositeType oldCompositeType -> {
         CCompositeType renamedCompositeType =
             new CCompositeType(
-                CTypeQualifiers.create(oldType.isConst(), oldType.isVolatile()),
-                oldType.getKind(),
-                newName,
-                oldType.getOrigName());
+                oldType.getQualifiers(), oldType.getKind(), newName, oldType.getOrigName());
         // overwrite the already found type in the types map of the ASTTypeConverter if necessary
         // we need to do this, that the members of the renamed CCompositeType get the correct type
         // names in case of members pointing to the renamed type itself
         CElaboratedType renamedElaboratedType =
             new CElaboratedType(
-                CTypeQualifiers.create(
-                    renamedCompositeType.isConst(), renamedCompositeType.isVolatile()),
+                renamedCompositeType.getQualifiers(),
                 renamedCompositeType.getKind(),
                 renamedCompositeType.getName(),
                 renamedCompositeType.getOrigName(),
@@ -412,7 +407,7 @@ class GlobalScope extends AbstractScope {
         }
         CEnumType renamedEnumType =
             new CEnumType(
-                CTypeQualifiers.create(oldType.isConst(), oldType.isVolatile()),
+                oldType.getQualifiers(),
                 oldEnumType.getCompatibleType(),
                 list,
                 newName,
@@ -428,7 +423,7 @@ class GlobalScope extends AbstractScope {
           renamedRealType = createRenamedType(cElaboratedType.getRealType());
         }
         yield new CElaboratedType(
-            CTypeQualifiers.create(oldType.isConst(), oldType.isVolatile()),
+            oldType.getQualifiers(),
             oldType.getKind(),
             newName,
             oldType.getOrigName(),
@@ -442,15 +437,12 @@ class GlobalScope extends AbstractScope {
   private CType createPointerField(CPointerType oldType, CType eqType, CType newType) {
     if (oldType.getType() instanceof CPointerType cPointerType) {
       return new CPointerType(
-          CTypeQualifiers.create(oldType.isConst(), oldType.isVolatile()),
-          createPointerField(cPointerType, eqType, newType));
+          oldType.getQualifiers(), createPointerField(cPointerType, eqType, newType));
     } else {
       if (oldType.getType().getCanonicalType().equals(eqType.getCanonicalType())) {
-        return new CPointerType(
-            CTypeQualifiers.create(oldType.isConst(), oldType.isVolatile()), newType);
+        return new CPointerType(oldType.getQualifiers(), newType);
       } else {
-        return new CPointerType(
-            CTypeQualifiers.create(oldType.isConst(), oldType.isVolatile()), oldType.getType());
+        return new CPointerType(oldType.getQualifiers(), oldType.getType());
       }
     }
   }

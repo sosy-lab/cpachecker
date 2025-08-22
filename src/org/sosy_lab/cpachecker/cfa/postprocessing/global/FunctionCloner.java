@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -564,10 +563,7 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CArrayType type) {
-      return new CArrayType(
-          CTypeQualifiers.create(type.isConst(), type.isVolatile()),
-          type.getType().accept(this),
-          type.getLength());
+      return new CArrayType(type.getQualifiers(), type.getType().accept(this), type.getLength());
     }
 
     @Override
@@ -576,10 +572,7 @@ class FunctionCloner implements CFAVisitor {
       // solution: cache the empty compositeType and fill it later.
       CCompositeType comp =
           new CCompositeType(
-              CTypeQualifiers.create(type.isConst(), type.isVolatile()),
-              type.getKind(),
-              type.getName(),
-              type.getOrigName());
+              type.getQualifiers(), type.getKind(), type.getName(), type.getOrigName());
       typeCache.put(type, comp);
 
       // convert members and set them
@@ -595,7 +588,7 @@ class FunctionCloner implements CFAVisitor {
     @Override
     public CType visit(CElaboratedType type) {
       return new CElaboratedType(
-          CTypeQualifiers.create(type.isConst(), type.isVolatile()),
+          type.getQualifiers(),
           type.getKind(),
           type.getName(),
           type.getOrigName(),
@@ -615,7 +608,7 @@ class FunctionCloner implements CFAVisitor {
       }
       CEnumType enumType =
           new CEnumType(
-              CTypeQualifiers.create(type.isConst(), type.isVolatile()),
+              type.getQualifiers(),
               type.getCompatibleType(),
               l,
               type.getName(),
@@ -649,16 +642,13 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CPointerType type) {
-      return new CPointerType(
-          CTypeQualifiers.create(type.isConst(), type.isVolatile()), type.getType().accept(this));
+      return new CPointerType(type.getQualifiers(), type.getType().accept(this));
     }
 
     @Override
     public CType visit(CTypedefType type) {
       return new CTypedefType(
-          CTypeQualifiers.create(type.isConst(), type.isVolatile()),
-          type.getName(),
-          type.getRealType().accept(this));
+          type.getQualifiers(), type.getName(), type.getRealType().accept(this));
     }
 
     @Override

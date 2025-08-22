@@ -452,7 +452,7 @@ public class CBinaryExpressionBuilder {
             getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
 
-      return new CPointerType(CTypeQualifiers.create(at.isConst(), at.isVolatile()), at.getType());
+      return new CPointerType(at.getQualifiers(), at.getType());
     }
 
     if (pType instanceof CProblemType) {

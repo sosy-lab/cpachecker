@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /**
@@ -86,7 +85,7 @@ class ASTLiteralConverter {
     valueStr = valueStr.substring(0, valueStr.length() - 1);
     type =
         new CSimpleType(
-            CTypeQualifiers.create(type.isConst(), type.isVolatile()),
+            type.getQualifiers(),
             type.getType(),
             type.hasLongSpecifier(),
             type.hasShortSpecifier(),

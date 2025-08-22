@@ -1575,7 +1575,7 @@ public class AssumptionToEdgeAllocator {
     private CSimpleType nextLargerIntegerTypeIfPossible(CSimpleType pType) {
       if (pType.hasSignedSpecifier()) {
         return new CSimpleType(
-            CTypeQualifiers.create(pType.isConst(), pType.isVolatile()),
+            pType.getQualifiers(),
             pType.getType(),
             pType.hasLongSpecifier(),
             pType.hasShortSpecifier(),

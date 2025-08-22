@@ -468,7 +468,7 @@ class ASTConverter {
           exp =
               new CUnaryExpression(
                   exp.getFileLocation(),
-                  new CPointerType(CTypeQualifiers.create(type.isConst(), type.isVolatile()), type),
+                  new CPointerType(type.getQualifiers(), type),
                   exp,
                   UnaryOperator.AMPER);
         }
@@ -809,10 +809,7 @@ class ASTConverter {
       // that array types of operands are converted to pointer types except in a very few
       // specific cases (for which there will never be a temporary variable).
       // However, if the initializer is for an array, then of course we need to keep the array type.
-      type =
-          new CPointerType(
-              CTypeQualifiers.create(type.isConst(), type.isVolatile()),
-              ((CArrayType) type).getType());
+      type = new CPointerType(type.getQualifiers(), ((CArrayType) type).getType());
     } else if (type instanceof CFunctionType) {
       // Happens if function pointers are used in ternary expressions, for example.
       type = new CPointerType(CTypeQualifiers.NONE, type);
@@ -1490,7 +1487,7 @@ class ASTConverter {
       if (enumType != null) {
         type =
             new CElaboratedType(
-                CTypeQualifiers.create(type.isConst(), type.isVolatile()),
+                type.getQualifiers(),
                 ComplexTypeKind.ENUM,
                 enumType.getName(),
                 enumType.getOrigName(),
@@ -1867,7 +1864,7 @@ class ASTConverter {
       // now replace type with an elaborated type referencing the new type
       type =
           new CElaboratedType(
-              CTypeQualifiers.create(type.isConst(), type.isVolatile()),
+              type.getQualifiers(),
               complexType.getKind(),
               complexType.getName(),
               complexType.getOrigName(),
@@ -2059,7 +2056,7 @@ class ASTConverter {
       addSideEffectDeclarationForType(compositeType, getLocation(d));
       type =
           new CElaboratedType(
-              CTypeQualifiers.create(compositeType.isConst(), compositeType.isVolatile()),
+              compositeType.getQualifiers(),
               compositeType.getKind(),
               compositeType.getName(),
               compositeType.getOrigName(),
@@ -2296,10 +2293,7 @@ class ASTConverter {
       CExpression lengthExp =
           new CIntegerLiteralExpression(getLocation(initializer), CNumericTypes.INT, length);
 
-      return new CArrayType(
-          CTypeQualifiers.create(arrayType.isConst(), arrayType.isVolatile()),
-          arrayType.getType(),
-          lengthExp);
+      return new CArrayType(arrayType.getQualifiers(), arrayType.getType(), lengthExp);
 
     } else if (initializer instanceof CASTLiteralExpression literalExpression
         && (arrayType.getType().equals(CNumericTypes.CHAR)
@@ -2315,10 +2309,7 @@ class ASTConverter {
           new CIntegerLiteralExpression(
               getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
 
-      return new CArrayType(
-          CTypeQualifiers.create(arrayType.isConst(), arrayType.isVolatile()),
-          arrayType.getType(),
-          lengthExp);
+      return new CArrayType(arrayType.getQualifiers(), arrayType.getType(), lengthExp);
 
     } else {
       return arrayType;
@@ -2437,7 +2428,7 @@ class ASTConverter {
 
     // Copy const, volatile, and signedness from original type, rest from newType
     return new CSimpleType(
-        CTypeQualifiers.create(type.isConst(), type.isVolatile()),
+        type.getQualifiers(),
         newType.getType(),
         newType.hasLongSpecifier(),
         newType.hasShortSpecifier(),
@@ -2487,7 +2478,7 @@ class ASTConverter {
       // type of functions is implicitly int it not specified
       returnType =
           new CSimpleType(
-              CTypeQualifiers.create(t.isConst(), t.isVolatile()),
+              t.getQualifiers(),
               CBasicType.INT,
               t.hasLongSpecifier(),
               t.hasShortSpecifier(),

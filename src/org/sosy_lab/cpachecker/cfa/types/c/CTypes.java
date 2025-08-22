@@ -314,12 +314,10 @@ public final class CTypes {
         // instead qualifies the pointer with the qualifiers
         // used inside the size specifier brackets.
         CType sizeType = sizeExpression.getExpressionType();
-        pType =
-            new CPointerType(
-                CTypeQualifiers.create(sizeType.isConst(), sizeType.isVolatile()), innerType);
+        pType = new CPointerType(sizeType.getQualifiers(), innerType);
       }
     } else if (pType instanceof CFunctionType) {
-      pType = new CPointerType(CTypeQualifiers.create(pType.isConst(), pType.isVolatile()), pType);
+      pType = new CPointerType(pType.getQualifiers(), pType);
     }
     return pType;
   }

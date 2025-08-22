@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
@@ -117,10 +116,7 @@ class ArrayVisitor extends AddressVisitor
         // TODO support C11 6.7.6.3 7:
         // actual argument shall provide access to the first element of
         // an array with at least as many elements as specified by the size expression
-        type =
-            new CPointerType(
-                CTypeQualifiers.create(type.isConst(), type.isVolatile()),
-                ((CArrayType) type).getType());
+        type = new CPointerType(type.getQualifiers(), ((CArrayType) type).getType());
       }
 
       List<SMGAddressAndState> result = new ArrayList<>();

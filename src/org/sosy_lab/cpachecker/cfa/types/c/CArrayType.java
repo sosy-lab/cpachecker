@@ -88,7 +88,7 @@ public final class CArrayType extends AArrayType implements CType {
    * implements this conversion properly and also the similar conversion for function types.
    */
   public CPointerType asPointerType() {
-    return new CPointerType(CTypeQualifiers.create(isConst(), isVolatile()), getType());
+    return new CPointerType(this.getQualifiers(), getType());
   }
 
   @Override
