@@ -15,10 +15,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -985,8 +987,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
         if (params.size() == 2) {
 
-          CExpression exprToCheck = params.get(0);
-          CExpression newPublicState = params.get(1);
+          Deque<CExpression> dequeParams = new ArrayDeque<>(params);
+
+          CExpression exprToCheck = dequeParams.pollFirst();
+          CExpression newPublicState = dequeParams.pollFirst();
 
           boolean varMustBePublic =
               TaintAnalysisUtils.evaluateExpressionToInteger(newPublicState) == 1;
@@ -1058,10 +1062,12 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
         if (params.size() == 2) {
 
-          CExpression exprToCheck = params.get(0);
+          Deque<CExpression> dequeParams = new ArrayDeque<>(params);
+
+          CExpression exprToCheck = dequeParams.pollFirst();
           Set<CIdExpression> exprToCheckParams = TaintAnalysisUtils.getAllVarsAsCExpr(exprToCheck);
 
-          CExpression taintCheck = params.get(1);
+          CExpression taintCheck = dequeParams.pollFirst();
 
           boolean expressionIsTainted =
               taintedVariables.stream().anyMatch(exprToCheckParams::contains);

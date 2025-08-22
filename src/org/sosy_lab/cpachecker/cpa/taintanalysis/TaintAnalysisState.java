@@ -10,9 +10,11 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -402,10 +404,13 @@ public class TaintAnalysisState
     }
 
     try {
-      TaintAnalysisState joinedState = pStatesToJoin.get(0);
+      Deque<TaintAnalysisState> dequeStates = new ArrayDeque<>(pStatesToJoin);
 
-      for (int i = 1; i < pStatesToJoin.size(); i++) {
-        joinedState = joinedState.join(pStatesToJoin.get(i));
+      TaintAnalysisState joinedState = dequeStates.pollFirst();
+
+      while (!dequeStates.isEmpty()) {
+        assert joinedState != null;
+        joinedState = joinedState.join(dequeStates.pollFirst());
       }
 
       return joinedState;
