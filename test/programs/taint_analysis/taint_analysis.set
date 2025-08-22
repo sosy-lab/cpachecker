@@ -6,16 +6,22 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-#c_infix_operators/*.yml
-#c_member_access_operators/*.yml
-#c_pointer_and_address_operators/*.ymlk
-#c_pre_and_postfix_operators/*.yml
-#extern_benchmarks/*yml
-#*.yml
+*.yml
 
-#readMetricsSafe_1.yml
-#c_infix_operators/ternaryOperatorSafe_bothBranchesReachable.yml
-#extern_benchmarks/trippleWhileLoopSafe_1.yml
+arrays/core_modeling/*.yml
+arrays/dceara/*.yml
 
-extern_benchmarks/whileLoopPostTaintSafe.yml
-entwurfSafe.yml
+cast/core_modeling/*.yml
+cast/dceara/*.yml
+
+control_flow_structures/core_modeling/*.yml
+control_flow_structures/dceara/*.yml
+
+general_functionality/*.yml
+general_functionality/dceara/*.yml
+general_functionality/ifc-bench/*.yml
+
+pointers/core_modeling/*.yml
+pointers/dceara/*.yml
+
+structs_and_member_access/core_modeling/*.yml
