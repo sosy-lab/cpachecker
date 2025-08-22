@@ -1748,6 +1748,22 @@ public class TaintAnalysisTest {
 
   @Ignore
   @Test
+  public void testList_fakemalloc4() throws Exception {
+    TestResults results =
+        runCPAchecker("list_fakemalloc4.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testList_fakemalloc8() throws Exception {
+    TestResults results =
+        runCPAchecker("list_fakemalloc8.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
   public void testList_fakemalloc16() throws Exception {
     TestResults results =
         runCPAchecker("list_fakemalloc16.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
