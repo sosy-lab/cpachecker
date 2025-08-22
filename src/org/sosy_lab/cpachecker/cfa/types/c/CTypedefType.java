@@ -23,11 +23,6 @@ public final class CTypedefType implements CType {
   private final CTypeQualifiers qualifiers;
   private int hashCache = 0;
 
-  public CTypedefType(
-      final boolean pConst, final boolean pVolatile, final String pName, CType pRealType) {
-    this(CTypeQualifiers.create(pConst, pVolatile), pName, pRealType);
-  }
-
   public CTypedefType(final CTypeQualifiers pQualifiers, final String pName, CType pRealType) {
 
     qualifiers = checkNotNull(pQualifiers);

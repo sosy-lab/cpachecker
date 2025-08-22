@@ -31,17 +31,6 @@ public final class CEnumType implements CComplexType {
   private int hashCache = 0;
 
   public CEnumType(
-      final boolean pConst,
-      final boolean pVolatile,
-      final CSimpleType pCompatibleType,
-      final List<CEnumerator> pEnumerators,
-      final String pName,
-      final String pOrigName) {
-    this(
-        CTypeQualifiers.create(pConst, pVolatile), pCompatibleType, pEnumerators, pName, pOrigName);
-  }
-
-  public CEnumType(
       final CTypeQualifiers pQualifiers,
       final CSimpleType pCompatibleType,
       final List<CEnumerator> pEnumerators,

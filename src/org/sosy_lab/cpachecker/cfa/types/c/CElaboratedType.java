@@ -29,16 +29,6 @@ public final class CElaboratedType implements CComplexType {
   private @Nullable CComplexType realType = null;
 
   public CElaboratedType(
-      boolean pConst,
-      final boolean pVolatile,
-      final ComplexTypeKind pKind,
-      final String pName,
-      final String pOrigName,
-      final @Nullable CComplexType pRealType) {
-    this(CTypeQualifiers.create(pConst, pVolatile), pKind, pName, pOrigName, pRealType);
-  }
-
-  public CElaboratedType(
       final CTypeQualifiers pQualifiers,
       final ComplexTypeKind pKind,
       final String pName,

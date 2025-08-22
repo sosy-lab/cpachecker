@@ -27,10 +27,6 @@ public final class CPointerType implements CType {
   private final CType type;
   private final CTypeQualifiers qualifiers;
 
-  public CPointerType(final boolean pConst, final boolean pVolatile, final CType pType) {
-    this(CTypeQualifiers.create(pConst, pVolatile), pType);
-  }
-
   public CPointerType(final CTypeQualifiers pQualifiers, final CType pType) {
     qualifiers = checkNotNull(pQualifiers);
     type = checkNotNull(pType);

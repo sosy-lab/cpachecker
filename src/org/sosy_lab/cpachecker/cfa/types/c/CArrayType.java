@@ -28,14 +28,6 @@ public final class CArrayType extends AArrayType implements CType {
   private final @Nullable CExpression length;
   private final CTypeQualifiers qualifiers;
 
-  public CArrayType(boolean pConst, boolean pVolatile, CType pType) {
-    this(CTypeQualifiers.create(pConst, pVolatile), pType);
-  }
-
-  public CArrayType(boolean pConst, boolean pVolatile, CType pType, @Nullable CExpression pLength) {
-    this(CTypeQualifiers.create(pConst, pVolatile), pType, pLength);
-  }
-
   public CArrayType(CTypeQualifiers pQualifiers, CType pType) {
     this(pQualifiers, pType, null);
   }

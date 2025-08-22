@@ -27,7 +27,7 @@ public enum CVoidType implements CType {
   CONST_VOLATILE_VOID(CTypeQualifiers.CONST_VOLATILE),
   ;
 
-  public static CVoidType create(boolean pIsConst, boolean pIsVolatile) {
+  private static CVoidType create(boolean pIsConst, boolean pIsVolatile) {
     if (pIsConst) {
       return pIsVolatile ? CONST_VOLATILE_VOID : CONST_VOID;
     } else {

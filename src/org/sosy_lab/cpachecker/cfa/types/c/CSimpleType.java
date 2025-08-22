@@ -38,29 +38,6 @@ public final class CSimpleType implements CType {
   @LazyInit private int hashCache = 0;
 
   public CSimpleType(
-      final boolean pConst,
-      final boolean pVolatile,
-      final CBasicType pType,
-      final boolean pIsLong,
-      final boolean pIsShort,
-      final boolean pIsSigned,
-      final boolean pIsUnsigned,
-      final boolean pIsComplex,
-      final boolean pIsImaginary,
-      final boolean pIsLongLong) {
-    this(
-        CTypeQualifiers.create(pConst, pVolatile),
-        pType,
-        pIsLong,
-        pIsShort,
-        pIsSigned,
-        pIsUnsigned,
-        pIsComplex,
-        pIsImaginary,
-        pIsLongLong);
-  }
-
-  public CSimpleType(
       final CTypeQualifiers pQualifiers,
       final CBasicType pType,
       final boolean pIsLong,

@@ -31,25 +31,6 @@ public final class CCompositeType implements CComplexType {
   private final CTypeQualifiers qualifiers;
 
   public CCompositeType(
-      final boolean pConst,
-      final boolean pVolatile,
-      final CComplexType.ComplexTypeKind pKind,
-      final String pName,
-      final String pOrigName) {
-    this(CTypeQualifiers.create(pConst, pVolatile), pKind, pName, pOrigName);
-  }
-
-  public CCompositeType(
-      final boolean pConst,
-      final boolean pVolatile,
-      final CComplexType.ComplexTypeKind pKind,
-      final List<CCompositeTypeMemberDeclaration> pMembers,
-      final String pName,
-      final String pOrigName) {
-    this(CTypeQualifiers.create(pConst, pVolatile), pKind, pMembers, pName, pOrigName);
-  }
-
-  public CCompositeType(
       final CTypeQualifiers pQualifiers,
       final CComplexType.ComplexTypeKind pKind,
       final String pName,
