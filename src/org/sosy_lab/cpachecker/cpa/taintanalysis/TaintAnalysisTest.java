@@ -1653,14 +1653,18 @@ public class TaintAnalysisTest {
   @Ignore
   @Test
   public void testSimpleDoWhileSafe() throws Exception {
-    TestResults results = runCPAchecker("simpleDoWhileSafe.c", "");
+    TestResults results =
+        runCPAchecker(
+            "simpleDoWhileSafe.c", CATEGORY_CONTROL_FLOW_STRUCTURES + SOURCE_CORE_MODELING);
     results.assertIsSafe();
   }
 
   @Ignore
   @Test
   public void testSimpleDoWhileUnsafe() throws Exception {
-    TestResults results = runCPAchecker("simpleDoWhileUnsafe.c", "");
+    TestResults results =
+        runCPAchecker(
+            "simpleDoWhileUnsafe.c", CATEGORY_CONTROL_FLOW_STRUCTURES + SOURCE_CORE_MODELING);
     results.assertIsUnsafe();
   }
 
