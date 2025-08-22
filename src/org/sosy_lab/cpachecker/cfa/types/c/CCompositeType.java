@@ -28,8 +28,7 @@ public final class CCompositeType implements CComplexType {
   private @Nullable List<CCompositeTypeMemberDeclaration> members = null;
   private final String name;
   private final String origName;
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
 
   public CCompositeType(
       final boolean pConst,
@@ -37,14 +36,7 @@ public final class CCompositeType implements CComplexType {
       final CComplexType.ComplexTypeKind pKind,
       final String pName,
       final String pOrigName) {
-
-    checkNotNull(pKind);
-    checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
-    isConst = pConst;
-    isVolatile = pVolatile;
-    kind = pKind;
-    name = pName.intern();
-    origName = pOrigName.intern();
+    this(CTypeQualifiers.create(pConst, pVolatile), pKind, pName, pOrigName);
   }
 
   public CCompositeType(
@@ -54,7 +46,30 @@ public final class CCompositeType implements CComplexType {
       final List<CCompositeTypeMemberDeclaration> pMembers,
       final String pName,
       final String pOrigName) {
-    this(pConst, pVolatile, pKind, pName, pOrigName);
+    this(CTypeQualifiers.create(pConst, pVolatile), pKind, pMembers, pName, pOrigName);
+  }
+
+  public CCompositeType(
+      final CTypeQualifiers pQualifiers,
+      final CComplexType.ComplexTypeKind pKind,
+      final String pName,
+      final String pOrigName) {
+
+    checkNotNull(pKind);
+    checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
+    qualifiers = checkNotNull(pQualifiers);
+    kind = pKind;
+    name = pName.intern();
+    origName = pOrigName.intern();
+  }
+
+  public CCompositeType(
+      final CTypeQualifiers pQualifiers,
+      final CComplexType.ComplexTypeKind pKind,
+      final List<CCompositeTypeMemberDeclaration> pMembers,
+      final String pName,
+      final String pOrigName) {
+    this(pQualifiers, pKind, pName, pOrigName);
     checkMembers(pMembers);
     members = ImmutableList.copyOf(pMembers);
   }
@@ -244,13 +259,8 @@ public final class CCompositeType implements CComplexType {
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   @Override
@@ -260,7 +270,7 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public int hashCode() {
-    return Objects.hash(isConst, isVolatile, kind, name);
+    return Objects.hash(qualifiers, kind, name);
   }
 
   /**
@@ -275,8 +285,7 @@ public final class CCompositeType implements CComplexType {
     }
 
     return obj instanceof CCompositeType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && kind == other.kind
         && Objects.equals(name, other.name);
   }
@@ -288,8 +297,7 @@ public final class CCompositeType implements CComplexType {
     }
 
     return obj instanceof CCompositeType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && kind == other.kind
         && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()));
   }
@@ -301,12 +309,12 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+    if ((isConst() == pForceConst) && (isVolatile() == pForceVolatile)) {
       return this;
     }
     CCompositeType result =
         new CCompositeType(
-            isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName);
+            isConst() || pForceConst, isVolatile() || pForceVolatile, kind, name, origName);
     if (members != null) {
       result.setMembers(members);
     }
@@ -314,11 +322,10 @@ public final class CCompositeType implements CComplexType {
   }
 
   @Override
-  public CCompositeType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
-    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+  public CCompositeType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
       return this;
     }
-    return new CCompositeType(
-        pNewConstValue, pNewVolatileValue, getKind(), getMembers(), getName(), getOrigName());
+    return new CCompositeType(pNewQualifiers, getKind(), getMembers(), getName(), getOrigName());
   }
 }

@@ -54,5 +54,5 @@ public sealed interface CComplexType extends CType
   }
 
   @Override
-  CComplexType withQualifiersSetTo(boolean newConstValue, boolean newVolatileValue);
+  CComplexType withQualifiersSetTo(CTypeQualifiers newQualifiers);
 }

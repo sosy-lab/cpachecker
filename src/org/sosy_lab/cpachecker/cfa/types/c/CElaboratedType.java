@@ -22,8 +22,7 @@ public final class CElaboratedType implements CComplexType {
   private final ComplexTypeKind kind;
   private String name;
   private final String origName;
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
 
   private int hashCache = 0;
 
@@ -36,8 +35,16 @@ public final class CElaboratedType implements CComplexType {
       final String pName,
       final String pOrigName,
       final @Nullable CComplexType pRealType) {
-    isConst = pConst;
-    isVolatile = pVolatile;
+    this(CTypeQualifiers.create(pConst, pVolatile), pKind, pName, pOrigName, pRealType);
+  }
+
+  public CElaboratedType(
+      final CTypeQualifiers pQualifiers,
+      final ComplexTypeKind pKind,
+      final String pName,
+      final String pOrigName,
+      final @Nullable CComplexType pRealType) {
+    qualifiers = checkNotNull(pQualifiers);
     kind = checkNotNull(pKind);
     name = pName.intern();
     origName = pOrigName.intern();
@@ -124,13 +131,8 @@ public final class CElaboratedType implements CComplexType {
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   @Override
@@ -162,7 +164,7 @@ public final class CElaboratedType implements CComplexType {
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(isConst, isVolatile, kind, name, realType);
+      hashCache = Objects.hash(qualifiers, kind, name, realType);
     }
     return hashCache;
   }
@@ -179,8 +181,7 @@ public final class CElaboratedType implements CComplexType {
     }
 
     return obj instanceof CElaboratedType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && kind == other.kind
         && Objects.equals(name, other.name)
         && Objects.equals(realType, other.realType);
@@ -193,8 +194,7 @@ public final class CElaboratedType implements CComplexType {
     }
 
     return obj instanceof CElaboratedType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && kind == other.kind
         && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
         && Objects.equals(realType, other.realType);
@@ -208,22 +208,21 @@ public final class CElaboratedType implements CComplexType {
   @Override
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     if (realType == null) {
-      if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+      if ((isConst() == pForceConst) && (isVolatile() == pForceVolatile)) {
         return this;
       }
       return new CElaboratedType(
-          isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName, null);
+          isConst() || pForceConst, isVolatile() || pForceVolatile, kind, name, origName, null);
     } else {
-      return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
+      return realType.getCanonicalType(isConst() || pForceConst, isVolatile() || pForceVolatile);
     }
   }
 
   @Override
-  public CElaboratedType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
-    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+  public CElaboratedType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
       return this;
     }
-    return new CElaboratedType(
-        pNewConstValue, pNewVolatileValue, getKind(), getName(), getOrigName(), getRealType());
+    return new CElaboratedType(pNewQualifiers, getKind(), getName(), getOrigName(), getRealType());
   }
 }

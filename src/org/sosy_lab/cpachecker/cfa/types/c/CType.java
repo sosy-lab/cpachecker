@@ -33,12 +33,26 @@ public sealed interface CType extends Type
         CTypedefType,
         CVoidType {
 
-  boolean isConst();
+  /**
+   * Return the qualifiers of the type, e.g., its const/volatile flags. This method returns only the
+   * outermost flags, i.e. for a regular pointer to const int it returns no qualifiers. In some
+   * cases (array types, typedefs) this does not reflect the actually effective qualifiers. If you
+   * need the latter, call {@link #getCanonicalType()} first.
+   *
+   * <p>More information can be found in C11 § 6.7.3.
+   */
+  CTypeQualifiers getQualifiers();
+
+  default boolean isConst() {
+    return getQualifiers().isConst();
+  }
 
   @Override
   String toString();
 
-  boolean isVolatile();
+  default boolean isVolatile() {
+    return getQualifiers().isVolatile();
+  }
 
   /**
    * Check whether the current type is *incomplete* as defined by the C standard in § 6.2.5 (1).
@@ -158,7 +172,7 @@ public sealed interface CType extends Type
    * cast the result.
    */
   default CType withoutConst() {
-    return withQualifiersSetTo(false, isVolatile());
+    return withQualifiersSetTo(getQualifiers().withoutConst());
   }
 
   /**
@@ -172,7 +186,7 @@ public sealed interface CType extends Type
    * cast the result.
    */
   default CType withConst() {
-    return withQualifiersSetTo(true, isVolatile());
+    return withQualifiersSetTo(getQualifiers().withConst());
   }
 
   /**
@@ -186,7 +200,7 @@ public sealed interface CType extends Type
    * cast the result.
    */
   default CType withoutVolatile() {
-    return withQualifiersSetTo(isConst(), false);
+    return withQualifiersSetTo(getQualifiers().withoutVolatile());
   }
 
   /**
@@ -200,7 +214,7 @@ public sealed interface CType extends Type
    * cast the result.
    */
   default CType withVolatile() {
-    return withQualifiersSetTo(isConst(), true);
+    return withQualifiersSetTo(getQualifiers().withVolatile());
   }
 
   /**
@@ -214,8 +228,23 @@ public sealed interface CType extends Type
    * cast the result.
    */
   default CType withoutQualifiers() {
-    return withQualifiersSetTo(false, false);
+    return withQualifiersSetTo(CTypeQualifiers.NONE);
   }
+
+  /**
+   * Return a copy of this type that has the quantifiers (e.g., const/volatile) set to the given
+   * values.
+   *
+   * <p>This method only changes the outermost quantifiers.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   *
+   * @implNote When implementing this method, please strengthen the return type to the type itself.
+   *     Every implementation of this method should return exactly the same kind of type as it is
+   *     called on.
+   */
+  CType withQualifiersSetTo(CTypeQualifiers newQualifiers);
 
   /**
    * Return a copy of this type that has the "const" and "volatile" flags set to the given values.
@@ -227,10 +256,8 @@ public sealed interface CType extends Type
    *
    * <p>This method always returns an instance of the same type as it is called on, so it is safe to
    * cast the result.
-   *
-   * @implNote When implementing this method, please strengthen the return type to the type itself.
-   *     Every implementation of this method should return exactly the same kind of type as it is
-   *     called on.
    */
-  CType withQualifiersSetTo(boolean newConstValue, boolean newVolatileValue);
+  default CType withQualifiersSetTo(boolean newConstValue, boolean pNewVolatileValue) {
+    return withQualifiersSetTo(CTypeQualifiers.create(newConstValue, pNewVolatileValue));
+  }
 }

@@ -33,8 +33,7 @@ public final class CSimpleType implements CType {
   private final boolean isComplex;
   private final boolean isImaginary;
   private final boolean isLongLong;
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
 
   @LazyInit private int hashCache = 0;
 
@@ -49,8 +48,29 @@ public final class CSimpleType implements CType {
       final boolean pIsComplex,
       final boolean pIsImaginary,
       final boolean pIsLongLong) {
-    isConst = pConst;
-    isVolatile = pVolatile;
+    this(
+        CTypeQualifiers.create(pConst, pVolatile),
+        pType,
+        pIsLong,
+        pIsShort,
+        pIsSigned,
+        pIsUnsigned,
+        pIsComplex,
+        pIsImaginary,
+        pIsLongLong);
+  }
+
+  public CSimpleType(
+      final CTypeQualifiers pQualifiers,
+      final CBasicType pType,
+      final boolean pIsLong,
+      final boolean pIsShort,
+      final boolean pIsSigned,
+      final boolean pIsUnsigned,
+      final boolean pIsComplex,
+      final boolean pIsImaginary,
+      final boolean pIsLongLong) {
+    qualifiers = checkNotNull(pQualifiers);
     type = checkNotNull(pType);
     isLong = pIsLong;
     isShort = pIsShort;
@@ -62,13 +82,8 @@ public final class CSimpleType implements CType {
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   public CBasicType getType() {
@@ -129,8 +144,7 @@ public final class CSimpleType implements CType {
       hashCache =
           Objects.hash(
               isComplex,
-              isConst,
-              isVolatile,
+              qualifiers,
               isImaginary,
               isLong,
               isLongLong,
@@ -155,8 +169,7 @@ public final class CSimpleType implements CType {
 
     return obj instanceof CSimpleType other
         && isComplex == other.isComplex
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && isImaginary == other.isImaginary
         && isLong == other.isLong
         && isLongLong == other.isLongLong
@@ -232,16 +245,16 @@ public final class CSimpleType implements CType {
       newIsSigned = true;
     }
 
-    if ((isConst == pForceConst)
-        && (isVolatile == pForceVolatile)
+    if ((isConst() == pForceConst)
+        && (isVolatile() == pForceVolatile)
         && (type == newType)
         && (isSigned == newIsSigned)) {
       return this;
     }
 
     return new CSimpleType(
-        isConst || pForceConst,
-        isVolatile || pForceVolatile,
+        isConst() || pForceConst,
+        isVolatile() || pForceVolatile,
         newType,
         isLong,
         isShort,
@@ -253,13 +266,12 @@ public final class CSimpleType implements CType {
   }
 
   @Override
-  public CSimpleType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
-    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+  public CSimpleType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
       return this;
     }
     return new CSimpleType(
-        pNewConstValue,
-        pNewVolatileValue,
+        pNewQualifiers,
         getType(),
         hasLongSpecifier(),
         hasShortSpecifier(),

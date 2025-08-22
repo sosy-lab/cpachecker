@@ -73,13 +73,8 @@ public final class CBitFieldType implements CType {
   }
 
   @Override
-  public boolean isConst() {
-    return type.isConst();
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return type.isVolatile();
+  public CTypeQualifiers getQualifiers() {
+    return type.getQualifiers();
   }
 
   @Override
@@ -150,11 +145,10 @@ public final class CBitFieldType implements CType {
   }
 
   @Override
-  public CBitFieldType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
-    if (isConst() == pNewConstValue && isVolatile() == pNewVolatileValue) {
+  public CBitFieldType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (getQualifiers().equals(pNewQualifiers)) {
       return this;
     }
-    return new CBitFieldType(
-        type.withQualifiersSetTo(pNewConstValue, pNewVolatileValue), bitFieldSize);
+    return new CBitFieldType(type.withQualifiersSetTo(pNewQualifiers), bitFieldSize);
   }
 }

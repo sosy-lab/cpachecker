@@ -26,26 +26,32 @@ public final class CArrayType extends AArrayType implements CType {
   @Serial private static final long serialVersionUID = -6314468260643330323L;
 
   private final @Nullable CExpression length;
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
 
   public CArrayType(boolean pConst, boolean pVolatile, CType pType) {
-    this(pConst, pVolatile, pType, null);
+    this(CTypeQualifiers.create(pConst, pVolatile), pType);
+  }
+
+  public CArrayType(boolean pConst, boolean pVolatile, CType pType, @Nullable CExpression pLength) {
+    this(CTypeQualifiers.create(pConst, pVolatile), pType, pLength);
+  }
+
+  public CArrayType(CTypeQualifiers pQualifiers, CType pType) {
+    this(pQualifiers, pType, null);
   }
 
   /**
    * Create an array type. Most callers should ensure that the length is either null, a {@link
    * CIntegerLiteralExpression}, or a {@link CIdExpression} referring to a const variable.
    */
-  public CArrayType(boolean pConst, boolean pVolatile, CType pType, @Nullable CExpression pLength) {
+  public CArrayType(CTypeQualifiers pQualifiers, CType pType, @Nullable CExpression pLength) {
     super(pType);
 
     if (pLength instanceof CIntegerLiteralExpression lengthExp) {
       checkArgument(lengthExp.getValue().signum() >= 0, "Illegal negative array size %s", pLength);
     }
 
-    isConst = pConst;
-    isVolatile = pVolatile;
+    qualifiers = checkNotNull(pQualifiers);
     length = pLength;
   }
 
@@ -90,7 +96,7 @@ public final class CArrayType extends AArrayType implements CType {
    * implements this conversion properly and also the similar conversion for function types.
    */
   public CPointerType asPointerType() {
-    return new CPointerType(isConst, isVolatile, getType());
+    return new CPointerType(isConst(), isVolatile(), getType());
   }
 
   @Override
@@ -115,13 +121,8 @@ public final class CArrayType extends AArrayType implements CType {
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   @Override
@@ -151,7 +152,7 @@ public final class CArrayType extends AArrayType implements CType {
 
   @Override
   public int hashCode() {
-    return Objects.hash(length, isConst, isVolatile) * 31 + super.hashCode();
+    return Objects.hash(length, qualifiers) * 31 + super.hashCode();
   }
 
   /**
@@ -166,8 +167,7 @@ public final class CArrayType extends AArrayType implements CType {
     }
 
     if (obj instanceof CArrayType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && super.equals(obj)) {
 
       // If lengths are constants, compare their values directly (ignores type of expression).
@@ -195,15 +195,15 @@ public final class CArrayType extends AArrayType implements CType {
     return new CArrayType(
         false,
         false,
-        getType().getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile),
+        getType().getCanonicalType(isConst() || pForceConst, isVolatile() || pForceVolatile),
         length);
   }
 
   @Override
-  public CArrayType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
-    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+  public CArrayType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
       return this;
     }
-    return new CArrayType(pNewConstValue, pNewVolatileValue, getType(), getLength());
+    return new CArrayType(pNewQualifiers, getType(), getLength());
   }
 }

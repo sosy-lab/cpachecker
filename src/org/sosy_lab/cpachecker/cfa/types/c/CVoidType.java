@@ -21,10 +21,10 @@ import java.util.List;
  * instance.
  */
 public enum CVoidType implements CType {
-  VOID(false, false),
-  CONST_VOID(true, false),
-  VOLATILE_VOID(false, true),
-  CONST_VOLATILE_VOID(true, true),
+  VOID(CTypeQualifiers.NONE),
+  CONST_VOID(CTypeQualifiers.CONST),
+  VOLATILE_VOID(CTypeQualifiers.VOLATILE),
+  CONST_VOLATILE_VOID(CTypeQualifiers.CONST_VOLATILE),
   ;
 
   public static CVoidType create(boolean pIsConst, boolean pIsVolatile) {
@@ -35,22 +35,19 @@ public enum CVoidType implements CType {
     }
   }
 
-  private final boolean isConst;
-  private final boolean isVolatile;
+  public static CVoidType create(CTypeQualifiers pQualifiers) {
+    return create(pQualifiers.isConst(), pQualifiers.isVolatile());
+  }
 
-  private CVoidType(boolean pIsConst, boolean pIsVolatile) {
-    isConst = pIsConst;
-    isVolatile = pIsVolatile;
+  private final CTypeQualifiers qualifiers;
+
+  private CVoidType(CTypeQualifiers pQualifiers) {
+    qualifiers = checkNotNull(pQualifiers);
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   @Override
@@ -100,14 +97,14 @@ public enum CVoidType implements CType {
 
   @Override
   public CVoidType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return create(isConst || pForceConst, isVolatile || pForceVolatile);
+    return create(isConst() || pForceConst, isVolatile() || pForceVolatile);
   }
 
   @Override
   @InlineMe(
-      replacement = "CVoidType.create(pNewConstValue, pNewVolatileValue)",
+      replacement = "CVoidType.create(pNewQualifiers)",
       imports = "org.sosy_lab.cpachecker.cfa.types.c.CVoidType")
-  public CVoidType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
-    return create(pNewConstValue, pNewVolatileValue);
+  public CVoidType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    return create(pNewQualifiers);
   }
 }

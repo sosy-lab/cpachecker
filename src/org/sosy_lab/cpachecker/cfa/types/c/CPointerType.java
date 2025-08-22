@@ -24,23 +24,20 @@ public final class CPointerType implements CType {
       new CPointerType(false, false, CNumericTypes.CHAR.withConst());
 
   private final CType type;
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
 
   public CPointerType(final boolean pConst, final boolean pVolatile, final CType pType) {
-    isConst = pConst;
-    isVolatile = pVolatile;
+    this(CTypeQualifiers.create(pConst, pVolatile), pType);
+  }
+
+  public CPointerType(final CTypeQualifiers pQualifiers, final CType pType) {
+    qualifiers = checkNotNull(pQualifiers);
     type = checkNotNull(pType);
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   public CType getType() {
@@ -95,7 +92,7 @@ public final class CPointerType implements CType {
 
   @Override
   public int hashCode() {
-    return Objects.hash(isConst, isVolatile, type);
+    return Objects.hash(qualifiers, type);
   }
 
   /**
@@ -110,8 +107,7 @@ public final class CPointerType implements CType {
     }
 
     return obj instanceof CPointerType other
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && Objects.equals(type, other.type);
   }
 
@@ -123,14 +119,14 @@ public final class CPointerType implements CType {
   @Override
   public CPointerType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return new CPointerType(
-        isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType());
+        isConst() || pForceConst, isVolatile() || pForceVolatile, type.getCanonicalType());
   }
 
   @Override
-  public CPointerType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
-    if (isConst == pNewConstValue && isVolatile == pNewVolatileValue) {
+  public CPointerType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
       return this;
     }
-    return new CPointerType(pNewConstValue, pNewVolatileValue, getType());
+    return new CPointerType(pNewQualifiers, getType());
   }
 }

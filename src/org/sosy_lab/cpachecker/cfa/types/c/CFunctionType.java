@@ -94,13 +94,8 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
   }
 
   @Override
-  public boolean isConst() {
-    return false;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return false;
+  public CTypeQualifiers getQualifiers() {
+    return CTypeQualifiers.NONE;
   }
 
   @Override
@@ -159,10 +154,10 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
 
   @Override
   @DoNotCall
-  public final CFunctionType withQualifiersSetTo(
-      boolean pNewConstValue, boolean pNewVolatileValue) {
-    checkArgument(!pNewConstValue, "Cannot create const function type, this is undefined");
-    checkArgument(!pNewVolatileValue, "Cannot create volatile function type, this is undefined");
+  public final CFunctionType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    checkArgument(
+        pNewQualifiers.equals(CTypeQualifiers.NONE),
+        "Cannot create qualified function types, this is undefined");
     return this;
   }
 }

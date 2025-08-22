@@ -31,12 +31,7 @@ public final class CProblemType implements CType {
   }
 
   @Override
-  public boolean isConst() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isVolatile() {
+  public CTypeQualifiers getQualifiers() {
     throw new UnsupportedOperationException();
   }
 
@@ -116,7 +111,8 @@ public final class CProblemType implements CType {
 
   @Override
   @DoNotCall
-  public CProblemType withQualifiersSetTo(boolean pNewConstValue, boolean pNewVolatileValue) {
+  public CProblemType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    checkNotNull(pNewQualifiers);
     return this;
   }
 }
