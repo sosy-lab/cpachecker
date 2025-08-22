@@ -87,7 +87,7 @@ int main()
     }
 
     bigint_add(a, b, prod, &steps);
-    __VERIFIER_is_public(&steps, 0);
+    __VERIFIER_is_public(&steps, 1);
 //    ifc_check_taint(&steps);
 //    ifc_check_out(&steps);
 }

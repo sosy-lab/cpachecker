@@ -12,7 +12,7 @@ input_files: 'pwdcheck_safe16.c'
 
 properties:
   - property_file: '../../../../../config/specification/information-flow.spc'
-    expected_verdict: false
+    expected_verdict: true
 
 options:
   language: C
