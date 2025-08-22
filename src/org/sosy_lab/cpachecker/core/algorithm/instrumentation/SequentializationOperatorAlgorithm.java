@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -220,6 +221,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       // TODO: The location should be computed differently !
       int location;
       String fileLocation = pEdge.getFileLocation().toString();
+      String functionName =
+          pTransition.getPattern().toString().equals("ptr_deref")
+              ? "*"
+              : pTransition.getPattern().getFunctionName();
       if (pTransition.getPattern().toString().equals("[!cond]")) {
         fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
       }
@@ -231,7 +236,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         location += 1;
       }
       return pTransition.getOrderAsString().equals("SAME_LINE")
-          ? location + "|||S|||" + pTransition.getPattern().getFunctionName() + "|||"
+          ? location + "|||S|||" + functionName + "|||"
           : Integer.toString(location);
     } catch (NumberFormatException e) {
       logger.logException(Level.SEVERE, e, "The line number is not Integer !");
@@ -259,7 +264,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       List<Pair<CFANode, InstrumentationState>> pWaitlist,
       Map<CFANode, String> pDecomposedMap,
       ImmutableList<String> pMatchedVariables) {
-    if (!pTransition.getPattern().toString().equals("ADD")
+    if (!pTransition.getPattern().toString().equals("ptr_deref")
+        && !pTransition.getPattern().toString().equals("ADD")
         && !pTransition.getPattern().toString().equals("SUB")
         && !pTransition.getPattern().toString().equals("MUL")
         && !pTransition.getPattern().toString().equals("MOD")
@@ -290,6 +296,17 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           (CFunctionCallAssignmentStatement) astNode);
       return true;
     }
+    if (astNode instanceof CExpressionAssignmentStatement) {
+      decomposeAssignmentStatement(
+          pCFAEdge,
+          pTransition,
+          pWaitlist,
+          pDecomposedMap,
+          pMatchedVariables,
+          (CExpressionAssignmentStatement) astNode);
+      return true;
+    }
+
     CExpression expression = LoopInfoUtils.extractExpression(astNode);
     CExpression operand1;
     CExpression operand2;
@@ -297,9 +314,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     if (expression instanceof CBinaryExpression) {
       operand1 = ((CBinaryExpression) expression).getOperand1();
       operand2 = ((CBinaryExpression) expression).getOperand2();
-    } else {
+    } else if (expression instanceof CUnaryExpression) {
       operand1 = ((CUnaryExpression) expression).getOperand();
       operand2 = ((CUnaryExpression) expression).getOperand();
+    } else {
+      return false;
     }
 
     if (operand1 instanceof CCastExpression) {
@@ -342,6 +361,41 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     pWaitlist.add(Pair.of(node1, pTransition.getSource()));
     pWaitlist.add(Pair.of(node2, pTransition.getSource()));
     return true;
+  }
+
+  /* Decomposes a CFAEdge with assignment statement. */
+  private void decomposeAssignmentStatement(
+      CFAEdge pCFAEdge,
+      InstrumentationTransition pTransition,
+      List<Pair<CFANode, InstrumentationState>> pWaitlist,
+      Map<CFANode, String> pDecomposedMap,
+      ImmutableList<String> pMatchedVariables,
+      CExpressionAssignmentStatement pAssignmentStatement) {
+    String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
+    CExpression leftSide = pAssignmentStatement.getLeftHandSide();
+    CExpression rightSide = pAssignmentStatement.getLeftHandSide();
+    CFANode leftNode = CFANode.newDummyCFANode();
+    CFANode rightNode = CFANode.newDummyCFANode();
+
+    leftNode.addLeavingEdge(
+        new CStatementEdge(
+            leftSide.toASTString(),
+            new CExpressionStatement(pCFAEdge.getFileLocation(), leftSide),
+            pCFAEdge.getFileLocation(),
+            leftNode,
+            pCFAEdge.getSuccessor()));
+    pDecomposedMap.put(leftNode, condition);
+    pWaitlist.add(Pair.of(leftNode, pTransition.getSource()));
+
+    rightNode.addLeavingEdge(
+        new CStatementEdge(
+            rightSide.toASTString(),
+            new CExpressionStatement(pCFAEdge.getFileLocation(), rightSide),
+            pCFAEdge.getFileLocation(),
+            rightNode,
+            pCFAEdge.getSuccessor()));
+    pDecomposedMap.put(rightNode, condition);
+    pWaitlist.add(Pair.of(rightNode, pTransition.getSource()));
   }
 
   /* Decomposes a CFAEdge with function call. */

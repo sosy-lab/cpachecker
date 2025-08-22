@@ -31,7 +31,9 @@ public class InstrumentationAutomaton {
     TERMINATIONWITHCOUNTERS,
     ONESTEPREACHABILITY,
     NOOVERFLOW,
-    MEMCLEANUP
+    MEMCLEANUP,
+    VALID_DEREF,
+    VALID_FREE
   }
 
   /** The annotation is used to match a property of a CFA node. */
@@ -73,6 +75,8 @@ public class InstrumentationAutomaton {
       case ONESTEPREACHABILITY -> constructOneStepReachabilityAutomaton(pIndex);
       case NOOVERFLOW -> constructOverflowAutomaton();
       case MEMCLEANUP -> constructMemCleanupAutomaton();
+      case VALID_DEREF -> constructValidDeref();
+      case VALID_FREE -> constructValidFree();
       default -> throw new IllegalArgumentException();
     }
   }
@@ -111,6 +115,349 @@ public class InstrumentationAutomaton {
       originalType.append(pType.charAt(i));
     }
     return originalType.toString();
+  }
+
+  private InstrumentationState initializeMemorySafety(ImmutableList.Builder<InstrumentationTransition> builder) {
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.TRUE, this);
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT, this);
+
+    this.initialState = q1;
+
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(
+                "extern void *realloc(void *ptr, long unsigned int size );\\n"
+                    + "extern void *malloc (long unsigned int size);\\n"
+                    + "extern void *calloc(long unsigned int nitems, long unsigned int size);\\n"
+                    + "extern void *alloca(long unsigned int size);\\n"
+                    + "extern void *memcpy(void *dest, const void *src, long unsigned int n);\\n"
+                    + "extern void *memmove(void *dest, const void *src, long unsigned int n);\\n"
+                    + "extern void *memset(void *s, int c, long unsigned int n);\\n"
+                    + "extern void free(void *ptr);\\n"
+                    + "typedef struct \\n"
+                    + "{\\n"
+                    + "  void *address;\\n"
+                    + "  long unsigned int size;\\n"
+                    + "  int freed;\\n"
+                    + "  int allocation_type;\\n"
+                    + "} MemAllocation;\\n"
+                    + "MemAllocation *__allocations;\\n"
+                    + "int allocation_count = 0;\\n"
+                    + "int allocation_capacity = 100;\\n"
+                    + "void __add_allocation(void *ptr, long unsigned int size, int"
+                    + " allocation_type)\\n"
+                    + "{\\n"
+                    + "  if (allocation_count == allocation_capacity)\\n"
+                    + "  {\\n"
+                    + "    allocation_capacity *= 2;\\n"
+                    + "    __allocations = realloc(__allocations, allocation_capacity *"
+                    + " (sizeof(MemAllocation)));\\n"
+                    + "  }\\n"
+                    + "  __allocations[allocation_count].address = ptr;\\n"
+                    + "  __allocations[allocation_count].size = size;\\n"
+                    + "  __allocations[allocation_count].freed = 0;\\n"
+                    + "  __allocations[allocation_count].allocation_type = allocation_type;\\n"
+                    + "  allocation_count++;\\n"
+                    + "}\\n"
+                    + "int __init_memory_tracker()\\n"
+                    + "{\\n"
+                    + "  __allocations = malloc(allocation_capacity * (sizeof(MemAllocation)));\\n"
+                    + "  return 0;\\n"
+                    + "}\\n"
+                    + "void __register_stack(void *ptr, long unsigned int size)\\n"
+                    + "{\\n"
+                    + "  __add_allocation(ptr, size, 1);\\n"
+                    + "}\\n"
+                    + "void __deregister_stack(void *ptr)\\n"
+                    + "{\\n"
+                    + "  for (int i = 0; i < allocation_count; i++)\\n"
+                    + "  {\\n"
+                    + "    if ((__allocations[i].address == ptr) &&"
+                    + " (__allocations[i].allocation_type == 1))\\n"
+                    + "    {\\n"
+                    + "      __allocations[i].freed = 1;\\n"
+                    + "      break;\\n"
+                    + "    }\\n"
+                    + "  }\\n"
+                    + "}\\n"
+                    + "void __register_global(void *ptr, long unsigned int size)\\n"
+                    + "{\\n"
+                    + "  __add_allocation(ptr, size, 2);\\n"
+                    + "}\\n"
+                    + "void __track_free(void *ptr)\\n"
+                    + "{\\n"
+                    + "  if (! ptr)\\n"
+                    + "  {\\n"
+                    + "    return;\\n"
+                    + "  }\\n"
+                    + "  int found = 0;\\n"
+                    + "  for (int i = 0; i < allocation_count; i++)\\n"
+                    + "  {\\n"
+                    + "    if ((__allocations[i].address == ptr) &&"
+                    + " (__allocations[i].allocation_type == 0))\\n"
+                    + "    {\\n"
+                    + "      found = 1;\\n"
+                    + "      if (! __allocations[i].freed)\\n"
+                    + "      {\\n"
+                    + "        __allocations[i].freed = 1;\\n"
+                    + "        __allocations[i].allocation_type = - 1;\\n"
+                    + "        free(ptr);\\n"
+                    + "        return;\\n"
+                    + "      }\\n"
+                    + "    }\\n"
+                    + "  }\\n"
+                    + "  if (! found)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "}\\n"
+                    + "void *__track_malloc(long unsigned int size)\\n"
+                    + "{\\n"
+                    + "  void *ptr = malloc(size);\\n"
+                    + "  if (! ptr)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "  __add_allocation(ptr, size, 0);\\n"
+                    + "  return ptr;\\n"
+                    + "}\\n"
+                    + "void *__track_calloc(long unsigned int nitems, long unsigned int size)\\n"
+                    + "{\\n"
+                    + "  void *ptr = calloc(nitems, size);\\n"
+                    + "  if (! ptr)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "  __add_allocation(ptr, nitems * size, 0);\\n"
+                    + "  return ptr;\\n"
+                    + "}\\n"
+                    + "void *__track_realloc(void *ptr, long unsigned int size)\\n"
+                    + "{\\n"
+                    + "  if (! ptr)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "  int found = 0;\\n"
+                    + "  for (int i = 0; i < allocation_count; i++)\\n"
+                    + "  {\\n"
+                    + "    if (__allocations[i].address == ptr)\\n"
+                    + "    {\\n"
+                    + "      if (__allocations[i].freed)\\n"
+                    + "      {\\n"
+                    + "        reach_error();\\n"
+                    + "      }\\n"
+                    + "      found = 1;\\n"
+                    + "      break;\\n"
+                    + "    }\\n"
+                    + "  }\\n"
+                    + "  if (! found)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "  void *new_ptr = realloc(ptr, size);\\n"
+                    + "  if (! new_ptr)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "  for (int i = 0; i < allocation_count; i++)\\n"
+                    + "  {\\n"
+                    + "    if (__allocations[i].address == ptr)\\n"
+                    + "    {\\n"
+                    + "      __allocations[i].freed = 1;\\n"
+                    + "      break;\\n"
+                    + "    }\\n"
+                    + "  }\\n"
+                    + "  __add_allocation(new_ptr, size, 0);\\n"
+                    + "  return new_ptr;\\n"
+                    + "}\\n"
+                    + "void *__track_alloca(long unsigned int size)\\n"
+                    + "{\\n"
+                    + "  void *ptr = alloca(size);\\n"
+                    + "  __add_allocation(ptr, size, 1);\\n"
+                    + "  return ptr;\\n"
+                    + "}\\n"
+                    + "void *__safety_mem_func(void *ptr, long unsigned int size)\\n"
+                    + "{\\n"
+                    + "  if (! ptr)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "  int valid = 0;\\n"
+                    + "  for (int i = 0; i < allocation_count; i++)\\n"
+                    + "  {\\n"
+                    + "    if (((ptr >= __allocations[i].address) && ((ptr + size) <="
+                    + " (__allocations[i].address + __allocations[i].size))) && (!"
+                    + " __allocations[i].freed))\\n"
+                    + "    {\\n"
+                    + "      valid = 1;\\n"
+                    + "      break;\\n"
+                    + "    }\\n"
+                    + "  }\\n"
+                    + "  if (! valid)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "  return ptr;\\n"
+                    + "}\\n"
+                    + "void *__track_memset(void *s, int c, long unsigned int n)\\n"
+                    + "{\\n"
+                    + "  __safety_mem_func(s, n);\\n"
+                    + "  return memset(s, c, n);\\n"
+                    + "}\\n"
+                    + "void *__track_memmove(void *dest, const void *src, long unsigned int n)\\n"
+                    + "{\\n"
+                    + "  __safety_mem_func(dest, n);\\n"
+                    + "  __safety_mem_func(src, n);\\n"
+                    + "  return memmove(dest, src, n);\\n"
+                    + "}\\n"
+                    + "void *__track_memcpy(void *dest, const void *src, long unsigned int n)\\n"
+                    + "{\\n"
+                    + "  __safety_mem_func(dest, n);\\n"
+                    + "  __safety_mem_func(src, n);\\n"
+                    + "  return memcpy(dest, src, n);\\n"
+                    + "}\\n"
+                    + "void *__valid_ptr(void *ptr)\\n"
+                    + "{\\n"
+                    + "  if (! ptr)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "  int valid = 0;\\n"
+                    + "  for (int i = 0; i < allocation_count; i++)\\n"
+                    + "  {\\n"
+                    + "    if (((ptr >= __allocations[i].address) && (ptr <"
+                    + " (__allocations[i].address + __allocations[i].size))) && (!"
+                    + " __allocations[i].freed))\\n"
+                    + "    {\\n"
+                    + "      valid = 1;\\n"
+                    + "      break;\\n"
+                    + "    }\\n"
+                    + "  }\\n"
+                    + "  if (! valid)\\n"
+                    + "  {\\n"
+                    + "    reach_error();\\n"
+                    + "  }\\n"
+                    + "  return ptr;\\n"
+                    + "}\\n"
+                    + "void __check_memory_leaks()\\n"
+                    + "{\\n"
+                    + "  for (int i = 0; i < allocation_count; i++)\\n"
+                    + "  {\\n"
+                    + "    if ((! __allocations[i].freed) && (__allocations[i].allocation_type =="
+                    + " 0))\\n"
+                    + "    {\\n"
+                    + "      reach_error();\\n"
+                    + "    }\\n"
+                    + "  }\\n"
+                    + "  free(__allocations);\\n"
+                    + "  __allocations = 0;\\n"
+                    + "}\\n"
+                    + "void __safe_exit(int x)\\n"
+                    + "{\\n"
+                    + "  __check_memory_leaks();\\n"
+                    + "  exit(x);\\n"
+                    + "}\\n"
+                    + "void __safe_abort()\\n"
+                    + "{\\n"
+                    + "  __check_memory_leaks();\\n"
+                    + "  abort();\\n"
+                    + "}\\n"
+                    + "void __safe_return(int x)\\n"
+                    + "{\\n"
+                    + "  __check_memory_leaks();\\n"
+                    + "  exit(x);\\n"
+                    + "}\\n"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    builder.add(t1);
+    return q2;
+  }
+
+  private InstrumentationState trackMemory(ImmutableList.Builder<InstrumentationTransition> builder) {
+    InstrumentationState q2 = initializeMemorySafety(builder);
+
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(free)"),
+            new InstrumentationOperation("__track_free"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(malloc)"),
+            new InstrumentationOperation("__track_malloc"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    InstrumentationTransition t4 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(calloc)"),
+            new InstrumentationOperation("__track_calloc"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    InstrumentationTransition t5 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(realloc)"),
+            new InstrumentationOperation("__track_realloc"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    InstrumentationTransition t6 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(memset)"),
+            new InstrumentationOperation("__track_memset"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    InstrumentationTransition t7 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(memmove)"),
+            new InstrumentationOperation("__track_memmove"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    InstrumentationTransition t8 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(memcpy)"),
+            new InstrumentationOperation("__track_memcpy"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    InstrumentationTransition t9 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("FUNC(alloca)"),
+            new InstrumentationOperation("__track_alloca"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+
+    builder.add(t2, t3, t4, t5, t6, t7, t8, t9);
+    return q2;
+  }
+
+  private void constructValidFree() {
+    ImmutableList.Builder<InstrumentationTransition> builder = ImmutableList.builder();
+    trackMemory(builder);
+    this.instrumentationTransitions = builder.build();
+  }
+
+  private void constructValidDeref() {
+    ImmutableList.Builder<InstrumentationTransition> builder = ImmutableList.builder();
+    InstrumentationState q2 = trackMemory(builder);
+
+    InstrumentationTransition t10 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("ptr_deref"),
+            new InstrumentationOperation("* ((typeof(x_instr_1)) __valid_ptr"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    builder.add(t10);
+    this.instrumentationTransitions = builder.build();
   }
 
   private void constructOverflowAutomaton() {

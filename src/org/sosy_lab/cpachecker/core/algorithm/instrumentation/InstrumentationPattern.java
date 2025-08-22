@@ -17,7 +17,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -62,6 +65,9 @@ public class InstrumentationPattern {
         break;
       case "[!cond]":
         type = patternType.NOT_COND;
+        break;
+      case "ptr_deref":
+        type = patternType.PTR_DEREF;
         break;
       case "ADD":
         type = patternType.ADD;
@@ -134,6 +140,7 @@ public class InstrumentationPattern {
       case COND -> isOriginalCond(pCFAEdge) ? ImmutableList.of() : null;
       case NOT_COND -> isNegatedCond(pCFAEdge) ? ImmutableList.of() : null;
       case FUNC -> getTheOperandsFromFunctionCall(pCFAEdge, pDecomposedMap);
+      case PTR_DEREF -> getTheOperandsFromPointerDereference(pCFAEdge);
       case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap);
       case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS, pDecomposedMap);
       case NEG -> getTheOperandsFromUnaryOperation(pCFAEdge, UnaryOperator.MINUS, pDecomposedMap);
@@ -244,6 +251,25 @@ public class InstrumentationPattern {
   }
 
   @Nullable
+  private ImmutableList<String> getTheOperandsFromPointerDereference(CFAEdge pCFAEdge) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      if (astNode instanceof CExpressionStatement
+          && ((CExpressionStatement) astNode).getExpression().toString().contains("*")) {
+        return ImmutableList.of(
+            ((CExpressionStatement) astNode).getExpression().toString().replaceFirst("\\*", ""));
+      }
+      if (astNode instanceof CBinaryExpression
+          || astNode instanceof CUnaryExpression
+          || astNode instanceof CExpressionAssignmentStatement
+          || astNode instanceof CFunctionCallAssignmentStatement) {
+        return ImmutableList.of();
+      }
+    }
+    return null;
+  }
+
+  @Nullable
   private ImmutableList<String> getTheOperandsFromFunctionCall(
       CFAEdge pCFAEdge, Map<CFANode, String> pDecomposedMap) {
     if (pCFAEdge.getRawAST().isPresent()) {
@@ -343,6 +369,7 @@ public class InstrumentationPattern {
     FALSE,
     COND,
     NOT_COND,
+    PTR_DEREF,
     ADD,
     SUB,
     NEG,
