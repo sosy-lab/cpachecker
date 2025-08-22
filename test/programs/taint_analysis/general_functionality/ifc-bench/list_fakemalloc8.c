@@ -96,27 +96,29 @@ int main() {
     int list_size;
     int i, mypid, result;
 
-    mypid = nd();
+//    mypid = nd();
+    mypid = __VERIFIER_nondet_int();
     ifc_set_low(1, mypid);
-    list_size = nd();
+//    list_size = nd();
+    list_size = __VERIFIER_nondet_int();
     int a0, a1, a2, a3, a4, a5, a6, a7;
 
-    a0 = nd();
-    a1 = nd();
-    a2 = nd();
-    a3 = nd();
-    a4 = nd();
-    a5 = nd();
-    a6 = nd();
-    a7 = nd();
-    ifc_set_secret(1, a0);
-    ifc_set_secret(1, a1);
-    ifc_set_secret(1, a2);
-    ifc_set_secret(1, a3);
-    ifc_set_secret(1, a4);
-    ifc_set_secret(1, a5);
-    ifc_set_secret(1, a6);
-    ifc_set_secret(1, a7);
+    a0 = __VERIFIER_nondet_int();
+    a1 = __VERIFIER_nondet_int();
+    a2 = __VERIFIER_nondet_int();
+    a3 = __VERIFIER_nondet_int();
+    a4 = __VERIFIER_nondet_int();
+    a5 = __VERIFIER_nondet_int();
+    a6 = __VERIFIER_nondet_int();
+    a7 = __VERIFIER_nondet_int();
+    __VERIFIER_set_public(a0, 0);
+    __VERIFIER_set_public(a1, 0);
+    __VERIFIER_set_public(a2, 0);
+    __VERIFIER_set_public(a3, 0);
+    __VERIFIER_set_public(a4, 0);
+    __VERIFIER_set_public(a5, 0);
+    __VERIFIER_set_public(a6, 0);
+    __VERIFIER_set_public(a7, 0);
     list_entries[0] = a0;
     list_entries[1] = a1;
     list_entries[2] = a2;
@@ -126,7 +128,8 @@ int main() {
     list_entries[6] = a6;
     list_entries[7] = a7;
 
-    ifc_set_secret(1, list_size);
+//    ifc_set_secret(1, list_size);
+    __VERIFIER_set_public(list_size, 0);
 
     assume(list_size < 8);
     current_pid = nd();
@@ -136,14 +139,14 @@ int main() {
         add_thread(list_entries[i]);
     }
 
-    // now the low code runs.
-    current_pid = mypid;
-    while (nd()) {
-        add_thread(nd());
+    while (__VERIFIER_nondet_int()) {
+//        add_thread(nd());
+        add_thread(__VERIFIER_nondet_int());
     }
     // result must be public.
     result = count_my_threads();
-    ifc_check_out(1, result);
+//    ifc_check_out(1, result);
+    __VERIFIER_is_public(result, 1);
     return 0;
 }
 

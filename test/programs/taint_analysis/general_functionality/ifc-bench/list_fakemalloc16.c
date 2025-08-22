@@ -166,7 +166,9 @@ int main() {
 
     // now the low code runs.
     current_pid = mypid;
+//    while (nd()) {
     while (__VERIFIER_nondet_int()) {
+//        add_thread(nd());
         add_thread(__VERIFIER_nondet_int());
     }
     // result must be public.
