@@ -205,15 +205,23 @@ public class ExpressionBehaviorVisitor
 
     CExpression base = arrayExpr.getArrayExpression();
     if (base instanceof CIdExpression idExpr) {
-      MemoryLocation pointerLoc =
-          MemoryLocation.fromQualifiedName(idExpr.getDeclaration().getQualifiedName());
+      String qName = idExpr.getDeclaration().getQualifiedName();
+      MemoryLocation baseLoc = MemoryLocation.fromQualifiedName(qName);
 
-      SideEffectInfo effect =
-          new SideEffectInfo(
-              pointerLoc, accessType, cfaEdge, SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
-
-      sideEffects.add(effect);
-      logger.logf(Level.INFO, "[ARRAY] Record array access as pointer dereference: %s", effect);
+      if (idExpr.getDeclaration() instanceof CVariableDeclaration decl) {
+        if (decl.isGlobal()) {
+          SideEffectInfo effect =
+              new SideEffectInfo(baseLoc, accessType, cfaEdge, SideEffectKind.GLOBAL_VARIABLE);
+          sideEffects.add(effect);
+          logger.logf(Level.INFO, "[ARRAY] Record global array access: %s", effect);
+        }
+      } else {
+        SideEffectInfo effect =
+            new SideEffectInfo(
+                baseLoc, accessType, cfaEdge, SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
+        sideEffects.add(effect);
+        logger.logf(Level.INFO, "[ARRAY] Record array access as pointer dereference: %s", effect);
+      }
     }
 
     return ExpressionAnalysisSummary.of(sideEffects, new HashSet<>(), new HashMap<>());
