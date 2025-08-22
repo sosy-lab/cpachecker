@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -354,13 +355,18 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CExpression key = entry.getKey();
       List<CExpression> values = entry.getValue();
 
-      if (values.isEmpty()) {
+      Deque<CExpression> dequeValues =
+          values.stream()
+              .filter(Objects::nonNull)
+              .collect(Collectors.toCollection(ArrayDeque::new));
+
+      if (dequeValues.isEmpty()) {
         oneToOneMappings.put(key, null);
-      } else if (values.size() == 1) {
-        oneToOneMappings.put(key, values.iterator().next());
+      } else if (dequeValues.size() == 1) {
+        oneToOneMappings.put(key, dequeValues.pollFirst());
       } else {
         throw new IllegalStateException(
-            "The mapping for key " + key + " contains more than one or no values: " + values);
+            "The mapping for key " + key + " contains more than one or no values: " + dequeValues);
       }
     }
 
@@ -1515,14 +1521,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return result;
   }
 
-  /**
-   * Retrieves the set of {@code IfElement} structures that encapsulate the provided statement
-   * represented by the specified file location. This includes all `if` structures where the current
-   * statement is fully enclosed within their boundaries.
-   *
-   * @return a set of optional {@code IfElement} objects that represent the `if` structures
-   *     enclosing the given statement
-   */
   private Set<Optional<IfElement>> getIfStructuresOfCurrentStatement(CFAEdge cfaEdge) {
     FileLocation fileLocation = cfaEdge.getFileLocation();
     Set<Optional<IfElement>> ifStructures = new HashSet<>();
