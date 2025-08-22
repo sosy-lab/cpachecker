@@ -245,19 +245,4 @@ public sealed interface CType extends Type
    *     called on.
    */
   CType withQualifiersSetTo(CTypeQualifiers newQualifiers);
-
-  /**
-   * Return a copy of this type that has the "const" and "volatile" flags set to the given values.
-   *
-   * <p>This method only changes the outermost const/volatile flags.
-   *
-   * <p>If you want to set the const or volatile flags to a constant, prefer one of the methods in
-   * this class that does not take a boolean parameter.
-   *
-   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
-   * cast the result.
-   */
-  default CType withQualifiersSetTo(boolean newConstValue, boolean pNewVolatileValue) {
-    return withQualifiersSetTo(CTypeQualifiers.create(newConstValue, pNewVolatileValue));
-  }
 }

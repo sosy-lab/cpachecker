@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
@@ -289,7 +290,7 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    i = i.withQualifiersSetTo(isConst, isVolatile);
+    i = i.withQualifiersSetTo(CTypeQualifiers.create(isConst, isVolatile));
 
     assert i instanceof CProblemType || (isConst == i.isConst() && isVolatile == i.isVolatile());
     return i;
