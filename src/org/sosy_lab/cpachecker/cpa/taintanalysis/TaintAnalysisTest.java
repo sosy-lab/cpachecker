@@ -1717,8 +1717,7 @@ public class TaintAnalysisTest {
   @Test
   public void testModExp_safe() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "modexp_safe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker("modexp_safe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsSafe();
   }
 
@@ -1733,16 +1732,14 @@ public class TaintAnalysisTest {
   @Test
   public void testModAdd_2048() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "mod_add_2048.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker("mod_add_2048.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsSafe();
   }
 
   @Test
   public void testModAdd_4096() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "mod_add_4096.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker("mod_add_4096.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsSafe();
   }
 
@@ -1750,8 +1747,7 @@ public class TaintAnalysisTest {
   @Test
   public void testList_fakemalloc16() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "list_fakemalloc16.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker("list_fakemalloc16.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsSafe();
   }
 
@@ -1759,40 +1755,35 @@ public class TaintAnalysisTest {
   @Test
   public void testPwdcheck2_safe() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "pwdcheck2_safe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker("pwdcheck2_safe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsSafe();
   }
 
   @Test
   public void testPwdcheck_safe() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "pwdcheck_safe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker("pwdcheck_safe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsSafe();
   }
 
   @Test
   public void testPwdcheck_safe16() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "pwdcheck_safe16.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker("pwdcheck_safe16.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsSafe();
   }
 
   @Test
   public void testPwdcheck_unsafe16() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "pwdcheck_unsafe16.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker("pwdcheck_unsafe16.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsUnsafe();
   }
 
   @Test
   public void testPwdcheck_unsafe() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "pwdcheck_unsafe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
+        runCPAchecker("pwdcheck_unsafe.c", CATEGORY_GENERAL_FUNCTIONALITY + SOURCE_IFC_BENCH);
     results.assertIsUnsafe();
   }
 }
