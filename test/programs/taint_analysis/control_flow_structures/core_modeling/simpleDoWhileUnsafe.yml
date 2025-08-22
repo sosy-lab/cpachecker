@@ -8,10 +8,10 @@
 
 format_version: '2.0'
 
-input_files: 'entwurfUnsafe.c'
+input_files: 'simpleDoWhileUnsafe.c'
 
 properties:
-  - property_file: '../../../config/specification/information-flow.spc'
+  - property_file: '../../../../../config/specification/information-flow.spc'
     expected_verdict: false
 
 options:
