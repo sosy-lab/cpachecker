@@ -797,7 +797,10 @@ class ASTConverter {
 
     // If there is no initializer, the variable cannot be const.
     // For others, we add it as our temporary variables are single-use.
-    CType type = pType.withQualifiersSetTo(initializer != null, pType.isVolatile());
+    CType type =
+        pType instanceof CProblemType
+            ? pType
+            : pType.withQualifiersSetTo(pType.getQualifiers().withConstSetTo(initializer != null));
 
     if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {
       // Replace with pointer type.

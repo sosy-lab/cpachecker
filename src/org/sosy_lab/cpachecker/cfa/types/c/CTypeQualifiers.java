@@ -47,21 +47,31 @@ public enum CTypeQualifiers {
 
   /** Returns an instance without const but all other qualifiers keeping their value. */
   public CTypeQualifiers withoutConst() {
-    return create(false, isVolatile);
+    return withConstSetTo(false);
   }
 
   /** Returns an instance with const but all other qualifiers keeping their value. */
   public CTypeQualifiers withConst() {
-    return create(true, isVolatile);
+    return withConstSetTo(true);
+  }
+
+  /** Returns an instance with const as given but all other qualifiers keeping their value. */
+  public CTypeQualifiers withConstSetTo(boolean pNewConst) {
+    return create(pNewConst, isVolatile);
   }
 
   /** Returns an instance without volatile but all other qualifiers keeping their value. */
   public CTypeQualifiers withoutVolatile() {
-    return create(isConst, false);
+    return withVolatileSetTo(false);
   }
 
   /** Returns an instance with volatile but all other qualifiers keeping their value. */
   public CTypeQualifiers withVolatile() {
-    return create(isConst, true);
+    return withVolatileSetTo(true);
+  }
+
+  /** Returns an instance with volatile as given but all other qualifiers keeping their value. */
+  public CTypeQualifiers withVolatileSetTo(boolean pNewVolatile) {
+    return create(isConst, pNewVolatile);
   }
 }
