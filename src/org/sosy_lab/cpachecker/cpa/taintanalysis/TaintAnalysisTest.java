@@ -1652,15 +1652,15 @@ public class TaintAnalysisTest {
 
   @Ignore
   @Test
-  public void testEntwurfSafe() throws Exception {
-    TestResults results = runCPAchecker("entwurfSafe.c", "");
+  public void testSimpleDoWhileSafe() throws Exception {
+    TestResults results = runCPAchecker("simpleDoWhileSafe.c", "");
     results.assertIsSafe();
   }
 
   @Ignore
   @Test
-  public void testEntwurfUnsafe() throws Exception {
-    TestResults results = runCPAchecker("entwurfUnsafe.c", "");
+  public void testSimpleDoWhileUnsafe() throws Exception {
+    TestResults results = runCPAchecker("simpleDoWhileUnsafe.c", "");
     results.assertIsUnsafe();
   }
 
