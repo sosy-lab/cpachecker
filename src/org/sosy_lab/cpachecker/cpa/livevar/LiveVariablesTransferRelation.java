@@ -597,7 +597,8 @@ public class LiveVariablesTransferRelation
       }
       case AInitializerExpression aInitializerExpression ->
           handleExpression(aInitializerExpression.getExpression(), writeInto);
-      default -> throw new CPATransferException("Missing case for if-then-else statement.");
+      case null, default ->
+          throw new CPATransferException("Missing case for if-then-else statement.");
     }
   }
 
