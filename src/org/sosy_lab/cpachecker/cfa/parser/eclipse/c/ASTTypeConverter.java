@@ -332,7 +332,7 @@ class ASTTypeConverter {
             || dd.isUnsigned()) {
           throw parseContext.parseError("Void type with illegal modifier", dd);
         }
-        return CVoidType.create(dd.isConst(), dd.isVolatile());
+        return CVoidType.create(convertCTypeQualifiers(dd));
       }
       case IASTSimpleDeclSpecifier.t_typeof -> {
         CType ctype;
@@ -369,8 +369,7 @@ class ASTTypeConverter {
     }
 
     return new CSimpleType(
-        dd.isConst(),
-        dd.isVolatile(),
+        convertCTypeQualifiers(dd),
         type,
         dd.isLong(),
         dd.isShort(),
@@ -420,6 +419,10 @@ class ASTTypeConverter {
     };
   }
 
+  CTypeQualifiers convertCTypeQualifiers(final IASTDeclSpecifier d) {
+    return CTypeQualifiers.create(d.isConst(), d.isVolatile());
+  }
+
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
     ComplexTypeKind type =
         switch (d.getKind()) {
@@ -438,7 +441,7 @@ class ASTTypeConverter {
       name = scope.getFileSpecificTypeName(name);
     }
 
-    return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, origName, realType);
+    return new CElaboratedType(convertCTypeQualifiers(d), type, name, origName, realType);
   }
 
   /** returns a pointerType, that wraps the type. */

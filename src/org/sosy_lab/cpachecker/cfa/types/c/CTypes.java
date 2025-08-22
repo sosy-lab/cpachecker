@@ -192,7 +192,7 @@ public final class CTypes {
       return true;
     }
 
-    if (!(pTypeA.isConst() == pTypeB.isConst() && pTypeA.isVolatile() == pTypeB.isVolatile())) {
+    if (!pTypeA.getQualifiers().equals(pTypeB.getQualifiers())) {
       // Cf. C-Standard §6.7.3 (10), two qualified types have to be
       // an identically qualified version of compatible types to be compatible.
       return false;
@@ -203,8 +203,7 @@ public final class CTypes {
       return areTypesCompatible(pointerA.getType(), pointerB.getType());
     }
 
-    CType basicSignedInt =
-        CNumericTypes.INT.getCanonicalType(pTypeA.isConst(), pTypeA.isVolatile());
+    CType basicSignedInt = CNumericTypes.INT.withQualifiersSetTo(pTypeA.getQualifiers());
 
     // Cf. C-Standard §6.7.2.2 (4), enumerated types shall be compatible with
     // char, a signed integer type, or an unsigned integer type, dependent on

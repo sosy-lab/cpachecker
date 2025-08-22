@@ -2601,7 +2601,7 @@ class ASTConverter {
       }
     }
     CCompositeType compositeType =
-        new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name, origName);
+        new CCompositeType(typeConverter.convertCTypeQualifiers(d), kind, list, name, origName);
 
     // in cases like struct s { (struct s)* f }
     // we need to fill in the binding from the inner "struct s" type to the outer
@@ -2631,7 +2631,7 @@ class ASTConverter {
 
     CSimpleType integerType = getEnumerationType(list);
     CEnumType enumType =
-        new CEnumType(d.isConst(), d.isVolatile(), integerType, list, name, origName);
+        new CEnumType(typeConverter.convertCTypeQualifiers(d), integerType, list, name, origName);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
     }
