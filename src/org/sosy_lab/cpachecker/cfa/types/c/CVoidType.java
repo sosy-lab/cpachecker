@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.errorprone.annotations.InlineMe;
-import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,15 +20,12 @@ import java.util.List;
  * This class represents the type "void". It does not allow any modifiers and has only a single
  * instance.
  */
-public final class CVoidType implements CType {
-
-  @Serial private static final long serialVersionUID = 1385808708190595556L;
-
-  public static final CVoidType VOID = new CVoidType(false, false);
-
-  public static final CVoidType CONST_VOID = new CVoidType(true, false);
-  public static final CVoidType VOLATILE_VOID = new CVoidType(false, true);
-  public static final CVoidType CONST_VOLATILE_VOID = new CVoidType(true, true);
+public enum CVoidType implements CType {
+  VOID(false, false),
+  CONST_VOID(true, false),
+  VOLATILE_VOID(false, true),
+  CONST_VOLATILE_VOID(true, true),
+  ;
 
   public static CVoidType create(boolean pIsConst, boolean pIsVolatile) {
     if (pIsConst) {
@@ -105,11 +101,6 @@ public final class CVoidType implements CType {
   @Override
   public CVoidType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return create(isConst || pForceConst, isVolatile || pForceVolatile);
-  }
-
-  @Serial
-  private Object readResolve() {
-    return create(isConst, isVolatile);
   }
 
   @Override
