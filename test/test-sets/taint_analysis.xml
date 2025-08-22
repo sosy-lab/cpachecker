@@ -28,7 +28,7 @@
     </rundefinition>
 
     <resultfiles>**.graphml*</resultfiles>
-table
+
     <columns>
         <column title="time for safety analysis">Total time for safety analysis</column>
         <column title="time for lasso construction">Time for lassos construction</column>
