@@ -792,15 +792,13 @@ public class CFAUtils {
   }
 
   public static Iterable<AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
-    switch (edge.getEdgeType()) {
+    return switch (edge.getEdgeType()) {
       case CallToReturnEdge -> {
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
-        return ImmutableSet.of(fnSumEdge.getExpression());
+        yield ImmutableSet.of(fnSumEdge.getExpression());
       }
-      default -> {
-        return Optionals.asSet(edge.getRawAST());
-      }
-    }
+      default -> Optionals.asSet(edge.getRawAST());
+    };
   }
 
   /**

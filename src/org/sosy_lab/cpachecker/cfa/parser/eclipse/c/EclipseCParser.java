@@ -184,11 +184,10 @@ class EclipseCParser implements CParser {
     IASTDeclaration[] declarations = ast.getDeclarations();
     if (declarations == null
         || declarations.length != 1
-        || !(declarations[0] instanceof IASTFunctionDefinition)) {
+        || !(declarations[0] instanceof IASTFunctionDefinition func)) {
       throw new CParserException("Not a single function: " + ast.getRawSignature());
     }
 
-    IASTFunctionDefinition func = (IASTFunctionDefinition) declarations[0];
     IASTStatement body = func.getBody();
     if (!(body instanceof IASTCompoundStatement iASTCompoundStatement)) {
       throw new CParserException(

@@ -135,8 +135,8 @@ public class LocationState
           return locationNode.getFunctionName().equals(parts.get(1));
         }
         case "label" -> {
-          return locationNode instanceof CFALabelNode
-              ? ((CFALabelNode) locationNode).getLabel().equals(parts.get(1))
+          return locationNode instanceof CFALabelNode labelNode
+              ? labelNode.getLabel().equals(parts.get(1))
               : false;
         }
         case "nodenumber" -> {

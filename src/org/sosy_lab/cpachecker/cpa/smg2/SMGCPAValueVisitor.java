@@ -1188,7 +1188,7 @@ public class SMGCPAValueVisitor
             AddressExpression.of(value, e.getExpressionType(), new NumericValue(BigInteger.ZERO));
       }
 
-      if (!(value instanceof AddressExpression)) {
+      if (!(value instanceof AddressExpression pointerValue)) {
         // Non-pointer dereference, either numeric or symbolic
         Preconditions.checkArgument(
             (value.isNumericValue()
@@ -1202,8 +1202,6 @@ public class SMGCPAValueVisitor
                 cfaEdge));
         continue;
       }
-
-      AddressExpression pointerValue = (AddressExpression) value;
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();
@@ -2379,34 +2377,33 @@ public class SMGCPAValueVisitor
     }
 
     try {
-      switch (type.getType()) {
+      return switch (type.getType()) {
         case INT -> {
           // Both l and r must be of the same type, which in this case is INT, so we can cast to
           // long.
           long lVal = lNum.getNumber().longValue();
           long rVal = rNum.getNumber().longValue();
           long result = arithmeticOperation(lVal, rVal, op, calculationType);
-          return new NumericValue(result);
+          yield new NumericValue(result);
         }
         case INT128 -> {
           BigInteger lVal = lNum.bigIntegerValue();
           BigInteger rVal = rNum.bigIntegerValue();
           BigInteger result = arithmeticOperation(lVal, rVal, op);
-          return new NumericValue(result);
+          yield new NumericValue(result);
         }
-        case FLOAT, DOUBLE, FLOAT128 -> {
-          return new NumericValue(
-              arithmeticOperation(
-                  op,
-                  castToFloat(machineModel, type, lNum),
-                  castToFloat(machineModel, type, rNum)));
-        }
+        case FLOAT, DOUBLE, FLOAT128 ->
+            new NumericValue(
+                arithmeticOperation(
+                    op,
+                    castToFloat(machineModel, type, lNum),
+                    castToFloat(machineModel, type, rNum)));
         default -> {
           logger.logf(
               Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-          return Value.UnknownValue.getInstance();
+          yield Value.UnknownValue.getInstance();
         }
-      }
+      };
     } catch (ArithmeticException e) { // log warning and ignore expression
       logger.logf(
           Level.WARNING,
@@ -2616,13 +2613,12 @@ public class SMGCPAValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    switch (type.getType()) {
+    return switch (type.getType()) {
       case INT128, CHAR, INT -> {
         // TODO: test this in particular!
         BigInteger leftBigInt = l.bigIntegerValue();
         BigInteger rightBigInt = r.bigIntegerValue();
         final int cmp = leftBigInt.compareTo(rightBigInt);
-
         // returns True, iff cmp fulfills the boolean operation.
         boolean result =
             switch (op) {
@@ -2634,15 +2630,14 @@ public class SMGCPAValueVisitor
               case NOT_EQUALS -> cmp != 0;
               default -> throw new AssertionError("Unknown binary operation: " + op);
             };
-
         // return 1 if expression holds, 0 otherwise
-        return new NumericValue(result ? 1 : 0);
+        yield new NumericValue(result ? 1 : 0);
       }
       case FLOAT, DOUBLE, FLOAT128 -> {
         boolean result =
             comparisonOperation(
                 op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        return new NumericValue(result ? 1 : 0);
+        yield new NumericValue(result ? 1 : 0);
       }
       default -> {
         logger.logf(
@@ -2650,9 +2645,9 @@ public class SMGCPAValueVisitor
             "unsupported type %s for result of binary operation %s",
             type.toString(),
             op);
-        return Value.UnknownValue.getInstance();
+        yield Value.UnknownValue.getInstance();
       }
-    }
+    };
   }
 
   /**

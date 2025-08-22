@@ -78,23 +78,28 @@ public final class CFAEdgeUtils {
   }
 
   public static CRightHandSide getRightHandSide(CFAEdge pEdge) {
-    if (pEdge instanceof CDeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+    switch (pEdge) {
+      case CDeclarationEdge declarationEdge -> {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
 
-        CInitializer initializer = variableDeclaration.getInitializer();
-        if (initializer instanceof CInitializerExpression cInitializerExpression) {
-          return cInitializerExpression.getExpression();
+          CInitializer initializer = variableDeclaration.getInitializer();
+          if (initializer instanceof CInitializerExpression cInitializerExpression) {
+            return cInitializerExpression.getExpression();
+          }
         }
       }
-    } else if (pEdge instanceof CStatementEdge statementEdge) {
-      if (statementEdge.getStatement() instanceof CAssignment assignment) {
-        return assignment.getRightHandSide();
+      case CStatementEdge statementEdge -> {
+        if (statementEdge.getStatement() instanceof CAssignment assignment) {
+          return assignment.getRightHandSide();
+        }
       }
-    } else if (pEdge instanceof CFunctionCallEdge functionCallEdge) {
-      CFunctionCall functionCall = functionCallEdge.getFunctionCall();
-      if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
-        return assignment.getRightHandSide();
+      case CFunctionCallEdge functionCallEdge -> {
+        CFunctionCall functionCall = functionCallEdge.getFunctionCall();
+        if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
+          return assignment.getRightHandSide();
+        }
       }
+      case null /*TODO check if null is necessary*/, default -> {}
     }
     return null;
   }

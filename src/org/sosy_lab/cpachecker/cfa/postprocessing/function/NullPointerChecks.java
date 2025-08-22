@@ -145,36 +145,43 @@ public class NullPointerChecks {
       CFAEdge edge, MutableCFA cfa, Supplier<CFANode> targetNode, CBinaryExpressionBuilder builder)
       throws CParserException {
     ContainsPointerVisitor visitor = new ContainsPointerVisitor();
-    if (edge instanceof CReturnStatementEdge) {
-      Optional<CExpression> returnExp = ((CReturnStatementEdge) edge).getExpression();
-      if (returnExp.isPresent()) {
-        returnExp.orElseThrow().accept(visitor);
-      }
-    } else if (edge instanceof CStatementEdge) {
-      CStatement stmt = ((CStatementEdge) edge).getStatement();
-      if (stmt instanceof CFunctionCallStatement cFunctionCallStatement) {
-        cFunctionCallStatement.getFunctionCallExpression().accept(visitor);
-      } else if (stmt instanceof CExpressionStatement cExpressionStatement) {
-        cExpressionStatement.getExpression().accept(visitor);
-      } else if (stmt instanceof CAssignment cAssignment) {
-        cAssignment.getRightHandSide().accept(visitor);
-        cAssignment.getLeftHandSide().accept(visitor);
-      }
-    } else if (edge instanceof CDeclarationEdge) {
-      CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-      if (!decl.isGlobal() && decl instanceof CVariableDeclaration cVariableDeclaration) {
-        try {
-          for (CAssignment assignment :
-              CInitializers.convertToAssignments(cVariableDeclaration, edge)) {
-            // left-hand side can be ignored (it is the currently declared variable
-            assignment.getRightHandSide().accept(visitor);
-          }
-        } catch (UnrecognizedCodeException e) {
-          throw new CParserException(e);
+    switch (edge) {
+      case CReturnStatementEdge returnEdge -> {
+        Optional<CExpression> returnExp = returnEdge.getExpression();
+        if (returnExp.isPresent()) {
+          returnExp.orElseThrow().accept(visitor);
         }
       }
-    } else if (edge instanceof CAssumeEdge) {
-      ((CAssumeEdge) edge).getExpression().accept(visitor);
+      case CStatementEdge stmtEdge -> {
+        CStatement stmt = stmtEdge.getStatement();
+        switch (stmt) {
+          case CFunctionCallStatement cFunctionCallStatement ->
+              cFunctionCallStatement.getFunctionCallExpression().accept(visitor);
+          case CExpressionStatement cExpressionStatement ->
+              cExpressionStatement.getExpression().accept(visitor);
+          case CAssignment cAssignment -> {
+            cAssignment.getRightHandSide().accept(visitor);
+            cAssignment.getLeftHandSide().accept(visitor);
+          }
+          default -> {}
+        }
+      }
+      case CDeclarationEdge declEdge -> {
+        CDeclaration decl = declEdge.getDeclaration();
+        if (!decl.isGlobal() && decl instanceof CVariableDeclaration cVariableDeclaration) {
+          try {
+            for (CAssignment assignment :
+                CInitializers.convertToAssignments(cVariableDeclaration, edge)) {
+              // left-hand side can be ignored (it is the currently declared variable
+              assignment.getRightHandSide().accept(visitor);
+            }
+          } catch (UnrecognizedCodeException e) {
+            throw new CParserException(e);
+          }
+        }
+      }
+      case CAssumeEdge assumeEdge -> assumeEdge.getExpression().accept(visitor);
+      default -> {}
     }
 
     for (CExpression exp : visitor.dereferencedExpressions.reversed()) {

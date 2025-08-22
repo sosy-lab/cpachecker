@@ -547,20 +547,14 @@ public class FormulaManagerView {
 
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNegate(T pNum) {
-    Formula t;
-    if (pNum instanceof IntegerFormula num) {
-      t = getIntegerFormulaManager().negate(num);
-    } else if (pNum instanceof RationalFormula num) {
-      t = getRationalFormulaManager().negate(num);
-    } else if (pNum instanceof BitvectorFormula num) {
-      t = getBitvectorFormulaManager().negate(num);
-    } else if (pNum instanceof FloatingPointFormula num) {
-      t = getFloatingPointFormulaManager().negate(num);
-    } else {
-      throw new IllegalArgumentException("Not supported interface");
-    }
-
-    return (T) t;
+    return (T)
+        switch (pNum) {
+          case IntegerFormula num -> getIntegerFormulaManager().negate(num);
+          case RationalFormula num -> getRationalFormulaManager().negate(num);
+          case BitvectorFormula num -> getBitvectorFormulaManager().negate(num);
+          case FloatingPointFormula num -> getFloatingPointFormulaManager().negate(num);
+          default -> throw new IllegalArgumentException("Not supported interface");
+        };
   }
 
   @SuppressWarnings("unchecked")

@@ -95,25 +95,24 @@ class ASTLiteralConverter {
             type.hasComplexSpecifier(),
             true,
             type.hasLongLongSpecifier());
-    switch (exp.getKind()) {
-      case IASTLiteralExpression.lk_char_constant -> {
-        return new CImaginaryLiteralExpression(
-            fileLoc,
-            type,
-            new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp)));
-      }
+    return switch (exp.getKind()) {
+      case IASTLiteralExpression.lk_char_constant ->
+          new CImaginaryLiteralExpression(
+              fileLoc,
+              type,
+              new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp)));
       case IASTLiteralExpression.lk_integer_constant -> {
         CLiteralExpression intLiteralExp = parseIntegerLiteral(fileLoc, valueStr, exp);
-        return new CImaginaryLiteralExpression(
+        yield new CImaginaryLiteralExpression(
             fileLoc, intLiteralExp.getExpressionType(), intLiteralExp);
       }
       case IASTLiteralExpression.lk_float_constant -> {
         CLiteralExpression floatLiteralExp = parseFloatLiteral(fileLoc, type, valueStr, exp);
-        return new CImaginaryLiteralExpression(
+        yield new CImaginaryLiteralExpression(
             fileLoc, floatLiteralExp.getExpressionType(), floatLiteralExp);
       }
       default -> throw parseContext.parseError("Unknown imaginary literal", exp);
-    }
+    };
   }
 
   @VisibleForTesting

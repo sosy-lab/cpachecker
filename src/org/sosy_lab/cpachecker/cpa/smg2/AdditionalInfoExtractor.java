@@ -119,21 +119,25 @@ public class AdditionalInfoExtractor {
   }
 
   private boolean containsInvalidElement(SMGState pSMGState, Object elem) {
-    if (elem instanceof SMGObject smgObject) {
-      return pSMGState.getMemoryModel().isHeapObject(smgObject)
-          || pSMGState.getMemoryModel().getGlobalVariableToSmgObjectMap().containsValue(smgObject)
-          || pSMGState.isSMGObjectAStackVariable(smgObject);
-    } else if (elem instanceof SMGHasValueEdge hasValueEdge) {
-      return pSMGState.getMemoryModel().getSmg().getHVEdges().contains(hasValueEdge);
-    } else if (elem instanceof SMGPointsToEdge pointsToEdge) {
-      return pSMGState.getMemoryModel().getSmg().getPTEdges().contains(pointsToEdge);
-    } else if (elem instanceof SMGValue smgValue) {
-      return pSMGState.getMemoryModel().getSmg().getValues().containsKey(smgValue);
-    } else if (elem instanceof Value value) {
-      return pSMGState.getMemoryModel().getSMGValueFromValue(value).isPresent()
-          && containsInvalidElement(
-              pSMGState, pSMGState.getMemoryModel().getSMGValueFromValue(value));
-    }
-    return false;
+    return switch (elem) {
+      case SMGObject smgObject ->
+          pSMGState.getMemoryModel().isHeapObject(smgObject)
+              || pSMGState
+                  .getMemoryModel()
+                  .getGlobalVariableToSmgObjectMap()
+                  .containsValue(smgObject)
+              || pSMGState.isSMGObjectAStackVariable(smgObject);
+      case SMGHasValueEdge hasValueEdge ->
+          pSMGState.getMemoryModel().getSmg().getHVEdges().contains(hasValueEdge);
+      case SMGPointsToEdge pointsToEdge ->
+          pSMGState.getMemoryModel().getSmg().getPTEdges().contains(pointsToEdge);
+      case SMGValue smgValue ->
+          pSMGState.getMemoryModel().getSmg().getValues().containsKey(smgValue);
+      case Value value ->
+          pSMGState.getMemoryModel().getSMGValueFromValue(value).isPresent()
+              && containsInvalidElement(
+                  pSMGState, pSMGState.getMemoryModel().getSMGValueFromValue(value));
+      case null /*TODO check if null is necessary*/, default -> false;
+    };
   }
 }
