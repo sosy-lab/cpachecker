@@ -21,7 +21,7 @@ public final class CPointerType implements CType {
   public static final CPointerType POINTER_TO_CHAR =
       new CPointerType(false, false, CNumericTypes.CHAR);
   public static final CPointerType POINTER_TO_CONST_CHAR =
-      new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false));
+      new CPointerType(false, false, CNumericTypes.CHAR.withConst());
 
   private final CType type;
   private final boolean isConst;
