@@ -45,8 +45,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
@@ -76,8 +80,8 @@ public class MPORSubstitution {
       localSubstitutes;
 
   /**
-   * The map of parameter to variable declaration substitutes. {@link Optional#empty()} if this
-   * instance serves as a dummy.
+   * The map of parameter to variable declaration substitutes. The {@link ThreadEdge}s allow
+   * call-context sensitive parameter substitutes.
    */
   public final ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
       parameterSubstitutes;
@@ -128,12 +132,15 @@ public class MPORSubstitution {
       CIdExpression pIdExpression,
       boolean pIsWrite,
       boolean pIsPointerDereference,
+      boolean pIsFieldReference,
       Optional<MPORSubstitutionTracker> pTracker) {
 
     // writing pointers (aliasing) may not be allowed -> reject program
     InputRejection.checkPointerWrite(pIsWrite, options, pIdExpression, logger);
 
-    if (pTracker.isEmpty()) {
+    // exclude field references, we track field members separately. field owner is tracked via the
+    // CIdExpression, e.g. if we assign struct_a = struct_b without any field reference.
+    if (pTracker.isEmpty() || pIsFieldReference) {
       return;
     }
     // otherwise, if applicable, add declaration to global reads/writes
@@ -237,6 +244,55 @@ public class MPORSubstitution {
     }
   }
 
+  private void trackFieldReference(
+      CFieldReference pFieldReference,
+      boolean pIsWrite,
+      Optional<MPORSubstitutionTracker> pTracker) {
+
+    if (pTracker.isEmpty()) {
+      return;
+    }
+    // TODO distinguish idExpression.declaration -> is parameter / variable?
+    // CIdExpression is e.g. 'queue' in 'queue->amount'
+    if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
+      // TODO add different sets in tracker for pointer derefs vs. variables?
+      // typedef is e.g. 'QType' or for pointers 'QType*'
+      if (idExpression.getExpressionType() instanceof CTypedefType typedefType) {
+        trackFieldReferenceByTypedefType(
+            pFieldReference, typedefType, pIsWrite, pTracker.orElseThrow());
+
+      } else if (idExpression.getExpressionType() instanceof CPointerType pointerType) {
+        if (pointerType.getType() instanceof CTypedefType typedefType) {
+          trackFieldReferenceByTypedefType(
+              pFieldReference, typedefType, pIsWrite, pTracker.orElseThrow());
+        }
+      }
+    }
+  }
+
+  private void trackFieldReferenceByTypedefType(
+      CFieldReference pFieldReference,
+      CTypedefType pTypedefType,
+      boolean pIsWrite,
+      MPORSubstitutionTracker pTracker) {
+
+    // elaborated type is e.g. struct __anon_type_QType
+    if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
+      // composite type contains the composite type members, e.g. 'amount'
+      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
+        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
+            // TODO need tracking based on declaration so that we map field declaration -> member
+            if (pIsWrite) {
+              pTracker.addWrittenFieldMember(memberDeclaration);
+            }
+            pTracker.addAccessedFieldMember(memberDeclaration);
+          }
+        }
+      }
+    }
+  }
+
   // Substitute Functions ==========================================================================
 
   /**
@@ -249,6 +305,7 @@ public class MPORSubstitution {
       final Optional<ThreadEdge> pCallContext,
       boolean pIsWrite,
       boolean pIsPointerDereference,
+      boolean pIsFieldReference,
       boolean pIsUnaryAmper,
       Optional<MPORSubstitutionTracker> pTracker) {
 
@@ -265,7 +322,8 @@ public class MPORSubstitution {
     if (pExpression instanceof CIdExpression idExpression) {
       CSimpleDeclaration declaration = idExpression.getDeclaration();
       if (isSubstitutable(declaration)) {
-        trackGlobalVariableAccesses(idExpression, pIsWrite, pIsPointerDereference, pTracker);
+        trackGlobalVariableAccesses(
+            idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
         return getVariableSubstitute(idExpression.getDeclaration(), pCallContext, pTracker);
       }
       // when accessing function pointers e.g. &func. this is also possible without the unary amper
@@ -287,6 +345,7 @@ public class MPORSubstitution {
               // binary expressions are never LHS in assignments -> no write
               false,
               false,
+              false,
               pIsUnaryAmper,
               pTracker);
       CExpression op2 =
@@ -294,6 +353,7 @@ public class MPORSubstitution {
               binary.getOperand2(),
               pCallContext,
               // binary expressions are never LHS in assignments -> no write
+              false,
               false,
               false,
               pIsUnaryAmper,
@@ -312,10 +372,11 @@ public class MPORSubstitution {
       CExpression arrayExpression = arraySubscript.getArrayExpression();
       CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
       CExpression arraySubstitute =
-          substitute(arrayExpression, pCallContext, true, false, pIsUnaryAmper, pTracker);
+          substitute(arrayExpression, pCallContext, true, false, false, pIsUnaryAmper, pTracker);
       // the subscript is not a LHS in an assignment -> no write
       CExpression subscriptSubstitute =
-          substitute(subscriptExpression, pCallContext, false, false, pIsUnaryAmper, pTracker);
+          substitute(
+              subscriptExpression, pCallContext, false, false, false, pIsUnaryAmper, pTracker);
       // only create a new expression if any expr was substituted (compare references)
       if (arraySubstitute != arrayExpression || subscriptSubstitute != subscriptExpression) {
         return new CArraySubscriptExpression(
@@ -323,12 +384,16 @@ public class MPORSubstitution {
       }
 
     } else if (pExpression instanceof CFieldReference fieldReference) {
+      trackFieldReference(fieldReference, pIsWrite, pTracker);
       CExpression fieldOwnerSubstitute =
           substitute(
               fieldReference.getFieldOwner(),
               pCallContext,
               pIsWrite,
-              pIsPointerDereference,
+              // field->member <==> (*field).member, i.e. pIsPointerDereference may be false here,
+              // but the field reference may actually be a pointer dereference
+              fieldReference.isPointerDereference(),
+              true,
               pIsUnaryAmper,
               pTracker);
       // only create a new expression if any expr was substituted (compare references)
@@ -351,6 +416,7 @@ public class MPORSubstitution {
               // unary expressions such as '&var' are never LHS in assignments -> no write
               false,
               false,
+              false,
               unary.getOperator().equals(UnaryOperator.AMPER),
               pTracker),
           unary.getOperator());
@@ -360,7 +426,8 @@ public class MPORSubstitution {
       return new CPointerExpression(
           pointer.getFileLocation(),
           pointer.getExpressionType(),
-          substitute(pointer.getOperand(), pCallContext, pIsWrite, true, pIsUnaryAmper, pTracker));
+          substitute(
+              pointer.getOperand(), pCallContext, pIsWrite, true, false, pIsUnaryAmper, pTracker));
 
     } else if (pExpression instanceof CCastExpression cast) {
       return new CCastExpression(
@@ -372,6 +439,7 @@ public class MPORSubstitution {
               // cast expressions are never LHS -> no write
               pIsWrite,
               pIsPointerDereference,
+              false,
               pIsUnaryAmper,
               pTracker));
     }
@@ -390,9 +458,10 @@ public class MPORSubstitution {
     if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
       CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
       CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
+      // TODO need CFieldReference, CPointerExpression, ... here too
       if (leftHandSide instanceof CIdExpression idExpression) {
         CExpression substitute =
-            substitute(idExpression, pCallContext, false, false, false, pTracker);
+            substitute(idExpression, pCallContext, false, false, false, false, pTracker);
         if (substitute instanceof CIdExpression idExpressionSubstitute) {
           return new CFunctionCallAssignmentStatement(
               fileLocation,
@@ -401,7 +470,8 @@ public class MPORSubstitution {
         }
       } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
         CExpression substitute =
-            substitute(arraySubscriptExpression, pCallContext, false, false, false, pTracker);
+            substitute(
+                arraySubscriptExpression, pCallContext, false, false, false, false, pTracker);
         if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
           return new CFunctionCallAssignmentStatement(
               fileLocation,
@@ -421,19 +491,21 @@ public class MPORSubstitution {
       trackPointerAssignment(assignment, pTracker);
       CLeftHandSide leftHandSide = assignment.getLeftHandSide();
       CExpression rightHandSide = assignment.getRightHandSide();
-      CExpression substitute = substitute(leftHandSide, pCallContext, true, false, false, pTracker);
+      CExpression substitute =
+          substitute(leftHandSide, pCallContext, true, false, false, false, pTracker);
       if (substitute instanceof CLeftHandSide leftHandSideSubstitute) {
         return new CExpressionAssignmentStatement(
             fileLocation,
             leftHandSideSubstitute,
             // for the RHS, it's not a left hand side of an assignment
-            substitute(rightHandSide, pCallContext, false, false, false, pTracker));
+            substitute(rightHandSide, pCallContext, false, false, false, false, pTracker));
       }
 
     } else if (pStatement instanceof CExpressionStatement expression) {
       return new CExpressionStatement(
           fileLocation,
-          substitute(expression.getExpression(), pCallContext, false, false, false, pTracker));
+          substitute(
+              expression.getExpression(), pCallContext, false, false, false, false, pTracker));
     }
 
     return pStatement;
@@ -447,7 +519,7 @@ public class MPORSubstitution {
     // substitute all parameters in the function call expression
     List<CExpression> parameters = new ArrayList<>();
     for (CExpression expression : pFunctionCallExpression.getParameterExpressions()) {
-      parameters.add(substitute(expression, pCallContext, false, false, false, pTracker));
+      parameters.add(substitute(expression, pCallContext, false, false, false, false, pTracker));
     }
     // substitute the function name in case it is a variable storing a function pointer
     // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
@@ -456,6 +528,7 @@ public class MPORSubstitution {
         substitute(
             pFunctionCallExpression.getFunctionNameExpression(),
             pCallContext,
+            false,
             false,
             false,
             false,
@@ -481,7 +554,7 @@ public class MPORSubstitution {
       // TODO it would be cleaner to also substitute the assignment...
       return new CReturnStatement(
           pReturnStatement.getFileLocation(),
-          Optional.of(substitute(expression, pCallContext, false, false, false, pTracker)),
+          Optional.of(substitute(expression, pCallContext, false, false, false, false, pTracker)),
           pReturnStatement.asAssignment());
     }
   }

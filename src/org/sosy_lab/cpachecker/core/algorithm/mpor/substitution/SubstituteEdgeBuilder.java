@@ -95,7 +95,13 @@ public class SubstituteEdgeBuilder {
       MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
       CExpression substituteAssumption =
           pSubstitution.substitute(
-              assume.getExpression(), callContext, false, false, false, Optional.of(tracker));
+              assume.getExpression(),
+              callContext,
+              false,
+              false,
+              false,
+              false,
+              Optional.of(tracker));
       CAssumeEdge substituteAssumeEdge = substituteAssumeEdge(assume, substituteAssumption);
       return Optional.of(SubstituteEdge.of(substituteAssumeEdge, pThreadEdge, tracker));
 

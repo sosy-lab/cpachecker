@@ -32,6 +32,7 @@ int __VERIFIER_nondet_int();
 int stored_elements[SIZE];
 _Bool enqueue_flag, dequeue_flag;
 QType queue;
+typedef struct {} Empty;
 
 void init(QType *q)
 {

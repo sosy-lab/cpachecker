@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 
 /**
  * A class to track certain expressions, statements, ... (such as pointer dereferences and global
@@ -37,8 +38,12 @@ public class MPORSubstitutionTracker {
    */
   private final Set<CParameterDeclaration> accessedMainFunctionArgs;
 
+  // POINTER ASSIGNMENTS ===========================================================================
+
   /** Pointer assignments updates to the address. */
   private final Map<CVariableDeclaration, CSimpleDeclaration> pointerAssignments;
+
+  // POINTER DEREFERENCES ==========================================================================
 
   /**
    * Accessed pointer dereferences e.g. of the form {@code x = *ptr;}. Contains both reads and
@@ -52,6 +57,8 @@ public class MPORSubstitutionTracker {
   /** Written pointer dereferences e.g. of the form {@code *ptr = x;}. */
   private final Set<CSimpleDeclaration> writtenPointerDereferences;
 
+  // GLOBAL VARIABLES ==============================================================================
+
   /**
    * Accessed global variables e.g. of the form {@code x++;} where {@code x} is a global variable.
    * Contains both reads and writes.
@@ -64,6 +71,22 @@ public class MPORSubstitutionTracker {
   /** Written global variables e.g. of the form {@code x = 42;}. */
   private final Set<CVariableDeclaration> writtenGlobalVariables;
 
+  // FIELD MEMBERS =================================================================================
+
+  /**
+   * Accessed field members e.g. of the form {@code field->member++;} where {@code field} is a
+   * struct. Contains both reads and writes.
+   */
+  private final Set<CCompositeTypeMemberDeclaration> accessedFieldMembers;
+
+  /** Read field members e.g. of the form {@code if (field->member == 0) ...}. */
+  private final Set<CCompositeTypeMemberDeclaration> readFieldMembers;
+
+  /** Written field members e.g. of the form {@code field->member = 42;}. */
+  private final Set<CCompositeTypeMemberDeclaration> writtenFieldMembers;
+
+  // FUNCTION POINTERS =============================================================================
+
   /** All accessed function pointers. */
   private final Set<CFunctionDeclaration> accessedFunctionPointers;
 
@@ -71,12 +94,20 @@ public class MPORSubstitutionTracker {
     isImmutable = false;
     accessedMainFunctionArgs = new HashSet<>();
     pointerAssignments = new HashMap<>();
+
     accessedPointerDereferences = new HashSet<>();
-    readPointerDereferences = new HashSet<>();
+    readPointerDereferences = ImmutableSet.of();
     writtenPointerDereferences = new HashSet<>();
+
     accessedGlobalVariables = new HashSet<>();
-    readGlobalVariables = new HashSet<>();
+    readGlobalVariables = ImmutableSet.of();
+    ;
     writtenGlobalVariables = new HashSet<>();
+
+    accessedFieldMembers = new HashSet<>();
+    readFieldMembers = ImmutableSet.of();
+    writtenFieldMembers = new HashSet<>();
+
     accessedFunctionPointers = new HashSet<>();
   }
 
@@ -87,12 +118,12 @@ public class MPORSubstitutionTracker {
       ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
+      ImmutableSet<CCompositeTypeMemberDeclaration> pAccessedFieldMembers,
+      ImmutableSet<CCompositeTypeMemberDeclaration> pWrittenFieldMembers,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
 
     isImmutable = true;
-
     accessedMainFunctionArgs = pAccessedMainFunctionArgs;
-
     pointerAssignments = pPointerAssignments;
 
     accessedPointerDereferences = pAccessedPointerDereferences;
@@ -105,6 +136,11 @@ public class MPORSubstitutionTracker {
     writtenGlobalVariables = pWrittenGlobalVariables;
     readGlobalVariables =
         Sets.symmetricDifference(writtenGlobalVariables, accessedGlobalVariables).immutableCopy();
+
+    accessedFieldMembers = pAccessedFieldMembers;
+    writtenFieldMembers = pWrittenFieldMembers;
+    readFieldMembers =
+        Sets.symmetricDifference(accessedFieldMembers, writtenFieldMembers).immutableCopy();
 
     accessedFunctionPointers = pAccessedFunctionPointers;
   }
@@ -121,6 +157,8 @@ public class MPORSubstitutionTracker {
         ImmutableSet.copyOf(writtenPointerDereferences),
         ImmutableSet.copyOf(accessedGlobalVariables),
         ImmutableSet.copyOf(writtenGlobalVariables),
+        ImmutableSet.copyOf(accessedFieldMembers),
+        ImmutableSet.copyOf(writtenFieldMembers),
         ImmutableSet.copyOf(accessedFunctionPointers));
   }
 
@@ -153,6 +191,14 @@ public class MPORSubstitutionTracker {
 
   public void addAccessedGlobalVariable(CVariableDeclaration pAccessedGlobalVariable) {
     accessedGlobalVariables.add(pAccessedGlobalVariable);
+  }
+
+  public void addWrittenFieldMember(CCompositeTypeMemberDeclaration pWrittenFieldMember) {
+    writtenFieldMembers.add(pWrittenFieldMember);
+  }
+
+  public void addAccessedFieldMember(CCompositeTypeMemberDeclaration pAccessedFieldMember) {
+    accessedFieldMembers.add(pAccessedFieldMember);
   }
 
   public void addAccessedFunctionPointer(CFunctionDeclaration pAccessedFunctionPointer) {
@@ -220,6 +266,30 @@ public class MPORSubstitutionTracker {
       return immutableSet;
     }
     return ImmutableSet.copyOf(writtenGlobalVariables);
+  }
+
+  // field members
+
+  public ImmutableSet<CCompositeTypeMemberDeclaration> getAccessedFieldMembers() {
+    if (accessedFieldMembers
+        instanceof ImmutableSet<CCompositeTypeMemberDeclaration> immutableSet) {
+      return immutableSet;
+    }
+    return ImmutableSet.copyOf(accessedFieldMembers);
+  }
+
+  public ImmutableSet<CCompositeTypeMemberDeclaration> getReadFieldMembers() {
+    if (readFieldMembers instanceof ImmutableSet<CCompositeTypeMemberDeclaration> immutableSet) {
+      return immutableSet;
+    }
+    return ImmutableSet.copyOf(readFieldMembers);
+  }
+
+  public ImmutableSet<CCompositeTypeMemberDeclaration> getWrittenFieldMembers() {
+    if (writtenFieldMembers instanceof ImmutableSet<CCompositeTypeMemberDeclaration> immutableSet) {
+      return immutableSet;
+    }
+    return ImmutableSet.copyOf(writtenFieldMembers);
   }
 
   // function pointers
