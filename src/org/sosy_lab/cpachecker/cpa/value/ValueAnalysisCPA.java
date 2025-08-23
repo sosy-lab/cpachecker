@@ -104,6 +104,10 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
+  @Option(secure = true, description = "get an initial precision from a witness file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialWitnessPrecisionFile = null;
+
   @Option(
       secure = true,
       name = "unknownValueHandling",
@@ -172,7 +176,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException {
-    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
+    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null && initialWitnessPrecisionFile == null) {
       return VariableTrackingPrecision.createStaticPrecision(
           pConfig, pCfa.getVarClassification(), getClass());
     }
@@ -198,6 +202,20 @@ public class ValueAnalysisCPA extends AbstractCPA
       // create precision with empty, refinable component precision
       // refine the refinable component precision with increment from file
       initialPrecision = initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
+    }
+    if (initialWitnessPrecisionFile != null) {
+      // convert the witness file to variable tracking precision
+      try {
+        WitnessToValuePrecisionConverter witnessConverter = 
+            new WitnessToValuePrecisionConverter(pConfig, logger, shutdownNotifier, pCfa);
+        initialPrecision = initialPrecision.withIncrement(
+            witnessConverter.convertWitnessToPrecision(initialWitnessPrecisionFile));
+      } catch (Exception e) {
+        logger.logException(Level.SEVERE, e, "Failed to convert witness file to precision");
+        // If witness conversion fails, execution should stop instead of continuing.
+        throw new InvalidConfigurationException("Cannot initialize precision from witness file: " + 
+            initialWitnessPrecisionFile + ". " + e.getMessage(), e);
+      }
     }
 
     return initialPrecision;
@@ -242,6 +260,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null
         && initialPredicatePrecisionFile == null
+        && initialWitnessPrecisionFile == null
         && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;

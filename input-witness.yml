@@ -1,0 +1,27 @@
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.0"
+    uuid: "075286f7-b484-38f5-baa0-ebd8478abde5"
+    creation_time: "2025-08-06T22:57:58+02:00"
+    producer:
+      name: "CPAchecker"
+      version: "4.0-1839-g6e6866627e+"
+      configuration: "valueAnalysis"
+    task:
+      input_files:
+      - "doc\\examples\\example.c"
+      input_file_hashes:
+        doc\examples\example.c: "0cc2dab6b579e3b2d26c55a8d29286e42ce5be7dde3f57468e8099c35f504494"
+      specification: ""
+      data_model: "ILP32"
+      language: "C"
+  content:
+  - invariant:
+      type: "loop_invariant"
+      location:
+        file_name: "doc\\examples\\example.c"
+        line: 13
+        column: 3
+        function: "main"
+      value: "(a == (1) && i == (1)) || (a == (0) && i == (0)) || (a == (13) && i == (13)) || (a == (2) && i == (2)) || (a == (7) && i == (7)) || (a == (18) && i == (18)) || (a == (9) && i == (9)) || (a == (17) && i == (17)) || (a == (19) && i == (19)) || (a == (15) && i == (15)) || (a == (11) && i == (11)) || (a == (10) && i == (10)) || (a == (14) && i == (14)) || (a == (20) && i == (20)) || (a == (6) && i == (6)) || (a == (12) && i == (12)) || (a == (3) && i == (3)) || (a == (8) && i == (8)) || (a == (16) && i == (16)) || (a == (4) && i == (4)) || (a == (5) && i == (5))"
+      format: "c_expression"

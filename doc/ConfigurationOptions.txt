@@ -62,7 +62,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Bitwuzla in addition to the default options. Format: 
-# "option_name=value" with â€™,â€™ to separate options. Option names and values
+# "option_name=value" with ¡¯,¡¯ to separate options. Option names and values
 # can be found in the Bitwuzla documentation online:
 # https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionE
 # Example: "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
@@ -73,7 +73,7 @@ solver.bitwuzla.satSolver = CADICAL
   enum:     [LINGELING, CMS, CADICAL, KISSAT]
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with â€™,â€™ to separate options. Option names and values
+# "Optionname=value" with ¡¯,¡¯ to separate options. Option names and values
 # can be found in BtorOption or Boolector C Api. Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -210,7 +210,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 UniversitÃ© Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Universit¨¦ Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -3840,6 +3840,9 @@ cpa.value.initialPrecisionFile = no default value
 # get an initial precision from a predicate precision file
 cpa.value.initialPredicatePrecisionFile = no default value
 
+# get an initial precision from a witness file
+cpa.value.initialWitnessPrecisionFile = no default value
+
 # apply optimizations based on equality of input interpolant and candidate
 # interpolant
 cpa.value.interpolation.applyItpEqualityOptimization = true
@@ -4044,6 +4047,37 @@ cpa.value.trackJavaArrayValues = true
 # Tells the value analysis how to handle unknown values.
 cpa.value.unknownValueHandling = DISCARD
   enum:     [DISCARD, INTRODUCE_SYMBOLIC]
+
+# Enable variable-set expansion via program analysis
+cpa.value.witness.precision.adapt = true
+
+# Add guard variables of conditionals that control execution of relevant
+# assignments
+cpa.value.witness.precision.controlDep = false
+
+# Overall timelimit for computing initial value precision from witness
+cpa.value.witness.precision.conversionLimit = 0ns
+
+# Add variables that define or use already tracked variables (DEF/USE
+# dependencies)
+cpa.value.witness.precision.dataDep = true
+
+# Disable witness export to prevent overwriting the input witness file
+cpa.value.witness.precision.disableWitnessExport = true
+
+# Force preservation of witness-derived precision even in CEGAR
+# configurations
+cpa.value.witness.precision.forcePrecisionPreservation = true
+
+# Include variables from inequality conditions
+cpa.value.witness.precision.ineq = false
+
+# Add variables that can be computed solely from already tracked ones
+cpa.value.witness.precision.knownDefs = false
+
+# Strategy for witness-based precision computation
+cpa.value.witness.precision.strategy = INVARIANT_BASED
+  enum:     [INVARIANT_BASED, LOCATION_SENSITIVE, FUNCTION_SCOPED]
 
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
