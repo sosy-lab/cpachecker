@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -52,7 +51,7 @@ public class ConflictResolver {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    if (pBitVectorVariables.getNumGlobalVariables() == 0) {
+    if (pBitVectorVariables.getNumMemoryLocations() == 0) {
       pLogger.log(
           Level.INFO,
           "conflictReduction is enabled, but the program does not contain any global variables.");
@@ -337,14 +336,14 @@ public class ConflictResolver {
           BitVectorAccessType pAccessType) {
 
     ImmutableList.Builder<CExpressionAssignmentStatement> rUpdates = ImmutableList.builder();
-    ImmutableMap<CVariableDeclaration, LastSparseBitVector> lastSparseBitVectors =
+    ImmutableMap<MemoryLocation, LastSparseBitVector> lastSparseBitVectors =
         pBitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
-    ImmutableMap<CVariableDeclaration, SparseBitVector> sparseBitVectors =
+    ImmutableMap<MemoryLocation, SparseBitVector> sparseBitVectors =
         pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (var entry : sparseBitVectors.entrySet()) {
       for (var innerEntry : entry.getValue().variables.entrySet()) {
         if (innerEntry.getKey().equals(pActiveThread)) {
-          CVariableDeclaration variableDeclaration = entry.getKey();
+          MemoryLocation variableDeclaration = entry.getKey();
           LastSparseBitVector lastSparseBitVector = lastSparseBitVectors.get(variableDeclaration);
           assert lastSparseBitVector != null;
           CIdExpression rightHandSide = innerEntry.getValue();

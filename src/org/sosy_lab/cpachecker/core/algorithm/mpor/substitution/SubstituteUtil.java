@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -74,13 +75,17 @@ public class SubstituteUtil {
     return false;
   }
 
-  public static ImmutableList<CVariableDeclaration> getAllGlobalVariables(
+  public static ImmutableList<MemoryLocation> getAllMemoryLocations(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    return pSubstituteEdges.stream()
-        .flatMap(s -> s.accessedGlobalVariables.stream())
-        .distinct() // ensure that each variable present only once
-        .collect(ImmutableList.toImmutableList());
+    ImmutableList.Builder<MemoryLocation> rMemoryLocations = ImmutableList.builder();
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+      // TODO handle fieldOwner/member here too
+      for (CVariableDeclaration variableDeclaration : substituteEdge.accessedGlobalVariables) {
+        rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
+      }
+    }
+    return rMemoryLocations.build();
   }
 
   // Pointer Assignments ===========================================================================

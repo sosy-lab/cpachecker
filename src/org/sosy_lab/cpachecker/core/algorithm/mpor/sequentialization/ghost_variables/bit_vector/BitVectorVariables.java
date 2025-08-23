@@ -12,14 +12,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorVariables {
 
-  private final int numGlobalVariables;
+  private final int numMemoryLocations;
 
-  private final ImmutableMap<CVariableDeclaration, Integer> globalVariableIds;
+  private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
 
   private final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
 
@@ -27,37 +27,36 @@ public class BitVectorVariables {
 
   private final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
 
-  private final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>>
-      sparseAccessBitVectors;
+  private final Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseAccessBitVectors;
 
-  private final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseWriteBitVectors;
+  private final Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseWriteBitVectors;
 
   private final Optional<LastDenseBitVector> lastDenseAccessBitVector;
 
   private final Optional<LastDenseBitVector> lastDenseWriteBitVector;
 
-  private final Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>>
+  private final Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
       lastSparseAccessBitVector;
 
-  private final Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>>
+  private final Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
       lastSparseWriteBitVector;
 
   // TODO last sparse access/write bit vectors
 
   public BitVectorVariables(
-      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
+      ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
       Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
-      Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseAccessBitVectors,
-      Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseWriteBitVectors,
+      Optional<ImmutableMap<MemoryLocation, SparseBitVector>> pSparseAccessBitVectors,
+      Optional<ImmutableMap<MemoryLocation, SparseBitVector>> pSparseWriteBitVectors,
       Optional<LastDenseBitVector> pLastDenseAccessBitVector,
       Optional<LastDenseBitVector> pLastDenseWriteBitVector,
-      Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>> pLastSparseAccessBitVector,
-      Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>> pLastSparseWriteBitVector) {
+      Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> pLastSparseAccessBitVector,
+      Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> pLastSparseWriteBitVector) {
 
-    numGlobalVariables = pGlobalVariableIds.size();
-    globalVariableIds = pGlobalVariableIds;
+    numMemoryLocations = pMemoryLocationIds.size();
+    memoryLocationIds = pMemoryLocationIds;
     denseAccessBitVectors = pDenseAccessBitVectors;
     denseReadBitVectors = pDenseReadBitVectors;
     denseWriteBitVectors = pDenseWriteBitVectors;
@@ -115,7 +114,7 @@ public class BitVectorVariables {
     };
   }
 
-  public ImmutableMap<CVariableDeclaration, SparseBitVector> getSparseBitVectorByAccessType(
+  public ImmutableMap<MemoryLocation, SparseBitVector> getSparseBitVectorByAccessType(
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
@@ -135,7 +134,7 @@ public class BitVectorVariables {
     };
   }
 
-  public Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>>
+  public Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
       tryGetLastSparseBitVectorByAccessType(BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
@@ -146,7 +145,7 @@ public class BitVectorVariables {
     };
   }
 
-  public ImmutableMap<CVariableDeclaration, LastSparseBitVector> getLastSparseBitVectorByAccessType(
+  public ImmutableMap<MemoryLocation, LastSparseBitVector> getLastSparseBitVectorByAccessType(
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
@@ -178,19 +177,19 @@ public class BitVectorVariables {
 
   // Getters =======================================================================================
 
-  public int getNumGlobalVariables() {
-    return numGlobalVariables;
+  public int getNumMemoryLocations() {
+    return numMemoryLocations;
   }
 
-  public ImmutableMap<CVariableDeclaration, Integer> getGlobalVariableIds() {
-    return globalVariableIds;
+  public ImmutableMap<MemoryLocation, Integer> getMemoryLocationIds() {
+    return memoryLocationIds;
   }
 
-  public ImmutableMap<CVariableDeclaration, SparseBitVector> getSparseAccessBitVectors() {
+  public ImmutableMap<MemoryLocation, SparseBitVector> getSparseAccessBitVectors() {
     return sparseAccessBitVectors.orElseThrow();
   }
 
-  public ImmutableMap<CVariableDeclaration, SparseBitVector> getSparseWriteBitVectors() {
+  public ImmutableMap<MemoryLocation, SparseBitVector> getSparseWriteBitVectors() {
     return sparseWriteBitVectors.orElseThrow();
   }
 }

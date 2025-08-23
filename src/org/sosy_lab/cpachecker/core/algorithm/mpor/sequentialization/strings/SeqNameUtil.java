@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -234,9 +235,8 @@ public class SeqNameUtil {
   // Sparse Bit Vector =============================================================================
 
   public static String buildSparseBitVectorAccessVariableName(
-      MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
+      MPOROptions pOptions, int pThreadId, MemoryLocation pVariableDeclaration) {
 
-    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
     return pOptions.shortVariableNames
         ? SeqToken.b + SeqToken.a + pThreadId + SeqSyntax.UNDERSCORE + variableName
@@ -249,9 +249,8 @@ public class SeqNameUtil {
   }
 
   public static String buildSparseBitVectorReadVariableName(
-      MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
+      MPOROptions pOptions, int pThreadId, MemoryLocation pVariableDeclaration) {
 
-    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
     return pOptions.shortVariableNames
         ? SeqToken.b + SeqToken.r + pThreadId + SeqSyntax.UNDERSCORE + variableName
@@ -264,9 +263,8 @@ public class SeqNameUtil {
   }
 
   public static String buildSparseBitVectorWriteVariableName(
-      MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
+      MPOROptions pOptions, int pThreadId, MemoryLocation pVariableDeclaration) {
 
-    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
     return pOptions.shortVariableNames
         ? SeqToken.b + SeqToken.w + pThreadId + SeqSyntax.UNDERSCORE + variableName
@@ -279,11 +277,8 @@ public class SeqNameUtil {
   }
 
   public static String buildLastReachableSparseBitVectorNameByAccessType(
-      MPOROptions pOptions,
-      CVariableDeclaration pVariableDeclaration,
-      BitVectorAccessType pAccessType) {
+      MPOROptions pOptions, MemoryLocation pVariableDeclaration, BitVectorAccessType pAccessType) {
 
-    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("cannot build name for NONE access type");

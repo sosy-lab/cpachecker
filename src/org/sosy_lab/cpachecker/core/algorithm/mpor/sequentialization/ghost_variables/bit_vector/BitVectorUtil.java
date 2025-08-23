@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
@@ -30,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.DecimalBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.HexadecimalBitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -55,22 +55,22 @@ public class BitVectorUtil {
 
   public static BitVectorValueExpression buildBitVectorExpression(
       MPOROptions pOptions,
-      @NonNull ImmutableMap<CVariableDeclaration, Integer> pVariableIds,
-      @NonNull ImmutableSet<CVariableDeclaration> pVariables) {
+      @NonNull ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
+      @NonNull ImmutableSet<MemoryLocation> pMemoryLocations) {
 
     checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
-        pVariableIds.keySet().containsAll(pVariables),
-        "pVariableIds must contain all pVariables as keys.");
+        pMemoryLocationIds.keySet().containsAll(pMemoryLocations),
+        "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
-    // retrieve all variable ids from pVariableIds that are in pVariables
+    // retrieve all variable ids from pMemoryLocationIds that are in pMemoryLocations
     ImmutableSet<Integer> setBits =
-        pVariables.stream()
-            .map(pVariableIds::get)
+        pMemoryLocations.stream()
+            .map(pMemoryLocationIds::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
     return buildBitVectorExpressionByEncoding(
-        pOptions.bitVectorEncoding, pVariableIds.size(), setBits);
+        pOptions.bitVectorEncoding, pMemoryLocationIds.size(), setBits);
   }
 
   /**
@@ -93,8 +93,8 @@ public class BitVectorUtil {
   }
 
   public static CIntegerLiteralExpression buildDirectBitVectorExpression(
-      @NonNull ImmutableMap<CVariableDeclaration, Integer> pVariableIds,
-      @NonNull ImmutableSet<CVariableDeclaration> pVariables) {
+      @NonNull ImmutableMap<MemoryLocation, Integer> pVariableIds,
+      @NonNull ImmutableSet<MemoryLocation> pVariables) {
 
     checkArgument(
         pVariableIds.keySet().containsAll(pVariables),
@@ -183,10 +183,9 @@ public class BitVectorUtil {
   public static CIdExpression createSparseAccessVariable(
       MPOROptions pOptions,
       MPORThread pThread,
-      CVariableDeclaration pVariableDeclaration,
+      MemoryLocation pVariableDeclaration,
       BitVectorAccessType pAccessType) {
 
-    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     // we use the original variable name here, not the substitute -> less code
     String name =
         getSparseBitVectorVariableNameByAccessType(
@@ -201,7 +200,7 @@ public class BitVectorUtil {
   private static String getSparseBitVectorVariableNameByAccessType(
       MPOROptions pOptions,
       int pThreadId,
-      CVariableDeclaration pDeclaration,
+      MemoryLocation pDeclaration,
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {

@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.SparseBitVectorValueExpression;
@@ -26,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqBitVectorDeclarationBuilder {
@@ -81,7 +81,7 @@ public class SeqBitVectorDeclarationBuilder {
       BitVectorVariables pBitVectorVariables,
       BitVectorAccessType pAccessType) {
 
-    int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorVariables.getNumGlobalVariables());
+    int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorVariables.getNumMemoryLocations());
     BitVectorDataType type = BitVectorUtil.getDataTypeByLength(binaryLength);
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (DenseBitVector denseBitVector :
@@ -89,7 +89,7 @@ public class SeqBitVectorDeclarationBuilder {
 
       BitVectorValueExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.getGlobalVariableIds(), ImmutableSet.of());
+              pOptions, pBitVectorVariables.getMemoryLocationIds(), ImmutableSet.of());
       if (pOptions.kIgnoreZeroReduction && denseBitVector.directVariable.isPresent()) {
         // direct bit vector
         SeqBitVectorDeclaration directDeclaration =
@@ -110,7 +110,7 @@ public class SeqBitVectorDeclarationBuilder {
           pBitVectorVariables.getLastDenseBitVectorByAccessType(pAccessType);
       BitVectorValueExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.getGlobalVariableIds(), ImmutableSet.of());
+              pOptions, pBitVectorVariables.getMemoryLocationIds(), ImmutableSet.of());
       // reachable last bit vector
       SeqBitVectorDeclaration reachableDeclaration =
           new SeqBitVectorDeclaration(type, lastDenseBitVector.reachableVariable, initializer);
@@ -151,7 +151,7 @@ public class SeqBitVectorDeclarationBuilder {
 
   private static ImmutableList<SeqBitVectorDeclaration> createSparseBitVectorDeclarations(
       ImmutableCollection<SparseBitVector> pSparseBitVectors,
-      Optional<ImmutableMap<CVariableDeclaration, LastSparseBitVector>> pLastSparseBitVectors,
+      Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> pLastSparseBitVectors,
       ImmutableList<MPORThread> pThreads) {
 
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();

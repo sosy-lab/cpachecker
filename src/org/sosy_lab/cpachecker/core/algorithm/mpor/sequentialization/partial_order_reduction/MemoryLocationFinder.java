@@ -25,18 +25,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
-public class MemoryLocationUtil {
+public class MemoryLocationFinder {
 
   /**
-   * Returns {@code true} if any global variable is accessed when executing {@code pBlock} and its
-   * directly linked blocks.
+   * Returns {@code true} if any global memory location is (possibly) accessed when executing {@code
+   * pBlock} and its directly linked blocks.
    */
   static boolean hasGlobalAccess(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock) {
 
-    return !findDirectGlobalVariablesByAccessType(
+    return !findDirectMemoryLocationsByAccessType(
             pLabelBlockMap, pPointerAssignments, pBlock, BitVectorAccessType.ACCESS)
         .isEmpty();
   }
@@ -45,23 +45,23 @@ public class MemoryLocationUtil {
    * Returns all global variables accessed when executing {@code pBlock} and its directly linked
    * blocks.
    */
-  public static ImmutableSet<CVariableDeclaration> findDirectGlobalVariablesByAccessType(
+  public static ImmutableSet<MemoryLocation> findDirectMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
 
-    ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();
+    ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       Set<SeqThreadStatement> found = new HashSet<>();
       found.add(statement);
       SeqThreadStatementUtil.recursivelyFindTargetGotoStatements(found, statement, pLabelBlockMap);
-      ImmutableSet<CVariableDeclaration> foundGlobalVariables =
-          extractGlobalVariablesFromStatements(
+      ImmutableSet<MemoryLocation> foundGlobalVariables =
+          findMemoryLocationsByStatements(
               ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
-      rGlobalVariables.addAll(foundGlobalVariables);
+      rMemLocations.addAll(foundGlobalVariables);
     }
-    return rGlobalVariables.build();
+    return rMemLocations.build();
   }
 
   // TODO also use ReachType here and remove redundant pLabelClauseMap
@@ -69,67 +69,68 @@ public class MemoryLocationUtil {
    * Returns all global variables accessed when executing {@code pBlock}, its directly linked blocks
    * and all possible successor blocks, that may or may not actually be executed.
    */
-  static ImmutableSet<CVariableDeclaration> findReachableGlobalVariablesByAccessType(
+  static ImmutableSet<MemoryLocation> findReachableMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
 
-    ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();
+    ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       Set<SeqThreadStatement> found = new HashSet<>();
       found.add(statement);
       SeqThreadStatementUtil.recursivelyFindTargetStatements(
           found, statement, pLabelClauseMap, pLabelBlockMap);
-      ImmutableSet<CVariableDeclaration> foundGlobalVariables =
-          extractGlobalVariablesFromStatements(
+      ImmutableSet<MemoryLocation> foundGlobalVariables =
+          findMemoryLocationsByStatements(
               ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
-      rGlobalVariables.addAll(foundGlobalVariables);
+      rMemLocations.addAll(foundGlobalVariables);
     }
-    return rGlobalVariables.build();
+    return rMemLocations.build();
   }
 
   // Global Variable Extraction ====================================================================
 
-  private static ImmutableSet<CVariableDeclaration> extractGlobalVariablesFromStatements(
+  private static ImmutableSet<MemoryLocation> findMemoryLocationsByStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
       PointerAssignments pPointerAssignments,
       BitVectorAccessType pAccessType) {
 
-    ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();
+    ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pStatements) {
       for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
-        rGlobalVariables.addAll(
-            extractGlobalVariablesFromSubstituteEdge(
-                substituteEdge, pAccessType, pPointerAssignments));
+        rMemLocations.addAll(
+            findMemoryLocationsBySubstituteEdge(substituteEdge, pAccessType, pPointerAssignments));
       }
     }
-    return rGlobalVariables.build();
+    return rMemLocations.build();
   }
 
-  private static ImmutableSet<CVariableDeclaration> extractGlobalVariablesFromSubstituteEdge(
+  private static ImmutableSet<MemoryLocation> findMemoryLocationsBySubstituteEdge(
       SubstituteEdge pSubstituteEdge,
       BitVectorAccessType pAccessType,
       PointerAssignments pPointerAssignments) {
 
-    ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();
+    ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     // first check direct accesses on the variables themselves
-    rGlobalVariables.addAll(pSubstituteEdge.getGlobalVariablesByAccessType(pAccessType));
+    ImmutableSet<CVariableDeclaration> globalVariables =
+        pSubstituteEdge.getGlobalVariablesByAccessType(pAccessType);
+    rMemLocations.addAll(globalVariables.stream().map(var -> MemoryLocation.of(var)).toList());
     // then check indirect accesses via pointers that point to the variables
     ImmutableSet<CSimpleDeclaration> pointerDereferences =
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
     for (CSimpleDeclaration pointerDereference : pointerDereferences) {
-      Set<CVariableDeclaration> globalVariables = new HashSet<>();
-      recursivelyFindGlobalVariablesByPointerDereference(
+      Set<MemoryLocation> memoryLocations = new HashSet<>();
+      recursivelyFindMemoryLocationsByPointerDereference(
           pointerDereference,
-          globalVariables,
+          memoryLocations,
           pSubstituteEdge.threadEdge.callContext,
           pPointerAssignments,
           new HashSet<>());
-      rGlobalVariables.addAll(globalVariables);
+      rMemLocations.addAll(memoryLocations);
     }
-    return rGlobalVariables.build();
+    return rMemLocations.build();
   }
 
   // Extraction by Pointer Dereference =============================================================
@@ -139,27 +140,29 @@ public class MemoryLocationUtil {
    * dereference, i.e. the set of global variables whose addresses are at some point in the program
    * assigned to the pointer variable / parameter.
    */
-  private static void recursivelyFindGlobalVariablesByPointerDereference(
+  private static void recursivelyFindMemoryLocationsByPointerDereference(
       CSimpleDeclaration pCurrentDeclaration,
-      Set<CVariableDeclaration> pGlobalVariables,
+      Set<MemoryLocation> pMemLocations,
       final Optional<ThreadEdge> pCallContext,
       final PointerAssignments pPointerAssignments,
       Set<CSimpleDeclaration> pVisited) {
 
+    // prevent infinite loop, e.g. if a pointer is assigned itself: 'ptr = ptr;'
     if (pVisited.add(pCurrentDeclaration)) {
       if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
         if (variableDeclaration.getType() instanceof CPointerType) {
           // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
           // and then dereferenced -> the pointer is not associated with the address of a global var
           if (pPointerAssignments.isAssignedPointer(variableDeclaration)) {
-            for (CSimpleDeclaration rightHandSide :
-                pPointerAssignments.getRightHandSidesByPointer(variableDeclaration)) {
-              recursivelyFindGlobalVariablesByPointerDereference(
-                  rightHandSide, pGlobalVariables, pCallContext, pPointerAssignments, pVisited);
+            ImmutableSet<CSimpleDeclaration> rightHandSides =
+                pPointerAssignments.getRightHandSidesByPointer(variableDeclaration);
+            for (CSimpleDeclaration rightHandSide : rightHandSides) {
+              recursivelyFindMemoryLocationsByPointerDereference(
+                  rightHandSide, pMemLocations, pCallContext, pPointerAssignments, pVisited);
             }
           }
         } else {
-          pGlobalVariables.add(variableDeclaration);
+          pMemLocations.add(MemoryLocation.of(variableDeclaration));
         }
 
       } else if (pCurrentDeclaration instanceof CParameterDeclaration parameterDeclaration) {
@@ -170,8 +173,8 @@ public class MemoryLocationUtil {
           CSimpleDeclaration rightHandSide =
               pPointerAssignments.getRightHandSideByPointerParameter(
                   callContext, parameterDeclaration);
-          recursivelyFindGlobalVariablesByPointerDereference(
-              rightHandSide, pGlobalVariables, pCallContext, pPointerAssignments, pVisited);
+          recursivelyFindMemoryLocationsByPointerDereference(
+              rightHandSide, pMemLocations, pCallContext, pPointerAssignments, pVisited);
         }
       }
     }

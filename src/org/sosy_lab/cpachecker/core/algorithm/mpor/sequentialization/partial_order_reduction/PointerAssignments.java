@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
@@ -57,6 +58,12 @@ public class PointerAssignments {
       CVariableDeclaration pVariableDeclaration) {
 
     return pointerAssignments.get(pVariableDeclaration);
+  }
+
+  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getRightHandSidesByPointerFieldMember(CVariableDeclaration pVariableDeclaration) {
+
+    return pointerFieldMemberAssignments.row(pVariableDeclaration);
   }
 
   public CSimpleDeclaration getRightHandSideByPointerParameter(
