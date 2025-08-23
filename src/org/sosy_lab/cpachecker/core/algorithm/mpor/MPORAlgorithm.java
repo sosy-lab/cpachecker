@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.util.Objects;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -317,47 +318,46 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
 
     // the options are not null when unit testing
-    if (pOptions != null) {
-      options = pOptions;
-    } else {
-      options =
-          new MPOROptions(
-              allowPointerWrites,
-              atomicBlockMerge,
-              bitVectorEncoding,
-              bitVectorEvaluationPrune,
-              bitVectorReduction,
-              comments,
-              conflictReduction,
-              consecutiveLabels,
-              controlEncodingStatement,
-              controlEncodingThread,
-              formatCode,
-              formatStyle,
-              inputFunctionDeclarations,
-              inputTypeDeclarations,
-              kAssignLazy,
-              kBound,
-              kIgnoreZeroReduction,
-              license,
-              linkReduction,
-              loopFiniteMainThreadEnd,
-              loopIterations,
-              nondeterminismSigned,
-              nondeterminismSource,
-              noBackwardGoto,
-              noBackwardLoopGoto,
-              outputMetadata,
-              outputPath,
-              overwriteFiles,
-              pruneEmptyStatements,
-              reductionMode,
-              scalarPc,
-              sequentializationErrors,
-              shortVariableNames,
-              validateParse,
-              validatePc);
-    }
+    options =
+        Objects.requireNonNullElseGet(
+            pOptions,
+            () ->
+                new MPOROptions(
+                    allowPointerWrites,
+                    atomicBlockMerge,
+                    bitVectorEncoding,
+                    bitVectorEvaluationPrune,
+                    bitVectorReduction,
+                    comments,
+                    conflictReduction,
+                    consecutiveLabels,
+                    controlEncodingStatement,
+                    controlEncodingThread,
+                    formatCode,
+                    formatStyle,
+                    inputFunctionDeclarations,
+                    inputTypeDeclarations,
+                    kAssignLazy,
+                    kBound,
+                    kIgnoreZeroReduction,
+                    license,
+                    linkReduction,
+                    loopFiniteMainThreadEnd,
+                    loopIterations,
+                    nondeterminismSigned,
+                    nondeterminismSource,
+                    noBackwardGoto,
+                    noBackwardLoopGoto,
+                    outputMetadata,
+                    outputPath,
+                    overwriteFiles,
+                    pruneEmptyStatements,
+                    reductionMode,
+                    scalarPc,
+                    sequentializationErrors,
+                    shortVariableNames,
+                    validateParse,
+                    validatePc));
 
     cpa = pCpa;
     config = pConfiguration;

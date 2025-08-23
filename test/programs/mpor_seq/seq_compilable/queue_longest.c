@@ -181,6 +181,12 @@ int main(void)
   Outer * outer_ptr;
   outer_ptr = &outer_A;
 
+  int * ptr;
+  int x;
+  x = 42;
+  ptr = ptr;
+  *ptr = 7;
+
   init(&queue);
 
   if (!empty(&queue)==EMPTY) {

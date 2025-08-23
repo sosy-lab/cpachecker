@@ -212,7 +212,8 @@ public class GlobalVariableFinder {
               globalVariables,
               substituteEdge.threadEdge.callContext,
               pPointerAssignments,
-              pPointerParameterAssignments);
+              pPointerParameterAssignments,
+              new HashSet<>());
           rGlobalVariables.addAll(globalVariables);
         }
       }
@@ -220,7 +221,6 @@ public class GlobalVariableFinder {
     return rGlobalVariables.build();
   }
 
-  // TODO prevent infinite recursion when ptr = ptr;
   /**
    * Finds the set of {@link CVariableDeclaration}s that are associated by the given pointer
    * dereference, i.e. the set of global variables whose addresses are at some point in the program
@@ -232,39 +232,44 @@ public class GlobalVariableFinder {
       final Optional<ThreadEdge> pCallContext,
       final ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
       final ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments) {
+          pPointerParameterAssignments,
+      Set<CSimpleDeclaration> pVisited) {
 
-    if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
-      if (variableDeclaration.getType() instanceof CPointerType) {
-        // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
-        // and then dereferenced -> the pointer is not associated with the address of a global var
-        if (pPointerAssignments.containsKey(variableDeclaration)) {
-          for (CSimpleDeclaration rightHandSide : pPointerAssignments.get(variableDeclaration)) {
-            recursivelyFindGlobalVariablesByPointerDereference(
-                rightHandSide,
-                pGlobalVariables,
-                pCallContext,
-                pPointerAssignments,
-                pPointerParameterAssignments);
+    if (pVisited.add(pCurrentDeclaration)) {
+      if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
+        if (variableDeclaration.getType() instanceof CPointerType) {
+          // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
+          // and then dereferenced -> the pointer is not associated with the address of a global var
+          if (pPointerAssignments.containsKey(variableDeclaration)) {
+            for (CSimpleDeclaration rightHandSide : pPointerAssignments.get(variableDeclaration)) {
+              recursivelyFindGlobalVariablesByPointerDereference(
+                  rightHandSide,
+                  pGlobalVariables,
+                  pCallContext,
+                  pPointerAssignments,
+                  pPointerParameterAssignments,
+                  pVisited);
+            }
           }
+        } else {
+          pGlobalVariables.add(variableDeclaration);
         }
-      } else {
-        pGlobalVariables.add(variableDeclaration);
-      }
 
-    } else if (pCurrentDeclaration instanceof CParameterDeclaration parameterDeclaration) {
-      assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
-      ThreadEdge callContext = pCallContext.orElseThrow();
-      // in pthread_create that does not pass an arg to start_routine, the pair is not present
-      if (pPointerParameterAssignments.contains(callContext, parameterDeclaration)) {
-        CSimpleDeclaration rightHandSide =
-            pPointerParameterAssignments.get(callContext, parameterDeclaration);
-        recursivelyFindGlobalVariablesByPointerDereference(
-            rightHandSide,
-            pGlobalVariables,
-            pCallContext,
-            pPointerAssignments,
-            pPointerParameterAssignments);
+      } else if (pCurrentDeclaration instanceof CParameterDeclaration parameterDeclaration) {
+        assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
+        ThreadEdge callContext = pCallContext.orElseThrow();
+        // in pthread_create that does not pass an arg to start_routine, the pair is not present
+        if (pPointerParameterAssignments.contains(callContext, parameterDeclaration)) {
+          CSimpleDeclaration rightHandSide =
+              pPointerParameterAssignments.get(callContext, parameterDeclaration);
+          recursivelyFindGlobalVariablesByPointerDereference(
+              rightHandSide,
+              pGlobalVariables,
+              pCallContext,
+              pPointerAssignments,
+              pPointerParameterAssignments,
+              pVisited);
+        }
       }
     }
   }
