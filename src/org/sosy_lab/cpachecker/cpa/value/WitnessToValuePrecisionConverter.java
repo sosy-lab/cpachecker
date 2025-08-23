@@ -696,8 +696,10 @@ public class WitnessToValuePrecisionConverter implements Statistics {
                 List<Object> entries = yaml.load(input);
                 if (entries != null && !entries.isEmpty()) {
                     Object firstEntry = entries.get(0);
-                    if (firstEntry instanceof Map) {
-                        return mapToWitnessEntry((Map<String, Object>) firstEntry);
+                    if (firstEntry instanceof Map<?, ?>) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> entryMap = (Map<String, Object>) firstEntry;
+                        return mapToWitnessEntry(entryMap);
                     }
                 }
                 return new WitnessEntry();
