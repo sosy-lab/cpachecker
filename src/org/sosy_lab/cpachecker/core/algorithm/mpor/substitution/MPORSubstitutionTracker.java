@@ -52,7 +52,7 @@ public class MPORSubstitutionTracker {
   private final Set<CSimpleDeclaration> accessedPointerDereferences;
 
   /** Read pointer dereferences e.g. of the form {@code x = *ptr;}. */
-  private final Set<CSimpleDeclaration> readPointerDereferences;
+  private final ImmutableSet<CSimpleDeclaration> readPointerDereferences;
 
   /** Written pointer dereferences e.g. of the form {@code *ptr = x;}. */
   private final Set<CSimpleDeclaration> writtenPointerDereferences;
@@ -66,7 +66,7 @@ public class MPORSubstitutionTracker {
   private final Set<CVariableDeclaration> accessedGlobalVariables;
 
   /** Read global variables e.g. of the form {@code if (x == 0) ...}. */
-  private final Set<CVariableDeclaration> readGlobalVariables;
+  private final ImmutableSet<CVariableDeclaration> readGlobalVariables;
 
   /** Written global variables e.g. of the form {@code x = 42;}. */
   private final Set<CVariableDeclaration> writtenGlobalVariables;
@@ -80,7 +80,7 @@ public class MPORSubstitutionTracker {
   private final Set<CCompositeTypeMemberDeclaration> accessedFieldMembers;
 
   /** Read field members e.g. of the form {@code if (field->member == 0) ...}. */
-  private final Set<CCompositeTypeMemberDeclaration> readFieldMembers;
+  private final ImmutableSet<CCompositeTypeMemberDeclaration> readFieldMembers;
 
   /** Written field members e.g. of the form {@code field->member = 42;}. */
   private final Set<CCompositeTypeMemberDeclaration> writtenFieldMembers;
@@ -101,7 +101,6 @@ public class MPORSubstitutionTracker {
 
     accessedGlobalVariables = new HashSet<>();
     readGlobalVariables = ImmutableSet.of();
-    ;
     writtenGlobalVariables = new HashSet<>();
 
     accessedFieldMembers = new HashSet<>();
@@ -232,10 +231,7 @@ public class MPORSubstitutionTracker {
   }
 
   public ImmutableSet<CSimpleDeclaration> getReadPointerDereferences() {
-    if (readPointerDereferences instanceof ImmutableSet<CSimpleDeclaration> immutableSet) {
-      return immutableSet;
-    }
-    return ImmutableSet.copyOf(readPointerDereferences);
+    return readPointerDereferences;
   }
 
   public ImmutableSet<CSimpleDeclaration> getWrittenPointerDereferences() {
@@ -255,10 +251,7 @@ public class MPORSubstitutionTracker {
   }
 
   public ImmutableSet<CVariableDeclaration> getReadGlobalVariables() {
-    if (readGlobalVariables instanceof ImmutableSet<CVariableDeclaration> immutableSet) {
-      return immutableSet;
-    }
-    return ImmutableSet.copyOf(readGlobalVariables);
+    return readGlobalVariables;
   }
 
   public ImmutableSet<CVariableDeclaration> getWrittenGlobalVariables() {
@@ -279,10 +272,7 @@ public class MPORSubstitutionTracker {
   }
 
   public ImmutableSet<CCompositeTypeMemberDeclaration> getReadFieldMembers() {
-    if (readFieldMembers instanceof ImmutableSet<CCompositeTypeMemberDeclaration> immutableSet) {
-      return immutableSet;
-    }
-    return ImmutableSet.copyOf(readFieldMembers);
+    return readFieldMembers;
   }
 
   public ImmutableSet<CCompositeTypeMemberDeclaration> getWrittenFieldMembers() {

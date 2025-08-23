@@ -33,6 +33,14 @@ int stored_elements[SIZE];
 _Bool enqueue_flag, dequeue_flag;
 QType queue;
 typedef struct {} Empty;
+typedef struct {
+  int member;
+} Inner;
+typedef struct {
+  Inner inner;
+  int member;
+} Outer;
+Outer outer;
 
 void init(QType *q)
 {
@@ -160,6 +168,8 @@ int main(void)
 
   enqueue_flag=TRUE;
   dequeue_flag=FALSE;
+
+  outer.inner.member = 42;
 
   init(&queue);
 

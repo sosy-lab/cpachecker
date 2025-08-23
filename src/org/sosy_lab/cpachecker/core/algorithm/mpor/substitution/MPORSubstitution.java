@@ -267,6 +267,10 @@ public class MPORSubstitution {
               pFieldReference, typedefType, pIsWrite, pTracker.orElseThrow());
         }
       }
+
+    } else if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
+      // recursively handle inner structs until outer struct is found, e.g. outer.inner.member
+      trackFieldReference(fieldReference, pIsWrite, pTracker);
     }
   }
 
