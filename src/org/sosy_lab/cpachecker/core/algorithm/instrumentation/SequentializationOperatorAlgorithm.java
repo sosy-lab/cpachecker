@@ -181,7 +181,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
               String newEdge =
                   computeLineNumberBasedOnTransition(transition, edge, matchedVariables)
                       + "|||"
-                      + transition.getOperation().insertVariablesInsideOperation(matchedVariables);
+                      + transition
+                          .getOperation()
+                          .insertVariablesInsideOperation(
+                              matchedVariables, transition.getPattern());
               if (newEdge.contains("__CPAchecker_TMP")) {
                 throw new CPAException("Matching for line with function calls is unsupported.");
               }
@@ -223,10 +226,16 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       // TODO: The location should be computed differently !
       int location;
       String fileLocation = pEdge.getFileLocation().toString();
-      String functionName =
-          pTransition.getPattern().toString().equals("ptr_deref") && !pMatchedVariables.isEmpty()
-              ? "*" + pMatchedVariables.get(0)
-              : pTransition.getPattern().getFunctionName();
+      String functionName;
+      if (pTransition.getPattern().toString().equals("ptr_deref") && !pMatchedVariables.isEmpty()) {
+        String matchedVar = pMatchedVariables.get(0);
+        functionName = matchedVar;
+        if (!matchedVar.contains("[")) {
+          functionName = "*" + functionName;
+        }
+      } else {
+        functionName = pTransition.getPattern().getFunctionName();
+      }
       if (pTransition.getPattern().toString().equals("[!cond]")) {
         fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
       }
