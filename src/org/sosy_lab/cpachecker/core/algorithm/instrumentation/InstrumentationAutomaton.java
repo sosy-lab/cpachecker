@@ -374,7 +374,7 @@ public class InstrumentationAutomaton {
                     + "  __check_memory_leaks();\\n"
                     + "  exit(x);\\n"
                     + "}\\n"
-                    + "int __ignore__TMP = __init_memory_tracker();\\n"),
+                    + "__init_memory_tracker();\\n"),
             InstrumentationOrder.BEFORE,
             q2);
     builder.add(t1);
