@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -334,6 +335,7 @@ public final class MPORUtil {
    */
   public static <T> ImmutableList<T> withoutElement(
       ImmutableList<T> pElements, T pElementToRemove) {
+
     if (pElements.contains(pElementToRemove)) {
       ImmutableList<T> toRemove = ImmutableList.of(pElementToRemove);
       return pElements.stream()
@@ -341,5 +343,12 @@ public final class MPORUtil {
           .collect(ImmutableList.toImmutableList());
     }
     return pElements;
+  }
+
+  /** Returns the symmetric difference of the entry sets in {@code pMapA} and {@code pMapB}. */
+  public static <K, V> ImmutableMap<K, V> symmetricDifference(
+      ImmutableMap<K, V> pMapA, ImmutableMap<K, V> pMapB) {
+
+    return ImmutableMap.copyOf(Sets.symmetricDifference(pMapA.entrySet(), pMapA.entrySet()));
   }
 }

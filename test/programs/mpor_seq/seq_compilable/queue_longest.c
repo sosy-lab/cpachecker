@@ -172,6 +172,12 @@ int main(void)
 
   outer_A.inner.member = 42;
   outer_B.inner.member = -42;
+  int local_1;
+  local_1 = outer_A.inner.member;
+  int local_2;
+  local_2 = outer_B.member;
+  Inner * inner_ptr;
+  inner_ptr = &outer_A.inner;
 
   init(&queue);
 

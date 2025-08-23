@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -32,6 +34,8 @@ public class SubstituteEdge {
 
   public final ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pointerAssignment;
 
+  // POINTER DEREFERENCES ==========================================================================
+
   /** The set of accessed pointer derefs i.e. reads and writes. */
   public final ImmutableSet<CSimpleDeclaration> accessedPointerDereferences;
 
@@ -41,12 +45,26 @@ public class SubstituteEdge {
   /** The set of written pointer derefs, .e.g {@code *ptr = 42;} */
   public final ImmutableSet<CSimpleDeclaration> writtenPointerDereferences;
 
+  // GLOBAL VARIABLES ==============================================================================
+
   /** The set of global variable declarations that this edge accesses. */
   public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
 
   public final ImmutableSet<CVariableDeclaration> readGlobalVariables;
 
   public final ImmutableSet<CVariableDeclaration> writtenGlobalVariables;
+
+  // FIELD MEMBERS =================================================================================
+
+  public final ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      accessedFieldMembers;
+
+  public final ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> readFieldMembers;
+
+  public final ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      writtenFieldMembers;
+
+  // FUNCTION POINTERS =============================================================================
 
   public final ImmutableSet<CFunctionDeclaration> accessedFunctionPointers;
 
@@ -59,6 +77,8 @@ public class SubstituteEdge {
       ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
+      ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> pAccessedFieldMembers,
+      ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> pWrittenFieldMembers,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
 
     // TODO maybe make it an optional single entry then? ...
@@ -71,8 +91,9 @@ public class SubstituteEdge {
     threadEdge = pThreadEdge;
     // main function args
     accessedMainFunctionArgs = pAccessedMainFunctionArgs;
-    // pointers
+    // pointer assignments
     pointerAssignment = pPointerAssignment;
+    // pointers dereferences
     writtenPointerDereferences = pWrittenPointerDereferences;
     accessedPointerDereferences = pAccessedPointerDereferences;
     readPointerDereferences =
@@ -83,6 +104,10 @@ public class SubstituteEdge {
     accessedGlobalVariables = pAccessedGlobalVariables;
     readGlobalVariables =
         Sets.symmetricDifference(writtenGlobalVariables, accessedGlobalVariables).immutableCopy();
+    // field members
+    accessedFieldMembers = pAccessedFieldMembers;
+    writtenFieldMembers = pWrittenFieldMembers;
+    readFieldMembers = MPORUtil.symmetricDifference(accessedFieldMembers, writtenFieldMembers);
     // functions
     accessedFunctionPointers = pAccessedFunctionPointers;
   }
@@ -97,6 +122,8 @@ public class SubstituteEdge {
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
         ImmutableSet.of());
   }
 
@@ -116,6 +143,8 @@ public class SubstituteEdge {
         pTracker.getAccessedPointerDereferences(),
         pTracker.getWrittenGlobalVariables(),
         pTracker.getAccessedGlobalVariables(),
+        pTracker.getAccessedFieldMembers(),
+        pTracker.getWrittenFieldMembers(),
         pTracker.getAccessedFunctionPointers());
   }
 
