@@ -608,4 +608,22 @@ public final class Interval implements Serializable {
     }
     return new Interval(lower, upper);
   }
+
+
+  /**
+   * The partial order for the abstract lattice.
+   *
+   * @param other the other interval.
+   * @return returns whether this is less or equal than the other.
+   */
+  public boolean abstractLatticeIsLessEqualThan(Interval other) {
+    if (this.low == null || this.high == null) {
+      // If this is bottom element, it is always less or equal than the other
+      return true;
+    } else if (other.low == null || other.high == null) {
+      // If this is not bottom but the other is, this cannot be less or equal
+      return false;
+    }
+    return (this.low >= other.low) && (this.high <= other.high);
+  }
 }

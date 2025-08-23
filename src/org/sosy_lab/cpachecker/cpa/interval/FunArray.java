@@ -25,6 +25,8 @@ import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -38,7 +40,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * @param emptiness a list determining whether a segment might be empty.
  */
 public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> emptiness)
-    implements Serializable {
+    implements Serializable, LatticeAbstractState<FunArray> {
 
   @Serial private static final long serialVersionUID = 7169472946910382516L;
 
@@ -500,8 +502,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     throw new IndexOutOfBoundsException();
   }
 
-  public FunArray join(FunArray other, Interval unreachable) {
-    return unifyOperation(Interval::union, other, unreachable, unreachable);
+  @Override
+  public FunArray join(FunArray other) {
+    return unifyOperation(Interval::union, other, Interval.EMPTY, Interval.EMPTY);
   }
 
   public FunArray meet(FunArray other, Interval unknown) {
@@ -602,4 +605,23 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     }
   }
   //TODO: Satisfy equal and not equal
+
+  @Override
+  public boolean isLessOrEqual(FunArray other) throws CPAException, InterruptedException {
+    UnifyResult unifyResult = unify(other, Interval.EMPTY, Interval.UNBOUND);
+
+    boolean valuesLessThan = IntStream.range(0, unifyResult.resultThis.values.size())
+        .allMatch(i ->
+            unifyResult.resultThis.values.get(i)
+                .abstractLatticeIsLessEqualThan(unifyResult.resultOther.values.get(i))
+        );
+
+    boolean emptinessLessThan = IntStream.range(0, unifyResult.resultThis.values.size())
+        .allMatch(i ->
+            unifyResult.resultThis.emptiness.get(i) || !unifyResult.resultOther.emptiness.get(i)
+        );
+
+    return valuesLessThan && emptinessLessThan;
+
+  }
 }
