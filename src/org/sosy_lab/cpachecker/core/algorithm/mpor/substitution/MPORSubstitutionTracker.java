@@ -10,8 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -39,6 +42,13 @@ public class MPORSubstitutionTracker {
 
   /** Pointer assignments updates to the address. */
   private final Map<CVariableDeclaration, CSimpleDeclaration> pointerAssignments;
+
+  /**
+   * e.g. {@code ptr = &outer.inner}. {@link CCompositeTypeMemberDeclaration} is always the
+   * innermost member, {@link CSimpleDeclaration} the declaration of the outer struct.
+   */
+  private final Table<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      pointerFieldMemberAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
@@ -85,7 +95,9 @@ public class MPORSubstitutionTracker {
 
   public MPORSubstitutionTracker() {
     accessedMainFunctionArgs = new HashSet<>();
+
     pointerAssignments = new HashMap<>();
+    pointerFieldMemberAssignments = HashBasedTable.create();
 
     accessedPointerDereferences = new HashSet<>();
     writtenPointerDereferences = new HashSet<>();
@@ -112,6 +124,14 @@ public class MPORSubstitutionTracker {
         !(pRightHandSide instanceof CFunctionDeclaration),
         "pRightHandSide cannot be CFunctionDeclaration");
     pointerAssignments.put(pLeftHandSide, pRightHandSide);
+  }
+
+  public void addPointerFieldMemberAssignment(
+      CVariableDeclaration pLeftHandSide,
+      CSimpleDeclaration pFieldOwner,
+      CCompositeTypeMemberDeclaration pMemberDeclaration) {
+
+    pointerFieldMemberAssignments.put(pLeftHandSide, pFieldOwner, pMemberDeclaration);
   }
 
   public void addWrittenPointerDereference(CSimpleDeclaration pWrittenPointerDereference) {
@@ -160,6 +180,12 @@ public class MPORSubstitutionTracker {
 
   public ImmutableMap<CVariableDeclaration, CSimpleDeclaration> getPointerAssignments() {
     return ImmutableMap.copyOf(pointerAssignments);
+  }
+
+  public ImmutableTable<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getPointerFieldMemberAssignments() {
+
+    return ImmutableTable.copyOf(pointerFieldMemberAssignments);
   }
 
   // pointer dereferences

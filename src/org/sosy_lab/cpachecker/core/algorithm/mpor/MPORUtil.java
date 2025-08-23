@@ -15,12 +15,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -35,7 +38,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -312,6 +319,77 @@ public final class MPORUtil {
     return Optional.empty();
   }
 
+  /**
+   * Returns an {@link Entry} that maps the {@link CSimpleDeclaration} of the outermost field owner
+   * to the {@link CCompositeTypeMemberDeclaration} of the innermost field member accessed in {@code
+   * pExpression} and {@link Optional#empty()} if it can't be found.
+   */
+  public static Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
+      tryGetFieldMemberPointer(CExpression pExpression) {
+
+    // e.g. 'ptr = &field.member;'
+    if (pExpression instanceof CUnaryExpression unaryExpression) {
+      if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
+        return Optional.of(getFieldMemberPointer(fieldReference));
+      }
+
+      // e.g. 'ptr = field.member;' where member is a pointer
+    } else if (pExpression instanceof CFieldReference fieldReference) {
+      return Optional.of(getFieldMemberPointer(fieldReference));
+    }
+    return Optional.empty();
+  }
+
+  private static Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> getFieldMemberPointer(
+      CFieldReference pFieldReference) {
+
+    CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
+    CTypedefType typedefType = getTypedefTypeByIdExpression(idExpression);
+    return new AbstractMap.SimpleEntry<>(
+        idExpression.getDeclaration(), getFieldMemberByName(pFieldReference, typedefType));
+  }
+
+  private static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference) {
+
+    if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
+      return idExpression;
+    }
+    if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
+      return recursivelyFindFieldOwner(fieldReference);
+    }
+    throw new IllegalArgumentException("could not find CIdExpression field owner");
+  }
+
+  private static CTypedefType getTypedefTypeByIdExpression(CIdExpression pIdExpression) {
+    if (pIdExpression.getExpressionType() instanceof CTypedefType typedefType) {
+      return typedefType;
+    }
+    if (pIdExpression.getExpressionType() instanceof CPointerType pointerType) {
+      if (pointerType.getType() instanceof CTypedefType typedefType) {
+        return typedefType;
+      }
+    }
+    throw new IllegalArgumentException("could not extract CTypedefType from pIdExpression");
+  }
+
+  private static CCompositeTypeMemberDeclaration getFieldMemberByName(
+      CFieldReference pFieldReference, CTypedefType pTypedefType) {
+
+    // elaborated type is e.g. struct __anon_type_QType
+    if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
+      // composite type contains the composite type members, e.g. 'amount'
+      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
+        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
+            return memberDeclaration;
+          }
+        }
+      }
+    }
+    throw new IllegalArgumentException(
+        "could not extract CCompositeTypeMemberDeclaration from pFieldReference");
+  }
+
   // Collections ===================================================================================
 
   /**
@@ -349,6 +427,6 @@ public final class MPORUtil {
   public static <K, V> ImmutableMap<K, V> symmetricDifference(
       ImmutableMap<K, V> pMapA, ImmutableMap<K, V> pMapB) {
 
-    return ImmutableMap.copyOf(Sets.symmetricDifference(pMapA.entrySet(), pMapA.entrySet()));
+    return ImmutableMap.copyOf(Sets.symmetricDifference(pMapA.entrySet(), pMapB.entrySet()));
   }
 }

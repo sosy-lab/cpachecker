@@ -178,6 +178,8 @@ int main(void)
   local_2 = outer_B.member;
   Inner * inner_ptr;
   inner_ptr = &outer_A.inner;
+  Outer * outer_ptr;
+  outer_ptr = &outer_A;
 
   init(&queue);
 

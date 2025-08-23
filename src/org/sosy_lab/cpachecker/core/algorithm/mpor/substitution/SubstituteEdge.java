@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -34,6 +35,10 @@ public class SubstituteEdge {
 
   public final ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pointerAssignment;
 
+  public final ImmutableTable<
+          CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      pointerFieldMemberAssignments;
+
   // POINTER DEREFERENCES ==========================================================================
 
   /** The set of accessed pointer derefs i.e. reads and writes. */
@@ -55,7 +60,7 @@ public class SubstituteEdge {
   public final ImmutableSet<CVariableDeclaration> writtenGlobalVariables;
 
   // FIELD MEMBERS =================================================================================
-
+  // TODO make these ImmutableSetMultimap, we can access multiple field members in a single edge
   public final ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       accessedFieldMembers;
 
@@ -73,6 +78,8 @@ public class SubstituteEdge {
       ThreadEdge pThreadEdge,
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
       ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignment,
+      ImmutableTable<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+          pPointerFieldMemberAssignments,
       ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
       ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
@@ -93,6 +100,7 @@ public class SubstituteEdge {
     accessedMainFunctionArgs = pAccessedMainFunctionArgs;
     // pointer assignments
     pointerAssignment = pPointerAssignment;
+    pointerFieldMemberAssignments = pPointerFieldMemberAssignments;
     // pointers dereferences
     writtenPointerDereferences = pWrittenPointerDereferences;
     accessedPointerDereferences = pAccessedPointerDereferences;
@@ -118,6 +126,7 @@ public class SubstituteEdge {
         pThreadEdge,
         ImmutableSet.of(),
         ImmutableMap.of(),
+        ImmutableTable.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
@@ -139,6 +148,7 @@ public class SubstituteEdge {
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
         pTracker.getPointerAssignments(),
+        pTracker.getPointerFieldMemberAssignments(),
         pTracker.getWrittenPointerDereferences(),
         pTracker.getAccessedPointerDereferences(),
         pTracker.getWrittenGlobalVariables(),

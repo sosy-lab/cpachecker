@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
@@ -198,6 +199,17 @@ public class MPORSubstitution {
             pTracker
                 .orElseThrow()
                 .addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
+          } else {
+            Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
+                fieldMemberPointer = MPORUtil.tryGetFieldMemberPointer(rightHandSide);
+            if (fieldMemberPointer.isPresent()) {
+              pTracker
+                  .orElseThrow()
+                  .addPointerFieldMemberAssignment(
+                      lhsDeclaration,
+                      fieldMemberPointer.orElseThrow().getKey(),
+                      fieldMemberPointer.orElseThrow().getValue());
+            }
           }
         }
       }
