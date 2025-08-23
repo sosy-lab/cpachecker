@@ -294,19 +294,17 @@ class ExpressionValueVisitor
     TypeIdOperator typeOperator = typeIdExp.getOperator();
     CType type = typeIdExp.getType();
 
-    switch (typeOperator) {
+    return switch (typeOperator) {
       case SIZEOF -> {
         SMGSymbolicValue val =
             smgExpressionEvaluator.getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0
                 ? SMGZeroValue.INSTANCE
                 : SMGUnknownValue.INSTANCE;
-        return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
+        yield singletonList(SMGValueAndState.of(getInitialSmgState(), val));
       }
-      default -> {
-        return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
-        // TODO Investigate the other Operators.
-      }
-    }
+      // TODO Investigate the other Operators.
+      default -> singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
+    };
   }
 
   @Override

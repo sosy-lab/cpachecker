@@ -587,19 +587,18 @@ public class LiveVariablesTransferRelation
   private void getVariablesUsedForInitialization(AInitializer init, BitSet writeInto)
       throws CPATransferException {
     // e.g. .x=b or .p.x.=1  as part of struct initialization
-    if (init instanceof CDesignatedInitializer cDesignatedInitializer) {
-      getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide(), writeInto);
-
-      // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-    } else if (init instanceof CInitializerList cInitializerList) {
-      for (CInitializer inList : cInitializerList.getInitializers()) {
-        getVariablesUsedForInitialization(inList, writeInto);
+    switch (init) {
+      case CDesignatedInitializer cDesignatedInitializer ->
+          getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide(), writeInto);
+      case CInitializerList cInitializerList -> {
+        for (CInitializer inList : cInitializerList.getInitializers()) {
+          getVariablesUsedForInitialization(inList, writeInto);
+        }
       }
-    } else if (init instanceof AInitializerExpression aInitializerExpression) {
-      handleExpression(aInitializerExpression.getExpression(), writeInto);
-
-    } else {
-      throw new CPATransferException("Missing case for if-then-else statement.");
+      case AInitializerExpression aInitializerExpression ->
+          handleExpression(aInitializerExpression.getExpression(), writeInto);
+      case null, default ->
+          throw new CPATransferException("Missing case for if-then-else statement.");
     }
   }
 

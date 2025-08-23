@@ -360,90 +360,84 @@ class GlobalScope extends AbstractScope {
 
     String newName = getFileSpecificTypeName(oldType.getName());
 
-    if (oldType instanceof CCompositeType oldCompositeType) {
-      CCompositeType renamedCompositeType =
-          new CCompositeType(
-              oldType.isConst(),
-              oldType.isVolatile(),
-              oldType.getKind(),
-              newName,
-              oldType.getOrigName());
+    return switch (oldType) {
+      case CCompositeType oldCompositeType -> {
+        CCompositeType renamedCompositeType =
+            new CCompositeType(
+                oldType.isConst(),
+                oldType.isVolatile(),
+                oldType.getKind(),
+                newName,
+                oldType.getOrigName());
+        // overwrite the already found type in the types map of the ASTTypeConverter if necessary
+        // we need to do this, that the members of the renamed CCompositeType get the correct type
+        // names in case of members pointing to the renamed type itself
+        CElaboratedType renamedElaboratedType =
+            new CElaboratedType(
+                renamedCompositeType.isConst(),
+                renamedCompositeType.isVolatile(),
+                renamedCompositeType.getKind(),
+                renamedCompositeType.getName(),
+                renamedCompositeType.getOrigName(),
+                renamedCompositeType);
+        parseContext.overwriteTypeIfNecessary(oldType, renamedElaboratedType, currentFile);
+        List<CCompositeTypeMemberDeclaration> newMembers =
+            new ArrayList<>(oldCompositeType.getMembers().size());
+        for (CCompositeTypeMemberDeclaration decl : oldCompositeType.getMembers()) {
 
-      // overwrite the already found type in the types map of the ASTTypeConverter if necessary
-      // we need to do this, that the members of the renamed CCompositeType get the correct type
-      // names
-      // in case of members pointing to the renamed type itself
-      CElaboratedType renamedElaboratedType =
-          new CElaboratedType(
-              renamedCompositeType.isConst(),
-              renamedCompositeType.isVolatile(),
-              renamedCompositeType.getKind(),
-              renamedCompositeType.getName(),
-              renamedCompositeType.getOrigName(),
-              renamedCompositeType);
-      parseContext.overwriteTypeIfNecessary(oldType, renamedElaboratedType, currentFile);
+          // here we need to take care of the case that the pointer could be pointing
+          // to the same that that is renamed currently
+          // we need to put in the elaborated renamed type, otherwise there will be
+          // infinite recursion in the types toASTString method, what we don't want
+          if (decl.getType() instanceof CPointerType cPointerType) {
+            newMembers.add(
+                new CCompositeTypeMemberDeclaration(
+                    createPointerField(cPointerType, oldType, renamedElaboratedType),
+                    decl.getName()));
 
-      List<CCompositeTypeMemberDeclaration> newMembers =
-          new ArrayList<>(oldCompositeType.getMembers().size());
-      for (CCompositeTypeMemberDeclaration decl : oldCompositeType.getMembers()) {
-
-        // here we need to take care of the case that the pointer could be pointing
-        // to the same that that is renamed currently
-        // we need to put in the elaborated renamed type, otherwise there will be
-        // infinite recursion in the types toASTString method, what we don't want
-        if (decl.getType() instanceof CPointerType cPointerType) {
-          newMembers.add(
-              new CCompositeTypeMemberDeclaration(
-                  createPointerField(cPointerType, oldType, renamedElaboratedType),
-                  decl.getName()));
-
-          // this member cannot be self referencing as it is no pointer
-        } else {
-          newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
+            // this member cannot be self referencing as it is no pointer
+          } else {
+            newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
+          }
         }
+        renamedCompositeType.setMembers(newMembers);
+        yield renamedCompositeType;
       }
-      renamedCompositeType.setMembers(newMembers);
-
-      return renamedCompositeType;
-
-    } else if (oldType instanceof CEnumType oldEnumType) {
-      List<CEnumerator> list = new ArrayList<>(oldEnumType.getEnumerators().size());
-
-      for (CEnumerator c : oldEnumType.getEnumerators()) {
-        CEnumerator newC =
-            new CEnumerator(c.getFileLocation(), c.getName(), c.getQualifiedName(), c.getValue());
-        list.add(newC);
+      case CEnumType oldEnumType -> {
+        List<CEnumerator> list = new ArrayList<>(oldEnumType.getEnumerators().size());
+        for (CEnumerator c : oldEnumType.getEnumerators()) {
+          CEnumerator newC =
+              new CEnumerator(c.getFileLocation(), c.getName(), c.getQualifiedName(), c.getValue());
+          list.add(newC);
+        }
+        CEnumType renamedEnumType =
+            new CEnumType(
+                oldType.isConst(),
+                oldType.isVolatile(),
+                oldEnumType.getCompatibleType(),
+                list,
+                newName,
+                oldType.getOrigName());
+        for (CEnumerator enumValue : renamedEnumType.getEnumerators()) {
+          enumValue.setEnum(renamedEnumType);
+        }
+        yield renamedEnumType;
       }
-
-      CEnumType renamedEnumType =
-          new CEnumType(
-              oldType.isConst(),
-              oldType.isVolatile(),
-              oldEnumType.getCompatibleType(),
-              list,
-              newName,
-              oldType.getOrigName());
-      for (CEnumerator enumValue : renamedEnumType.getEnumerators()) {
-        enumValue.setEnum(renamedEnumType);
+      case CElaboratedType cElaboratedType -> {
+        CComplexType renamedRealType = null;
+        if (cElaboratedType.getRealType() != null) {
+          renamedRealType = createRenamedType(cElaboratedType.getRealType());
+        }
+        yield new CElaboratedType(
+            oldType.isConst(),
+            oldType.isVolatile(),
+            oldType.getKind(),
+            newName,
+            oldType.getOrigName(),
+            renamedRealType);
       }
-      return renamedEnumType;
-
-    } else if (oldType instanceof CElaboratedType cElaboratedType) {
-      CComplexType renamedRealType = null;
-      if (cElaboratedType.getRealType() != null) {
-        renamedRealType = createRenamedType(cElaboratedType.getRealType());
-      }
-      return new CElaboratedType(
-          oldType.isConst(),
-          oldType.isVolatile(),
-          oldType.getKind(),
-          newName,
-          oldType.getOrigName(),
-          renamedRealType);
-
-    } else {
-      throw new AssertionError("Unhandled CComplexType.");
-    }
+      default -> throw new AssertionError("Unhandled CComplexType.");
+    };
   }
 
   /** This method creates the CType for a referenced field of a CCompositeType. */

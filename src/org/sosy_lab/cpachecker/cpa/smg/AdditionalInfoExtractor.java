@@ -110,29 +110,31 @@ public class AdditionalInfoExtractor {
   }
 
   private boolean containsInvalidElement(UnmodifiableCLangSMG smg, Object elem) {
-    if (elem instanceof SMGObject smgObject) {
-      return smg.isHeapObject(smgObject)
-          || smg.getGlobalObjects().containsValue(smgObject)
-          || isStackObject(smg, smgObject);
-    } else if (elem instanceof SMGEdgeHasValue edgeHasValue) {
-      SMGEdgeHasValueFilter filter =
-          SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
-              .filterAtOffset(edgeHasValue.getOffset())
-              .filterHavingValue(edgeHasValue.getValue())
-              .filterBySize(edgeHasValue.getSizeInBits());
-      Iterable<SMGEdgeHasValue> edges = smg.getHVEdges(filter);
-      return edges.iterator().hasNext();
-    } else if (elem instanceof SMGEdgePointsTo edgePointsTo) {
-      SMGEdgePointsToFilter filter =
-          SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
-              .filterAtTargetOffset(edgePointsTo.getOffset())
-              .filterHavingValue(edgePointsTo.getValue());
-      Set<SMGEdgePointsTo> edges = smg.getPtEdges(filter);
-      return !edges.isEmpty();
-    } else if (elem instanceof SMGValue smgValue) {
-      return smg.getValues().contains(smgValue);
-    }
-    return false;
+    return switch (elem) {
+      case SMGObject smgObject ->
+          smg.isHeapObject(smgObject)
+              || smg.getGlobalObjects().containsValue(smgObject)
+              || isStackObject(smg, smgObject);
+      case SMGEdgeHasValue edgeHasValue -> {
+        SMGEdgeHasValueFilter filter =
+            SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
+                .filterAtOffset(edgeHasValue.getOffset())
+                .filterHavingValue(edgeHasValue.getValue())
+                .filterBySize(edgeHasValue.getSizeInBits());
+        Iterable<SMGEdgeHasValue> edges = smg.getHVEdges(filter);
+        yield edges.iterator().hasNext();
+      }
+      case SMGEdgePointsTo edgePointsTo -> {
+        SMGEdgePointsToFilter filter =
+            SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
+                .filterAtTargetOffset(edgePointsTo.getOffset())
+                .filterHavingValue(edgePointsTo.getValue());
+        Set<SMGEdgePointsTo> edges = smg.getPtEdges(filter);
+        yield !edges.isEmpty();
+      }
+      case SMGValue smgValue -> smg.getValues().contains(smgValue);
+      case null /*TODO check if null is necessary*/, default -> false;
+    };
   }
 
   private boolean isStackObject(UnmodifiableCLangSMG smg, SMGObject pObject) {

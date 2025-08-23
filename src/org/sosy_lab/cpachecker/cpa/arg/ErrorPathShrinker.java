@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -376,36 +375,23 @@ public final class ErrorPathShrinker {
    *
    * @param exp the expression to be divided and added
    */
-  private void addAllVarsInExpToSet(final ARightHandSide exp) {
-
-    // TODO replace with expression-visitor?
-
-    if (exp instanceof ALiteralExpression
-        || exp instanceof AFunctionCallExpression
-        || exp == null) {
-      // exp = 8.2 or "return;" (when exp == null),
-      // this does not change the Set importantVars, do nothing
-
-    } else if (exp instanceof AIdExpression aIdExpression) {
+  private void addAllVarsInExpToSet(final @Nullable ARightHandSide exp) {
+    switch (exp) {
+      case AFunctionCallExpression functionCall -> {}
       // exp is an Identifier, i.e. the "b" from "a = b"
-      track(aIdExpression);
-
-    } else if (exp instanceof CCastExpression cCastExpression) {
+      case AIdExpression aIdExpression -> track(aIdExpression);
       // (cast) b
-      addAllVarsInExpToSet(cCastExpression.getOperand());
-
-    } else if (exp instanceof AUnaryExpression aUnaryExpression) {
+      case CCastExpression cCastExpression -> addAllVarsInExpToSet(cCastExpression.getOperand());
       // -b
-      addAllVarsInExpToSet(aUnaryExpression.getOperand());
-
-    } else if (exp instanceof ABinaryExpression binExp) {
+      case AUnaryExpression aUnaryExpression -> addAllVarsInExpToSet(aUnaryExpression.getOperand());
       // b op c; --> b is operand1, c is operand2
-      addAllVarsInExpToSet(binExp.getOperand1());
-      addAllVarsInExpToSet(binExp.getOperand2());
-
-    } else if (exp instanceof CFieldReference cFieldReference) {
+      case ABinaryExpression binExp -> {
+        addAllVarsInExpToSet(binExp.getOperand1());
+        addAllVarsInExpToSet(binExp.getOperand2());
+      }
       // a fieldReference "b->c" is handled as one variable with the name "b->c".
-      track(cFieldReference);
+      case CFieldReference cFieldReference -> track(cFieldReference);
+      case null, default -> {}
     }
   }
 

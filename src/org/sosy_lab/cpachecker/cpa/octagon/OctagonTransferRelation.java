@@ -204,22 +204,21 @@ public class OctagonTransferRelation
 
       // A constant value
     } else if (expression instanceof CLiteralExpression) {
-      if (expression instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-        return handleLiteralBooleanExpression(
-            cIntegerLiteralExpression.asLong(), truthAssumption, state);
-
-      } else if (expression instanceof CCharLiteralExpression cCharLiteralExpression) {
-        return handleLiteralBooleanExpression(
-            cCharLiteralExpression.getCharacter(), truthAssumption, state);
-
-      } else if (expression instanceof CFloatLiteralExpression floatLiteral) {
-        // only when the float is exactly zero the condition is wrong, for all other float values it
-        // is true
-        int val = floatLiteral.getValue().isZero() ? 0 : 1;
-        return handleLiteralBooleanExpression(val, truthAssumption, state);
-      } else {
-        return Collections.singleton(state);
-      }
+      return switch (expression) {
+        case CIntegerLiteralExpression cIntegerLiteralExpression ->
+            handleLiteralBooleanExpression(
+                cIntegerLiteralExpression.asLong(), truthAssumption, state);
+        case CCharLiteralExpression cCharLiteralExpression ->
+            handleLiteralBooleanExpression(
+                cCharLiteralExpression.getCharacter(), truthAssumption, state);
+        case CFloatLiteralExpression floatLiteral -> {
+          // only when the float is exactly zero the condition is wrong, for all other float values
+          // it is true
+          int val = floatLiteral.getValue().isZero() ? 0 : 1;
+          yield handleLiteralBooleanExpression(val, truthAssumption, state);
+        }
+        default -> Collections.singleton(state);
+      };
 
       // a cast, we ignore this cast and call this method again with the casts operand
     } else if (expression instanceof CCastExpression cCastExpression) {
@@ -456,16 +455,17 @@ public class OctagonTransferRelation
     }
 
     OctagonNumericValue rightVal = OctagonIntValue.ZERO;
-    if (right instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-      rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
-    } else if (right instanceof CCharLiteralExpression cCharLiteralExpression) {
-      rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
-    } else if (right instanceof CFloatLiteralExpression cFloatLiteralExpression) {
-      rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
-
-      // we cannot handle strings, so just return the previous state
-    } else {
-      return Collections.singleton(pState);
+    switch (right) {
+      case CIntegerLiteralExpression cIntegerLiteralExpression ->
+          rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
+      case CCharLiteralExpression cCharLiteralExpression ->
+          rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
+      case CFloatLiteralExpression cFloatLiteralExpression ->
+          rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+      case null /*TODO check if null is necessary*/, default -> {
+        // we cannot handle strings, so just return the previous state
+        return Collections.singleton(pState);
+      }
     }
 
     Set<OctagonState> possibleStates = new HashSet<>();
@@ -531,21 +531,25 @@ public class OctagonTransferRelation
       BinaryOperator op,
       boolean truthAssumption) {
     OctagonNumericValue leftVal = OctagonIntValue.ZERO;
-    if (left instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-      leftVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
-    } else if (left instanceof CCharLiteralExpression cCharLiteralExpression) {
-      leftVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
-    } else if (left instanceof CFloatLiteralExpression cFloatLiteralExpression) {
-      leftVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+    switch (left) {
+      case CIntegerLiteralExpression cIntegerLiteralExpression ->
+          leftVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
+      case CCharLiteralExpression cCharLiteralExpression ->
+          leftVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
+      case CFloatLiteralExpression cFloatLiteralExpression ->
+          leftVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+      case null /*TODO check if null is necessary*/, default -> {}
     }
 
     OctagonNumericValue rightVal = OctagonIntValue.ZERO;
-    if (right instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-      rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
-    } else if (right instanceof CCharLiteralExpression cCharLiteralExpression) {
-      rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
-    } else if (right instanceof CFloatLiteralExpression cFloatLiteralExpression) {
-      rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+    switch (right) {
+      case CIntegerLiteralExpression cIntegerLiteralExpression ->
+          rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
+      case CCharLiteralExpression cCharLiteralExpression ->
+          rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
+      case CFloatLiteralExpression cFloatLiteralExpression ->
+          rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
+      case null /*TODO check if null is necessary*/, default -> {}
     }
 
     if (truthAssumption == isOperatorSatisfied(op, leftVal, rightVal)) {
@@ -1020,16 +1024,15 @@ public class OctagonTransferRelation
 
   private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {
 
-    String variableName = null;
-    if (left instanceof CArraySubscriptExpression cArraySubscriptExpression) {
-      variableName = cArraySubscriptExpression.getArrayExpression().toASTString();
-    } else if (left instanceof CPointerExpression cPointerExpression) {
-      variableName = cPointerExpression.getOperand().toASTString();
-    } else if (left instanceof CFieldReference cFieldReference) {
-      variableName = cFieldReference.getFieldOwner().toASTString();
-    } else {
-      variableName = left.toASTString();
-    }
+    String variableName =
+        switch (left) {
+          case CArraySubscriptExpression cArraySubscriptExpression ->
+              cArraySubscriptExpression.getArrayExpression().toASTString();
+          case CPointerExpression cPointerExpression ->
+              cPointerExpression.getOperand().toASTString();
+          case CFieldReference cFieldReference -> cFieldReference.getFieldOwner().toASTString();
+          default -> left.toASTString();
+        };
 
     if (!isGlobal(left)) {
       return MemoryLocation.forLocalVariable(pFunctionName, variableName);

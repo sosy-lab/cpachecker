@@ -410,15 +410,12 @@ public class LocalTransferRelation
   }
 
   public static int findDereference(CType type) {
-    if (type instanceof CPointerType pointerType) {
-      return (findDereference(pointerType.getType()) + 1);
-    } else if (type instanceof CArrayType arrayType) {
-      return (findDereference(arrayType.getType()) + 1);
-    } else if (type instanceof CTypedefType cTypedefType) {
-      return findDereference(cTypedefType.getRealType());
-    } else {
-      return 0;
-    }
+    return switch (type) {
+      case CPointerType pointerType -> findDereference(pointerType.getType()) + 1;
+      case CArrayType arrayType -> findDereference(arrayType.getType()) + 1;
+      case CTypedefType cTypedefType -> findDereference(cTypedefType.getRealType());
+      case null /*TODO check if null is necessary*/, default -> 0;
+    };
   }
 
   private boolean isAllocatedFunction(String funcName) {

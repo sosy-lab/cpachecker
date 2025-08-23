@@ -188,19 +188,22 @@ class AstLocationClassifier extends ASTVisitor {
     Optional<IASTExpression> controllingExpression = Optional.empty();
     Optional<IASTStatement> initializer = Optional.empty();
     Optional<IASTExpression> iteration = Optional.empty();
-    if (statement instanceof IASTWhileStatement whileStatement) {
-      body = whileStatement.getBody();
-      controllingExpression = Optional.of(whileStatement.getCondition());
-    } else if (statement instanceof IASTDoStatement doStatement) {
-      body = doStatement.getBody();
-      controllingExpression = Optional.of(doStatement.getCondition());
-    } else if (statement instanceof IASTForStatement forStatement) {
-      body = forStatement.getBody();
-      controllingExpression = Optional.ofNullable(forStatement.getConditionExpression());
-      initializer = Optional.ofNullable(forStatement.getInitializerStatement());
-      iteration = Optional.ofNullable(forStatement.getIterationExpression());
-    } else {
-      throw new UnsupportedOperationException("Unknown type of iteration statement");
+    switch (statement) {
+      case IASTWhileStatement whileStatement -> {
+        body = whileStatement.getBody();
+        controllingExpression = Optional.of(whileStatement.getCondition());
+      }
+      case IASTDoStatement doStatement -> {
+        body = doStatement.getBody();
+        controllingExpression = Optional.of(doStatement.getCondition());
+      }
+      case IASTForStatement forStatement -> {
+        body = forStatement.getBody();
+        controllingExpression = Optional.ofNullable(forStatement.getConditionExpression());
+        initializer = Optional.ofNullable(forStatement.getInitializerStatement());
+        iteration = Optional.ofNullable(forStatement.getIterationExpression());
+      }
+      default -> throw new UnsupportedOperationException("Unknown type of iteration statement");
     }
     // body and cond are not null at this point.
     loopBody.put(loc, getLocation(body));

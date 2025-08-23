@@ -266,17 +266,14 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.ALL, "The following errors appeared in the analysis:", errors);
       List<CPAException> cpaExceptions = new ArrayList<>();
       for (Throwable toThrow : errors) {
-        if (toThrow instanceof Error error) { // something very serious
-          addSuppressedAndThrow(error, errors);
-        } else if (toThrow instanceof RuntimeException runtimeException) { // something less serious
-          addSuppressedAndThrow(runtimeException, errors);
-        } else if (toThrow instanceof InterruptedException interruptedException) {
-          addSuppressedAndThrow(interruptedException, errors);
-        } else if (toThrow instanceof CPAException cPAException) {
-          cpaExceptions.add(cPAException);
-        } else {
-          // here, we add one suppressed too much, but that should be irrelevant
-          addSuppressedAndThrow(new UnexpectedCheckedException("ParallelBAM", toThrow), errors);
+        switch (toThrow) {
+          case Error error -> addSuppressedAndThrow(error, errors);
+          case RuntimeException runtimeException -> addSuppressedAndThrow(runtimeException, errors);
+          case InterruptedException interruptedException ->
+              addSuppressedAndThrow(interruptedException, errors);
+          case CPAException cPAException -> cpaExceptions.add(cPAException);
+          default -> // here, we add one suppressed too much, but that should be irrelevant
+              addSuppressedAndThrow(new UnexpectedCheckedException("ParallelBAM", toThrow), errors);
         }
       }
       // if there was no other type of exception, we can throw the CPAException directly.

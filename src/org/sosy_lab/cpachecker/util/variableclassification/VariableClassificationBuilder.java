@@ -789,25 +789,22 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   /** returns the value of a (nested) IntegerLiteralExpression or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {
-    checkNotNull(exp);
-    if (exp instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-      return cIntegerLiteralExpression.getValue();
+    return switch (exp) {
+      case CIntegerLiteralExpression integerLiteral -> integerLiteral.getValue();
 
-    } else if (exp instanceof CUnaryExpression unExp) {
-      BigInteger value = getNumber(unExp.getOperand());
-      if (value == null) {
-        return null;
+      case CUnaryExpression unExp -> {
+        BigInteger value = getNumber(unExp.getOperand());
+        if (value == null) {
+          yield null;
+        }
+        yield switch (unExp.getOperator()) {
+          case MINUS -> value.negate();
+          default -> null;
+        };
       }
-      return switch (unExp.getOperator()) {
-        case MINUS -> value.negate();
-        default -> null;
-      };
+      case CCastExpression cCastExpression -> getNumber(cCastExpression.getOperand());
 
-    } else if (exp instanceof CCastExpression cCastExpression) {
-      return getNumber(cCastExpression.getOperand());
-
-    } else {
-      return null;
-    }
+      default -> null;
+    };
   }
 }
