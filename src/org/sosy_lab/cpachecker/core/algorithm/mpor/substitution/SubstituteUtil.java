@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -170,6 +171,21 @@ public class SubstituteUtil {
     }
     // can e.g. occur with 'param = 4' i.e. literal integer expressions
     return Optional.empty();
+  }
+
+  // Pointer Field Member Assignments ==============================================================
+
+  public static ImmutableTable<
+          CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      mapFieldMemberAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
+    ImmutableTable.Builder<
+            CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+        rAssignments = ImmutableTable.builder();
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+      rAssignments.putAll(substituteEdge.pointerFieldMemberAssignments);
+    }
+    return rAssignments.build();
   }
 
   // Main Function Arg =============================================================================

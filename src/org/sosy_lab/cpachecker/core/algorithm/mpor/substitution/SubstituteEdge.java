@@ -194,4 +194,10 @@ public class SubstituteEdge {
       case WRITE -> writtenFieldMembers;
     };
   }
+
+  public ImmutableTable<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getPointerFieldMemberAssignments() {
+
+    return pointerFieldMemberAssignments;
+  }
 }

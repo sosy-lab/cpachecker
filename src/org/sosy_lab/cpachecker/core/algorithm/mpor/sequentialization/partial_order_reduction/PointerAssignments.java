@@ -14,37 +14,52 @@ import com.google.common.collect.ImmutableTable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class PointerAssignments {
 
   private final ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments;
 
+  private final ImmutableTable<
+          CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      pointerFieldMemberAssignments;
+
   private final ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
       pointerParameterAssignments;
 
   public PointerAssignments(
       ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
+      ImmutableTable<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+          pPointerFieldMemberAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
           pPointerParameterAssignments) {
 
     pointerAssignments = pPointerAssignments;
+    pointerFieldMemberAssignments = pPointerFieldMemberAssignments;
     pointerParameterAssignments = pPointerParameterAssignments;
   }
 
-  public boolean contains(CVariableDeclaration pVariableDeclaration) {
+  public boolean isAssignedPointer(CVariableDeclaration pVariableDeclaration) {
     return pointerAssignments.containsKey(pVariableDeclaration);
   }
 
-  public boolean contains(ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
+  public boolean isAssignedPointerFieldMember(CVariableDeclaration pVariableDeclaration) {
+    return pointerFieldMemberAssignments.containsColumn(pVariableDeclaration);
+  }
+
+  public boolean isAssignedPointerParameter(
+      ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
     return pointerParameterAssignments.contains(pCallContext, pParameterDeclaration);
   }
 
-  public ImmutableSet<CSimpleDeclaration> get(CVariableDeclaration pVariableDeclaration) {
+  public ImmutableSet<CSimpleDeclaration> getRightHandSidesByPointer(
+      CVariableDeclaration pVariableDeclaration) {
+
     return pointerAssignments.get(pVariableDeclaration);
   }
 
-  public CSimpleDeclaration get(
+  public CSimpleDeclaration getRightHandSideByPointerParameter(
       ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
 
     return pointerParameterAssignments.get(pCallContext, pParameterDeclaration);

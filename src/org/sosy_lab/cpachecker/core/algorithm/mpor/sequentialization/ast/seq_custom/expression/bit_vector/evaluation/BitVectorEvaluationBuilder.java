@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.GlobalVariableFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PointerAssignments;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -87,7 +87,7 @@ public class BitVectorEvaluationBuilder {
               "conflictReduction must be enabled to build evaluation expression");
       case ACCESS_ONLY -> {
         ImmutableSet<CVariableDeclaration> directAccessVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            MemoryLocationUtil.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         yield buildLastAccessBitVectorEvaluationByEncoding(
             pOptions, directAccessVariables,
@@ -95,10 +95,10 @@ public class BitVectorEvaluationBuilder {
       }
       case READ_AND_WRITE -> {
         ImmutableSet<CVariableDeclaration> directReadVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            MemoryLocationUtil.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
         ImmutableSet<CVariableDeclaration> directWriteVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            MemoryLocationUtil.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         yield buildLastReadWriteBitVectorEvaluationByEncoding(
             pOptions,
@@ -224,7 +224,7 @@ public class BitVectorEvaluationBuilder {
               "bitVectorReduction must be enabled to build evaluation expression");
       case ACCESS_ONLY -> {
         ImmutableSet<CVariableDeclaration> directAccessVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            MemoryLocationUtil.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         yield buildEvaluationByReduction(
             pOptions,
@@ -237,10 +237,10 @@ public class BitVectorEvaluationBuilder {
       }
       case READ_AND_WRITE -> {
         ImmutableSet<CVariableDeclaration> directReadVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            MemoryLocationUtil.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
         ImmutableSet<CVariableDeclaration> directWriteVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            MemoryLocationUtil.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         yield buildEvaluationByReduction(
             pOptions,

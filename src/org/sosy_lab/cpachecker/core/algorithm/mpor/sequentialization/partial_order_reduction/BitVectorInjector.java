@@ -318,10 +318,10 @@ public class BitVectorInjector {
               "cannot build assignments for reduction " + pOptions.bitVectorReduction);
       case ACCESS_ONLY -> {
         ImmutableSet<CVariableDeclaration> directVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            MemoryLocationUtil.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         ImmutableSet<CVariableDeclaration> reachableVariables =
-            GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
+            MemoryLocationUtil.findReachableGlobalVariablesByAccessType(
                 pLabelClauseMap,
                 pLabelBlockMap,
                 pPointerAssignments,
@@ -332,10 +332,10 @@ public class BitVectorInjector {
       }
       case READ_AND_WRITE -> {
         ImmutableSet<CVariableDeclaration> directReadVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            MemoryLocationUtil.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
         ImmutableSet<CVariableDeclaration> reachableWriteVariables =
-            GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
+            MemoryLocationUtil.findReachableGlobalVariablesByAccessType(
                 pLabelClauseMap,
                 pLabelBlockMap,
                 pPointerAssignments,
@@ -343,10 +343,10 @@ public class BitVectorInjector {
                 BitVectorAccessType.WRITE);
 
         ImmutableSet<CVariableDeclaration> directWriteVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            MemoryLocationUtil.findDirectGlobalVariablesByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         ImmutableSet<CVariableDeclaration> reachableReadVariables =
-            GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
+            MemoryLocationUtil.findReachableGlobalVariablesByAccessType(
                 pLabelClauseMap,
                 pLabelBlockMap,
                 pPointerAssignments,

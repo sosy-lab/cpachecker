@@ -127,7 +127,7 @@ public class StatementLinker {
         && !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
         // only consider global accesses if not ignored
         && !(!canIgnoreGlobal(pTarget)
-            && GlobalVariableFinder.hasGlobalAccess(
+            && MemoryLocationUtil.hasGlobalAccess(
                 pLabelBlockMap, pPointerAssignments, targetBlock));
   }
 
