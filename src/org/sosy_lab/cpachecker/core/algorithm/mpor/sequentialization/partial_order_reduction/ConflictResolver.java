@@ -51,7 +51,7 @@ public class ConflictResolver {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    if (pBitVectorVariables.getNumMemoryLocations() == 0) {
+    if (pBitVectorVariables.getMemoryLocationAmount() == 0) {
       pLogger.log(
           Level.INFO,
           "conflictReduction is enabled, but the program does not contain any global variables.");

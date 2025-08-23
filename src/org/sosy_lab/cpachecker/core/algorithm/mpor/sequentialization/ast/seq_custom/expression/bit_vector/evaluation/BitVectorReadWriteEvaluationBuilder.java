@@ -56,8 +56,8 @@ class BitVectorReadWriteEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       ImmutableSet<CExpression> pOtherAccessBitVectors,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -66,16 +66,16 @@ class BitVectorReadWriteEvaluationBuilder {
       return buildPrunedDenseEvaluation(
           pOtherWriteBitVectors,
           pOtherAccessBitVectors,
-          pDirectReadVariables,
-          pDirectWriteVariables,
+          pDirectReadMemoryLocations,
+          pDirectWriteMemoryLocations,
           pBitVectorVariables,
           pBinaryExpressionBuilder);
     } else {
       return buildFullDenseEvaluation(
           pOtherWriteBitVectors,
           pOtherAccessBitVectors,
-          pDirectReadVariables,
-          pDirectWriteVariables,
+          pDirectReadMemoryLocations,
+          pDirectWriteMemoryLocations,
           pBitVectorVariables,
           pBinaryExpressionBuilder);
     }
@@ -85,23 +85,23 @@ class BitVectorReadWriteEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseWriteMap,
       ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseAccessMap,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
     if (pOptions.bitVectorEvaluationPrune) {
       return buildPrunedSparseEvaluation(
           pSparseWriteMap,
           pSparseAccessMap,
-          pDirectReadVariables,
-          pDirectWriteVariables,
+          pDirectReadMemoryLocations,
+          pDirectWriteMemoryLocations,
           pBitVectorVariables);
     } else {
       return buildFullSparseEvaluation(
           pSparseWriteMap,
           pSparseAccessMap,
-          pDirectReadVariables,
-          pDirectWriteVariables,
+          pDirectReadMemoryLocations,
+          pDirectWriteMemoryLocations,
           pBitVectorVariables);
     }
   }
@@ -111,8 +111,8 @@ class BitVectorReadWriteEvaluationBuilder {
   private static BitVectorEvaluationExpression buildPrunedDenseEvaluation(
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       ImmutableSet<CExpression> pOtherAccessBitVectors,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -120,13 +120,13 @@ class BitVectorReadWriteEvaluationBuilder {
     Optional<CBinaryExpression> leftHandSide =
         buildPrunedDenseLeftHandSide(
             pOtherWriteBitVectors,
-            pDirectReadVariables,
+            pDirectReadMemoryLocations,
             pBitVectorVariables,
             pBinaryExpressionBuilder);
     Optional<CBinaryExpression> rightHandSide =
         buildPrunedDenseRightHandSide(
             pOtherAccessBitVectors,
-            pDirectWriteVariables,
+            pDirectWriteMemoryLocations,
             pBitVectorVariables,
             pBinaryExpressionBuilder);
 
@@ -145,17 +145,17 @@ class BitVectorReadWriteEvaluationBuilder {
 
   private static Optional<CBinaryExpression> buildPrunedDenseLeftHandSide(
       ImmutableSet<CExpression> pOtherWriteBitVectors,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pDirectReadVariables.isEmpty()) {
+    if (pDirectReadMemoryLocations.isEmpty()) {
       return Optional.empty();
     } else {
       CIntegerLiteralExpression directReadBitVector =
           BitVectorUtil.buildDirectBitVectorExpression(
-              pBitVectorVariables.getMemoryLocationIds(), pDirectReadVariables);
+              pBitVectorVariables.getMemoryLocationIds(), pDirectReadMemoryLocations);
       CBinaryExpression leftHandSide =
           buildGeneralDenseLeftHandSide(
               directReadBitVector, pOtherWriteBitVectors, pBinaryExpressionBuilder);
@@ -165,17 +165,17 @@ class BitVectorReadWriteEvaluationBuilder {
 
   private static Optional<CBinaryExpression> buildPrunedDenseRightHandSide(
       ImmutableSet<CExpression> pOtherAccessBitVectors,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pDirectWriteVariables.isEmpty()) {
+    if (pDirectWriteMemoryLocations.isEmpty()) {
       return Optional.empty();
     } else {
       CIntegerLiteralExpression directWriteBitVector =
           BitVectorUtil.buildDirectBitVectorExpression(
-              pBitVectorVariables.getMemoryLocationIds(), pDirectWriteVariables);
+              pBitVectorVariables.getMemoryLocationIds(), pDirectWriteMemoryLocations);
       CBinaryExpression rRightHandSide =
           buildGeneralDenseRightHandSide(
               directWriteBitVector, pOtherAccessBitVectors, pBinaryExpressionBuilder);
@@ -188,18 +188,18 @@ class BitVectorReadWriteEvaluationBuilder {
   private static BitVectorEvaluationExpression buildFullDenseEvaluation(
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       ImmutableSet<CExpression> pOtherAccessBitVectors,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directReadBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.getMemoryLocationIds(), pDirectReadVariables);
+            pBitVectorVariables.getMemoryLocationIds(), pDirectReadMemoryLocations);
     CIntegerLiteralExpression directWriteBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.getMemoryLocationIds(), pDirectWriteVariables);
+            pBitVectorVariables.getMemoryLocationIds(), pDirectWriteMemoryLocations);
     return buildFullDenseLogicalOr(
         directReadBitVector,
         directWriteBitVector,
@@ -289,8 +289,8 @@ class BitVectorReadWriteEvaluationBuilder {
   private static BitVectorEvaluationExpression buildPrunedSparseEvaluation(
       ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseWriteMap,
       ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseAccessMap,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseBitVectorsEmpty()) {
@@ -307,10 +307,11 @@ class BitVectorReadWriteEvaluationBuilder {
       ImmutableList<SeqExpression> otherAccessVariables = pSparseAccessMap.get(globalVariable);
 
       Optional<SeqExpression> leftHandSide =
-          buildPrunedSparseLeftHandSide(pDirectReadVariables, globalVariable, otherWriteVariables);
+          buildPrunedSparseLeftHandSide(
+              pDirectReadMemoryLocations, globalVariable, otherWriteVariables);
       Optional<SeqExpression> rightHandSide =
           buildPrunedSparseRightHandSide(
-              pDirectWriteVariables, globalVariable, otherAccessVariables);
+              pDirectWriteMemoryLocations, globalVariable, otherAccessVariables);
 
       // only add expression if it was not pruned entirely (LHS or RHS present)
       if (leftHandSide.isPresent() || rightHandSide.isPresent()) {
@@ -326,11 +327,11 @@ class BitVectorReadWriteEvaluationBuilder {
 
   /** Builds the logical LHS i.e. {@code (R && (W' || W'' || ...))}. */
   private static Optional<SeqExpression> buildPrunedSparseLeftHandSide(
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      MemoryLocation pGlobalVariable,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      MemoryLocation pMemoryLocation,
       ImmutableList<SeqExpression> pOtherWriteVariables) {
 
-    if (!pDirectReadVariables.contains(pGlobalVariable)) {
+    if (!pDirectReadMemoryLocations.contains(pMemoryLocation)) {
       // if the LHS is 0, then the entire && expression is 0 -> prune
       return Optional.empty();
     } else {
@@ -341,11 +342,11 @@ class BitVectorReadWriteEvaluationBuilder {
 
   /** Builds the logical RHS i.e. {@code (W && (A' || A'' || ...))}. */
   private static Optional<SeqExpression> buildPrunedSparseRightHandSide(
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
-      MemoryLocation pGlobalVariable,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
+      MemoryLocation pMemoryLocation,
       ImmutableList<SeqExpression> pOtherAccessVariables) {
 
-    if (!pDirectWriteVariables.contains(pGlobalVariable)) {
+    if (!pDirectWriteMemoryLocations.contains(pMemoryLocation)) {
       // if the LHS (activeWriteVariable) is 0, then the entire && expression is 0 -> prune
       return Optional.empty();
     } else {
@@ -359,24 +360,24 @@ class BitVectorReadWriteEvaluationBuilder {
   private static BitVectorEvaluationExpression buildFullSparseEvaluation(
       ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseWriteMap,
       ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseAccessMap,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areSparseBitVectorsEmpty()) {
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    ImmutableSet<MemoryLocation> globalVariables =
+    ImmutableSet<MemoryLocation> memoryLocations =
         pBitVectorVariables.getSparseAccessBitVectors().keySet();
-    for (MemoryLocation globalVariable : globalVariables) {
+    for (MemoryLocation globalVariable : memoryLocations) {
       ImmutableList<SeqExpression> otherWriteVariables = pSparseWriteMap.get(globalVariable);
       ImmutableList<SeqExpression> otherAccessVariables = pSparseAccessMap.get(globalVariable);
       sparseExpressions.add(
           buildFullSparseSingleVariableEvaluation(
               globalVariable,
-              pDirectReadVariables,
-              pDirectWriteVariables,
+              pDirectReadMemoryLocations,
+              pDirectWriteMemoryLocations,
               otherWriteVariables,
               otherAccessVariables));
     }
@@ -400,40 +401,42 @@ class BitVectorReadWriteEvaluationBuilder {
   // Full Sparse Single Variable Evaluation ========================================================
 
   private static SeqLogicalAndExpression buildFullSparseSingleVariableLeftHandSide(
-      MemoryLocation pGlobalVariable,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
+      MemoryLocation pMemoryLocation,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
       ImmutableList<SeqExpression> pOtherWriteVariables) {
 
     SeqExpression activeReadValue =
-        BitVectorEvaluationUtil.buildSparseDirectBitVector(pGlobalVariable, pDirectReadVariables);
+        BitVectorEvaluationUtil.buildSparseDirectBitVector(
+            pMemoryLocation, pDirectReadMemoryLocations);
     return new SeqLogicalAndExpression(
         activeReadValue, BitVectorEvaluationUtil.logicalDisjunction(pOtherWriteVariables));
   }
 
   private static SeqLogicalAndExpression buildFullSparseSingleVariableRightHandSide(
-      MemoryLocation pGlobalVariable,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      MemoryLocation pMemoryLocation,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       ImmutableList<SeqExpression> pOtherReadAndWriteVariables) {
 
     SeqExpression activeWriteValue =
-        BitVectorEvaluationUtil.buildSparseDirectBitVector(pGlobalVariable, pDirectWriteVariables);
+        BitVectorEvaluationUtil.buildSparseDirectBitVector(
+            pMemoryLocation, pDirectWriteMemoryLocations);
     return new SeqLogicalAndExpression(
         activeWriteValue, BitVectorEvaluationUtil.logicalDisjunction(pOtherReadAndWriteVariables));
   }
 
   private static SeqLogicalOrExpression buildFullSparseSingleVariableEvaluation(
-      MemoryLocation pGlobalVariable,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      MemoryLocation pMemoryLocation,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       ImmutableList<SeqExpression> pOtherWriteVariables,
       ImmutableList<SeqExpression> pOtherAccessVariables) {
 
     SeqLogicalAndExpression leftHandSide =
         buildFullSparseSingleVariableLeftHandSide(
-            pGlobalVariable, pDirectReadVariables, pOtherWriteVariables);
+            pMemoryLocation, pDirectReadMemoryLocations, pOtherWriteVariables);
     SeqLogicalAndExpression rightHandSide =
         buildFullSparseSingleVariableRightHandSide(
-            pGlobalVariable, pDirectWriteVariables, pOtherAccessVariables);
+            pMemoryLocation, pDirectWriteMemoryLocations, pOtherAccessVariables);
     return new SeqLogicalOrExpression(leftHandSide, rightHandSide);
   }
 }

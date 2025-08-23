@@ -81,7 +81,7 @@ public class SeqBitVectorDeclarationBuilder {
       BitVectorVariables pBitVectorVariables,
       BitVectorAccessType pAccessType) {
 
-    int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorVariables.getNumMemoryLocations());
+    int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorVariables.getMemoryLocationAmount());
     BitVectorDataType type = BitVectorUtil.getDataTypeByLength(binaryLength);
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (DenseBitVector denseBitVector :

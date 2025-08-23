@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorVariables {
 
-  private final int numMemoryLocations;
+  private final int memoryLocationAmount;
 
   private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
 
@@ -41,8 +41,6 @@ public class BitVectorVariables {
   private final Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
       lastSparseWriteBitVector;
 
-  // TODO last sparse access/write bit vectors
-
   public BitVectorVariables(
       ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
       Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
@@ -55,7 +53,7 @@ public class BitVectorVariables {
       Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> pLastSparseAccessBitVector,
       Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> pLastSparseWriteBitVector) {
 
-    numMemoryLocations = pMemoryLocationIds.size();
+    memoryLocationAmount = pMemoryLocationIds.size();
     memoryLocationIds = pMemoryLocationIds;
     denseAccessBitVectors = pDenseAccessBitVectors;
     denseReadBitVectors = pDenseReadBitVectors;
@@ -177,8 +175,8 @@ public class BitVectorVariables {
 
   // Getters =======================================================================================
 
-  public int getNumMemoryLocations() {
-    return numMemoryLocations;
+  public int getMemoryLocationAmount() {
+    return memoryLocationAmount;
   }
 
   public ImmutableMap<MemoryLocation, Integer> getMemoryLocationIds() {

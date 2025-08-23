@@ -78,9 +78,9 @@ public class BitVectorUtil {
    * 0} and the right most index is one smaller than the length of the bit vector.
    */
   private static BitVectorValueExpression buildBitVectorExpressionByEncoding(
-      BitVectorEncoding pEncoding, int pNumGlobalVariables, ImmutableSet<Integer> pSetBits) {
+      BitVectorEncoding pEncoding, int pMemoryLocationAmount, ImmutableSet<Integer> pSetBits) {
 
-    int length = getBitVectorLengthByEncoding(pEncoding, pNumGlobalVariables);
+    int length = getBitVectorLengthByEncoding(pEncoding, pMemoryLocationAmount);
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY -> new BinaryBitVectorValueExpression(length, pSetBits);
@@ -93,23 +93,23 @@ public class BitVectorUtil {
   }
 
   public static CIntegerLiteralExpression buildDirectBitVectorExpression(
-      @NonNull ImmutableMap<MemoryLocation, Integer> pVariableIds,
-      @NonNull ImmutableSet<MemoryLocation> pVariables) {
+      @NonNull ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
+      @NonNull ImmutableSet<MemoryLocation> pMemoryLocations) {
 
     checkArgument(
-        pVariableIds.keySet().containsAll(pVariables),
-        "pVariableIds must contain all pVariables as keys.");
+        pMemoryLocationIds.keySet().containsAll(pMemoryLocations),
+        "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // for decimal, use the sum of variable ids (starting from 1)
     ImmutableSet<Integer> setBits =
-        pVariables.stream()
-            .map(pVariableIds::get)
+        pMemoryLocations.stream()
+            .map(pMemoryLocationIds::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
 
     return new CIntegerLiteralExpression(
         FileLocation.DUMMY,
-        getTypeByBinaryLength(getBinaryLength(pVariableIds.size())),
+        getTypeByBinaryLength(getBinaryLength(pMemoryLocationIds.size())),
         new BigInteger(String.valueOf(buildDecimalBitVector(setBits))));
   }
 
@@ -144,19 +144,19 @@ public class BitVectorUtil {
   }
 
   public static int getBitVectorLengthByEncoding(
-      BitVectorEncoding pEncoding, int pNumGlobalVariables) {
+      BitVectorEncoding pEncoding, int pMemoryLocationAmount) {
 
     checkArgument(
-        pNumGlobalVariables <= MAX_BINARY_LENGTH,
+        pMemoryLocationAmount <= MAX_BINARY_LENGTH,
         "cannot have more than %s global variables, please disable bit vectors for this program.",
         MAX_BINARY_LENGTH);
 
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY -> getBinaryLength(pNumGlobalVariables);
+      case BINARY -> getBinaryLength(pMemoryLocationAmount);
       // the length does not matter for these, but we use the number of global variables
-      case DECIMAL, SPARSE -> pNumGlobalVariables;
-      case HEXADECIMAL -> convertBinaryLengthToHex(getBinaryLength(pNumGlobalVariables));
+      case DECIMAL, SPARSE -> pMemoryLocationAmount;
+      case HEXADECIMAL -> convertBinaryLengthToHex(getBinaryLength(pMemoryLocationAmount));
     };
   }
 
@@ -183,13 +183,13 @@ public class BitVectorUtil {
   public static CIdExpression createSparseAccessVariable(
       MPOROptions pOptions,
       MPORThread pThread,
-      MemoryLocation pVariableDeclaration,
+      MemoryLocation pMemoryLocation,
       BitVectorAccessType pAccessType) {
 
     // we use the original variable name here, not the substitute -> less code
     String name =
         getSparseBitVectorVariableNameByAccessType(
-            pOptions, pThread.id, pVariableDeclaration, pAccessType);
+            pOptions, pThread.id, pMemoryLocation, pAccessType);
     // always initialize with 0, the actual bit vectors are set inside main()
     CSimpleDeclaration declaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
@@ -200,7 +200,7 @@ public class BitVectorUtil {
   private static String getSparseBitVectorVariableNameByAccessType(
       MPOROptions pOptions,
       int pThreadId,
-      MemoryLocation pDeclaration,
+      MemoryLocation pMemoryLocation,
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
@@ -208,11 +208,11 @@ public class BitVectorUtil {
           throw new IllegalArgumentException(
               "cannot create bit vector variable name for access type none");
       case ACCESS ->
-          SeqNameUtil.buildSparseBitVectorAccessVariableName(pOptions, pThreadId, pDeclaration);
+          SeqNameUtil.buildSparseBitVectorAccessVariableName(pOptions, pThreadId, pMemoryLocation);
       case READ ->
-          SeqNameUtil.buildSparseBitVectorReadVariableName(pOptions, pThreadId, pDeclaration);
+          SeqNameUtil.buildSparseBitVectorReadVariableName(pOptions, pThreadId, pMemoryLocation);
       case WRITE ->
-          SeqNameUtil.buildSparseBitVectorWriteVariableName(pOptions, pThreadId, pDeclaration);
+          SeqNameUtil.buildSparseBitVectorWriteVariableName(pOptions, pThreadId, pMemoryLocation);
     };
   }
 

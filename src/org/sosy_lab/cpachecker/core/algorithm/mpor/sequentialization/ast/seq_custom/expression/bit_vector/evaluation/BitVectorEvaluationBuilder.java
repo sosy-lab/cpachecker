@@ -112,7 +112,7 @@ public class BitVectorEvaluationBuilder {
 
   private static BitVectorEvaluationExpression buildLastAccessBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
-      ImmutableSet<MemoryLocation> pDirectAccessVariables,
+      ImmutableSet<MemoryLocation> pDirectAccessMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -129,24 +129,24 @@ public class BitVectorEvaluationBuilder {
         yield BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
             pOptions,
             otherAccessBitVectors,
-            pDirectAccessVariables,
+            pDirectAccessMemoryLocations,
             pBitVectorVariables,
             pBinaryExpressionBuilder);
       }
       case SPARSE -> {
         ImmutableListMultimap<MemoryLocation, SeqExpression> sparseAccessMap =
-            mapGlobalVariablesToLastSparseBitVectorsByAccessType(
+            mapMemoryLocationsToLastSparseBitVectorsByAccessType(
                 pBitVectorVariables, BitVectorAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
-            pOptions, sparseAccessMap, pDirectAccessVariables, pBitVectorVariables);
+            pOptions, sparseAccessMap, pDirectAccessMemoryLocations, pBitVectorVariables);
       }
     };
   }
 
   private static BitVectorEvaluationExpression buildLastReadWriteBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -164,31 +164,31 @@ public class BitVectorEvaluationBuilder {
             pOptions,
             ImmutableSet.of(lastWriteBitVector.reachableVariable),
             ImmutableSet.of(lastAccessBitVector.reachableVariable),
-            pDirectReadVariables,
-            pDirectWriteVariables,
+            pDirectReadMemoryLocations,
+            pDirectWriteMemoryLocations,
             pBitVectorVariables,
             pBinaryExpressionBuilder);
       }
       case SPARSE -> {
         ImmutableListMultimap<MemoryLocation, SeqExpression> sparseWriteMap =
-            mapGlobalVariablesToLastSparseBitVectorsByAccessType(
+            mapMemoryLocationsToLastSparseBitVectorsByAccessType(
                 pBitVectorVariables, BitVectorAccessType.WRITE);
         ImmutableListMultimap<MemoryLocation, SeqExpression> sparseAccessMap =
-            mapGlobalVariablesToLastSparseBitVectorsByAccessType(
+            mapMemoryLocationsToLastSparseBitVectorsByAccessType(
                 pBitVectorVariables, BitVectorAccessType.ACCESS);
         yield BitVectorReadWriteEvaluationBuilder.buildSparseEvaluation(
             pOptions,
             sparseWriteMap,
             sparseAccessMap,
-            pDirectReadVariables,
-            pDirectWriteVariables,
+            pDirectReadMemoryLocations,
+            pDirectWriteMemoryLocations,
             pBitVectorVariables);
       }
     };
   }
 
   private static ImmutableListMultimap<MemoryLocation, SeqExpression>
-      mapGlobalVariablesToLastSparseBitVectorsByAccessType(
+      mapMemoryLocationsToLastSparseBitVectorsByAccessType(
           BitVectorVariables pBitVectorVariables, BitVectorAccessType pAccessType) {
 
     ImmutableListMultimap.Builder<MemoryLocation, SeqExpression> rMap =
@@ -257,9 +257,9 @@ public class BitVectorEvaluationBuilder {
   private static BitVectorEvaluationExpression buildEvaluationByReduction(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableSet<MemoryLocation> pDirectAccessVariables,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectAccessMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -272,15 +272,15 @@ public class BitVectorEvaluationBuilder {
           buildAccessEvaluationByEncoding(
               pOptions,
               pOtherThreads,
-              pDirectAccessVariables,
+              pDirectAccessMemoryLocations,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
       case READ_AND_WRITE ->
           buildReadWriteEvaluationByEncoding(
               pOptions,
               pOtherThreads,
-              pDirectReadVariables,
-              pDirectWriteVariables,
+              pDirectReadMemoryLocations,
+              pDirectWriteMemoryLocations,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
     };
@@ -289,7 +289,7 @@ public class BitVectorEvaluationBuilder {
   private static BitVectorEvaluationExpression buildAccessEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableSet<MemoryLocation> pDirectAccessVariables,
+      ImmutableSet<MemoryLocation> pDirectAccessMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -305,16 +305,16 @@ public class BitVectorEvaluationBuilder {
         yield BitVectorAccessEvaluationBuilder.buildDenseEvaluation(
             pOptions,
             otherBitVectors,
-            pDirectAccessVariables,
+            pDirectAccessMemoryLocations,
             pBitVectorVariables,
             pBinaryExpressionBuilder);
       }
       case SPARSE -> {
         ImmutableListMultimap<MemoryLocation, SeqExpression> sparseAccessMap =
-            mapGlobalVariablesToSparseBitVectorsByAccessType(
+            mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, BitVectorAccessType.ACCESS);
         yield BitVectorAccessEvaluationBuilder.buildSparseEvaluation(
-            pOptions, sparseAccessMap, pDirectAccessVariables, pBitVectorVariables);
+            pOptions, sparseAccessMap, pDirectAccessMemoryLocations, pBitVectorVariables);
       }
     };
   }
@@ -322,8 +322,8 @@ public class BitVectorEvaluationBuilder {
   private static BitVectorEvaluationExpression buildReadWriteEvaluationByEncoding(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -343,31 +343,31 @@ public class BitVectorEvaluationBuilder {
             pOptions,
             otherWriteBitVectors,
             otherAccessBitVectors,
-            pDirectReadVariables,
-            pDirectWriteVariables,
+            pDirectReadMemoryLocations,
+            pDirectWriteMemoryLocations,
             pBitVectorVariables,
             pBinaryExpressionBuilder);
       }
       case SPARSE -> {
         ImmutableListMultimap<MemoryLocation, SeqExpression> sparseWriteMap =
-            mapGlobalVariablesToSparseBitVectorsByAccessType(
+            mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, BitVectorAccessType.WRITE);
         ImmutableListMultimap<MemoryLocation, SeqExpression> sparseAccessMap =
-            mapGlobalVariablesToSparseBitVectorsByAccessType(
+            mapMemoryLocationsToSparseBitVectorsByAccessType(
                 pOtherThreads, pBitVectorVariables, BitVectorAccessType.ACCESS);
         yield BitVectorReadWriteEvaluationBuilder.buildSparseEvaluation(
             pOptions,
             sparseWriteMap,
             sparseAccessMap,
-            pDirectReadVariables,
-            pDirectWriteVariables,
+            pDirectReadMemoryLocations,
+            pDirectWriteMemoryLocations,
             pBitVectorVariables);
       }
     };
   }
 
   private static ImmutableListMultimap<MemoryLocation, SeqExpression>
-      mapGlobalVariablesToSparseBitVectorsByAccessType(
+      mapMemoryLocationsToSparseBitVectorsByAccessType(
           ImmutableSet<MPORThread> pOtherThreads,
           BitVectorVariables pBitVectorVariables,
           BitVectorAccessType pAccessType) {

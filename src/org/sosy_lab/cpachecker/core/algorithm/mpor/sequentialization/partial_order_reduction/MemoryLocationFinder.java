@@ -56,10 +56,10 @@ public class MemoryLocationFinder {
       Set<SeqThreadStatement> found = new HashSet<>();
       found.add(statement);
       SeqThreadStatementUtil.recursivelyFindTargetGotoStatements(found, statement, pLabelBlockMap);
-      ImmutableSet<MemoryLocation> foundGlobalVariables =
+      ImmutableSet<MemoryLocation> foundMemoryLocations =
           findMemoryLocationsByStatements(
               ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
-      rMemLocations.addAll(foundGlobalVariables);
+      rMemLocations.addAll(foundMemoryLocations);
     }
     return rMemLocations.build();
   }
@@ -82,10 +82,10 @@ public class MemoryLocationFinder {
       found.add(statement);
       SeqThreadStatementUtil.recursivelyFindTargetStatements(
           found, statement, pLabelClauseMap, pLabelBlockMap);
-      ImmutableSet<MemoryLocation> foundGlobalVariables =
+      ImmutableSet<MemoryLocation> foundMemoryLocations =
           findMemoryLocationsByStatements(
               ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
-      rMemLocations.addAll(foundGlobalVariables);
+      rMemLocations.addAll(foundMemoryLocations);
     }
     return rMemLocations.build();
   }
@@ -114,21 +114,21 @@ public class MemoryLocationFinder {
 
     ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     // first check direct accesses on the variables themselves
-    ImmutableSet<CVariableDeclaration> globalVariables =
+    ImmutableSet<CVariableDeclaration> memoryLocations =
         pSubstituteEdge.getGlobalVariablesByAccessType(pAccessType);
-    rMemLocations.addAll(globalVariables.stream().map(var -> MemoryLocation.of(var)).toList());
+    rMemLocations.addAll(memoryLocations.stream().map(var -> MemoryLocation.of(var)).toList());
     // then check indirect accesses via pointers that point to the variables
     ImmutableSet<CSimpleDeclaration> pointerDereferences =
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
     for (CSimpleDeclaration pointerDereference : pointerDereferences) {
-      Set<MemoryLocation> memoryLocations = new HashSet<>();
+      Set<MemoryLocation> pointerDerefMemoryLocations = new HashSet<>();
       recursivelyFindMemoryLocationsByPointerDereference(
           pointerDereference,
-          memoryLocations,
+          pointerDerefMemoryLocations,
           pSubstituteEdge.threadEdge.callContext,
           pPointerAssignments,
           new HashSet<>());
-      rMemLocations.addAll(memoryLocations);
+      rMemLocations.addAll(pointerDerefMemoryLocations);
     }
     return rMemLocations.build();
   }
@@ -142,7 +142,7 @@ public class MemoryLocationFinder {
    */
   private static void recursivelyFindMemoryLocationsByPointerDereference(
       CSimpleDeclaration pCurrentDeclaration,
-      Set<MemoryLocation> pMemLocations,
+      Set<MemoryLocation> pMemoryLocations,
       final Optional<ThreadEdge> pCallContext,
       final PointerAssignments pPointerAssignments,
       Set<CSimpleDeclaration> pVisited) {
@@ -158,11 +158,11 @@ public class MemoryLocationFinder {
                 pPointerAssignments.getRightHandSidesByPointer(variableDeclaration);
             for (CSimpleDeclaration rightHandSide : rightHandSides) {
               recursivelyFindMemoryLocationsByPointerDereference(
-                  rightHandSide, pMemLocations, pCallContext, pPointerAssignments, pVisited);
+                  rightHandSide, pMemoryLocations, pCallContext, pPointerAssignments, pVisited);
             }
           }
         } else {
-          pMemLocations.add(MemoryLocation.of(variableDeclaration));
+          pMemoryLocations.add(MemoryLocation.of(variableDeclaration));
         }
 
       } else if (pCurrentDeclaration instanceof CParameterDeclaration parameterDeclaration) {
@@ -174,7 +174,7 @@ public class MemoryLocationFinder {
               pPointerAssignments.getRightHandSideByPointerParameter(
                   callContext, parameterDeclaration);
           recursivelyFindMemoryLocationsByPointerDereference(
-              rightHandSide, pMemLocations, pCallContext, pPointerAssignments, pVisited);
+              rightHandSide, pMemoryLocations, pCallContext, pPointerAssignments, pVisited);
         }
       }
     }

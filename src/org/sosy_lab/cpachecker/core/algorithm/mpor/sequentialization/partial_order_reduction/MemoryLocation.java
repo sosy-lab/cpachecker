@@ -63,10 +63,8 @@ public class MemoryLocation {
     if (this == pOther) {
       return true;
     }
-    if (!(pOther instanceof MemoryLocation other)) {
-      return false;
-    }
-    return Objects.equals(variable, other.variable)
-        && Objects.equals(fieldMember, other.fieldMember);
+    return pOther instanceof MemoryLocation other
+        && variable.equals(other.variable)
+        && fieldMember.equals(other.fieldMember);
   }
 }

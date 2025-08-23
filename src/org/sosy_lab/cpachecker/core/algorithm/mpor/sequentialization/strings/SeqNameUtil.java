@@ -235,9 +235,9 @@ public class SeqNameUtil {
   // Sparse Bit Vector =============================================================================
 
   public static String buildSparseBitVectorAccessVariableName(
-      MPOROptions pOptions, int pThreadId, MemoryLocation pVariableDeclaration) {
+      MPOROptions pOptions, int pThreadId, MemoryLocation pMemoryLocation) {
 
-    String variableName = pVariableDeclaration.getName();
+    String variableName = pMemoryLocation.getName();
     return pOptions.shortVariableNames
         ? SeqToken.b + SeqToken.a + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
@@ -249,9 +249,9 @@ public class SeqNameUtil {
   }
 
   public static String buildSparseBitVectorReadVariableName(
-      MPOROptions pOptions, int pThreadId, MemoryLocation pVariableDeclaration) {
+      MPOROptions pOptions, int pThreadId, MemoryLocation pMemoryLocation) {
 
-    String variableName = pVariableDeclaration.getName();
+    String variableName = pMemoryLocation.getName();
     return pOptions.shortVariableNames
         ? SeqToken.b + SeqToken.r + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
@@ -263,9 +263,9 @@ public class SeqNameUtil {
   }
 
   public static String buildSparseBitVectorWriteVariableName(
-      MPOROptions pOptions, int pThreadId, MemoryLocation pVariableDeclaration) {
+      MPOROptions pOptions, int pThreadId, MemoryLocation pMemoryLocation) {
 
-    String variableName = pVariableDeclaration.getName();
+    String variableName = pMemoryLocation.getName();
     return pOptions.shortVariableNames
         ? SeqToken.b + SeqToken.w + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)

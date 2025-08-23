@@ -95,7 +95,7 @@ public class BitVectorInjector {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    if (pBitVectorVariables.getNumMemoryLocations() == 0) {
+    if (pBitVectorVariables.getMemoryLocationAmount() == 0) {
       pLogger.log(
           Level.INFO,
           "bit vectors are enabled, but the program does not contain any global variables.");
@@ -372,14 +372,14 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableSet<MemoryLocation> pDirectVariables,
-      ImmutableSet<MemoryLocation> pReachableVariables) {
+      ImmutableSet<MemoryLocation> pDirectMemoryLocations,
+      ImmutableSet<MemoryLocation> pReachableMemoryLocations) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
       for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
-        boolean value = pReachableVariables.contains(entry.getKey());
+        boolean value = pReachableMemoryLocations.contains(entry.getKey());
         SparseBitVectorValueExpression sparseBitVectorExpression =
             new SparseBitVectorValueExpression(value);
         rStatements.add(
@@ -393,7 +393,7 @@ public class BitVectorInjector {
                 BitVectorAccessType.ACCESS, pThread);
         BitVectorValueExpression directValue =
             BitVectorUtil.buildBitVectorExpression(
-                pOptions, pBitVectorVariables.getMemoryLocationIds(), pDirectVariables);
+                pOptions, pBitVectorVariables.getMemoryLocationIds(), pDirectMemoryLocations);
         rStatements.add(new SeqBitVectorAssignmentStatement(directVariable, directValue));
       }
       CExpression reachableVariable =
@@ -401,7 +401,7 @@ public class BitVectorInjector {
               BitVectorAccessType.ACCESS, pThread);
       BitVectorValueExpression reachableValue =
           BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.getMemoryLocationIds(), pReachableVariables);
+              pOptions, pBitVectorVariables.getMemoryLocationIds(), pReachableMemoryLocations);
       rStatements.add(new SeqBitVectorAssignmentStatement(reachableVariable, reachableValue));
     }
     return rStatements.build();
@@ -411,10 +411,10 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableSet<MemoryLocation> pDirectReadVariables,
-      ImmutableSet<MemoryLocation> pReachableWriteVariables,
-      ImmutableSet<MemoryLocation> pDirectWriteVariables,
-      ImmutableSet<MemoryLocation> pReachableAccessVariables) {
+      ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
+      ImmutableSet<MemoryLocation> pReachableWriteMemoryLocations,
+      ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
+      ImmutableSet<MemoryLocation> pReachableAccessMemoryLocations) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
@@ -422,7 +422,7 @@ public class BitVectorInjector {
       for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
         MemoryLocation variable = entry.getKey();
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
-        boolean value = pReachableAccessVariables.contains(variable);
+        boolean value = pReachableAccessMemoryLocations.contains(variable);
         SparseBitVectorValueExpression sparseBitVectorExpression =
             new SparseBitVectorValueExpression(value);
         rStatements.add(
@@ -432,7 +432,7 @@ public class BitVectorInjector {
       // sparse write bit vectors
       for (var entry : pBitVectorVariables.getSparseWriteBitVectors().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> writeVariables = entry.getValue().variables;
-        boolean value = pReachableWriteVariables.contains(entry.getKey());
+        boolean value = pReachableWriteMemoryLocations.contains(entry.getKey());
         SparseBitVectorValueExpression sparseBitVectorExpression =
             new SparseBitVectorValueExpression(value);
         rStatements.add(
@@ -448,7 +448,7 @@ public class BitVectorInjector {
                 pBitVectorVariables.getDenseDirectBitVectorByAccessType(
                     BitVectorAccessType.READ, pThread),
                 pBitVectorVariables,
-                pDirectReadVariables));
+                pDirectReadMemoryLocations));
       }
       rStatements.add(
           buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
@@ -456,7 +456,7 @@ public class BitVectorInjector {
               pBitVectorVariables.getDenseReachableBitVectorByAccessType(
                   BitVectorAccessType.WRITE, pThread),
               pBitVectorVariables,
-              pReachableWriteVariables));
+              pReachableWriteMemoryLocations));
       if (pOptions.kIgnoreZeroReduction) {
         rStatements.add(
             buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
@@ -464,7 +464,7 @@ public class BitVectorInjector {
                 pBitVectorVariables.getDenseDirectBitVectorByAccessType(
                     BitVectorAccessType.WRITE, pThread),
                 pBitVectorVariables,
-                pDirectWriteVariables));
+                pDirectWriteMemoryLocations));
       }
       rStatements.add(
           buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
@@ -472,7 +472,7 @@ public class BitVectorInjector {
               pBitVectorVariables.getDenseReachableBitVectorByAccessType(
                   BitVectorAccessType.ACCESS, pThread),
               pBitVectorVariables,
-              pReachableAccessVariables));
+              pReachableAccessMemoryLocations));
     }
     return rStatements.build();
   }
@@ -482,11 +482,11 @@ public class BitVectorInjector {
           MPOROptions pOptions,
           CExpression pBitVectorVariable,
           BitVectorVariables pBitVectorVariables,
-          ImmutableSet<MemoryLocation> pAccessedVariables) {
+          ImmutableSet<MemoryLocation> pAccessedMemoryLocations) {
 
     BitVectorValueExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(
-            pOptions, pBitVectorVariables.getMemoryLocationIds(), pAccessedVariables);
+            pOptions, pBitVectorVariables.getMemoryLocationIds(), pAccessedMemoryLocations);
     return new SeqBitVectorAssignmentStatement(pBitVectorVariable, bitVectorExpression);
   }
 }
