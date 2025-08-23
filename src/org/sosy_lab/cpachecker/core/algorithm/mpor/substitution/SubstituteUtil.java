@@ -114,7 +114,8 @@ public class SubstituteUtil {
         ImmutableTable.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       if (substituteEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
-        ThreadEdge callContext = substituteEdge.threadEdge.callContext.orElseThrow();
+        // the function call edge is used as the call context, not the actual call context
+        ThreadEdge callContext = substituteEdge.threadEdge;
         ImmutableList<Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>> assignments =
             buildParameterAssignments(callContext, functionCallEdge);
         for (Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration> cell : assignments) {
