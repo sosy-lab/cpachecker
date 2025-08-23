@@ -11,9 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Table;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,13 +83,15 @@ public class MPORSubstitutionTracker {
    * are not unique to the instance of a struct, forcing us to use the {@link CSimpleDeclaration} of
    * the owner too. Contains both reads and writes.
    */
-  private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration> accessedFieldMembers;
+  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      accessedFieldMembers;
 
   /**
    * Maps written field members to the declaration of their owner, e.g. of the form {@code
    * field->member = 42;}.
    */
-  private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration> writtenFieldMembers;
+  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      writtenFieldMembers;
 
   // FUNCTION POINTERS =============================================================================
 
@@ -105,8 +110,8 @@ public class MPORSubstitutionTracker {
     accessedGlobalVariables = new HashSet<>();
     writtenGlobalVariables = new HashSet<>();
 
-    accessedFieldMembers = new HashMap<>();
-    writtenFieldMembers = new HashMap<>();
+    accessedFieldMembers = HashMultimap.create();
+    writtenFieldMembers = HashMultimap.create();
 
     accessedFunctionPointers = new HashSet<>();
   }
@@ -210,16 +215,16 @@ public class MPORSubstitutionTracker {
 
   // field members
 
-  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       getAccessedFieldMembers() {
 
-    return ImmutableMap.copyOf(accessedFieldMembers);
+    return ImmutableSetMultimap.copyOf(accessedFieldMembers);
   }
 
-  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       getWrittenFieldMembers() {
 
-    return ImmutableMap.copyOf(writtenFieldMembers);
+    return ImmutableSetMultimap.copyOf(writtenFieldMembers);
   }
 
   // function pointers

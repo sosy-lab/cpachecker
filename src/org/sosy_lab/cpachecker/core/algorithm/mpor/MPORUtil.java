@@ -12,8 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -423,10 +423,25 @@ public final class MPORUtil {
     return pElements;
   }
 
-  /** Returns the symmetric difference of the entry sets in {@code pMapA} and {@code pMapB}. */
-  public static <K, V> ImmutableMap<K, V> symmetricDifference(
-      ImmutableMap<K, V> pMapA, ImmutableMap<K, V> pMapB) {
+  /**
+   * Returns the symmetric difference of the key sets in {@code pMapA} and {@code pMapB} but retains
+   * all values. Assumes that if a key is present in both maps, the value sets are equal.
+   */
+  public static <K, V> ImmutableSetMultimap<K, V> symmetricDifference(
+      ImmutableSetMultimap<K, V> pMapA, ImmutableSetMultimap<K, V> pMapB) {
 
-    return ImmutableMap.copyOf(Sets.symmetricDifference(pMapA.entrySet(), pMapB.entrySet()));
+    ImmutableSetMultimap.Builder<K, V> rSymmetricDifference = ImmutableSetMultimap.builder();
+    ImmutableSet<K> keys =
+        ImmutableSet.copyOf(Sets.symmetricDifference(pMapA.keySet(), pMapB.keySet()));
+    for (K key : keys) {
+      if (!pMapB.containsKey(key)) {
+        rSymmetricDifference.putAll(key, pMapA.get(key));
+      }
+      if (pMapA.containsKey(key) && pMapB.containsKey(key)) {
+        assert pMapA.get(key).equals(pMapB.get(key))
+            : "value sets must be equal if both pMapA and pMapB contain a key";
+      }
+    }
+    return rSymmetricDifference.build();
   }
 }

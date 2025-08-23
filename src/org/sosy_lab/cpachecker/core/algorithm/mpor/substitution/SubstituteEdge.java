@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -60,13 +61,14 @@ public class SubstituteEdge {
   public final ImmutableSet<CVariableDeclaration> writtenGlobalVariables;
 
   // FIELD MEMBERS =================================================================================
-  // TODO make these ImmutableSetMultimap, we can access multiple field members in a single edge
-  public final ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+
+  public final ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       accessedFieldMembers;
 
-  public final ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> readFieldMembers;
+  public final ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      readFieldMembers;
 
-  public final ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public final ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       writtenFieldMembers;
 
   // FUNCTION POINTERS =============================================================================
@@ -84,8 +86,10 @@ public class SubstituteEdge {
       ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
-      ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> pAccessedFieldMembers,
-      ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> pWrittenFieldMembers,
+      ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+          pAccessedFieldMembers,
+      ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+          pWrittenFieldMembers,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
 
     // TODO maybe make it an optional single entry then? ...
@@ -131,8 +135,8 @@ public class SubstituteEdge {
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
-        ImmutableMap.of(),
-        ImmutableMap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
         ImmutableSet.of());
   }
 
