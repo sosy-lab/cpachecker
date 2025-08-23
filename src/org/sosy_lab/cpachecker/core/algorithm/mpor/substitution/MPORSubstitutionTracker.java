@@ -140,75 +140,46 @@ public class MPORSubstitutionTracker {
   // getters =======================================================================================
 
   public ImmutableSet<CParameterDeclaration> getAccessedMainFunctionArgs() {
-    if (accessedMainFunctionArgs instanceof ImmutableSet<CParameterDeclaration> immutableSet) {
-      return immutableSet;
-    }
     return ImmutableSet.copyOf(accessedMainFunctionArgs);
   }
 
   public ImmutableMap<CVariableDeclaration, CSimpleDeclaration> getPointerAssignments() {
-    if (pointerAssignments
-        instanceof ImmutableMap<CVariableDeclaration, CSimpleDeclaration> immutableMap) {
-      return immutableMap;
-    }
     return ImmutableMap.copyOf(pointerAssignments);
   }
 
   // pointer dereferences
 
   public ImmutableSet<CSimpleDeclaration> getAccessedPointerDereferences() {
-    if (accessedPointerDereferences instanceof ImmutableSet<CSimpleDeclaration> immutableSet) {
-      return immutableSet;
-    }
     return ImmutableSet.copyOf(accessedPointerDereferences);
   }
 
   public ImmutableSet<CSimpleDeclaration> getWrittenPointerDereferences() {
-    if (writtenPointerDereferences instanceof ImmutableSet<CSimpleDeclaration> immutableSet) {
-      return immutableSet;
-    }
     return ImmutableSet.copyOf(writtenPointerDereferences);
   }
 
   // global variables
 
   public ImmutableSet<CVariableDeclaration> getAccessedGlobalVariables() {
-    if (accessedGlobalVariables instanceof ImmutableSet<CVariableDeclaration> immutableSet) {
-      return immutableSet;
-    }
     return ImmutableSet.copyOf(accessedGlobalVariables);
   }
 
   public ImmutableSet<CVariableDeclaration> getWrittenGlobalVariables() {
-    if (writtenGlobalVariables instanceof ImmutableSet<CVariableDeclaration> immutableSet) {
-      return immutableSet;
-    }
     return ImmutableSet.copyOf(writtenGlobalVariables);
   }
 
   // field members
 
   public ImmutableSet<CCompositeTypeMemberDeclaration> getAccessedFieldMembers() {
-    if (accessedFieldMembers
-        instanceof ImmutableSet<CCompositeTypeMemberDeclaration> immutableSet) {
-      return immutableSet;
-    }
     return ImmutableSet.copyOf(accessedFieldMembers);
   }
 
   public ImmutableSet<CCompositeTypeMemberDeclaration> getWrittenFieldMembers() {
-    if (writtenFieldMembers instanceof ImmutableSet<CCompositeTypeMemberDeclaration> immutableSet) {
-      return immutableSet;
-    }
     return ImmutableSet.copyOf(writtenFieldMembers);
   }
 
   // function pointers
 
   public ImmutableSet<CFunctionDeclaration> getAccessedFunctionPointers() {
-    if (accessedFunctionPointers instanceof ImmutableSet<CFunctionDeclaration> immutableSet) {
-      return immutableSet;
-    }
     return ImmutableSet.copyOf(accessedFunctionPointers);
   }
 }
