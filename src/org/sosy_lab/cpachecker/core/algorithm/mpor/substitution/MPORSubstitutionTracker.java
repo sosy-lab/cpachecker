@@ -68,10 +68,10 @@ public class MPORSubstitutionTracker {
    * Accessed field members e.g. of the form {@code x = field->member;} where {@code field} is an
    * instance of a struct. Contains both reads and writes.
    */
-  private final Set<CCompositeTypeMemberDeclaration> accessedFieldMembers;
+  private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration> accessedFieldMembers;
 
   /** Written field members e.g. of the form {@code field->member = 42;}. */
-  private final Set<CCompositeTypeMemberDeclaration> writtenFieldMembers;
+  private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration> writtenFieldMembers;
 
   // FUNCTION POINTERS =============================================================================
 
@@ -88,8 +88,8 @@ public class MPORSubstitutionTracker {
     accessedGlobalVariables = new HashSet<>();
     writtenGlobalVariables = new HashSet<>();
 
-    accessedFieldMembers = new HashSet<>();
-    writtenFieldMembers = new HashSet<>();
+    accessedFieldMembers = new HashMap<>();
+    writtenFieldMembers = new HashMap<>();
 
     accessedFunctionPointers = new HashSet<>();
   }
@@ -125,12 +125,16 @@ public class MPORSubstitutionTracker {
     accessedGlobalVariables.add(pAccessedGlobalVariable);
   }
 
-  public void addWrittenFieldMember(CCompositeTypeMemberDeclaration pWrittenFieldMember) {
-    writtenFieldMembers.add(pWrittenFieldMember);
+  public void addWrittenFieldMember(
+      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pWrittenFieldMember) {
+
+    writtenFieldMembers.put(pOwnerDeclaration, pWrittenFieldMember);
   }
 
-  public void addAccessedFieldMember(CCompositeTypeMemberDeclaration pAccessedFieldMember) {
-    accessedFieldMembers.add(pAccessedFieldMember);
+  public void addAccessedFieldMember(
+      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pAccessedFieldMember) {
+
+    accessedFieldMembers.put(pOwnerDeclaration, pAccessedFieldMember);
   }
 
   public void addAccessedFunctionPointer(CFunctionDeclaration pAccessedFunctionPointer) {
@@ -169,12 +173,16 @@ public class MPORSubstitutionTracker {
 
   // field members
 
-  public ImmutableSet<CCompositeTypeMemberDeclaration> getAccessedFieldMembers() {
-    return ImmutableSet.copyOf(accessedFieldMembers);
+  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getAccessedFieldMembers() {
+
+    return ImmutableMap.copyOf(accessedFieldMembers);
   }
 
-  public ImmutableSet<CCompositeTypeMemberDeclaration> getWrittenFieldMembers() {
-    return ImmutableSet.copyOf(writtenFieldMembers);
+  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getWrittenFieldMembers() {
+
+    return ImmutableMap.copyOf(writtenFieldMembers);
   }
 
   // function pointers

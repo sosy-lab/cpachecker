@@ -259,12 +259,12 @@ public class MPORSubstitution {
       // typedef is e.g. 'QType' or for pointers 'QType*'
       if (idExpression.getExpressionType() instanceof CTypedefType typedefType) {
         trackFieldReferenceByTypedefType(
-            pFieldReference, typedefType, pIsWrite, pTracker.orElseThrow());
+            pFieldReference, idExpression, typedefType, pIsWrite, pTracker.orElseThrow());
 
       } else if (idExpression.getExpressionType() instanceof CPointerType pointerType) {
         if (pointerType.getType() instanceof CTypedefType typedefType) {
           trackFieldReferenceByTypedefType(
-              pFieldReference, typedefType, pIsWrite, pTracker.orElseThrow());
+              pFieldReference, idExpression, typedefType, pIsWrite, pTracker.orElseThrow());
         }
       }
 
@@ -276,6 +276,7 @@ public class MPORSubstitution {
 
   private void trackFieldReferenceByTypedefType(
       CFieldReference pFieldReference,
+      CIdExpression pIdExpression,
       CTypedefType pTypedefType,
       boolean pIsWrite,
       MPORSubstitutionTracker pTracker) {
@@ -288,9 +289,9 @@ public class MPORSubstitution {
           if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
             // TODO need tracking based on declaration so that we map field declaration -> member
             if (pIsWrite) {
-              pTracker.addWrittenFieldMember(memberDeclaration);
+              pTracker.addWrittenFieldMember(pIdExpression.getDeclaration(), memberDeclaration);
             }
-            pTracker.addAccessedFieldMember(memberDeclaration);
+            pTracker.addAccessedFieldMember(pIdExpression.getDeclaration(), memberDeclaration);
           }
         }
       }
