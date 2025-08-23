@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,17 +35,11 @@ public class GlobalVariableFinder {
    */
   static boolean hasGlobalAccess(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock) {
 
     return !findDirectGlobalVariablesByAccessType(
-            pLabelBlockMap,
-            pPointerAssignments,
-            pPointerParameterAssignments,
-            pBlock,
-            BitVectorAccessType.ACCESS)
+            pLabelBlockMap, pPointerAssignments, pBlock, BitVectorAccessType.ACCESS)
         .isEmpty();
   }
 
@@ -57,9 +49,7 @@ public class GlobalVariableFinder {
    */
   public static ImmutableSet<CVariableDeclaration> findDirectGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
 
@@ -70,10 +60,7 @@ public class GlobalVariableFinder {
       recursivelyFindTargetGotoStatements(found, statement, pLabelBlockMap);
       ImmutableSet<CVariableDeclaration> foundGlobalVariables =
           extractGlobalVariablesFromStatements(
-              ImmutableSet.copyOf(found),
-              pPointerAssignments,
-              pPointerParameterAssignments,
-              pAccessType);
+              ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
       rGlobalVariables.addAll(foundGlobalVariables);
     }
     return rGlobalVariables.build();
@@ -87,9 +74,7 @@ public class GlobalVariableFinder {
   static ImmutableSet<CVariableDeclaration> findReachableGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
 
@@ -100,10 +85,7 @@ public class GlobalVariableFinder {
       recursivelyFindTargetStatements(found, statement, pLabelClauseMap, pLabelBlockMap);
       ImmutableSet<CVariableDeclaration> foundGlobalVariables =
           extractGlobalVariablesFromStatements(
-              ImmutableSet.copyOf(found),
-              pPointerAssignments,
-              pPointerParameterAssignments,
-              pAccessType);
+              ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
       rGlobalVariables.addAll(foundGlobalVariables);
     }
     return rGlobalVariables.build();
@@ -185,41 +167,49 @@ public class GlobalVariableFinder {
     return ImmutableList.of();
   }
 
+  // Global Variable Extraction ====================================================================
+
   private static ImmutableSet<CVariableDeclaration> extractGlobalVariablesFromStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       BitVectorAccessType pAccessType) {
 
     ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();
     for (SeqThreadStatement statement : pStatements) {
       for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
-        // first check direct accesses on the variables themselves
-        ImmutableSet<CVariableDeclaration> globalAccesses =
-            substituteEdge.getGlobalVariablesByAccessType(pAccessType);
-        for (CVariableDeclaration variable : globalAccesses) {
-          assert variable.isGlobal() : "CVariableDeclaration in SubstituteEdge must be global";
-          rGlobalVariables.add(variable);
-        }
-        // then check indirect accesses via pointers that point to the variables
-        ImmutableSet<CSimpleDeclaration> pointerDereferences =
-            substituteEdge.getPointerDereferencesByAccessType(pAccessType);
-        for (CSimpleDeclaration pointerDereference : pointerDereferences) {
-          Set<CVariableDeclaration> globalVariables = new HashSet<>();
-          recursivelyFindGlobalVariablesByPointerDereference(
-              pointerDereference,
-              globalVariables,
-              substituteEdge.threadEdge.callContext,
-              pPointerAssignments,
-              pPointerParameterAssignments,
-              new HashSet<>());
-          rGlobalVariables.addAll(globalVariables);
-        }
+        rGlobalVariables.addAll(
+            extractGlobalVariablesFromSubstituteEdge(
+                substituteEdge, pAccessType, pPointerAssignments));
       }
     }
     return rGlobalVariables.build();
   }
+
+  private static ImmutableSet<CVariableDeclaration> extractGlobalVariablesFromSubstituteEdge(
+      SubstituteEdge pSubstituteEdge,
+      BitVectorAccessType pAccessType,
+      PointerAssignments pPointerAssignments) {
+
+    ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();
+    // first check direct accesses on the variables themselves
+    rGlobalVariables.addAll(pSubstituteEdge.getGlobalVariablesByAccessType(pAccessType));
+    // then check indirect accesses via pointers that point to the variables
+    ImmutableSet<CSimpleDeclaration> pointerDereferences =
+        pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
+    for (CSimpleDeclaration pointerDereference : pointerDereferences) {
+      Set<CVariableDeclaration> globalVariables = new HashSet<>();
+      recursivelyFindGlobalVariablesByPointerDereference(
+          pointerDereference,
+          globalVariables,
+          pSubstituteEdge.threadEdge.callContext,
+          pPointerAssignments,
+          new HashSet<>());
+      rGlobalVariables.addAll(globalVariables);
+    }
+    return rGlobalVariables.build();
+  }
+
+  // Extraction by Pointer Dereference =============================================================
 
   /**
    * Finds the set of {@link CVariableDeclaration}s that are associated by the given pointer
@@ -230,9 +220,7 @@ public class GlobalVariableFinder {
       CSimpleDeclaration pCurrentDeclaration,
       Set<CVariableDeclaration> pGlobalVariables,
       final Optional<ThreadEdge> pCallContext,
-      final ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      final ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      final PointerAssignments pPointerAssignments,
       Set<CSimpleDeclaration> pVisited) {
 
     if (pVisited.add(pCurrentDeclaration)) {
@@ -240,15 +228,10 @@ public class GlobalVariableFinder {
         if (variableDeclaration.getType() instanceof CPointerType) {
           // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
           // and then dereferenced -> the pointer is not associated with the address of a global var
-          if (pPointerAssignments.containsKey(variableDeclaration)) {
+          if (pPointerAssignments.contains(variableDeclaration)) {
             for (CSimpleDeclaration rightHandSide : pPointerAssignments.get(variableDeclaration)) {
               recursivelyFindGlobalVariablesByPointerDereference(
-                  rightHandSide,
-                  pGlobalVariables,
-                  pCallContext,
-                  pPointerAssignments,
-                  pPointerParameterAssignments,
-                  pVisited);
+                  rightHandSide, pGlobalVariables, pCallContext, pPointerAssignments, pVisited);
             }
           }
         } else {
@@ -259,16 +242,11 @@ public class GlobalVariableFinder {
         assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
         ThreadEdge callContext = pCallContext.orElseThrow();
         // in pthread_create that does not pass an arg to start_routine, the pair is not present
-        if (pPointerParameterAssignments.contains(callContext, parameterDeclaration)) {
+        if (pPointerAssignments.contains(callContext, parameterDeclaration)) {
           CSimpleDeclaration rightHandSide =
-              pPointerParameterAssignments.get(callContext, parameterDeclaration);
+              pPointerAssignments.get(callContext, parameterDeclaration);
           recursivelyFindGlobalVariablesByPointerDereference(
-              rightHandSide,
-              pGlobalVariables,
-              pCallContext,
-              pPointerAssignments,
-              pPointerParameterAssignments,
-              pVisited);
+              rightHandSide, pGlobalVariables, pCallContext, pPointerAssignments, pVisited);
         }
       }
     }

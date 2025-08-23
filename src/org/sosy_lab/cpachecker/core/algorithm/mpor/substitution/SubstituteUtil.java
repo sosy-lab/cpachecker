@@ -12,17 +12,30 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table.Cell;
+import com.google.common.collect.Tables;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class SubstituteUtil {
 
@@ -90,6 +103,72 @@ public class SubstituteUtil {
       }
     }
     return rPointerAssignments.build();
+  }
+
+  // Pointer Parameter Assignments =================================================================
+
+  public static ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+      mapParameterAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
+    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, CSimpleDeclaration> rAssignments =
+        ImmutableTable.builder();
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+      if (substituteEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
+        ThreadEdge callContext = substituteEdge.threadEdge.callContext.orElseThrow();
+        ImmutableList<Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>> assignments =
+            buildParameterAssignments(callContext, functionCallEdge);
+        for (Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration> cell : assignments) {
+          rAssignments.put(cell);
+        }
+      }
+    }
+    return rAssignments.buildOrThrow();
+  }
+
+  private static ImmutableList<Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>>
+      buildParameterAssignments(ThreadEdge pCallContext, CFunctionCallEdge pFunctionCallEdge) {
+
+    ImmutableList.Builder<Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>>
+        rAssignments = ImmutableList.builder();
+    List<CExpression> arguments = pFunctionCallEdge.getArguments();
+    List<CParameterDeclaration> parameterDeclarations =
+        pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
+    // C does not allow optional parameters
+    assert arguments.size() == parameterDeclarations.size()
+        : "function argument number should be same as parameter declaration number";
+    for (int i = 0; i < arguments.size(); i++) {
+      CParameterDeclaration leftHandSide = parameterDeclarations.get(i);
+      // TODO we also need non-pointers, e.g. for 'global_ptr = &non_ptr_param;'
+      if (leftHandSide.getType() instanceof CPointerType) {
+        Optional<CSimpleDeclaration> rightHandSide = extractSimpleDeclaration(arguments.get(i));
+        if (rightHandSide.isPresent()) {
+          rAssignments.add(
+              Tables.immutableCell(pCallContext, leftHandSide, rightHandSide.orElseThrow()));
+        }
+      }
+    }
+    return rAssignments.build();
+  }
+
+  public static Optional<CSimpleDeclaration> extractSimpleDeclaration(CExpression pRightHandSide) {
+    if (pRightHandSide instanceof CIdExpression idExpression) {
+      return Optional.of(idExpression.getDeclaration());
+
+    } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
+      if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
+        return Optional.of(idExpression.getDeclaration());
+
+      } else if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
+        CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(fieldReference);
+        return Optional.of(fieldOwner.getDeclaration());
+      }
+
+    } else if (pRightHandSide instanceof CFieldReference fieldReference) {
+      CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(fieldReference);
+      return Optional.of(fieldOwner.getDeclaration());
+    }
+    // can e.g. occur with 'param = 4' i.e. literal integer expressions
+    return Optional.empty();
   }
 
   // Main Function Arg =============================================================================

@@ -11,16 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -41,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ConflictResolver {
@@ -51,9 +46,7 @@ public class ConflictResolver {
   static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> resolve(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -79,7 +72,6 @@ public class ConflictResolver {
               activeThread,
               labelBlockMap,
               pPointerAssignments,
-              pPointerParameterAssignments,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
       // step 2: inject updates to last_... variables
@@ -102,9 +94,7 @@ public class ConflictResolver {
       ImmutableList<SeqThreadStatementClause> pClauses,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -120,7 +110,6 @@ public class ConflictResolver {
                 pActiveThread,
                 pLabelBlockMap,
                 pPointerAssignments,
-                pPointerParameterAssignments,
                 pBitVectorVariables,
                 pBinaryExpressionBuilder));
       }
@@ -134,9 +123,7 @@ public class ConflictResolver {
       SeqThreadStatementBlock pBlock,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -150,7 +137,6 @@ public class ConflictResolver {
               pActiveThread,
               pLabelBlockMap,
               pPointerAssignments,
-              pPointerParameterAssignments,
               pBitVectorVariables,
               pBinaryExpressionBuilder));
     }
@@ -162,9 +148,7 @@ public class ConflictResolver {
       SeqThreadStatement pStatement,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -182,7 +166,6 @@ public class ConflictResolver {
               pOptions,
               pLabelBlockMap,
               pPointerAssignments,
-              pPointerParameterAssignments,
               targetBlock,
               pBitVectorVariables,
               pBinaryExpressionBuilder);

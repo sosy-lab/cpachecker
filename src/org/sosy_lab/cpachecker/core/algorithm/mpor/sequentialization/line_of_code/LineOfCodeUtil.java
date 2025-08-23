@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -24,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -44,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PointerAssignments;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -316,10 +315,10 @@ public class LineOfCodeUtil {
     rFunctionDefinitions.addAll(reachError.buildDefinition());
     SeqAssumeFunction assume = new SeqAssumeFunction(pBinaryExpressionBuilder);
     rFunctionDefinitions.addAll(assume.buildDefinition());
-    // map pointer assignments only if link reduction is enabled (need global mem location info)
-    Optional<ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>> pointerAssignments =
+    // create pointer assignments (if applicable)
+    Optional<PointerAssignments> pointerAssignments =
         pOptions.linkReduction
-            ? Optional.of(SubstituteUtil.mapPointerAssignments(pSubstituteEdges.values()))
+            ? Optional.of(buildPointerAssignments(pSubstituteEdges.values()))
             : Optional.empty();
     // create clauses in main method
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses =
@@ -346,6 +345,14 @@ public class LineOfCodeUtil {
             pLogger);
     rFunctionDefinitions.addAll(mainFunction.buildDefinition());
     return rFunctionDefinitions.build();
+  }
+
+  private static PointerAssignments buildPointerAssignments(
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
+    return new PointerAssignments(
+        SubstituteUtil.mapPointerAssignments(pSubstituteEdges),
+        SubstituteUtil.mapParameterAssignments(pSubstituteEdges));
   }
 
   // Helpers =======================================================================================

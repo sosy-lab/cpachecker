@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -28,8 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -38,15 +35,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqParameterAssignmentStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseUtil {
@@ -459,45 +452,6 @@ public class SeqThreadStatementClauseUtil {
       }
     }
     return Optional.empty();
-  }
-
-  // Pointer Parameters ============================================================================
-
-  public static ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-      mapPointerParameterAssignments(
-          ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
-
-    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, CSimpleDeclaration> rAssignments =
-        ImmutableTable.builder();
-    for (MPORThread thread : pClauses.keySet()) {
-      for (SeqThreadStatementClause clause : pClauses.get(thread)) {
-        for (SeqThreadStatement statement : clause.getAllStatements()) {
-          if (statement instanceof SeqParameterAssignmentStatements parameterStatement) {
-            for (FunctionParameterAssignment assignment : parameterStatement.getAssignments()) {
-              extractPointerParameterAssignment(assignment, rAssignments);
-            }
-          } else if (statement instanceof SeqThreadCreationStatement threadCreation) {
-            extractPointerParameterAssignment(
-                threadCreation.getStartRoutineArgAssignment(), rAssignments);
-          }
-        }
-      }
-    }
-    return rAssignments.buildOrThrow();
-  }
-
-  private static void extractPointerParameterAssignment(
-      FunctionParameterAssignment pFunctionParameterAssignment,
-      ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, CSimpleDeclaration> pAssignments) {
-
-    if (pFunctionParameterAssignment.getOriginalRightHandSideDeclaration().isPresent()) {
-      if (pFunctionParameterAssignment.isPointer()) {
-        pAssignments.put(
-            pFunctionParameterAssignment.getCallContext(),
-            pFunctionParameterAssignment.getOriginalParameterDeclaration(),
-            pFunctionParameterAssignment.getOriginalRightHandSideDeclaration().orElseThrow());
-      }
-    }
   }
 
   // Helper ========================================================================================

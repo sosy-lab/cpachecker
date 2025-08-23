@@ -412,8 +412,6 @@ public class GhostVariableUtil {
         FunctionParameterAssignment parameterAssignment =
             new FunctionParameterAssignment(
                 threadEdge,
-                parameterDeclaration,
-                rightHandSide,
                 parameterSubstitute,
                 pSubstitution.substitute(
                     rightHandSide,
@@ -441,14 +439,12 @@ public class GhostVariableUtil {
       // only the thread calling pthread_create assigns the start_routine arg
       if (pSubstitution.thread.id == callContext.threadId) {
         assert entry.getValue().size() == 1 : "start_routines must have exactly 1 parameter";
-        for (var innerEntry : entry.getValue().entrySet()) {
+        for (CIdExpression leftHandSide : entry.getValue().values()) {
           CExpression rightHandSide = PthreadUtil.extractStartRoutineArg(callContext.cfaEdge);
           FunctionParameterAssignment startRoutineArgAssignment =
               new FunctionParameterAssignment(
                   callContext,
-                  innerEntry.getKey(),
-                  rightHandSide,
-                  innerEntry.getValue(),
+                  leftHandSide,
                   pSubstitution.substitute(
                       // the inner call context is the context in which pthread_create is called
                       rightHandSide,

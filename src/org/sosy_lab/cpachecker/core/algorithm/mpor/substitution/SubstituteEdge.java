@@ -183,4 +183,15 @@ public class SubstituteEdge {
       case WRITE -> writtenPointerDereferences;
     };
   }
+
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getFieldMembersByAccessType(BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> ImmutableSetMultimap.of();
+      case ACCESS -> accessedFieldMembers;
+      case READ -> readFieldMembers;
+      case WRITE -> writtenFieldMembers;
+    };
+  }
 }

@@ -12,8 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -52,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.BitVectorInjector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PointerAssignments;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -59,7 +58,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqMainFunction extends SeqFunction {
@@ -73,11 +71,7 @@ public class SeqMainFunction extends SeqFunction {
   /** The thread-specific clauses in the while loop. */
   private final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
-  private final Optional<ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>>
-      pointerAssignments;
-
-  private final ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-      pointerParameterAssignments;
+  private final Optional<PointerAssignments> pointerAssignments;
 
   // TODO make Optional
   private final CFunctionCallAssignmentStatement nextThreadAssignment;
@@ -103,7 +97,7 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      Optional<ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>> pPointerAssignments,
+      Optional<PointerAssignments> pPointerAssignments,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
@@ -118,8 +112,6 @@ public class SeqMainFunction extends SeqFunction {
     numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(numThreads);
     clauses = pClauses;
     pointerAssignments = pPointerAssignments;
-    pointerParameterAssignments =
-        SeqThreadStatementClauseUtil.mapPointerParameterAssignments(pClauses);
     bitVectorVariables = pBitVectorVariables;
     pcVariables = pPcVariables;
     threadSimulationVariables = pThreadSimulationVariables;
@@ -259,7 +251,6 @@ public class SeqMainFunction extends SeqFunction {
               labelClauseMap,
               labelBlockMap,
               pointerAssignments.orElseThrow(),
-              pointerParameterAssignments,
               pBitVectorVariables.orElseThrow());
       rInitializations.addAll(
           LineOfCodeUtil.buildLinesOfCodeFromSeqAstNodes(bitVectorInitializations));

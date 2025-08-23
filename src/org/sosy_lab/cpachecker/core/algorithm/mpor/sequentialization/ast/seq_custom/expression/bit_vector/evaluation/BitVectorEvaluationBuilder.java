@@ -14,13 +14,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
@@ -31,8 +27,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.GlobalVariableFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PointerAssignments;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorEvaluationBuilder {
@@ -77,9 +73,7 @@ public class BitVectorEvaluationBuilder {
   public static BitVectorEvaluationExpression buildLastBitVectorEvaluation(
       MPOROptions pOptions,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pTargetBlock,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -94,11 +88,7 @@ public class BitVectorEvaluationBuilder {
       case ACCESS_ONLY -> {
         ImmutableSet<CVariableDeclaration> directAccessVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap,
-                pPointerAssignments,
-                pPointerParameterAssignments,
-                pTargetBlock,
-                BitVectorAccessType.ACCESS);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         yield buildLastAccessBitVectorEvaluationByEncoding(
             pOptions, directAccessVariables,
             pBitVectorVariables, pBinaryExpressionBuilder);
@@ -106,18 +96,10 @@ public class BitVectorEvaluationBuilder {
       case READ_AND_WRITE -> {
         ImmutableSet<CVariableDeclaration> directReadVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap,
-                pPointerAssignments,
-                pPointerParameterAssignments,
-                pTargetBlock,
-                BitVectorAccessType.READ);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
         ImmutableSet<CVariableDeclaration> directWriteVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap,
-                pPointerAssignments,
-                pPointerParameterAssignments,
-                pTargetBlock,
-                BitVectorAccessType.WRITE);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         yield buildLastReadWriteBitVectorEvaluationByEncoding(
             pOptions,
             directReadVariables,
@@ -226,9 +208,7 @@ public class BitVectorEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-          pPointerParameterAssignments,
+      PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pTargetBlock,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -245,11 +225,7 @@ public class BitVectorEvaluationBuilder {
       case ACCESS_ONLY -> {
         ImmutableSet<CVariableDeclaration> directAccessVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap,
-                pPointerAssignments,
-                pPointerParameterAssignments,
-                pTargetBlock,
-                BitVectorAccessType.ACCESS);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,
@@ -262,18 +238,10 @@ public class BitVectorEvaluationBuilder {
       case READ_AND_WRITE -> {
         ImmutableSet<CVariableDeclaration> directReadVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap,
-                pPointerAssignments,
-                pPointerParameterAssignments,
-                pTargetBlock,
-                BitVectorAccessType.READ);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
         ImmutableSet<CVariableDeclaration> directWriteVariables =
             GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap,
-                pPointerAssignments,
-                pPointerParameterAssignments,
-                pTargetBlock,
-                BitVectorAccessType.WRITE);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,
