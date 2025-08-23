@@ -411,7 +411,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
     List<CExpression> parameters =
         pCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions();
-
+    if (parameters.isEmpty()) {
+      return;
+    }
     for (CExpression parameter : parameters.subList(1, parameters.size())) {
       CFANode node1 = CFANode.newDummyCFANode();
 
