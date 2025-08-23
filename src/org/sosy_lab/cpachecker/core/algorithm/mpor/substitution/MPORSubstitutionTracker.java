@@ -65,12 +65,17 @@ public class MPORSubstitutionTracker {
   // FIELD MEMBERS =================================================================================
 
   /**
-   * Accessed field members e.g. of the form {@code x = field->member;} where {@code field} is an
-   * instance of a struct. Contains both reads and writes.
+   * Maps accessed field members to the declaration of their owner, e.g. of the form {@code x =
+   * field->member;} where {@code field} is the field owner. {@link CCompositeTypeMemberDeclaration}
+   * are not unique to the instance of a struct, forcing us to use the {@link CSimpleDeclaration} of
+   * the owner too. Contains both reads and writes.
    */
   private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration> accessedFieldMembers;
 
-  /** Written field members e.g. of the form {@code field->member = 42;}. */
+  /**
+   * Maps written field members to the declaration of their owner, e.g. of the form {@code
+   * field->member = 42;}.
+   */
   private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration> writtenFieldMembers;
 
   // FUNCTION POINTERS =============================================================================
@@ -128,12 +133,18 @@ public class MPORSubstitutionTracker {
   public void addWrittenFieldMember(
       CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pWrittenFieldMember) {
 
+    checkArgument(
+        !(pOwnerDeclaration instanceof CFunctionDeclaration),
+        "pOwnerDeclaration cannot be CFunctionDeclaration");
     writtenFieldMembers.put(pOwnerDeclaration, pWrittenFieldMember);
   }
 
   public void addAccessedFieldMember(
       CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pAccessedFieldMember) {
 
+    checkArgument(
+        !(pOwnerDeclaration instanceof CFunctionDeclaration),
+        "pOwnerDeclaration cannot be CFunctionDeclaration");
     accessedFieldMembers.put(pOwnerDeclaration, pAccessedFieldMember);
   }
 

@@ -40,7 +40,8 @@ typedef struct {
   Inner inner;
   int member;
 } Outer;
-Outer outer;
+Outer outer_A;
+Outer outer_B;
 
 void init(QType *q)
 {
@@ -169,7 +170,8 @@ int main(void)
   enqueue_flag=TRUE;
   dequeue_flag=FALSE;
 
-  outer.inner.member = 42;
+  outer_A.inner.member = 42;
+  outer_B.inner.member = -42;
 
   init(&queue);
 
