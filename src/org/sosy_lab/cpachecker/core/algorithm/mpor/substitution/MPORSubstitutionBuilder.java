@@ -348,7 +348,7 @@ public class MPORSubstitutionBuilder {
       CVariableDeclaration variableDeclaration = dummySubstitute.getKey();
       ImmutableMap.Builder<Optional<ThreadEdge>, CIdExpression> substitutes =
           ImmutableMap.builder();
-      MPORSubstitutionTracker tracker = MPORSubstitutionTracker.mutableInstance();
+      MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
       for (var substitute : dummySubstitute.getValue().substitutes.entrySet()) {
         CInitializer initializer = variableDeclaration.getInitializer();
         // TODO handle CInitializerList
