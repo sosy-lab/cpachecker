@@ -179,7 +179,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                 matched = matched || !transition.getDestination().equals(transition.getSource());
               }
               String newEdge =
-                  computeLineNumberBasedOnTransition(transition, edge)
+                  computeLineNumberBasedOnTransition(transition, edge, matchedVariables)
                       + "|||"
                       + transition.getOperation().insertVariablesInsideOperation(matchedVariables);
               if (newEdge.contains("__CPAchecker_TMP")) {
@@ -209,7 +209,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
    * the edge one line before the real operation and similarly for AFTER.
    */
   private String computeLineNumberBasedOnTransition(
-      InstrumentationTransition pTransition, CFAEdge pEdge) {
+      InstrumentationTransition pTransition,
+      CFAEdge pEdge,
+      ImmutableList<String> pMatchedVariables) {
     if (pTransition.getSource().isInitialAnnotation()) {
       return "1";
     }
@@ -222,8 +224,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       int location;
       String fileLocation = pEdge.getFileLocation().toString();
       String functionName =
-          pTransition.getPattern().toString().equals("ptr_deref")
-              ? "*"
+          pTransition.getPattern().toString().equals("ptr_deref") && !pMatchedVariables.isEmpty()
+              ? "*" + pMatchedVariables.get(0)
               : pTransition.getPattern().getFunctionName();
       if (pTransition.getPattern().toString().equals("[!cond]")) {
         fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();

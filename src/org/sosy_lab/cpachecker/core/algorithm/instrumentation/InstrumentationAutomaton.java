@@ -504,7 +504,7 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("ptr_deref"),
-            new InstrumentationOperation("* ((typeof(x_instr_1)) __valid_ptr"),
+            new InstrumentationOperation("* ((typeof(x_instr_1)) __valid_ptr(x_instr_1))"),
             InstrumentationOrder.SAME_LINE,
             q2);
     builder.add(t10);
@@ -525,7 +525,7 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("ptr_deref"),
-            new InstrumentationOperation("* ((typeof(x_instr_1)) __valid_ptr"),
+            new InstrumentationOperation("* ((typeof(x_instr_1)) __valid_ptr(x_instr_1))"),
             InstrumentationOrder.SAME_LINE,
             q2);
     builder.add(t10);
