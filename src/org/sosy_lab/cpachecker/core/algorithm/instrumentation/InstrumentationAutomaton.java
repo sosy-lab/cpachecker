@@ -123,8 +123,7 @@ public class InstrumentationAutomaton {
 
   private InstrumentationState initializeMemorySafety(
       ImmutableList.Builder<InstrumentationTransition> builder) {
-    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.TRUE, this);
-    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.INIT, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.TRUE, this);
     InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT, this);
 
     this.initialState = q1;
@@ -374,18 +373,12 @@ public class InstrumentationAutomaton {
                     + "{\\n"
                     + "  __check_memory_leaks();\\n"
                     + "  exit(x);\\n"
-                    + "}\\n"),
+                    + "}\\n"
+                    + "int __ignore__TMP = __init_memory_tracker();\\n"),
             InstrumentationOrder.BEFORE,
             q2);
-    InstrumentationTransition t2 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("true"),
-            new InstrumentationOperation("int __ignore__TMP = __init_memory_tracker();"),
-            InstrumentationOrder.BEFORE,
-            q3);
-    builder.add(t1, t2);
-    return q3;
+    builder.add(t1);
+    return q2;
   }
 
   private InstrumentationState trackMemory(
