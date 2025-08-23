@@ -349,8 +349,11 @@ public final class MPORUtil {
         idExpression.getDeclaration(), getFieldMemberByName(pFieldReference, typedefType));
   }
 
-  private static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference) {
-
+  /**
+   * Recursively tries to find the field owner of {@code pFieldReference}, e.g. {@code outer} in
+   * {@code outer.intermediary.inner}.
+   */
+  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference) {
     if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
       return idExpression;
     }

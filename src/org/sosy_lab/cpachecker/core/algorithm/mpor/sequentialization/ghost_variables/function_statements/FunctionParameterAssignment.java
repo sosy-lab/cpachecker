@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -18,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -54,7 +56,15 @@ public class FunctionParameterAssignment {
     } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
       if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
         return Optional.of(idExpression.getDeclaration());
+
+      } else if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
+        CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(fieldReference);
+        return Optional.of(fieldOwner.getDeclaration());
       }
+
+    } else if (pRightHandSide instanceof CFieldReference fieldReference) {
+      CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(fieldReference);
+      return Optional.of(fieldOwner.getDeclaration());
     }
     // can e.g. occur with 'param = 4' i.e. literal integer expressions
     return Optional.empty();

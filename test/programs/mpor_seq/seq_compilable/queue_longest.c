@@ -162,7 +162,12 @@ void *t2(void *arg)
   *ultimate_question = 42;
   pthread_exit((void*)ultimate_question);
 }
-
+void field_member_parameter_test(int param) {
+  param++;
+}
+void field_member_parameter_test_ptr(int * param) {
+  *param++;
+}
 int main(void) 
 {
   pthread_t id1, id2;
@@ -186,6 +191,9 @@ int main(void)
   x = 42;
   ptr = ptr;
   *ptr = 7;
+
+  field_member_parameter_test(outer_A.inner.member);
+  field_member_parameter_test_ptr(&outer_A.inner.member);
 
   init(&queue);
 
