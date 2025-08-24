@@ -209,7 +209,7 @@ public class GhostVariableUtil {
 
     if (pOptions.kIgnoreZeroReduction) {
       String directReadName =
-          SeqNameUtil.buildDirectDenseBitVectorNameByAccessType(pOptions, pThread.id, pAccessType);
+          SeqNameUtil.buildDenseBitVectorNameByAccessType(pOptions, true, pThread.id, pAccessType);
       // these declarations are not actually used, we only need it for the CIdExpression
       CVariableDeclaration directDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
@@ -227,7 +227,7 @@ public class GhostVariableUtil {
       return Optional.empty();
     }
     String reachableReadName =
-        SeqNameUtil.buildReachableDenseBitVectorNameByAccessType(pOptions, pThread.id, pAccessType);
+        SeqNameUtil.buildDenseBitVectorNameByAccessType(pOptions, false, pThread.id, pAccessType);
     // these declarations are not actually used, we only need it for the CIdExpression
     CVariableDeclaration reachableDeclaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
@@ -301,8 +301,8 @@ public class GhostVariableUtil {
     ImmutableMap.Builder<MemoryLocation, LastSparseBitVector> rMap = ImmutableMap.builder();
     for (MemoryLocation variableDeclaration : pAllMemoryLocations) {
       String variableName =
-          SeqNameUtil.buildLastReachableSparseBitVectorNameByAccessType(
-              pOptions, variableDeclaration, pAccessType);
+          SeqNameUtil.buildLastSparseBitVectorNameByAccessType(
+              pOptions, variableDeclaration.getName(), pAccessType);
       // these declarations are not actually used, we only need it for the CIdExpression
       CVariableDeclaration lastDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(

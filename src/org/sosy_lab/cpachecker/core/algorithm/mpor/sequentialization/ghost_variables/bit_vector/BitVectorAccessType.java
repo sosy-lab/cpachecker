@@ -8,10 +8,22 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+
 public enum BitVectorAccessType {
-  NONE,
+  NONE(SeqSyntax.EMPTY_STRING, SeqSyntax.EMPTY_STRING),
   /** For both read and write. */
-  ACCESS,
-  READ,
-  WRITE
+  ACCESS(SeqToken.a, SeqToken.ACCESS),
+  READ(SeqToken.r, SeqToken.READ),
+  WRITE(SeqToken.w, SeqToken.WRITE);
+
+  public final String shortName;
+
+  public final String longName;
+
+  BitVectorAccessType(String pShortName, String pLongName) {
+    shortName = pShortName;
+    longName = pLongName;
+  }
 }

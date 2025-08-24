@@ -188,32 +188,13 @@ public class BitVectorUtil {
 
     // we use the original variable name here, not the substitute -> less code
     String name =
-        getSparseBitVectorVariableNameByAccessType(
+        SeqNameUtil.buildSparseBitVectorNameByAccessType(
             pOptions, pThread.id, pMemoryLocation, pAccessType);
     // always initialize with 0, the actual bit vectors are set inside main()
     CSimpleDeclaration declaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
             true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
     return SeqExpressionBuilder.buildIdExpression(declaration);
-  }
-
-  private static String getSparseBitVectorVariableNameByAccessType(
-      MPOROptions pOptions,
-      int pThreadId,
-      MemoryLocation pMemoryLocation,
-      BitVectorAccessType pAccessType) {
-
-    return switch (pAccessType) {
-      case NONE ->
-          throw new IllegalArgumentException(
-              "cannot create bit vector variable name for access type none");
-      case ACCESS ->
-          SeqNameUtil.buildSparseBitVectorAccessVariableName(pOptions, pThreadId, pMemoryLocation);
-      case READ ->
-          SeqNameUtil.buildSparseBitVectorReadVariableName(pOptions, pThreadId, pMemoryLocation);
-      case WRITE ->
-          SeqNameUtil.buildSparseBitVectorWriteVariableName(pOptions, pThreadId, pMemoryLocation);
-    };
   }
 
   // Helpers =======================================================================================
