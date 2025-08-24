@@ -52,13 +52,14 @@ public record IntervalAnalysisState(
     CFANode location
 )
     implements Serializable,
-        LatticeAbstractState<IntervalAnalysisState>,
-        AbstractQueryableState,
-        Graphable,
-        FormulaReportingState,
-        PseudoPartitionable {
+               LatticeAbstractState<IntervalAnalysisState>,
+               AbstractQueryableState,
+               Graphable,
+               FormulaReportingState,
+               PseudoPartitionable {
 
-  @Serial private static final long serialVersionUID = -2030700797958100666L;
+  @Serial
+  private static final long serialVersionUID = -2030700797958100666L;
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
@@ -123,19 +124,25 @@ public record IntervalAnalysisState(
   public Interval arrayAccess(
       String variableName, CExpression index, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
-    return arrays.get(variableName).get(normalizeExpression(index, visitor).stream().findAny().orElseThrow(), visitor); //TODO: Don't just pick any random normalization, but rather the one that results in the least abstract result
+    return arrays.get(variableName)
+        .get(normalizeExpression(index, visitor).stream().findAny().orElseThrow(),
+            visitor); //TODO: Don't just pick any random normalization, but rather the one that results in the least abstract result
   }
 
   /**
    * This method assigns an interval to a variable and puts it in the map.
    *
    * @param variableName name of the variable
-   * @param interval the interval to be assigned
-   * @param pThreshold threshold from property valueAnalysis.threshold
+   * @param interval     the interval to be assigned
+   * @param pThreshold   threshold from property valueAnalysis.threshold
    * @return this
    */
   // see ExplicitState::assignConstant
-  public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold, CFANode pLocation) {
+  public IntervalAnalysisState addInterval(
+      String variableName,
+      Interval interval,
+      int pThreshold,
+      CFANode pLocation) {
     if (interval.isUnbound()) {
       return removeInterval(variableName, pLocation);
     }
@@ -161,12 +168,17 @@ public record IntervalAnalysisState(
   }
 
   public IntervalAnalysisState assignArrayElement(
-      String arrayName, NormalFormExpression index, Interval interval, ExpressionValueVisitor visitor, CFANode pLocation) {
+      String arrayName,
+      NormalFormExpression index,
+      Interval interval,
+      ExpressionValueVisitor visitor,
+      CFANode pLocation) {
     if (arrays.containsKey(arrayName)) {
       return new IntervalAnalysisState(
           intervals,
           referenceCounts,
-          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)), pLocation);
+          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)),
+          pLocation);
     }
     return this;
   }
@@ -256,7 +268,7 @@ public record IntervalAnalysisState(
    *
    * @param reachedState the reached state
    * @return true, if this element is less or equal than the reached state, based on the order
-   *     imposed by the lattice
+   * imposed by the lattice
    */
   @Override
   public boolean isLessOrEqual(IntervalAnalysisState reachedState) {
@@ -280,7 +292,8 @@ public record IntervalAnalysisState(
     }
 
     for (String arrayName : reachedState.arrays.keySet()) {
-      if (!arrays.containsKey(arrayName) || !arrays.get(arrayName).isLessOrEqual(reachedState.arrays.get(arrayName))) {
+      if (!arrays.containsKey(arrayName) || !arrays.get(arrayName)
+          .isLessOrEqual(reachedState.arrays.get(arrayName))) {
         return false;
       }
     }
@@ -289,7 +302,9 @@ public record IntervalAnalysisState(
     return true;
   }
 
-  /** Returns the set of tracked variables by this state. */
+  /**
+   * Returns the set of tracked variables by this state.
+   */
   public Map<String, Interval> getIntervalMap() {
     return intervals;
   }
@@ -321,20 +336,22 @@ public record IntervalAnalysisState(
     for (final String trackedVar : intervals.keySet()) {
 
       if (!trackedVar.contains("::")) { // global -> override deleted value
-        rebuildState = rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1, functionExit);
+        rebuildState =
+            rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1, functionExit);
 
       } else if (functionExit.getEntryNode().getReturnVariable().isPresent()
           && functionExit
-              .getEntryNode()
-              .getReturnVariable()
-              .get()
-              .getQualifiedName()
-              .equals(trackedVar)) {
+          .getEntryNode()
+          .getReturnVariable()
+          .get()
+          .getQualifiedName()
+          .equals(trackedVar)) {
         assert !rebuildState.contains(trackedVar)
             : "calling function should not contain return-variable of called function: "
-                + trackedVar;
+            + trackedVar;
         if (contains(trackedVar)) {
-          rebuildState = rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1, functionExit);
+          rebuildState =
+              rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1, functionExit);
         }
       }
     }
@@ -362,7 +379,7 @@ public record IntervalAnalysisState(
     StringBuilder sb = new StringBuilder();
     sb.append("[\n");
 
-    for (Map.Entry<String, Interval> entry : intervals.entrySet()) {
+    for (Entry<String, Interval> entry : intervals.entrySet()) {
       sb.append(
           String.format(
               "  < %s = %s :: %s >%n",
@@ -458,7 +475,7 @@ public record IntervalAnalysisState(
             !name.startsWith("__CPAchecker_TMP_")
                 && !name.contains("::__CPAchecker_TMP_")
                 && (name.startsWith(pFunctionScope.getFunctionName() + "::")
-                    || !name.contains("::")),
+                || !name.contains("::")),
         false);
   }
 
@@ -481,10 +498,10 @@ public record IntervalAnalysisState(
         NumeralFormula var =
             nfmgr.makeVariable(
                 useQualifiedVarNames
-                    ? entry.getKey()
-                    : (entry.getKey().contains("::")
-                        ? entry.getKey().substring(entry.getKey().indexOf("::") + 2)
-                        : entry.getKey()));
+                ? entry.getKey()
+                : (entry.getKey().contains("::")
+                   ? entry.getKey().substring(entry.getKey().indexOf("::") + 2)
+                   : entry.getKey()));
         Long low = interval.getLow();
         Long high = interval.getHigh();
         if (low != null && low != Long.MIN_VALUE) { // check for unbound interval
@@ -523,7 +540,9 @@ public record IntervalAnalysisState(
     return this;
   }
 
-  /** Just a pair of values, can be compared alphabetically. */
+  /**
+   * Just a pair of values, can be compared alphabetically.
+   */
   private static final class IntervalPseudoPartitionKey
       implements Comparable<IntervalPseudoPartitionKey> {
 
@@ -565,14 +584,17 @@ public record IntervalAnalysisState(
     }
   }
 
-  public IntervalAnalysisState adaptToVariableAssignment(CIdExpression changedVariable, Set<NormalFormExpression> expressions, CFANode pLocation) { //TODO replace with forAllArrays() method
+  public IntervalAnalysisState adaptToVariableAssignment(
+      CIdExpression changedVariable,
+      Set<NormalFormExpression> expressions,
+      CFANode pLocation) { //TODO replace with forAllArrays() method
 
     PersistentMap<String, FunArray> adaptedArrays = arrays.empty();
 
     for (Entry<String, FunArray> entry : arrays.entrySet()) {
       adaptedArrays = adaptedArrays.putAndCopy(
-        entry.getKey(),
-        entry.getValue().adaptToVariableAssignment(changedVariable, expressions)
+          entry.getKey(),
+          entry.getValue().adaptToVariableAssignment(changedVariable, expressions)
       );
     }
 
@@ -584,7 +606,10 @@ public record IntervalAnalysisState(
     );
   }
 
-  public IntervalAnalysisState satisfyStrictLessThan(Set<NormalFormExpression> lesserSet, Set<NormalFormExpression> greaterSet, CFANode pLocation) {
+  public IntervalAnalysisState satisfyStrictLessThan(
+      Set<NormalFormExpression> lesserSet,
+      Set<NormalFormExpression> greaterSet,
+      CFANode pLocation) {
 
     IntervalAnalysisState modifiedState = this;
 
@@ -595,26 +620,33 @@ public record IntervalAnalysisState(
           System.out.println("äsdf");
         }
 
-        modifiedState = modifiedState.forAllArrays(e -> e.satisfyStrictLessThan(lesser, greater), pLocation);
+        modifiedState =
+            modifiedState.forAllArrays(e -> e.satisfyStrictLessThan(lesser, greater), pLocation);
       }
     }
 
     return modifiedState;
   }
 
-  public IntervalAnalysisState satisfyLessEqual(Set<NormalFormExpression> lesserSet, Set<NormalFormExpression> greaterSet, CFANode pLocation) {
+  public IntervalAnalysisState satisfyLessEqual(
+      Set<NormalFormExpression> lesserSet,
+      Set<NormalFormExpression> greaterSet,
+      CFANode pLocation) {
     IntervalAnalysisState modifiedState = this;
 
     for (NormalFormExpression lesser : lesserSet) {
       for (NormalFormExpression greater : greaterSet) {
-        modifiedState = modifiedState.forAllArrays(e -> e.satisfyLessEqual(lesser, greater), pLocation);
+        modifiedState =
+            modifiedState.forAllArrays(e -> e.satisfyLessEqual(lesser, greater), pLocation);
       }
     }
 
     return modifiedState;
   }
 
-  public IntervalAnalysisState forAllArrays(Function<FunArray, FunArray> function, CFANode pLocation) {
+  public IntervalAnalysisState forAllArrays(
+      Function<FunArray, FunArray> function,
+      CFANode pLocation) {
     PersistentMap<String, FunArray> modifiedArrays = arrays.empty();
     for (Entry<String, FunArray> entry : arrays.entrySet()) {
       modifiedArrays = modifiedArrays.putAndCopy(
@@ -635,7 +667,7 @@ public record IntervalAnalysisState(
 
     var modifiedFunArrays = other.arrays.entrySet().stream()
         .collect(Collectors.toMap(
-            Map.Entry::getKey,
+            Entry::getKey,
             e -> {
 
               FunArray leftSide = arrays.get(e.getKey());
@@ -651,7 +683,7 @@ public record IntervalAnalysisState(
 
     var modifiedVariables = other.intervals.entrySet().stream()
         .collect(Collectors.toMap(
-            Map.Entry::getKey,
+            Entry::getKey,
             e -> {
 
               Interval leftSide = intervals.get(e.getKey());
