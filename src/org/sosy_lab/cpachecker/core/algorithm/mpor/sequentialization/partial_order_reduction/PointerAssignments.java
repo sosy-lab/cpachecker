@@ -30,8 +30,28 @@ public class PointerAssignments {
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
           pPointerParameterAssignments) {
 
+    checkArguments(pPointerAssignments, pPointerParameterAssignments);
     pointerAssignments = pPointerAssignments;
     pointerParameterAssignments = pPointerParameterAssignments;
+  }
+
+  private static void checkArguments(
+      ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
+          pPointerParameterAssignments) {
+
+    for (CVariableDeclaration variableDeclaration : pPointerAssignments.keySet()) {
+      checkArgument(
+          variableDeclaration.getType() instanceof CPointerType,
+          "variableDeclaration must be CPointerType, got %s",
+          variableDeclaration.getType());
+    }
+    for (CParameterDeclaration parameterDeclaration : pPointerParameterAssignments.columnKeySet()) {
+      checkArgument(
+          parameterDeclaration.getType() instanceof CPointerType,
+          "parameterDeclaration must be CPointerType, got %s",
+          parameterDeclaration.getType());
+    }
   }
 
   /**

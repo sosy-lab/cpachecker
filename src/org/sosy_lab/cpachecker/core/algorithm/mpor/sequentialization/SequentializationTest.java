@@ -57,7 +57,7 @@ public class SequentializationTest {
     MPOROptions options =
         MPOROptions.testInstance(
             true,
-            BitVectorEncoding.SPARSE,
+            BitVectorEncoding.DECIMAL,
             true,
             true,
             true,
@@ -231,7 +231,7 @@ public class SequentializationTest {
     MPOROptions options =
         MPOROptions.testInstance(
             true,
-            BitVectorEncoding.DECIMAL,
+            BitVectorEncoding.SPARSE,
             false,
             false,
             false,
