@@ -29,7 +29,7 @@ public class SeqThreadStatementUtil {
    */
   public static boolean startsInAtomicBlock(SeqThreadStatement pStatement) {
     for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {
-      ThreadEdge threadEdge = substituteEdge.threadEdge;
+      ThreadEdge threadEdge = substituteEdge.getThreadEdge();
       // use the predecessor, since we require information about this statement
       if (threadEdge.getPredecessor().isInAtomicBlock) {
         return true;

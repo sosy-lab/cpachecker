@@ -149,7 +149,7 @@ public class MemoryLocationFinder {
       recursivelyFindMemoryLocationsByPointerDereference(
           pointerDereference,
           pAllMemoryLocations,
-          pSubstituteEdge.threadEdge.callContext,
+          pSubstituteEdge.getCallContext(),
           pPointerAssignments,
           found,
           new HashSet<>());

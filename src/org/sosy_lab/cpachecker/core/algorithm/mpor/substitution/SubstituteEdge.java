@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Sets;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -28,9 +29,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
 public class SubstituteEdge {
 
+  /** The substituted {@link CFAEdge}. */
   public final CFAEdge cfaEdge;
 
-  public final ThreadEdge threadEdge;
+  private final ThreadEdge threadEdge;
 
   public final ImmutableSet<CParameterDeclaration> accessedMainFunctionArgs;
 
@@ -199,5 +201,17 @@ public class SubstituteEdge {
       getPointerFieldMemberAssignments() {
 
     return pointerFieldMemberAssignments;
+  }
+
+  public ThreadEdge getThreadEdge() {
+    return threadEdge;
+  }
+
+  public Optional<ThreadEdge> getCallContext() {
+    return threadEdge.callContext;
+  }
+
+  public CFAEdge getOriginalEdge() {
+    return threadEdge.cfaEdge;
   }
 }
