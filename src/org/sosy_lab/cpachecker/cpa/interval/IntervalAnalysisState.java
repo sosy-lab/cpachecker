@@ -62,7 +62,7 @@ public final class IntervalAnalysisState
   private final PersistentMap<String, FunArray> arrays;
   private final CFANode location;
 
-  public IntervalAnalysisState(
+  private IntervalAnalysisState(
       PersistentMap<String, Interval> pIntervals,
       PersistentMap<String, Integer> pReferenceCounts,
       PersistentMap<String, FunArray> pArrays,
@@ -88,7 +88,34 @@ public final class IntervalAnalysisState
     );
   }
 
-  public IntervalAnalysisState updateLocation(CFANode pLocation) {
+  public IntervalAnalysisState withIntervals(PersistentMap<String, Interval> pIntervals) {
+    return new IntervalAnalysisState(
+        pIntervals,
+        referenceCounts,
+        arrays,
+        location
+    );
+  }
+
+  public IntervalAnalysisState withReferenceCounts(PersistentMap<String, Integer> pReferenceCounts) {
+    return new IntervalAnalysisState(
+        intervals,
+        pReferenceCounts,
+        arrays,
+        location
+    );
+  }
+
+  public IntervalAnalysisState withArrays(PersistentMap<String, FunArray> pArrays) {
+    return new IntervalAnalysisState(
+        intervals,
+        referenceCounts,
+        pArrays,
+        location
+    );
+  }
+
+  public IntervalAnalysisState withLocation(CFANode pLocation) {
     return new IntervalAnalysisState(
         intervals,
         referenceCounts,
@@ -162,10 +189,8 @@ public final class IntervalAnalysisState
       int referenceCount = getReferenceCount(variableName);
 
       if (pThreshold == -1 || referenceCount < pThreshold) {
-        return new IntervalAnalysisState(
-            intervals.putAndCopy(variableName, interval),
-            referenceCounts.putAndCopy(variableName, referenceCount + 1),
-            arrays, pLocation);
+        return this.withIntervals(intervals.putAndCopy(variableName, interval))
+            .withReferenceCounts(referenceCounts.putAndCopy(variableName, referenceCount + 1));
       } else {
         return removeInterval(variableName, pLocation);
       }
@@ -174,8 +199,8 @@ public final class IntervalAnalysisState
   }
 
   public IntervalAnalysisState addArray(String variableName, FunArray funArray, CFANode pLocation) {
-    return new IntervalAnalysisState(
-        intervals, referenceCounts, arrays.putAndCopy(variableName, funArray), pLocation);
+    return this.withArrays(arrays.putAndCopy(variableName, funArray))
+        .withLocation(pLocation);
   }
 
   public IntervalAnalysisState assignArrayElement(
@@ -185,11 +210,8 @@ public final class IntervalAnalysisState
       ExpressionValueVisitor visitor,
       CFANode pLocation) {
     if (arrays.containsKey(arrayName)) {
-      return new IntervalAnalysisState(
-          intervals,
-          referenceCounts,
-          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)),
-          pLocation);
+      return this.withArrays(arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)))
+          .withLocation(pLocation);
     }
     return this;
   }
@@ -203,10 +225,9 @@ public final class IntervalAnalysisState
   // see ExplicitState::forget
   public IntervalAnalysisState removeInterval(String variableName, CFANode pLocation) {
     if (intervals.containsKey(variableName)) {
-      return new IntervalAnalysisState(
-          intervals.removeAndCopy(variableName), referenceCounts, arrays, pLocation);
+      return this.withIntervals(intervals.removeAndCopy(variableName))
+          .withLocation(pLocation);
     }
-
     return this;
   }
 
@@ -267,7 +288,10 @@ public final class IntervalAnalysisState
       if (this.location.equals(reachedState.location)) {
         newLocation = reachedState.location;
       }
-      return new IntervalAnalysisState(newIntervals, newReferences, arrays, newLocation);
+      return this
+          .withIntervals(newIntervals)
+          .withReferenceCounts(newReferences)
+          .withLocation(newLocation);
     } else {
       return reachedState;
     }
@@ -608,13 +632,7 @@ public final class IntervalAnalysisState
           entry.getValue().adaptToVariableAssignment(changedVariable, expressions)
       );
     }
-
-    return new IntervalAnalysisState(
-        intervals,
-        referenceCounts,
-        adaptedArrays,
-        pLocation
-    );
+    return this.withArrays(adaptedArrays).withLocation(pLocation);
   }
 
   public IntervalAnalysisState satisfyStrictLessThan(
@@ -626,11 +644,6 @@ public final class IntervalAnalysisState
 
     for (NormalFormExpression lesser : lesserSet) {
       for (NormalFormExpression greater : greaterSet) {
-
-        if (lesser.equals(greater)) {
-          System.out.println("äsdf");
-        }
-
         modifiedState =
             modifiedState.forAllArrays(e -> e.satisfyStrictLessThan(lesser, greater), pLocation);
       }
@@ -666,12 +679,7 @@ public final class IntervalAnalysisState
       );
     }
 
-    return new IntervalAnalysisState(
-        intervals,
-        referenceCounts,
-        modifiedArrays,
-        pLocation
-    );
+    return this.withArrays(modifiedArrays).withLocation(pLocation);
   }
 
   public IntervalAnalysisState widen(IntervalAnalysisState other, CFANode pLocation) {
@@ -707,12 +715,9 @@ public final class IntervalAnalysisState
             }
         ));
 
-    return new IntervalAnalysisState(
-        PathCopyingPersistentTreeMap.copyOf(modifiedVariables),
-        PathCopyingPersistentTreeMap.of(), //TODO: Hier das noch überlegen
-        PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays),
-        pLocation
-    );
+    return this.withIntervals(PathCopyingPersistentTreeMap.copyOf(modifiedVariables))
+        .withArrays(PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays))
+        .withLocation(pLocation); //TODO: Widening der reference counts überlegen
   }
 
   public PersistentMap<String, Interval> intervals() {

@@ -87,7 +87,7 @@ public class IntervalAnalysisTransferRelation
       newState = newState.dropFrame(functionName, cfaEdge.getSuccessor());
     }
 
-    return ImmutableSet.of(newState.updateLocation(cfaEdge.getSuccessor()));
+    return ImmutableSet.of(newState.withLocation(cfaEdge.getSuccessor()));
   }
 
   /**
@@ -326,7 +326,7 @@ public class IntervalAnalysisTransferRelation
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
       return ImmutableSet.of(handleVariableDeclarationEdge(declarationEdge, decl));
     }
-    return ImmutableSet.of(state.updateLocation(declarationEdge.getSuccessor()));
+    return ImmutableSet.of(state.withLocation(declarationEdge.getSuccessor()));
   }
 
   private IntervalAnalysisState handleVariableDeclarationEdge(
