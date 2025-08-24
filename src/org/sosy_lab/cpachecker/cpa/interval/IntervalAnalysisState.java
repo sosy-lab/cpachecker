@@ -30,7 +30,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -48,8 +47,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula;
 public record IntervalAnalysisState(
     PersistentMap<String, Interval> intervals,
     PersistentMap<String, Integer> referenceCounts,
-    PersistentMap<String, FunArray> arrays,
-    CFANode cfaNode
+    PersistentMap<String, FunArray> arrays
 )
     implements Serializable,
         LatticeAbstractState<IntervalAnalysisState>,
@@ -71,13 +69,8 @@ public record IntervalAnalysisState(
     this(
         PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of(),
-        PathCopyingPersistentTreeMap.of(),
-        null
+        PathCopyingPersistentTreeMap.of()
     );
-  }
-
-  public IntervalAnalysisState withCfaNode(CFANode pCfaNode) {
-    return new IntervalAnalysisState(this.intervals, this.referenceCounts, this.arrays, pCfaNode);
   }
 
   /**
@@ -142,8 +135,7 @@ public record IntervalAnalysisState(
         return new IntervalAnalysisState(
             intervals.putAndCopy(variableName, interval),
             referenceCounts.putAndCopy(variableName, referenceCount + 1),
-            arrays,
-            cfaNode);
+            arrays);
       } else {
         return removeInterval(variableName);
       }
@@ -153,7 +145,7 @@ public record IntervalAnalysisState(
 
   public IntervalAnalysisState addArray(String variableName, FunArray funArray) {
     return new IntervalAnalysisState(
-        intervals, referenceCounts, arrays.putAndCopy(variableName, funArray), cfaNode);
+        intervals, referenceCounts, arrays.putAndCopy(variableName, funArray));
   }
 
   public IntervalAnalysisState assignArrayElement(
@@ -162,8 +154,7 @@ public record IntervalAnalysisState(
       return new IntervalAnalysisState(
           intervals,
           referenceCounts,
-          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)),
-          cfaNode);
+          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)));
     }
     return this;
   }
@@ -178,7 +169,7 @@ public record IntervalAnalysisState(
   public IntervalAnalysisState removeInterval(String variableName) {
     if (intervals.containsKey(variableName)) {
       return new IntervalAnalysisState(
-          intervals.removeAndCopy(variableName), referenceCounts, arrays, cfaNode);
+          intervals.removeAndCopy(variableName), referenceCounts, arrays);
     }
 
     return this;
@@ -237,7 +228,7 @@ public record IntervalAnalysisState(
     }
 
     if (changed) {
-      return new IntervalAnalysisState(newIntervals, newReferences, arrays, cfaNode);
+      return new IntervalAnalysisState(newIntervals, newReferences, arrays);
     } else {
       return reachedState;
     }
@@ -567,8 +558,7 @@ public record IntervalAnalysisState(
     return new IntervalAnalysisState(
         intervals,
         referenceCounts,
-        adaptedArrays,
-        cfaNode
+        adaptedArrays
     );
   }
 
@@ -614,8 +604,7 @@ public record IntervalAnalysisState(
     return new IntervalAnalysisState(
         intervals,
         referenceCounts,
-        modifiedArrays,
-        cfaNode
+        modifiedArrays
     );
   }
 
@@ -655,8 +644,7 @@ public record IntervalAnalysisState(
     return new IntervalAnalysisState(
         PathCopyingPersistentTreeMap.copyOf(modifiedVariables),
         PathCopyingPersistentTreeMap.of(), //TODO: Hier das noch überlegen
-        PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays),
-        cfaNode
+        PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays)
     );
   }
 

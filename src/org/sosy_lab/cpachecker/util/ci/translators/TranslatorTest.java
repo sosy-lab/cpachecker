@@ -161,7 +161,7 @@ public class TranslatorTest {
 
     IntervalAnalysisState iStateTest =
         new IntervalAnalysisState(
-            intervals, referenceMap, PathCopyingPersistentTreeMap.of(), null); // TODO
+            intervals, referenceMap, PathCopyingPersistentTreeMap.of()); // TODO
     IntervalRequirementsTranslator iReqTransTest =
         new IntervalRequirementsTranslator(LogManager.createTestLogManager());
 
@@ -246,7 +246,7 @@ public class TranslatorTest {
     intervals = intervals.putAndCopy("var1", new Interval(0L, Long.MAX_VALUE));
     IntervalAnalysisState anotherIStateTest =
         new IntervalAnalysisState(
-            intervals, referenceMap, PathCopyingPersistentTreeMap.of(), null); // TODO
+            intervals, referenceMap, PathCopyingPersistentTreeMap.of()); // TODO
 
     convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest, null);
     content = new ArrayList<>();
