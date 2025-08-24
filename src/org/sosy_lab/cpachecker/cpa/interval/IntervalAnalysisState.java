@@ -61,17 +61,20 @@ public final class IntervalAnalysisState
   private final PersistentMap<String, Integer> referenceCounts;
   private final PersistentMap<String, FunArray> arrays;
   private final CFANode location;
+  private final PersistentMap<CFANode, Integer> visitCounts;
 
   private IntervalAnalysisState(
       PersistentMap<String, Interval> pIntervals,
       PersistentMap<String, Integer> pReferenceCounts,
       PersistentMap<String, FunArray> pArrays,
-      CFANode pLocation
+      CFANode pLocation,
+      PersistentMap<CFANode, Integer> pVisitCounts
   ) {
     this.intervals = pIntervals;
     this.referenceCounts = pReferenceCounts;
     this.arrays = pArrays;
     this.location = pLocation;
+    this.visitCounts = pVisitCounts;
   }
 
 
@@ -84,7 +87,8 @@ public final class IntervalAnalysisState
         PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of(),
-        pLocation
+        pLocation,
+        PathCopyingPersistentTreeMap.of()
     );
   }
 
@@ -93,7 +97,8 @@ public final class IntervalAnalysisState
         pIntervals,
         referenceCounts,
         arrays,
-        location
+        location,
+        visitCounts
     );
   }
 
@@ -102,7 +107,8 @@ public final class IntervalAnalysisState
         intervals,
         pReferenceCounts,
         arrays,
-        location
+        location,
+        visitCounts
     );
   }
 
@@ -111,7 +117,8 @@ public final class IntervalAnalysisState
         intervals,
         referenceCounts,
         pArrays,
-        location
+        location,
+        visitCounts
     );
   }
 
@@ -120,7 +127,12 @@ public final class IntervalAnalysisState
         intervals,
         referenceCounts,
         arrays,
-        pLocation
+        pLocation,
+        visitCounts.putAndCopy(pLocation,
+            visitCounts.containsKey(pLocation)
+            ? visitCounts.get(pLocation) + 1
+            : 1
+        )
     );
   }
 
