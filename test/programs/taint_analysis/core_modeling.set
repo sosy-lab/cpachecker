@@ -12,6 +12,8 @@ cast/core_modeling/*.yml
 
 control_flow_structures/core_modeling/*.yml
 
+function_calls/core_modeling/*.yml
+
 general_functionality/*.yml
 
 pointers/core_modeling/*.yml

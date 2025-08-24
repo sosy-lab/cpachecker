@@ -12,6 +12,8 @@ cast/dceara/*.yml
 
 control_flow_structures/dceara/*.yml
 
+function_calls/dceara/*.yml
+
 general_functionality/dceara/*.yml
 
 pointers/dceara/*.yml
