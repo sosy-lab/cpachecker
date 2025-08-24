@@ -36,6 +36,8 @@ public class SubstituteEdge {
 
   public final ImmutableSet<CParameterDeclaration> accessedMainFunctionArgs;
 
+  // POINTER ASSIGNMENTS ===========================================================================
+
   public final ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pointerAssignment;
 
   public final ImmutableTable<

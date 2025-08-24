@@ -84,21 +84,16 @@ public class SubstituteUtil {
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
-    Set<CVariableDeclaration> visited = new HashSet<>();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       ImmutableSet<CVariableDeclaration> allAccessedVariables =
           getAccessedVariablesBySubstituteEdge(substituteEdge);
       for (CVariableDeclaration variableDeclaration : allAccessedVariables) {
-        if (visited.add(variableDeclaration)) {
-          rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
-          if (variableDeclaration.getType() instanceof CTypedefType typedefType) {
-            // for structs, add all field members (including members of inner structs).
-            // we assume that each field member is accessed at least once in the input program.
-            ImmutableSet<CCompositeTypeMemberDeclaration> allFieldMembers =
-                recursivelyFindFieldMembers(typedefType);
-            for (CCompositeTypeMemberDeclaration fieldMember : allFieldMembers) {
-              rMemoryLocations.add(MemoryLocation.of(variableDeclaration, fieldMember));
-            }
+        rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
+        if (variableDeclaration.getType() instanceof CTypedefType) {
+          // for structs, add only the actually accessed field members
+          for (CCompositeTypeMemberDeclaration fieldMember :
+              substituteEdge.accessedFieldMembers.get(variableDeclaration)) {
+            rMemoryLocations.add(MemoryLocation.of(variableDeclaration, fieldMember));
           }
         }
       }
