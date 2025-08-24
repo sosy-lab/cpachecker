@@ -10,14 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
@@ -126,9 +124,7 @@ public class MemoryLocationFinder {
 
     ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     // first check direct accesses on the memory locations themselves
-    ImmutableSet<MemoryLocation> memoryLocations =
-        pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType);
-    rMemLocations.addAll(memoryLocations);
+    rMemLocations.addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType));
     // then check indirect accesses via pointers that point to the variables
     ImmutableSet<CSimpleDeclaration> pointerDereferences =
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
@@ -237,27 +233,5 @@ public class MemoryLocationFinder {
         String.format(
             "could not find pVariableDeclaration %s in pAllMemoryLocations",
             pVariableDeclaration.toASTString()));
-  }
-
-  private static MemoryLocation getMemoryLocationByFieldOwnerAndMember(
-      CVariableDeclaration pFieldOwner,
-      CCompositeTypeMemberDeclaration pFieldMember,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
-
-    for (MemoryLocation memoryLocation : pAllMemoryLocations) {
-      if (memoryLocation.fieldMember.isPresent()) {
-        SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry =
-            memoryLocation.fieldMember.orElseThrow();
-        if (entry.getKey().equals(pFieldOwner)) {
-          if (entry.getValue().equals(pFieldMember)) {
-            return memoryLocation;
-          }
-        }
-      }
-    }
-    throw new IllegalArgumentException(
-        String.format(
-            "could not find pFieldOwner %s and pFieldMember %s in pAllMemoryLocations",
-            pFieldOwner.toASTString(), pFieldMember.toASTString()));
   }
 }

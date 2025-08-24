@@ -65,11 +65,11 @@ public class MPORSubstitutionTracker {
   /** Written pointer dereferences e.g. of the form {@code *ptr = x;}. */
   private final Set<CSimpleDeclaration> writtenPointerDereferences;
 
-  private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      accessedFieldReferencePointerDereference;
+  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      accessedFieldReferencePointerDereferences;
 
-  private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      writtenFieldReferencePointerDereference;
+  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      writtenFieldReferencePointerDereferences;
 
   // GLOBAL VARIABLES ==============================================================================
 
@@ -113,8 +113,9 @@ public class MPORSubstitutionTracker {
 
     accessedPointerDereferences = new HashSet<>();
     writtenPointerDereferences = new HashSet<>();
-    accessedFieldReferencePointerDereference = new HashMap<>();
-    writtenFieldReferencePointerDereference = new HashMap<>();
+
+    accessedFieldReferencePointerDereferences = HashMultimap.create();
+    writtenFieldReferencePointerDereferences = HashMultimap.create();
 
     accessedGlobalVariables = new HashSet<>();
     writtenGlobalVariables = new HashSet<>();
@@ -159,13 +160,13 @@ public class MPORSubstitutionTracker {
   public void addAccessedFieldReferencePointerDereference(
       CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
 
-    accessedFieldReferencePointerDereference.put(pFieldOwner, pFieldMember);
+    accessedFieldReferencePointerDereferences.put(pFieldOwner, pFieldMember);
   }
 
   public void addWrittenFieldReferencePointerDereference(
       CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
 
-    writtenFieldReferencePointerDereference.put(pFieldOwner, pFieldMember);
+    writtenFieldReferencePointerDereferences.put(pFieldOwner, pFieldMember);
   }
 
   public void addAccessedGlobalVariable(CVariableDeclaration pAccessedGlobalVariable) {
@@ -219,16 +220,16 @@ public class MPORSubstitutionTracker {
     return ImmutableSet.copyOf(writtenPointerDereferences);
   }
 
-  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       getAccessedFieldReferencePointerDereferences() {
 
-    return ImmutableMap.copyOf(accessedFieldReferencePointerDereference);
+    return ImmutableSetMultimap.copyOf(accessedFieldReferencePointerDereferences);
   }
 
-  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       getWrittenFieldReferencePointerDereferences() {
 
-    return ImmutableMap.copyOf(writtenFieldReferencePointerDereference);
+    return ImmutableSetMultimap.copyOf(writtenFieldReferencePointerDereferences);
   }
 
   // global variables
