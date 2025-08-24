@@ -45,12 +45,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 
-public record IntervalAnalysisState(
-    PersistentMap<String, Interval> intervals,
-    PersistentMap<String, Integer> referenceCounts,
-    PersistentMap<String, FunArray> arrays,
-    CFANode location
-)
+public final class IntervalAnalysisState
     implements Serializable,
                LatticeAbstractState<IntervalAnalysisState>,
                AbstractQueryableState,
@@ -62,6 +57,22 @@ public record IntervalAnalysisState(
   private static final long serialVersionUID = -2030700797958100666L;
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
+  private final PersistentMap<String, Interval> intervals;
+  private final PersistentMap<String, Integer> referenceCounts;
+  private final PersistentMap<String, FunArray> arrays;
+  private final CFANode location;
+
+  public IntervalAnalysisState(
+      PersistentMap<String, Interval> pIntervals,
+      PersistentMap<String, Integer> pReferenceCounts,
+      PersistentMap<String, FunArray> pArrays,
+      CFANode pLocation
+  ) {
+    this.intervals = pIntervals;
+    this.referenceCounts = pReferenceCounts;
+    this.arrays = pArrays;
+    this.location = pLocation;
+  }
 
 
   /**
@@ -703,5 +714,22 @@ public record IntervalAnalysisState(
         pLocation
     );
   }
+
+  public PersistentMap<String, Interval> intervals() {
+    return intervals;
+  }
+
+  public PersistentMap<String, Integer> referenceCounts() {
+    return referenceCounts;
+  }
+
+  public PersistentMap<String, FunArray> arrays() {
+    return arrays;
+  }
+
+  public CFANode location() {
+    return location;
+  }
+
 
 }
