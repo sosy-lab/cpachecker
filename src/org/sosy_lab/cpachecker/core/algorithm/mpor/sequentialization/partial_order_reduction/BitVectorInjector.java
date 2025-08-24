@@ -244,7 +244,6 @@ public class BitVectorInjector {
                   pOptions,
                   pActiveThread,
                   newTarget.getFirstBlock(),
-                  pLabelClauseMap,
                   pLabelBlockMap,
                   pBitVectorVariables,
                   pPointerAssignments);
@@ -309,7 +308,6 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       MPORThread pActiveThread,
       SeqThreadStatementBlock pTargetBlock,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments) {
@@ -324,11 +322,7 @@ public class BitVectorInjector {
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.ACCESS);
         ImmutableSet<MemoryLocation> reachableLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
-                pLabelClauseMap,
-                pLabelBlockMap,
-                pPointerAssignments,
-                pTargetBlock,
-                MemoryAccessType.ACCESS);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.ACCESS);
         yield buildBitVectorAccessAssignments(
             pOptions, pActiveThread, pBitVectorVariables, directLocations, reachableLocations);
       }
@@ -338,22 +332,14 @@ public class BitVectorInjector {
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.READ);
         ImmutableSet<MemoryLocation> reachableWriteLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
-                pLabelClauseMap,
-                pLabelBlockMap,
-                pPointerAssignments,
-                pTargetBlock,
-                MemoryAccessType.WRITE);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.WRITE);
 
         ImmutableSet<MemoryLocation> directWriteLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.WRITE);
         ImmutableSet<MemoryLocation> reachableReadLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
-                pLabelClauseMap,
-                pLabelBlockMap,
-                pPointerAssignments,
-                pTargetBlock,
-                MemoryAccessType.READ);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.READ);
 
         yield buildBitVectorReadWriteAssignments(
             pOptions,

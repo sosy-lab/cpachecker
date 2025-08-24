@@ -14,7 +14,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.statement.SeqBitVectorEvaluationStatement;
@@ -89,19 +88,18 @@ public class SeqThreadStatementUtil {
   public static void recursivelyFindTargetStatements(
       Set<SeqThreadStatement> pFound,
       SeqThreadStatement pStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     // recursively search the target goto statements
     ImmutableList<SeqThreadStatement> targetStatements =
         ImmutableList.<SeqThreadStatement>builder()
-            .addAll(getTargetPcStatements(pStatement, pLabelClauseMap))
+            .addAll(getTargetPcStatements(pStatement, pLabelBlockMap))
             .addAll(getTargetGotoStatements(pStatement, pLabelBlockMap))
             .build();
     for (SeqThreadStatement targetStatement : targetStatements) {
       // prevent infinite loops when statements contain loops
       if (pFound.add(targetStatement)) {
-        recursivelyFindTargetStatements(pFound, targetStatement, pLabelClauseMap, pLabelBlockMap);
+        recursivelyFindTargetStatements(pFound, targetStatement, pLabelBlockMap);
       }
     }
   }
@@ -119,7 +117,7 @@ public class SeqThreadStatementUtil {
     ImmutableList<SeqThreadStatement> targetGotoStatements =
         getTargetGotoStatements(pStatement, pLabelBlockMap);
     for (SeqThreadStatement targetStatement : targetGotoStatements) {
-      // prevent infinite loops when statements contain loops
+      // prevent infinite recursion when statements contain loops
       if (pFound.add(targetStatement)) {
         recursivelyFindTargetGotoStatements(pFound, targetStatement, pLabelBlockMap);
       }
@@ -128,13 +126,13 @@ public class SeqThreadStatementUtil {
 
   private static ImmutableList<SeqThreadStatement> getTargetPcStatements(
       SeqThreadStatement pStatement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pStatement.getTargetPc())) {
       int targetNumber = pStatement.getTargetPc().orElseThrow();
-      SeqThreadStatementClause targetClause =
-          Objects.requireNonNull(pLabelClauseMap.get(targetNumber));
-      return targetClause.getFirstBlock().getStatements();
+      SeqThreadStatementBlock targetBlock =
+          Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
+      return targetBlock.getStatements();
     }
     return ImmutableList.of();
   }

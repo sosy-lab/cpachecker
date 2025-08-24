@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -63,13 +62,11 @@ public class MemoryLocationFinder {
     return rMemLocations.build();
   }
 
-  // TODO also use ReachType here and remove redundant pLabelClauseMap
   /**
    * Returns all global variables accessed when executing {@code pBlock}, its directly linked blocks
    * and all possible successor blocks, that may or may not actually be executed.
    */
-   public static ImmutableSet<MemoryLocation> findReachableMemoryLocationsByAccessType(
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+  public static ImmutableSet<MemoryLocation> findReachableMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock,
@@ -79,8 +76,7 @@ public class MemoryLocationFinder {
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       Set<SeqThreadStatement> found = new HashSet<>();
       found.add(statement);
-      SeqThreadStatementUtil.recursivelyFindTargetStatements(
-          found, statement, pLabelClauseMap, pLabelBlockMap);
+      SeqThreadStatementUtil.recursivelyFindTargetStatements(found, statement, pLabelBlockMap);
       ImmutableSet<MemoryLocation> foundMemoryLocations =
           findMemoryLocationsByStatements(
               ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
@@ -89,7 +85,7 @@ public class MemoryLocationFinder {
     return rMemLocations.build();
   }
 
-  // Global Variable Extraction ====================================================================
+  // Memory Location Extraction ====================================================================
 
   private static ImmutableSet<MemoryLocation> findMemoryLocationsByStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
