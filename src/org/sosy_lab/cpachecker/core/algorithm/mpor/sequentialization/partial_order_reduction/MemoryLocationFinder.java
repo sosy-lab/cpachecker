@@ -178,13 +178,13 @@ public class MemoryLocationFinder {
       if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
         if (variableDeclaration.getType() instanceof CPointerType) {
           // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
-          // and then dereferenced -> the pointer is not associated with the address of a global var
+          // and then dereferenced -> the pointer is not associated with the address of a var
           if (pPointerAssignments.isAssignedPointer(variableDeclaration)) {
-            ImmutableSet<CSimpleDeclaration> rightHandSides =
+            ImmutableSet<MemoryLocation> rightHandSides =
                 pPointerAssignments.getRightHandSidesByPointer(variableDeclaration);
-            for (CSimpleDeclaration rightHandSide : rightHandSides) {
+            for (MemoryLocation rightHandSide : rightHandSides) {
               recursivelyFindMemoryLocationsByPointerDereference(
-                  rightHandSide,
+                  rightHandSide.getSimpleDeclaration(),
                   pAllMemoryLocations,
                   pCallContext,
                   pPointerAssignments,
@@ -198,22 +198,38 @@ public class MemoryLocationFinder {
         }
 
       } else if (pCurrentDeclaration instanceof CParameterDeclaration parameterDeclaration) {
-        assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
-        ThreadEdge callContext = pCallContext.orElseThrow();
-        // in pthread_create that does not pass an arg to start_routine, the pair is not present
-        if (pPointerAssignments.isAssignedPointerParameter(callContext, parameterDeclaration)) {
-          CSimpleDeclaration rightHandSide =
-              pPointerAssignments.getRightHandSideByPointerParameter(
-                  callContext, parameterDeclaration);
-          recursivelyFindMemoryLocationsByPointerDereference(
-              rightHandSide,
-              pAllMemoryLocations,
-              pCallContext,
-              pPointerAssignments,
-              pFound,
-              pVisited);
-        }
+        recursivelyFindMemoryLocationsByPointerDereference(
+            parameterDeclaration,
+            pAllMemoryLocations,
+            pCallContext,
+            pPointerAssignments,
+            pFound,
+            pVisited);
       }
+    }
+  }
+
+  private static void recursivelyFindMemoryLocationsByPointerDereference(
+      CParameterDeclaration pCurrentDeclaration,
+      final ImmutableSet<MemoryLocation> pAllMemoryLocations,
+      final Optional<ThreadEdge> pCallContext,
+      final PointerAssignments pPointerAssignments,
+      Set<MemoryLocation> pFound,
+      Set<CSimpleDeclaration> pVisited) {
+
+    assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
+    ThreadEdge callContext = pCallContext.orElseThrow();
+    // in pthread_create that does not pass an arg to start_routine, the pair is not present
+    if (pPointerAssignments.isAssignedPointerParameter(callContext, pCurrentDeclaration)) {
+      MemoryLocation rightHandSide =
+          pPointerAssignments.getRightHandSideByPointerParameter(callContext, pCurrentDeclaration);
+      recursivelyFindMemoryLocationsByPointerDereference(
+          rightHandSide.getSimpleDeclaration(),
+          pAllMemoryLocations,
+          pCallContext,
+          pPointerAssignments,
+          pFound,
+          pVisited);
     }
   }
 
@@ -242,7 +258,7 @@ public class MemoryLocationFinder {
 
     for (MemoryLocation memoryLocation : pAllMemoryLocations) {
       if (memoryLocation.fieldMember.isPresent()) {
-        SimpleImmutableEntry<CVariableDeclaration, CCompositeTypeMemberDeclaration> entry =
+        SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry =
             memoryLocation.fieldMember.orElseThrow();
         if (entry.getKey().equals(pFieldOwner)) {
           if (entry.getValue().equals(pFieldMember)) {

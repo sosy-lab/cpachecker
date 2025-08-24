@@ -8,54 +8,68 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class MemoryLocation {
 
-  public final Optional<CVariableDeclaration> variable;
+  public final Optional<CSimpleDeclaration> variable;
 
-  public final Optional<SimpleImmutableEntry<CVariableDeclaration, CCompositeTypeMemberDeclaration>>
+  public final Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
       fieldMember;
 
   private MemoryLocation(
-      Optional<CVariableDeclaration> pVariable,
-      Optional<SimpleImmutableEntry<CVariableDeclaration, CCompositeTypeMemberDeclaration>>
+      Optional<CSimpleDeclaration> pVariable,
+      Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
           pFieldMember) {
 
-    checkArgument(
-        pVariable.isPresent() || pFieldMember.isPresent(),
-        "either pVariable or pFieldMember must be present");
     variable = pVariable;
     fieldMember = pFieldMember;
   }
 
-  public static MemoryLocation of(CVariableDeclaration pVariableDeclaration) {
-    return new MemoryLocation(Optional.of(pVariableDeclaration), Optional.empty());
+  public static MemoryLocation of(CSimpleDeclaration pDeclaration) {
+    return new MemoryLocation(Optional.of(pDeclaration), Optional.empty());
   }
 
   public static MemoryLocation of(
-      CVariableDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
 
     return new MemoryLocation(
         Optional.empty(),
         Optional.of(new AbstractMap.SimpleImmutableEntry<>(pFieldOwner, pFieldMember)));
   }
 
+  public static MemoryLocation empty() {
+    return new MemoryLocation(Optional.empty(), Optional.empty());
+  }
+
+  public CSimpleDeclaration getSimpleDeclaration() {
+    if (variable.isPresent()) {
+      return variable.orElseThrow();
+    }
+    if (fieldMember.isPresent()) {
+      return fieldMember.orElseThrow().getKey();
+    }
+    throw new IllegalArgumentException(
+        "cannot get CSimpleDeclaration, both variable and fieldMember are empty");
+  }
+
   public String getName() {
     if (variable.isPresent()) {
       return variable.orElseThrow().getName();
     }
-    Entry<CVariableDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
+    Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
     return entry.getKey().getName() + SeqSyntax.UNDERSCORE + entry.getValue().getName();
+  }
+
+  public boolean isEmpty() {
+    return variable.isEmpty() && fieldMember.isEmpty();
   }
 
   @Override

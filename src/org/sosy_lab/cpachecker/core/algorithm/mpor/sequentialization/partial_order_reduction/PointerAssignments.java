@@ -8,36 +8,26 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class PointerAssignments {
 
-  private final ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments;
+  private final ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments;
 
-  private final ImmutableTable<
-          CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      pointerFieldMemberAssignments;
-
-  private final ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+  private final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
       pointerParameterAssignments;
 
   public PointerAssignments(
-      ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-          pPointerFieldMemberAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
+      ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
           pPointerParameterAssignments) {
 
     pointerAssignments = pPointerAssignments;
-    pointerFieldMemberAssignments = pPointerFieldMemberAssignments;
     pointerParameterAssignments = pPointerParameterAssignments;
   }
 
@@ -45,28 +35,18 @@ public class PointerAssignments {
     return pointerAssignments.containsKey(pVariableDeclaration);
   }
 
-  public boolean isAssignedPointerFieldMember(CVariableDeclaration pVariableDeclaration) {
-    return pointerFieldMemberAssignments.containsColumn(pVariableDeclaration);
-  }
-
   public boolean isAssignedPointerParameter(
       ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
     return pointerParameterAssignments.contains(pCallContext, pParameterDeclaration);
   }
 
-  public ImmutableSet<CSimpleDeclaration> getRightHandSidesByPointer(
+  public ImmutableSet<MemoryLocation> getRightHandSidesByPointer(
       CVariableDeclaration pVariableDeclaration) {
 
     return pointerAssignments.get(pVariableDeclaration);
   }
 
-  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getRightHandSidesByPointerFieldMember(CVariableDeclaration pVariableDeclaration) {
-
-    return pointerFieldMemberAssignments.row(pVariableDeclaration);
-  }
-
-  public CSimpleDeclaration getRightHandSideByPointerParameter(
+  public MemoryLocation getRightHandSideByPointerParameter(
       ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
 
     return pointerParameterAssignments.get(pCallContext, pParameterDeclaration);

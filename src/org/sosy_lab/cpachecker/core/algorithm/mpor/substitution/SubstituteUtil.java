@@ -15,11 +15,9 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table.Cell;
 import com.google.common.collect.Tables;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -32,9 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
@@ -110,41 +106,16 @@ public class SubstituteUtil {
         .build();
   }
 
-  private static ImmutableSet<CCompositeTypeMemberDeclaration> recursivelyFindFieldMembers(
-      CTypedefType pTypedefType) {
-
-    Set<CCompositeTypeMemberDeclaration> rFound = new HashSet<>();
-    recursivelyFindFieldMembers(pTypedefType, rFound);
-    return ImmutableSet.copyOf(rFound);
-  }
-
-  private static void recursivelyFindFieldMembers(
-      CTypedefType pTypedefType, Set<CCompositeTypeMemberDeclaration> pFound) {
-
-    // elaborated type is e.g. struct __anon_type_QType
-    if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-      // composite type contains the composite type members, e.g. 'amount'
-      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
-        pFound.addAll(compositeType.getMembers());
-        for (CCompositeTypeMemberDeclaration fieldMember : compositeType.getMembers()) {
-          if (fieldMember.getType() instanceof CTypedefType typedefType) {
-            recursivelyFindFieldMembers(typedefType, pFound);
-          }
-        }
-      }
-    }
-  }
-
   // Pointer Assignments ===========================================================================
 
   /**
    * Maps pointers {@code ptr} to the memory locations e.g. {@code &var} assigned to them based on
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
-  public static ImmutableSetMultimap<CVariableDeclaration, CSimpleDeclaration>
-      mapPointerAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+  public static ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> mapPointerAssignments(
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableSetMultimap.Builder<CVariableDeclaration, CSimpleDeclaration> rPointerAssignments =
+    ImmutableSetMultimap.Builder<CVariableDeclaration, MemoryLocation> rPointerAssignments =
         ImmutableSetMultimap.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       if (!substituteEdge.pointerAssignment.isEmpty()) {
@@ -152,7 +123,16 @@ public class SubstituteUtil {
             : "a single edge can have at most 1 pointer assignments";
         Map.Entry<CVariableDeclaration, CSimpleDeclaration> singleEntry =
             substituteEdge.pointerAssignment.entrySet().iterator().next();
-        rPointerAssignments.put(singleEntry.getKey(), singleEntry.getValue());
+        rPointerAssignments.put(singleEntry.getKey(), MemoryLocation.of(singleEntry.getValue()));
+      }
+      if (!substituteEdge.pointerFieldMemberAssignments.isEmpty()) {
+        assert substituteEdge.pointerFieldMemberAssignments.size() == 1
+            : "a single edge can have at most 1 pointer assignments";
+        Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration> singleCell =
+            substituteEdge.pointerFieldMemberAssignments.cellSet().iterator().next();
+        rPointerAssignments.put(
+            Objects.requireNonNull(singleCell.getRowKey()),
+            MemoryLocation.of(singleCell.getColumnKey(), singleCell.getValue()));
       }
     }
     return rPointerAssignments.build();
@@ -160,19 +140,19 @@ public class SubstituteUtil {
 
   // Pointer Parameter Assignments =================================================================
 
-  public static ImmutableTable<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>
-      mapParameterAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+  public static ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
+      mapPointerParameterAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, CSimpleDeclaration> rAssignments =
+    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, MemoryLocation> rAssignments =
         ImmutableTable.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       // use the original edge, so that we use the original variable declarations
       if (substituteEdge.getOriginalEdge() instanceof CFunctionCallEdge functionCallEdge) {
         // the function call edge is used as the call context, not the actual call context
         ThreadEdge callContext = substituteEdge.getThreadEdge();
-        ImmutableList<Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>> assignments =
+        ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> assignments =
             buildParameterAssignments(callContext, functionCallEdge);
-        for (Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration> cell : assignments) {
+        for (Cell<ThreadEdge, CParameterDeclaration, MemoryLocation> cell : assignments) {
           rAssignments.put(cell);
         }
       }
@@ -180,11 +160,11 @@ public class SubstituteUtil {
     return rAssignments.buildOrThrow();
   }
 
-  private static ImmutableList<Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>>
+  private static ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>>
       buildParameterAssignments(ThreadEdge pCallContext, CFunctionCallEdge pFunctionCallEdge) {
 
-    ImmutableList.Builder<Cell<ThreadEdge, CParameterDeclaration, CSimpleDeclaration>>
-        rAssignments = ImmutableList.builder();
+    ImmutableList.Builder<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> rAssignments =
+        ImmutableList.builder();
     List<CExpression> arguments = pFunctionCallEdge.getArguments();
     List<CParameterDeclaration> parameterDeclarations =
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
@@ -195,50 +175,45 @@ public class SubstituteUtil {
       CParameterDeclaration leftHandSide = parameterDeclarations.get(i);
       // TODO we also need non-pointers, e.g. for 'global_ptr = &non_ptr_param;'
       if (leftHandSide.getType() instanceof CPointerType) {
-        Optional<CSimpleDeclaration> rightHandSide = extractSimpleDeclaration(arguments.get(i));
-        if (rightHandSide.isPresent()) {
-          rAssignments.add(
-              Tables.immutableCell(pCallContext, leftHandSide, rightHandSide.orElseThrow()));
+        MemoryLocation rhsMemoryLocation = extractMemoryLocation(arguments.get(i));
+        if (!rhsMemoryLocation.isEmpty()) {
+          rAssignments.add(Tables.immutableCell(pCallContext, leftHandSide, rhsMemoryLocation));
         }
       }
     }
     return rAssignments.build();
   }
 
-  public static Optional<CSimpleDeclaration> extractSimpleDeclaration(CExpression pRightHandSide) {
+  public static MemoryLocation extractMemoryLocation(CExpression pRightHandSide) {
     if (pRightHandSide instanceof CIdExpression idExpression) {
-      return Optional.of(idExpression.getDeclaration());
+      return MemoryLocation.of(idExpression.getDeclaration());
 
     } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
       if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-        return Optional.of(idExpression.getDeclaration());
+        return MemoryLocation.of(idExpression.getDeclaration());
 
       } else if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
-        CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(fieldReference);
-        return Optional.of(fieldOwner.getDeclaration());
+        return extractFieldReferenceMemoryLocation(fieldReference);
       }
 
     } else if (pRightHandSide instanceof CFieldReference fieldReference) {
-      CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(fieldReference);
-      return Optional.of(fieldOwner.getDeclaration());
+      return extractFieldReferenceMemoryLocation(fieldReference);
     }
     // can e.g. occur with 'param = 4' i.e. literal integer expressions
-    return Optional.empty();
+    return MemoryLocation.empty();
   }
 
-  // Pointer Field Member Assignments ==============================================================
+  private static MemoryLocation extractFieldReferenceMemoryLocation(
+      CFieldReference pFieldReference) {
 
-  public static ImmutableTable<
-          CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      mapFieldMemberAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
-    ImmutableTable.Builder<
-            CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-        rAssignments = ImmutableTable.builder();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      rAssignments.putAll(substituteEdge.pointerFieldMemberAssignments);
+    if (pFieldReference.getFieldOwner().getExpressionType() instanceof CTypedefType typedefType) {
+      CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
+      CCompositeTypeMemberDeclaration fieldMember =
+          MPORUtil.getFieldMemberByName(pFieldReference, typedefType);
+      return MemoryLocation.of(fieldOwner.getDeclaration(), fieldMember);
     }
-    return rAssignments.build();
+    // TODO just making sure
+    throw new IllegalArgumentException("pFieldReference owner type must be CTypedefType");
   }
 
   // Main Function Arg =============================================================================

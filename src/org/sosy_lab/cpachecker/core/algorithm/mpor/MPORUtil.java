@@ -375,7 +375,7 @@ public final class MPORUtil {
     throw new IllegalArgumentException("could not extract CTypedefType from pIdExpression");
   }
 
-  private static CCompositeTypeMemberDeclaration getFieldMemberByName(
+  public static CCompositeTypeMemberDeclaration getFieldMemberByName(
       CFieldReference pFieldReference, CTypedefType pTypedefType) {
 
     // elaborated type is e.g. struct __anon_type_QType

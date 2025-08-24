@@ -168,6 +168,9 @@ void field_member_parameter_test(int param) {
 void field_member_parameter_test_ptr(int * param) {
   *param++;
 }
+void field_owner_parameter_test_ptr(Inner * param_inner) {
+  param_inner->inner_member = 42;
+}
 int main(void) 
 {
   pthread_t id1, id2;
@@ -183,6 +186,10 @@ int main(void)
   local_2 = outer_B.outer_member;
   Inner * inner_ptr;
   inner_ptr = &outer_A.inner;
+  *inner_ptr = outer_B.inner;
+  int * outer_member_ptr;
+  outer_member_ptr = &outer_A.outer_member;
+  *outer_member_ptr = 42;
   Outer * outer_ptr;
   outer_ptr = &outer_A;
 
@@ -194,6 +201,7 @@ int main(void)
 
   field_member_parameter_test(outer_A.inner.inner_member);
   field_member_parameter_test_ptr(&outer_A.inner.inner_member);
+  field_owner_parameter_test_ptr(&outer_A.inner);
 
   init(&queue);
 

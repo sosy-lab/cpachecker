@@ -357,8 +357,7 @@ public class LineOfCodeUtil {
 
     return new PointerAssignments(
         SubstituteUtil.mapPointerAssignments(pSubstituteEdges),
-        SubstituteUtil.mapFieldMemberAssignments(pSubstituteEdges),
-        SubstituteUtil.mapParameterAssignments(pSubstituteEdges));
+        SubstituteUtil.mapPointerParameterAssignments(pSubstituteEdges));
   }
 
   // Helpers =======================================================================================
