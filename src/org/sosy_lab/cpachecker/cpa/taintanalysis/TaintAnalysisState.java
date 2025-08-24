@@ -115,10 +115,6 @@ public class TaintAnalysisState
     return predecessors;
   }
 
-  public List<TaintAnalysisState> getSuccessors() {
-    return successors;
-  }
-
   public Map<CExpression, List<CExpression>> getEvaluatedValues() {
     return evaluatedValues;
   }
