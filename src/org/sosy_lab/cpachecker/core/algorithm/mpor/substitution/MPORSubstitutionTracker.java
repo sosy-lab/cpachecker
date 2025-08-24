@@ -83,14 +83,14 @@ public class MPORSubstitutionTracker {
    * are not unique to the instance of a struct, forcing us to use the {@link CSimpleDeclaration} of
    * the owner too. Contains both reads and writes.
    */
-  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  private final SetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
       accessedFieldMembers;
 
   /**
    * Maps written field members to the declaration of their owner, e.g. of the form {@code
    * field->member = 42;}.
    */
-  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  private final SetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
       writtenFieldMembers;
 
   // FUNCTION POINTERS =============================================================================
@@ -139,38 +139,33 @@ public class MPORSubstitutionTracker {
     pointerFieldMemberAssignments.put(pLeftHandSide, pFieldOwner, pMemberDeclaration);
   }
 
-  public void addWrittenPointerDereference(CSimpleDeclaration pWrittenPointerDereference) {
-    writtenPointerDereferences.add(pWrittenPointerDereference);
-  }
-
   public void addAccessedPointerDereference(CSimpleDeclaration pAccessedPointerDereference) {
     accessedPointerDereferences.add(pAccessedPointerDereference);
   }
 
-  public void addWrittenGlobalVariable(CVariableDeclaration pWrittenGlobalVariable) {
-    writtenGlobalVariables.add(pWrittenGlobalVariable);
+  public void addWrittenPointerDereference(CSimpleDeclaration pWrittenPointerDereference) {
+    writtenPointerDereferences.add(pWrittenPointerDereference);
   }
 
   public void addAccessedGlobalVariable(CVariableDeclaration pAccessedGlobalVariable) {
     accessedGlobalVariables.add(pAccessedGlobalVariable);
   }
 
-  public void addWrittenFieldMember(
-      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pWrittenFieldMember) {
-
-    checkArgument(
-        !(pOwnerDeclaration instanceof CFunctionDeclaration),
-        "pOwnerDeclaration cannot be CFunctionDeclaration");
-    writtenFieldMembers.put(pOwnerDeclaration, pWrittenFieldMember);
+  public void addWrittenGlobalVariable(CVariableDeclaration pWrittenGlobalVariable) {
+    writtenGlobalVariables.add(pWrittenGlobalVariable);
   }
 
   public void addAccessedFieldMember(
-      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pAccessedFieldMember) {
+      CVariableDeclaration pOwnerDeclaration,
+      CCompositeTypeMemberDeclaration pAccessedFieldMember) {
 
-    checkArgument(
-        !(pOwnerDeclaration instanceof CFunctionDeclaration),
-        "pOwnerDeclaration cannot be CFunctionDeclaration");
     accessedFieldMembers.put(pOwnerDeclaration, pAccessedFieldMember);
+  }
+
+  public void addWrittenFieldMember(
+      CVariableDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pWrittenFieldMember) {
+
+    writtenFieldMembers.put(pOwnerDeclaration, pWrittenFieldMember);
   }
 
   public void addAccessedFunctionPointer(CFunctionDeclaration pAccessedFunctionPointer) {
@@ -215,13 +210,13 @@ public class MPORSubstitutionTracker {
 
   // field members
 
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
       getAccessedFieldMembers() {
 
     return ImmutableSetMultimap.copyOf(accessedFieldMembers);
   }
 
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
       getWrittenFieldMembers() {
 
     return ImmutableSetMultimap.copyOf(writtenFieldMembers);

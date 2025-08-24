@@ -293,17 +293,19 @@ public class MPORSubstitution {
       boolean pIsWrite,
       MPORSubstitutionTracker pTracker) {
 
-    // elaborated type is e.g. struct __anon_type_QType
-    if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-      // composite type contains the composite type members, e.g. 'amount'
-      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
-        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-            // TODO need tracking based on declaration so that we map field declaration -> member
-            if (pIsWrite) {
-              pTracker.addWrittenFieldMember(pIdExpression.getDeclaration(), memberDeclaration);
+    if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+      // elaborated type is e.g. struct __anon_type_QType
+      if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
+        // composite type contains the composite type members, e.g. 'amount'
+        if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
+          for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+            if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
+              // TODO need tracking based on declaration so that we map field declaration -> member
+              if (pIsWrite) {
+                pTracker.addWrittenFieldMember(variableDeclaration, memberDeclaration);
+              }
+              pTracker.addAccessedFieldMember(variableDeclaration, memberDeclaration);
             }
-            pTracker.addAccessedFieldMember(pIdExpression.getDeclaration(), memberDeclaration);
           }
         }
       }

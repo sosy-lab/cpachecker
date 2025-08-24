@@ -15,7 +15,6 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -24,12 +23,12 @@ public class MemoryLocation {
 
   public final Optional<CVariableDeclaration> variable;
 
-  public final Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
+  public final Optional<SimpleImmutableEntry<CVariableDeclaration, CCompositeTypeMemberDeclaration>>
       fieldMember;
 
   private MemoryLocation(
       Optional<CVariableDeclaration> pVariable,
-      Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
+      Optional<SimpleImmutableEntry<CVariableDeclaration, CCompositeTypeMemberDeclaration>>
           pFieldMember) {
 
     checkArgument(
@@ -44,7 +43,7 @@ public class MemoryLocation {
   }
 
   public static MemoryLocation of(
-      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+      CVariableDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
 
     return new MemoryLocation(
         Optional.empty(),
@@ -55,7 +54,7 @@ public class MemoryLocation {
     if (variable.isPresent()) {
       return variable.orElseThrow().getName();
     }
-    Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
+    Entry<CVariableDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
     return entry.getKey().getName() + SeqSyntax.UNDERSCORE + entry.getValue().getName();
   }
 

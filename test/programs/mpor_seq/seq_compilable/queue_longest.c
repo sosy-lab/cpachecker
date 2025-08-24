@@ -34,11 +34,11 @@ _Bool enqueue_flag, dequeue_flag;
 QType queue;
 typedef struct {} Empty;
 typedef struct {
-  int member;
+  int inner_member;
 } Inner;
 typedef struct {
   Inner inner;
-  int member;
+  int outer_member;
 } Outer;
 Outer outer_A;
 Outer outer_B;
@@ -175,12 +175,12 @@ int main(void)
   enqueue_flag=TRUE;
   dequeue_flag=FALSE;
 
-  outer_A.inner.member = 42;
-  outer_B.inner.member = -42;
+  outer_A.inner.inner_member = 42;
+  outer_B.inner.inner_member = -42;
   int local_1;
-  local_1 = outer_A.inner.member;
+  local_1 = outer_A.inner.inner_member;
   int local_2;
-  local_2 = outer_B.member;
+  local_2 = outer_B.outer_member;
   Inner * inner_ptr;
   inner_ptr = &outer_A.inner;
   Outer * outer_ptr;
@@ -192,8 +192,8 @@ int main(void)
   ptr = ptr;
   *ptr = 7;
 
-  field_member_parameter_test(outer_A.inner.member);
-  field_member_parameter_test_ptr(&outer_A.inner.member);
+  field_member_parameter_test(outer_A.inner.inner_member);
+  field_member_parameter_test_ptr(&outer_A.inner.inner_member);
 
   init(&queue);
 

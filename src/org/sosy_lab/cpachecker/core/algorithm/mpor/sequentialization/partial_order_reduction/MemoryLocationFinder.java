@@ -133,9 +133,9 @@ public class MemoryLocationFinder {
       rMemLocations.add(
           getMemoryLocationByVariableDeclaration(globalVariable, pAllMemoryLocations));
     }
-    ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
+    ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
         pSubstituteEdge.getFieldMembersByAccessType(pAccessType);
-    for (CSimpleDeclaration fieldOwner : fieldMembers.keySet()) {
+    for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
         rMemLocations.add(
             getMemoryLocationByFieldOwnerAndMember(fieldOwner, fieldMember, pAllMemoryLocations));
@@ -236,13 +236,13 @@ public class MemoryLocationFinder {
   }
 
   private static MemoryLocation getMemoryLocationByFieldOwnerAndMember(
-      CSimpleDeclaration pFieldOwner,
+      CVariableDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember,
       ImmutableSet<MemoryLocation> pAllMemoryLocations) {
 
     for (MemoryLocation memoryLocation : pAllMemoryLocations) {
       if (memoryLocation.fieldMember.isPresent()) {
-        SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry =
+        SimpleImmutableEntry<CVariableDeclaration, CCompositeTypeMemberDeclaration> entry =
             memoryLocation.fieldMember.orElseThrow();
         if (entry.getKey().equals(pFieldOwner)) {
           if (entry.getValue().equals(pFieldMember)) {

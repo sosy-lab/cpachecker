@@ -64,13 +64,13 @@ public class SubstituteEdge {
 
   // FIELD MEMBERS =================================================================================
 
-  public final ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public final ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
       accessedFieldMembers;
 
-  public final ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public final ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
       readFieldMembers;
 
-  public final ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public final ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
       writtenFieldMembers;
 
   // FUNCTION POINTERS =============================================================================
@@ -84,13 +84,13 @@ public class SubstituteEdge {
       ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignment,
       ImmutableTable<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
           pPointerFieldMemberAssignments,
-      ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
       ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
-      ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
+      ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
-      ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
+      ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
           pAccessedFieldMembers,
-      ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
           pWrittenFieldMembers,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
 
@@ -155,10 +155,10 @@ public class SubstituteEdge {
         pTracker.getAccessedMainFunctionArgs(),
         pTracker.getPointerAssignments(),
         pTracker.getPointerFieldMemberAssignments(),
-        pTracker.getWrittenPointerDereferences(),
         pTracker.getAccessedPointerDereferences(),
-        pTracker.getWrittenGlobalVariables(),
+        pTracker.getWrittenPointerDereferences(),
         pTracker.getAccessedGlobalVariables(),
+        pTracker.getWrittenGlobalVariables(),
         pTracker.getAccessedFieldMembers(),
         pTracker.getWrittenFieldMembers(),
         pTracker.getAccessedFunctionPointers());
@@ -186,7 +186,7 @@ public class SubstituteEdge {
     };
   }
 
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
       getFieldMembersByAccessType(BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {

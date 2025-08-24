@@ -15,9 +15,11 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table.Cell;
 import com.google.common.collect.Tables;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -30,9 +32,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
@@ -79,19 +84,60 @@ public class SubstituteUtil {
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
+    Set<CVariableDeclaration> visited = new HashSet<>();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      for (CVariableDeclaration variableDeclaration : substituteEdge.accessedGlobalVariables) {
-        rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
-      }
-      ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-          accessedFieldMembers = substituteEdge.accessedFieldMembers;
-      for (CSimpleDeclaration fieldOwner : accessedFieldMembers.keySet()) {
-        for (CCompositeTypeMemberDeclaration fieldMember : accessedFieldMembers.get(fieldOwner)) {
-          rMemoryLocations.add(MemoryLocation.of(fieldOwner, fieldMember));
+      ImmutableSet<CVariableDeclaration> allAccessedVariables =
+          getAccessedVariablesBySubstituteEdge(substituteEdge);
+      for (CVariableDeclaration variableDeclaration : allAccessedVariables) {
+        if (visited.add(variableDeclaration)) {
+          rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
+          if (variableDeclaration.getType() instanceof CTypedefType typedefType) {
+            // for structs, add all field members (including members of inner structs).
+            // we assume that each field member is accessed at least once in the input program.
+            ImmutableSet<CCompositeTypeMemberDeclaration> allFieldMembers =
+                recursivelyFindFieldMembers(typedefType);
+            for (CCompositeTypeMemberDeclaration fieldMember : allFieldMembers) {
+              rMemoryLocations.add(MemoryLocation.of(variableDeclaration, fieldMember));
+            }
+          }
         }
       }
     }
     return rMemoryLocations.build();
+  }
+
+  private static ImmutableSet<CVariableDeclaration> getAccessedVariablesBySubstituteEdge(
+      SubstituteEdge pSubstituteEdge) {
+
+    return ImmutableSet.<CVariableDeclaration>builder()
+        .addAll(pSubstituteEdge.accessedGlobalVariables)
+        .addAll(pSubstituteEdge.accessedFieldMembers.keySet())
+        .build();
+  }
+
+  private static ImmutableSet<CCompositeTypeMemberDeclaration> recursivelyFindFieldMembers(
+      CTypedefType pTypedefType) {
+
+    Set<CCompositeTypeMemberDeclaration> rFound = new HashSet<>();
+    recursivelyFindFieldMembers(pTypedefType, rFound);
+    return ImmutableSet.copyOf(rFound);
+  }
+
+  private static void recursivelyFindFieldMembers(
+      CTypedefType pTypedefType, Set<CCompositeTypeMemberDeclaration> pFound) {
+
+    // elaborated type is e.g. struct __anon_type_QType
+    if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
+      // composite type contains the composite type members, e.g. 'amount'
+      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
+        pFound.addAll(compositeType.getMembers());
+        for (CCompositeTypeMemberDeclaration fieldMember : compositeType.getMembers()) {
+          if (fieldMember.getType() instanceof CTypedefType typedefType) {
+            recursivelyFindFieldMembers(typedefType, pFound);
+          }
+        }
+      }
+    }
   }
 
   // Pointer Assignments ===========================================================================
