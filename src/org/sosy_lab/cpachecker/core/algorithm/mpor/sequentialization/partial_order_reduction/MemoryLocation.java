@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -22,11 +24,13 @@ public class MemoryLocation {
 
   public final Optional<CVariableDeclaration> variable;
 
-  public final Optional<Entry<CVariableDeclaration, CCompositeTypeMemberDeclaration>> fieldMember;
+  public final Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
+      fieldMember;
 
   private MemoryLocation(
       Optional<CVariableDeclaration> pVariable,
-      Optional<Entry<CVariableDeclaration, CCompositeTypeMemberDeclaration>> pFieldMember) {
+      Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
+          pFieldMember) {
 
     checkArgument(
         pVariable.isPresent() || pFieldMember.isPresent(),
@@ -40,17 +44,18 @@ public class MemoryLocation {
   }
 
   public static MemoryLocation of(
-      CVariableDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
 
     return new MemoryLocation(
-        Optional.empty(), Optional.of(new AbstractMap.SimpleEntry<>(pFieldOwner, pFieldMember)));
+        Optional.empty(),
+        Optional.of(new AbstractMap.SimpleImmutableEntry<>(pFieldOwner, pFieldMember)));
   }
 
   public String getName() {
     if (variable.isPresent()) {
       return variable.orElseThrow().getName();
     }
-    Entry<CVariableDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
+    Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
     return entry.getKey().getName() + SeqSyntax.UNDERSCORE + entry.getValue().getName();
   }
 

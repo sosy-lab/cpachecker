@@ -80,9 +80,15 @@ public class SubstituteUtil {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      // TODO handle fieldOwner/member here too
       for (CVariableDeclaration variableDeclaration : substituteEdge.accessedGlobalVariables) {
         rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
+      }
+      ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+          accessedFieldMembers = substituteEdge.accessedFieldMembers;
+      for (CSimpleDeclaration fieldOwner : accessedFieldMembers.keySet()) {
+        for (CCompositeTypeMemberDeclaration fieldMember : accessedFieldMembers.get(fieldOwner)) {
+          rMemoryLocations.add(MemoryLocation.of(fieldOwner, fieldMember));
+        }
       }
     }
     return rMemoryLocations.build();
