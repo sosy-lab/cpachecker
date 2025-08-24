@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -607,7 +606,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   //TODO: Satisfy equal and not equal
 
   @Override
-  public boolean isLessOrEqual(FunArray other) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(FunArray other) {
     UnifyResult unifyResult = unify(other, Interval.EMPTY, Interval.UNBOUND);
 
     boolean valuesLessThan = IntStream.range(0, unifyResult.resultThis.values.size())

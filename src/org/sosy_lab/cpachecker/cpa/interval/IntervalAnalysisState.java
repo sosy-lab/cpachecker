@@ -279,6 +279,12 @@ public record IntervalAnalysisState(
       }
     }
 
+    for (String arrayName : reachedState.arrays.keySet()) {
+      if (!arrays.containsKey(arrayName) || !arrays.get(arrayName).isLessOrEqual(reachedState.arrays.get(arrayName))) {
+        return false;
+      }
+    }
+
     // else, this element < reached state on the lattice
     return true;
   }
