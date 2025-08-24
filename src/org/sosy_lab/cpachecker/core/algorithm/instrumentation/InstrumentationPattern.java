@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -69,6 +70,9 @@ public class InstrumentationPattern {
         break;
       case "ptr_deref":
         type = patternType.PTR_DEREF;
+        break;
+      case "ptr_declar":
+        type = patternType.PTR_DECLAR;
         break;
       case "ADD":
         type = patternType.ADD;
@@ -142,6 +146,7 @@ public class InstrumentationPattern {
       case NOT_COND -> isNegatedCond(pCFAEdge) ? ImmutableList.of() : null;
       case FUNC -> getTheOperandsFromFunctionCall(pCFAEdge, pDecomposedMap);
       case PTR_DEREF -> getTheOperandsFromPointerDereference(pCFAEdge);
+      case PTR_DECLAR -> getTheOperandsFromPointerDeclaration(pCFAEdge);
       case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap);
       case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS, pDecomposedMap);
       case NEG -> getTheOperandsFromUnaryOperation(pCFAEdge, UnaryOperator.MINUS, pDecomposedMap);
@@ -245,6 +250,19 @@ public class InstrumentationPattern {
               "TRANS_INT_MIN");
         } else {
           return ImmutableList.of();
+        }
+      }
+    }
+    return null;
+  }
+
+  private ImmutableList<String> getTheOperandsFromPointerDeclaration(CFAEdge pCFAEdge) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      if (astNode instanceof CVariableDeclaration declaration) {
+        if (declaration.getType().toString().contains("*")
+            || declaration.getType().toString().contains("[")) {
+          return ImmutableList.of(declaration.getName());
         }
       }
     }
@@ -373,6 +391,7 @@ public class InstrumentationPattern {
     COND,
     NOT_COND,
     PTR_DEREF,
+    PTR_DECLAR,
     ADD,
     SUB,
     NEG,

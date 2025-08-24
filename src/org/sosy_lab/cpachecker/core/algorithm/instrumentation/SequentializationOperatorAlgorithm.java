@@ -228,7 +228,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       int location;
       String fileLocation = pEdge.getFileLocation().toString();
       String functionName;
-      if (pTransition.getPattern().toString().equals("ptr_deref") && !pMatchedVariables.isEmpty()) {
+      if ((pTransition.getPattern().toString().equals("ptr_deref")
+              || pTransition.getPattern().toString().equals("ptr_declar"))
+          && !pMatchedVariables.isEmpty()) {
         String matchedVar = pMatchedVariables.get(0);
         functionName = matchedVar;
         if (!matchedVar.contains("[")) {
@@ -277,6 +279,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       Map<CFANode, String> pDecomposedMap,
       ImmutableList<String> pMatchedVariables) {
     if (!pTransition.getPattern().toString().equals("ptr_deref")
+        && !pTransition.getPattern().toString().equals("ptr_declar")
         && !pTransition.getPattern().toString().equals("ADD")
         && !pTransition.getPattern().toString().equals("SUB")
         && !pTransition.getPattern().toString().equals("MUL")
