@@ -12,8 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Sets;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -21,9 +19,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
@@ -38,11 +35,7 @@ public class SubstituteEdge {
 
   // POINTER ASSIGNMENTS ===========================================================================
 
-  public final ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pointerAssignment;
-
-  public final ImmutableTable<
-          CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      pointerFieldMemberAssignments;
+  public final ImmutableMap<CVariableDeclaration, MemoryLocation> pointerAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
@@ -55,25 +48,14 @@ public class SubstituteEdge {
   /** The set of written pointer derefs, .e.g {@code *ptr = 42;} */
   public final ImmutableSet<CSimpleDeclaration> writtenPointerDereferences;
 
-  // GLOBAL VARIABLES ==============================================================================
+  // MEMORY LOCATIONS ==============================================================================
 
   /** The set of global variable declarations that this edge accesses. */
-  public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
+  public final ImmutableSet<MemoryLocation> accessedMemoryLocations;
 
-  public final ImmutableSet<CVariableDeclaration> readGlobalVariables;
+  public final ImmutableSet<MemoryLocation> readMemoryLocations;
 
-  public final ImmutableSet<CVariableDeclaration> writtenGlobalVariables;
-
-  // FIELD MEMBERS =================================================================================
-
-  public final ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      accessedFieldMembers;
-
-  public final ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      readFieldMembers;
-
-  public final ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      writtenFieldMembers;
+  public final ImmutableSet<MemoryLocation> writtenMemoryLocations;
 
   // FUNCTION POINTERS =============================================================================
 
@@ -83,22 +65,17 @@ public class SubstituteEdge {
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
-      ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignment,
-      ImmutableTable<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-          pPointerFieldMemberAssignments,
+      ImmutableMap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
       ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
       ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
-      ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
-      ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
-      ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-          pAccessedFieldMembers,
-      ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-          pWrittenFieldMembers,
+      ImmutableSet<MemoryLocation> pAccessedMemoryLocations,
+      ImmutableSet<MemoryLocation> pWrittenMemoryLocations,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
 
     // TODO maybe make it an optional single entry then? ...
     checkArgument(
-        pPointerAssignment.size() <= 1, "a single edge can have either 0 or 1 pointer assignments");
+        pPointerAssignments.size() <= 1,
+        "a single edge can have either 0 or 1 pointer assignments");
     checkArgument(
         pCfaEdge.equals(pThreadEdge.cfaEdge), "pCfaEdge and pThreadEdge cfaEdge must match");
 
@@ -107,23 +84,18 @@ public class SubstituteEdge {
     // main function args
     accessedMainFunctionArgs = pAccessedMainFunctionArgs;
     // pointer assignments
-    pointerAssignment = pPointerAssignment;
-    pointerFieldMemberAssignments = pPointerFieldMemberAssignments;
-    // pointers dereferences
+    pointerAssignments = pPointerAssignments;
+    // pointer dereferences
     writtenPointerDereferences = pWrittenPointerDereferences;
     accessedPointerDereferences = pAccessedPointerDereferences;
     readPointerDereferences =
         Sets.symmetricDifference(writtenPointerDereferences, accessedPointerDereferences)
             .immutableCopy();
-    // global variables
-    writtenGlobalVariables = pWrittenGlobalVariables;
-    accessedGlobalVariables = pAccessedGlobalVariables;
-    readGlobalVariables =
-        Sets.symmetricDifference(writtenGlobalVariables, accessedGlobalVariables).immutableCopy();
-    // field members
-    accessedFieldMembers = pAccessedFieldMembers;
-    writtenFieldMembers = pWrittenFieldMembers;
-    readFieldMembers = MPORUtil.symmetricDifference(accessedFieldMembers, writtenFieldMembers);
+    // memory locations
+    accessedMemoryLocations = pAccessedMemoryLocations;
+    writtenMemoryLocations = pWrittenMemoryLocations;
+    readMemoryLocations =
+        Sets.symmetricDifference(writtenMemoryLocations, accessedMemoryLocations).immutableCopy();
     // functions
     accessedFunctionPointers = pAccessedFunctionPointers;
   }
@@ -134,13 +106,10 @@ public class SubstituteEdge {
         pThreadEdge,
         ImmutableSet.of(),
         ImmutableMap.of(),
-        ImmutableTable.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
-        ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of(),
         ImmutableSet.of());
   }
 
@@ -155,25 +124,22 @@ public class SubstituteEdge {
         pCfaEdge,
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
-        pTracker.getPointerAssignments(),
-        pTracker.getPointerFieldMemberAssignments(),
+        SubstituteUtil.mapPointerAssignments(pTracker),
         pTracker.getAccessedPointerDereferences(),
         pTracker.getWrittenPointerDereferences(),
-        pTracker.getAccessedGlobalVariables(),
-        pTracker.getWrittenGlobalVariables(),
-        pTracker.getAccessedFieldMembers(),
-        pTracker.getWrittenFieldMembers(),
+        SubstituteUtil.getMemoryLocationsByAccessType(pTracker, BitVectorAccessType.ACCESS),
+        SubstituteUtil.getMemoryLocationsByAccessType(pTracker, BitVectorAccessType.WRITE),
         pTracker.getAccessedFunctionPointers());
   }
 
-  public ImmutableSet<CVariableDeclaration> getGlobalVariablesByAccessType(
+  public ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
-      case ACCESS -> accessedGlobalVariables;
-      case READ -> readGlobalVariables;
-      case WRITE -> writtenGlobalVariables;
+      case ACCESS -> accessedMemoryLocations;
+      case READ -> readMemoryLocations;
+      case WRITE -> writtenMemoryLocations;
     };
   }
 
@@ -186,23 +152,6 @@ public class SubstituteEdge {
       case READ -> readPointerDereferences;
       case WRITE -> writtenPointerDereferences;
     };
-  }
-
-  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      getFieldMembersByAccessType(BitVectorAccessType pAccessType) {
-
-    return switch (pAccessType) {
-      case NONE -> ImmutableSetMultimap.of();
-      case ACCESS -> accessedFieldMembers;
-      case READ -> readFieldMembers;
-      case WRITE -> writtenFieldMembers;
-    };
-  }
-
-  public ImmutableTable<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getPointerFieldMemberAssignments() {
-
-    return pointerFieldMemberAssignments;
   }
 
   public ThreadEdge getThreadEdge() {

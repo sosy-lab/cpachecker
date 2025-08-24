@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 
 /**
  * A class to track certain expressions, statements, ... (such as pointer dereferences and global
@@ -63,6 +64,12 @@ public class MPORSubstitutionTracker {
 
   /** Written pointer dereferences e.g. of the form {@code *ptr = x;}. */
   private final Set<CSimpleDeclaration> writtenPointerDereferences;
+
+  private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      accessedFieldReferencePointerDereference;
+
+  private final Map<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      writtenFieldReferencePointerDereference;
 
   // GLOBAL VARIABLES ==============================================================================
 
@@ -106,6 +113,8 @@ public class MPORSubstitutionTracker {
 
     accessedPointerDereferences = new HashSet<>();
     writtenPointerDereferences = new HashSet<>();
+    accessedFieldReferencePointerDereference = new HashMap<>();
+    writtenFieldReferencePointerDereference = new HashMap<>();
 
     accessedGlobalVariables = new HashSet<>();
     writtenGlobalVariables = new HashSet<>();
@@ -145,6 +154,18 @@ public class MPORSubstitutionTracker {
 
   public void addWrittenPointerDereference(CSimpleDeclaration pWrittenPointerDereference) {
     writtenPointerDereferences.add(pWrittenPointerDereference);
+  }
+
+  public void addAccessedFieldReferencePointerDereference(
+      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+
+    accessedFieldReferencePointerDereference.put(pFieldOwner, pFieldMember);
+  }
+
+  public void addWrittenFieldReferencePointerDereference(
+      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+
+    writtenFieldReferencePointerDereference.put(pFieldOwner, pFieldMember);
   }
 
   public void addAccessedGlobalVariable(CVariableDeclaration pAccessedGlobalVariable) {
@@ -198,7 +219,30 @@ public class MPORSubstitutionTracker {
     return ImmutableSet.copyOf(writtenPointerDereferences);
   }
 
+  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getAccessedFieldReferencePointerDereferences() {
+
+    return ImmutableMap.copyOf(accessedFieldReferencePointerDereference);
+  }
+
+  public ImmutableMap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getWrittenFieldReferencePointerDereferences() {
+
+    return ImmutableMap.copyOf(writtenFieldReferencePointerDereference);
+  }
+
   // global variables
+
+  public ImmutableSet<CVariableDeclaration> getGlobalVariablesByAccessType(
+      BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type global variables");
+      case ACCESS -> getAccessedGlobalVariables();
+      case READ -> throw new IllegalArgumentException("no READ access type global variables");
+      case WRITE -> getWrittenGlobalVariables();
+    };
+  }
 
   public ImmutableSet<CVariableDeclaration> getAccessedGlobalVariables() {
     return ImmutableSet.copyOf(accessedGlobalVariables);
@@ -209,6 +253,17 @@ public class MPORSubstitutionTracker {
   }
 
   // field members
+
+  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
+      getFieldMembersByAccessType(BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type field members");
+      case ACCESS -> getAccessedFieldMembers();
+      case READ -> throw new IllegalArgumentException("no READ access type field members");
+      case WRITE -> getWrittenFieldMembers();
+    };
+  }
 
   public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
       getAccessedFieldMembers() {

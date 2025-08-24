@@ -10,13 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table.Cell;
 import com.google.common.collect.Tables;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -76,34 +77,35 @@ public class SubstituteUtil {
     return false;
   }
 
+  // Memory Locations ==============================================================================
+
   public static ImmutableSet<MemoryLocation> getAllMemoryLocations(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      ImmutableSet<CVariableDeclaration> allAccessedVariables =
-          getAccessedVariablesBySubstituteEdge(substituteEdge);
-      for (CVariableDeclaration variableDeclaration : allAccessedVariables) {
-        rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
-        if (variableDeclaration.getType() instanceof CTypedefType) {
-          // for structs, add only the actually accessed field members
-          for (CCompositeTypeMemberDeclaration fieldMember :
-              substituteEdge.accessedFieldMembers.get(variableDeclaration)) {
-            rMemoryLocations.add(MemoryLocation.of(variableDeclaration, fieldMember));
-          }
-        }
-      }
+      rMemoryLocations.addAll(substituteEdge.accessedMemoryLocations);
+      rMemoryLocations.addAll(substituteEdge.pointerAssignments.values());
     }
     return rMemoryLocations.build();
   }
 
-  private static ImmutableSet<CVariableDeclaration> getAccessedVariablesBySubstituteEdge(
-      SubstituteEdge pSubstituteEdge) {
+  public static ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
+      MPORSubstitutionTracker pTracker, BitVectorAccessType pAccessType) {
 
-    return ImmutableSet.<CVariableDeclaration>builder()
-        .addAll(pSubstituteEdge.accessedGlobalVariables)
-        .addAll(pSubstituteEdge.accessedFieldMembers.keySet())
-        .build();
+    ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
+    for (CVariableDeclaration variableDeclaration :
+        pTracker.getGlobalVariablesByAccessType(pAccessType)) {
+      rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
+    }
+    ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
+        pTracker.getFieldMembersByAccessType(pAccessType);
+    for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
+      for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
+        rMemoryLocations.add(MemoryLocation.of(fieldOwner, fieldMember));
+      }
+    }
+    return rMemoryLocations.build();
   }
 
   // Pointer Assignments ===========================================================================
@@ -112,30 +114,34 @@ public class SubstituteUtil {
    * Maps pointers {@code ptr} to the memory locations e.g. {@code &var} assigned to them based on
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
-  public static ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> mapPointerAssignments(
+  public static ImmutableMap<CVariableDeclaration, MemoryLocation> mapPointerAssignments(
+      MPORSubstitutionTracker pTracker) {
+
+    ImmutableMap.Builder<CVariableDeclaration, MemoryLocation> rAssignments =
+        ImmutableMap.builder();
+    for (var entry : pTracker.getPointerAssignments().entrySet()) {
+      rAssignments.put(entry.getKey(), MemoryLocation.of(entry.getValue()));
+    }
+    ImmutableSet<Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
+        cellSet = pTracker.getPointerFieldMemberAssignments().cellSet();
+    for (Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration> cell :
+        cellSet) {
+      rAssignments.put(
+          Objects.requireNonNull(cell.getRowKey()),
+          MemoryLocation.of(cell.getColumnKey(), cell.getValue()));
+    }
+    return rAssignments.buildOrThrow();
+  }
+
+  public static ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> mapAllPointerAssignments(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableSetMultimap.Builder<CVariableDeclaration, MemoryLocation> rPointerAssignments =
+    ImmutableSetMultimap.Builder<CVariableDeclaration, MemoryLocation> rAllAssignments =
         ImmutableSetMultimap.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      if (!substituteEdge.pointerAssignment.isEmpty()) {
-        assert substituteEdge.pointerAssignment.size() == 1
-            : "a single edge can have at most 1 pointer assignments";
-        Map.Entry<CVariableDeclaration, CSimpleDeclaration> singleEntry =
-            substituteEdge.pointerAssignment.entrySet().iterator().next();
-        rPointerAssignments.put(singleEntry.getKey(), MemoryLocation.of(singleEntry.getValue()));
-      }
-      if (!substituteEdge.pointerFieldMemberAssignments.isEmpty()) {
-        assert substituteEdge.pointerFieldMemberAssignments.size() == 1
-            : "a single edge can have at most 1 pointer assignments";
-        Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration> singleCell =
-            substituteEdge.pointerFieldMemberAssignments.cellSet().iterator().next();
-        rPointerAssignments.put(
-            Objects.requireNonNull(singleCell.getRowKey()),
-            MemoryLocation.of(singleCell.getColumnKey(), singleCell.getValue()));
-      }
+      rAllAssignments.putAll(substituteEdge.pointerAssignments.asMultimap());
     }
-    return rPointerAssignments.build();
+    return rAllAssignments.build();
   }
 
   // Pointer Parameter Assignments =================================================================

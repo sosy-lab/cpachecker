@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashSet;
 import java.util.Optional;
@@ -126,21 +125,10 @@ public class MemoryLocationFinder {
       BitVectorAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
-    // first check direct accesses on the variables themselves
-    ImmutableSet<CVariableDeclaration> globalVariables =
-        pSubstituteEdge.getGlobalVariablesByAccessType(pAccessType);
-    for (CVariableDeclaration globalVariable : globalVariables) {
-      rMemLocations.add(
-          getMemoryLocationByVariableDeclaration(globalVariable, pAllMemoryLocations));
-    }
-    ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
-        pSubstituteEdge.getFieldMembersByAccessType(pAccessType);
-    for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
-      for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
-        rMemLocations.add(
-            getMemoryLocationByFieldOwnerAndMember(fieldOwner, fieldMember, pAllMemoryLocations));
-      }
-    }
+    // first check direct accesses on the memory locations themselves
+    ImmutableSet<MemoryLocation> memoryLocations =
+        pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType);
+    rMemLocations.addAll(memoryLocations);
     // then check indirect accesses via pointers that point to the variables
     ImmutableSet<CSimpleDeclaration> pointerDereferences =
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);

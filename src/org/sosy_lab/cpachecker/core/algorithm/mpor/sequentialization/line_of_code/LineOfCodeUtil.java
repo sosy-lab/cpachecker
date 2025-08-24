@@ -356,7 +356,7 @@ public class LineOfCodeUtil {
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     return new PointerAssignments(
-        SubstituteUtil.mapPointerAssignments(pSubstituteEdges),
+        SubstituteUtil.mapAllPointerAssignments(pSubstituteEdges),
         SubstituteUtil.mapPointerParameterAssignments(pSubstituteEdges));
   }
 

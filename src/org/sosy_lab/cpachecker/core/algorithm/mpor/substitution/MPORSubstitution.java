@@ -237,21 +237,48 @@ public class MPORSubstitution {
     }
   }
 
-  // TODO also need CFieldReference, CArraySubscriptExpression here
-  private void trackPointerDereference(
+  // TODO also need CArraySubscriptExpression here
+  private void trackPointerDereferenceByPointerExpression(
       CPointerExpression pPointerExpression,
       boolean pIsWrite,
       Optional<MPORSubstitutionTracker> pTracker) {
 
+    if (pTracker.isEmpty()) {
+      return;
+    }
     if (pPointerExpression.getOperand() instanceof CIdExpression idExpression) {
       // do not consider CFunctionDeclarations
       if (isSubstitutable(idExpression.getDeclaration())) {
-        if (pTracker.isPresent()) {
-          if (pIsWrite) {
-            pTracker.orElseThrow().addWrittenPointerDereference(idExpression.getDeclaration());
-          }
-          pTracker.orElseThrow().addAccessedPointerDereference(idExpression.getDeclaration());
+        if (pIsWrite) {
+          pTracker.orElseThrow().addWrittenPointerDereference(idExpression.getDeclaration());
         }
+        pTracker.orElseThrow().addAccessedPointerDereference(idExpression.getDeclaration());
+      }
+    }
+  }
+
+  private void trackPointerDereferenceByFieldReference(
+      CFieldReference pFieldReference,
+      boolean pIsWrite,
+      Optional<MPORSubstitutionTracker> pTracker) {
+
+    if (pTracker.isEmpty()) {
+      return;
+    }
+    if (pFieldReference.isPointerDereference()) {
+      assert pFieldReference.getFieldOwner().getExpressionType() instanceof CPointerType
+          : "if pFieldReference is a pointer dereference, its owner type must be CPointerType";
+      CPointerType pointerType = (CPointerType) pFieldReference.getFieldOwner().getExpressionType();
+      if (pointerType.getType() instanceof CTypedefType typedefType) {
+        CSimpleDeclaration fieldOwner =
+            MPORUtil.recursivelyFindFieldOwner(pFieldReference).getDeclaration();
+        CCompositeTypeMemberDeclaration fieldMember =
+            MPORUtil.getFieldMemberByName(pFieldReference, typedefType);
+        MPORSubstitutionTracker tracker = pTracker.orElseThrow();
+        if (pIsWrite) {
+          tracker.addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember);
+        }
+        tracker.addAccessedFieldReferencePointerDereference(fieldOwner, fieldMember);
       }
     }
   }
@@ -264,10 +291,9 @@ public class MPORSubstitution {
     if (pTracker.isEmpty()) {
       return;
     }
-    // TODO distinguish idExpression.declaration -> is parameter / variable?
+    trackPointerDereferenceByFieldReference(pFieldReference, pIsWrite, pTracker);
     // CIdExpression is e.g. 'queue' in 'queue->amount'
     if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
-      // TODO add different sets in tracker for pointer derefs vs. variables?
       // typedef is e.g. 'QType' or for pointers 'QType*'
       if (idExpression.getExpressionType() instanceof CTypedefType typedefType) {
         trackFieldReferenceByTypedefType(
@@ -300,7 +326,6 @@ public class MPORSubstitution {
         if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
           for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
             if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-              // TODO need tracking based on declaration so that we map field declaration -> member
               if (pIsWrite) {
                 pTracker.addWrittenFieldMember(variableDeclaration, memberDeclaration);
               }
@@ -338,6 +363,7 @@ public class MPORSubstitution {
     FileLocation fileLocation = pExpression.getFileLocation();
     CType type = pExpression.getExpressionType();
 
+    // TODO replace with return switch
     if (pExpression instanceof CIdExpression idExpression) {
       CSimpleDeclaration declaration = idExpression.getDeclaration();
       if (isSubstitutable(declaration)) {
@@ -441,7 +467,7 @@ public class MPORSubstitution {
           unary.getOperator());
 
     } else if (pExpression instanceof CPointerExpression pointer) {
-      trackPointerDereference(pointer, pIsWrite, pTracker);
+      trackPointerDereferenceByPointerExpression(pointer, pIsWrite, pTracker);
       return new CPointerExpression(
           pointer.getFileLocation(),
           pointer.getExpressionType(),

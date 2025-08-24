@@ -375,6 +375,7 @@ public final class MPORUtil {
     throw new IllegalArgumentException("could not extract CTypedefType from pIdExpression");
   }
 
+  // TODO remove typedefType param and extract from fieldOwner.type instead
   public static CCompositeTypeMemberDeclaration getFieldMemberByName(
       CFieldReference pFieldReference, CTypedefType pTypedefType) {
 
