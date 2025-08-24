@@ -24,7 +24,7 @@ class IntervalAnalysisReducer extends GenericReducer<IntervalAnalysisState, Prec
     for (String trackedVar : pExpandedState.getIntervalMap().keySet()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       if (!pContext.getVariables().contains(trackedVar)) {
-        clonedElement = clonedElement.removeInterval(trackedVar);
+        clonedElement = clonedElement.removeInterval(trackedVar, pCallNode);
       }
     }
     return clonedElement;
@@ -44,7 +44,7 @@ class IntervalAnalysisReducer extends GenericReducer<IntervalAnalysisState, Prec
     for (String trackedVar : pRootState.getIntervalMap().keySet()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       if (!pReducedContext.getVariables().contains(trackedVar)) {
-        diffElement = diffElement.addInterval(trackedVar, pRootState.getInterval(trackedVar), -1);
+        diffElement = diffElement.addInterval(trackedVar, pRootState.getInterval(trackedVar), -1, pReducedState.location());
 
         // } else {
         // ignore this case, the variables are part of the reduced state

@@ -17,12 +17,12 @@ public class IntervalAnalysisStateTest {
 
   @Test
   public void pseudoPartiotionKey() {
-    IntervalAnalysisState s = new IntervalAnalysisState();
-    IntervalAnalysisState sa1 = s.addInterval("a", new Interval(1L, 1L), 10);
-    IntervalAnalysisState sb2 = s.addInterval("b", new Interval(2L, 2L), 10);
-    IntervalAnalysisState sa1b2 = sa1.addInterval("b", new Interval(2L, 2L), 10);
-    IntervalAnalysisState sa1b3 = sa1.addInterval("b", new Interval(3L, 3L), 10);
-    IntervalAnalysisState sa1b23 = sa1.addInterval("b", new Interval(2L, 3L), 10);
+    IntervalAnalysisState s = new IntervalAnalysisState(null);
+    IntervalAnalysisState sa1 = s.addInterval("a", new Interval(1L, 1L), 10, null);
+    IntervalAnalysisState sb2 = s.addInterval("b", new Interval(2L, 2L), 10, null);
+    IntervalAnalysisState sa1b2 = sa1.addInterval("b", new Interval(2L, 2L), 10, null);
+    IntervalAnalysisState sa1b3 = sa1.addInterval("b", new Interval(3L, 3L), 10, null);
+    IntervalAnalysisState sa1b23 = sa1.addInterval("b", new Interval(2L, 3L), 10, null);
 
     Comparable cs = s.getPseudoPartitionKey();
     Comparable csa1 = sa1.getPseudoPartitionKey();

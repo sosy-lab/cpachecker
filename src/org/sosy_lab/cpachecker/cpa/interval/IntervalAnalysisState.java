@@ -30,6 +30,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -47,7 +48,8 @@ import org.sosy_lab.java_smt.api.NumeralFormula;
 public record IntervalAnalysisState(
     PersistentMap<String, Interval> intervals,
     PersistentMap<String, Integer> referenceCounts,
-    PersistentMap<String, FunArray> arrays
+    PersistentMap<String, FunArray> arrays,
+    CFANode location
 )
     implements Serializable,
         LatticeAbstractState<IntervalAnalysisState>,
@@ -65,11 +67,21 @@ public record IntervalAnalysisState(
    * This method acts as the default constructor, which initializes the intervals and reference
    * counts to empty maps and the previous element to null.
    */
-  public IntervalAnalysisState() {
+  public IntervalAnalysisState(CFANode pLocation) {
     this(
         PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of(),
-        PathCopyingPersistentTreeMap.of()
+        PathCopyingPersistentTreeMap.of(),
+        pLocation
+    );
+  }
+
+  public IntervalAnalysisState updateLocation(CFANode pLocation) {
+    return new IntervalAnalysisState(
+        intervals,
+        referenceCounts,
+        arrays,
+        pLocation
     );
   }
 
@@ -123,9 +135,9 @@ public record IntervalAnalysisState(
    * @return this
    */
   // see ExplicitState::assignConstant
-  public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold) {
+  public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold, CFANode pLocation) {
     if (interval.isUnbound()) {
-      return removeInterval(variableName);
+      return removeInterval(variableName, pLocation);
     }
     // only add the interval if it is not already present
     if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
@@ -135,26 +147,26 @@ public record IntervalAnalysisState(
         return new IntervalAnalysisState(
             intervals.putAndCopy(variableName, interval),
             referenceCounts.putAndCopy(variableName, referenceCount + 1),
-            arrays);
+            arrays, pLocation);
       } else {
-        return removeInterval(variableName);
+        return removeInterval(variableName, pLocation);
       }
     }
     return this;
   }
 
-  public IntervalAnalysisState addArray(String variableName, FunArray funArray) {
+  public IntervalAnalysisState addArray(String variableName, FunArray funArray, CFANode pLocation) {
     return new IntervalAnalysisState(
-        intervals, referenceCounts, arrays.putAndCopy(variableName, funArray));
+        intervals, referenceCounts, arrays.putAndCopy(variableName, funArray), pLocation);
   }
 
   public IntervalAnalysisState assignArrayElement(
-      String arrayName, NormalFormExpression index, Interval interval, ExpressionValueVisitor visitor) {
+      String arrayName, NormalFormExpression index, Interval interval, ExpressionValueVisitor visitor, CFANode pLocation) {
     if (arrays.containsKey(arrayName)) {
       return new IntervalAnalysisState(
           intervals,
           referenceCounts,
-          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)));
+          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)), pLocation);
     }
     return this;
   }
@@ -166,20 +178,20 @@ public record IntervalAnalysisState(
    * @return this
    */
   // see ExplicitState::forget
-  public IntervalAnalysisState removeInterval(String variableName) {
+  public IntervalAnalysisState removeInterval(String variableName, CFANode pLocation) {
     if (intervals.containsKey(variableName)) {
       return new IntervalAnalysisState(
-          intervals.removeAndCopy(variableName), referenceCounts, arrays);
+          intervals.removeAndCopy(variableName), referenceCounts, arrays, pLocation);
     }
 
     return this;
   }
 
-  public IntervalAnalysisState dropFrame(String pCalledFunctionName) {
+  public IntervalAnalysisState dropFrame(String pCalledFunctionName, CFANode pLocation) {
     IntervalAnalysisState tmp = this;
     for (String variableName : intervals.keySet()) {
       if (variableName.startsWith(pCalledFunctionName + "::")) {
-        tmp = tmp.removeInterval(variableName);
+        tmp = tmp.removeInterval(variableName, pLocation);
       }
     }
     return tmp;
@@ -228,7 +240,11 @@ public record IntervalAnalysisState(
     }
 
     if (changed) {
-      return new IntervalAnalysisState(newIntervals, newReferences, arrays);
+      CFANode newLocation = null;
+      if (this.location.equals(reachedState.location)) {
+        newLocation = reachedState.location;
+      }
+      return new IntervalAnalysisState(newIntervals, newReferences, arrays, newLocation);
     } else {
       return reachedState;
     }
@@ -291,7 +307,7 @@ public record IntervalAnalysisState(
     // first forget all global information
     for (final String trackedVar : callState.intervals.keySet()) {
       if (!trackedVar.contains("::")) { // global -> delete
-        rebuildState = rebuildState.removeInterval(trackedVar);
+        rebuildState = rebuildState.removeInterval(trackedVar, functionExit);
       }
     }
 
@@ -299,7 +315,7 @@ public record IntervalAnalysisState(
     for (final String trackedVar : intervals.keySet()) {
 
       if (!trackedVar.contains("::")) { // global -> override deleted value
-        rebuildState = rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1);
+        rebuildState = rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1, functionExit);
 
       } else if (functionExit.getEntryNode().getReturnVariable().isPresent()
           && functionExit
@@ -312,7 +328,7 @@ public record IntervalAnalysisState(
             : "calling function should not contain return-variable of called function: "
                 + trackedVar;
         if (contains(trackedVar)) {
-          rebuildState = rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1);
+          rebuildState = rebuildState.addInterval(trackedVar, getInterval(trackedVar), -1, functionExit);
         }
       }
     }
@@ -400,7 +416,6 @@ public record IntervalAnalysisState(
   @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
-
     sb.append("{");
     // create a string like: x =  [low; high] (refCount)
     for (Entry<String, Interval> entry : intervals.entrySet()) {
@@ -544,7 +559,7 @@ public record IntervalAnalysisState(
     }
   }
 
-  public IntervalAnalysisState adaptToVariableAssignment(CIdExpression changedVariable, Set<NormalFormExpression> expressions) { //TODO replace with forAllArrays() method
+  public IntervalAnalysisState adaptToVariableAssignment(CIdExpression changedVariable, Set<NormalFormExpression> expressions, CFANode pLocation) { //TODO replace with forAllArrays() method
 
     PersistentMap<String, FunArray> adaptedArrays = arrays.empty();
 
@@ -558,11 +573,12 @@ public record IntervalAnalysisState(
     return new IntervalAnalysisState(
         intervals,
         referenceCounts,
-        adaptedArrays
+        adaptedArrays,
+        pLocation
     );
   }
 
-  public IntervalAnalysisState satisfyStrictLessThan(Set<NormalFormExpression> lesserSet, Set<NormalFormExpression> greaterSet) {
+  public IntervalAnalysisState satisfyStrictLessThan(Set<NormalFormExpression> lesserSet, Set<NormalFormExpression> greaterSet, CFANode pLocation) {
 
     IntervalAnalysisState modifiedState = this;
 
@@ -573,26 +589,26 @@ public record IntervalAnalysisState(
           System.out.println("äsdf");
         }
 
-        modifiedState = modifiedState.forAllArrays(e -> e.satisfyStrictLessThan(lesser, greater));
+        modifiedState = modifiedState.forAllArrays(e -> e.satisfyStrictLessThan(lesser, greater), pLocation);
       }
     }
 
     return modifiedState;
   }
 
-  public IntervalAnalysisState satisfyLessEqual(Set<NormalFormExpression> lesserSet, Set<NormalFormExpression> greaterSet) {
+  public IntervalAnalysisState satisfyLessEqual(Set<NormalFormExpression> lesserSet, Set<NormalFormExpression> greaterSet, CFANode pLocation) {
     IntervalAnalysisState modifiedState = this;
 
     for (NormalFormExpression lesser : lesserSet) {
       for (NormalFormExpression greater : greaterSet) {
-        modifiedState = modifiedState.forAllArrays(e -> e.satisfyLessEqual(lesser, greater));
+        modifiedState = modifiedState.forAllArrays(e -> e.satisfyLessEqual(lesser, greater), pLocation);
       }
     }
 
     return modifiedState;
   }
 
-  public IntervalAnalysisState forAllArrays(Function<FunArray, FunArray> function) {
+  public IntervalAnalysisState forAllArrays(Function<FunArray, FunArray> function, CFANode pLocation) {
     PersistentMap<String, FunArray> modifiedArrays = arrays.empty();
     for (Entry<String, FunArray> entry : arrays.entrySet()) {
       modifiedArrays = modifiedArrays.putAndCopy(
@@ -604,11 +620,12 @@ public record IntervalAnalysisState(
     return new IntervalAnalysisState(
         intervals,
         referenceCounts,
-        modifiedArrays
+        modifiedArrays,
+        pLocation
     );
   }
 
-  public IntervalAnalysisState widen(IntervalAnalysisState other) {
+  public IntervalAnalysisState widen(IntervalAnalysisState other, CFANode pLocation) {
 
     var modifiedFunArrays = other.arrays.entrySet().stream()
         .collect(Collectors.toMap(
@@ -644,7 +661,8 @@ public record IntervalAnalysisState(
     return new IntervalAnalysisState(
         PathCopyingPersistentTreeMap.copyOf(modifiedVariables),
         PathCopyingPersistentTreeMap.of(), //TODO: Hier das noch überlegen
-        PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays)
+        PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays),
+        pLocation
     );
   }
 

@@ -161,7 +161,7 @@ public class TranslatorTest {
 
     IntervalAnalysisState iStateTest =
         new IntervalAnalysisState(
-            intervals, referenceMap, PathCopyingPersistentTreeMap.of()); // TODO
+            intervals, referenceMap, PathCopyingPersistentTreeMap.of(), null); // TODO
     IntervalRequirementsTranslator iReqTransTest =
         new IntervalRequirementsTranslator(LogManager.createTestLogManager());
 
@@ -235,7 +235,7 @@ public class TranslatorTest {
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     // Test method convertToFormula() with empty IntervalAnalysisState
-    convertedToFormula = iReqTransTest.convertToFormula(new IntervalAnalysisState(), ssaTest, null);
+    convertedToFormula = iReqTransTest.convertToFormula(new IntervalAnalysisState(null), ssaTest, null);
     Truth.assertThat(convertedToFormula.getFirst()).isEmpty();
     s = "(define-fun req () Bool true)";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
@@ -246,7 +246,7 @@ public class TranslatorTest {
     intervals = intervals.putAndCopy("var1", new Interval(0L, Long.MAX_VALUE));
     IntervalAnalysisState anotherIStateTest =
         new IntervalAnalysisState(
-            intervals, referenceMap, PathCopyingPersistentTreeMap.of()); // TODO
+            intervals, referenceMap, PathCopyingPersistentTreeMap.of(), null); // TODO
 
     convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest, null);
     content = new ArrayList<>();

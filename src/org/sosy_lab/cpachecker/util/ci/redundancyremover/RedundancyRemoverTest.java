@@ -102,11 +102,11 @@ public class RedundancyRemoverTest {
     // varOrConst y -> unbound interval
 
     IntervalAnalysisState intervalState1 =
-        new IntervalAnalysisState().addInterval("1", new Interval(1L, 1L), 0);
+        new IntervalAnalysisState(null).addInterval("1", new Interval(1L, 1L), 0, null);
     // IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new
     // Interval(-1L, 4L), 0);
     IntervalAnalysisState intervalState3 =
-        new IntervalAnalysisState().addInterval("y", Interval.UNBOUND, 0);
+        new IntervalAnalysisState(null).addInterval("y", Interval.UNBOUND, 0, null);
 
     RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl =
         new RedundantRequirementsRemoverIntervalStateImplementation();

@@ -87,7 +87,7 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new IntervalAnalysisState();
+    return new IntervalAnalysisState(pNode);
   }
 
   @Override
