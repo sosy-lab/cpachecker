@@ -621,16 +621,35 @@ public record IntervalAnalysisState(
 
   public IntervalAnalysisState widen(IntervalAnalysisState other) {
 
-    var modifiedFunArrays = arrays.entrySet().stream()
+    var modifiedFunArrays = other.arrays.entrySet().stream()
         .collect(Collectors.toMap(
             Map.Entry::getKey,
-            e -> e.getValue().widen(other.arrays.get(e.getKey()))
+            e -> {
+
+              FunArray leftSide = arrays.get(e.getKey());
+              FunArray rightSide = e.getValue();
+
+              if (leftSide == null) {
+                return rightSide;
+              }
+
+              return leftSide.widen(rightSide);
+            }
         ));
 
-    var modifiedVariables = intervals.entrySet().stream()
+    var modifiedVariables = other.intervals.entrySet().stream()
         .collect(Collectors.toMap(
             Map.Entry::getKey,
-            e -> e.getValue().widen(other.intervals.get(e.getKey()))
+            e -> {
+
+              Interval leftSide = intervals.get(e.getKey());
+              Interval rightSide = e.getValue();
+
+              if (leftSide == null) {
+                return rightSide;
+              }
+              return leftSide.widen(rightSide);
+            }
         ));
 
     return new IntervalAnalysisState(
