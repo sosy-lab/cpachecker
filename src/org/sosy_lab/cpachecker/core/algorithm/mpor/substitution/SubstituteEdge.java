@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
@@ -124,15 +124,14 @@ public class SubstituteEdge {
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
         SubstituteUtil.mapPointerAssignments(pTracker),
-        SubstituteUtil.getPointerDereferencesByAccessType(pTracker, BitVectorAccessType.ACCESS),
-        SubstituteUtil.getPointerDereferencesByAccessType(pTracker, BitVectorAccessType.WRITE),
-        SubstituteUtil.getMemoryLocationsByAccessType(pTracker, BitVectorAccessType.ACCESS),
-        SubstituteUtil.getMemoryLocationsByAccessType(pTracker, BitVectorAccessType.WRITE),
+        SubstituteUtil.getPointerDereferencesByAccessType(pTracker, MemoryAccessType.ACCESS),
+        SubstituteUtil.getPointerDereferencesByAccessType(pTracker, MemoryAccessType.WRITE),
+        SubstituteUtil.getMemoryLocationsByAccessType(pTracker, MemoryAccessType.ACCESS),
+        SubstituteUtil.getMemoryLocationsByAccessType(pTracker, MemoryAccessType.WRITE),
         pTracker.getAccessedFunctionPointers());
   }
 
-  public ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
-      BitVectorAccessType pAccessType) {
+  public ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
@@ -143,7 +142,7 @@ public class SubstituteEdge {
   }
 
   public ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(
-      BitVectorAccessType pAccessType) {
+      MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();

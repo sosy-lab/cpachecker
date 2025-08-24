@@ -11,15 +11,16 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 import static com.google.common.base.Preconditions.checkArgument;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 
 public class LastSparseBitVector {
 
   public final CIdExpression variable;
 
-  public final BitVectorAccessType accessType;
+  public final MemoryAccessType accessType;
 
-  public LastSparseBitVector(CIdExpression pVariable, BitVectorAccessType pAccessType) {
-    checkArgument(!pAccessType.equals(BitVectorAccessType.NONE));
+  public LastSparseBitVector(CIdExpression pVariable, MemoryAccessType pAccessType) {
+    checkArgument(!pAccessType.equals(MemoryAccessType.NONE));
     variable = pVariable;
     accessType = pAccessType;
   }

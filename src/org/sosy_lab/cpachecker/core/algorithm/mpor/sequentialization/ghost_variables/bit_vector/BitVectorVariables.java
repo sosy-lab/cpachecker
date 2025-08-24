@@ -12,7 +12,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorVariables {
@@ -67,7 +68,7 @@ public class BitVectorVariables {
   }
 
   public CExpression getDenseDirectBitVectorByAccessType(
-      BitVectorAccessType pAccessType, MPORThread pThread) {
+      MemoryAccessType pAccessType, MPORThread pThread) {
 
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
       if (variable.thread.equals(pThread)) {
@@ -78,7 +79,7 @@ public class BitVectorVariables {
   }
 
   public CExpression getDenseReachableBitVectorByAccessType(
-      BitVectorAccessType pAccessType, MPORThread pThread) {
+      MemoryAccessType pAccessType, MPORThread pThread) {
 
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
       if (variable.thread.equals(pThread)) {
@@ -90,7 +91,7 @@ public class BitVectorVariables {
 
   // TODO CIdExpression?
   public ImmutableSet<CExpression> getOtherDenseReachableBitVectorsByAccessType(
-      BitVectorAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
+      MemoryAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
 
     ImmutableSet.Builder<CExpression> rVariables = ImmutableSet.builder();
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
@@ -101,8 +102,7 @@ public class BitVectorVariables {
     return rVariables.build();
   }
 
-  public ImmutableSet<DenseBitVector> getDenseBitVectorsByAccessType(
-      BitVectorAccessType pAccessType) {
+  public ImmutableSet<DenseBitVector> getDenseBitVectorsByAccessType(MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
@@ -113,7 +113,7 @@ public class BitVectorVariables {
   }
 
   public ImmutableMap<MemoryLocation, SparseBitVector> getSparseBitVectorByAccessType(
-      BitVectorAccessType pAccessType) {
+      MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE sparse bit vectors");
@@ -123,7 +123,7 @@ public class BitVectorVariables {
     };
   }
 
-  public LastDenseBitVector getLastDenseBitVectorByAccessType(BitVectorAccessType pAccessType) {
+  public LastDenseBitVector getLastDenseBitVectorByAccessType(MemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type last dense bit vector");
       case ACCESS -> lastDenseAccessBitVector.orElseThrow();
@@ -133,7 +133,7 @@ public class BitVectorVariables {
   }
 
   public Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
-      tryGetLastSparseBitVectorByAccessType(BitVectorAccessType pAccessType) {
+      tryGetLastSparseBitVectorByAccessType(MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type last dense bit vector");
@@ -144,7 +144,7 @@ public class BitVectorVariables {
   }
 
   public ImmutableMap<MemoryLocation, LastSparseBitVector> getLastSparseBitVectorByAccessType(
-      BitVectorAccessType pAccessType) {
+      MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type last dense bit vector");
@@ -164,7 +164,7 @@ public class BitVectorVariables {
     return sparseAccessBitVectors.isEmpty();
   }
 
-  public boolean isLastDenseBitVectorPresentByAccessType(BitVectorAccessType pAccessType) {
+  public boolean isLastDenseBitVectorPresentByAccessType(MemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type last dense bit vector");
       case ACCESS -> lastDenseAccessBitVector.isPresent();

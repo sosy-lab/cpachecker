@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class DenseBitVector {
@@ -24,7 +25,7 @@ public class DenseBitVector {
   /** The bit vector for all reachable statements, relative to a location. */
   public final Optional<CIdExpression> reachableVariable;
 
-  public final BitVectorAccessType accessType;
+  public final MemoryAccessType accessType;
 
   public final BitVectorEncoding encoding;
 
@@ -33,13 +34,13 @@ public class DenseBitVector {
       // note that both direct and reachable can be empty, when there are no global variables
       Optional<CIdExpression> pDirectVariable,
       Optional<CIdExpression> pReachableVariable,
-      BitVectorAccessType pAccessType,
+      MemoryAccessType pAccessType,
       BitVectorEncoding pEncoding) {
 
     // TODO why parametrize?
     checkArgument(pEncoding.isDense, "encoding must be dense");
     checkArgument(
-        !pAccessType.equals(BitVectorAccessType.READ) || pReachableVariable.isEmpty(),
+        !pAccessType.equals(MemoryAccessType.READ) || pReachableVariable.isEmpty(),
         "for access type READ, the reachable variable must be empty");
 
     thread = pThread;

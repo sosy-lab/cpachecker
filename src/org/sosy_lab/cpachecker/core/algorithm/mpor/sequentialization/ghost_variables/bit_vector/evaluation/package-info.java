@@ -10,4 +10,4 @@
  * Package for the evaluation of bit vectors in binary and logical expressions, e.g. {@code !(a & (b
  * | c))}.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.evaluation;

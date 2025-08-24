@@ -15,9 +15,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.SparseBitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
@@ -25,7 +22,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.value_expression.BitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.value_expression.SparseBitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqBitVectorDeclarationBuilder {
@@ -60,26 +60,24 @@ public class SeqBitVectorDeclarationBuilder {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
           buildDenseBitVectorDeclarationsByAccessType(
-              pOptions, pBitVectorVariables, BitVectorAccessType.ACCESS);
+              pOptions, pBitVectorVariables, MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
                   buildDenseBitVectorDeclarationsByAccessType(
-                      pOptions, pBitVectorVariables, BitVectorAccessType.ACCESS))
+                      pOptions, pBitVectorVariables, MemoryAccessType.ACCESS))
               .addAll(
                   buildDenseBitVectorDeclarationsByAccessType(
-                      pOptions, pBitVectorVariables, BitVectorAccessType.READ))
+                      pOptions, pBitVectorVariables, MemoryAccessType.READ))
               .addAll(
                   buildDenseBitVectorDeclarationsByAccessType(
-                      pOptions, pBitVectorVariables, BitVectorAccessType.WRITE))
+                      pOptions, pBitVectorVariables, MemoryAccessType.WRITE))
               .build();
     };
   }
 
   private static ImmutableList<SeqBitVectorDeclaration> buildDenseBitVectorDeclarationsByAccessType(
-      MPOROptions pOptions,
-      BitVectorVariables pBitVectorVariables,
-      BitVectorAccessType pAccessType) {
+      MPOROptions pOptions, BitVectorVariables pBitVectorVariables, MemoryAccessType pAccessType) {
 
     int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorVariables.getMemoryLocationAmount());
     BitVectorDataType type = BitVectorUtil.getDataTypeByLength(binaryLength);
@@ -129,7 +127,7 @@ public class SeqBitVectorDeclarationBuilder {
       case ACCESS_ONLY ->
           createSparseBitVectorDeclarations(
               pBitVectorVariables.getSparseAccessBitVectors().values(),
-              pBitVectorVariables.tryGetLastSparseBitVectorByAccessType(BitVectorAccessType.ACCESS),
+              pBitVectorVariables.tryGetLastSparseBitVectorByAccessType(MemoryAccessType.ACCESS),
               pThreads);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
@@ -137,13 +135,13 @@ public class SeqBitVectorDeclarationBuilder {
                   createSparseBitVectorDeclarations(
                       pBitVectorVariables.getSparseAccessBitVectors().values(),
                       pBitVectorVariables.tryGetLastSparseBitVectorByAccessType(
-                          BitVectorAccessType.ACCESS),
+                          MemoryAccessType.ACCESS),
                       pThreads))
               .addAll(
                   createSparseBitVectorDeclarations(
                       pBitVectorVariables.getSparseWriteBitVectors().values(),
                       pBitVectorVariables.tryGetLastSparseBitVectorByAccessType(
-                          BitVectorAccessType.WRITE),
+                          MemoryAccessType.WRITE),
                       pThreads))
               .build();
     };

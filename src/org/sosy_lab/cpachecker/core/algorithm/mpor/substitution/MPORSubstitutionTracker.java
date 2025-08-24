@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 
 /**
  * A class to track certain expressions, statements, ... (such as pointer dereferences and variable
@@ -213,7 +213,7 @@ public class MPORSubstitutionTracker {
   // pointer dereferences
 
   public ImmutableSet<CSimpleDeclaration> getPointerDereferencesByAccessType(
-      BitVectorAccessType pAccessType) {
+      MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
@@ -232,7 +232,7 @@ public class MPORSubstitutionTracker {
   }
 
   public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getFieldReferencePointerDereferencesByAccessType(BitVectorAccessType pAccessType) {
+      getFieldReferencePointerDereferencesByAccessType(MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
@@ -256,8 +256,7 @@ public class MPORSubstitutionTracker {
 
   // variables
 
-  public ImmutableSet<CVariableDeclaration> getVariablesByAccessType(
-      BitVectorAccessType pAccessType) {
+  public ImmutableSet<CVariableDeclaration> getVariablesByAccessType(MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
@@ -278,7 +277,7 @@ public class MPORSubstitutionTracker {
   // field members
 
   public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      getFieldMembersByAccessType(BitVectorAccessType pAccessType) {
+      getFieldMembersByAccessType(MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type field members");

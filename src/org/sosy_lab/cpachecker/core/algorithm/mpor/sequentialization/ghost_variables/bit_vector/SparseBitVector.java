@@ -12,19 +12,20 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SparseBitVector {
 
   public final ImmutableMap<MPORThread, CIdExpression> variables;
 
-  public final BitVectorAccessType accessType;
+  public final MemoryAccessType accessType;
 
   // TODO need direct and reachable variable maps
   public SparseBitVector(
-      ImmutableMap<MPORThread, CIdExpression> pAccessVariables, BitVectorAccessType pAccessType) {
+      ImmutableMap<MPORThread, CIdExpression> pAccessVariables, MemoryAccessType pAccessType) {
 
-    checkArgument(!pAccessType.equals(BitVectorAccessType.NONE));
+    checkArgument(!pAccessType.equals(MemoryAccessType.NONE));
     variables = pAccessVariables;
     accessType = pAccessType;
   }

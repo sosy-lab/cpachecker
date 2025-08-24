@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -31,13 +30,13 @@ public class MemoryLocationFinder {
    * Returns {@code true} if any global memory location is (possibly) accessed when executing {@code
    * pBlock} and its directly linked blocks.
    */
-  static boolean hasGlobalAccess(
+  public static boolean hasGlobalAccess(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock) {
 
     return !findDirectMemoryLocationsByAccessType(
-            pLabelBlockMap, pPointerAssignments, pBlock, BitVectorAccessType.ACCESS)
+            pLabelBlockMap, pPointerAssignments, pBlock, MemoryAccessType.ACCESS)
         .isEmpty();
   }
 
@@ -49,7 +48,7 @@ public class MemoryLocationFinder {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock,
-      BitVectorAccessType pAccessType) {
+      MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
@@ -69,12 +68,12 @@ public class MemoryLocationFinder {
    * Returns all global variables accessed when executing {@code pBlock}, its directly linked blocks
    * and all possible successor blocks, that may or may not actually be executed.
    */
-  static ImmutableSet<MemoryLocation> findReachableMemoryLocationsByAccessType(
+   public static ImmutableSet<MemoryLocation> findReachableMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock,
-      BitVectorAccessType pAccessType) {
+      MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
@@ -95,7 +94,7 @@ public class MemoryLocationFinder {
   private static ImmutableSet<MemoryLocation> findMemoryLocationsByStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
       PointerAssignments pPointerAssignments,
-      BitVectorAccessType pAccessType) {
+      MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     for (SeqThreadStatement statement : pStatements) {
@@ -110,7 +109,7 @@ public class MemoryLocationFinder {
   private static ImmutableSet<MemoryLocation> findMemoryLocationsBySubstituteEdge(
       SubstituteEdge pSubstituteEdge,
       PointerAssignments pPointerAssignments,
-      BitVectorAccessType pAccessType) {
+      MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
     // first check direct accesses on the memory locations themselves

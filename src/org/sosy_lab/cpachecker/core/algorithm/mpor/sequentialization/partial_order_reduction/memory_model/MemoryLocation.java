@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
 import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleImmutableEntry;

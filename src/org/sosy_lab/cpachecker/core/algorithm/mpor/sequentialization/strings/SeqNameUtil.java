@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -146,7 +146,7 @@ public class SeqNameUtil {
   // Dense Bit Vectors =============================================================================
 
   public static String buildDenseBitVectorNameByAccessType(
-      MPOROptions pOptions, boolean pIsDirect, int pThreadId, BitVectorAccessType pAccessType) {
+      MPOROptions pOptions, boolean pIsDirect, int pThreadId, MemoryAccessType pAccessType) {
 
     return pOptions.shortVariableNames
         ? SeqToken.b + (pIsDirect ? SeqToken.d : SeqToken.r) + pAccessType.shortName + pThreadId
@@ -159,7 +159,7 @@ public class SeqNameUtil {
   }
 
   public static String buildLastReachableDenseBitVectorNameByAccessType(
-      MPOROptions pOptions, BitVectorAccessType pAccessType) {
+      MPOROptions pOptions, MemoryAccessType pAccessType) {
 
     return pOptions.shortVariableNames
         ? SeqToken.last + SeqSyntax.UNDERSCORE + SeqToken.b + SeqToken.r + pAccessType.shortName
@@ -178,7 +178,7 @@ public class SeqNameUtil {
       MPOROptions pOptions,
       int pThreadId,
       MemoryLocation pMemoryLocation,
-      BitVectorAccessType pAccessType) {
+      MemoryAccessType pAccessType) {
 
     String variableName = pMemoryLocation.getName();
     return pOptions.shortVariableNames
@@ -192,7 +192,7 @@ public class SeqNameUtil {
   }
 
   public static String buildLastSparseBitVectorNameByAccessType(
-      MPOROptions pOptions, String pVariableName, BitVectorAccessType pAccessType) {
+      MPOROptions pOptions, String pVariableName, MemoryAccessType pAccessType) {
 
     return pOptions.shortVariableNames
         ? SeqToken.last

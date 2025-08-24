@@ -21,22 +21,25 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.SparseBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.evaluation.BitVectorEvaluationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.evaluation.BitVectorEvaluationExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.statement.SeqBitVectorAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.statement.SeqBitVectorEvaluationStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.value_expression.BitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.value_expression.SparseBitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.PointerAssignments;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -318,39 +321,39 @@ public class BitVectorInjector {
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.ACCESS);
         ImmutableSet<MemoryLocation> reachableLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelClauseMap,
                 pLabelBlockMap,
                 pPointerAssignments,
                 pTargetBlock,
-                BitVectorAccessType.ACCESS);
+                MemoryAccessType.ACCESS);
         yield buildBitVectorAccessAssignments(
             pOptions, pActiveThread, pBitVectorVariables, directLocations, reachableLocations);
       }
       case READ_AND_WRITE -> {
         ImmutableSet<MemoryLocation> directReadLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.READ);
         ImmutableSet<MemoryLocation> reachableWriteLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelClauseMap,
                 pLabelBlockMap,
                 pPointerAssignments,
                 pTargetBlock,
-                BitVectorAccessType.WRITE);
+                MemoryAccessType.WRITE);
 
         ImmutableSet<MemoryLocation> directWriteLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.WRITE);
         ImmutableSet<MemoryLocation> reachableReadLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelClauseMap,
                 pLabelBlockMap,
                 pPointerAssignments,
                 pTargetBlock,
-                BitVectorAccessType.READ);
+                MemoryAccessType.READ);
 
         yield buildBitVectorReadWriteAssignments(
             pOptions,
@@ -390,7 +393,7 @@ public class BitVectorInjector {
       if (pOptions.kIgnoreZeroReduction) {
         CExpression directVariable =
             pBitVectorVariables.getDenseDirectBitVectorByAccessType(
-                BitVectorAccessType.ACCESS, pThread);
+                MemoryAccessType.ACCESS, pThread);
         BitVectorValueExpression directValue =
             BitVectorUtil.buildBitVectorExpression(
                 pOptions, pBitVectorVariables.getMemoryLocationIds(), pDirectMemoryLocations);
@@ -398,7 +401,7 @@ public class BitVectorInjector {
       }
       CExpression reachableVariable =
           pBitVectorVariables.getDenseReachableBitVectorByAccessType(
-              BitVectorAccessType.ACCESS, pThread);
+              MemoryAccessType.ACCESS, pThread);
       BitVectorValueExpression reachableValue =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.getMemoryLocationIds(), pReachableMemoryLocations);
@@ -446,7 +449,7 @@ public class BitVectorInjector {
             buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
                 pOptions,
                 pBitVectorVariables.getDenseDirectBitVectorByAccessType(
-                    BitVectorAccessType.READ, pThread),
+                    MemoryAccessType.READ, pThread),
                 pBitVectorVariables,
                 pDirectReadMemoryLocations));
       }
@@ -454,7 +457,7 @@ public class BitVectorInjector {
           buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
               pOptions,
               pBitVectorVariables.getDenseReachableBitVectorByAccessType(
-                  BitVectorAccessType.WRITE, pThread),
+                  MemoryAccessType.WRITE, pThread),
               pBitVectorVariables,
               pReachableWriteMemoryLocations));
       if (pOptions.kIgnoreZeroReduction) {
@@ -462,7 +465,7 @@ public class BitVectorInjector {
             buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
                 pOptions,
                 pBitVectorVariables.getDenseDirectBitVectorByAccessType(
-                    BitVectorAccessType.WRITE, pThread),
+                    MemoryAccessType.WRITE, pThread),
                 pBitVectorVariables,
                 pDirectWriteMemoryLocations));
       }
@@ -470,7 +473,7 @@ public class BitVectorInjector {
           buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
               pOptions,
               pBitVectorVariables.getDenseReachableBitVectorByAccessType(
-                  BitVectorAccessType.ACCESS, pThread),
+                  MemoryAccessType.ACCESS, pThread),
               pBitVectorVariables,
               pReachableAccessMemoryLocations));
     }

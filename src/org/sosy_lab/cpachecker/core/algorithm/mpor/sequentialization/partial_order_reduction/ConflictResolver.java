@@ -22,19 +22,21 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.conflict.SeqConflictOrderStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.conflict.SeqLastUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.LastSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.evaluation.BitVectorEvaluationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.evaluation.BitVectorEvaluationExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.PointerAssignments;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -278,15 +280,15 @@ public class ConflictResolver {
               "no reductionMode set, but conflictReduction is enabled");
       case ACCESS_ONLY ->
           buildDenseLastBitVectorUpdatesByAccessType(
-              pActiveThread, pBitVectorVariables, BitVectorAccessType.ACCESS);
+              pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
               .addAll(
                   buildDenseLastBitVectorUpdatesByAccessType(
-                      pActiveThread, pBitVectorVariables, BitVectorAccessType.ACCESS))
+                      pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS))
               .addAll(
                   buildDenseLastBitVectorUpdatesByAccessType(
-                      pActiveThread, pBitVectorVariables, BitVectorAccessType.WRITE))
+                      pActiveThread, pBitVectorVariables, MemoryAccessType.WRITE))
               .build();
     };
   }
@@ -300,15 +302,15 @@ public class ConflictResolver {
               "no reductionMode set, but conflictReduction is enabled");
       case ACCESS_ONLY ->
           buildSparseLastBitVectorUpdatesByAccessType(
-              pActiveThread, pBitVectorVariables, BitVectorAccessType.ACCESS);
+              pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
               .addAll(
                   buildSparseLastBitVectorUpdatesByAccessType(
-                      pActiveThread, pBitVectorVariables, BitVectorAccessType.ACCESS))
+                      pActiveThread, pBitVectorVariables, MemoryAccessType.ACCESS))
               .addAll(
                   buildSparseLastBitVectorUpdatesByAccessType(
-                      pActiveThread, pBitVectorVariables, BitVectorAccessType.WRITE))
+                      pActiveThread, pBitVectorVariables, MemoryAccessType.WRITE))
               .build();
     };
   }
@@ -317,7 +319,7 @@ public class ConflictResolver {
       buildDenseLastBitVectorUpdatesByAccessType(
           MPORThread pActiveThread,
           BitVectorVariables pBitVectorVariables,
-          BitVectorAccessType pAccessType) {
+          MemoryAccessType pAccessType) {
 
     LastDenseBitVector lastDenseBitVector =
         pBitVectorVariables.getLastDenseBitVectorByAccessType(pAccessType);
@@ -333,7 +335,7 @@ public class ConflictResolver {
       buildSparseLastBitVectorUpdatesByAccessType(
           MPORThread pActiveThread,
           BitVectorVariables pBitVectorVariables,
-          BitVectorAccessType pAccessType) {
+          MemoryAccessType pAccessType) {
 
     ImmutableList.Builder<CExpressionAssignmentStatement> rUpdates = ImmutableList.builder();
     ImmutableMap<MemoryLocation, LastSparseBitVector> lastSparseBitVectors =

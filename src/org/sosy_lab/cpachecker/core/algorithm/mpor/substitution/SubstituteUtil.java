@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -91,7 +91,7 @@ public class SubstituteUtil {
   }
 
   static ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(
-      MPORSubstitutionTracker pTracker, BitVectorAccessType pAccessType) {
+      MPORSubstitutionTracker pTracker, MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rPointerDereferences = ImmutableSet.builder();
     for (CSimpleDeclaration pointerDereference :
@@ -111,7 +111,7 @@ public class SubstituteUtil {
   }
 
   static ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
-      MPORSubstitutionTracker pTracker, BitVectorAccessType pAccessType) {
+      MPORSubstitutionTracker pTracker, MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (CVariableDeclaration variableDeclaration :

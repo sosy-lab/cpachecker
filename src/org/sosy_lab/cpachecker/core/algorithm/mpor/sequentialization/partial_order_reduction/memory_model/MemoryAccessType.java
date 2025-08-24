@@ -6,12 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public enum BitVectorAccessType {
+public enum MemoryAccessType {
   NONE(SeqSyntax.EMPTY_STRING, SeqSyntax.EMPTY_STRING),
   /** For both read and write. */
   ACCESS(SeqToken.a, SeqToken.ACCESS),
@@ -22,7 +22,7 @@ public enum BitVectorAccessType {
 
   public final String longName;
 
-  BitVectorAccessType(String pShortName, String pLongName) {
+  MemoryAccessType(String pShortName, String pLongName) {
     shortName = pShortName;
     longName = pLongName;
   }

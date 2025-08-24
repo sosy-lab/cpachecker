@@ -10,4 +10,4 @@
  * Package for the representation of bit vector values in expressions, e.g. {@code 0b00000000} or
  * {@code 0x00} or {@code 0}.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.value_expression;

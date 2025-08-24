@@ -6,44 +6,53 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.value_expression;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public class BinaryBitVectorValueExpression implements BitVectorValueExpression {
+public class HexadecimalBitVectorValueExpression implements BitVectorValueExpression {
 
-  private final int binaryLength;
+  private final int hexLength;
 
   private final ImmutableSet<Integer> setBits;
 
-  public BinaryBitVectorValueExpression(int pBinaryLength, ImmutableSet<Integer> pSetBits) {
+  public HexadecimalBitVectorValueExpression(int pHexLength, ImmutableSet<Integer> pSetBits) {
+    // we still use the max binary length here, because setBits represents the binary positions
     checkArgument(
         pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
-    binaryLength = pBinaryLength;
+    hexLength = pHexLength;
     setBits = pSetBits;
   }
 
   @Override
   public String toASTString() {
     StringBuilder rBitVector = new StringBuilder();
-    rBitVector.append(SeqToken._0b);
-    int leftIndex = BitVectorUtil.getLeftIndexByBinaryLength(binaryLength);
+    rBitVector.append(SeqToken._0x);
+    // build the binary vector, then parse to long and convert to hex
+    StringBuilder binaryBitVector = new StringBuilder();
+    int binLength = BitVectorUtil.convertHexLengthToBinary(hexLength);
+    int leftIndex = BitVectorUtil.getLeftIndexByBinaryLength(binLength);
     // build bit vector from left to right
     for (int i = leftIndex; i >= BitVectorUtil.RIGHT_INDEX; i--) {
-      rBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
+      binaryBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
     }
+    // use long in case we have 64 length bit vectors
+    BigInteger bigInteger = new BigInteger(binaryBitVector.toString(), 2);
+    // padding is not necessary, but looks nicer
+    rBitVector.append(BitVectorUtil.padHexString(hexLength, bigInteger));
     return rBitVector.toString();
   }
 
   @Override
   public BitVectorEncoding getEncoding() {
-    return BitVectorEncoding.BINARY;
+    return BitVectorEncoding.HEXADECIMAL;
   }
 
   @Override

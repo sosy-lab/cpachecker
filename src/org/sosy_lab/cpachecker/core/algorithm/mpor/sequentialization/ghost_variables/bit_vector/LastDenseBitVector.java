@@ -11,20 +11,19 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 import static com.google.common.base.Preconditions.checkArgument;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 
 public class LastDenseBitVector {
 
   /** The bit vector for all reachable statements, relative to a location. */
   public final CIdExpression reachableVariable;
 
-  public final BitVectorAccessType accessType;
+  public final MemoryAccessType accessType;
 
   public final BitVectorEncoding encoding;
 
   public LastDenseBitVector(
-      CIdExpression pReachableVariable,
-      BitVectorAccessType pAccessType,
-      BitVectorEncoding pEncoding) {
+      CIdExpression pReachableVariable, MemoryAccessType pAccessType, BitVectorEncoding pEncoding) {
 
     // TODO why parametrize?
     checkArgument(pEncoding.isDense, "encoding must be dense");
