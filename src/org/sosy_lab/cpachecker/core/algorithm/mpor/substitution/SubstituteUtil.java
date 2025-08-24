@@ -75,10 +75,10 @@ public class SubstituteUtil {
     return false;
   }
 
-  public static ImmutableList<MemoryLocation> getAllMemoryLocations(
+  public static ImmutableSet<MemoryLocation> getAllMemoryLocations(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableList.Builder<MemoryLocation> rMemoryLocations = ImmutableList.builder();
+    ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       // TODO handle fieldOwner/member here too
       for (CVariableDeclaration variableDeclaration : substituteEdge.accessedGlobalVariables) {

@@ -343,8 +343,8 @@ public class ConflictResolver {
     for (var entry : sparseBitVectors.entrySet()) {
       for (var innerEntry : entry.getValue().variables.entrySet()) {
         if (innerEntry.getKey().equals(pActiveThread)) {
-          MemoryLocation variableDeclaration = entry.getKey();
-          LastSparseBitVector lastSparseBitVector = lastSparseBitVectors.get(variableDeclaration);
+          MemoryLocation memoryLocation = entry.getKey();
+          LastSparseBitVector lastSparseBitVector = lastSparseBitVectors.get(memoryLocation);
           assert lastSparseBitVector != null;
           CIdExpression rightHandSide = innerEntry.getValue();
           CExpressionAssignmentStatement update =

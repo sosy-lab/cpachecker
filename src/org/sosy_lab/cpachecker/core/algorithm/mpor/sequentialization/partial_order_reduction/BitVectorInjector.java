@@ -420,9 +420,9 @@ public class BitVectorInjector {
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
       // sparse access bit vectors
       for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-        MemoryLocation variable = entry.getKey();
+        MemoryLocation memoryLocation = entry.getKey();
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
-        boolean value = pReachableAccessMemoryLocations.contains(variable);
+        boolean value = pReachableAccessMemoryLocations.contains(memoryLocation);
         SparseBitVectorValueExpression sparseBitVectorExpression =
             new SparseBitVectorValueExpression(value);
         rStatements.add(

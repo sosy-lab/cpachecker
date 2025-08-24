@@ -299,19 +299,19 @@ class BitVectorReadWriteEvaluationBuilder {
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-      MemoryLocation globalVariable = entry.getKey();
+      MemoryLocation memoryLocation = entry.getKey();
 
       // handle write variables
-      ImmutableList<SeqExpression> otherWriteVariables = pSparseWriteMap.get(globalVariable);
+      ImmutableList<SeqExpression> otherWriteVariables = pSparseWriteMap.get(memoryLocation);
       // handle access variables
-      ImmutableList<SeqExpression> otherAccessVariables = pSparseAccessMap.get(globalVariable);
+      ImmutableList<SeqExpression> otherAccessVariables = pSparseAccessMap.get(memoryLocation);
 
       Optional<SeqExpression> leftHandSide =
           buildPrunedSparseLeftHandSide(
-              pDirectReadMemoryLocations, globalVariable, otherWriteVariables);
+              pDirectReadMemoryLocations, memoryLocation, otherWriteVariables);
       Optional<SeqExpression> rightHandSide =
           buildPrunedSparseRightHandSide(
-              pDirectWriteMemoryLocations, globalVariable, otherAccessVariables);
+              pDirectWriteMemoryLocations, memoryLocation, otherAccessVariables);
 
       // only add expression if it was not pruned entirely (LHS or RHS present)
       if (leftHandSide.isPresent() || rightHandSide.isPresent()) {
@@ -370,12 +370,12 @@ class BitVectorReadWriteEvaluationBuilder {
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
     ImmutableSet<MemoryLocation> memoryLocations =
         pBitVectorVariables.getSparseAccessBitVectors().keySet();
-    for (MemoryLocation globalVariable : memoryLocations) {
-      ImmutableList<SeqExpression> otherWriteVariables = pSparseWriteMap.get(globalVariable);
-      ImmutableList<SeqExpression> otherAccessVariables = pSparseAccessMap.get(globalVariable);
+    for (MemoryLocation memoryLocation : memoryLocations) {
+      ImmutableList<SeqExpression> otherWriteVariables = pSparseWriteMap.get(memoryLocation);
+      ImmutableList<SeqExpression> otherAccessVariables = pSparseAccessMap.get(memoryLocation);
       sparseExpressions.add(
           buildFullSparseSingleVariableEvaluation(
-              globalVariable,
+              memoryLocation,
               pDirectReadMemoryLocations,
               pDirectWriteMemoryLocations,
               otherWriteVariables,

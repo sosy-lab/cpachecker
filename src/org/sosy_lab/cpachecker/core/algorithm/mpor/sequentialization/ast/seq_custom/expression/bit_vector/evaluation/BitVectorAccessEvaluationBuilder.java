@@ -160,13 +160,13 @@ class BitVectorAccessEvaluationBuilder {
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-      MemoryLocation globalVariable = entry.getKey();
+      MemoryLocation memoryLocation = entry.getKey();
       // if the LHS (current variable) is not accessed, then the entire && expression is 0 -> prune
-      if (pDirectMemoryLocations.contains(globalVariable)) {
+      if (pDirectMemoryLocations.contains(memoryLocation)) {
         // if the LHS is 1, then we can simplify A && (B || C || ...) to just (B || C || ...)
         // create logical not -> !(B || C || ...)
         SeqExpression logicalDisjunction =
-            BitVectorEvaluationUtil.logicalDisjunction(pSparseBitVectorMap.get(globalVariable));
+            BitVectorEvaluationUtil.logicalDisjunction(pSparseBitVectorMap.get(memoryLocation));
         sparseExpressions.add(logicalDisjunction);
       }
     }
@@ -184,14 +184,14 @@ class BitVectorAccessEvaluationBuilder {
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-      MemoryLocation globalVariable = entry.getKey();
+      MemoryLocation memoryLocation = entry.getKey();
       // create logical disjunction -> (B || C || ...)
       SeqExpression disjunction =
-          BitVectorEvaluationUtil.logicalDisjunction(pSparseBitVectorMap.get(globalVariable));
+          BitVectorEvaluationUtil.logicalDisjunction(pSparseBitVectorMap.get(memoryLocation));
       // create logical and -> (A && (B || C || ...))
       SeqExpression directBitVector =
           BitVectorEvaluationUtil.buildSparseDirectBitVector(
-              globalVariable, pDirectMemoryLocations);
+              memoryLocation, pDirectMemoryLocations);
       SeqLogicalAndExpression logicalAnd =
           new SeqLogicalAndExpression(directBitVector, disjunction);
       sparseExpressions.add(logicalAnd);

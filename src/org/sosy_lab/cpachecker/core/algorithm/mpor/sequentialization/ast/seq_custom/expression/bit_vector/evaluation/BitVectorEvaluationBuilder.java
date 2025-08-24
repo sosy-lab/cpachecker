@@ -86,24 +86,24 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               "conflictReduction must be enabled to build evaluation expression");
       case ACCESS_ONLY -> {
-        ImmutableSet<MemoryLocation> directAccessVariables =
+        ImmutableSet<MemoryLocation> directAccessMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         yield buildLastAccessBitVectorEvaluationByEncoding(
-            pOptions, directAccessVariables,
+            pOptions, directAccessMemoryLocations,
             pBitVectorVariables, pBinaryExpressionBuilder);
       }
       case READ_AND_WRITE -> {
-        ImmutableSet<MemoryLocation> directReadVariables =
+        ImmutableSet<MemoryLocation> directReadMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
-        ImmutableSet<MemoryLocation> directWriteVariables =
+        ImmutableSet<MemoryLocation> directWriteMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         yield buildLastReadWriteBitVectorEvaluationByEncoding(
             pOptions,
-            directReadVariables,
-            directWriteVariables,
+            directReadMemoryLocations,
+            directWriteMemoryLocations,
             pBitVectorVariables,
             pBinaryExpressionBuilder);
       }
@@ -196,8 +196,8 @@ public class BitVectorEvaluationBuilder {
     ImmutableMap<MemoryLocation, LastSparseBitVector> lastSparseBitVectors =
         pBitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
     for (var entry : lastSparseBitVectors.entrySet()) {
-      MemoryLocation variableDeclaration = entry.getKey();
-      rMap.put(variableDeclaration, new CToSeqExpression(entry.getValue().variable));
+      MemoryLocation memoryLocation = entry.getKey();
+      rMap.put(memoryLocation, new CToSeqExpression(entry.getValue().variable));
     }
     return rMap.build();
   }
@@ -223,31 +223,31 @@ public class BitVectorEvaluationBuilder {
           throw new IllegalArgumentException(
               "bitVectorReduction must be enabled to build evaluation expression");
       case ACCESS_ONLY -> {
-        ImmutableSet<MemoryLocation> directAccessVariables =
+        ImmutableSet<MemoryLocation> directAccessMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,
-            directAccessVariables,
+            directAccessMemoryLocations,
             ImmutableSet.of(),
             ImmutableSet.of(),
             pBitVectorVariables,
             pBinaryExpressionBuilder);
       }
       case READ_AND_WRITE -> {
-        ImmutableSet<MemoryLocation> directReadVariables =
+        ImmutableSet<MemoryLocation> directReadMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
-        ImmutableSet<MemoryLocation> directWriteVariables =
+        ImmutableSet<MemoryLocation> directWriteMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
                 pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,
             ImmutableSet.of(),
-            directReadVariables,
-            directWriteVariables,
+            directReadMemoryLocations,
+            directWriteMemoryLocations,
             pBitVectorVariables,
             pBinaryExpressionBuilder);
       }
@@ -375,11 +375,11 @@ public class BitVectorEvaluationBuilder {
     ImmutableListMultimap.Builder<MemoryLocation, SeqExpression> rMap =
         ImmutableListMultimap.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
-      MemoryLocation globalVariable = entry.getKey();
+      MemoryLocation memoryLocation = entry.getKey();
       ImmutableMap<MPORThread, CIdExpression> variables = entry.getValue().variables;
       ImmutableList<SeqExpression> otherVariables =
           BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(pOtherThreads, variables);
-      rMap.putAll(globalVariable, otherVariables);
+      rMap.putAll(memoryLocation, otherVariables);
     }
     return rMap.build();
   }
