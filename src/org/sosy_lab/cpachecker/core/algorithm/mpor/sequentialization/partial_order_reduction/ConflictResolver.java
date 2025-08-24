@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -45,8 +46,9 @@ public class ConflictResolver {
   static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> resolve(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      PointerAssignments pPointerAssignments,
+      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
+      PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -70,8 +72,9 @@ public class ConflictResolver {
               pClauses.get(activeThread),
               activeThread,
               labelBlockMap,
-              pPointerAssignments,
+              pAllMemoryLocations,
               pBitVectorVariables,
+              pPointerAssignments,
               pBinaryExpressionBuilder);
       // step 2: inject updates to last_... variables
       rResolved.putAll(
@@ -93,8 +96,9 @@ public class ConflictResolver {
       ImmutableList<SeqThreadStatementClause> pClauses,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      PointerAssignments pPointerAssignments,
+      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
+      PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -108,8 +112,9 @@ public class ConflictResolver {
                 mergedBlock,
                 pActiveThread,
                 pLabelBlockMap,
-                pPointerAssignments,
+                pAllMemoryLocations,
                 pBitVectorVariables,
+                pPointerAssignments,
                 pBinaryExpressionBuilder));
       }
       rWithOrders.add(clause.cloneWithBlocks(newBlocks.build()));
@@ -122,8 +127,9 @@ public class ConflictResolver {
       SeqThreadStatementBlock pBlock,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      PointerAssignments pPointerAssignments,
+      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
+      PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -135,8 +141,9 @@ public class ConflictResolver {
               statement,
               pActiveThread,
               pLabelBlockMap,
-              pPointerAssignments,
+              pAllMemoryLocations,
               pBitVectorVariables,
+              pPointerAssignments,
               pBinaryExpressionBuilder));
     }
     return pBlock.cloneWithStatements(newStatements.build());
@@ -147,8 +154,9 @@ public class ConflictResolver {
       SeqThreadStatement pStatement,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      PointerAssignments pPointerAssignments,
+      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
+      PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -164,9 +172,10 @@ public class ConflictResolver {
           BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
               pOptions,
               pLabelBlockMap,
-              pPointerAssignments,
               targetBlock,
+              pAllMemoryLocations,
               pBitVectorVariables,
+              pPointerAssignments,
               pBinaryExpressionBuilder);
       SeqConflictOrderStatement conflictOrderStatement =
           new SeqConflictOrderStatement(

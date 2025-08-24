@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -69,28 +68,25 @@ public class GhostVariableUtil {
   public static Optional<BitVectorVariables> buildBitVectorVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
 
     if (!pOptions.areBitVectorsEnabled()) {
       // no bit vector reduction -> no bit vector variables
       return Optional.empty();
     }
-    // collect all global variables accessed in substitute edges, and assign unique ids
-    ImmutableSet<MemoryLocation> allMemoryLocations =
-        SubstituteUtil.getAllMemoryLocations(pSubstituteEdges.values());
+    // assign unique ids to all memory locations accessed in substitute edges
     ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds =
-        assignMemoryLocationIds(allMemoryLocations);
-
+        assignMemoryLocationIds(pAllMemoryLocations);
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
               "reductionMode is not set, cannot build bit vector variables");
       case ACCESS_ONLY ->
           buildAccessOnlyBitVectorVariables(
-              pOptions, pThreads, allMemoryLocations, pMemoryLocationIds);
+              pOptions, pThreads, pAllMemoryLocations, pMemoryLocationIds);
       case READ_AND_WRITE ->
           buildReadWriteBitVectorVariables(
-              pOptions, pThreads, allMemoryLocations, pMemoryLocationIds);
+              pOptions, pThreads, pAllMemoryLocations, pMemoryLocationIds);
     };
   }
 

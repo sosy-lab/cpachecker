@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.time.Year;
 import java.time.ZoneId;
 import java.util.Optional;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
@@ -181,8 +183,10 @@ public class Sequentialization {
     MPORSubstitution mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
+    ImmutableSet<MemoryLocation> allMemoryLocations =
+        SubstituteUtil.getAllMemoryLocations(substituteEdges.values());
     Optional<BitVectorVariables> bitVectorVariables =
-        GhostVariableUtil.buildBitVectorVariables(options, threads, substituteEdges);
+        GhostVariableUtil.buildBitVectorVariables(options, threads, allMemoryLocations);
     ThreadSimulationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(
             options, threads, substituteEdges, binaryExpressionBuilder);
@@ -217,6 +221,7 @@ public class Sequentialization {
             options,
             substitutions,
             substituteEdges,
+            allMemoryLocations,
             bitVectorVariables,
             pcVariables,
             threadSimulationVariables,

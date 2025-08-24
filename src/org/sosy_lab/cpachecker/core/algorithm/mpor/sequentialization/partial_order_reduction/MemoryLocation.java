@@ -41,6 +41,7 @@ public class MemoryLocation {
 
   public static MemoryLocation of(
       CVariableDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+
     return new MemoryLocation(
         Optional.empty(), Optional.of(new AbstractMap.SimpleEntry<>(pFieldOwner, pFieldMember)));
   }
