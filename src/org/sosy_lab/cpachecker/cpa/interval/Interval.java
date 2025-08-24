@@ -596,6 +596,15 @@ public final class Interval implements Serializable {
    * @return the widened interval.
    */
   public Interval widen(Interval other) {
+
+    if (this.low == null || this.high == null) {
+      return other;
+    }
+
+    if (other.low == null || other.high == null) {
+      return this;
+    }
+
     Long lower = this.low;
     Long upper = this.high;
 
