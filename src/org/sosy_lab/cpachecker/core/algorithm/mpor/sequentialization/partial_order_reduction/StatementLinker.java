@@ -30,7 +30,6 @@ public class StatementLinker {
   protected static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> link(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       PointerAssignments pPointerAssignments) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rLinked =
@@ -41,11 +40,7 @@ public class StatementLinker {
       ImmutableSet.Builder<Integer> linkedTargetIds = ImmutableSet.builder();
       ImmutableList<SeqThreadStatementClause> linkedClauses =
           linkCommutingClausesWithGotos(
-              pOptions,
-              pClauses.get(thread),
-              linkedTargetIds,
-              pAllMemoryLocations,
-              pPointerAssignments);
+              pOptions, pClauses.get(thread), linkedTargetIds, pPointerAssignments);
       ImmutableList<SeqThreadStatementClause> merged =
           mergeNotDirectlyReachableStatements(linkedClauses, linkedTargetIds.build());
       rLinked.putAll(thread, merged);
@@ -59,7 +54,6 @@ public class StatementLinker {
       MPOROptions pOptions,
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       PointerAssignments pPointerAssignments) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rNewClauses = ImmutableList.builder();
@@ -80,7 +74,6 @@ public class StatementLinker {
                   pLinkedTargetIds,
                   labelClauseMap,
                   labelBlockMap,
-                  pAllMemoryLocations,
                   pPointerAssignments));
         }
         newBlocks.add(block.cloneWithStatements(newStatements.build()));
@@ -100,19 +93,13 @@ public class StatementLinker {
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pMemoryLocations,
       PointerAssignments pPointerAssignments) {
 
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       if (isValidLink(
-          pOptions,
-          pCurrentStatement,
-          newTarget,
-          pLabelBlockMap,
-          pMemoryLocations,
-          pPointerAssignments)) {
+          pOptions, pCurrentStatement, newTarget, pLabelBlockMap, pPointerAssignments)) {
         pLinkedTargetIds.add(newTarget.id);
         return pCurrentStatement.cloneWithTargetGoto(newTarget.getFirstBlock().getLabel());
       }
@@ -128,7 +115,6 @@ public class StatementLinker {
       SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       PointerAssignments pPointerAssignments) {
 
     SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
@@ -142,7 +128,7 @@ public class StatementLinker {
         // only consider global accesses if not ignored
         && !(!canIgnoreGlobal(pTarget)
             && MemoryLocationFinder.hasGlobalAccess(
-                pLabelBlockMap, pAllMemoryLocations, pPointerAssignments, targetBlock));
+                pLabelBlockMap, pPointerAssignments, targetBlock));
   }
 
   /**

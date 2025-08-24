@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -46,7 +45,6 @@ public class ConflictResolver {
   static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> resolve(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -72,7 +70,6 @@ public class ConflictResolver {
               pClauses.get(activeThread),
               activeThread,
               labelBlockMap,
-              pAllMemoryLocations,
               pBitVectorVariables,
               pPointerAssignments,
               pBinaryExpressionBuilder);
@@ -96,7 +93,6 @@ public class ConflictResolver {
       ImmutableList<SeqThreadStatementClause> pClauses,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -112,7 +108,6 @@ public class ConflictResolver {
                 mergedBlock,
                 pActiveThread,
                 pLabelBlockMap,
-                pAllMemoryLocations,
                 pBitVectorVariables,
                 pPointerAssignments,
                 pBinaryExpressionBuilder));
@@ -127,7 +122,6 @@ public class ConflictResolver {
       SeqThreadStatementBlock pBlock,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -141,7 +135,6 @@ public class ConflictResolver {
               statement,
               pActiveThread,
               pLabelBlockMap,
-              pAllMemoryLocations,
               pBitVectorVariables,
               pPointerAssignments,
               pBinaryExpressionBuilder));
@@ -154,7 +147,6 @@ public class ConflictResolver {
       SeqThreadStatement pStatement,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -173,7 +165,6 @@ public class ConflictResolver {
               pOptions,
               pLabelBlockMap,
               targetBlock,
-              pAllMemoryLocations,
               pBitVectorVariables,
               pPointerAssignments,
               pBinaryExpressionBuilder);

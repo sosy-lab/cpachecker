@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -34,16 +33,11 @@ public class MemoryLocationFinder {
    */
   static boolean hasGlobalAccess(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock) {
 
     return !findDirectMemoryLocationsByAccessType(
-            pLabelBlockMap,
-            pAllMemoryLocations,
-            pPointerAssignments,
-            pBlock,
-            BitVectorAccessType.ACCESS)
+            pLabelBlockMap, pPointerAssignments, pBlock, BitVectorAccessType.ACCESS)
         .isEmpty();
   }
 
@@ -53,7 +47,6 @@ public class MemoryLocationFinder {
    */
   public static ImmutableSet<MemoryLocation> findDirectMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
@@ -65,7 +58,7 @@ public class MemoryLocationFinder {
       SeqThreadStatementUtil.recursivelyFindTargetGotoStatements(found, statement, pLabelBlockMap);
       ImmutableSet<MemoryLocation> foundMemoryLocations =
           findMemoryLocationsByStatements(
-              ImmutableSet.copyOf(found), pAllMemoryLocations, pPointerAssignments, pAccessType);
+              ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
       rMemLocations.addAll(foundMemoryLocations);
     }
     return rMemLocations.build();
@@ -79,7 +72,6 @@ public class MemoryLocationFinder {
   static ImmutableSet<MemoryLocation> findReachableMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       PointerAssignments pPointerAssignments,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
@@ -92,7 +84,7 @@ public class MemoryLocationFinder {
           found, statement, pLabelClauseMap, pLabelBlockMap);
       ImmutableSet<MemoryLocation> foundMemoryLocations =
           findMemoryLocationsByStatements(
-              ImmutableSet.copyOf(found), pAllMemoryLocations, pPointerAssignments, pAccessType);
+              ImmutableSet.copyOf(found), pPointerAssignments, pAccessType);
       rMemLocations.addAll(foundMemoryLocations);
     }
     return rMemLocations.build();
@@ -102,7 +94,6 @@ public class MemoryLocationFinder {
 
   private static ImmutableSet<MemoryLocation> findMemoryLocationsByStatements(
       ImmutableSet<SeqThreadStatement> pStatements,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       PointerAssignments pPointerAssignments,
       BitVectorAccessType pAccessType) {
 
@@ -110,8 +101,7 @@ public class MemoryLocationFinder {
     for (SeqThreadStatement statement : pStatements) {
       for (SubstituteEdge substituteEdge : statement.getSubstituteEdges()) {
         rMemLocations.addAll(
-            findMemoryLocationsBySubstituteEdge(
-                substituteEdge, pAllMemoryLocations, pPointerAssignments, pAccessType));
+            findMemoryLocationsBySubstituteEdge(substituteEdge, pPointerAssignments, pAccessType));
       }
     }
     return rMemLocations.build();
@@ -119,7 +109,6 @@ public class MemoryLocationFinder {
 
   private static ImmutableSet<MemoryLocation> findMemoryLocationsBySubstituteEdge(
       SubstituteEdge pSubstituteEdge,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       PointerAssignments pPointerAssignments,
       BitVectorAccessType pAccessType) {
 
@@ -127,13 +116,12 @@ public class MemoryLocationFinder {
     // first check direct accesses on the memory locations themselves
     rMemLocations.addAll(pSubstituteEdge.getMemoryLocationsByAccessType(pAccessType));
     // then check indirect accesses via pointers that point to the variables
-    ImmutableSet<CSimpleDeclaration> pointerDereferences =
+    ImmutableSet<MemoryLocation> pointerDereferences =
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
-    for (CSimpleDeclaration pointerDereference : pointerDereferences) {
+    for (MemoryLocation pointerDereference : pointerDereferences) {
       Set<MemoryLocation> found = new HashSet<>();
       recursivelyFindMemoryLocationsByPointerDereference(
           pointerDereference,
-          pAllMemoryLocations,
           pSubstituteEdge.getCallContext(),
           pPointerAssignments,
           found,
@@ -151,16 +139,16 @@ public class MemoryLocationFinder {
    * assigned to the pointer variable / parameter.
    */
   private static void recursivelyFindMemoryLocationsByPointerDereference(
-      CSimpleDeclaration pCurrentDeclaration,
-      final ImmutableSet<MemoryLocation> pAllMemoryLocations,
+      MemoryLocation pCurrentMemoryLocation,
       final Optional<ThreadEdge> pCallContext,
       final PointerAssignments pPointerAssignments,
       Set<MemoryLocation> pFound,
-      Set<CSimpleDeclaration> pVisited) {
+      Set<MemoryLocation> pVisited) {
 
     // prevent infinite loop, e.g. if a pointer is assigned itself: 'ptr = ptr;'
-    if (pVisited.add(pCurrentDeclaration)) {
-      if (pCurrentDeclaration instanceof CVariableDeclaration variableDeclaration) {
+    if (pVisited.add(pCurrentMemoryLocation)) {
+      CSimpleDeclaration simpleDeclaration = pCurrentMemoryLocation.getSimpleDeclaration();
+      if (simpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
         if (variableDeclaration.getType() instanceof CPointerType) {
           // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
           // and then dereferenced -> the pointer is not associated with the address of a var
@@ -169,21 +157,14 @@ public class MemoryLocationFinder {
                 pPointerAssignments.getRightHandSidesByPointer(variableDeclaration);
             for (MemoryLocation rightHandSide : rightHandSides) {
               recursivelyFindMemoryLocationsByPointerDereference(
-                  rightHandSide.getSimpleDeclaration(),
-                  pAllMemoryLocations,
-                  pCallContext,
-                  pPointerAssignments,
-                  pFound,
-                  pVisited);
+                  rightHandSide, pCallContext, pPointerAssignments, pFound, pVisited);
             }
           }
-          // struct instances are handled separately
-        } else if (!(variableDeclaration.getType() instanceof CTypedefType)) {
-          pFound.add(
-              getMemoryLocationByVariableDeclaration(variableDeclaration, pAllMemoryLocations));
+        } else {
+          pFound.add(pCurrentMemoryLocation);
         }
 
-      } else if (pCurrentDeclaration instanceof CParameterDeclaration parameterDeclaration) {
+      } else if (simpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
         assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
         ThreadEdge callContext = pCallContext.orElseThrow();
         // in pthread_create that does not pass an arg to start_routine, the pair is not present
@@ -192,32 +173,9 @@ public class MemoryLocationFinder {
               pPointerAssignments.getRightHandSideByPointerParameter(
                   callContext, parameterDeclaration);
           recursivelyFindMemoryLocationsByPointerDereference(
-              rightHandSide.getSimpleDeclaration(),
-              pAllMemoryLocations,
-              pCallContext,
-              pPointerAssignments,
-              pFound,
-              pVisited);
+              rightHandSide, pCallContext, pPointerAssignments, pFound, pVisited);
         }
       }
     }
-  }
-
-  // Helpers =======================================================================================
-
-  private static MemoryLocation getMemoryLocationByVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration, ImmutableSet<MemoryLocation> pAllMemoryLocations) {
-
-    for (MemoryLocation memoryLocation : pAllMemoryLocations) {
-      if (memoryLocation.variable.isPresent()) {
-        if (memoryLocation.variable.orElseThrow().equals(pVariableDeclaration)) {
-          return memoryLocation;
-        }
-      }
-    }
-    throw new IllegalArgumentException(
-        String.format(
-            "could not find pVariableDeclaration %s in pAllMemoryLocations",
-            pVariableDeclaration.toASTString()));
   }
 }

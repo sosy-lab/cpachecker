@@ -212,12 +212,34 @@ public class MPORSubstitutionTracker {
 
   // pointer dereferences
 
+  public ImmutableSet<CSimpleDeclaration> getPointerDereferencesByAccessType(
+      BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type variables");
+      case ACCESS -> getAccessedPointerDereferences();
+      case READ -> throw new IllegalArgumentException("no READ access type variables");
+      case WRITE -> getWrittenPointerDereferences();
+    };
+  }
+
   public ImmutableSet<CSimpleDeclaration> getAccessedPointerDereferences() {
     return ImmutableSet.copyOf(accessedPointerDereferences);
   }
 
   public ImmutableSet<CSimpleDeclaration> getWrittenPointerDereferences() {
     return ImmutableSet.copyOf(writtenPointerDereferences);
+  }
+
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getFieldReferencePointerDereferencesByAccessType(BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type variables");
+      case ACCESS -> getAccessedFieldReferencePointerDereferences();
+      case READ -> throw new IllegalArgumentException("no READ access type variables");
+      case WRITE -> getWrittenFieldReferencePointerDereferences();
+    };
   }
 
   public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>

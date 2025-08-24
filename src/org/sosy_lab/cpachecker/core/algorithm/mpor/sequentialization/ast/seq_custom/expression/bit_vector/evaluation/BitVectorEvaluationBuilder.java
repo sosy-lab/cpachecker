@@ -74,7 +74,6 @@ public class BitVectorEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pTargetBlock,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -89,11 +88,7 @@ public class BitVectorEvaluationBuilder {
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directAccessMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap,
-                pAllMemoryLocations,
-                pPointerAssignments,
-                pTargetBlock,
-                BitVectorAccessType.ACCESS);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         yield buildLastAccessBitVectorEvaluationByEncoding(
             pOptions, directAccessMemoryLocations,
             pBitVectorVariables, pBinaryExpressionBuilder);
@@ -101,18 +96,10 @@ public class BitVectorEvaluationBuilder {
       case READ_AND_WRITE -> {
         ImmutableSet<MemoryLocation> directReadMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap,
-                pAllMemoryLocations,
-                pPointerAssignments,
-                pTargetBlock,
-                BitVectorAccessType.READ);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
         ImmutableSet<MemoryLocation> directWriteMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap,
-                pAllMemoryLocations,
-                pPointerAssignments,
-                pTargetBlock,
-                BitVectorAccessType.WRITE);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         yield buildLastReadWriteBitVectorEvaluationByEncoding(
             pOptions,
             directReadMemoryLocations,
@@ -222,7 +209,6 @@ public class BitVectorEvaluationBuilder {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pTargetBlock,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -239,11 +225,7 @@ public class BitVectorEvaluationBuilder {
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directAccessMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap,
-                pAllMemoryLocations,
-                pPointerAssignments,
-                pTargetBlock,
-                BitVectorAccessType.ACCESS);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,
@@ -256,18 +238,10 @@ public class BitVectorEvaluationBuilder {
       case READ_AND_WRITE -> {
         ImmutableSet<MemoryLocation> directReadMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap,
-                pAllMemoryLocations,
-                pPointerAssignments,
-                pTargetBlock,
-                BitVectorAccessType.READ);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
         ImmutableSet<MemoryLocation> directWriteMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap,
-                pAllMemoryLocations,
-                pPointerAssignments,
-                pTargetBlock,
-                BitVectorAccessType.WRITE);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,

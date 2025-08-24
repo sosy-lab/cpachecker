@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.BitVectorInjector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PointerAssignments;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -70,8 +69,6 @@ public class SeqMainFunction extends SeqFunction {
   private final CIdExpression numThreadsVariable;
 
   private final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
-
-  private final ImmutableSet<MemoryLocation> allMemoryLocations;
 
   private final Optional<PointerAssignments> pointerAssignments;
 
@@ -99,7 +96,6 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       Optional<PointerAssignments> pPointerAssignments,
@@ -114,7 +110,6 @@ public class SeqMainFunction extends SeqFunction {
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(pSubstitutions);
     numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(numThreads);
     clauses = pClauses;
-    allMemoryLocations = pAllMemoryLocations;
     bitVectorVariables = pBitVectorVariables;
     pcVariables = pPcVariables;
     pointerAssignments = pPointerAssignments;
@@ -158,7 +153,7 @@ public class SeqMainFunction extends SeqFunction {
     }
 
     // add bit vector initializations
-    rBody.addAll(buildBitVectorInitializations(clauses, allMemoryLocations, bitVectorVariables));
+    rBody.addAll(buildBitVectorInitializations(clauses, bitVectorVariables));
 
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, clauses, logger));
@@ -234,7 +229,6 @@ public class SeqMainFunction extends SeqFunction {
 
   private ImmutableList<LineOfCode> buildBitVectorInitializations(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       Optional<BitVectorVariables> pBitVectorVariables)
       throws UnrecognizedCodeException {
 
@@ -256,7 +250,6 @@ public class SeqMainFunction extends SeqFunction {
               firstBlock,
               labelClauseMap,
               labelBlockMap,
-              pAllMemoryLocations,
               pBitVectorVariables.orElseThrow(),
               pointerAssignments.orElseThrow());
       rInitializations.addAll(

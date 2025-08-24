@@ -221,7 +221,6 @@ public class Sequentialization {
             options,
             substitutions,
             substituteEdges,
-            allMemoryLocations,
             bitVectorVariables,
             pcVariables,
             threadSimulationVariables,

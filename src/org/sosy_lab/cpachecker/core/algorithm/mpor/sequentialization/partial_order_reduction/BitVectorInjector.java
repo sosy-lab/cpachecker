@@ -47,7 +47,6 @@ public class BitVectorInjector {
   static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> injectWithEvaluations(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -58,7 +57,6 @@ public class BitVectorInjector {
         pOptions,
         true,
         pClauses,
-        pAllMemoryLocations,
         pBitVectorVariables,
         pPointerAssignments,
         pBinaryExpressionBuilder,
@@ -68,7 +66,6 @@ public class BitVectorInjector {
   static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> injectWithoutEvaluations(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -79,7 +76,6 @@ public class BitVectorInjector {
         pOptions,
         false,
         pClauses,
-        pAllMemoryLocations,
         pBitVectorVariables,
         pPointerAssignments,
         pBinaryExpressionBuilder,
@@ -93,7 +89,6 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       boolean pAddEvaluation,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -126,7 +121,6 @@ public class BitVectorInjector {
               clauses,
               labelClauseMap,
               labelBlockMap,
-              pAllMemoryLocations,
               pBitVectorVariables,
               pPointerAssignments,
               pBinaryExpressionBuilder));
@@ -142,7 +136,6 @@ public class BitVectorInjector {
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -161,7 +154,6 @@ public class BitVectorInjector {
                 pOtherThreads,
                 pLabelClauseMap,
                 pLabelBlockMap,
-                pAllMemoryLocations,
                 pBitVectorVariables,
                 pPointerAssignments,
                 pBinaryExpressionBuilder));
@@ -179,7 +171,6 @@ public class BitVectorInjector {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -196,7 +187,6 @@ public class BitVectorInjector {
               statement,
               pLabelClauseMap,
               pLabelBlockMap,
-              pAllMemoryLocations,
               pBitVectorVariables,
               pPointerAssignments,
               pBinaryExpressionBuilder));
@@ -212,7 +202,6 @@ public class BitVectorInjector {
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      final ImmutableSet<MemoryLocation> pAllMemoryLocations,
       final BitVectorVariables pBitVectorVariables,
       final PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -241,7 +230,6 @@ public class BitVectorInjector {
                     pOtherThreads,
                     pLabelBlockMap,
                     newTarget.getFirstBlock(),
-                    pAllMemoryLocations,
                     pBitVectorVariables,
                     pPointerAssignments,
                     pBinaryExpressionBuilder);
@@ -255,7 +243,6 @@ public class BitVectorInjector {
                   newTarget.getFirstBlock(),
                   pLabelClauseMap,
                   pLabelBlockMap,
-                  pAllMemoryLocations,
                   pBitVectorVariables,
                   pPointerAssignments);
           newInjected.addAll(bitVectorAssignments);
@@ -274,7 +261,6 @@ public class BitVectorInjector {
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pTargetBlock,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -286,7 +272,6 @@ public class BitVectorInjector {
             pOtherThreads,
             pLabelBlockMap,
             pTargetBlock,
-            pAllMemoryLocations,
             pBitVectorVariables,
             pPointerAssignments,
             pBinaryExpressionBuilder);
@@ -323,7 +308,6 @@ public class BitVectorInjector {
       SeqThreadStatementBlock pTargetBlock,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       BitVectorVariables pBitVectorVariables,
       PointerAssignments pPointerAssignments) {
 
@@ -334,16 +318,11 @@ public class BitVectorInjector {
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap,
-                pAllMemoryLocations,
-                pPointerAssignments,
-                pTargetBlock,
-                BitVectorAccessType.ACCESS);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.ACCESS);
         ImmutableSet<MemoryLocation> reachableLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelClauseMap,
                 pLabelBlockMap,
-                pAllMemoryLocations,
                 pPointerAssignments,
                 pTargetBlock,
                 BitVectorAccessType.ACCESS);
@@ -353,32 +332,22 @@ public class BitVectorInjector {
       case READ_AND_WRITE -> {
         ImmutableSet<MemoryLocation> directReadLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap,
-                pAllMemoryLocations,
-                pPointerAssignments,
-                pTargetBlock,
-                BitVectorAccessType.READ);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.READ);
         ImmutableSet<MemoryLocation> reachableWriteLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelClauseMap,
                 pLabelBlockMap,
-                pAllMemoryLocations,
                 pPointerAssignments,
                 pTargetBlock,
                 BitVectorAccessType.WRITE);
 
         ImmutableSet<MemoryLocation> directWriteLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap,
-                pAllMemoryLocations,
-                pPointerAssignments,
-                pTargetBlock,
-                BitVectorAccessType.WRITE);
+                pLabelBlockMap, pPointerAssignments, pTargetBlock, BitVectorAccessType.WRITE);
         ImmutableSet<MemoryLocation> reachableReadLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelClauseMap,
                 pLabelBlockMap,
-                pAllMemoryLocations,
                 pPointerAssignments,
                 pTargetBlock,
                 BitVectorAccessType.READ);

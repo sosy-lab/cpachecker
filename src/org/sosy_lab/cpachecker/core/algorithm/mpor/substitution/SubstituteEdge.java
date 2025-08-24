@@ -12,16 +12,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -43,24 +39,13 @@ public class SubstituteEdge {
   // POINTER DEREFERENCES ==========================================================================
 
   /** The set of accessed pointer derefs i.e. reads and writes. */
-  public final ImmutableSet<CSimpleDeclaration> accessedPointerDereferences;
+  public final ImmutableSet<MemoryLocation> accessedPointerDereferences;
 
   /** The set of read pointer derefs including reads, e.g. {@code var = 42 + *ptr;} */
-  public final ImmutableSet<CSimpleDeclaration> readPointerDereferences;
+  public final ImmutableSet<MemoryLocation> readPointerDereferences;
 
   /** The set of written pointer derefs, .e.g {@code *ptr = 42;} */
-  public final ImmutableSet<CSimpleDeclaration> writtenPointerDereferences;
-
-  // FIELD REFERENCE POINTER DEREFERENCES ==========================================================
-
-  public final ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      accessedFieldReferencePointerDereferences;
-
-  public final ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      readFieldReferencePointerDereferences;
-
-  public final ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      writtenFieldReferencePointerDereferences;
+  public final ImmutableSet<MemoryLocation> writtenPointerDereferences;
 
   // MEMORY LOCATIONS ==============================================================================
 
@@ -80,12 +65,8 @@ public class SubstituteEdge {
       ThreadEdge pThreadEdge,
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
       ImmutableMap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
-      ImmutableSet<CSimpleDeclaration> pAccessedPointerDereferences,
-      ImmutableSet<CSimpleDeclaration> pWrittenPointerDereferences,
-      ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-          pAccessedFieldReferencePointerDereferences,
-      ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-          pWrittenFieldReferencePointerDereferences,
+      ImmutableSet<MemoryLocation> pAccessedPointerDereferences,
+      ImmutableSet<MemoryLocation> pWrittenPointerDereferences,
       ImmutableSet<MemoryLocation> pAccessedMemoryLocations,
       ImmutableSet<MemoryLocation> pWrittenMemoryLocations,
       ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
@@ -109,12 +90,6 @@ public class SubstituteEdge {
     readPointerDereferences =
         Sets.symmetricDifference(writtenPointerDereferences, accessedPointerDereferences)
             .immutableCopy();
-    // field reference pointer dereferences
-    accessedFieldReferencePointerDereferences = pAccessedFieldReferencePointerDereferences;
-    writtenFieldReferencePointerDereferences = pWrittenFieldReferencePointerDereferences;
-    readFieldReferencePointerDereferences =
-        MPORUtil.symmetricDifference(
-            writtenFieldReferencePointerDereferences, accessedFieldReferencePointerDereferences);
     // memory locations
     accessedMemoryLocations = pAccessedMemoryLocations;
     writtenMemoryLocations = pWrittenMemoryLocations;
@@ -132,8 +107,6 @@ public class SubstituteEdge {
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
-        ImmutableSetMultimap.of(),
-        ImmutableSetMultimap.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of());
@@ -151,10 +124,8 @@ public class SubstituteEdge {
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
         SubstituteUtil.mapPointerAssignments(pTracker),
-        pTracker.getAccessedPointerDereferences(),
-        pTracker.getWrittenPointerDereferences(),
-        pTracker.getAccessedFieldReferencePointerDereferences(),
-        pTracker.getWrittenFieldReferencePointerDereferences(),
+        SubstituteUtil.getPointerDereferencesByAccessType(pTracker, BitVectorAccessType.ACCESS),
+        SubstituteUtil.getPointerDereferencesByAccessType(pTracker, BitVectorAccessType.WRITE),
         SubstituteUtil.getMemoryLocationsByAccessType(pTracker, BitVectorAccessType.ACCESS),
         SubstituteUtil.getMemoryLocationsByAccessType(pTracker, BitVectorAccessType.WRITE),
         pTracker.getAccessedFunctionPointers());
@@ -171,7 +142,7 @@ public class SubstituteEdge {
     };
   }
 
-  public ImmutableSet<CSimpleDeclaration> getPointerDereferencesByAccessType(
+  public ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
@@ -179,17 +150,6 @@ public class SubstituteEdge {
       case ACCESS -> accessedPointerDereferences;
       case READ -> readPointerDereferences;
       case WRITE -> writtenPointerDereferences;
-    };
-  }
-
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getReadFieldReferencePointerDereferencesByAccessType(BitVectorAccessType pAccessType) {
-
-    return switch (pAccessType) {
-      case NONE -> ImmutableSetMultimap.of();
-      case ACCESS -> accessedFieldReferencePointerDereferences;
-      case READ -> readFieldReferencePointerDereferences;
-      case WRITE -> writtenFieldReferencePointerDereferences;
     };
   }
 

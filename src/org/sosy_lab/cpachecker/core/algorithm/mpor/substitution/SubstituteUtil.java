@@ -90,7 +90,27 @@ public class SubstituteUtil {
     return rMemoryLocations.build();
   }
 
-  public static ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
+  static ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(
+      MPORSubstitutionTracker pTracker, BitVectorAccessType pAccessType) {
+
+    ImmutableSet.Builder<MemoryLocation> rPointerDereferences = ImmutableSet.builder();
+    for (CSimpleDeclaration pointerDereference :
+        pTracker.getPointerDereferencesByAccessType(pAccessType)) {
+      rPointerDereferences.add(MemoryLocation.of(pointerDereference));
+    }
+    ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+        fieldReferencePointerDereferences =
+            pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType);
+    for (CSimpleDeclaration fieldOwner : fieldReferencePointerDereferences.keySet()) {
+      for (CCompositeTypeMemberDeclaration fieldMember :
+          fieldReferencePointerDereferences.get(fieldOwner)) {
+        rPointerDereferences.add(MemoryLocation.of(fieldOwner, fieldMember));
+      }
+    }
+    return rPointerDereferences.build();
+  }
+
+  static ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
       MPORSubstitutionTracker pTracker, BitVectorAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
