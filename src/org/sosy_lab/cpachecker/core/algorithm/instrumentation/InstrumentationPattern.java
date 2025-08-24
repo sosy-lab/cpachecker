@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -263,7 +264,8 @@ public class InstrumentationPattern {
       if (astNode instanceof CBinaryExpression
           || astNode instanceof CUnaryExpression
           || astNode instanceof CExpressionAssignmentStatement
-          || astNode instanceof CFunctionCallAssignmentStatement) {
+          || astNode instanceof CFunctionCallAssignmentStatement
+          || astNode instanceof CFunctionCallStatement) {
         return ImmutableList.of();
       }
     }

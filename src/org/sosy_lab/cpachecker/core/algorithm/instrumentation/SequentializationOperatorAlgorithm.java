@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -297,14 +298,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     }
 
     AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
-    if (astNode instanceof CFunctionCallAssignmentStatement) {
+    if (astNode instanceof CFunctionCallAssignmentStatement
+        || astNode instanceof CFunctionCallStatement) {
       decomposeFunction(
-          pCFAEdge,
-          pTransition,
-          pWaitlist,
-          pDecomposedMap,
-          pMatchedVariables,
-          (CFunctionCallAssignmentStatement) astNode);
+          pCFAEdge, pTransition, pWaitlist, pDecomposedMap, pMatchedVariables, astNode);
       return true;
     }
     if (astNode instanceof CExpressionAssignmentStatement) {
@@ -416,16 +413,25 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       List<Pair<CFANode, InstrumentationState>> pWaitlist,
       Map<CFANode, String> pDecomposedMap,
       ImmutableList<String> pMatchedVariables,
-      CFunctionCallAssignmentStatement pCallAssignmentStatement) {
+      AAstNode pFunctionCallStatement) {
     String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
-    List<CExpression> parameters =
-        pCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions();
+    List<CExpression> parameters;
+    if (pFunctionCallStatement instanceof CFunctionCallStatement) {
+      parameters =
+          ((CFunctionCallStatement) pFunctionCallStatement)
+              .getFunctionCallExpression()
+              .getParameterExpressions();
+    } else {
+      parameters =
+          ((CFunctionCallAssignmentStatement) pFunctionCallStatement)
+              .getFunctionCallExpression()
+              .getParameterExpressions();
+    }
     if (parameters.isEmpty()) {
       return;
     }
-    for (CExpression parameter : parameters.subList(1, parameters.size())) {
+    for (CExpression parameter : parameters) {
       CFANode node1 = CFANode.newDummyCFANode();
-
       node1.addLeavingEdge(
           new CStatementEdge(
               parameter.toASTString(),
