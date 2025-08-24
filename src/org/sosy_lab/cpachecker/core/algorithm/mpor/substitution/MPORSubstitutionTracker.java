@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 
 /**
- * A class to track certain expressions, statements, ... (such as pointer dereferences and global
- * variable accesses) during substitution.
+ * A class to track certain expressions, statements, ... (such as pointer dereferences and variable
+ * accesses) during substitution.
  */
 public class MPORSubstitutionTracker {
 
@@ -74,13 +74,13 @@ public class MPORSubstitutionTracker {
   // GLOBAL VARIABLES ==============================================================================
 
   /**
-   * Accessed global variables e.g. of the form {@code if (x == 0);} where {@code x} is a global
-   * variable. Contains both reads and writes.
+   * Accessed variables e.g. of the form {@code if (x == 0);} where {@code x} is a variable.
+   * Contains both reads and writes.
    */
-  private final Set<CVariableDeclaration> accessedGlobalVariables;
+  private final Set<CVariableDeclaration> accessedVariables;
 
-  /** Written global variables e.g. of the form {@code x = 42;}. */
-  private final Set<CVariableDeclaration> writtenGlobalVariables;
+  /** Written variables e.g. of the form {@code x = 42;}. */
+  private final Set<CVariableDeclaration> writtenVariables;
 
   // FIELD MEMBERS =================================================================================
 
@@ -117,8 +117,8 @@ public class MPORSubstitutionTracker {
     accessedFieldReferencePointerDereferences = HashMultimap.create();
     writtenFieldReferencePointerDereferences = HashMultimap.create();
 
-    accessedGlobalVariables = new HashSet<>();
-    writtenGlobalVariables = new HashSet<>();
+    accessedVariables = new HashSet<>();
+    writtenVariables = new HashSet<>();
 
     accessedFieldMembers = HashMultimap.create();
     writtenFieldMembers = HashMultimap.create();
@@ -169,12 +169,12 @@ public class MPORSubstitutionTracker {
     writtenFieldReferencePointerDereferences.put(pFieldOwner, pFieldMember);
   }
 
-  public void addAccessedGlobalVariable(CVariableDeclaration pAccessedGlobalVariable) {
-    accessedGlobalVariables.add(pAccessedGlobalVariable);
+  public void addAccessedVariable(CVariableDeclaration pAccessedVariable) {
+    accessedVariables.add(pAccessedVariable);
   }
 
-  public void addWrittenGlobalVariable(CVariableDeclaration pWrittenGlobalVariable) {
-    writtenGlobalVariables.add(pWrittenGlobalVariable);
+  public void addWrittenVariable(CVariableDeclaration pWrittenVariable) {
+    writtenVariables.add(pWrittenVariable);
   }
 
   public void addAccessedFieldMember(
@@ -232,25 +232,25 @@ public class MPORSubstitutionTracker {
     return ImmutableSetMultimap.copyOf(writtenFieldReferencePointerDereferences);
   }
 
-  // global variables
+  // variables
 
-  public ImmutableSet<CVariableDeclaration> getGlobalVariablesByAccessType(
+  public ImmutableSet<CVariableDeclaration> getVariablesByAccessType(
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
-      case NONE -> throw new IllegalArgumentException("no NONE access type global variables");
-      case ACCESS -> getAccessedGlobalVariables();
-      case READ -> throw new IllegalArgumentException("no READ access type global variables");
-      case WRITE -> getWrittenGlobalVariables();
+      case NONE -> throw new IllegalArgumentException("no NONE access type variables");
+      case ACCESS -> getAccessedVariables();
+      case READ -> throw new IllegalArgumentException("no READ access type variables");
+      case WRITE -> getWrittenVariables();
     };
   }
 
-  public ImmutableSet<CVariableDeclaration> getAccessedGlobalVariables() {
-    return ImmutableSet.copyOf(accessedGlobalVariables);
+  public ImmutableSet<CVariableDeclaration> getAccessedVariables() {
+    return ImmutableSet.copyOf(accessedVariables);
   }
 
-  public ImmutableSet<CVariableDeclaration> getWrittenGlobalVariables() {
-    return ImmutableSet.copyOf(writtenGlobalVariables);
+  public ImmutableSet<CVariableDeclaration> getWrittenVariables() {
+    return ImmutableSet.copyOf(writtenVariables);
   }
 
   // field members

@@ -129,7 +129,7 @@ public class MPORSubstitution {
    * sets. {@code pIsWrite} is used to determine whether the expression to substitute is written,
    * i.e. a LHS in an assignment.
    */
-  private void trackGlobalVariableAccesses(
+  private void trackVariableAccess(
       CIdExpression pIdExpression,
       boolean pIsWrite,
       boolean pIsPointerDereference,
@@ -146,16 +146,14 @@ public class MPORSubstitution {
     }
     // otherwise, if applicable, add declaration to global reads/writes
     if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-      if (variableDeclaration.isGlobal()) {
-        // exclude pointer dereferences, they are handled separately
-        if (!pIsPointerDereference) {
-          pTracker.orElseThrow().addAccessedGlobalVariable(variableDeclaration);
-          CType type = variableDeclaration.getType();
-          boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
-          // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
-          if (pIsWrite || isMutex) {
-            pTracker.orElseThrow().addWrittenGlobalVariable(variableDeclaration);
-          }
+      // exclude pointer dereferences, they are handled separately
+      if (!pIsPointerDereference) {
+        pTracker.orElseThrow().addAccessedVariable(variableDeclaration);
+        CType type = variableDeclaration.getType();
+        boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
+        // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
+        if (pIsWrite || isMutex) {
+          pTracker.orElseThrow().addWrittenVariable(variableDeclaration);
         }
       }
     }
@@ -168,8 +166,8 @@ public class MPORSubstitution {
     if (pTracker.isEmpty()) {
       return;
     }
-    for (CVariableDeclaration globalVariable : pLocalSubstitute.accessedGlobalVariables) {
-      pTracker.orElseThrow().addAccessedGlobalVariable(globalVariable);
+    for (CVariableDeclaration variable : pLocalSubstitute.accessedVariables) {
+      pTracker.orElseThrow().addAccessedVariable(variable);
     }
   }
 
@@ -367,7 +365,7 @@ public class MPORSubstitution {
     if (pExpression instanceof CIdExpression idExpression) {
       CSimpleDeclaration declaration = idExpression.getDeclaration();
       if (isSubstitutable(declaration)) {
-        trackGlobalVariableAccesses(
+        trackVariableAccess(
             idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
         return getVariableSubstitute(idExpression.getDeclaration(), pCallContext, pTracker);
       }

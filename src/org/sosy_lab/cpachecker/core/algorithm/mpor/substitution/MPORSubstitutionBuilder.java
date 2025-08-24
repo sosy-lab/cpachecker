@@ -382,7 +382,7 @@ public class MPORSubstitutionBuilder {
       // TODO we need more information here than just accessed global variables
       LocalVariableDeclarationSubstitute localSubstitute =
           new LocalVariableDeclarationSubstitute(
-              substitutes.buildOrThrow(), tracker.getAccessedGlobalVariables());
+              substitutes.buildOrThrow(), tracker.getAccessedVariables());
       rFinalSubstitutes.put(variableDeclaration, localSubstitute);
     }
     return rFinalSubstitutes.buildOrThrow();

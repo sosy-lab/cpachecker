@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -176,44 +177,29 @@ public class MemoryLocationFinder {
                   pVisited);
             }
           }
-        } else {
+          // struct instances are handled separately
+        } else if (!(variableDeclaration.getType() instanceof CTypedefType)) {
           pFound.add(
               getMemoryLocationByVariableDeclaration(variableDeclaration, pAllMemoryLocations));
         }
 
       } else if (pCurrentDeclaration instanceof CParameterDeclaration parameterDeclaration) {
-        recursivelyFindMemoryLocationsByPointerDereference(
-            parameterDeclaration,
-            pAllMemoryLocations,
-            pCallContext,
-            pPointerAssignments,
-            pFound,
-            pVisited);
+        assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
+        ThreadEdge callContext = pCallContext.orElseThrow();
+        // in pthread_create that does not pass an arg to start_routine, the pair is not present
+        if (pPointerAssignments.isAssignedPointerParameter(callContext, parameterDeclaration)) {
+          MemoryLocation rightHandSide =
+              pPointerAssignments.getRightHandSideByPointerParameter(
+                  callContext, parameterDeclaration);
+          recursivelyFindMemoryLocationsByPointerDereference(
+              rightHandSide.getSimpleDeclaration(),
+              pAllMemoryLocations,
+              pCallContext,
+              pPointerAssignments,
+              pFound,
+              pVisited);
+        }
       }
-    }
-  }
-
-  private static void recursivelyFindMemoryLocationsByPointerDereference(
-      CParameterDeclaration pCurrentDeclaration,
-      final ImmutableSet<MemoryLocation> pAllMemoryLocations,
-      final Optional<ThreadEdge> pCallContext,
-      final PointerAssignments pPointerAssignments,
-      Set<MemoryLocation> pFound,
-      Set<CSimpleDeclaration> pVisited) {
-
-    assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
-    ThreadEdge callContext = pCallContext.orElseThrow();
-    // in pthread_create that does not pass an arg to start_routine, the pair is not present
-    if (pPointerAssignments.isAssignedPointerParameter(callContext, pCurrentDeclaration)) {
-      MemoryLocation rightHandSide =
-          pPointerAssignments.getRightHandSideByPointerParameter(callContext, pCurrentDeclaration);
-      recursivelyFindMemoryLocationsByPointerDereference(
-          rightHandSide.getSimpleDeclaration(),
-          pAllMemoryLocations,
-          pCallContext,
-          pPointerAssignments,
-          pFound,
-          pVisited);
     }
   }
 

@@ -182,6 +182,17 @@ public class SubstituteEdge {
     };
   }
 
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
+      getReadFieldReferencePointerDereferencesByAccessType(BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> ImmutableSetMultimap.of();
+      case ACCESS -> accessedFieldReferencePointerDereferences;
+      case READ -> readFieldReferencePointerDereferences;
+      case WRITE -> writtenFieldReferencePointerDereferences;
+    };
+  }
+
   public ThreadEdge getThreadEdge() {
     return threadEdge;
   }

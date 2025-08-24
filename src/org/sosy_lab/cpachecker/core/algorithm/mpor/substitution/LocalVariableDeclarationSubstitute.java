@@ -22,13 +22,13 @@ public class LocalVariableDeclarationSubstitute {
   public final ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes;
 
   /** The set of global variables used to initialize this local variable. */
-  public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
+  public final ImmutableSet<CVariableDeclaration> accessedVariables;
 
   public LocalVariableDeclarationSubstitute(
       ImmutableMap<Optional<ThreadEdge>, CIdExpression> pSubstitutes,
-      ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables) {
+      ImmutableSet<CVariableDeclaration> pAccessedVariables) {
 
     substitutes = pSubstitutes;
-    accessedGlobalVariables = pAccessedGlobalVariables;
+    accessedVariables = pAccessedVariables;
   }
 }

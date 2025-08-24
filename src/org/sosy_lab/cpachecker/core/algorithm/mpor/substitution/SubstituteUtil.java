@@ -95,7 +95,7 @@ public class SubstituteUtil {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (CVariableDeclaration variableDeclaration :
-        pTracker.getGlobalVariablesByAccessType(pAccessType)) {
+        pTracker.getVariablesByAccessType(pAccessType)) {
       rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
     }
     ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
