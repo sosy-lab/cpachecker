@@ -112,5 +112,5 @@ int main() {
 
 //    ifc_check_taint(&bad);
 //    ifc_check_out(&bad);
-    __VERIFIER_is_public(&bad, 0);
+    __VERIFIER_is_public(&bad, 1);
 }
