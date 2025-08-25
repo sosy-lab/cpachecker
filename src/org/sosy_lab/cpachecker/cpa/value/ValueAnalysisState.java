@@ -451,12 +451,16 @@ public final class ValueAnalysisState
    */
   @Override
   public ValueAnalysisState join(ValueAnalysisState reachedState) {
-    // TODO: add == of maps case
+    if (constantsMap == reachedState.constantsMap) {
+      return reachedState;
+    }
+
     PersistentMap<MemoryLocation, ValueAndType> newConstantsMap = PathCopyingPersistentTreeMap.of();
 
     int newConstantsMapSize = 0;
     int newGlobalsSize = 0;
     int newSymbolicsSize = 0;
+
     for (Entry<MemoryLocation, ValueAndType> otherEntry : reachedState.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
       ValueAndType value = otherEntry.getValue();
