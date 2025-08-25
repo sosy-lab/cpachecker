@@ -122,4 +122,17 @@ public class MemoryLocation {
         && variable.equals(other.variable)
         && fieldMember.equals(other.fieldMember);
   }
+
+  @Override
+  public String toString() {
+    if (variable.isPresent()) {
+      return variable.orElseThrow().toASTString();
+    }
+    if (fieldMember.isPresent()) {
+      Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
+      return entry.getKey().toASTString() + " -> " + entry.getValue().toASTString();
+    }
+    throw new IllegalArgumentException(
+        "cannot get String, both variable and fieldMember are empty");
+  }
 }

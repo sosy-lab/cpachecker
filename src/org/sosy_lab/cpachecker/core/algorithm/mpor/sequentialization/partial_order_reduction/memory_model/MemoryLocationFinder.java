@@ -114,19 +114,25 @@ public class MemoryLocationFinder {
     ImmutableSet<MemoryLocation> pointerDereferences =
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
     for (MemoryLocation pointerDereference : pointerDereferences) {
-      Set<MemoryLocation> found = new HashSet<>();
-      recursivelyFindMemoryLocationsByPointerDereference(
-          pointerDereference,
-          pSubstituteEdge.getCallContext(),
-          pMemoryModel,
-          found,
-          new HashSet<>());
-      rMemLocations.addAll(found);
+      rMemLocations.addAll(
+          findMemoryLocationsByPointerDereference(
+              pointerDereference, pSubstituteEdge.getCallContext(), pMemoryModel));
     }
     return rMemLocations.build();
   }
 
   // Extraction by Pointer Dereference =============================================================
+
+  public static ImmutableSet<MemoryLocation> findMemoryLocationsByPointerDereference(
+      MemoryLocation pPointerDereference,
+      Optional<ThreadEdge> pCallContext,
+      MemoryModel pMemoryModel) {
+
+    Set<MemoryLocation> found = new HashSet<>();
+    recursivelyFindMemoryLocationsByPointerDereference(
+        pPointerDereference, pCallContext, pMemoryModel, found, new HashSet<>());
+    return ImmutableSet.copyOf(found);
+  }
 
   /**
    * Finds the set of {@link CVariableDeclaration}s that are associated by the given pointer

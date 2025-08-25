@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
-import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -35,17 +35,21 @@ public class MemoryModel {
   private final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
       pointerParameterAssignments;
 
+  private final ImmutableSet<MemoryLocation> pointerDereferences;
+
   MemoryModel(
       ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
       ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-          pPointerParameterAssignments) {
+          pPointerParameterAssignments,
+      ImmutableSet<MemoryLocation> pPointerDereferences) {
 
     checkArguments(pPointerAssignments, pPointerParameterAssignments);
     memoryLocationAmount = pMemoryLocationIds.size();
     memoryLocationIds = pMemoryLocationIds;
     pointerAssignments = pPointerAssignments;
     pointerParameterAssignments = pPointerParameterAssignments;
+    pointerDereferences = pPointerDereferences;
   }
 
   private static void checkArguments(
@@ -66,6 +70,8 @@ public class MemoryModel {
           parameterDeclaration.getType());
     }
   }
+
+  // boolean helpers ===============================================================================
 
   /**
    * Returns true if the pointer in {@code pVariableDeclaration} is assigned a pointer {@code ptr},
@@ -93,6 +99,37 @@ public class MemoryModel {
     return pointerParameterAssignments.contains(pCallContext, pParameterDeclaration);
   }
 
+  /**
+   * Returns {@code true} if {@code pMemoryLocation} is implicitly global e.g. through {@code
+   * global_ptr = &local_var;}. Returns {@code false} even if the memory location itself is global.
+   */
+  private boolean isImplicitGlobal(MemoryLocation pMemoryLocation) {
+    if (pMemoryLocation.isGlobal()) {
+      return false;
+    }
+    for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
+      if (pointerAssignments.get(pointerDeclaration).contains(pMemoryLocation)) {
+        if (pointerDeclaration.isGlobal()) {
+          return true;
+        }
+      }
+    }
+    for (MemoryLocation pointerDereference : pointerDereferences) {
+      // TODO call context?
+      ImmutableSet<MemoryLocation> memoryLocations =
+          MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+              pointerDereference, Optional.empty(), this);
+      for (MemoryLocation memoryLocation : memoryLocations) {
+        if (memoryLocation.isGlobal()) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // getters =======================================================================================
+
   public ImmutableSet<MemoryLocation> getRightHandSidesByPointer(
       CVariableDeclaration pVariableDeclaration) {
 
@@ -113,10 +150,17 @@ public class MemoryModel {
     return memoryLocationIds;
   }
 
-  public int getMemoryLocationId(MemoryLocation pMemoryLocation) {
-    checkArgument(
-        memoryLocationIds.containsKey(pMemoryLocation),
-        "could not find pMemoryLocation in memoryLocationIds");
-    return Objects.requireNonNull(memoryLocationIds.get(pMemoryLocation));
+  /**
+   * Returns the set of relevant memory locations, i.e. all that are important to decide whether two
+   * statements commute. These are all explicitly and implicitly global memory locations.
+   */
+  public ImmutableSet<MemoryLocation> getRelevantMemoryLocations() {
+    ImmutableSet.Builder<MemoryLocation> rRelevant = ImmutableSet.builder();
+    for (MemoryLocation memoryLocation : memoryLocationIds.keySet()) {
+      if (memoryLocation.isGlobal() || isImplicitGlobal(memoryLocation)) {
+        rRelevant.add(memoryLocation);
+      }
+    }
+    return rRelevant.build();
   }
 }

@@ -48,7 +48,8 @@ public class MemoryModelBuilder {
           new MemoryModel(
               assignMemoryLocationIds(pAllMemoryLocations),
               mapPointerAssignments(pSubstituteEdges),
-              mapPointerParameterAssignments(pSubstituteEdges, pAllMemoryLocations)));
+              mapPointerParameterAssignments(pSubstituteEdges, pAllMemoryLocations),
+              getAllPointerDereferences(pSubstituteEdges)));
     } else {
       return Optional.empty();
     }
@@ -174,7 +175,7 @@ public class MemoryModelBuilder {
         }
       }
     }
-    throw new IllegalArgumentException("could not find pDeclaration in pAllMemoryDeclarations");
+    throw new IllegalArgumentException("could not find pDeclaration in pAllMemoryLocations");
   }
 
   private static MemoryLocation getMemoryLocationByFieldReference(
@@ -193,6 +194,18 @@ public class MemoryModelBuilder {
         }
       }
     }
-    throw new IllegalArgumentException("could not find pDeclaration in pAllMemoryDeclarations");
+    throw new IllegalArgumentException("could not find pDeclaration in pAllMemoryLocations");
+  }
+
+  // Pointer Dereferences ==========================================================================
+
+  private static ImmutableSet<MemoryLocation> getAllPointerDereferences(
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
+    return pSubstituteEdges.stream()
+        .flatMap(
+            substituteEdge ->
+                substituteEdge.getPointerDereferencesByAccessType(MemoryAccessType.ACCESS).stream())
+        .collect(ImmutableSet.toImmutableSet());
   }
 }

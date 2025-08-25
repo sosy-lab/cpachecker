@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -68,27 +69,29 @@ public class GhostVariableUtil {
   public static Optional<BitVectorVariables> buildBitVectorVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
+      Optional<MemoryModel> pMemoryModel) {
 
     if (!pOptions.areBitVectorsEnabled()) {
       // no bit vector reduction -> no bit vector variables
       return Optional.empty();
     }
+    ImmutableSet<MemoryLocation> relevantMemoryLocations =
+        pMemoryModel.orElseThrow().getRelevantMemoryLocations();
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
               "reductionMode is not set, cannot build bit vector variables");
       case ACCESS_ONLY ->
-          buildAccessOnlyBitVectorVariables(pOptions, pThreads, pAllMemoryLocations);
+          buildAccessOnlyBitVectorVariables(pOptions, pThreads, relevantMemoryLocations);
       case READ_AND_WRITE ->
-          buildReadWriteBitVectorVariables(pOptions, pThreads, pAllMemoryLocations);
+          buildReadWriteBitVectorVariables(pOptions, pThreads, relevantMemoryLocations);
     };
   }
 
   private static Optional<BitVectorVariables> buildAccessOnlyBitVectorVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
+      ImmutableSet<MemoryLocation> pRelevantMemoryLocations) {
 
     // create bit vector access variables for all threads, e.g. __uint8_t ba0
     Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
@@ -96,13 +99,13 @@ public class GhostVariableUtil {
     // create access variables for all global variables for all threads (for sparse bit vectors)
     Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseAccessBitVectors =
         buildSparseBitVectorsByAccessType(
-            pOptions, pThreads, pAllMemoryLocations, MemoryAccessType.ACCESS);
+            pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.ACCESS);
     // last bit vector used to store the bit vector of a thread before context switch
     Optional<LastDenseBitVector> lastDenseAccessBitVector =
         tryBuildLastDenseBitVectorByAccessType(pOptions, MemoryAccessType.ACCESS);
     Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> lastSparseAccessBitVectors =
         tryBuildLastSparseBitVectorsByAccessType(
-            pOptions, pAllMemoryLocations, MemoryAccessType.ACCESS);
+            pOptions, pRelevantMemoryLocations, MemoryAccessType.ACCESS);
     return Optional.of(
         new BitVectorVariables(
             denseAccessBitVectors,
@@ -119,7 +122,7 @@ public class GhostVariableUtil {
   private static Optional<BitVectorVariables> buildReadWriteBitVectorVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
+      ImmutableSet<MemoryLocation> pRelevantMemoryLocations) {
 
     // create bit vector read + write variables for all threads, e.g. __uint8_t br0, bw0
     Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
@@ -131,10 +134,10 @@ public class GhostVariableUtil {
     // create read + write variables (for sparse bit vectors)
     Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseAccessBitVectors =
         buildSparseBitVectorsByAccessType(
-            pOptions, pThreads, pAllMemoryLocations, MemoryAccessType.ACCESS);
+            pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.ACCESS);
     Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseWriteBitVectors =
         buildSparseBitVectorsByAccessType(
-            pOptions, pThreads, pAllMemoryLocations, MemoryAccessType.WRITE);
+            pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.WRITE);
     // last bit vector used to store the bit vector of a thread before context switch
     Optional<LastDenseBitVector> lastDenseAccessBitVector =
         tryBuildLastDenseBitVectorByAccessType(pOptions, MemoryAccessType.ACCESS);
@@ -142,10 +145,10 @@ public class GhostVariableUtil {
         tryBuildLastDenseBitVectorByAccessType(pOptions, MemoryAccessType.WRITE);
     Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> lastSparseAccessBitVectors =
         tryBuildLastSparseBitVectorsByAccessType(
-            pOptions, pAllMemoryLocations, MemoryAccessType.ACCESS);
+            pOptions, pRelevantMemoryLocations, MemoryAccessType.ACCESS);
     Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> lastSparseWriteBitVectors =
         tryBuildLastSparseBitVectorsByAccessType(
-            pOptions, pAllMemoryLocations, MemoryAccessType.WRITE);
+            pOptions, pRelevantMemoryLocations, MemoryAccessType.WRITE);
     return Optional.of(
         new BitVectorVariables(
             denseAccessBitVectors,
@@ -215,14 +218,14 @@ public class GhostVariableUtil {
       buildSparseBitVectorsByAccessType(
           MPOROptions pOptions,
           ImmutableList<MPORThread> pThreads,
-          ImmutableSet<MemoryLocation> pAllMemoryLocations,
+          ImmutableSet<MemoryLocation> pRelevantMemoryLocations,
           MemoryAccessType pAccessType) {
 
     if (pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
     }
     ImmutableMap.Builder<MemoryLocation, SparseBitVector> rAccessVariables = ImmutableMap.builder();
-    for (MemoryLocation memoryLocation : pAllMemoryLocations) {
+    for (MemoryLocation memoryLocation : pRelevantMemoryLocations) {
       ImmutableMap<MPORThread, CIdExpression> variables =
           buildSparseBitVectorVariablesByAccessType(
               pOptions, pThreads, memoryLocation, pAccessType);
@@ -268,14 +271,14 @@ public class GhostVariableUtil {
   private static Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
       tryBuildLastSparseBitVectorsByAccessType(
           MPOROptions pOptions,
-          ImmutableSet<MemoryLocation> pAllMemoryLocations,
+          ImmutableSet<MemoryLocation> pRelevantMemoryLocations,
           MemoryAccessType pAccessType) {
 
     if (!pOptions.conflictReduction || pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
     }
     ImmutableMap.Builder<MemoryLocation, LastSparseBitVector> rMap = ImmutableMap.builder();
-    for (MemoryLocation memoryLocation : pAllMemoryLocations) {
+    for (MemoryLocation memoryLocation : pRelevantMemoryLocations) {
       String variableName =
           SeqNameUtil.buildLastSparseBitVectorNameByAccessType(
               pOptions, memoryLocation.getName(), pAccessType);
