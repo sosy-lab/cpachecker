@@ -233,8 +233,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           && !pMatchedVariables.isEmpty()) {
         String matchedVar = pMatchedVariables.get(0);
         functionName = matchedVar;
-        if (!matchedVar.contains("[")) {
+        if (!matchedVar.contains("[") && !matchedVar.contains("->")) {
           functionName = "*" + functionName;
+        }
+        if (matchedVar.contains("->")) {
+          functionName = functionName.split("->")[0];
         }
       } else {
         functionName = pTransition.getPattern().getFunctionName();

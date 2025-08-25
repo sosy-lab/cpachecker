@@ -278,7 +278,8 @@ public class InstrumentationPattern {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       if (astNode instanceof CExpressionStatement
           && (((CExpressionStatement) astNode).getExpression().toString().contains("*")
-              || ((CExpressionStatement) astNode).getExpression().toString().contains("["))) {
+              || ((CExpressionStatement) astNode).getExpression().toString().contains("[")
+              || ((CExpressionStatement) astNode).getExpression().toString().contains("->"))) {
         return ImmutableList.of(
             ((CExpressionStatement) astNode).getExpression().toString().replaceFirst("\\*", ""));
       }
