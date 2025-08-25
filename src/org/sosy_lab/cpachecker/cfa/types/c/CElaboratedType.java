@@ -191,24 +191,15 @@ public final class CElaboratedType implements CComplexType {
   }
 
   @Override
-  public CType getCanonicalType() {
-    return getCanonicalType(false, false);
-  }
-
-  @Override
-  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+  public CType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    CTypeQualifiers newQualifiers = CTypeQualifiers.union(qualifiers, pQualifiersToAdd);
     if (realType == null) {
-      if ((isConst() == pForceConst) && (isVolatile() == pForceVolatile)) {
+      if (qualifiers.equals(newQualifiers)) {
         return this;
       }
-      return new CElaboratedType(
-          CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
-          kind,
-          name,
-          origName,
-          null);
+      return new CElaboratedType(newQualifiers, kind, name, origName, null);
     } else {
-      return realType.getCanonicalType(isConst() || pForceConst, isVolatile() || pForceVolatile);
+      return realType.getCanonicalType(newQualifiers);
     }
   }
 

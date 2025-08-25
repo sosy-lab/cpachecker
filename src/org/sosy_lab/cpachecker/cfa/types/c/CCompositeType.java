@@ -285,20 +285,16 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public CCompositeType getCanonicalType() {
-    return getCanonicalType(false, false);
+    return this;
   }
 
   @Override
-  public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst() == pForceConst) && (isVolatile() == pForceVolatile)) {
+  public CCompositeType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    CTypeQualifiers newQualifiers = CTypeQualifiers.union(qualifiers, pQualifiersToAdd);
+    if (qualifiers.equals(newQualifiers)) {
       return this;
     }
-    CCompositeType result =
-        new CCompositeType(
-            CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
-            kind,
-            name,
-            origName);
+    CCompositeType result = new CCompositeType(newQualifiers, kind, name, origName);
     if (members != null) {
       result.setMembers(members);
     }

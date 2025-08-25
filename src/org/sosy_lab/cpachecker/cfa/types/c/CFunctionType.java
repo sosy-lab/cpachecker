@@ -134,13 +134,14 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
 
   @Override
   public CFunctionType getCanonicalType() {
-    return getCanonicalType(false, false);
+    return getCanonicalType(CTypeQualifiers.NONE);
   }
 
   @Override
-  public CFunctionType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    // We ignore pForceConst and pForceVolatile.
-    // const and volatile functions are undefined according to C11 §6.7.3 (9),
+  public CFunctionType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    checkNotNull(pQualifiersToAdd);
+    // We ignore pQualifiersToAdd.
+    // Qualified function types are undefined according to C11 §6.7.3 (9),
     // so we used to throw an exception here, but ignoring it does not hurt.
     // Probably no compiler does something else than ignoring these qualifiers as well.
 

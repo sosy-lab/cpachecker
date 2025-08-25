@@ -99,13 +99,8 @@ public final class CTypedefType implements CType {
   }
 
   @Override
-  public CType getCanonicalType() {
-    return getCanonicalType(false, false);
-  }
-
-  @Override
-  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return realType.getCanonicalType(isConst() || pForceConst, isVolatile() || pForceVolatile);
+  public CType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    return realType.getCanonicalType(CTypeQualifiers.union(qualifiers, pQualifiersToAdd));
   }
 
   @Override

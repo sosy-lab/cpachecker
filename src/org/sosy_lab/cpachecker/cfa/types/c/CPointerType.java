@@ -110,14 +110,13 @@ public final class CPointerType implements CType {
 
   @Override
   public CPointerType getCanonicalType() {
-    return getCanonicalType(false, false);
+    return getCanonicalType(CTypeQualifiers.NONE);
   }
 
   @Override
-  public CPointerType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+  public CPointerType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
     return new CPointerType(
-        CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
-        type.getCanonicalType());
+        CTypeQualifiers.union(qualifiers, pQualifiersToAdd), type.getCanonicalType());
   }
 
   @Override

@@ -76,12 +76,15 @@ public final class CProblemType implements CType {
   }
 
   @Override
+  @DoNotCall
   public CProblemType getCanonicalType() {
     return this;
   }
 
   @Override
-  public CProblemType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+  @DoNotCall
+  public CProblemType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    checkNotNull(pQualifiersToAdd);
     return this;
   }
 

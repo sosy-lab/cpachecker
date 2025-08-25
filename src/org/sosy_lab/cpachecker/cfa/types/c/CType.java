@@ -83,9 +83,32 @@ public sealed interface CType extends Type
 
   <R, X extends Exception> R accept(CTypeVisitor<R, X> visitor) throws X;
 
-  CType getCanonicalType();
+  /**
+   * Return a canonical representation of this type. For example, this resolves typedefs, makes the
+   * use of "signed" consistent etc. This allows to compare type equality by calling {@link
+   * #equals(Object)}.
+   *
+   * @implNote When implementing this method, please strengthen the return type to the type itself
+   *     if possible. This method should always have exactly the same effect as the default
+   *     implementation.
+   */
+  default CType getCanonicalType() {
+    return getCanonicalType(CTypeQualifiers.NONE);
+  }
 
-  CType getCanonicalType(boolean forceConst, boolean forceVolatile);
+  /**
+   * Return a canonical representation of this type, optionally with some modifiers added. For
+   * example, this resolves typedefs, makes the use of "signed" consistent etc. This allows to
+   * compare type equality by calling {@link #equals(Object)}.
+   *
+   * <p>Note: Code outside of subclasses should always call {@link #getCanonicalType()} instead.
+   *
+   * @implNote When implementing this method, please strengthen the return type to the type itself
+   *     if possible. If this is possible, please also implement {@link #getCanonicalType()} with
+   *     the same return type. {@link CTypeQualifiers#union(CTypeQualifiers, CTypeQualifiers)} is
+   *     useful for handling qualifiers.
+   */
+  CType getCanonicalType(CTypeQualifiers qualifiersToAdd);
 
   /**
    * Implements assignment compatibility for simple assignments (=) as described in the constraints

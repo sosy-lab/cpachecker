@@ -207,11 +207,13 @@ public final class CSimpleType implements CType {
 
   @Override
   public CSimpleType getCanonicalType() {
-    return getCanonicalType(false, false);
+    return getCanonicalType(CTypeQualifiers.NONE);
   }
 
   @Override
-  public CSimpleType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+  public CSimpleType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    CTypeQualifiers newQualifiers = CTypeQualifiers.union(qualifiers, pQualifiersToAdd);
+
     CBasicType newType = type;
     if (newType == CBasicType.UNSPECIFIED) {
       newType = CBasicType.INT;
@@ -222,15 +224,12 @@ public final class CSimpleType implements CType {
       newIsSigned = true;
     }
 
-    if ((isConst() == pForceConst)
-        && (isVolatile() == pForceVolatile)
-        && (type == newType)
-        && (isSigned == newIsSigned)) {
+    if (qualifiers.equals(newQualifiers) && type == newType && isSigned == newIsSigned) {
       return this;
     }
 
     return new CSimpleType(
-        CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
+        newQualifiers,
         newType,
         isLong,
         isShort,

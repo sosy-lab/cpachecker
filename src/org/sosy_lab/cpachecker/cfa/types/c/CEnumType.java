@@ -163,20 +163,16 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public CEnumType getCanonicalType() {
-    return getCanonicalType(false, false);
+    return getCanonicalType(CTypeQualifiers.NONE);
   }
 
   @Override
-  public CEnumType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst() == pForceConst) && (isVolatile() == pForceVolatile)) {
+  public CEnumType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    CTypeQualifiers newQualifiers = CTypeQualifiers.union(qualifiers, pQualifiersToAdd);
+    if (qualifiers.equals(newQualifiers)) {
       return this;
     }
-    return new CEnumType(
-        CTypeQualifiers.create(isConst() || pForceConst, isVolatile() || pForceVolatile),
-        compatibleType,
-        enumerators,
-        name,
-        origName);
+    return new CEnumType(newQualifiers, compatibleType, enumerators, name, origName);
   }
 
   @Override

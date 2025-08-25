@@ -96,8 +96,8 @@ public enum CVoidType implements CType {
   }
 
   @Override
-  public CVoidType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return create(isConst() || pForceConst, isVolatile() || pForceVolatile);
+  public CVoidType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    return create(CTypeQualifiers.union(qualifiers, pQualifiersToAdd));
   }
 
   @Override

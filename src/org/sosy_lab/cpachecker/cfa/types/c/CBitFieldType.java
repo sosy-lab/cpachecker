@@ -93,13 +93,13 @@ public final class CBitFieldType implements CType {
   }
 
   @Override
-  public CType getCanonicalType() {
-    return getCanonicalType(false, false);
+  public CBitFieldType getCanonicalType() {
+    return getCanonicalType(CTypeQualifiers.NONE);
   }
 
   @Override
-  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    CType canonicalBitFieldType = type.getCanonicalType(pForceConst, pForceVolatile);
+  public CBitFieldType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    CType canonicalBitFieldType = type.getCanonicalType(pQualifiersToAdd);
     if (type == canonicalBitFieldType) {
       return this;
     }
