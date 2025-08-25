@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -548,16 +549,25 @@ public class UnseqBehaviorAnalysisTransferRelation
     Set<ConflictPair> newConflicts = new HashSet<>(pState.getDetectedConflicts());
     List<CRightHandSide> exprs = new ArrayList<>(sideEffectsPerSubExpr.keySet());
 
-    // function pointer:side effects in designator
-    Map<String, ImmutableSet<SideEffectInfo>> pointerFuncEffects = new HashMap<>();
-    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry :
-        pState.getSideEffectsInFun().entrySet()) {
-      if (entry.getKey().startsWith("POINTERFUNCTION_")) {
-        pointerFuncEffects.put(entry.getKey(), entry.getValue());
-      }
-    }
+    // detect conflicts among arguments
+    newConflicts.addAll(detectCrossArgumentConflicts(exprs, sideEffectsPerSubExpr, edge, pState));
 
-    // cross arguments
+    // detect conflicts between arguments and function pointer designators
+    newConflicts.addAll(
+        detectArgumentDesignatorConflicts(exprs, sideEffectsPerSubExpr, edge, pState));
+
+    return newConflicts;
+  }
+
+  /** Detects unsequenced conflicts among all pairs of function call arguments. */
+  private Set<ConflictPair> detectCrossArgumentConflicts(
+      List<CRightHandSide> exprs,
+      ImmutableMap<CRightHandSide, ImmutableSet<SideEffectInfo>> sideEffectsPerSubExpr,
+      CFAEdge edge,
+      UnseqBehaviorAnalysisState pState) {
+
+    Set<ConflictPair> conflicts = new HashSet<>();
+
     for (int i = 0; i < exprs.size(); i++) {
       for (int j = i + 1; j < exprs.size(); j++) {
         CRightHandSide expr1 = exprs.get(i);
@@ -568,22 +578,41 @@ public class UnseqBehaviorAnalysisTransferRelation
 
         logger.logf(
             Level.INFO,
-            "[CrossArgumentConflicts] Detected: Argument 1: (%s) ⊕ Argument 2: (%s) → Argument"
-                + " 1 Side Effects: %s → Argument 2 Side Effects: %s",
+            "[CrossArgumentConflicts] Detected: (%s) ⊕ (%s) → Effects1=%s vs Effects2=%s",
             UnseqUtils.replaceTmpInExpression(expr1, pState),
             UnseqUtils.replaceTmpInExpression(expr2, pState),
-            effects2,
-            effects1);
+            effects1,
+            effects2);
 
-        Set<ConflictPair> conflicts =
-            getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2, pState);
-        if (!conflicts.isEmpty()) {
-          newConflicts.addAll(conflicts);
-        }
+        conflicts.addAll(getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2, pState));
       }
     }
 
-    // cross arguments and designator
+    return conflicts;
+  }
+
+  /**
+   * Detects unsequenced conflicts between function pointer designator assumptions
+   * (POINTERFUNCTION_* entries) and function call arguments.
+   */
+  private Set<ConflictPair> detectArgumentDesignatorConflicts(
+      List<CRightHandSide> exprs,
+      ImmutableMap<CRightHandSide, ImmutableSet<SideEffectInfo>> sideEffectsPerSubExpr,
+      CFAEdge edge,
+      UnseqBehaviorAnalysisState pState) {
+
+    Set<ConflictPair> conflicts = new HashSet<>();
+
+    // collect all POINTERFUNCTION_* side effects
+    Map<String, ImmutableSet<SideEffectInfo>> pointerFuncEffects = new HashMap<>();
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry :
+        pState.getSideEffectsInFun().entrySet()) {
+      if (entry.getKey().startsWith("POINTERFUNCTION_")) {
+        pointerFuncEffects.put(entry.getKey(), entry.getValue());
+      }
+    }
+
+    // compare each POINTERFUNCTION_* effect set with each argument
     for (Map.Entry<String, ImmutableSet<SideEffectInfo>> pointerEntry :
         pointerFuncEffects.entrySet()) {
       String pointerKey = pointerEntry.getKey();
@@ -593,11 +622,15 @@ public class UnseqBehaviorAnalysisTransferRelation
         Set<SideEffectInfo> argEffects =
             sideEffectsPerSubExpr.getOrDefault(expr, ImmutableSet.of());
 
-        Set<ConflictPair> conflicts =
-            getUnsequencedConflicts(pointerEffects, argEffects, edge, expr, expr, pState);
+        // use a fake CStringLiteralExpression to represent POINTERFUNCTION_* as CExpression
+        CStringLiteralExpression fakeExpr =
+            new CStringLiteralExpression(expr.getFileLocation(), "\"" + pointerKey + "\"");
 
-        if (!conflicts.isEmpty()) {
-          newConflicts.addAll(conflicts);
+        Set<ConflictPair> localConflicts =
+            getUnsequencedConflicts(pointerEffects, argEffects, edge, fakeExpr, expr, pState);
+
+        if (!localConflicts.isEmpty()) {
+          conflicts.addAll(localConflicts);
           logger.logf(
               Level.INFO,
               "[CrossArgumentDesignatorConflicts] Detected: %s ⊕ %s → Effects=%s vs %s",
@@ -609,7 +642,7 @@ public class UnseqBehaviorAnalysisTransferRelation
       }
     }
 
-    return newConflicts;
+    return conflicts;
   }
 
   /**
