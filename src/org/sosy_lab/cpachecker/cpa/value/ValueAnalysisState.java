@@ -18,7 +18,6 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -697,7 +696,7 @@ public final class ValueAnalysisState
             MemoryLocation.parseExtendedQualifiedName(
                 statement.substring("deletevalues(".length(), statement.length() - 1));
 
-        if (contains(varName)) {
+        if (constantsMap.containsKey(varName)) {
           forget(varName);
         } else {
           // varname was not present in one of the maps
@@ -838,7 +837,7 @@ public final class ValueAnalysisState
     Set<MemoryLocation> difference = new HashSet<>();
 
     for (MemoryLocation variableName : other.constantsMap.keySet()) {
-      if (!contains(variableName)) {
+      if (!constantsMap.containsKey(variableName)) {
         difference.add(variableName);
 
       } else if (!getValueFor(variableName).equals(other.getValueFor(variableName))) {
@@ -856,7 +855,8 @@ public final class ValueAnalysisState
   }
 
   public Set<Entry<MemoryLocation, ValueAndType>> getConstants() {
-    return Collections.unmodifiableSet(constantsMap.entrySet());
+    // no copy necessary, set is immutable
+    return constantsMap.entrySet();
   }
 
   /**
@@ -892,14 +892,14 @@ public final class ValueAnalysisState
     final ValueAnalysisState rebuildState = ValueAnalysisState.copyOf(callState);
 
     // first forget all global information
-    for (final MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
-      if (!trackedVar.isOnFunctionStack()) { // global -> delete
+    for (final MemoryLocation trackedVar : callState.constantsMap.keySet()) {
+      if (!trackedVar.isOnFunctionStack()) { // not global -> delete
         rebuildState.forget(trackedVar);
       }
     }
 
     // second: learn new information
-    for (Entry<MemoryLocation, ValueAndType> e : getConstants()) {
+    for (Entry<MemoryLocation, ValueAndType> e : constantsMap.entrySet()) {
       final MemoryLocation trackedVar = e.getKey();
 
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
@@ -914,7 +914,7 @@ public final class ValueAnalysisState
               .equals(trackedVar.getExtendedQualifiedName())) {
         /*assert (!rebuildState.contains(trackedVar)) :
         "calling function should not contain return-variable of called function: " + trackedVar;*/
-        if (contains(trackedVar)) {
+        if (constantsMap.containsKey(trackedVar)) {
           rebuildState.assignConstant(trackedVar, e.getValue().getValue(), e.getValue().getType());
         }
       }
