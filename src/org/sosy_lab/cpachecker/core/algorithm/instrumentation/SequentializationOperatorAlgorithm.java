@@ -342,11 +342,6 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       operand2 = ((CCastExpression) operand2).getOperand();
     }
 
-    if (!(operand1 instanceof CBinaryExpression || operand1 instanceof CUnaryExpression)
-        && !(operand2 instanceof CBinaryExpression || operand2 instanceof CUnaryExpression)) {
-      return false;
-    }
-
     String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
     if (condition.contains("__CPAchecker_TMP")) {
       condition = "1";
