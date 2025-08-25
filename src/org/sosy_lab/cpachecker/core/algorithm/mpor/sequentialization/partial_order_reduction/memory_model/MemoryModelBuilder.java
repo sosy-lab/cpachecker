@@ -17,11 +17,13 @@ import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table.Cell;
 import com.google.common.collect.Tables;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -45,8 +47,8 @@ public class MemoryModelBuilder {
       return Optional.of(
           new MemoryModel(
               assignMemoryLocationIds(pAllMemoryLocations),
-              mapAllPointerAssignments(pSubstituteEdges),
-              mapPointerParameterAssignments(pSubstituteEdges)));
+              mapPointerAssignments(pSubstituteEdges),
+              mapPointerParameterAssignments(pSubstituteEdges, pAllMemoryLocations)));
     } else {
       return Optional.empty();
     }
@@ -65,8 +67,8 @@ public class MemoryModelBuilder {
 
   // Pointer Assignments ===========================================================================
 
-  private static ImmutableSetMultimap<CVariableDeclaration, MemoryLocation>
-      mapAllPointerAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+  private static ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> mapPointerAssignments(
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     ImmutableSetMultimap.Builder<CVariableDeclaration, MemoryLocation> rAllAssignments =
         ImmutableSetMultimap.builder();
@@ -79,7 +81,9 @@ public class MemoryModelBuilder {
   // Pointer Parameter Assignments =================================================================
 
   private static ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-      mapPointerParameterAssignments(ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+      mapPointerParameterAssignments(
+          ImmutableCollection<SubstituteEdge> pSubstituteEdges,
+          ImmutableSet<MemoryLocation> pAllMemoryLocations) {
 
     ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, MemoryLocation> rAssignments =
         ImmutableTable.builder();
@@ -89,7 +93,7 @@ public class MemoryModelBuilder {
         // the function call edge is used as the call context, not the actual call context
         ThreadEdge callContext = substituteEdge.getThreadEdge();
         ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> assignments =
-            buildParameterAssignments(callContext, functionCallEdge);
+            buildParameterAssignments(callContext, functionCallEdge, pAllMemoryLocations);
         for (Cell<ThreadEdge, CParameterDeclaration, MemoryLocation> cell : assignments) {
           rAssignments.put(cell);
         }
@@ -99,7 +103,10 @@ public class MemoryModelBuilder {
   }
 
   private static ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>>
-      buildParameterAssignments(ThreadEdge pCallContext, CFunctionCallEdge pFunctionCallEdge) {
+      buildParameterAssignments(
+          ThreadEdge pCallContext,
+          CFunctionCallEdge pFunctionCallEdge,
+          ImmutableSet<MemoryLocation> pAllMemoryLocations) {
 
     ImmutableList.Builder<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> rAssignments =
         ImmutableList.builder();
@@ -113,7 +120,8 @@ public class MemoryModelBuilder {
       CParameterDeclaration leftHandSide = parameterDeclarations.get(i);
       // TODO we also need non-pointers, e.g. for 'global_ptr = &non_ptr_param;'
       if (leftHandSide.getType() instanceof CPointerType) {
-        MemoryLocation rhsMemoryLocation = extractMemoryLocation(arguments.get(i));
+        MemoryLocation rhsMemoryLocation =
+            extractMemoryLocation(arguments.get(i), pAllMemoryLocations);
         if (!rhsMemoryLocation.isEmpty()) {
           rAssignments.add(Tables.immutableCell(pCallContext, leftHandSide, rhsMemoryLocation));
         }
@@ -122,34 +130,69 @@ public class MemoryModelBuilder {
     return rAssignments.build();
   }
 
-  private static MemoryLocation extractMemoryLocation(CExpression pRightHandSide) {
+  private static MemoryLocation extractMemoryLocation(
+      CExpression pRightHandSide, ImmutableSet<MemoryLocation> pAllMemoryLocations) {
+
     if (pRightHandSide instanceof CIdExpression idExpression) {
-      return MemoryLocation.of(idExpression.getDeclaration());
+      return getMemoryLocationByDeclaration(idExpression.getDeclaration(), pAllMemoryLocations);
 
     } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
       if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-        return MemoryLocation.of(idExpression.getDeclaration());
+        return getMemoryLocationByDeclaration(idExpression.getDeclaration(), pAllMemoryLocations);
 
       } else if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
-        return extractFieldReferenceMemoryLocation(fieldReference);
+        return extractFieldReferenceMemoryLocation(fieldReference, pAllMemoryLocations);
       }
 
     } else if (pRightHandSide instanceof CFieldReference fieldReference) {
-      return extractFieldReferenceMemoryLocation(fieldReference);
+      return extractFieldReferenceMemoryLocation(fieldReference, pAllMemoryLocations);
     }
     // can e.g. occur with 'param = 4' i.e. literal integer expressions
     return MemoryLocation.empty();
   }
 
   private static MemoryLocation extractFieldReferenceMemoryLocation(
-      CFieldReference pFieldReference) {
+      CFieldReference pFieldReference, ImmutableSet<MemoryLocation> pAllMemoryLocations) {
 
     if (pFieldReference.getFieldOwner().getExpressionType() instanceof CTypedefType typedefType) {
       CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
       CCompositeTypeMemberDeclaration fieldMember =
           MPORUtil.getFieldMemberByName(pFieldReference, typedefType);
-      return MemoryLocation.of(fieldOwner.getDeclaration(), fieldMember);
+      return getMemoryLocationByFieldReference(
+          fieldOwner.getDeclaration(), fieldMember, pAllMemoryLocations);
     }
     throw new IllegalArgumentException("pFieldReference owner type must be CTypedefType");
+  }
+
+  private static MemoryLocation getMemoryLocationByDeclaration(
+      CSimpleDeclaration pDeclaration, ImmutableSet<MemoryLocation> pAllMemoryLocations) {
+
+    for (MemoryLocation memoryLocation : pAllMemoryLocations) {
+      if (memoryLocation.variable.isPresent()) {
+        if (memoryLocation.variable.orElseThrow().equals(pDeclaration)) {
+          return memoryLocation;
+        }
+      }
+    }
+    throw new IllegalArgumentException("could not find pDeclaration in pAllMemoryDeclarations");
+  }
+
+  private static MemoryLocation getMemoryLocationByFieldReference(
+      CSimpleDeclaration pFieldOwner,
+      CCompositeTypeMemberDeclaration pFieldMember,
+      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
+
+    for (MemoryLocation memoryLocation : pAllMemoryLocations) {
+      if (memoryLocation.fieldMember.isPresent()) {
+        Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldMember =
+            memoryLocation.fieldMember.orElseThrow();
+        if (fieldMember.getKey().equals(pFieldOwner)) {
+          if (fieldMember.getValue().equals(pFieldMember)) {
+            return memoryLocation;
+          }
+        }
+      }
+    }
+    throw new IllegalArgumentException("could not find pDeclaration in pAllMemoryDeclarations");
   }
 }

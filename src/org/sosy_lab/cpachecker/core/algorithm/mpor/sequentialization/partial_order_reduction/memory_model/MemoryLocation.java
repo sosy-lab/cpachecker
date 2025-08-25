@@ -19,6 +19,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public class MemoryLocation {
 
+  // TODO add optional<thread> if the declaration is local (for naming purposes)
+
   public final Optional<CSimpleDeclaration> variable;
 
   public final Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
