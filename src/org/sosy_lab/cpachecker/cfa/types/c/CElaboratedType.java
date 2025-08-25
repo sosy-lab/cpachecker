@@ -98,14 +98,7 @@ public final class CElaboratedType implements CComplexType {
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
+    lASTString.append(qualifiers.toASTStringPrefix());
     lASTString.append(kind.toASTString());
     lASTString.append(" ");
     lASTString.append(name);

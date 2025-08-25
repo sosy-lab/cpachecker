@@ -50,6 +50,19 @@ public enum CTypeQualifiers {
     return isVolatile;
   }
 
+  /**
+   * Return a string representation of this set of qualifiers that can be used as part of a type.
+   * This includes a trailing space such that it can be directly prefixed to a base type.
+   */
+  String toASTStringPrefix() {
+    return switch (this) {
+      case NONE -> "";
+      case CONST -> "const ";
+      case VOLATILE -> "volatile ";
+      case CONST_VOLATILE -> "const volatile ";
+    };
+  }
+
   /** Returns an instance without const but all other qualifiers keeping their value. */
   public CTypeQualifiers withoutConst() {
     return withConstSetTo(false);

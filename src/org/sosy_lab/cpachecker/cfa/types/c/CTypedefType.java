@@ -46,11 +46,7 @@ public final class CTypedefType implements CType {
   @Override
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        + name
-        + " "
-        + pDeclarator;
+    return qualifiers.toASTStringPrefix() + name + " " + pDeclarator;
   }
 
   @Override

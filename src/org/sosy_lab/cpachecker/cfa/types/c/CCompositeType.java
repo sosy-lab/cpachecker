@@ -127,14 +127,7 @@ public final class CCompositeType implements CComplexType {
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
-
-    if (isConst()) {
-      result.append("const ");
-    }
-    if (isVolatile()) {
-      result.append("volatile ");
-    }
-
+    result.append(qualifiers.toASTStringPrefix());
     result.append(kind.toASTString());
     result.append(' ');
     result.append(name);
@@ -146,14 +139,7 @@ public final class CCompositeType implements CComplexType {
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
+    lASTString.append(qualifiers.toASTStringPrefix());
     lASTString.append(kind.toASTString());
     lASTString.append(' ');
     lASTString.append(name);

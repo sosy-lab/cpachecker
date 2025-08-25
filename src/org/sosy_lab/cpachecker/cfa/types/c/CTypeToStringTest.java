@@ -56,14 +56,14 @@ public class CTypeToStringTest {
         "int *var", new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT),
       },
       { // declare var as const volatile pointer to int
-        "int * const volatile var",
+        "int *const volatile var",
         new CPointerType(CTypeQualifiers.CONST_VOLATILE, CNumericTypes.INT),
       },
       { // declare var as pointer to const volatile int
         "const volatile int *var", new CPointerType(CTypeQualifiers.NONE, CONST_VOLATILE_INT),
       },
       { // declare var as const volatile pointer to const volatile int
-        "const volatile int * const volatile var",
+        "const volatile int *const volatile var",
         new CPointerType(CTypeQualifiers.CONST_VOLATILE, CONST_VOLATILE_INT),
       },
       { // declare var as array 1 of int
@@ -92,7 +92,7 @@ public class CTypeToStringTest {
             CIntegerLiteralExpression.ONE),
       },
       { // declare var as array 1 of const volatile pointer to int
-        "int * const volatile var[1]",
+        "int *const volatile var[1]",
         new CArrayType(
             CTypeQualifiers.NONE,
             new CPointerType(CTypeQualifiers.CONST_VOLATILE, CNumericTypes.INT),
@@ -106,7 +106,7 @@ public class CTypeToStringTest {
             CIntegerLiteralExpression.ONE),
       },
       { // declare var as array 1 of const volatile pointer to const volatile int
-        "const volatile int * const volatile var[1]",
+        "const volatile int *const volatile var[1]",
         new CArrayType(
             CTypeQualifiers.NONE,
             new CPointerType(CTypeQualifiers.CONST_VOLATILE, CONST_VOLATILE_INT),
@@ -119,7 +119,7 @@ public class CTypeToStringTest {
             new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, CIntegerLiteralExpression.ONE)),
       },
       { // declare var as const volatile pointer to array 1 of int
-        "int (* const volatile var)[1]",
+        "int (*const volatile var)[1]",
         new CPointerType(
             CTypeQualifiers.CONST_VOLATILE,
             new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, CIntegerLiteralExpression.ONE)),
@@ -132,7 +132,7 @@ public class CTypeToStringTest {
                 CTypeQualifiers.NONE, CONST_VOLATILE_INT, CIntegerLiteralExpression.ONE)),
       },
       { // declare var as const volatile pointer to array 1 of const volatile int
-        "const volatile int (* const volatile var)[1]",
+        "const volatile int (*const volatile var)[1]",
         new CPointerType(
             CTypeQualifiers.CONST_VOLATILE,
             new CArrayType(
@@ -146,7 +146,7 @@ public class CTypeToStringTest {
             false),
       },
       { // declare var as function (int) returning const volatile pointer to double
-        "double * const volatile var(int)",
+        "double *const volatile var(int)",
         new CFunctionType(
             new CPointerType(CTypeQualifiers.CONST_VOLATILE, CNumericTypes.DOUBLE),
             ImmutableList.of(CNumericTypes.INT),
@@ -170,7 +170,7 @@ public class CTypeToStringTest {
       },
       { // declare var as function (int) returning const volatile pointer to function (double)
         // returning void
-        "void (* const volatile var(int))(double)",
+        "void (*const volatile var(int))(double)",
         new CFunctionType(
             new CPointerType(
                 CTypeQualifiers.CONST_VOLATILE,

@@ -10,11 +10,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.errorprone.annotations.InlineMe;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This class represents the type "void". It does not allow any modifiers and has only a single
@@ -74,20 +70,9 @@ public enum CVoidType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
-    checkNotNull(pDeclarator);
-    List<String> parts = new ArrayList<>();
-
-    if (isConst()) {
-      parts.add("const");
-    }
-    if (isVolatile()) {
-      parts.add("volatile");
-    }
-
-    parts.add("void");
-    parts.add(Strings.emptyToNull(pDeclarator));
-
-    return Joiner.on(' ').skipNulls().join(parts);
+    return qualifiers.toASTStringPrefix()
+        + "void"
+        + (pDeclarator.isEmpty() ? "" : " " + pDeclarator);
   }
 
   @Override

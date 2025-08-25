@@ -53,9 +53,7 @@ public final class CPointerType implements CType {
 
   @Override
   public String toString() {
-    String decl = "(" + type + ")*";
-
-    return (isConst() ? "const " : "") + (isVolatile() ? "volatile " : "") + decl;
+    return qualifiers.toASTStringPrefix() + "(" + type + ")*";
   }
 
   @Override
@@ -64,15 +62,7 @@ public final class CPointerType implements CType {
     // ugly hack, but it works:
     // We need to insert the "*" and qualifiers between the type and the name (e.g. "int *var").
     StringBuilder inner = new StringBuilder("*");
-    if (isConst()) {
-      inner.append(" const");
-    }
-    if (isVolatile()) {
-      inner.append(" volatile");
-    }
-    if (inner.length() > 1) {
-      inner.append(' ');
-    }
+    inner.append(qualifiers.toASTStringPrefix());
     inner.append(pDeclarator);
 
     if (type instanceof CArrayType) {

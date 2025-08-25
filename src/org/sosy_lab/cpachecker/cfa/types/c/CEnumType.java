@@ -95,14 +95,7 @@ public final class CEnumType implements CComplexType {
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
+    lASTString.append(qualifiers.toASTStringPrefix());
     lASTString.append("enum ");
     lASTString.append(name);
 
@@ -116,7 +109,7 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public String toString() {
-    return (isConst() ? "const " : "") + (isVolatile() ? "volatile " : "") + "enum " + name;
+    return qualifiers.toASTStringPrefix() + "enum " + name;
   }
 
   @Override

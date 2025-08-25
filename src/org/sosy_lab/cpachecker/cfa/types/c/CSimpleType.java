@@ -170,13 +170,7 @@ public final class CSimpleType implements CType {
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     List<String> parts = new ArrayList<>();
-
-    if (isConst()) {
-      parts.add("const");
-    }
-    if (isVolatile()) {
-      parts.add("volatile");
-    }
+    parts.add(Strings.emptyToNull(qualifiers.toASTStringPrefix().trim()));
 
     if (isUnsigned) {
       parts.add("unsigned");

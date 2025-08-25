@@ -98,8 +98,7 @@ public final class CArrayType extends AArrayType implements CType {
 
   private String toASTString(String pDeclarator, AAstNodeRepresentation pAAstNodeRepresentation) {
     checkNotNull(pDeclarator);
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
+    return qualifiers.toASTStringPrefix()
         + getType()
             .toASTString(
                 pDeclarator
@@ -130,8 +129,7 @@ public final class CArrayType extends AArrayType implements CType {
 
   @Override
   public String toString() {
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
+    return qualifiers.toASTStringPrefix()
         + "("
         + getType()
         + (")[" + (length != null ? length.toASTString() : "") + "]");
