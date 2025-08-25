@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -232,7 +234,8 @@ public class UnseqBehaviorAnalysisTransferRelation
     ExpressionAnalysisSummary summary = callEdge.getFunctionCallExpression().accept(visitor);
     mergeConflicts(
         mergedConflicts,
-        detectCrossArgumentConflicts(summary.sideEffectsPerSubExpr(), callEdge, newState));
+        detectCrossArgumentAndDesignatorConflicts(
+            summary.sideEffectsPerSubExpr(), callEdge, newState));
 
     return new UnseqBehaviorAnalysisState(
         UnseqUtils.toImmutableSideEffectsMap(mergedSideEffects),
@@ -326,10 +329,12 @@ public class UnseqBehaviorAnalysisTransferRelation
   protected UnseqBehaviorAnalysisState handleAssumption(
       CAssumeEdge assumeEdge, CExpression expression, boolean truthValue)
       throws UnrecognizedCodeException {
+
     UnseqBehaviorAnalysisState newState = Objects.requireNonNull(state);
     Map<String, Set<SideEffectInfo>> mergedSideEffects =
         deepCopySideEffects(newState.getSideEffectsInFun());
     Set<ConflictPair> mergedConflicts = new HashSet<>(newState.getDetectedConflicts());
+    detectAndRecordSideEffectOfFunctionPointer(expression, assumeEdge, newState, mergedSideEffects);
 
     mergeSideEffects(
         mergedSideEffects,
@@ -353,6 +358,50 @@ public class UnseqBehaviorAnalysisTransferRelation
   @Override
   protected UnseqBehaviorAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     return Objects.requireNonNull(state);
+  }
+
+  private void detectAndRecordSideEffectOfFunctionPointer(
+      CExpression pExpression,
+      CFAEdge assumeEdge,
+      UnseqBehaviorAnalysisState newState,
+      Map<String, Set<SideEffectInfo>> mergedSideEffects)
+      throws UnrecognizedCodeException {
+
+    if (pExpression instanceof CBinaryExpression binExpr
+        && binExpr.getOperator() == CBinaryExpression.BinaryOperator.EQUALS) {
+
+      CExpression left = binExpr.getOperand1();
+      CExpression right = binExpr.getOperand2();
+
+      boolean rightIsFunAddress =
+          (right instanceof CUnaryExpression unary
+              && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+              && unary.getOperand() instanceof CIdExpression id
+              && id.getDeclaration() instanceof CFunctionDeclaration);
+
+      if (rightIsFunAddress) {
+        ExpressionBehaviorVisitor visitor =
+            new ExpressionBehaviorVisitor(newState, assumeEdge, AccessType.READ, logger);
+        ExpressionAnalysisSummary summary = left.accept(visitor);
+
+        Set<SideEffectInfo> effects = summary.sideEffects();
+        if (!effects.isEmpty()) {
+          String key = "POINTERFUNCTION_" + left.toASTString();
+
+          Map<String, Set<SideEffectInfo>> tmp = new HashMap<>();
+          tmp.put(key, new HashSet<>(effects));
+
+          mergeSideEffects(mergedSideEffects, tmp);
+
+          logger.logf(
+              Level.INFO,
+              "[PointerFunction] Recorded side effects for %s as key='%s': %s",
+              left.toASTString(),
+              key,
+              effects);
+        }
+      }
+    }
   }
 
   /**
@@ -468,20 +517,30 @@ public class UnseqBehaviorAnalysisTransferRelation
   }
 
   /**
-   * Detects unsequenced side-effect conflicts between pairs of function call arguments.
+   * Detects unsequenced side-effect conflicts between pairs of function call arguments and
+   * additional designator expressions.
    *
-   * <p>For each distinct pair of expressions in {@code sideEffectsPerSubExpr}, this method checks
-   * if their associated side effects are unsequenced and potentially conflicting. If so, {@link
-   * ConflictPair} instances are created and added to the result set.
+   * <p>This method performs conflict detection in two phases:
+   *
+   * <ul>
+   *   <li>For each distinct pair of function call arguments in {@code sideEffectsPerSubExpr}, it
+   *       checks whether their side effects are unsequenced and potentially conflicting.
+   *   <li>Additionally, it includes side effects recorded under {@code POINTERFUNCTION_*} keys in
+   *       the analysis stat and compares them against all arguments and each other.
+   * </ul>
+   *
+   * <p>If any conflicts are found, corresponding {@link ConflictPair} instances are created and
+   * added to the result set.
    *
    * @param sideEffectsPerSubExpr a mapping from each argument expression to its associated side
    *     effects
    * @param edge the CFA edge at which the potential unsequenced conflict occurs
-   * @param pState the current analysis state providing access to TMP mappings and logging
+   * @param pState the current analysis state providing access to side effects, TMP mappings, and
+   *     logging
    * @return a new {@link Set} of {@link ConflictPair} instances representing all detected
    *     conflicts, including those already present in {@code pState}
    */
-  private Set<ConflictPair> detectCrossArgumentConflicts(
+  private Set<ConflictPair> detectCrossArgumentAndDesignatorConflicts(
       ImmutableMap<CRightHandSide, ImmutableSet<SideEffectInfo>> sideEffectsPerSubExpr,
       CFAEdge edge,
       UnseqBehaviorAnalysisState pState) {
@@ -489,6 +548,16 @@ public class UnseqBehaviorAnalysisTransferRelation
     Set<ConflictPair> newConflicts = new HashSet<>(pState.getDetectedConflicts());
     List<CRightHandSide> exprs = new ArrayList<>(sideEffectsPerSubExpr.keySet());
 
+    // function pointer:side effects in designator
+    Map<String, ImmutableSet<SideEffectInfo>> pointerFuncEffects = new HashMap<>();
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry :
+        pState.getSideEffectsInFun().entrySet()) {
+      if (entry.getKey().startsWith("POINTERFUNCTION_")) {
+        pointerFuncEffects.put(entry.getKey(), entry.getValue());
+      }
+    }
+
+    // arguments
     for (int i = 0; i < exprs.size(); i++) {
       for (int j = i + 1; j < exprs.size(); j++) {
         CRightHandSide expr1 = exprs.get(i);
@@ -513,6 +582,33 @@ public class UnseqBehaviorAnalysisTransferRelation
         }
       }
     }
+
+    // arguments and designator
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> pointerEntry :
+        pointerFuncEffects.entrySet()) {
+      String pointerKey = pointerEntry.getKey();
+      Set<SideEffectInfo> pointerEffects = pointerEntry.getValue();
+
+      for (CRightHandSide expr : exprs) {
+        Set<SideEffectInfo> argEffects =
+            sideEffectsPerSubExpr.getOrDefault(expr, ImmutableSet.of());
+
+        Set<ConflictPair> conflicts =
+            getUnsequencedConflicts(pointerEffects, argEffects, edge, expr, expr, pState);
+
+        if (!conflicts.isEmpty()) {
+          newConflicts.addAll(conflicts);
+          logger.logf(
+              Level.INFO,
+              "[CrossArgumentDesignatorConflicts] Detected: %s ⊕ %s → Effects=%s vs %s",
+              pointerKey,
+              UnseqUtils.replaceTmpInExpression(expr, pState),
+              pointerEffects,
+              argEffects);
+        }
+      }
+    }
+
     return newConflicts;
   }
 
