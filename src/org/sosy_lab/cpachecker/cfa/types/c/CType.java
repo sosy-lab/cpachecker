@@ -167,8 +167,7 @@ public sealed interface CType extends Type
       }
 
       // Cf. C-Standard §6.5.16.1 (1), third and fourth constraint.
-      return (((leftPointedToType.isConst() || !rightPointedToType.isConst())
-              && (leftPointedToType.isVolatile() || !rightPointedToType.isVolatile()))
+      return (leftPointedToType.getQualifiers().containsAllOf(rightPointedToType.getQualifiers())
           && ((leftPointedToType instanceof CVoidType || rightPointedToType instanceof CVoidType)
               || CTypes.areTypesCompatible(
                   leftPointedToType.withoutQualifiers(), rightPointedToType.withoutQualifiers())));

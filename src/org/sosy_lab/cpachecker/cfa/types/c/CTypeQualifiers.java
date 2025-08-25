@@ -50,6 +50,10 @@ public enum CTypeQualifiers {
     return isVolatile;
   }
 
+  public boolean containsAllOf(CTypeQualifiers other) {
+    return union(this, other).equals(this);
+  }
+
   /**
    * Return a string representation of this set of qualifiers that can be used as part of a type.
    * This includes a trailing space such that it can be directly prefixed to a base type.
