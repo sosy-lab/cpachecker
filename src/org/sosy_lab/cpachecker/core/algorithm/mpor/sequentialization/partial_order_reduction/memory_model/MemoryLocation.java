@@ -19,10 +19,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class MemoryLocation {
 
-  // TODO add optional<thread> if the declaration is local (for naming purposes)
+  /**
+   * The thread that this memory location belongs to, if it is local. {@link Optional#empty()} if
+   * the memory location is global.
+   */
+  public final Optional<MPORThread> thread;
 
   public final Optional<CSimpleDeclaration> variable;
 
@@ -30,6 +35,7 @@ public class MemoryLocation {
       fieldMember;
 
   private MemoryLocation(
+      Optional<MPORThread> pThread,
       Optional<CSimpleDeclaration> pVariable,
       Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
           pFieldMember) {
@@ -37,24 +43,32 @@ public class MemoryLocation {
     checkArgument(
         pVariable.isEmpty() || pFieldMember.isEmpty(),
         "either pVariable or pFieldMember must be empty");
+    thread = pThread;
     variable = pVariable;
     fieldMember = pFieldMember;
+    // check after assignment that the thread is present, if the memory location is local
+    checkArgument(
+        thread.isEmpty() || !isGlobal(),
+        "if pThread is present, the memory location must be local");
   }
 
-  public static MemoryLocation of(CSimpleDeclaration pDeclaration) {
-    return new MemoryLocation(Optional.of(pDeclaration), Optional.empty());
+  public static MemoryLocation of(Optional<MPORThread> pThread, CSimpleDeclaration pDeclaration) {
+    return new MemoryLocation(pThread, Optional.of(pDeclaration), Optional.empty());
   }
 
   public static MemoryLocation of(
-      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+      Optional<MPORThread> pThread,
+      CSimpleDeclaration pFieldOwner,
+      CCompositeTypeMemberDeclaration pFieldMember) {
 
     return new MemoryLocation(
+        pThread,
         Optional.empty(),
         Optional.of(new AbstractMap.SimpleImmutableEntry<>(pFieldOwner, pFieldMember)));
   }
 
   public static MemoryLocation empty() {
-    return new MemoryLocation(Optional.empty(), Optional.empty());
+    return new MemoryLocation(Optional.empty(), Optional.empty(), Optional.empty());
   }
 
   public CSimpleDeclaration getSimpleDeclaration() {

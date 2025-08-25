@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Table.Cell;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -45,6 +46,22 @@ public class SubstituteUtil {
       ImmutableList<MPORSubstitution> pSubstitutions) {
 
     return pSubstitutions.stream().filter(s -> s.thread.isMain()).findAny().orElseThrow();
+  }
+
+  private static Optional<MPORThread> getThreadIfDeclarationIsLocal(
+      MPORThread pThread, CSimpleDeclaration pDeclaration) {
+
+    // treat variable
+    if (pDeclaration instanceof CVariableDeclaration variableDeclaration) {
+      if (!variableDeclaration.isGlobal()) {
+        return Optional.of(pThread);
+      }
+    }
+    // treat all parameter declarations as local
+    if (pDeclaration instanceof CParameterDeclaration) {
+      return Optional.of(pThread);
+    }
+    return Optional.empty();
   }
 
   /** Function and Type declarations are placed outside {@code main()}. */
@@ -82,38 +99,42 @@ public class SubstituteUtil {
   }
 
   static ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(
-      MPORSubstitutionTracker pTracker, MemoryAccessType pAccessType) {
+      MPORThread pThread, MPORSubstitutionTracker pTracker, MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rPointerDereferences = ImmutableSet.builder();
     for (CSimpleDeclaration pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
-      rPointerDereferences.add(MemoryLocation.of(pointerDereference));
+      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, pointerDereference);
+      rPointerDereferences.add(MemoryLocation.of(thread, pointerDereference));
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
         fieldReferencePointerDereferences =
             pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType);
     for (CSimpleDeclaration fieldOwner : fieldReferencePointerDereferences.keySet()) {
+      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, fieldOwner);
       for (CCompositeTypeMemberDeclaration fieldMember :
           fieldReferencePointerDereferences.get(fieldOwner)) {
-        rPointerDereferences.add(MemoryLocation.of(fieldOwner, fieldMember));
+        rPointerDereferences.add(MemoryLocation.of(thread, fieldOwner, fieldMember));
       }
     }
     return rPointerDereferences.build();
   }
 
   static ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
-      MPORSubstitutionTracker pTracker, MemoryAccessType pAccessType) {
+      MPORThread pThread, MPORSubstitutionTracker pTracker, MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (CVariableDeclaration variableDeclaration :
         pTracker.getVariablesByAccessType(pAccessType)) {
-      rMemoryLocations.add(MemoryLocation.of(variableDeclaration));
+      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, variableDeclaration);
+      rMemoryLocations.add(MemoryLocation.of(thread, variableDeclaration));
     }
     ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
         pTracker.getFieldMembersByAccessType(pAccessType);
     for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
+      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, fieldOwner);
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
-        rMemoryLocations.add(MemoryLocation.of(fieldOwner, fieldMember));
+        rMemoryLocations.add(MemoryLocation.of(thread, fieldOwner, fieldMember));
       }
     }
     return rMemoryLocations.build();
@@ -126,20 +147,22 @@ public class SubstituteUtil {
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
   public static ImmutableMap<CVariableDeclaration, MemoryLocation> mapPointerAssignments(
-      MPORSubstitutionTracker pTracker) {
+      MPORThread pThread, MPORSubstitutionTracker pTracker) {
 
     ImmutableMap.Builder<CVariableDeclaration, MemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      rAssignments.put(entry.getKey(), MemoryLocation.of(entry.getValue()));
+      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, entry.getValue());
+      rAssignments.put(entry.getKey(), MemoryLocation.of(thread, entry.getValue()));
     }
     ImmutableSet<Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
         cellSet = pTracker.getPointerFieldMemberAssignments().cellSet();
     for (Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration> cell :
         cellSet) {
+      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, cell.getColumnKey());
       rAssignments.put(
           Objects.requireNonNull(cell.getRowKey()),
-          MemoryLocation.of(cell.getColumnKey(), cell.getValue()));
+          MemoryLocation.of(thread, cell.getColumnKey(), cell.getValue()));
     }
     return rAssignments.buildOrThrow();
   }

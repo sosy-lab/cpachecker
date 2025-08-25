@@ -47,7 +47,7 @@ public class SubstituteEdgeBuilder {
         if (!rSubstituteEdges.containsKey(threadEdge)) {
           CFAEdge cfaEdge = threadEdge.cfaEdge;
           Optional<SubstituteEdge> substitute =
-              trySubstituteEdge(pOptions, substitution, threadEdge);
+              trySubstituteEdge(pOptions, substitution, thread, threadEdge);
           // if edge is not substituted: just use original edge
           rSubstituteEdges.put(
               threadEdge,
@@ -67,7 +67,10 @@ public class SubstituteEdgeBuilder {
    * declarations from the input program are included if specified by {@link MPOROptions}.
    */
   private static Optional<SubstituteEdge> trySubstituteEdge(
-      MPOROptions pOptions, MPORSubstitution pSubstitution, ThreadEdge pThreadEdge) {
+      MPOROptions pOptions,
+      MPORSubstitution pSubstitution,
+      MPORThread pThread,
+      ThreadEdge pThreadEdge) {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     Optional<ThreadEdge> callContext =
@@ -87,7 +90,8 @@ public class SubstituteEdgeBuilder {
                   variableDeclaration, callContext, Optional.of(tracker));
           CDeclarationEdge substituteDeclarationEdge =
               substituteDeclarationEdge(declarationEdge, declarationSubstitute);
-          return Optional.of(SubstituteEdge.of(substituteDeclarationEdge, pThreadEdge, tracker));
+          return Optional.of(
+              SubstituteEdge.of(pThread, substituteDeclarationEdge, pThreadEdge, tracker));
         }
       }
 
@@ -103,7 +107,7 @@ public class SubstituteEdgeBuilder {
               false,
               Optional.of(tracker));
       CAssumeEdge substituteAssumeEdge = substituteAssumeEdge(assume, substituteAssumption);
-      return Optional.of(SubstituteEdge.of(substituteAssumeEdge, pThreadEdge, tracker));
+      return Optional.of(SubstituteEdge.of(pThread, substituteAssumeEdge, pThreadEdge, tracker));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
@@ -111,7 +115,7 @@ public class SubstituteEdgeBuilder {
           pSubstitution.substitute(statement.getStatement(), callContext, Optional.of(tracker));
       CStatementEdge substituteStatementEdge =
           substituteStatementEdge(statement, substituteStatement);
-      return Optional.of(SubstituteEdge.of(substituteStatementEdge, pThreadEdge, tracker));
+      return Optional.of(SubstituteEdge.of(pThread, substituteStatementEdge, pThreadEdge, tracker));
 
     } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
@@ -121,7 +125,8 @@ public class SubstituteEdgeBuilder {
             pSubstitution.substitute(assignment, callContext, Optional.of(tracker));
         CFunctionSummaryEdge substituteFunctionSummaryEdge =
             substituteFunctionSummaryEdge(functionSummary, substituteAssignment);
-        return Optional.of(SubstituteEdge.of(substituteFunctionSummaryEdge, pThreadEdge, tracker));
+        return Optional.of(
+            SubstituteEdge.of(pThread, substituteFunctionSummaryEdge, pThreadEdge, tracker));
       }
 
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
@@ -134,7 +139,8 @@ public class SubstituteEdgeBuilder {
           : "substitute function call must be CFunctionCall";
       CFunctionCallEdge substituteFunctionCallEdge =
           substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall);
-      return Optional.of(SubstituteEdge.of(substituteFunctionCallEdge, pThreadEdge, tracker));
+      return Optional.of(
+          SubstituteEdge.of(pThread, substituteFunctionCallEdge, pThreadEdge, tracker));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
@@ -143,7 +149,8 @@ public class SubstituteEdgeBuilder {
               returnStatement.getReturnStatement(), callContext, Optional.of(tracker));
       CReturnStatementEdge substituteReturnStatementEdge =
           substituteReturnStatementEdge(returnStatement, substituteReturnStatement);
-      return Optional.of(SubstituteEdge.of(substituteReturnStatementEdge, pThreadEdge, tracker));
+      return Optional.of(
+          SubstituteEdge.of(pThread, substituteReturnStatementEdge, pThreadEdge, tracker));
     }
     return Optional.empty();
   }
