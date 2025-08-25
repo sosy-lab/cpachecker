@@ -8,17 +8,27 @@
 
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
+import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.MapsDifference;
+import org.sosy_lab.common.collect.MapsDifference.Visitor;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.collect.PersistentSortedMaps;
+import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -98,31 +108,28 @@ public final class ValueAnalysisInterpolant
       return ValueAnalysisInterpolant.FALSE;
     }
 
-    // add other itp mapping - one by one for now, to check for correctness
-    // newAssignment.putAll(other.assignment);
-    PersistentMap<MemoryLocation, ValueAndType> newAssignment = assignment;
     int newAssignmentsSize = assignmentsSize;
     int newNumberOfGlobalConstantsInAssignment = numberOfGlobalConstantsInAssignment;
     int newNumberOfSymbolicConstantsInAssignment = numberOfSymbolicConstants;
-    for (Entry<MemoryLocation, ValueAndType> entry : other.assignment.entrySet()) {
-      // TODO: the complexity of this can be improved
-      if (newAssignment.containsKey(entry.getKey())) {
-        assert entry.getValue().equals(other.assignment.get(entry.getKey()))
-            : "interpolants mismatch in " + entry.getKey();
-      } else {
-        newAssignmentsSize++;
-        if (!entry.getKey().isOnFunctionStack()) {
-          newNumberOfGlobalConstantsInAssignment++;
-        }
-        if (entry.getValue().getValue() instanceof SymbolicValue) {
-          newNumberOfSymbolicConstantsInAssignment++;
-        }
-      }
-      newAssignment = newAssignment.putAndCopy(entry.getKey(), entry.getValue());
 
-      assert Objects.equals(
-              entry.getValue().getType(), other.assignment.get(entry.getKey()).getType())
-          : "interpolants mismatch in " + entry.getKey();
+    List<MapsDifference.Entry<MemoryLocation, ValueAndType>> additions = new ArrayList<>();
+    PersistentMap<MemoryLocation, ValueAndType> newAssignment =
+        PersistentSortedMaps.merge(
+            (PathCopyingPersistentTreeMap<MemoryLocation, ValueAndType>) assignment,
+            (PathCopyingPersistentTreeMap<MemoryLocation, ValueAndType>) other.assignment,
+            Equivalence.equals(),
+            getLenientMergeConflictHandler(),
+            collectOtherAdditions(additions));
+
+    for (MapsDifference.Entry<MemoryLocation, ValueAndType> addition : additions) {
+      checkArgument(addition.getLeftValue().isEmpty());
+      newAssignmentsSize++;
+      if (!addition.getKey().isOnFunctionStack()) {
+        newNumberOfGlobalConstantsInAssignment++;
+      }
+      if (addition.getRightValue().orElseThrow().getValue() instanceof SymbolicValue) {
+        newNumberOfSymbolicConstantsInAssignment++;
+      }
     }
 
     return new ValueAnalysisInterpolant(
@@ -130,6 +137,36 @@ public final class ValueAnalysisInterpolant
         newAssignmentsSize,
         newNumberOfGlobalConstantsInAssignment,
         newNumberOfSymbolicConstantsInAssignment);
+  }
+
+  public static MergeConflictHandler<
+          org.sosy_lab.cpachecker.util.states.MemoryLocation, ValueAnalysisState.ValueAndType>
+      getLenientMergeConflictHandler() {
+    return (key, value1, value2) -> {
+      assert value1.equals(value2)
+          : "interpolants mismatch " + value1 + " and " + value2 + " for " + key;
+      return value2;
+    };
+  }
+
+  public static <K, V> Visitor<K, V> collectOtherAdditions(
+      Collection<MapsDifference.Entry<K, V>> target) {
+    checkNotNull(target);
+    return new Visitor<>() {
+      @Override
+      public void leftValueOnly(K pKey, V pLeftValue) {}
+
+      @Override
+      public void rightValueOnly(K pKey, V pRightValue) {
+        target.add(MapsDifference.Entry.forRightValueOnly(pKey, pRightValue));
+      }
+
+      @Override
+      public void differingValues(K pKey, V pLeftValue, V pRightValue) {
+        // Might be useful in the future
+        // target.add(MapsDifference.Entry.forDifferingValues(pKey, pLeftValue, pRightValue));
+      }
+    };
   }
 
   @Override
