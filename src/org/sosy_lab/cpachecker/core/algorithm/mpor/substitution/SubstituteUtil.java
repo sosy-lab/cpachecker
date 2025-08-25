@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -47,22 +48,6 @@ public class SubstituteUtil {
       ImmutableList<MPORSubstitution> pSubstitutions) {
 
     return pSubstitutions.stream().filter(s -> s.thread.isMain()).findAny().orElseThrow();
-  }
-
-  private static Optional<MPORThread> getThreadIfDeclarationIsLocal(
-      MPORThread pThread, CSimpleDeclaration pDeclaration) {
-
-    // treat variable
-    if (pDeclaration instanceof CVariableDeclaration variableDeclaration) {
-      if (!variableDeclaration.isGlobal()) {
-        return Optional.of(pThread);
-      }
-    }
-    // treat all parameter declarations as local
-    if (pDeclaration instanceof CParameterDeclaration) {
-      return Optional.of(pThread);
-    }
-    return Optional.empty();
   }
 
   /** Function and Type declarations are placed outside {@code main()}. */
@@ -113,19 +98,21 @@ public class SubstituteUtil {
     ImmutableSet.Builder<MemoryLocation> rPointerDereferences = ImmutableSet.builder();
     for (CSimpleDeclaration pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
-      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, pointerDereference);
-      rPointerDereferences.add(
-          MemoryLocation.of(pOptions, thread, pCallContext, pointerDereference));
+      MemoryLocation memoryLocation =
+          MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
+              pOptions, pThread, pCallContext, pointerDereference);
+      rPointerDereferences.add(memoryLocation);
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
         fieldReferencePointerDereferences =
             pTracker.getFieldReferencePointerDereferencesByAccessType(pAccessType);
     for (CSimpleDeclaration fieldOwner : fieldReferencePointerDereferences.keySet()) {
-      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, fieldOwner);
       for (CCompositeTypeMemberDeclaration fieldMember :
           fieldReferencePointerDereferences.get(fieldOwner)) {
-        rPointerDereferences.add(
-            MemoryLocation.of(pOptions, thread, pCallContext, fieldOwner, fieldMember));
+        MemoryLocation memoryLocation =
+            MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
+                pOptions, pThread, pCallContext, fieldOwner, fieldMember);
+        rPointerDereferences.add(memoryLocation);
       }
     }
     return rPointerDereferences.build();
@@ -141,16 +128,19 @@ public class SubstituteUtil {
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (CVariableDeclaration variableDeclaration :
         pTracker.getVariablesByAccessType(pAccessType)) {
-      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, variableDeclaration);
-      rMemoryLocations.add(MemoryLocation.of(pOptions, thread, pCallContext, variableDeclaration));
+      MemoryLocation memoryLocation =
+          MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
+              pOptions, pThread, pCallContext, variableDeclaration);
+      rMemoryLocations.add(memoryLocation);
     }
     ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
         pTracker.getFieldMembersByAccessType(pAccessType);
     for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
-      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, fieldOwner);
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
-        rMemoryLocations.add(
-            MemoryLocation.of(pOptions, thread, pCallContext, fieldOwner, fieldMember));
+        MemoryLocation memoryLocation =
+            MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
+                pOptions, pThread, pCallContext, fieldOwner, fieldMember);
+        rMemoryLocations.add(memoryLocation);
       }
     }
     return rMemoryLocations.build();
@@ -171,18 +161,19 @@ public class SubstituteUtil {
     ImmutableMap.Builder<CVariableDeclaration, MemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, entry.getValue());
-      rAssignments.put(
-          entry.getKey(), MemoryLocation.of(pOptions, thread, pCallContext, entry.getValue()));
+      MemoryLocation memoryLocation =
+          MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
+              pOptions, pThread, pCallContext, entry.getValue());
+      rAssignments.put(entry.getKey(), memoryLocation);
     }
     ImmutableSet<Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
         cellSet = pTracker.getPointerFieldMemberAssignments().cellSet();
     for (Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration> cell :
         cellSet) {
-      Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, cell.getColumnKey());
-      rAssignments.put(
-          Objects.requireNonNull(cell.getRowKey()),
-          MemoryLocation.of(pOptions, thread, pCallContext, cell.getColumnKey(), cell.getValue()));
+      MemoryLocation memoryLocation =
+          MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
+              pOptions, pThread, pCallContext, cell.getColumnKey(), cell.getValue());
+      rAssignments.put(Objects.requireNonNull(cell.getRowKey()), memoryLocation);
     }
     return rAssignments.buildOrThrow();
   }

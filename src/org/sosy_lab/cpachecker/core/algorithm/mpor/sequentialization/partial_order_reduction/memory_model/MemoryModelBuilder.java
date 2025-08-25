@@ -53,25 +53,26 @@ public class MemoryModelBuilder {
           pointerParameterAssignments =
               mapPointerParameterAssignments(
                   pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
-      return Optional.of(
-          buildMemoryModel(pointerParameterAssignments, pInitialMemoryLocations, pSubstituteEdges));
+      ImmutableCollection<MemoryLocation> newMemoryLocations = pointerParameterAssignments.values();
+
+      ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
+          assignMemoryLocationIds(pInitialMemoryLocations, newMemoryLocations);
+      ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
+          mapPointerAssignments(pSubstituteEdges);
+      ImmutableSet<MemoryLocation> pointerDereferences =
+          getAllPointerDereferences(pSubstituteEdges);
+
+      MemoryModel memoryModel =
+          new MemoryModel(
+              memoryLocationIds,
+              pointerAssignments,
+              pointerParameterAssignments,
+              pointerDereferences);
+      return Optional.of(memoryModel);
+
     } else {
       return Optional.empty();
     }
-  }
-
-  public static MemoryModel buildMemoryModel(
-      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-          pPointerParameterAssignments,
-      ImmutableSet<MemoryLocation> pInitialMemoryLocations,
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
-    ImmutableCollection<MemoryLocation> newMemoryLocations = pPointerParameterAssignments.values();
-    return new MemoryModel(
-        assignMemoryLocationIds(pInitialMemoryLocations, newMemoryLocations),
-        mapPointerAssignments(pSubstituteEdges),
-        pPointerParameterAssignments,
-        getAllPointerDereferences(pSubstituteEdges));
   }
 
   private static ImmutableMap<MemoryLocation, Integer> assignMemoryLocationIds(
@@ -231,8 +232,7 @@ public class MemoryModelBuilder {
         }
       }
     }
-    return MemoryLocation.of(
-        pOptions, Optional.of(pThread), Optional.of(pCallContext), pDeclaration);
+    return MemoryLocation.of(pOptions, pThread, Optional.of(pCallContext), pDeclaration);
   }
 
   private static MemoryLocation getMemoryLocationByFieldReference(
@@ -256,12 +256,11 @@ public class MemoryModelBuilder {
     }
     if (pFieldOwner instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.isGlobal()) {
-        return MemoryLocation.of(
-            pOptions, Optional.empty(), Optional.of(pCallContext), pFieldOwner, pFieldMember);
+        return MemoryLocation.of(Optional.of(pCallContext), pFieldOwner, pFieldMember);
       }
     }
     return MemoryLocation.of(
-        pOptions, Optional.of(pThread), Optional.of(pCallContext), pFieldOwner, pFieldMember);
+        pOptions, pThread, Optional.of(pCallContext), pFieldOwner, pFieldMember);
   }
 
   // Pointer Dereferences ==========================================================================

@@ -20,11 +20,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqNameUtil {
 
   public static String buildThreadKVariable(int pThreadId) {
     return SeqToken.K + pThreadId;
+  }
+
+  public static String buildThreadPrefix(MPOROptions pOptions, Optional<MPORThread> pThread) {
+    if (pThread.isEmpty()) {
+      return SeqSyntax.EMPTY_STRING;
+    }
+    return buildThreadPrefix(pOptions, pThread.orElseThrow().id);
   }
 
   public static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {

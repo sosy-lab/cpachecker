@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import java.math.BigInteger;
 import org.junit.Test;
@@ -84,12 +86,13 @@ public class MemoryModelTest {
 
   private final CIdExpression pointer = new CIdExpression(FileLocation.DUMMY, pointerDeclaration);
 
+  // Memory Locations
+
   @Test
   public void testPointerAssignment() {
-    // TODO
     MemoryModel testMemoryModel =
-        MemoryModelBuilder.buildMemoryModel(
-            ImmutableTable.of(), ImmutableSet.of(), ImmutableSet.of());
+        new MemoryModel(
+            ImmutableMap.of(), ImmutableSetMultimap.of(), ImmutableTable.of(), ImmutableSet.of());
     assertThat(testMemoryModel).isNotNull();
   }
 }

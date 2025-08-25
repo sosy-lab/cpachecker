@@ -36,7 +36,8 @@ public class MemoryModel {
 
   private final ImmutableSet<MemoryLocation> pointerDereferences;
 
-  MemoryModel(
+  // public constructor for unit tests
+  public MemoryModel(
       ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
       ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
