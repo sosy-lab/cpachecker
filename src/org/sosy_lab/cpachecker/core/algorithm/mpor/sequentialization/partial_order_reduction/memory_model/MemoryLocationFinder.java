@@ -34,8 +34,12 @@ public class MemoryLocationFinder {
       MemoryModel pMemoryModel,
       SeqThreadStatementBlock pBlock) {
 
-    return !findDirectMemoryLocationsByAccessType(
-            pLabelBlockMap, pMemoryModel, pBlock, MemoryAccessType.ACCESS)
+    ImmutableSet<MemoryLocation> memoryLocations =
+        findDirectMemoryLocationsByAccessType(
+            pLabelBlockMap, pMemoryModel, pBlock, MemoryAccessType.ACCESS);
+    return !memoryLocations.stream()
+        .filter(MemoryLocation::isGlobal)
+        .collect(ImmutableSet.toImmutableSet())
         .isEmpty();
   }
 

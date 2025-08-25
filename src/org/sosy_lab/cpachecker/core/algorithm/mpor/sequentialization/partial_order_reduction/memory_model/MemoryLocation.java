@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
@@ -31,6 +34,9 @@ public class MemoryLocation {
       Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
           pFieldMember) {
 
+    checkArgument(
+        pVariable.isEmpty() || pFieldMember.isEmpty(),
+        "either pVariable or pFieldMember must be empty");
     variable = pVariable;
     fieldMember = pFieldMember;
   }
@@ -72,6 +78,20 @@ public class MemoryLocation {
 
   public boolean isEmpty() {
     return variable.isEmpty() && fieldMember.isEmpty();
+  }
+
+  public boolean isGlobal() {
+    if (variable.isPresent()) {
+      if (variable.orElseThrow() instanceof CVariableDeclaration variableDeclaration) {
+        return variableDeclaration.isGlobal();
+      }
+    }
+    if (fieldMember.isPresent()) {
+      if (fieldMember.orElseThrow().getKey() instanceof CVariableDeclaration variableDeclaration) {
+        return variableDeclaration.isGlobal();
+      }
+    }
+    return false;
   }
 
   @Override

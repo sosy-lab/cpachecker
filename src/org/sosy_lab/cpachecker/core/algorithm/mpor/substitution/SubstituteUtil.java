@@ -75,18 +75,8 @@ public class SubstituteUtil {
     Set<MemoryLocation> rMemoryLocations = new HashSet<>();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rMemoryLocations.addAll(substituteEdge.accessedMemoryLocations);
-    }
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      for (MemoryLocation memoryLocation : substituteEdge.pointerAssignments.values()) {
-        // ensure that all mem locations in pointer assignments are present
-        assert rMemoryLocations.contains(memoryLocation)
-            : "could not find memoryLocation from pointer assignment in rMemoryLocations";
-      }
-      for (MemoryLocation memoryLocation : substituteEdge.accessedPointerDereferences) {
-        // ensure that all mem locations in pointer dereferences are present
-        assert rMemoryLocations.contains(memoryLocation)
-            : "could not find memoryLocation from pointer dereference in rMemoryLocations";
-      }
+      rMemoryLocations.addAll(substituteEdge.pointerAssignments.values());
+      rMemoryLocations.addAll(substituteEdge.accessedPointerDereferences);
     }
     return ImmutableSet.copyOf(rMemoryLocations);
   }
