@@ -143,7 +143,8 @@ public class MemoryModelBuilder {
       // TODO we also need non-pointers, e.g. for 'global_ptr = &non_ptr_param;'
       if (leftHandSide.getType() instanceof CPointerType) {
         MemoryLocation rhsMemoryLocation =
-            extractMemoryLocation(pOptions, pThread, arguments.get(i), pInitialMemoryLocations);
+            extractMemoryLocation(
+                pOptions, pThread, pCallContext, arguments.get(i), pInitialMemoryLocations);
         if (!rhsMemoryLocation.isEmpty()) {
           rAssignments.add(Tables.immutableCell(pCallContext, leftHandSide, rhsMemoryLocation));
         }
@@ -155,26 +156,31 @@ public class MemoryModelBuilder {
   private static MemoryLocation extractMemoryLocation(
       MPOROptions pOptions,
       MPORThread pThread,
+      ThreadEdge pCallContext,
       CExpression pRightHandSide,
       ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
     if (pRightHandSide instanceof CIdExpression idExpression) {
       return getMemoryLocationByDeclaration(
-          pOptions, pThread, idExpression.getDeclaration(), pInitialMemoryLocations);
+          pOptions, pThread, pCallContext, idExpression.getDeclaration(), pInitialMemoryLocations);
 
     } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
       if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
         return getMemoryLocationByDeclaration(
-            pOptions, pThread, idExpression.getDeclaration(), pInitialMemoryLocations);
+            pOptions,
+            pThread,
+            pCallContext,
+            idExpression.getDeclaration(),
+            pInitialMemoryLocations);
 
       } else if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
         return extractFieldReferenceMemoryLocation(
-            pOptions, pThread, fieldReference, pInitialMemoryLocations);
+            pOptions, pThread, pCallContext, fieldReference, pInitialMemoryLocations);
       }
 
     } else if (pRightHandSide instanceof CFieldReference fieldReference) {
       return extractFieldReferenceMemoryLocation(
-          pOptions, pThread, fieldReference, pInitialMemoryLocations);
+          pOptions, pThread, pCallContext, fieldReference, pInitialMemoryLocations);
     }
     // can e.g. occur with 'param = 4' i.e. literal integer expressions
     return MemoryLocation.empty();
@@ -183,6 +189,7 @@ public class MemoryModelBuilder {
   private static MemoryLocation extractFieldReferenceMemoryLocation(
       MPOROptions pOptions,
       MPORThread pThread,
+      ThreadEdge pCallContext,
       CFieldReference pFieldReference,
       ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
@@ -191,7 +198,12 @@ public class MemoryModelBuilder {
       CCompositeTypeMemberDeclaration fieldMember =
           MPORUtil.getFieldMemberByName(pFieldReference, typedefType);
       return getMemoryLocationByFieldReference(
-          pOptions, pThread, fieldOwner.getDeclaration(), fieldMember, pInitialMemoryLocations);
+          pOptions,
+          pThread,
+          pCallContext,
+          fieldOwner.getDeclaration(),
+          fieldMember,
+          pInitialMemoryLocations);
     }
     throw new IllegalArgumentException("pFieldReference owner type must be CTypedefType");
   }
@@ -199,6 +211,7 @@ public class MemoryModelBuilder {
   private static MemoryLocation getMemoryLocationByDeclaration(
       MPOROptions pOptions,
       MPORThread pThread,
+      ThreadEdge pCallContext,
       CSimpleDeclaration pDeclaration,
       ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
@@ -209,12 +222,14 @@ public class MemoryModelBuilder {
         }
       }
     }
-    return MemoryLocation.of(pOptions, Optional.of(pThread), pDeclaration);
+    return MemoryLocation.of(
+        pOptions, Optional.of(pThread), Optional.of(pCallContext), pDeclaration);
   }
 
   private static MemoryLocation getMemoryLocationByFieldReference(
       MPOROptions pOptions,
       MPORThread pThread,
+      ThreadEdge pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember,
       ImmutableSet<MemoryLocation> pAllMemoryLocations) {
@@ -232,10 +247,12 @@ public class MemoryModelBuilder {
     }
     if (pFieldOwner instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.isGlobal()) {
-        return MemoryLocation.of(pOptions, Optional.empty(), pFieldOwner, pFieldMember);
+        return MemoryLocation.of(
+            pOptions, Optional.empty(), Optional.of(pCallContext), pFieldOwner, pFieldMember);
       }
     }
-    return MemoryLocation.of(pOptions, Optional.of(pThread), pFieldOwner, pFieldMember);
+    return MemoryLocation.of(
+        pOptions, Optional.of(pThread), Optional.of(pCallContext), pFieldOwner, pFieldMember);
   }
 
   // Pointer Dereferences ==========================================================================

@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -115,13 +114,14 @@ public class MemoryModel {
       }
     }
     for (MemoryLocation pointerDereference : pointerDereferences) {
-      // TODO call context?
-      ImmutableSet<MemoryLocation> memoryLocations =
-          MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-              pointerDereference, Optional.empty(), this);
-      for (MemoryLocation memoryLocation : memoryLocations) {
-        if (memoryLocation.isGlobal()) {
-          return true;
+      if (pointerDereference.equals(pMemoryLocation)) {
+        ImmutableSet<MemoryLocation> memoryLocations =
+            MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+                pointerDereference, pMemoryLocation.callContext, this);
+        for (MemoryLocation memoryLocation : memoryLocations) {
+          if (memoryLocation.isGlobal()) {
+            return true;
+          }
         }
       }
     }

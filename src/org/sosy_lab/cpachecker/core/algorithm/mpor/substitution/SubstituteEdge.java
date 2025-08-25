@@ -129,15 +129,15 @@ public class SubstituteEdge {
         pCfaEdge,
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
-        SubstituteUtil.mapPointerAssignments(pOptions, pThread, pTracker),
+        SubstituteUtil.mapPointerAssignments(pOptions, pThread, pThreadEdge.callContext, pTracker),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pOptions, pThread, pTracker, MemoryAccessType.ACCESS),
+            pOptions, pThread, pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pOptions, pThread, pTracker, MemoryAccessType.WRITE),
+            pOptions, pThread, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE),
         SubstituteUtil.getMemoryLocationsByAccessType(
-            pOptions, pThread, pTracker, MemoryAccessType.ACCESS),
+            pOptions, pThread, pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
         SubstituteUtil.getMemoryLocationsByAccessType(
-            pOptions, pThread, pTracker, MemoryAccessType.WRITE),
+            pOptions, pThread, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE),
         pTracker.getAccessedFunctionPointers());
   }
 
