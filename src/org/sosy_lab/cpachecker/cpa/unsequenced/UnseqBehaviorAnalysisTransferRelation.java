@@ -557,7 +557,7 @@ public class UnseqBehaviorAnalysisTransferRelation
       }
     }
 
-    // arguments
+    // cross arguments
     for (int i = 0; i < exprs.size(); i++) {
       for (int j = i + 1; j < exprs.size(); j++) {
         CRightHandSide expr1 = exprs.get(i);
@@ -583,7 +583,7 @@ public class UnseqBehaviorAnalysisTransferRelation
       }
     }
 
-    // arguments and designator
+    // cross arguments and designator
     for (Map.Entry<String, ImmutableSet<SideEffectInfo>> pointerEntry :
         pointerFuncEffects.entrySet()) {
       String pointerKey = pointerEntry.getKey();
