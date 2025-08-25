@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
 /** Full precision. Tracks all constraints at every location. */
-public final class FullConstraintsPrecision implements ConstraintsPrecision {
+public class FullConstraintsPrecision implements ConstraintsPrecision {
 
   public static FullConstraintsPrecision getInstance() {
     return new FullConstraintsPrecision();
@@ -22,13 +22,8 @@ public final class FullConstraintsPrecision implements ConstraintsPrecision {
     // DO NOTHING
   }
 
-  public boolean tracksAllAlways() {
-    return true;
-  }
-
   @Override
   public boolean isTracked(final Constraint pConstraint, final CFANode pNode) {
-    // This single result is communicated in tracksAllAlways
     return true;
   }
 
