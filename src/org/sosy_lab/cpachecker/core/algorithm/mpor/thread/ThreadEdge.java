@@ -19,6 +19,10 @@ public class ThreadEdge {
 
   private static int currentId = 0;
 
+  private static int getNewId() {
+    return currentId++;
+  }
+
   public final int id;
 
   public final int threadId;
@@ -33,7 +37,7 @@ public class ThreadEdge {
   private ThreadNode successor = null;
 
   public ThreadEdge(int pThreadId, CFAEdge pCfaEdge, Optional<ThreadEdge> pCallContext) {
-    id = currentId++;
+    id = getNewId();
     threadId = pThreadId;
     cfaEdge = pCfaEdge;
     callContext = pCallContext;

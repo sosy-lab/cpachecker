@@ -136,6 +136,7 @@ public class MemoryLocation {
   public int hashCode() {
     return Objects.hash(
         threadPrefix,
+        // consider the call context only if it is a parameter memory location
         (isParameter ? callContext : null),
         isGlobal,
         isParameter,

@@ -21,6 +21,10 @@ public class ThreadNode {
 
   private static int currentId = 0;
 
+  private static int getNewId() {
+    return currentId++;
+  }
+
   public final int id;
 
   public final int threadId;
@@ -47,7 +51,7 @@ public class ThreadNode {
       List<ThreadEdge> pLeavingEdges,
       boolean pIsInAtomicBlock) {
 
-    id = currentId++;
+    id = getNewId();
     threadId = pThreadId;
     cfaNode = pCfaNode;
     pc = pPc;

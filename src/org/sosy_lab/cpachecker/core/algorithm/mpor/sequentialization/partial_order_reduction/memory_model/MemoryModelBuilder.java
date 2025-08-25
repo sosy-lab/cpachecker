@@ -53,16 +53,25 @@ public class MemoryModelBuilder {
           pointerParameterAssignments =
               mapPointerParameterAssignments(
                   pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
-      ImmutableCollection<MemoryLocation> newMemoryLocations = pointerParameterAssignments.values();
       return Optional.of(
-          new MemoryModel(
-              assignMemoryLocationIds(pInitialMemoryLocations, newMemoryLocations),
-              mapPointerAssignments(pSubstituteEdges),
-              pointerParameterAssignments,
-              getAllPointerDereferences(pSubstituteEdges)));
+          buildMemoryModel(pointerParameterAssignments, pInitialMemoryLocations, pSubstituteEdges));
     } else {
       return Optional.empty();
     }
+  }
+
+  public static MemoryModel buildMemoryModel(
+      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
+          pPointerParameterAssignments,
+      ImmutableSet<MemoryLocation> pInitialMemoryLocations,
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
+    ImmutableCollection<MemoryLocation> newMemoryLocations = pPointerParameterAssignments.values();
+    return new MemoryModel(
+        assignMemoryLocationIds(pInitialMemoryLocations, newMemoryLocations),
+        mapPointerAssignments(pSubstituteEdges),
+        pPointerParameterAssignments,
+        getAllPointerDereferences(pSubstituteEdges));
   }
 
   private static ImmutableMap<MemoryLocation, Integer> assignMemoryLocationIds(
