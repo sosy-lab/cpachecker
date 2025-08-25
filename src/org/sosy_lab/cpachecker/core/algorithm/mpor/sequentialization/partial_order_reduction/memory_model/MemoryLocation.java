@@ -16,7 +16,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -26,17 +25,17 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class MemoryLocation {
 
-  private final Optional<MPOROptions> options;
-
   /**
-   * The thread that this memory location belongs to, if it is local. {@link Optional#empty()} if
-   * the memory location is global.
+   * The thread that this memory location belongs to, if it is local. Empty string if the memory
+   * location is global.
    */
-  public final Optional<MPORThread> thread;
+  private final String threadPrefix;
 
   public final Optional<ThreadEdge> callContext;
 
   private final boolean isGlobal;
+
+  private final boolean isParameter;
 
   public final Optional<CSimpleDeclaration> variable;
 
@@ -54,13 +53,17 @@ public class MemoryLocation {
     checkArgument(
         pVariable.isEmpty() || pFieldMember.isEmpty(),
         "either pVariable or pFieldMember must be empty");
-    options = pOptions;
-    thread = pThread;
+    threadPrefix =
+        pThread.isPresent()
+            ? SeqNameUtil.buildThreadPrefix(pOptions.orElseThrow(), pThread.orElseThrow().id)
+            : SeqSyntax.EMPTY_STRING;
     callContext = pCallContext;
-    isGlobal = isGlobal(pVariable, pFieldMember);
+    isGlobal = MemoryLocationUtil.isGlobal(pVariable, pFieldMember);
+    isParameter = MemoryLocationUtil.isParameter(pVariable, pFieldMember);
     // check after assignment that the thread is present, if the memory location is local
     checkArgument(
-        thread.isEmpty() || !isGlobal, "if pThread is present, the memory location must be local");
+        threadPrefix.isEmpty() || !isGlobal,
+        "if threadPrefix is not empty, the memory location must be local");
     variable = pVariable;
     fieldMember = pFieldMember;
   }
@@ -107,10 +110,6 @@ public class MemoryLocation {
   }
 
   public String getName() {
-    String threadPrefix =
-        thread.isPresent()
-            ? SeqNameUtil.buildThreadPrefix(options.orElseThrow(), thread.orElseThrow().id)
-            : SeqSyntax.EMPTY_STRING;
     if (variable.isPresent()) {
       return threadPrefix + variable.orElseThrow().getName();
     }
@@ -129,22 +128,8 @@ public class MemoryLocation {
     return isGlobal;
   }
 
-  private static boolean isGlobal(
-      Optional<CSimpleDeclaration> pVariable,
-      Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-          pFieldMember) {
-
-    if (pVariable.isPresent()) {
-      if (pVariable.orElseThrow() instanceof CVariableDeclaration variableDeclaration) {
-        return variableDeclaration.isGlobal();
-      }
-    }
-    if (pFieldMember.isPresent()) {
-      if (pFieldMember.orElseThrow().getKey() instanceof CVariableDeclaration variableDeclaration) {
-        return variableDeclaration.isGlobal();
-      }
-    }
-    return false;
+  public boolean isParameter() {
+    return isParameter;
   }
 
   @Override
@@ -158,6 +143,11 @@ public class MemoryLocation {
       return true;
     }
     return pOther instanceof MemoryLocation other
+        && isGlobal == other.isGlobal
+        && isParameter == other.isParameter
+        && threadPrefix.equals(other.threadPrefix)
+        // compare by reference, since edge/nodes .equals and .hashCode may result in stackoverflow
+        && callContext == other.callContext
         && variable.equals(other.variable)
         && fieldMember.equals(other.fieldMember);
   }

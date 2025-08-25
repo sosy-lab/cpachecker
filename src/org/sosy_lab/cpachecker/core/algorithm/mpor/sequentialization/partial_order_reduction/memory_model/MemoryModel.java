@@ -152,13 +152,19 @@ public class MemoryModel {
 
   /**
    * Returns the set of relevant memory locations, i.e. all that are important to decide whether two
-   * statements commute. These are all explicitly and implicitly global memory locations.
+   * statements commute. These are all explicit and implicit global memory locations.
    */
   public ImmutableSet<MemoryLocation> getRelevantMemoryLocations() {
     ImmutableSet.Builder<MemoryLocation> rRelevant = ImmutableSet.builder();
     for (MemoryLocation memoryLocation : memoryLocationIds.keySet()) {
-      if (memoryLocation.isGlobal() || isImplicitGlobal(memoryLocation)) {
-        rRelevant.add(memoryLocation);
+      // exclude parameters, they are not memory locations themselves
+      if (!memoryLocation.isParameter()) {
+        // exclude const CPAchecker_TMP, they do not have any effect in the input program
+        if (!MemoryLocationUtil.isConstCpaCheckerTmp(memoryLocation)) {
+          if (memoryLocation.isGlobal() || isImplicitGlobal(memoryLocation)) {
+            rRelevant.add(memoryLocation);
+          }
+        }
       }
     }
     return rRelevant.build();
