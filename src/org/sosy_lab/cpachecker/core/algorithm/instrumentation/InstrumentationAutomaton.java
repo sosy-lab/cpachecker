@@ -31,6 +31,7 @@ public class InstrumentationAutomaton {
     TERMINATIONWITHCOUNTERS,
     ONESTEPREACHABILITY,
     NOOVERFLOW,
+    DATA_RACE,
     MEMCLEANUP,
     VALID_DEREF,
     VALID_FREE,
@@ -76,6 +77,7 @@ public class InstrumentationAutomaton {
       case TERMINATIONWITHCOUNTERS -> constructTerminationWithCountersAutomaton(pIndex);
       case ONESTEPREACHABILITY -> constructOneStepReachabilityAutomaton(pIndex);
       case NOOVERFLOW -> constructOverflowAutomaton();
+      case DATA_RACE -> constructDataRaceAutomaton();
       case MEMCLEANUP -> constructMemCleanupAutomaton();
       case VALID_DEREF -> constructValidDeref();
       case VALID_FREE -> constructValidFree();
@@ -119,6 +121,54 @@ public class InstrumentationAutomaton {
       originalType.append(pType.charAt(i));
     }
     return originalType.toString();
+  }
+
+  private void constructDataRaceAutomaton() {
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT, this);
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.TRUE, this);
+    this.initialState = q1;
+
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(
+                liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                "int read_INSTR_"
+                                    + entry.getKey()
+                                    + " = 0; "
+                                    + "int write_INSTR_"
+                                    + entry.getKey()
+                                    + " = 0; ")
+                        .collect(Collectors.joining("; "))
+                    + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("ADD"),
+            new InstrumentationOperation(
+                "__VERIFIER_atomic_begin();\n"
+                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
+                    + " write_INSTR_x_instr_2 <= 0)); }\n"
+                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\n"
+                    + "__VERIFIER_atomic_end();\n"
+                    + "__VERIFIER_atomic_begin();"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("ADD"),
+            new InstrumentationOperation(
+                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\n"
+                    + "__VERIFIER_atomic_end();\n"),
+            InstrumentationOrder.AFTER,
+            q2);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
   }
 
   private InstrumentationState initializeMemorySafety(
@@ -451,11 +501,18 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("ptr_declar"),
+            new InstrumentationOperation("__register_stack(x_instr_1, sizeof(x_instr_1));"),
+            InstrumentationOrder.AFTER,
+            q2);
+    InstrumentationTransition t12 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("declar"),
             new InstrumentationOperation("__register_stack(& x_instr_1, sizeof(x_instr_1));"),
             InstrumentationOrder.AFTER,
             q2);
 
-    builder.add(t2, t3, t4, t5, t6, t7, t8, t9, t10, t11);
+    builder.add(t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12);
     return q2;
   }
 

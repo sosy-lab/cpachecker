@@ -74,6 +74,9 @@ public class InstrumentationPattern {
       case "ptr_declar":
         type = patternType.PTR_DECLAR;
         break;
+      case "declar":
+        type = patternType.DECLAR;
+        break;
       case "ADD":
         type = patternType.ADD;
         break;
@@ -147,6 +150,7 @@ public class InstrumentationPattern {
       case FUNC -> getTheOperandsFromFunctionCall(pCFAEdge, pDecomposedMap);
       case PTR_DEREF -> getTheOperandsFromPointerDereference(pCFAEdge);
       case PTR_DECLAR -> getTheOperandsFromPointerDeclaration(pCFAEdge);
+      case DECLAR -> getTheOperandsFromDeclaration(pCFAEdge);
       case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap);
       case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS, pDecomposedMap);
       case NEG -> getTheOperandsFromUnaryOperation(pCFAEdge, UnaryOperator.MINUS, pDecomposedMap);
@@ -251,6 +255,19 @@ public class InstrumentationPattern {
         } else {
           return ImmutableList.of();
         }
+      }
+    }
+    return null;
+  }
+
+  private ImmutableList<String> getTheOperandsFromDeclaration(CFAEdge pCFAEdge) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      if (astNode instanceof CVariableDeclaration declaration) {
+        if (declaration.isGlobal()) {
+          return null;
+        }
+        return ImmutableList.of(declaration.getName());
       }
     }
     return null;
@@ -396,6 +413,7 @@ public class InstrumentationPattern {
     NOT_COND,
     PTR_DEREF,
     PTR_DECLAR,
+    DECLAR,
     ADD,
     SUB,
     NEG,
