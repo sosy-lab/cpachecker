@@ -264,7 +264,9 @@ public class InstrumentationPattern {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       if (astNode instanceof CVariableDeclaration declaration) {
-        if (declaration.isGlobal()) {
+        if (declaration.isGlobal()
+            || declaration.getType().toString().contains("*")
+            || declaration.getType().toString().contains("[")) {
           return null;
         }
         return ImmutableList.of(declaration.getName());
