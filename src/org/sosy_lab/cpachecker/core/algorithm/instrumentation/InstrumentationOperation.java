@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 /**
  * Class for operations defined on the transitions of instrumentation automaton. Should not be used
@@ -34,7 +36,7 @@ public class InstrumentationOperation {
         newVar = newVar.replaceFirst("]", "");
       }
       if (pPattern.toString().equals("ptr_deref") && newVar.contains("->")) {
-        newVar = newVar.split("->")[0];
+        newVar = Iterables.get(Splitter.on("->").split(newVar), 0);
       }
       resultingOperation = resultingOperation.replace("x_instr_" + (i + 1), newVar);
     }

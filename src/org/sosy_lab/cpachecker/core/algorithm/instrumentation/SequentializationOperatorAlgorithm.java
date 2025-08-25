@@ -237,7 +237,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           functionName = "*" + functionName;
         }
         if (matchedVar.contains("->")) {
-          functionName = functionName.split("->")[0];
+          functionName = Iterables.get(Splitter.on("->").split(functionName), 0);
         }
       } else {
         functionName = pTransition.getPattern().getFunctionName();
