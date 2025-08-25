@@ -37,6 +37,7 @@ public class InstrumentationOperation {
       }
       if (pPattern.toString().equals("ptr_deref") && newVar.contains("->")) {
         newVar = Iterables.get(Splitter.on("->").split(newVar), 0);
+        resultingOperation = resultingOperation.replaceFirst("\\*", "");
       }
       resultingOperation = resultingOperation.replace("x_instr_" + (i + 1), newVar);
     }
