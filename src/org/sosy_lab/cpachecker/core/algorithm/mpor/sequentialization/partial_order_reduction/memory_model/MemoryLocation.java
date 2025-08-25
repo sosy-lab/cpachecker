@@ -146,8 +146,7 @@ public class MemoryLocation {
         && isGlobal == other.isGlobal
         && isParameter == other.isParameter
         && threadPrefix.equals(other.threadPrefix)
-        // compare by reference, since edge/nodes .equals and .hashCode may result in stackoverflow
-        && callContext == other.callContext
+        && callContext.equals(other.callContext)
         && variable.equals(other.variable)
         && fieldMember.equals(other.fieldMember);
   }

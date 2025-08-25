@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -53,5 +54,23 @@ public class ThreadEdge {
     checkNotNull(pSuccessor);
     checkArgument(successor == null, "successor set already");
     successor = pSuccessor;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(threadId, cfaEdge, callContext, predecessor, successor);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof ThreadEdge other
+        && threadId == other.threadId
+        && cfaEdge.equals(other.cfaEdge)
+        && callContext.equals(other.callContext)
+        && predecessor.equals(other.predecessor)
+        && successor.equals(other.successor);
   }
 }
