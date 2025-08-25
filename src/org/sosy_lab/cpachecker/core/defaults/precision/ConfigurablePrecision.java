@@ -10,14 +10,12 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -94,15 +92,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   private final Optional<VariableClassification> vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
-  // False results of static info isTracking(). Every variable not in this set has return value for
-  // isTracking(): true.
-  private Set<String> isNotTrackingSet = ImmutableSet.of();
-
-  // When isTracking only returns a single value for all variables, this is present and returns this
-  // value
-  private Optional<Boolean> singularIsTrackingResult = Optional.empty();
-
-  private ConfigurablePrecision(
+  ConfigurablePrecision(
       Configuration config,
       Optional<VariableClassification> pVc,
       Class<? extends ConfigurableProgramAnalysis> cpaClass)
@@ -110,16 +100,6 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     config.inject(this);
     this.cpaClass = cpaClass;
     vc = pVc;
-  }
-
-  static ConfigurablePrecision of(
-      Configuration config,
-      Optional<VariableClassification> pVc,
-      Class<? extends ConfigurableProgramAnalysis> cpaClass)
-      throws InvalidConfigurationException {
-    ConfigurablePrecision prec = new ConfigurablePrecision(config, pVc, cpaClass);
-    prec.preCalculateStaticTracking();
-    return prec;
   }
 
   @Override
@@ -154,19 +134,12 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       return false;
     }
 
-    if (singularIsTrackingResult.isPresent()) {
-      return singularIsTrackingResult.orElseThrow();
-    }
-
-    String variableName;
     if (pVariable.isReference()) {
       MemoryLocation owner = pVariable.getReferenceStart();
-      variableName = owner.getExtendedQualifiedName();
+      return isInTrackedVarClass(owner.getExtendedQualifiedName());
     } else {
-      variableName = pVariable.getExtendedQualifiedName();
+      return isInTrackedVarClass(pVariable.getExtendedQualifiedName());
     }
-    assert vc.isEmpty() || vc.orElseThrow().getAllVariables().contains(variableName);
-    return !isNotTrackingSet.contains(variableName);
   }
 
   private boolean isOnBlacklist(String variable) {
@@ -187,11 +160,13 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
     VariableClassification varClass = vc.orElseThrow();
 
+    final boolean varIsAddressed = varClass.getAddressedVariables().contains(variableName);
+
     // addressed variables do not belong to a specific type, so they have to
     // be handled extra. We want the precision to be as strict as possible,
     // therefore, when a variable is addressed but addressed variables should
     // not be tracked, we do not consider the other parts of the variable classification
-    if (!trackAddressedVariables && varClass.getAddressedVariables().contains(variableName)) {
+    if (varIsAddressed && !trackAddressedVariables) {
       return false;
 
       // If we don't track irrelevant variables, check whether this is the case
@@ -226,28 +201,6 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       }
 
       return false;
-    }
-  }
-
-  public void preCalculateStaticTracking() {
-    if (vc.isEmpty()) {
-      return;
-    }
-
-    VariableClassification varClass = vc.orElseThrow();
-
-    ImmutableSet.Builder<String> isNotTrackingSetBuilder = ImmutableSet.builder();
-    for (String variable : varClass.getAllVariables()) {
-      if (!isInTrackedVarClass(variable)) {
-        isNotTrackingSetBuilder.add(variable);
-      }
-    }
-
-    isNotTrackingSet = isNotTrackingSetBuilder.build();
-    if (isNotTrackingSet.size() == varClass.getAllVariables().size()) {
-      singularIsTrackingResult = Optional.of(false);
-    } else if (isNotTrackingSet.isEmpty()) {
-      singularIsTrackingResult = Optional.of(true);
     }
   }
 

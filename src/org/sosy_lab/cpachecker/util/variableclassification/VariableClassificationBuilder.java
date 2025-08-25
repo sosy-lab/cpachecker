@@ -253,8 +253,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
             intAddPartitions,
             dependencies.edgeToPartition,
             extractAssumedVariables(cfa.nodes()),
-            extractAssignedVariables(cfa.nodes()),
-            allVars);
+            extractAssignedVariables(cfa.nodes()));
     stats.buildTimer.stop();
 
     stats.exportTimer.start();
