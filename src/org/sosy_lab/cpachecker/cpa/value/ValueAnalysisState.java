@@ -494,7 +494,8 @@ public final class ValueAnalysisState
   public boolean isLessOrEqual(ValueAnalysisState other) {
 
     // also, this element is not less or equal than the other element, if it contains less elements
-    if (constantsMapSize < other.constantsMapSize) {
+    if (constantsMapSize < other.constantsMapSize
+        || numberOfGlobalConstants < other.numberOfGlobalConstants) {
       return false;
     }
 
