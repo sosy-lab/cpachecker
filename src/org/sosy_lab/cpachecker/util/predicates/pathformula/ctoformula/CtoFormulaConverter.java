@@ -234,7 +234,7 @@ public class CtoFormulaConverter {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = (CCompositeType) pCompositeType.withoutQualifiers();
+    CCompositeType compositeType = pCompositeType.withoutQualifiers();
     return variableClassification
         .orElseThrow()
         .getRelevantFields()

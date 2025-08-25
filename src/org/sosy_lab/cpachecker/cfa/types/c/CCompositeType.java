@@ -302,6 +302,11 @@ public final class CCompositeType implements CComplexType {
   }
 
   @Override
+  public CCompositeType withoutQualifiers() {
+    return withQualifiersSetTo(CTypeQualifiers.NONE);
+  }
+
+  @Override
   public CCompositeType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
     if (pNewQualifiers.equals(qualifiers)) {
       return this;

@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -438,17 +437,8 @@ final class VariableAndFieldRelevancyComputer {
             + fieldOwnerType.getClass().getSimpleName()
             + ".";
     final CCompositeType compositeType = (CCompositeType) fieldOwnerType;
-    // Currently, we don't pay attention to possible const and volatile modifiers
-    if (compositeType.isConst() || compositeType.isVolatile()) {
-      return new CCompositeType(
-          CTypeQualifiers.NONE,
-          compositeType.getKind(),
-          compositeType.getMembers(),
-          compositeType.getName(),
-          compositeType.getOrigName());
-    } else {
-      return compositeType;
-    }
+    // Currently, we don't pay attention to possible qualifiers (e.g., const/volatile)
+    return compositeType.withoutQualifiers();
   }
 
   public static VarFieldDependencies handleEdge(CFA pCfa, CFAEdge edge)
