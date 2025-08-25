@@ -17,6 +17,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class ThreadEdge {
 
+  private static int currentId = 0;
+
+  public final int id;
+
   public final int threadId;
 
   public final CFAEdge cfaEdge;
@@ -29,6 +33,7 @@ public class ThreadEdge {
   private ThreadNode successor = null;
 
   public ThreadEdge(int pThreadId, CFAEdge pCfaEdge, Optional<ThreadEdge> pCallContext) {
+    id = currentId++;
     threadId = pThreadId;
     cfaEdge = pCfaEdge;
     callContext = pCallContext;
@@ -58,7 +63,12 @@ public class ThreadEdge {
 
   @Override
   public int hashCode() {
-    return Objects.hash(threadId, cfaEdge, callContext, predecessor, successor);
+    return Objects.hash(
+        id,
+        threadId,
+        cfaEdge,
+        predecessor == null ? null : predecessor.id,
+        successor == null ? null : successor.id);
   }
 
   @Override
@@ -67,10 +77,10 @@ public class ThreadEdge {
       return true;
     }
     return pOther instanceof ThreadEdge other
+        && id == other.id
         && threadId == other.threadId
         && cfaEdge.equals(other.cfaEdge)
-        && callContext.equals(other.callContext)
-        && predecessor.equals(other.predecessor)
-        && successor.equals(other.successor);
+        && (predecessor == null || predecessor.id == other.predecessor.id)
+        && (successor == null || successor.id == other.successor.id);
   }
 }

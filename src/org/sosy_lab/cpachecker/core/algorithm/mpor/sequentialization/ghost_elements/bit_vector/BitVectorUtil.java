@@ -60,13 +60,13 @@ public class BitVectorUtil {
 
     checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
-        pMemoryModel.getAllMemoryLocationIds().keySet().containsAll(pMemoryLocations),
+        pMemoryModel.getMemoryLocationIds().keySet().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // retrieve all variable ids from pMemoryLocationIds that are in pMemoryLocations
     ImmutableSet<Integer> setBits =
         pMemoryLocations.stream()
-            .map(pMemoryModel.getAllMemoryLocationIds()::get)
+            .map(pMemoryModel.getMemoryLocationIds()::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
     return buildBitVectorExpressionByEncoding(pOptions.bitVectorEncoding, pMemoryModel, setBits);
@@ -95,13 +95,13 @@ public class BitVectorUtil {
       MemoryModel pMemoryModel, ImmutableSet<MemoryLocation> pMemoryLocations) {
 
     checkArgument(
-        pMemoryModel.getAllMemoryLocationIds().keySet().containsAll(pMemoryLocations),
+        pMemoryModel.getMemoryLocationIds().keySet().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // for decimal, use the sum of variable ids (starting from 1)
     ImmutableSet<Integer> setBits =
         pMemoryLocations.stream()
-            .map(pMemoryModel.getAllMemoryLocationIds()::get)
+            .map(pMemoryModel.getMemoryLocationIds()::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
 

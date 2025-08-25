@@ -146,7 +146,7 @@ public class MemoryModel {
     return memoryLocationAmount;
   }
 
-  public ImmutableMap<MemoryLocation, Integer> getAllMemoryLocationIds() {
+  public ImmutableMap<MemoryLocation, Integer> getMemoryLocationIds() {
     return memoryLocationIds;
   }
 

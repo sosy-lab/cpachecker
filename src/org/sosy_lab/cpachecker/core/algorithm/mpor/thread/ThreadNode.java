@@ -12,11 +12,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class ThreadNode {
+
+  private static int currentId = 0;
+
+  public final int id;
 
   public final int threadId;
 
@@ -42,6 +47,7 @@ public class ThreadNode {
       List<ThreadEdge> pLeavingEdges,
       boolean pIsInAtomicBlock) {
 
+    id = currentId++;
     threadId = pThreadId;
     cfaNode = pCfaNode;
     pc = pPc;
@@ -66,5 +72,23 @@ public class ThreadNode {
         "only CFunctionReturnEdges can be pruned");
 
     leavingEdges.remove(pThreadEdge);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, threadId, cfaNode, pc, isInAtomicBlock);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof ThreadNode other
+        && id == other.id
+        && threadId == other.threadId
+        && cfaNode.equals(other.cfaNode)
+        && pc == other.pc
+        && isInAtomicBlock == other.isInAtomicBlock;
   }
 }

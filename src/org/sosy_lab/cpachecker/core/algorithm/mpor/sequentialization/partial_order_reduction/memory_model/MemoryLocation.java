@@ -134,7 +134,13 @@ public class MemoryLocation {
 
   @Override
   public int hashCode() {
-    return Objects.hash(variable, fieldMember);
+    return Objects.hash(
+        threadPrefix,
+        (isParameter ? callContext : null),
+        isGlobal,
+        isParameter,
+        variable,
+        fieldMember);
   }
 
   @Override
@@ -143,10 +149,11 @@ public class MemoryLocation {
       return true;
     }
     return pOther instanceof MemoryLocation other
+        && threadPrefix.equals(other.threadPrefix)
+        // consider the call context only if it is a parameter memory location
+        && (!isParameter || callContext.equals(other.callContext))
         && isGlobal == other.isGlobal
         && isParameter == other.isParameter
-        && threadPrefix.equals(other.threadPrefix)
-        && callContext.equals(other.callContext)
         && variable.equals(other.variable)
         && fieldMember.equals(other.fieldMember);
   }
