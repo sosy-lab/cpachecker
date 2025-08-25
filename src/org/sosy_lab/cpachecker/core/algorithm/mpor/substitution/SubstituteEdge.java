@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -118,6 +119,7 @@ public class SubstituteEdge {
    * pTracker}.
    */
   public static SubstituteEdge of(
+      MPOROptions pOptions,
       MPORThread pThread,
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
@@ -127,13 +129,15 @@ public class SubstituteEdge {
         pCfaEdge,
         pThreadEdge,
         pTracker.getAccessedMainFunctionArgs(),
-        SubstituteUtil.mapPointerAssignments(pThread, pTracker),
+        SubstituteUtil.mapPointerAssignments(pOptions, pThread, pTracker),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pThread, pTracker, MemoryAccessType.ACCESS),
+            pOptions, pThread, pTracker, MemoryAccessType.ACCESS),
         SubstituteUtil.getPointerDereferencesByAccessType(
-            pThread, pTracker, MemoryAccessType.WRITE),
-        SubstituteUtil.getMemoryLocationsByAccessType(pThread, pTracker, MemoryAccessType.ACCESS),
-        SubstituteUtil.getMemoryLocationsByAccessType(pThread, pTracker, MemoryAccessType.WRITE),
+            pOptions, pThread, pTracker, MemoryAccessType.WRITE),
+        SubstituteUtil.getMemoryLocationsByAccessType(
+            pOptions, pThread, pTracker, MemoryAccessType.ACCESS),
+        SubstituteUtil.getMemoryLocationsByAccessType(
+            pOptions, pThread, pTracker, MemoryAccessType.WRITE),
         pTracker.getAccessedFunctionPointers());
   }
 

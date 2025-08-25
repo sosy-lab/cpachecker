@@ -51,7 +51,8 @@ public class MemoryModelBuilder {
     if (pOptions.linkReduction) {
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
           pointerParameterAssignments =
-              mapPointerParameterAssignments(pThreads, pSubstituteEdges, pInitialMemoryLocations);
+              mapPointerParameterAssignments(
+                  pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
       ImmutableCollection<MemoryLocation> newMemoryLocations = pointerParameterAssignments.values();
       return Optional.of(
           new MemoryModel(
@@ -97,6 +98,7 @@ public class MemoryModelBuilder {
 
   private static ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
       mapPointerParameterAssignments(
+          MPOROptions pOptions,
           ImmutableList<MPORThread> pThreads,
           ImmutableCollection<SubstituteEdge> pSubstituteEdges,
           ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
@@ -111,7 +113,7 @@ public class MemoryModelBuilder {
         MPORThread thread = ThreadUtil.getThreadById(pThreads, callContext.threadId);
         ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> assignments =
             buildParameterAssignments(
-                thread, callContext, functionCallEdge, pInitialMemoryLocations);
+                pOptions, thread, callContext, functionCallEdge, pInitialMemoryLocations);
         for (Cell<ThreadEdge, CParameterDeclaration, MemoryLocation> cell : assignments) {
           rAssignments.put(cell);
         }
@@ -122,6 +124,7 @@ public class MemoryModelBuilder {
 
   private static ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>>
       buildParameterAssignments(
+          MPOROptions pOptions,
           MPORThread pThread,
           ThreadEdge pCallContext,
           CFunctionCallEdge pFunctionCallEdge,
@@ -140,7 +143,7 @@ public class MemoryModelBuilder {
       // TODO we also need non-pointers, e.g. for 'global_ptr = &non_ptr_param;'
       if (leftHandSide.getType() instanceof CPointerType) {
         MemoryLocation rhsMemoryLocation =
-            extractMemoryLocation(pThread, arguments.get(i), pInitialMemoryLocations);
+            extractMemoryLocation(pOptions, pThread, arguments.get(i), pInitialMemoryLocations);
         if (!rhsMemoryLocation.isEmpty()) {
           rAssignments.add(Tables.immutableCell(pCallContext, leftHandSide, rhsMemoryLocation));
         }
@@ -150,32 +153,35 @@ public class MemoryModelBuilder {
   }
 
   private static MemoryLocation extractMemoryLocation(
+      MPOROptions pOptions,
       MPORThread pThread,
       CExpression pRightHandSide,
       ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
     if (pRightHandSide instanceof CIdExpression idExpression) {
       return getMemoryLocationByDeclaration(
-          pThread, idExpression.getDeclaration(), pInitialMemoryLocations);
+          pOptions, pThread, idExpression.getDeclaration(), pInitialMemoryLocations);
 
     } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
       if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
         return getMemoryLocationByDeclaration(
-            pThread, idExpression.getDeclaration(), pInitialMemoryLocations);
+            pOptions, pThread, idExpression.getDeclaration(), pInitialMemoryLocations);
 
       } else if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
         return extractFieldReferenceMemoryLocation(
-            pThread, fieldReference, pInitialMemoryLocations);
+            pOptions, pThread, fieldReference, pInitialMemoryLocations);
       }
 
     } else if (pRightHandSide instanceof CFieldReference fieldReference) {
-      return extractFieldReferenceMemoryLocation(pThread, fieldReference, pInitialMemoryLocations);
+      return extractFieldReferenceMemoryLocation(
+          pOptions, pThread, fieldReference, pInitialMemoryLocations);
     }
     // can e.g. occur with 'param = 4' i.e. literal integer expressions
     return MemoryLocation.empty();
   }
 
   private static MemoryLocation extractFieldReferenceMemoryLocation(
+      MPOROptions pOptions,
       MPORThread pThread,
       CFieldReference pFieldReference,
       ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
@@ -185,12 +191,13 @@ public class MemoryModelBuilder {
       CCompositeTypeMemberDeclaration fieldMember =
           MPORUtil.getFieldMemberByName(pFieldReference, typedefType);
       return getMemoryLocationByFieldReference(
-          pThread, fieldOwner.getDeclaration(), fieldMember, pInitialMemoryLocations);
+          pOptions, pThread, fieldOwner.getDeclaration(), fieldMember, pInitialMemoryLocations);
     }
     throw new IllegalArgumentException("pFieldReference owner type must be CTypedefType");
   }
 
   private static MemoryLocation getMemoryLocationByDeclaration(
+      MPOROptions pOptions,
       MPORThread pThread,
       CSimpleDeclaration pDeclaration,
       ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
@@ -202,10 +209,11 @@ public class MemoryModelBuilder {
         }
       }
     }
-    return MemoryLocation.of(Optional.of(pThread), pDeclaration);
+    return MemoryLocation.of(pOptions, Optional.of(pThread), pDeclaration);
   }
 
   private static MemoryLocation getMemoryLocationByFieldReference(
+      MPOROptions pOptions,
       MPORThread pThread,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember,
@@ -222,7 +230,12 @@ public class MemoryModelBuilder {
         }
       }
     }
-    return MemoryLocation.of(Optional.of(pThread), pFieldOwner, pFieldMember);
+    if (pFieldOwner instanceof CVariableDeclaration variableDeclaration) {
+      if (variableDeclaration.isGlobal()) {
+        return MemoryLocation.of(pOptions, Optional.empty(), pFieldOwner, pFieldMember);
+      }
+    }
+    return MemoryLocation.of(pOptions, Optional.of(pThread), pFieldOwner, pFieldMember);
   }
 
   // Pointer Dereferences ==========================================================================

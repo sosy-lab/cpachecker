@@ -18,10 +18,14 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class MemoryLocation {
+
+  private final Optional<MPOROptions> options;
 
   /**
    * The thread that this memory location belongs to, if it is local. {@link Optional#empty()} if
@@ -35,6 +39,7 @@ public class MemoryLocation {
       fieldMember;
 
   private MemoryLocation(
+      Optional<MPOROptions> pOptions,
       Optional<MPORThread> pThread,
       Optional<CSimpleDeclaration> pVariable,
       Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
@@ -43,6 +48,7 @@ public class MemoryLocation {
     checkArgument(
         pVariable.isEmpty() || pFieldMember.isEmpty(),
         "either pVariable or pFieldMember must be empty");
+    options = pOptions;
     thread = pThread;
     variable = pVariable;
     fieldMember = pFieldMember;
@@ -52,23 +58,28 @@ public class MemoryLocation {
         "if pThread is present, the memory location must be local");
   }
 
-  public static MemoryLocation of(Optional<MPORThread> pThread, CSimpleDeclaration pDeclaration) {
-    return new MemoryLocation(pThread, Optional.of(pDeclaration), Optional.empty());
+  public static MemoryLocation of(
+      MPOROptions pOptions, Optional<MPORThread> pThread, CSimpleDeclaration pDeclaration) {
+    return new MemoryLocation(
+        Optional.of(pOptions), pThread, Optional.of(pDeclaration), Optional.empty());
   }
 
   public static MemoryLocation of(
+      MPOROptions pOptions,
       Optional<MPORThread> pThread,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
     return new MemoryLocation(
+        Optional.of(pOptions),
         pThread,
         Optional.empty(),
         Optional.of(new AbstractMap.SimpleImmutableEntry<>(pFieldOwner, pFieldMember)));
   }
 
   public static MemoryLocation empty() {
-    return new MemoryLocation(Optional.empty(), Optional.empty(), Optional.empty());
+    return new MemoryLocation(
+        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
   }
 
   public CSimpleDeclaration getSimpleDeclaration() {
@@ -83,11 +94,18 @@ public class MemoryLocation {
   }
 
   public String getName() {
+    String threadPrefix =
+        thread.isPresent()
+            ? SeqNameUtil.buildThreadPrefix(options.orElseThrow(), thread.orElseThrow().id)
+            : SeqSyntax.EMPTY_STRING;
     if (variable.isPresent()) {
-      return variable.orElseThrow().getName();
+      return threadPrefix + variable.orElseThrow().getName();
     }
     Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
-    return entry.getKey().getName() + SeqSyntax.UNDERSCORE + entry.getValue().getName();
+    return threadPrefix
+        + entry.getKey().getName()
+        + SeqSyntax.UNDERSCORE
+        + entry.getValue().getName();
   }
 
   public boolean isEmpty() {

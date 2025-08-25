@@ -103,13 +103,16 @@ public class SubstituteUtil {
   }
 
   static ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(
-      MPORThread pThread, MPORSubstitutionTracker pTracker, MemoryAccessType pAccessType) {
+      MPOROptions pOptions,
+      MPORThread pThread,
+      MPORSubstitutionTracker pTracker,
+      MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rPointerDereferences = ImmutableSet.builder();
     for (CSimpleDeclaration pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
       Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, pointerDereference);
-      rPointerDereferences.add(MemoryLocation.of(thread, pointerDereference));
+      rPointerDereferences.add(MemoryLocation.of(pOptions, thread, pointerDereference));
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
         fieldReferencePointerDereferences =
@@ -118,27 +121,30 @@ public class SubstituteUtil {
       Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, fieldOwner);
       for (CCompositeTypeMemberDeclaration fieldMember :
           fieldReferencePointerDereferences.get(fieldOwner)) {
-        rPointerDereferences.add(MemoryLocation.of(thread, fieldOwner, fieldMember));
+        rPointerDereferences.add(MemoryLocation.of(pOptions, thread, fieldOwner, fieldMember));
       }
     }
     return rPointerDereferences.build();
   }
 
   static ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
-      MPORThread pThread, MPORSubstitutionTracker pTracker, MemoryAccessType pAccessType) {
+      MPOROptions pOptions,
+      MPORThread pThread,
+      MPORSubstitutionTracker pTracker,
+      MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (CVariableDeclaration variableDeclaration :
         pTracker.getVariablesByAccessType(pAccessType)) {
       Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, variableDeclaration);
-      rMemoryLocations.add(MemoryLocation.of(thread, variableDeclaration));
+      rMemoryLocations.add(MemoryLocation.of(pOptions, thread, variableDeclaration));
     }
     ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
         pTracker.getFieldMembersByAccessType(pAccessType);
     for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
       Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, fieldOwner);
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
-        rMemoryLocations.add(MemoryLocation.of(thread, fieldOwner, fieldMember));
+        rMemoryLocations.add(MemoryLocation.of(pOptions, thread, fieldOwner, fieldMember));
       }
     }
     return rMemoryLocations.build();
@@ -151,13 +157,13 @@ public class SubstituteUtil {
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
   public static ImmutableMap<CVariableDeclaration, MemoryLocation> mapPointerAssignments(
-      MPORThread pThread, MPORSubstitutionTracker pTracker) {
+      MPOROptions pOptions, MPORThread pThread, MPORSubstitutionTracker pTracker) {
 
     ImmutableMap.Builder<CVariableDeclaration, MemoryLocation> rAssignments =
         ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
       Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, entry.getValue());
-      rAssignments.put(entry.getKey(), MemoryLocation.of(thread, entry.getValue()));
+      rAssignments.put(entry.getKey(), MemoryLocation.of(pOptions, thread, entry.getValue()));
     }
     ImmutableSet<Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
         cellSet = pTracker.getPointerFieldMemberAssignments().cellSet();
@@ -166,7 +172,7 @@ public class SubstituteUtil {
       Optional<MPORThread> thread = getThreadIfDeclarationIsLocal(pThread, cell.getColumnKey());
       rAssignments.put(
           Objects.requireNonNull(cell.getRowKey()),
-          MemoryLocation.of(thread, cell.getColumnKey(), cell.getValue()));
+          MemoryLocation.of(pOptions, thread, cell.getColumnKey(), cell.getValue()));
     }
     return rAssignments.buildOrThrow();
   }
