@@ -444,13 +444,19 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t10 =
         new InstrumentationTransition(
             q2,
+            new InstrumentationPattern("FUNC(__builtin_alloca)"),
+            new InstrumentationOperation("__track_alloca"),
+            InstrumentationOrder.SAME_LINE,
+            q2);
+    InstrumentationTransition t11 =
+        new InstrumentationTransition(
+            q2,
             new InstrumentationPattern("ptr_declar"),
             new InstrumentationOperation("__register_stack(& x_instr_1, sizeof(x_instr_1));"),
             InstrumentationOrder.AFTER,
             q2);
-    builder.add(t10);
 
-    builder.add(t2, t3, t4, t5, t6, t7, t8, t9);
+    builder.add(t2, t3, t4, t5, t6, t7, t8, t9, t10, t11);
     return q2;
   }
 
