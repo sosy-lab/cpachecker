@@ -28,12 +28,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.F
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqLeftHandSideBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclarationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostVariableUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
@@ -126,7 +126,7 @@ public class Sequentialization {
 
   private final LogManager logger;
 
-  private final PcVariables pcVariables;
+  private final ProgramCounterVariables pcVariables;
 
   public Sequentialization(
       ImmutableList<MPORSubstitution> pSubstitutions,
@@ -151,7 +151,7 @@ public class Sequentialization {
     ImmutableList<CBinaryExpression> threadNotActiveExpressions =
         SeqExpressionBuilder.buildThreadNotActiveExpressions(
             pcLeftHandSides, binaryExpressionBuilder);
-    pcVariables = new PcVariables(pcLeftHandSides, threadNotActiveExpressions);
+    pcVariables = new ProgramCounterVariables(pcLeftHandSides, threadNotActiveExpressions);
   }
 
   @Override
@@ -187,7 +187,7 @@ public class Sequentialization {
         SubstituteUtil.getAllMemoryLocations(substituteEdges.values());
     Optional<BitVectorVariables> bitVectorVariables =
         GhostVariableUtil.buildBitVectorVariables(options, threads, allMemoryLocations);
-    ThreadSimulationVariables threadSimulationVariables =
+    ThreadSynchronizationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(
             options, threads, substituteEdges, binaryExpressionBuilder);
 

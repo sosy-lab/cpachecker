@@ -43,10 +43,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations.NondeterministicSimulationUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.statement.SeqBitVectorAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqBitVectorAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.BitVectorInjector;
@@ -84,9 +84,9 @@ public class SeqMainFunction extends SeqFunction {
 
   private final Optional<BitVectorVariables> bitVectorVariables;
 
-  private final PcVariables pcVariables;
+  private final ProgramCounterVariables pcVariables;
 
-  private final ThreadSimulationVariables threadSimulationVariables;
+  private final ThreadSynchronizationVariables threadSimulationVariables;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -97,9 +97,9 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       Optional<BitVectorVariables> pBitVectorVariables,
-      PcVariables pPcVariables,
+      ProgramCounterVariables pPcVariables,
       Optional<PointerAssignments> pPointerAssignments,
-      ThreadSimulationVariables pThreadSimulationVariables,
+      ThreadSynchronizationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -317,7 +317,7 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pThreads,
       CSimpleDeclaration pNumThreadDeclaration,
-      ThreadSimulationVariables pThreadSimulationVariables) {
+      ThreadSynchronizationVariables pThreadSimulationVariables) {
 
     ImmutableList.Builder<LineOfCode> rDeclarations = ImmutableList.builder();
 

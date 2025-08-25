@@ -47,10 +47,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.evaluation.BitVectorEvaluationExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -63,7 +63,7 @@ public class NumStatementsNondeterministicSimulation {
   static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
-      PcVariables pPcVariables,
+      ProgramCounterVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -76,7 +76,7 @@ public class NumStatementsNondeterministicSimulation {
   private static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
-      PcVariables pPcVariables,
+      ProgramCounterVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CExpressionAssignmentStatement pRReset,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -233,7 +233,7 @@ public class NumStatementsNondeterministicSimulation {
       ImmutableSet<MPORThread> pOtherThreads,
       CBinaryExpression pKGreaterZero,
       Optional<BitVectorVariables> pBitVectorVariables,
-      PcVariables pPcVariables,
+      ProgramCounterVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -260,7 +260,7 @@ public class NumStatementsNondeterministicSimulation {
   private static SeqExpression buildIfConditionLeftHandSideExpression(
       MPOROptions pOptions,
       MPORThread pActiveThread,
-      PcVariables pPcVariables,
+      ProgramCounterVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -309,7 +309,7 @@ public class NumStatementsNondeterministicSimulation {
 
   private static ImmutableList<LineOfCode> buildSingleThreadClausesWithCount(
       MPOROptions pOptions,
-      PcVariables pPcVariables,
+      ProgramCounterVariables pPcVariables,
       MPORThread pThread,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)

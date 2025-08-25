@@ -16,9 +16,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.statement.SeqBitVectorAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqBitVectorAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -44,7 +44,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
 
   private final Optional<ImmutableList<SeqBitVectorAssignmentStatement>> bitVectorInitializations;
 
-  private final PcVariables pcVariables;
+  private final ProgramCounterVariables pcVariables;
 
   private final ImmutableSet<SubstituteEdge> substituteEdges;
 
@@ -58,7 +58,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       FunctionParameterAssignment pStartRoutineArgAssignment,
       MPORThread pCreatedThread,
       MPORThread pCreatingThread,
-      PcVariables pPcVariables,
+      ProgramCounterVariables pPcVariables,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
@@ -78,7 +78,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       MPORThread pCreatedThread,
       MPORThread pCreatingThread,
       Optional<ImmutableList<SeqBitVectorAssignmentStatement>> pBitVectorInitializations,
-      PcVariables pPcVariables,
+      ProgramCounterVariables pPcVariables,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
