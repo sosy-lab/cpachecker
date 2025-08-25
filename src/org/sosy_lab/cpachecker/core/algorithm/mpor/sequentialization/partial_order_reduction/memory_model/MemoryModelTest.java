@@ -48,15 +48,26 @@ public class MemoryModelTest {
 
   // Declarations
 
-  private final CVariableDeclaration int_pointer_declaration =
+  private final CVariableDeclaration int_pointer_a_declaration =
       new CVariableDeclaration(
           FileLocation.DUMMY,
           true,
           CStorageClass.AUTO,
           int_pointer_type,
-          "int_ptr",
-          "int_ptr",
-          "int_ptr",
+          "int_ptr_A",
+          "int_ptr_A",
+          "int_ptr_A",
+          int_0_initializer);
+
+  private final CVariableDeclaration int_pointer_b_declaration =
+      new CVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          CStorageClass.AUTO,
+          int_pointer_type,
+          "int_ptr_B",
+          "int_ptr_B",
+          "int_ptr_B",
           int_0_initializer);
 
   private final CVariableDeclaration int_a_declaration =
@@ -83,8 +94,11 @@ public class MemoryModelTest {
 
   // Memory Locations
 
-  private final MemoryLocation int_pointer_memory_location =
-      MemoryLocation.of(Optional.empty(), int_pointer_declaration);
+  private final MemoryLocation int_pointer_a_memory_location =
+      MemoryLocation.of(Optional.empty(), int_pointer_a_declaration);
+
+  private final MemoryLocation int_pointer_b_memory_location =
+      MemoryLocation.of(Optional.empty(), int_pointer_b_declaration);
 
   private final MemoryLocation int_a_memory_location =
       MemoryLocation.of(Optional.empty(), int_a_declaration);
@@ -93,33 +107,40 @@ public class MemoryModelTest {
       MemoryLocation.of(Optional.empty(), int_b_declaration);
 
   @Test
+  public void test_memory_location_equals() {
+    MemoryLocation int_pointer_a_memory_location_alt =
+        MemoryLocation.of(Optional.empty(), int_pointer_a_declaration);
+    assertThat(int_pointer_a_memory_location.equals(int_pointer_a_memory_location_alt)).isTrue();
+  }
+
+  @Test
   public void test_single_pointer_assignment() {
     // first create necessary collections
     ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
         ImmutableMap.<MemoryLocation, Integer>builder()
-            .put(int_pointer_memory_location, 0)
+            .put(int_pointer_a_memory_location, 0)
             .put(int_a_memory_location, 1)
             .buildOrThrow();
-    // int_ptr = &int_A; i.e. pointer assignment
+    // int_ptr_A = &int_A; i.e. pointer assignment
     ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
         ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(int_pointer_declaration, int_a_memory_location)
+            .put(int_pointer_a_declaration, int_a_memory_location)
             .build();
-    // *int_ptr i.e. pointer dereference
+    // *int_ptr_A i.e. pointer dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
-        ImmutableSet.<MemoryLocation>builder().add(int_pointer_memory_location).build();
+        ImmutableSet.<MemoryLocation>builder().add(int_pointer_a_memory_location).build();
 
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
             memoryLocationIds, pointerAssignments, ImmutableTable.of(), pointerDereferences);
 
-    // find the memory locations associated with dereference of 'int_ptr'
+    // find the memory locations associated with dereference of 'int_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            int_pointer_memory_location, Optional.empty(), testMemoryModel);
+            int_pointer_a_memory_location, Optional.empty(), testMemoryModel);
 
-    // only memory location of 'int_A' should be associated with dereference of 'int_ptr'
+    // only memory location of 'int_A' should be associated with dereference of 'int_ptr_A'
     assertThat(memoryLocations.size() == 1).isTrue();
     assertThat(memoryLocations.contains(int_a_memory_location)).isTrue();
   }
@@ -129,33 +150,68 @@ public class MemoryModelTest {
     // first create necessary collections
     ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
         ImmutableMap.<MemoryLocation, Integer>builder()
-            .put(int_pointer_memory_location, 0)
+            .put(int_pointer_a_memory_location, 0)
             .put(int_a_memory_location, 1)
             .put(int_b_memory_location, 2)
             .buildOrThrow();
-    // int_ptr = &int_A; i.e. pointer assignment
+    // int_ptr_A = &int_A; and int_ptr_A = &int_B; i.e. pointer assignments
     ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
         ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(int_pointer_declaration, int_a_memory_location)
-            .put(int_pointer_declaration, int_b_memory_location)
+            .put(int_pointer_a_declaration, int_a_memory_location)
+            .put(int_pointer_a_declaration, int_b_memory_location)
             .build();
-    // *int_ptr i.e. pointer dereference
+    // *int_ptr_A i.e. pointer dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
-        ImmutableSet.<MemoryLocation>builder().add(int_pointer_memory_location).build();
+        ImmutableSet.<MemoryLocation>builder().add(int_pointer_a_memory_location).build();
 
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
             memoryLocationIds, pointerAssignments, ImmutableTable.of(), pointerDereferences);
 
-    // find the memory locations associated with dereference of 'int_ptr'
+    // find the memory locations associated with dereference of 'int_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            int_pointer_memory_location, Optional.empty(), testMemoryModel);
+            int_pointer_a_memory_location, Optional.empty(), testMemoryModel);
 
-    // memory location of 'int_A' and 'int_B' should be associated with dereference of 'int_ptr'
+    // memory location of 'int_A' and 'int_B' should be associated with dereference of 'int_ptr_A'
     assertThat(memoryLocations.size() == 2).isTrue();
     assertThat(memoryLocations.contains(int_a_memory_location)).isTrue();
     assertThat(memoryLocations.contains(int_b_memory_location)).isTrue();
+  }
+
+  @Test
+  public void test_transitive_pointer_assignment() {
+    // first create necessary collections
+    ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
+        ImmutableMap.<MemoryLocation, Integer>builder()
+            .put(int_pointer_a_memory_location, 0)
+            .put(int_a_memory_location, 1)
+            .put(int_pointer_b_memory_location, 2)
+            .buildOrThrow();
+    // int_ptr_A = &int_A; and int_ptr_B = int_ptr_A; i.e. pointer assignment (transitive)
+    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
+            .put(int_pointer_a_declaration, int_a_memory_location)
+            .put(int_pointer_b_declaration, int_pointer_a_memory_location)
+            .build();
+    // *int_ptr_B i.e. pointer dereference
+    ImmutableSet<MemoryLocation> pointerDereferences =
+        ImmutableSet.<MemoryLocation>builder().add(int_pointer_b_memory_location).build();
+
+    // create memory model
+    MemoryModel testMemoryModel =
+        new MemoryModel(
+            memoryLocationIds, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+
+    // find the memory locations associated with dereference of 'int_ptr_B'
+    ImmutableSet<MemoryLocation> memoryLocations =
+        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            int_pointer_b_memory_location, Optional.empty(), testMemoryModel);
+
+    // memory location of 'int_A' should be associated with dereference of 'int_ptr_B'
+    // even without direct assignment, due to transitive assignment of 'int_ptr_B = int_ptr_A'
+    assertThat(memoryLocations.size() == 1).isTrue();
+    assertThat(memoryLocations.contains(int_a_memory_location)).isTrue();
   }
 }
