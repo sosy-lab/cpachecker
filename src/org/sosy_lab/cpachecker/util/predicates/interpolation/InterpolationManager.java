@@ -22,7 +22,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Ints;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -278,7 +277,8 @@ public final class InterpolationManager {
     } else {
       // important to use daemon threads here, because we never have the chance to stop the executor
       executor =
-          Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
+          Executors.newSingleThreadExecutor(
+              Thread.ofPlatform().daemon().name(getClass().getSimpleName() + "-thread").factory());
     }
 
     if (reuseInterpolationEnvironment) {
@@ -621,8 +621,7 @@ public final class InterpolationManager {
     if (!bfmgr.isTrue(bitwiseAxioms)) {
       logger.log(
           Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE", "LAST GROUP: ", bitwiseAxioms);
-      return listAndElement(
-          f.subList(0, f.size() - 1), bfmgr.and(f.get(f.size() - 1), bitwiseAxioms));
+      return listAndElement(f.subList(0, f.size() - 1), bfmgr.and(f.getLast(), bitwiseAxioms));
     }
 
     return f;

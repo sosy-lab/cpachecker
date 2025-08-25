@@ -284,19 +284,18 @@ public class ThreadCreateTransformer {
   }
 
   private CIdExpression getFunctionName(CExpression fName) {
-    if (fName instanceof CIdExpression cIdExpression) {
-      return cIdExpression;
-    } else if (fName instanceof CUnaryExpression cUnaryExpression) {
-      return getFunctionName(cUnaryExpression.getOperand());
-    } else if (fName instanceof CCastExpression cCastExpression) {
-      return getFunctionName(cCastExpression.getOperand());
-    } else {
-      throw new UnsupportedOperationException("Unsupported expression in pthread_create: " + fName);
-    }
+    return switch (fName) {
+      case CIdExpression cIdExpression -> cIdExpression;
+      case CUnaryExpression cUnaryExpression -> getFunctionName(cUnaryExpression.getOperand());
+      case CCastExpression cCastExpression -> getFunctionName(cCastExpression.getOperand());
+      default ->
+          throw new UnsupportedOperationException(
+              "Unsupported expression in pthread_create: " + fName);
+    };
   }
 
   private CIdExpression getThreadVariableName(CFunctionCallExpression fCall) {
-    CExpression var = fCall.getParameterExpressions().get(0);
+    CExpression var = fCall.getParameterExpressions().getFirst();
 
     while (!(var instanceof CIdExpression)) {
       if (var instanceof CUnaryExpression) {

@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -215,7 +216,7 @@ public class CFATraversal {
     record CFANodeCFAEdgePair(CFANode successor, CFAEdge enteringEdge) {}
 
     Deque<CFANodeCFAEdgePair> toProcess = new ArrayDeque<>();
-    Set<CFANode> discovered = new LinkedHashSet<>();
+    SequencedSet<CFANode> discovered = new LinkedHashSet<>();
 
     toProcess.addLast(new CFANodeCFAEdgePair(startingNode, null));
 

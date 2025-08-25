@@ -47,7 +47,7 @@ class LlvmParserWithClang extends LlvmParser {
       throw new InvalidConfigurationException(
           "Multiple program files not supported when using LLVM frontend.");
     }
-    Path filename = Path.of(pFilenames.get(0));
+    Path filename = Path.of(pFilenames.getFirst());
 
     return parseSingleFile(filename);
   }

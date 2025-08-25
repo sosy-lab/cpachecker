@@ -36,22 +36,22 @@ class InvertInequalityTransformation extends DefaultFormulaVisitor<BooleanFormul
     if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.GTE)
         || pFunctionDeclaration.getName().equals(">=")) {
       assert pNewArgs.size() == 2;
-      return fmgr.makeLessThan(pNewArgs.get(0), pNewArgs.get(1), true);
+      return fmgr.makeLessThan(pNewArgs.getFirst(), pNewArgs.get(1), true);
 
     } else if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.LTE)
         || pFunctionDeclaration.getName().equals("<=")) {
       assert pNewArgs.size() == 2;
-      return fmgr.makeGreaterThan(pNewArgs.get(0), pNewArgs.get(1), true);
+      return fmgr.makeGreaterThan(pNewArgs.getFirst(), pNewArgs.get(1), true);
 
     } else if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.GT)
         || pFunctionDeclaration.getName().equals(">")) {
       assert pNewArgs.size() == 2;
-      return fmgr.makeLessOrEqual(pNewArgs.get(0), pNewArgs.get(1), true);
+      return fmgr.makeLessOrEqual(pNewArgs.getFirst(), pNewArgs.get(1), true);
 
     } else if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.LT)
         || pFunctionDeclaration.getName().equals("<")) {
       assert pNewArgs.size() == 2;
-      return fmgr.makeGreaterOrEqual(pNewArgs.get(0), pNewArgs.get(1), true);
+      return fmgr.makeGreaterOrEqual(pNewArgs.getFirst(), pNewArgs.get(1), true);
 
     } else {
       return super.visitFunction(pF, pNewArgs, pFunctionDeclaration);

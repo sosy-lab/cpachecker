@@ -15,7 +15,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -28,6 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -172,7 +172,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // we use a list for the next states,
     // but we also remove states from waitlist, when they are done,
     // so we need fast access to the states
-    final Set<ARGState> waitlist = new LinkedHashSet<>();
+    final SequencedSet<ARGState> waitlist = new LinkedHashSet<>();
 
     // special handling of first state
     s2v.put(end, importantVars);
@@ -184,8 +184,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
 
     while (!waitlist.isEmpty()) {
-      final ARGState current = Iterables.getFirst(waitlist, null);
-      waitlist.remove(current);
+      final ARGState current = waitlist.removeFirst();
 
       // already handled
       assert !s2v.containsKey(current);
@@ -238,7 +237,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // the assumption itself is unimportant, so we can ignore it
     if (isAssumptionWithSameImpChild(usedChildren, current, s2s)) {
 
-      final ARGState child1 = usedChildren.get(0);
+      final ARGState child1 = usedChildren.getFirst();
       s2s.putAll(current, s2s.get(child1));
 
       // vars from latest important child,
@@ -295,7 +294,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final ARGState current,
       final SetMultimap<ARGState, ARGState> s2s) {
     if (usedChildren.size() == 2) {
-      final ARGState child1 = usedChildren.get(0);
+      final ARGState child1 = usedChildren.getFirst();
       final ARGState child2 = usedChildren.get(1);
       final CFAEdge edge1 = current.getEdgeToChild(child1);
       final CFAEdge edge2 = current.getEdgeToChild(child2);
@@ -511,7 +510,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // we use a list for the next states,
     // but we also remove states from waitlist, when they are done,
     // so we need fast access to the states
-    final Set<ARGState> waitlist = new LinkedHashSet<>();
+    final SequencedSet<ARGState> waitlist = new LinkedHashSet<>();
 
     // special handling of first state
     s2f.put(start, oldPf);
@@ -522,8 +521,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
 
     while (!waitlist.isEmpty()) {
-      final ARGState current = Iterables.getFirst(waitlist, null);
-      waitlist.remove(current);
+      final ARGState current = waitlist.removeFirst();
 
       // already handled
       assert !s2f.containsKey(current);
@@ -571,7 +569,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       pfs.add(buildFormulaForEdge(parent, current, oldPf, importantEdges));
     }
 
-    PathFormula joined = pfs.get(0);
+    PathFormula joined = pfs.getFirst();
     for (int i = 1; i < pfs.size(); i++) {
       joined = pfmgr.makeOr(joined, pfs.get(i));
     }

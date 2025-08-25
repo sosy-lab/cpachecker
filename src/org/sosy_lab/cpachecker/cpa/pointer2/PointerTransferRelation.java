@@ -738,16 +738,18 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static Optional<AFunctionCall> asFunctionCall(CFAEdge pEdge) {
-    if (pEdge instanceof AStatementEdge statementEdge) {
-      if (statementEdge.getStatement() instanceof AFunctionCall aFunctionCall) {
-        return Optional.of(aFunctionCall);
-      }
-    } else if (pEdge instanceof FunctionCallEdge functionCallEdge) {
-      return Optional.of(functionCallEdge.getFunctionCall());
-    } else if (pEdge instanceof FunctionSummaryEdge functionSummaryEdge) {
-      return Optional.of(functionSummaryEdge.getExpression());
-    }
-    return Optional.empty();
+    return switch (pEdge) {
+      case AStatementEdge statementEdge
+          when statementEdge.getStatement() instanceof AFunctionCall aFunctionCall ->
+          Optional.of(aFunctionCall);
+
+      case FunctionCallEdge functionCallEdge -> Optional.of(functionCallEdge.getFunctionCall());
+
+      case FunctionSummaryEdge functionSummaryEdge ->
+          Optional.of(functionSummaryEdge.getExpression());
+
+      default -> Optional.empty();
+    };
   }
 
   private static Collection<? extends AbstractState> strengthenFieldReference(

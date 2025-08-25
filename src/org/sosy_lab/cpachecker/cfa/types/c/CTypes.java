@@ -184,6 +184,7 @@ public final class CTypes {
    * <p>If you want to set the const flag to a constant, prefer {@link #withoutConst(CType)} and
    * {@link #withConst(CType)}.
    */
+  @SuppressWarnings("unchecked") // method always creates instances of exact same class
   public static <T extends CType> T withConstSetTo(T type, boolean newConstValue) {
     if (type instanceof CProblemType) {
       return type;
@@ -192,9 +193,67 @@ public final class CTypes {
     if (type.isConst() == newConstValue) {
       return type;
     }
-    @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T) type.accept(newConstValue ? ForceConstVisitor.TRUE : ForceConstVisitor.FALSE);
-    return result;
+
+    return (T)
+        switch (type) {
+          case CArrayType t ->
+              new CArrayType(newConstValue, t.isVolatile(), t.getType(), t.getLength());
+          case CCompositeType t ->
+              new CCompositeType(
+                  newConstValue,
+                  t.isVolatile(),
+                  t.getKind(),
+                  t.getMembers(),
+                  t.getName(),
+                  t.getOrigName());
+
+          case CElaboratedType t ->
+              new CElaboratedType(
+                  newConstValue,
+                  t.isVolatile(),
+                  t.getKind(),
+                  t.getName(),
+                  t.getOrigName(),
+                  t.getRealType());
+          case CEnumType t ->
+              new CEnumType(
+                  newConstValue,
+                  t.isVolatile(),
+                  t.getCompatibleType(),
+                  t.getEnumerators(),
+                  t.getName(),
+                  t.getOrigName());
+          case CFunctionType t -> {
+            checkArgument(!newConstValue, "Cannot create const function type, this is undefined");
+            yield t;
+          }
+          case CPointerType t -> new CPointerType(newConstValue, t.isVolatile(), t.getType());
+
+          case CProblemType t -> throw new AssertionError(); // handled above
+
+          case CSimpleType t ->
+              new CSimpleType(
+                  newConstValue,
+                  t.isVolatile(),
+                  t.getType(),
+                  t.hasLongSpecifier(),
+                  t.hasShortSpecifier(),
+                  t.hasSignedSpecifier(),
+                  t.hasUnsignedSpecifier(),
+                  t.hasComplexSpecifier(),
+                  t.hasImaginarySpecifier(),
+                  t.hasLongLongSpecifier());
+
+          case CTypedefType t ->
+              new CTypedefType(newConstValue, t.isVolatile(), t.getName(), t.getRealType());
+
+          case CVoidType t -> CVoidType.create(newConstValue, t.isVolatile());
+
+          case CBitFieldType pCBitFieldType ->
+              new CBitFieldType(
+                  withConstSetTo(pCBitFieldType.getType(), newConstValue),
+                  pCBitFieldType.getBitFieldSize());
+        };
   }
 
   /**
@@ -227,6 +286,7 @@ public final class CTypes {
    * <p>If you want to set the volatile flag to a constant, prefer {@link #withoutVolatile(CType)}
    * and {@link #withVolatile(CType)}.
    */
+  @SuppressWarnings("unchecked") // method always creates instances of exact same class
   public static <T extends CType> T withVolatileSetTo(T type, boolean newVolatileValue) {
     if (type instanceof CProblemType) {
       return type;
@@ -235,10 +295,61 @@ public final class CTypes {
     if (type.isVolatile() == newVolatileValue) {
       return type;
     }
-    @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result =
-        (T) type.accept(newVolatileValue ? ForceVolatileVisitor.TRUE : ForceVolatileVisitor.FALSE);
-    return result;
+    return (T)
+        switch (type) {
+          case CArrayType t ->
+              new CArrayType(t.isConst(), newVolatileValue, t.getType(), t.getLength());
+          case CCompositeType t ->
+              new CCompositeType(
+                  t.isConst(),
+                  newVolatileValue,
+                  t.getKind(),
+                  t.getMembers(),
+                  t.getName(),
+                  t.getOrigName());
+          case CElaboratedType t ->
+              new CElaboratedType(
+                  t.isConst(),
+                  newVolatileValue,
+                  t.getKind(),
+                  t.getName(),
+                  t.getOrigName(),
+                  t.getRealType());
+          case CEnumType t ->
+              new CEnumType(
+                  t.isConst(),
+                  newVolatileValue,
+                  t.getCompatibleType(),
+                  t.getEnumerators(),
+                  t.getName(),
+                  t.getOrigName());
+          case CFunctionType t -> {
+            checkArgument(
+                !newVolatileValue, "Cannot create const function type, this is undefined");
+            yield t;
+          }
+          case CPointerType t -> new CPointerType(t.isConst(), newVolatileValue, t.getType());
+          case CProblemType t -> throw new AssertionError(); // handled above
+          case CSimpleType t ->
+              new CSimpleType(
+                  t.isConst(),
+                  newVolatileValue,
+                  t.getType(),
+                  t.hasLongSpecifier(),
+                  t.hasShortSpecifier(),
+                  t.hasSignedSpecifier(),
+                  t.hasUnsignedSpecifier(),
+                  t.hasComplexSpecifier(),
+                  t.hasImaginarySpecifier(),
+                  t.hasLongLongSpecifier());
+          case CTypedefType t ->
+              new CTypedefType(t.isConst(), newVolatileValue, t.getName(), t.getRealType());
+          case CVoidType t -> CVoidType.create(t.isConst(), newVolatileValue);
+          case CBitFieldType pCBitFieldType ->
+              new CBitFieldType(
+                  withVolatileSetTo(pCBitFieldType.getType(), newVolatileValue),
+                  pCBitFieldType.getBitFieldSize());
+        };
   }
 
   /**
@@ -423,182 +534,6 @@ public final class CTypes {
     pType = withoutConst(pType);
     pType = withoutVolatile(pType);
     return pType;
-  }
-
-  private enum ForceConstVisitor implements CTypeVisitor<CType, NoException> {
-    FALSE(false),
-    TRUE(true);
-
-    private final boolean constValue;
-
-    ForceConstVisitor(boolean pConstValue) {
-      constValue = pConstValue;
-    }
-
-    // Make sure to always return instances of exactly the same classes!
-
-    @Override
-    public CArrayType visit(CArrayType t) {
-      return new CArrayType(constValue, t.isVolatile(), t.getType(), t.getLength());
-    }
-
-    @Override
-    public CCompositeType visit(CCompositeType t) {
-      return new CCompositeType(
-          constValue, t.isVolatile(), t.getKind(), t.getMembers(), t.getName(), t.getOrigName());
-    }
-
-    @Override
-    public CElaboratedType visit(CElaboratedType t) {
-      return new CElaboratedType(
-          constValue, t.isVolatile(), t.getKind(), t.getName(), t.getOrigName(), t.getRealType());
-    }
-
-    @Override
-    public CEnumType visit(CEnumType t) {
-      return new CEnumType(
-          constValue,
-          t.isVolatile(),
-          t.getCompatibleType(),
-          t.getEnumerators(),
-          t.getName(),
-          t.getOrigName());
-    }
-
-    @Override
-    public CFunctionType visit(CFunctionType t) {
-      checkArgument(!constValue, "Cannot create const function type, this is undefined");
-      return t;
-    }
-
-    @Override
-    public CPointerType visit(CPointerType t) {
-      return new CPointerType(constValue, t.isVolatile(), t.getType());
-    }
-
-    @Override
-    public CProblemType visit(CProblemType t) {
-      return t;
-    }
-
-    @Override
-    public CSimpleType visit(CSimpleType t) {
-      return new CSimpleType(
-          constValue,
-          t.isVolatile(),
-          t.getType(),
-          t.hasLongSpecifier(),
-          t.hasShortSpecifier(),
-          t.hasSignedSpecifier(),
-          t.hasUnsignedSpecifier(),
-          t.hasComplexSpecifier(),
-          t.hasImaginarySpecifier(),
-          t.hasLongLongSpecifier());
-    }
-
-    @Override
-    public CTypedefType visit(CTypedefType t) {
-      return new CTypedefType(constValue, t.isVolatile(), t.getName(), t.getRealType());
-    }
-
-    @Override
-    public CType visit(CVoidType t) {
-      return CVoidType.create(constValue, t.isVolatile());
-    }
-
-    @Override
-    public CType visit(CBitFieldType pCBitFieldType) {
-      return new CBitFieldType(
-          pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
-    }
-  }
-
-  private enum ForceVolatileVisitor implements CTypeVisitor<CType, NoException> {
-    FALSE(false),
-    TRUE(true);
-
-    private final boolean volatileValue;
-
-    ForceVolatileVisitor(boolean pVolatileValue) {
-      volatileValue = pVolatileValue;
-    }
-
-    // Make sure to always return instances of exactly the same classes!
-
-    @Override
-    public CArrayType visit(CArrayType t) {
-      return new CArrayType(t.isConst(), volatileValue, t.getType(), t.getLength());
-    }
-
-    @Override
-    public CCompositeType visit(CCompositeType t) {
-      return new CCompositeType(
-          t.isConst(), volatileValue, t.getKind(), t.getMembers(), t.getName(), t.getOrigName());
-    }
-
-    @Override
-    public CElaboratedType visit(CElaboratedType t) {
-      return new CElaboratedType(
-          t.isConst(), volatileValue, t.getKind(), t.getName(), t.getOrigName(), t.getRealType());
-    }
-
-    @Override
-    public CEnumType visit(CEnumType t) {
-      return new CEnumType(
-          t.isConst(),
-          volatileValue,
-          t.getCompatibleType(),
-          t.getEnumerators(),
-          t.getName(),
-          t.getOrigName());
-    }
-
-    @Override
-    public CFunctionType visit(CFunctionType t) {
-      checkArgument(!volatileValue, "Cannot create const function type, this is undefined");
-      return t;
-    }
-
-    @Override
-    public CPointerType visit(CPointerType t) {
-      return new CPointerType(t.isConst(), volatileValue, t.getType());
-    }
-
-    @Override
-    public CProblemType visit(CProblemType t) {
-      return t;
-    }
-
-    @Override
-    public CSimpleType visit(CSimpleType t) {
-      return new CSimpleType(
-          t.isConst(),
-          volatileValue,
-          t.getType(),
-          t.hasLongSpecifier(),
-          t.hasShortSpecifier(),
-          t.hasSignedSpecifier(),
-          t.hasUnsignedSpecifier(),
-          t.hasComplexSpecifier(),
-          t.hasImaginarySpecifier(),
-          t.hasLongLongSpecifier());
-    }
-
-    @Override
-    public CTypedefType visit(CTypedefType t) {
-      return new CTypedefType(t.isConst(), volatileValue, t.getName(), t.getRealType());
-    }
-
-    @Override
-    public CType visit(CVoidType t) {
-      return CVoidType.create(t.isConst(), volatileValue);
-    }
-
-    @Override
-    public CType visit(CBitFieldType pCBitFieldType) {
-      return new CBitFieldType(
-          pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
-    }
   }
 
   /**

@@ -262,7 +262,8 @@ class AutomatonASTComparator {
         parameterPatterns.add(parameter.accept(this));
       }
 
-      if ((parameterPatterns.size() == 1) && (parameterPatterns.get(0) == JokerMatcher.INSTANCE)) {
+      if ((parameterPatterns.size() == 1)
+          && (parameterPatterns.getFirst() == JokerMatcher.INSTANCE)) {
         // pattern is something like foo($?), this should match all calls of foo(),
         // regardless of the number of parameters
         return createMatcher(

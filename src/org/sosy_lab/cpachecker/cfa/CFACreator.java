@@ -987,7 +987,7 @@ public class CFACreator {
 
     } else if (sourceFiles.size() == 1) {
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      Path path = Path.of(sourceFiles.get(0)).getFileName();
+      Path path = Path.of(sourceFiles.getFirst()).getFileName();
       if (path != null) {
         String filename = path.toString(); // remove directory
 

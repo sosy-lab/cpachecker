@@ -112,7 +112,7 @@ public class LocationState
               + pProperty
               + "\" is invalid. Could not split the property string correctly.");
     } else {
-      switch (Ascii.toLowerCase(parts.get(0))) {
+      switch (Ascii.toLowerCase(parts.getFirst())) {
         case "line" -> {
           try {
             int queryLine = Integer.parseInt(parts.get(1));
@@ -135,8 +135,8 @@ public class LocationState
           return locationNode.getFunctionName().equals(parts.get(1));
         }
         case "label" -> {
-          return locationNode instanceof CFALabelNode
-              ? ((CFALabelNode) locationNode).getLabel().equals(parts.get(1))
+          return locationNode instanceof CFALabelNode labelNode
+              ? labelNode.getLabel().equals(parts.get(1))
               : false;
         }
         case "nodenumber" -> {
@@ -169,7 +169,7 @@ public class LocationState
                 "The Query \""
                     + pProperty
                     + "\" is invalid. \""
-                    + parts.get(0)
+                    + parts.getFirst()
                     + "\" is no valid keyword");
       }
     }

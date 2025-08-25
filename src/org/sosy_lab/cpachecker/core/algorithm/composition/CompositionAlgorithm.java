@@ -747,7 +747,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     LoopBoundPrecision loopPrec =
         Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
-    if (loopPrec != null && pPreviousReachedSets.get(0) != null) {
+    if (loopPrec != null && pPreviousReachedSets.getFirst() != null) {
       resultPrec =
           Precisions.replaceByType(
               resultPrec, loopPrec, Predicates.instanceOf(LoopBoundPrecision.class));
@@ -756,9 +756,9 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     PredicatePrecision predPrec =
         Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
 
-    if (predPrec != null && pPreviousReachedSets.get(0) != null) {
+    if (predPrec != null && pPreviousReachedSets.getFirst() != null) {
       Iterable<Precision> allPrecisions =
-          FluentIterable.of(resultPrec).append(pPreviousReachedSets.get(0).getPrecisions());
+          FluentIterable.of(resultPrec).append(pPreviousReachedSets.getFirst().getPrecisions());
 
       resultPrec =
           Precisions.replaceByType(

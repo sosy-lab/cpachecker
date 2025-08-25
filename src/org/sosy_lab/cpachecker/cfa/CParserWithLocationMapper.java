@@ -114,7 +114,7 @@ public class CParserWithLocationMapper implements CParser {
 
           // Evaluate the preprocessor directive...
           if (readLineDirectives && !directiveTokens.isEmpty()) {
-            String firstTokenImage = directiveTokens.get(0).getImage().trim();
+            String firstTokenImage = directiveTokens.getFirst().getImage().trim();
 
             final int lineNumberTokenIndex;
 

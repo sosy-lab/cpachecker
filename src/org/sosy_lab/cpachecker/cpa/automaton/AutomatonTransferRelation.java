@@ -25,7 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -407,13 +407,13 @@ public class AutomatonTransferRelation implements TransferRelation {
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
-    Set<List<AbstractState>> strengtheningCombinations = new LinkedHashSet<>();
+    SequencedSet<List<AbstractState>> strengtheningCombinations = new LinkedHashSet<>();
     // need to use lists in set instead of iterable because the latter does not guarantee equals()
     strengtheningCombinations.add(ImmutableList.copyOf(pOtherElements));
     boolean changed = from(pOtherElements).anyMatch(instanceOf(AutomatonUnknownState.class));
     while (changed) {
       changed = false;
-      Set<List<AbstractState>> newCombinations = new LinkedHashSet<>();
+      SequencedSet<List<AbstractState>> newCombinations = new LinkedHashSet<>();
       for (List<AbstractState> otherStates : strengtheningCombinations) {
         Collection<List<AbstractState>> newPartialCombinations = new ArrayList<>();
         newPartialCombinations.add(new ArrayList<>());

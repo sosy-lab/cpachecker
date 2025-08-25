@@ -291,7 +291,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     if (limit == 1 && "__VERIFIER_assume".equals(pEdge.getSuccessor().getFunctionName())) {
       NumeralFormula<CompoundInterval> assumptionExpression =
-          actualParams.get(0).accept(actualParamExpressionToFormulaVisitor);
+          actualParams.getFirst().accept(actualParamExpressionToFormulaVisitor);
       BooleanFormula<CompoundInterval> assumption =
           compoundIntervalFormulaManager.fromNumeral(assumptionExpression);
       return handleAssumption(pElement, assumption);

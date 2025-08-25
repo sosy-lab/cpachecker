@@ -11,12 +11,12 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -106,7 +106,7 @@ public class UseDefBasedInterpolator {
       }
     }
 
-    return Lists.reverse(interpolants);
+    return interpolants.reversed();
   }
 
   /**
@@ -118,7 +118,7 @@ public class UseDefBasedInterpolator {
    */
   public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolantsAsMap() {
 
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
+    SequencedMap<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
     for (Pair<ARGState, ValueAnalysisInterpolant> itp : obtainInterpolants()) {
       interpolants.put(itp.getFirst(), itp.getSecond());
     }

@@ -138,20 +138,17 @@ public class RankingRelationBuilder {
   private RankingRelation fromRankingFunction(
       Set<CVariableDeclaration> pRelevantVariables, RankingFunction rankingFunction)
       throws UnrecognizedCodeException, RankingRelationException {
-    if (rankingFunction instanceof LinearRankingFunction linearRankingFunction) {
-      AffineFunction function = linearRankingFunction.getComponent();
-      return fromAffineFunction(pRelevantVariables, function);
-
-    } else if (rankingFunction
-        instanceof LexicographicRankingFunction lexicographicRankingFunction) {
-      return fromLexicographicRankingFunction(lexicographicRankingFunction, pRelevantVariables);
-
-    } else if (rankingFunction instanceof NestedRankingFunction nestedRankingFunction) {
-      return fromNestedRankingFunction(nestedRankingFunction, pRelevantVariables);
-
-    } else {
-      throw new UnsupportedOperationException(rankingFunction.getName());
-    }
+    return switch (rankingFunction) {
+      case LinearRankingFunction linearRankingFunction -> {
+        AffineFunction function = linearRankingFunction.getComponent();
+        yield fromAffineFunction(pRelevantVariables, function);
+      }
+      case LexicographicRankingFunction lexicographicRankingFunction ->
+          fromLexicographicRankingFunction(lexicographicRankingFunction, pRelevantVariables);
+      case NestedRankingFunction nestedRankingFunction ->
+          fromNestedRankingFunction(nestedRankingFunction, pRelevantVariables);
+      default -> throw new UnsupportedOperationException(rankingFunction.getName());
+    };
   }
 
   private RankingRelation fromLexicographicRankingFunction(

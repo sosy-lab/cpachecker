@@ -96,10 +96,9 @@ public class FunctionCallUnwinder {
       // get functioncalls from the CFA
       final FunctionCallCollector visitor = new FunctionCallCollector();
       CFATraversal.dfs().traverseOnce(entryNode, visitor);
-      final Collection<AStatementEdge> functionCalls = visitor.getFunctionCalls();
 
       // unwind recursion
-      for (AStatementEdge statementEdge : functionCalls) {
+      for (AStatementEdge statementEdge : visitor.getFunctionCalls()) {
 
         if (!isFunctionCall(statementEdge, functions.keySet())) {
           continue;

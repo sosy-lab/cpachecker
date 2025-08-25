@@ -127,6 +127,17 @@ with considerably less effort!
   use the interface as type instead of the implementation (e.g., `List` instead of `ArrayList`).
   This is especially true for fields, parameters, and return types.
   Do use the `Immutable*` types from Guava, though, to show that your collection is immutable.
+- Do not use the types `SortedMap` and `SortedSet`, use `NavigableMap` and `NavigableSet`
+  (these are subinterfaces with more methods).
+- If you need to iterate over a collection, make sure it has a defined order,
+  i.e., use `HashMap` and `HashSet` only if iteration order is definitively irrelevant
+  (all other common collection implementations have deterministic iteration order).
+  If you need an unsorted mutable map/set with defined iteration order,
+  make sure to use the types `SequencedMap` and `SequencedSet` to communicate and enforce this requirement,
+  and the types `LinkedHashMap` and `LinkedHashSet` as implementation.
+  Unfortunately, there is currently no type that guarantees deterministic iteration order
+  and allows both Guava's immutable collections as well as `LinkedHashMap`/`Set`,
+  so if you really need this use plain `Map` and `Set` plus additional documentation.
 - There are many helpers for collections, but unfortunately in different places:
   - `org.sosy_lab.common.collect.Collections3` contains our own helper methods.
   - Guava has [utility classes such as `Lists`, `Iterables`, `Maps`, `Collections2`](https://github.com/google/guava/wiki/CollectionUtilitiesExplained),

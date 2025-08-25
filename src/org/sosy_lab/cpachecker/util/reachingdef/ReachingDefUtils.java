@@ -139,25 +139,28 @@ public final class ReachingDefUtils {
   public static Set<MemoryLocation> possiblePointees(CExpression pExp, PointerState pPointerState) {
     Set<MemoryLocation> possibleOperands;
 
-    if (pExp instanceof CPointerExpression cPointerExpression) {
-      possibleOperands = possiblePointees(cPointerExpression.getOperand(), pPointerState);
-
-    } else if (pExp instanceof CIdExpression cIdExpression) {
-      return Collections.singleton(MemoryLocation.forDeclaration(cIdExpression.getDeclaration()));
-
-    } else if (pExp instanceof CFieldReference cFieldReference) {
-      if (cFieldReference.isPointerDereference()) {
-        possibleOperands = possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
-      } else {
-        return possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
+    switch (pExp) {
+      case CPointerExpression cPointerExpression ->
+          possibleOperands = possiblePointees(cPointerExpression.getOperand(), pPointerState);
+      case CIdExpression cIdExpression -> {
+        return Collections.singleton(MemoryLocation.forDeclaration(cIdExpression.getDeclaration()));
       }
-    } else if (pExp instanceof CArraySubscriptExpression cArraySubscriptExpression) {
-      return possiblePointees(cArraySubscriptExpression.getArrayExpression(), pPointerState);
-
-    } else if (pExp instanceof CCastExpression cCastExpression) {
-      return possiblePointees(cCastExpression.getOperand(), pPointerState);
-    } else {
-      return null;
+      case CFieldReference cFieldReference -> {
+        if (cFieldReference.isPointerDereference()) {
+          possibleOperands = possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
+        } else {
+          return possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
+        }
+      }
+      case CArraySubscriptExpression cArraySubscriptExpression -> {
+        return possiblePointees(cArraySubscriptExpression.getArrayExpression(), pPointerState);
+      }
+      case CCastExpression cCastExpression -> {
+        return possiblePointees(cCastExpression.getOperand(), pPointerState);
+      }
+      case null /*TODO check if null is necessary*/, default -> {
+        return null;
+      }
     }
 
     if (possibleOperands == null) {

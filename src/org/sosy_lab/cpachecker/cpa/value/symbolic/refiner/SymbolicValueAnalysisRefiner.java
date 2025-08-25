@@ -380,12 +380,12 @@ public class SymbolicValueAnalysisRefiner
         symbolicInfo.append(System.lineSeparator());
       }
       CFAEdgeWithAssumptions edgeWithAssumption =
-          new CFAEdgeWithAssumptions(p.getSecond().get(0), assumptions.build(), "");
+          new CFAEdgeWithAssumptions(p.getSecond().getFirst(), assumptions.build(), "");
       symbolicInfo.append(edgeWithAssumption.prettyPrintCode(1));
       currentState = nextState;
     }
 
-    currentState = stateSequence.get(stateSequence.size() - 1).getFirst();
+    currentState = stateSequence.getLast().getFirst();
     ConstraintsState finalConstraints = currentState.getConstraintsState();
 
     List<ValueAssignment> assignments = finalConstraints.getModel();

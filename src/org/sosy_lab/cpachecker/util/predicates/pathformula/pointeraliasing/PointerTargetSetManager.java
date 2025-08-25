@@ -517,7 +517,7 @@ class PointerTargetSetManager {
       return type instanceof CCompositeType compositeType
           && compositeType.getKind() == ComplexTypeKind.UNION
           && !compositeType.getMembers().isEmpty()
-          && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
+          && compositeType.getMembers().getFirst().getName().equals(getUnitedFieldBaseName(0));
     }
   }
 

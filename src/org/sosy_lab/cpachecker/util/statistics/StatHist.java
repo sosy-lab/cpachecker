@@ -14,7 +14,7 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.SequencedMap;
 
 /**
  * Thread-safe implementation of numerical statistics. This class tracks how often a value is used
@@ -121,7 +121,7 @@ public class StatHist extends AbstractStatValue {
 
   public void mergeWith(StatHist other) {
     // copy data to avoid a possible deadlock from locking hist and other hist.
-    Map<Long, Integer> countMap = new LinkedHashMap<>();
+    SequencedMap<Long, Integer> countMap = new LinkedHashMap<>();
     synchronized (other.hist) {
       for (Long e : other.hist.elementSet()) {
         countMap.put(e, other.hist.count(e));

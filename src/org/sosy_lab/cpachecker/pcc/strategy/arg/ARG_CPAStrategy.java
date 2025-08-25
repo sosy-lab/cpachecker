@@ -65,12 +65,12 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
       stop = null;
       transfer = null;
     } else {
-      if (!(pCpa.getWrappedCPAs().get(0) instanceof ARGCPA aRGCPA)) {
+      if (!(pCpa.getWrappedCPAs().getFirst() instanceof ARGCPA aRGCPA)) {
         throw new InvalidConfigurationException(
             "Expect that the property checker cpa wraps an ARG cpa");
       }
-      stop = aRGCPA.getWrappedCPAs().get(0).getStopOperator();
-      transfer = aRGCPA.getWrappedCPAs().get(0).getTransferRelation();
+      stop = aRGCPA.getWrappedCPAs().getFirst().getStopOperator();
+      transfer = aRGCPA.getWrappedCPAs().getFirst().getTransferRelation();
     }
   }
 

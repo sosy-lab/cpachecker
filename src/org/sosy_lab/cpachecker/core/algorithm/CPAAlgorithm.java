@@ -101,17 +101,19 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
           if (val == newVal) {
             // ignore, otherwise counters would double
-          } else if (newVal instanceof StatCounter statCounter) {
-            assert val instanceof StatCounter;
-            statCounter.mergeWith((StatCounter) val);
-          } else if (newVal instanceof StatInt statInt) {
-            assert val instanceof StatInt;
-            statInt.add((StatInt) val);
-          } else if (newVal instanceof StatHist statHist) {
-            assert val instanceof StatHist;
-            statHist.mergeWith((StatHist) val);
           } else {
-            throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
+            switch (newVal) {
+              case StatCounter statCounter -> {
+                statCounter.mergeWith((StatCounter) val);
+              }
+              case StatInt statInt -> {
+                statInt.add((StatInt) val);
+              }
+              case StatHist statHist -> {
+                statHist.mergeWith((StatHist) val);
+              }
+              default -> throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
+            }
           }
         }
       }
