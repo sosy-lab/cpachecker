@@ -133,10 +133,6 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         || !variableBlacklist.toString().isEmpty();
   }
 
-  public Optional<Boolean> getSingularIsTrackingResult() {
-    return singularIsTrackingResult;
-  }
-
   @Override
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
     if (trackFloatVariables) {

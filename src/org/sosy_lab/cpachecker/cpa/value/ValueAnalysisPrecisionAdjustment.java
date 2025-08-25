@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -311,14 +310,6 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
         || options.abstractAtJoin(location)
         || options.abstractAtFunction(location)
         || options.abstractAtLoop(location)) {
-
-      if (precision instanceof ConfigurablePrecision confPrec
-          && confPrec.getSingularIsTrackingResult().isPresent()
-          && confPrec.getSingularIsTrackingResult().orElseThrow()) {
-        // All variables are always tracked, no need to forget anything
-        abstractions.inc();
-        return;
-      }
 
       for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
         MemoryLocation memoryLocation = e.getKey();
