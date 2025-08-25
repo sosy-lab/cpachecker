@@ -22,7 +22,7 @@ public final class CPointerType implements CType {
   public static final CPointerType POINTER_TO_CHAR =
       new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR);
   public static final CPointerType POINTER_TO_CONST_CHAR =
-      new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR.withConst());
+      new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR);
 
   private final CType type;
   private final CTypeQualifiers qualifiers;

@@ -148,6 +148,6 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     CExpression length =
         new CIntegerLiteralExpression(
             pFileLocation, CNumericTypes.INT, BigInteger.valueOf(astString.length() - 2 + 1));
-    return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.CHAR.withConst(), length);
+    return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR, length);
   }
 }

@@ -144,8 +144,7 @@ public final class PredefinedTypes {
         "printf",
         CNumericTypes.INT,
         Collections.singletonList(
-            Predicate.isEqual(
-                new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR.withConst()))));
+            Predicate.isEqual(new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR))));
   }
 
   private static boolean isSwprintf(@Nullable AFunctionDeclaration pDeclaration) {

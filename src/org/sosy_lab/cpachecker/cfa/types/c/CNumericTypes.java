@@ -20,6 +20,9 @@ public final class CNumericTypes {
   public static final CSimpleType CHAR =
       new CSimpleType(
           CTypeQualifiers.NONE, CBasicType.CHAR, false, false, false, false, false, false, false);
+  public static final CSimpleType CONST_CHAR =
+      new CSimpleType(
+          CTypeQualifiers.CONST, CBasicType.CHAR, false, false, false, false, false, false, false);
   public static final CSimpleType SIGNED_CHAR =
       new CSimpleType(
           CTypeQualifiers.NONE, CBasicType.CHAR, false, false, true, false, false, false, false);
