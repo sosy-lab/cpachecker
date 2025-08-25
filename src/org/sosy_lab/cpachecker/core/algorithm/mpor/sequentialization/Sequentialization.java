@@ -189,7 +189,7 @@ public class Sequentialization {
         SubstituteUtil.getInitialMemoryLocations(substituteEdges.values());
     Optional<MemoryModel> memoryModel =
         MemoryModelBuilder.tryBuildMemoryModel(
-            options, initialMemoryLocations, substituteEdges.values());
+            options, threads, initialMemoryLocations, substituteEdges.values());
     Optional<BitVectorVariables> bitVectorVariables =
         GhostVariableUtil.buildBitVectorVariables(options, threads, memoryModel);
     // TODO rename simulation -> synchronizationVariables

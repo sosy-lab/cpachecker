@@ -36,19 +36,22 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 
 public class MemoryModelBuilder {
 
   public static Optional<MemoryModel> tryBuildMemoryModel(
       MPOROptions pOptions,
+      ImmutableList<MPORThread> pThreads,
       ImmutableSet<MemoryLocation> pInitialMemoryLocations,
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     if (pOptions.linkReduction) {
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
           pointerParameterAssignments =
-              mapPointerParameterAssignments(pSubstituteEdges, pInitialMemoryLocations);
+              mapPointerParameterAssignments(pThreads, pSubstituteEdges, pInitialMemoryLocations);
       ImmutableCollection<MemoryLocation> newMemoryLocations = pointerParameterAssignments.values();
       return Optional.of(
           new MemoryModel(
@@ -94,6 +97,7 @@ public class MemoryModelBuilder {
 
   private static ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
       mapPointerParameterAssignments(
+          ImmutableList<MPORThread> pThreads,
           ImmutableCollection<SubstituteEdge> pSubstituteEdges,
           ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
@@ -104,8 +108,10 @@ public class MemoryModelBuilder {
       if (substituteEdge.getOriginalEdge() instanceof CFunctionCallEdge functionCallEdge) {
         // the function call edge is used as the call context, not the actual call context
         ThreadEdge callContext = substituteEdge.getThreadEdge();
+        MPORThread thread = ThreadUtil.getThreadById(pThreads, callContext.threadId);
         ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> assignments =
-            buildParameterAssignments(callContext, functionCallEdge, pInitialMemoryLocations);
+            buildParameterAssignments(
+                thread, callContext, functionCallEdge, pInitialMemoryLocations);
         for (Cell<ThreadEdge, CParameterDeclaration, MemoryLocation> cell : assignments) {
           rAssignments.put(cell);
         }
@@ -116,6 +122,7 @@ public class MemoryModelBuilder {
 
   private static ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>>
       buildParameterAssignments(
+          MPORThread pThread,
           ThreadEdge pCallContext,
           CFunctionCallEdge pFunctionCallEdge,
           ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
@@ -133,7 +140,7 @@ public class MemoryModelBuilder {
       // TODO we also need non-pointers, e.g. for 'global_ptr = &non_ptr_param;'
       if (leftHandSide.getType() instanceof CPointerType) {
         MemoryLocation rhsMemoryLocation =
-            extractMemoryLocation(arguments.get(i), pInitialMemoryLocations);
+            extractMemoryLocation(pThread, arguments.get(i), pInitialMemoryLocations);
         if (!rhsMemoryLocation.isEmpty()) {
           rAssignments.add(Tables.immutableCell(pCallContext, leftHandSide, rhsMemoryLocation));
         }
@@ -143,42 +150,50 @@ public class MemoryModelBuilder {
   }
 
   private static MemoryLocation extractMemoryLocation(
-      CExpression pRightHandSide, ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      MPORThread pThread,
+      CExpression pRightHandSide,
+      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
     if (pRightHandSide instanceof CIdExpression idExpression) {
-      return getMemoryLocationByDeclaration(idExpression.getDeclaration(), pInitialMemoryLocations);
+      return getMemoryLocationByDeclaration(
+          pThread, idExpression.getDeclaration(), pInitialMemoryLocations);
 
     } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
       if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
         return getMemoryLocationByDeclaration(
-            idExpression.getDeclaration(), pInitialMemoryLocations);
+            pThread, idExpression.getDeclaration(), pInitialMemoryLocations);
 
       } else if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
-        return extractFieldReferenceMemoryLocation(fieldReference, pInitialMemoryLocations);
+        return extractFieldReferenceMemoryLocation(
+            pThread, fieldReference, pInitialMemoryLocations);
       }
 
     } else if (pRightHandSide instanceof CFieldReference fieldReference) {
-      return extractFieldReferenceMemoryLocation(fieldReference, pInitialMemoryLocations);
+      return extractFieldReferenceMemoryLocation(pThread, fieldReference, pInitialMemoryLocations);
     }
     // can e.g. occur with 'param = 4' i.e. literal integer expressions
     return MemoryLocation.empty();
   }
 
   private static MemoryLocation extractFieldReferenceMemoryLocation(
-      CFieldReference pFieldReference, ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      MPORThread pThread,
+      CFieldReference pFieldReference,
+      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
     if (pFieldReference.getFieldOwner().getExpressionType() instanceof CTypedefType typedefType) {
       CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
       CCompositeTypeMemberDeclaration fieldMember =
           MPORUtil.getFieldMemberByName(pFieldReference, typedefType);
       return getMemoryLocationByFieldReference(
-          fieldOwner.getDeclaration(), fieldMember, pInitialMemoryLocations);
+          pThread, fieldOwner.getDeclaration(), fieldMember, pInitialMemoryLocations);
     }
     throw new IllegalArgumentException("pFieldReference owner type must be CTypedefType");
   }
 
   private static MemoryLocation getMemoryLocationByDeclaration(
-      CSimpleDeclaration pDeclaration, ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      MPORThread pThread,
+      CSimpleDeclaration pDeclaration,
+      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
     for (MemoryLocation memoryLocation : pInitialMemoryLocations) {
       if (memoryLocation.variable.isPresent()) {
@@ -187,11 +202,11 @@ public class MemoryModelBuilder {
         }
       }
     }
-    // TODO thread
-    return MemoryLocation.of(Optional.empty(), pDeclaration);
+    return MemoryLocation.of(Optional.of(pThread), pDeclaration);
   }
 
   private static MemoryLocation getMemoryLocationByFieldReference(
+      MPORThread pThread,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember,
       ImmutableSet<MemoryLocation> pAllMemoryLocations) {
@@ -207,8 +222,7 @@ public class MemoryModelBuilder {
         }
       }
     }
-    // TODO thread
-    return MemoryLocation.of(Optional.empty(), pFieldOwner, pFieldMember);
+    return MemoryLocation.of(Optional.of(pThread), pFieldOwner, pFieldMember);
   }
 
   // Pointer Dereferences ==========================================================================

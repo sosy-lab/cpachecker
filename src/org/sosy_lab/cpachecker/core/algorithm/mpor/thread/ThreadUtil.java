@@ -77,7 +77,8 @@ public class ThreadUtil {
     return pThreads.stream().filter(t -> t.isMain()).findAny().orElseThrow();
   }
 
-  public static MPORThread extractThread(ImmutableCollection<MPORThread> pThreads, CFAEdge pEdge) {
+  public static MPORThread getThreadByCfaEdge(
+      ImmutableCollection<MPORThread> pThreads, CFAEdge pEdge) {
     checkArgument(
         PthreadUtil.callsAnyPthreadFunctionWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
@@ -103,5 +104,14 @@ public class ThreadUtil {
       }
     }
     throw new IllegalArgumentException("no MPORThread with pThreadObject found in pThreads");
+  }
+
+  public static MPORThread getThreadById(ImmutableCollection<MPORThread> pThreads, int pId) {
+    for (MPORThread thread : pThreads) {
+      if (thread.id == pId) {
+        return thread;
+      }
+    }
+    throw new IllegalArgumentException("no MPORThread with pId found in pThreads");
   }
 }

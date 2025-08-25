@@ -381,7 +381,7 @@ public class SeqThreadStatementBuilder {
       int pTargetPc,
       GhostVariables pGhostVariables) {
 
-    MPORThread targetThread = ThreadUtil.extractThread(pAllThreads, pSubstituteEdge.cfaEdge);
+    MPORThread targetThread = ThreadUtil.getThreadByCfaEdge(pAllThreads, pSubstituteEdge.cfaEdge);
     return new SeqThreadJoinStatement(
         targetThread.startRoutineExitVariable,
         ImmutableSet.of(pSubstituteEdge),
