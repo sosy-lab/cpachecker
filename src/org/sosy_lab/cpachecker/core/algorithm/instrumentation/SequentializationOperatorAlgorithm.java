@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
@@ -87,6 +89,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Collect all the information about the new edges for the instrumented CFA
     Set<String> newEdges = new HashSet<>();
+    // Initialize the search
+    List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
+    Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
+    Map<CFANode, String> mapDecomposedOperationsCondition = new HashMap<>();
+    waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
     // For some properties we construct more automata to more effectively track variables within
     // the scope. This map is used to map the automata to concrete line numbers in the code.
@@ -123,18 +130,34 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         index += 1;
       }
     } else {
-      mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
-      mapAutomataToLocations.put(
-          0,
-          new InstrumentationAutomaton(
-              instrumentationProperty, ImmutableMap.of(), ImmutableMap.of(), 0));
+      if (instrumentationProperty == InstrumentationProperty.DATA_RACE) {
+        ImmutableMap.Builder<String, String> builder = new Builder<>();
+        for (String variable :
+            cfa.getMetadata().getVariableClassification().get().getAssignedVariables()) {
+          builder.put(variable, cProgramScope.lookupVariable(variable).getType().toString());
+        }
+        ImmutableMap<String, String> varsWithTypes = builder.build();
+        mapAutomataToLocations.put(
+            0,
+            new InstrumentationAutomaton(instrumentationProperty, varsWithTypes, varsWithTypes, 0));
+        ImmutableMap.Builder<CFANode, Integer> builder1 = new Builder<>();
+        // This is needed because many functions are called by reference from pthread functions
+        for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {
+          builder1.put(functionEntryNode, 0);
+          if (!functionEntryNode.getFunction().getQualifiedName().equals("main")) {
+            waitlist.add(Pair.of(functionEntryNode, new InstrumentationState()));
+          }
+        }
+        mapNodesToLineNumbers = builder1.build();
+      } else {
+        mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
+        mapAutomataToLocations.put(
+            0,
+            new InstrumentationAutomaton(
+                instrumentationProperty, ImmutableMap.of(), ImmutableMap.of(), 0));
+      }
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
-    // Initialize the search
-    List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
-    Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
-    Map<CFANode, String> mapDecomposedOperationsCondition = new HashMap<>();
-    waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
     while (!waitlist.isEmpty()) {
       Pair<CFANode, InstrumentationState> currentPair = waitlist.remove(waitlist.size() - 1);

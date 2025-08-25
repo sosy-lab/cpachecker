@@ -136,12 +136,12 @@ public class InstrumentationAutomaton {
                 liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
-                                "int read_INSTR_"
+                                "int write_INSTR_"
                                     + entry.getKey()
                                     + " = 0; "
                                     + "int write_INSTR_"
                                     + entry.getKey()
-                                    + " = 0; ")
+                                    + " = 0")
                         .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
             InstrumentationOrder.BEFORE,
@@ -151,11 +151,11 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("ADD"),
             new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\n"
+                "__VERIFIER_atomic_begin();\\n"
                     + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\n"
-                    + "__VERIFIER_atomic_end();\n"
+                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
+                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
+                    + "__VERIFIER_atomic_end();\\n"
                     + "__VERIFIER_atomic_begin();"),
             InstrumentationOrder.BEFORE,
             q2);
@@ -164,8 +164,8 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("ADD"),
             new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\n"
-                    + "__VERIFIER_atomic_end();\n"),
+                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
+                    + "__VERIFIER_atomic_end();\\n"),
             InstrumentationOrder.AFTER,
             q2);
     this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
