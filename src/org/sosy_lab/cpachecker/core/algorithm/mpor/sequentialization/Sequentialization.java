@@ -185,11 +185,11 @@ public class Sequentialization {
     MPORSubstitution mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
-    ImmutableSet<MemoryLocation> allMemoryLocations =
-        SubstituteUtil.getAllMemoryLocations(substituteEdges.values());
+    ImmutableSet<MemoryLocation> initialMemoryLocations =
+        SubstituteUtil.getInitialMemoryLocations(substituteEdges.values());
     Optional<MemoryModel> memoryModel =
         MemoryModelBuilder.tryBuildMemoryModel(
-            options, allMemoryLocations, substituteEdges.values());
+            options, initialMemoryLocations, substituteEdges.values());
     Optional<BitVectorVariables> bitVectorVariables =
         GhostVariableUtil.buildBitVectorVariables(options, threads, memoryModel);
     // TODO rename simulation -> synchronizationVariables

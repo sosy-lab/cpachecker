@@ -86,7 +86,11 @@ public class SubstituteUtil {
 
   // Memory Locations ==============================================================================
 
-  public static ImmutableSet<MemoryLocation> getAllMemoryLocations(
+  /**
+   * The initial memory locations do not factor in memory locations that are only used in pointer
+   * parameter assignments.
+   */
+  public static ImmutableSet<MemoryLocation> getInitialMemoryLocations(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     Set<MemoryLocation> rMemoryLocations = new HashSet<>();
