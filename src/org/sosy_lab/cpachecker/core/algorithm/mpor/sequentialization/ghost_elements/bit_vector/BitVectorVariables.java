@@ -18,10 +18,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorVariables {
 
-  private final int memoryLocationAmount;
-
-  private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
-
   private final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
 
   private final Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors;
@@ -43,7 +39,6 @@ public class BitVectorVariables {
       lastSparseWriteBitVector;
 
   public BitVectorVariables(
-      ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
       Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
@@ -54,8 +49,6 @@ public class BitVectorVariables {
       Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> pLastSparseAccessBitVector,
       Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> pLastSparseWriteBitVector) {
 
-    memoryLocationAmount = pMemoryLocationIds.size();
-    memoryLocationIds = pMemoryLocationIds;
     denseAccessBitVectors = pDenseAccessBitVectors;
     denseReadBitVectors = pDenseReadBitVectors;
     denseWriteBitVectors = pDenseWriteBitVectors;
@@ -174,14 +167,6 @@ public class BitVectorVariables {
   }
 
   // Getters =======================================================================================
-
-  public int getMemoryLocationAmount() {
-    return memoryLocationAmount;
-  }
-
-  public ImmutableMap<MemoryLocation, Integer> getMemoryLocationIds() {
-    return memoryLocationIds;
-  }
 
   public ImmutableMap<MemoryLocation, SparseBitVector> getSparseAccessBitVectors() {
     return sparseAccessBitVectors.orElseThrow();

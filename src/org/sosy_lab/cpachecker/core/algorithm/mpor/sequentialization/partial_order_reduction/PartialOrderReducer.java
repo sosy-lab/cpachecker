@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.PointerAssignments;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -29,65 +29,65 @@ public class PartialOrderReducer {
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       Optional<BitVectorVariables> pBitVectorVariables,
-      Optional<PointerAssignments> pPointerAssignments,
+      Optional<MemoryModel> pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
     if (pOptions.linkReduction) {
-      PointerAssignments pointerAssignments = pPointerAssignments.orElseThrow();
+      MemoryModel memoryModel = pMemoryModel.orElseThrow();
 
       if (pOptions.bitVectorReduction && pOptions.conflictReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-            StatementLinker.link(pOptions, pClauses, pointerAssignments);
+            StatementLinker.link(pOptions, pClauses, memoryModel);
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectors =
             BitVectorInjector.injectWithEvaluations(
                 pOptions,
                 linked,
                 pBitVectorVariables.orElseThrow(),
-                pointerAssignments,
+                memoryModel,
                 pBinaryExpressionBuilder,
                 pLogger);
         return ConflictResolver.resolve(
             pOptions,
             withBitVectors,
             pBitVectorVariables.orElseThrow(),
-            pointerAssignments,
+            memoryModel,
             pBinaryExpressionBuilder,
             pLogger);
 
       } else if (pOptions.bitVectorReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-            StatementLinker.link(pOptions, pClauses, pointerAssignments);
+            StatementLinker.link(pOptions, pClauses, memoryModel);
         return BitVectorInjector.injectWithEvaluations(
             pOptions,
             linked,
             pBitVectorVariables.orElseThrow(),
-            pointerAssignments,
+            memoryModel,
             pBinaryExpressionBuilder,
             pLogger);
 
       } else if (pOptions.conflictReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-            StatementLinker.link(pOptions, pClauses, pointerAssignments);
+            StatementLinker.link(pOptions, pClauses, memoryModel);
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectors =
             BitVectorInjector.injectWithoutEvaluations(
                 pOptions,
                 linked,
                 pBitVectorVariables.orElseThrow(),
-                pointerAssignments,
+                memoryModel,
                 pBinaryExpressionBuilder,
                 pLogger);
         return ConflictResolver.resolve(
             pOptions,
             withBitVectors,
             pBitVectorVariables.orElseThrow(),
-            pointerAssignments,
+            memoryModel,
             pBinaryExpressionBuilder,
             pLogger);
 
       } else {
-        return StatementLinker.link(pOptions, pClauses, pointerAssignments);
+        return StatementLinker.link(pOptions, pClauses, memoryModel);
       }
     }
     return pClauses;

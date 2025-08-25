@@ -28,15 +28,17 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.F
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqLeftHandSideBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
@@ -185,6 +187,9 @@ public class Sequentialization {
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
     ImmutableSet<MemoryLocation> allMemoryLocations =
         SubstituteUtil.getAllMemoryLocations(substituteEdges.values());
+    Optional<MemoryModel> memoryModel =
+        MemoryModelBuilder.tryBuildMemoryModel(
+            options, allMemoryLocations, substituteEdges.values());
     Optional<BitVectorVariables> bitVectorVariables =
         GhostVariableUtil.buildBitVectorVariables(options, threads, allMemoryLocations);
     ThreadSynchronizationVariables threadSimulationVariables =
@@ -209,7 +214,7 @@ public class Sequentialization {
         SeqDeclarationBuilder.buildPcDeclarations(options, pcVariables, numThreads);
     ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
         SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(
-            options, bitVectorVariables, SubstituteUtil.extractThreads(substitutions));
+            options, bitVectorVariables, memoryModel, SubstituteUtil.extractThreads(substitutions));
     rProgram.addAll(
         LineOfCodeUtil.buildGlobalThreadSimulationVariableDeclarations(
             options, pcDeclarations, bitVectorDeclarations));
@@ -220,6 +225,7 @@ public class Sequentialization {
         LineOfCodeUtil.buildFunctionDefinitions(
             options,
             substitutions,
+            memoryModel,
             substituteEdges,
             bitVectorVariables,
             pcVariables,

@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
@@ -40,15 +39,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.PointerAssignments;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
@@ -298,6 +297,7 @@ public class LineOfCodeUtil {
   public static ImmutableList<LineOfCode> buildFunctionDefinitions(
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
+      Optional<MemoryModel> pMemoryModel,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       Optional<BitVectorVariables> pBitVectorVariables,
       ProgramCounterVariables pPcVariables,
@@ -315,11 +315,6 @@ public class LineOfCodeUtil {
     rFunctionDefinitions.addAll(reachError.buildDefinition());
     SeqAssumeFunction assume = new SeqAssumeFunction(pBinaryExpressionBuilder);
     rFunctionDefinitions.addAll(assume.buildDefinition());
-    // create pointer assignments (if applicable)
-    Optional<PointerAssignments> pointerAssignments =
-        pOptions.linkReduction
-            ? Optional.of(buildPointerAssignments(pSubstituteEdges.values()))
-            : Optional.empty();
     // create clauses in main method
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses =
         SeqThreadStatementClauseBuilder.buildClauses(
@@ -327,7 +322,7 @@ public class LineOfCodeUtil {
             pSubstitutions,
             pSubstituteEdges,
             pBitVectorVariables,
-            pointerAssignments,
+            pMemoryModel,
             pPcVariables,
             pThreadSimulationVariables,
             pBinaryExpressionBuilder,
@@ -339,20 +334,12 @@ public class LineOfCodeUtil {
             clauses,
             pBitVectorVariables,
             pPcVariables,
-            pointerAssignments,
+            pMemoryModel,
             pThreadSimulationVariables,
             pBinaryExpressionBuilder,
             pLogger);
     rFunctionDefinitions.addAll(mainFunction.buildDefinition());
     return rFunctionDefinitions.build();
-  }
-
-  private static PointerAssignments buildPointerAssignments(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
-    return new PointerAssignments(
-        SubstituteUtil.mapAllPointerAssignments(pSubstituteEdges),
-        SubstituteUtil.mapPointerParameterAssignments(pSubstituteEdges));
   }
 
   // Helpers =======================================================================================

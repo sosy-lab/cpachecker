@@ -21,7 +21,9 @@ public class GhostVariables {
   public final ThreadSynchronizationVariables thread;
 
   public GhostVariables(
-      FunctionStatements pFunction, ProgramCounterVariables pPc, ThreadSynchronizationVariables pThread) {
+      FunctionStatements pFunction,
+      ProgramCounterVariables pPc,
+      ThreadSynchronizationVariables pThread) {
 
     function = pFunction;
     pc = pPc;

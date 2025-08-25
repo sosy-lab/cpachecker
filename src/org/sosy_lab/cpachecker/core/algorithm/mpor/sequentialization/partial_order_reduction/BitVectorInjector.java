@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.PointerAssignments;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -51,7 +51,7 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -61,7 +61,7 @@ public class BitVectorInjector {
         true,
         pClauses,
         pBitVectorVariables,
-        pPointerAssignments,
+        pMemoryModel,
         pBinaryExpressionBuilder,
         pLogger);
   }
@@ -70,7 +70,7 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -80,7 +80,7 @@ public class BitVectorInjector {
         false,
         pClauses,
         pBitVectorVariables,
-        pPointerAssignments,
+        pMemoryModel,
         pBinaryExpressionBuilder,
         pLogger);
   }
@@ -93,15 +93,15 @@ public class BitVectorInjector {
       boolean pAddEvaluation,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    if (pBitVectorVariables.getMemoryLocationAmount() == 0) {
+    if (pMemoryModel.getMemoryLocationAmount() == 0) {
       pLogger.log(
           Level.INFO,
-          "bit vectors are enabled, but the program does not contain any global variables.");
+          "bit vectors are enabled, but the program does not contain any memory locations.");
       return pClauses; // no global variables -> no bit vectors needed
     }
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rInjected =
@@ -125,7 +125,7 @@ public class BitVectorInjector {
               labelClauseMap,
               labelBlockMap,
               pBitVectorVariables,
-              pPointerAssignments,
+              pMemoryModel,
               pBinaryExpressionBuilder));
     }
     return rInjected.build();
@@ -140,7 +140,7 @@ public class BitVectorInjector {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -158,7 +158,7 @@ public class BitVectorInjector {
                 pLabelClauseMap,
                 pLabelBlockMap,
                 pBitVectorVariables,
-                pPointerAssignments,
+                pMemoryModel,
                 pBinaryExpressionBuilder));
       }
       rInjected.add(clause.cloneWithBlocks(newBlocks.build()));
@@ -175,7 +175,7 @@ public class BitVectorInjector {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -191,7 +191,7 @@ public class BitVectorInjector {
               pLabelClauseMap,
               pLabelBlockMap,
               pBitVectorVariables,
-              pPointerAssignments,
+              pMemoryModel,
               pBinaryExpressionBuilder));
     }
     return pBlock.cloneWithStatements(newStatements.build());
@@ -206,7 +206,7 @@ public class BitVectorInjector {
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       final BitVectorVariables pBitVectorVariables,
-      final PointerAssignments pPointerAssignments,
+      final MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -217,7 +217,8 @@ public class BitVectorInjector {
       if (intTargetPc == Sequentialization.EXIT_PC) {
         // for the exit pc, reset the bit vector to just 0s
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorResets =
-            buildBitVectorResetsByReduction(pOptions, pActiveThread, pBitVectorVariables);
+            buildBitVectorResetsByReduction(
+                pOptions, pActiveThread, pBitVectorVariables, pMemoryModel);
         newInjected.addAll(bitVectorResets);
         return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
       } else {
@@ -234,7 +235,7 @@ public class BitVectorInjector {
                     pLabelBlockMap,
                     newTarget.getFirstBlock(),
                     pBitVectorVariables,
-                    pPointerAssignments,
+                    pMemoryModel,
                     pBinaryExpressionBuilder);
             newInjected.add(evaluationStatement);
           }
@@ -246,7 +247,7 @@ public class BitVectorInjector {
                   newTarget.getFirstBlock(),
                   pLabelBlockMap,
                   pBitVectorVariables,
-                  pPointerAssignments);
+                  pMemoryModel);
           newInjected.addAll(bitVectorAssignments);
           return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
         }
@@ -264,7 +265,7 @@ public class BitVectorInjector {
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pTargetBlock,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -275,7 +276,7 @@ public class BitVectorInjector {
             pLabelBlockMap,
             pTargetBlock,
             pBitVectorVariables,
-            pPointerAssignments,
+            pMemoryModel,
             pBinaryExpressionBuilder);
     return new SeqBitVectorEvaluationStatement(evaluationExpression, pTargetBlock.getLabel());
   }
@@ -283,7 +284,10 @@ public class BitVectorInjector {
   // Bit Vector Assignments ========================================================================
 
   private static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorResetsByReduction(
-      MPOROptions pOptions, MPORThread pThread, BitVectorVariables pBitVectorVariables) {
+      MPOROptions pOptions,
+      MPORThread pThread,
+      BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel) {
 
     return switch (pOptions.reductionMode) {
       case NONE ->
@@ -291,12 +295,18 @@ public class BitVectorInjector {
               "cannot build assignments for reduction " + pOptions.bitVectorReduction);
       case ACCESS_ONLY ->
           buildBitVectorAccessAssignments(
-              pOptions, pThread, pBitVectorVariables, ImmutableSet.of(), ImmutableSet.of());
+              pOptions,
+              pThread,
+              pBitVectorVariables,
+              pMemoryModel,
+              ImmutableSet.of(),
+              ImmutableSet.of());
       case READ_AND_WRITE ->
           buildBitVectorReadWriteAssignments(
               pOptions,
               pThread,
               pBitVectorVariables,
+              pMemoryModel,
               ImmutableSet.of(),
               ImmutableSet.of(),
               ImmutableSet.of(),
@@ -310,7 +320,7 @@ public class BitVectorInjector {
       SeqThreadStatementBlock pTargetBlock,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments) {
+      MemoryModel pMemoryModel) {
 
     return switch (pOptions.reductionMode) {
       case NONE ->
@@ -319,32 +329,38 @@ public class BitVectorInjector {
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.ACCESS);
+                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.ACCESS);
         ImmutableSet<MemoryLocation> reachableLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.ACCESS);
+                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.ACCESS);
         yield buildBitVectorAccessAssignments(
-            pOptions, pActiveThread, pBitVectorVariables, directLocations, reachableLocations);
+            pOptions,
+            pActiveThread,
+            pBitVectorVariables,
+            pMemoryModel,
+            directLocations,
+            reachableLocations);
       }
       case READ_AND_WRITE -> {
         ImmutableSet<MemoryLocation> directReadLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.READ);
+                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.READ);
         ImmutableSet<MemoryLocation> reachableWriteLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.WRITE);
+                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.WRITE);
 
         ImmutableSet<MemoryLocation> directWriteLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.WRITE);
+                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.WRITE);
         ImmutableSet<MemoryLocation> reachableReadLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
-                pLabelBlockMap, pPointerAssignments, pTargetBlock, MemoryAccessType.READ);
+                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.READ);
 
         yield buildBitVectorReadWriteAssignments(
             pOptions,
             pActiveThread,
             pBitVectorVariables,
+            pMemoryModel,
             directReadLocations,
             reachableWriteLocations,
             directWriteLocations,
@@ -361,6 +377,7 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel,
       ImmutableSet<MemoryLocation> pDirectMemoryLocations,
       ImmutableSet<MemoryLocation> pReachableMemoryLocations) {
 
@@ -381,16 +398,14 @@ public class BitVectorInjector {
             pBitVectorVariables.getDenseDirectBitVectorByAccessType(
                 MemoryAccessType.ACCESS, pThread);
         BitVectorValueExpression directValue =
-            BitVectorUtil.buildBitVectorExpression(
-                pOptions, pBitVectorVariables.getMemoryLocationIds(), pDirectMemoryLocations);
+            BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pDirectMemoryLocations);
         rStatements.add(new SeqBitVectorAssignmentStatement(directVariable, directValue));
       }
       CExpression reachableVariable =
           pBitVectorVariables.getDenseReachableBitVectorByAccessType(
               MemoryAccessType.ACCESS, pThread);
       BitVectorValueExpression reachableValue =
-          BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.getMemoryLocationIds(), pReachableMemoryLocations);
+          BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pReachableMemoryLocations);
       rStatements.add(new SeqBitVectorAssignmentStatement(reachableVariable, reachableValue));
     }
     return rStatements.build();
@@ -400,6 +415,7 @@ public class BitVectorInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel,
       ImmutableSet<MemoryLocation> pDirectReadMemoryLocations,
       ImmutableSet<MemoryLocation> pReachableWriteMemoryLocations,
       ImmutableSet<MemoryLocation> pDirectWriteMemoryLocations,
@@ -436,7 +452,7 @@ public class BitVectorInjector {
                 pOptions,
                 pBitVectorVariables.getDenseDirectBitVectorByAccessType(
                     MemoryAccessType.READ, pThread),
-                pBitVectorVariables,
+                pMemoryModel,
                 pDirectReadMemoryLocations));
       }
       rStatements.add(
@@ -444,7 +460,7 @@ public class BitVectorInjector {
               pOptions,
               pBitVectorVariables.getDenseReachableBitVectorByAccessType(
                   MemoryAccessType.WRITE, pThread),
-              pBitVectorVariables,
+              pMemoryModel,
               pReachableWriteMemoryLocations));
       if (pOptions.kIgnoreZeroReduction) {
         rStatements.add(
@@ -452,7 +468,7 @@ public class BitVectorInjector {
                 pOptions,
                 pBitVectorVariables.getDenseDirectBitVectorByAccessType(
                     MemoryAccessType.WRITE, pThread),
-                pBitVectorVariables,
+                pMemoryModel,
                 pDirectWriteMemoryLocations));
       }
       rStatements.add(
@@ -460,7 +476,7 @@ public class BitVectorInjector {
               pOptions,
               pBitVectorVariables.getDenseReachableBitVectorByAccessType(
                   MemoryAccessType.ACCESS, pThread),
-              pBitVectorVariables,
+              pMemoryModel,
               pReachableAccessMemoryLocations));
     }
     return rStatements.build();
@@ -470,12 +486,11 @@ public class BitVectorInjector {
       buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
           MPOROptions pOptions,
           CExpression pBitVectorVariable,
-          BitVectorVariables pBitVectorVariables,
+          MemoryModel pMemoryModel,
           ImmutableSet<MemoryLocation> pAccessedMemoryLocations) {
 
     BitVectorValueExpression bitVectorExpression =
-        BitVectorUtil.buildBitVectorExpression(
-            pOptions, pBitVectorVariables.getMemoryLocationIds(), pAccessedMemoryLocations);
+        BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pAccessedMemoryLocations);
     return new SeqBitVectorAssignmentStatement(pBitVectorVariable, bitVectorExpression);
   }
 }

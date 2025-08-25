@@ -10,27 +10,40 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
-public class PointerAssignments {
+/**
+ * A class to keep track of all memory locations in the concurrent input program, including pointers
+ * associated with a memory location.
+ */
+public class MemoryModel {
+
+  private final int memoryLocationAmount;
+
+  private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
 
   private final ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments;
 
   private final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
       pointerParameterAssignments;
 
-  public PointerAssignments(
+  MemoryModel(
+      ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
       ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
           pPointerParameterAssignments) {
 
     checkArguments(pPointerAssignments, pPointerParameterAssignments);
+    memoryLocationAmount = pMemoryLocationIds.size();
+    memoryLocationIds = pMemoryLocationIds;
     pointerAssignments = pPointerAssignments;
     pointerParameterAssignments = pPointerParameterAssignments;
   }
@@ -90,5 +103,20 @@ public class PointerAssignments {
       ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
 
     return pointerParameterAssignments.get(pCallContext, pParameterDeclaration);
+  }
+
+  public int getMemoryLocationAmount() {
+    return memoryLocationAmount;
+  }
+
+  public ImmutableMap<MemoryLocation, Integer> getAllMemoryLocationIds() {
+    return memoryLocationIds;
+  }
+
+  public int getMemoryLocationId(MemoryLocation pMemoryLocation) {
+    checkArgument(
+        memoryLocationIds.containsKey(pMemoryLocation),
+        "could not find pMemoryLocation in memoryLocationIds");
+    return Objects.requireNonNull(memoryLocationIds.get(pMemoryLocation));
   }
 }

@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -55,16 +56,16 @@ class BitVectorAccessEvaluationBuilder {
       MPOROptions pOptions,
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<MemoryLocation> pDirectMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     if (pOptions.bitVectorEvaluationPrune) {
       return buildPrunedDenseEvaluation(
-          pOtherBitVectors, pDirectMemoryLocations, pBitVectorVariables, pBinaryExpressionBuilder);
+          pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pBinaryExpressionBuilder);
     } else {
       return buildFullDenseEvaluation(
-          pOtherBitVectors, pDirectMemoryLocations, pBitVectorVariables, pBinaryExpressionBuilder);
+          pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pBinaryExpressionBuilder);
     }
   }
 
@@ -88,7 +89,7 @@ class BitVectorAccessEvaluationBuilder {
   private static BitVectorEvaluationExpression buildPrunedDenseEvaluation(
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<MemoryLocation> pDirectAccessMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -97,22 +98,18 @@ class BitVectorAccessEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     return buildFullDenseEvaluation(
-        pOtherBitVectors,
-        pDirectAccessMemoryLocations,
-        pBitVectorVariables,
-        pBinaryExpressionBuilder);
+        pOtherBitVectors, pDirectAccessMemoryLocations, pMemoryModel, pBinaryExpressionBuilder);
   }
 
   private static BitVectorEvaluationExpression buildFullDenseEvaluation(
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<MemoryLocation> pDirectMemoryLocations,
-      BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directBitVector =
-        BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.getMemoryLocationIds(), pDirectMemoryLocations);
+        BitVectorUtil.buildDirectBitVectorExpression(pMemoryModel, pDirectMemoryLocations);
     return buildFullDenseBinaryAnd(directBitVector, pOtherBitVectors, pBinaryExpressionBuilder);
   }
 

@@ -74,27 +74,21 @@ public class GhostVariableUtil {
       // no bit vector reduction -> no bit vector variables
       return Optional.empty();
     }
-    // assign unique ids to all memory locations accessed in substitute edges
-    ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds =
-        assignMemoryLocationIds(pAllMemoryLocations);
     return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
               "reductionMode is not set, cannot build bit vector variables");
       case ACCESS_ONLY ->
-          buildAccessOnlyBitVectorVariables(
-              pOptions, pThreads, pAllMemoryLocations, pMemoryLocationIds);
+          buildAccessOnlyBitVectorVariables(pOptions, pThreads, pAllMemoryLocations);
       case READ_AND_WRITE ->
-          buildReadWriteBitVectorVariables(
-              pOptions, pThreads, pAllMemoryLocations, pMemoryLocationIds);
+          buildReadWriteBitVectorVariables(pOptions, pThreads, pAllMemoryLocations);
     };
   }
 
   private static Optional<BitVectorVariables> buildAccessOnlyBitVectorVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
-      ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds) {
+      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
 
     // create bit vector access variables for all threads, e.g. __uint8_t ba0
     Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
@@ -111,7 +105,6 @@ public class GhostVariableUtil {
             pOptions, pAllMemoryLocations, MemoryAccessType.ACCESS);
     return Optional.of(
         new BitVectorVariables(
-            pMemoryLocationIds,
             denseAccessBitVectors,
             Optional.empty(),
             Optional.empty(),
@@ -126,8 +119,7 @@ public class GhostVariableUtil {
   private static Optional<BitVectorVariables> buildReadWriteBitVectorVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
-      ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds) {
+      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
 
     // create bit vector read + write variables for all threads, e.g. __uint8_t br0, bw0
     Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
@@ -156,7 +148,6 @@ public class GhostVariableUtil {
             pOptions, pAllMemoryLocations, MemoryAccessType.WRITE);
     return Optional.of(
         new BitVectorVariables(
-            pMemoryLocationIds,
             denseAccessBitVectors,
             denseReadBitVectors,
             denseWriteBitVectors,
@@ -166,17 +157,6 @@ public class GhostVariableUtil {
             lastDenseWriteBitVector,
             lastSparseAccessBitVectors,
             lastSparseWriteBitVectors));
-  }
-
-  private static ImmutableMap<MemoryLocation, Integer> assignMemoryLocationIds(
-      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
-
-    ImmutableMap.Builder<MemoryLocation, Integer> rVariables = ImmutableMap.builder();
-    int id = BitVectorUtil.RIGHT_INDEX;
-    for (MemoryLocation memoryLocation : pAllMemoryLocations) {
-      rVariables.put(memoryLocation, id++);
-    }
-    return rVariables.buildOrThrow();
   }
 
   // Dense / Sparse Bit Vectors ====================================================================

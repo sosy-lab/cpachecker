@@ -10,11 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Objects;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -31,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.HexadecimalBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -56,22 +55,21 @@ public class BitVectorUtil {
 
   public static BitVectorValueExpression buildBitVectorExpression(
       MPOROptions pOptions,
-      @NonNull ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
-      @NonNull ImmutableSet<MemoryLocation> pMemoryLocations) {
+      MemoryModel pMemoryModel,
+      ImmutableSet<MemoryLocation> pMemoryLocations) {
 
     checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
-        pMemoryLocationIds.keySet().containsAll(pMemoryLocations),
+        pMemoryModel.getAllMemoryLocationIds().keySet().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // retrieve all variable ids from pMemoryLocationIds that are in pMemoryLocations
     ImmutableSet<Integer> setBits =
         pMemoryLocations.stream()
-            .map(pMemoryLocationIds::get)
+            .map(pMemoryModel.getAllMemoryLocationIds()::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
-    return buildBitVectorExpressionByEncoding(
-        pOptions.bitVectorEncoding, pMemoryLocationIds.size(), setBits);
+    return buildBitVectorExpressionByEncoding(pOptions.bitVectorEncoding, pMemoryModel, setBits);
   }
 
   /**
@@ -79,9 +77,9 @@ public class BitVectorUtil {
    * 0} and the right most index is one smaller than the length of the bit vector.
    */
   private static BitVectorValueExpression buildBitVectorExpressionByEncoding(
-      BitVectorEncoding pEncoding, int pMemoryLocationAmount, ImmutableSet<Integer> pSetBits) {
+      BitVectorEncoding pEncoding, MemoryModel pMemoryModel, ImmutableSet<Integer> pSetBits) {
 
-    int length = getBitVectorLengthByEncoding(pEncoding, pMemoryLocationAmount);
+    int length = getBitVectorLengthByEncoding(pEncoding, pMemoryModel);
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY -> new BinaryBitVectorValueExpression(length, pSetBits);
@@ -94,23 +92,22 @@ public class BitVectorUtil {
   }
 
   public static CIntegerLiteralExpression buildDirectBitVectorExpression(
-      @NonNull ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
-      @NonNull ImmutableSet<MemoryLocation> pMemoryLocations) {
+      MemoryModel pMemoryModel, ImmutableSet<MemoryLocation> pMemoryLocations) {
 
     checkArgument(
-        pMemoryLocationIds.keySet().containsAll(pMemoryLocations),
+        pMemoryModel.getAllMemoryLocationIds().keySet().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // for decimal, use the sum of variable ids (starting from 1)
     ImmutableSet<Integer> setBits =
         pMemoryLocations.stream()
-            .map(pMemoryLocationIds::get)
+            .map(pMemoryModel.getAllMemoryLocationIds()::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
 
     return new CIntegerLiteralExpression(
         FileLocation.DUMMY,
-        getTypeByBinaryLength(getBinaryLength(pMemoryLocationIds.size())),
+        getTypeByBinaryLength(getBinaryLength(pMemoryModel)),
         new BigInteger(String.valueOf(buildDecimalBitVector(setBits))));
   }
 
@@ -145,25 +142,25 @@ public class BitVectorUtil {
   }
 
   public static int getBitVectorLengthByEncoding(
-      BitVectorEncoding pEncoding, int pMemoryLocationAmount) {
+      BitVectorEncoding pEncoding, MemoryModel pMemoryModel) {
 
     checkArgument(
-        pMemoryLocationAmount <= MAX_BINARY_LENGTH,
+        pMemoryModel.getMemoryLocationAmount() <= MAX_BINARY_LENGTH,
         "cannot have more than %s global variables, please disable bit vectors for this program.",
         MAX_BINARY_LENGTH);
 
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY -> getBinaryLength(pMemoryLocationAmount);
+      case BINARY -> getBinaryLength(pMemoryModel);
       // the length does not matter for these, but we use the number of global variables
-      case DECIMAL, SPARSE -> pMemoryLocationAmount;
-      case HEXADECIMAL -> convertBinaryLengthToHex(getBinaryLength(pMemoryLocationAmount));
+      case DECIMAL, SPARSE -> pMemoryModel.getMemoryLocationAmount();
+      case HEXADECIMAL -> convertBinaryLengthToHex(getBinaryLength(pMemoryModel));
     };
   }
 
-  public static int getBinaryLength(int pMinLength) {
+  public static int getBinaryLength(MemoryModel pMemoryModel) {
     int rLength = MIN_BINARY_LENGTH;
-    while (rLength < pMinLength) {
+    while (rLength < pMemoryModel.getMemoryLocationAmount()) {
       rLength *= 2;
     }
     assert isValidBinaryLength(rLength) : "binary bit vector length is invalid: " + rLength;

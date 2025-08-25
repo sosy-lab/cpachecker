@@ -25,8 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqConflictOrderStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqLastBitVectorUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastDenseBitVector;
@@ -34,9 +32,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqConflictOrderStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqLastBitVectorUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.PointerAssignments;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -48,12 +48,12 @@ public class ConflictResolver {
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    if (pBitVectorVariables.getMemoryLocationAmount() == 0) {
+    if (pMemoryModel.getMemoryLocationAmount() == 0) {
       pLogger.log(
           Level.INFO,
           "conflictReduction is enabled, but the program does not contain any global variables.");
@@ -73,7 +73,7 @@ public class ConflictResolver {
               activeThread,
               labelBlockMap,
               pBitVectorVariables,
-              pPointerAssignments,
+              pMemoryModel,
               pBinaryExpressionBuilder);
       // step 2: inject updates to last_... variables
       rResolved.putAll(
@@ -96,7 +96,7 @@ public class ConflictResolver {
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -111,7 +111,7 @@ public class ConflictResolver {
                 pActiveThread,
                 pLabelBlockMap,
                 pBitVectorVariables,
-                pPointerAssignments,
+                pMemoryModel,
                 pBinaryExpressionBuilder));
       }
       rWithOrders.add(clause.cloneWithBlocks(newBlocks.build()));
@@ -125,7 +125,7 @@ public class ConflictResolver {
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -138,7 +138,7 @@ public class ConflictResolver {
               pActiveThread,
               pLabelBlockMap,
               pBitVectorVariables,
-              pPointerAssignments,
+              pMemoryModel,
               pBinaryExpressionBuilder));
     }
     return pBlock.cloneWithStatements(newStatements.build());
@@ -150,7 +150,7 @@ public class ConflictResolver {
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
-      PointerAssignments pPointerAssignments,
+      MemoryModel pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -168,7 +168,7 @@ public class ConflictResolver {
               pLabelBlockMap,
               targetBlock,
               pBitVectorVariables,
-              pPointerAssignments,
+              pMemoryModel,
               pBinaryExpressionBuilder);
       SeqConflictOrderStatement conflictOrderStatement =
           new SeqConflictOrderStatement(

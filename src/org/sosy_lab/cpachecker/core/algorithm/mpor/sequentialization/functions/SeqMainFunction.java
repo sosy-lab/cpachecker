@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.BitVectorInjector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.PointerAssignments;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -70,7 +70,7 @@ public class SeqMainFunction extends SeqFunction {
 
   private final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
-  private final Optional<PointerAssignments> pointerAssignments;
+  private final Optional<MemoryModel> memoryModel;
 
   // TODO make Optional
   private final CFunctionCallAssignmentStatement nextThreadAssignment;
@@ -98,7 +98,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       Optional<BitVectorVariables> pBitVectorVariables,
       ProgramCounterVariables pPcVariables,
-      Optional<PointerAssignments> pPointerAssignments,
+      Optional<MemoryModel> pMemoryModel,
       ThreadSynchronizationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -112,7 +112,7 @@ public class SeqMainFunction extends SeqFunction {
     clauses = pClauses;
     bitVectorVariables = pBitVectorVariables;
     pcVariables = pPcVariables;
-    pointerAssignments = pPointerAssignments;
+    memoryModel = pMemoryModel;
     threadSimulationVariables = pThreadSimulationVariables;
 
     binaryExpressionBuilder = pBinaryExpressionBuilder;
@@ -248,7 +248,7 @@ public class SeqMainFunction extends SeqFunction {
               firstBlock,
               labelBlockMap,
               pBitVectorVariables.orElseThrow(),
-              pointerAssignments.orElseThrow());
+              memoryModel.orElseThrow());
       rInitializations.addAll(
           LineOfCodeUtil.buildLinesOfCodeFromSeqAstNodes(bitVectorInitializations));
     }

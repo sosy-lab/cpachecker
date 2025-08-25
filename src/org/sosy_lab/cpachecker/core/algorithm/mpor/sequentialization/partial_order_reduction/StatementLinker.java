@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.PointerAssignments;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class StatementLinker {
@@ -32,7 +32,7 @@ public class StatementLinker {
   protected static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> link(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      PointerAssignments pPointerAssignments) {
+      MemoryModel pMemoryModel) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rLinked =
         ImmutableListMultimap.builder();
@@ -42,7 +42,7 @@ public class StatementLinker {
       ImmutableSet.Builder<Integer> linkedTargetIds = ImmutableSet.builder();
       ImmutableList<SeqThreadStatementClause> linkedClauses =
           linkCommutingClausesWithGotos(
-              pOptions, pClauses.get(thread), linkedTargetIds, pPointerAssignments);
+              pOptions, pClauses.get(thread), linkedTargetIds, pMemoryModel);
       ImmutableList<SeqThreadStatementClause> merged =
           mergeNotDirectlyReachableStatements(linkedClauses, linkedTargetIds.build());
       rLinked.putAll(thread, merged);
@@ -56,7 +56,7 @@ public class StatementLinker {
       MPOROptions pOptions,
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
-      PointerAssignments pPointerAssignments) {
+      MemoryModel pMemoryModel) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rNewClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
@@ -76,7 +76,7 @@ public class StatementLinker {
                   pLinkedTargetIds,
                   labelClauseMap,
                   labelBlockMap,
-                  pPointerAssignments));
+                  pMemoryModel));
         }
         newBlocks.add(block.cloneWithStatements(newStatements.build()));
       }
@@ -95,13 +95,12 @@ public class StatementLinker {
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      PointerAssignments pPointerAssignments) {
+      MemoryModel pMemoryModel) {
 
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-      if (isValidLink(
-          pOptions, pCurrentStatement, newTarget, pLabelBlockMap, pPointerAssignments)) {
+      if (isValidLink(pOptions, pCurrentStatement, newTarget, pLabelBlockMap, pMemoryModel)) {
         pLinkedTargetIds.add(newTarget.id);
         return pCurrentStatement.cloneWithTargetGoto(newTarget.getFirstBlock().getLabel());
       }
@@ -117,7 +116,7 @@ public class StatementLinker {
       SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      PointerAssignments pPointerAssignments) {
+      MemoryModel pMemoryModel) {
 
     SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
     return pStatement.isLinkable()
@@ -129,8 +128,7 @@ public class StatementLinker {
         && !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
         // only consider global accesses if not ignored
         && !(!canIgnoreGlobal(pTarget)
-            && MemoryLocationFinder.hasGlobalAccess(
-                pLabelBlockMap, pPointerAssignments, targetBlock));
+            && MemoryLocationFinder.hasGlobalAccess(pLabelBlockMap, pMemoryModel, targetBlock));
   }
 
   /**
