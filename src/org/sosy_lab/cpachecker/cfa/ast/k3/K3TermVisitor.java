@@ -14,5 +14,5 @@ public interface K3TermVisitor<R, X extends Exception> {
 
   R accept(K3SymbolApplicationTerm pK3SymbolApplicationTerm) throws X;
 
-  R accept(K3IDTerm pK3IDTerm) throws X;
+  R accept(K3IdTerm pK3IdTerm) throws X;
 }

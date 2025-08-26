@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 
 public interface AStatementVisitor<R, X extends Exception> {
@@ -24,4 +25,6 @@ public interface AStatementVisitor<R, X extends Exception> {
   R visit(K3AssignmentStatement pK3AssignmentStatement) throws X;
 
   R visit(K3ProcedureCallStatement pK3ProcedureCallStatement) throws X;
+
+  R visit(K3HavocStatement pK3HavocStatement) throws X;
 }

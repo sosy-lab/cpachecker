@@ -87,7 +87,9 @@ term
 
 statement
     : LPAREN 'assume' term RPAREN                               # AssumeStatement
-    | LPAREN 'assign' LPAREN (LPAREN IDENT term RPAREN)+ RPAREN RPAREN        # AssignStatement
+    | LPAREN 'assign' LPAREN
+            (LPAREN IDENT term RPAREN)+
+      RPAREN RPAREN                                             # AssignStatement
     | LPAREN 'sequence' statement+ RPAREN                       # SequenceStatement
     | LPAREN '!' statement attribute+ RPAREN                    # AnnotatedStatement
     | LPAREN 'call'
@@ -102,7 +104,7 @@ statement
     | LPAREN 'while' term statement RPAREN                      # WhileStatement
     | LPAREN 'break' RPAREN                                     # BreakStatement
     | LPAREN 'continue' RPAREN                                  # ContinueStatement
-    | LPAREN 'havoc' LPAREN variable+ RPAREN RPAREN              # HavocStatement
+    | LPAREN 'havoc' LPAREN variable+ RPAREN RPAREN             # HavocStatement
     | LPAREN 'choice' LPAREN statement+ RPAREN RPAREN           # ChoiceStatement
     ;
 
@@ -134,10 +136,10 @@ property
     | ':live'                                                   # LiveProperty
     | ':not-live'                                               # NotLiveProperty
     | ':ghost' LPAREN variable+ RPAREN                          # GhostProperty
-    | ':requires' term                                          # RequiresTerm
-    | ':ensures' relationalTerm                                 # EnsuresTerm
-    | ':invariant' relationalTerm                               # InvariantTerm
-    | ':decreases' term                                         # DecreasesTerm
+    | ':requires' term                                          # RequiresProperty
+    | ':ensures' relationalTerm                                 # EnsuresProperty
+    | ':invariant' relationalTerm                               # InvariantProperty
+    | ':decreases' term                                         # DecreasesProperty
     | ':decreases' LPAREN term+ RPAREN                          # DecreasesProperty
     | ':modifies' LPAREN variable+ RPAREN                       # ModifiesProperty
     ;

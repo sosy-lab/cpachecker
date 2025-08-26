@@ -10,20 +10,28 @@ package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.nio.file.Path;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetCounterexampleCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AnnotateTagContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareVarContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DefineProcContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.GetCounterexampleContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.GetProofContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.ProcDeclarationArgumentsContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SortContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.VariableContext;
@@ -35,16 +43,20 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
   private final TermToAstConverter termConverter;
 
+  private final TagToAstConverter tagToAstConverter;
+
   public CommandToAstConverter(K3Scope pScope, Path pFilePath) {
     super(pScope, pFilePath);
     statementConverter = new StatementToAstConverter(pScope, pFilePath);
     termConverter = new TermToAstConverter(pScope, pFilePath);
+    tagToAstConverter = new TagToAstConverter(pScope, pFilePath);
   }
 
   public CommandToAstConverter(K3Scope pScope) {
     super(pScope);
     statementConverter = new StatementToAstConverter(pScope);
     termConverter = new TermToAstConverter(pScope);
+    tagToAstConverter = new TagToAstConverter(pScope);
   }
 
   @Override
@@ -62,12 +74,12 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
     scope.addVariable(variableDeclaration);
 
-    return new K3VariableDeclarationCommand(variableDeclaration);
+    return new K3VariableDeclarationCommand(variableDeclaration, fileLocationFromContext(ctx));
   }
 
   private List<K3ParameterDeclaration> createParameterDeclarations(
       ProcDeclarationArgumentsContext pContext) {
-    ImmutableList.Builder<K3ParameterDeclaration> parameters = ImmutableList.builder();
+    Builder<K3ParameterDeclaration> parameters = ImmutableList.builder();
     for (int i = 0; i < pContext.variable().size(); i++) {
 
       VariableContext parameter = pContext.variable(i);
@@ -122,6 +134,26 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
     List<K3Term> terms =
         FluentIterable.from(pContext.term()).transform(termConverter::visit).toList();
 
-    return new VerifyCallCommand(procedureDeclaration, terms);
+    return new VerifyCallCommand(procedureDeclaration, terms, fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public K3Command visitAnnotateTag(AnnotateTagContext pContext) {
+    List<K3TagAttribute> tags =
+        FluentIterable.from(pContext.attribute())
+            .transform(attribute -> tagToAstConverter.visit(attribute))
+            .toList();
+    String tagName = pContext.tagName().getText();
+    return new K3AnnotateTagCommand(tagName, tags, fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public K3Command visitGetProof(GetProofContext pContext) {
+    return new K3GetProofCommand(fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public K3Command visitGetCounterexample(GetCounterexampleContext pContext) {
+    return new K3GetCounterexampleCommand(fileLocationFromContext(pContext));
   }
 }

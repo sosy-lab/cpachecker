@@ -23,16 +23,27 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetCounterexampleCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3HavocStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3IfStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3LabelStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3ReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -150,6 +161,14 @@ class K3CfaBuilder {
                 currentSuccessorNode);
         CFACreationUtils.addEdgeToCFA(edge, logger);
       }
+      case K3BreakStatement pK3BreakStatement -> {}
+      case K3ContinueStatement pK3ContinueStatement -> {}
+      case K3GotoStatement pK3GotoStatement -> {}
+      case K3HavocStatement pK3HavocStatement -> {}
+      case K3IfStatement pK3IfStatement -> {}
+      case K3LabelStatement pK3LabelStatement -> {}
+      case K3ReturnStatement pK3ReturnStatement -> {}
+      case K3WhileStatement pK3WhileStatement -> {}
     }
 
     return Pair.of(currentSuccessorNode, builder.build());
@@ -252,6 +271,9 @@ class K3CfaBuilder {
           // Update the nodes for the next command
           currentMainFunctionNode = successorNode;
         }
+        case K3AnnotateTagCommand pK3AnnotateTagCommand -> {}
+        case K3GetCounterexampleCommand pK3GetCounterexampleCommand -> {}
+        case K3GetProofCommand pK3GetProofCommand -> {}
       }
     }
 

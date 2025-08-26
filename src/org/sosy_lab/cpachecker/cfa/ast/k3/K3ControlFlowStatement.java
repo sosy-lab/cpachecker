@@ -13,7 +13,15 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class K3ControlFlowStatement extends K3Statement
-    permits K3AssumeStatement, K3SequenceStatement {
+    permits K3AssumeStatement,
+        K3BreakStatement,
+        K3ContinueStatement,
+        K3GotoStatement,
+        K3IfStatement,
+        K3LabelStatement,
+        K3ReturnStatement,
+        K3SequenceStatement,
+        K3WhileStatement {
 
   @Serial private static final long serialVersionUID = -5733006204625200260L;
 

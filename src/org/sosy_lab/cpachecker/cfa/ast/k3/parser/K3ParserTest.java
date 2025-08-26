@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
-import org.sosy_lab.cpachecker.cfa.ast.k3.K3IDTerm;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
@@ -71,8 +71,8 @@ public class K3ParserTest {
     K3Script output =
         new K3Script(
             ImmutableList.of(
-                new K3VariableDeclarationCommand(w),
-                new K3VariableDeclarationCommand(z),
+                new K3VariableDeclarationCommand(w, FileLocation.DUMMY),
+                new K3VariableDeclarationCommand(z, FileLocation.DUMMY),
                 new K3ProcedureDefinitionCommand(
                     FileLocation.DUMMY,
                     procedureDeclaration,
@@ -83,8 +83,8 @@ public class K3ParserTest {
                                 new K3SymbolApplicationTerm(
                                     "=",
                                     ImmutableList.of(
-                                        new K3IDTerm(x, FileLocation.DUMMY),
-                                        new K3IDTerm(y, FileLocation.DUMMY)),
+                                        new K3IdTerm(x, FileLocation.DUMMY),
+                                        new K3IdTerm(y, FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(),
                                 ImmutableList.of()),
@@ -93,16 +93,16 @@ public class K3ParserTest {
                                 new K3SymbolApplicationTerm(
                                     "=",
                                     ImmutableList.of(
-                                        new K3IDTerm(x, FileLocation.DUMMY),
-                                        new K3IDTerm(y, FileLocation.DUMMY)),
+                                        new K3IdTerm(x, FileLocation.DUMMY),
+                                        new K3IdTerm(y, FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(
                                     new K3AssertTag(
                                         new K3SymbolApplicationTerm(
                                             "=",
                                             ImmutableList.of(
-                                                new K3IDTerm(x, FileLocation.DUMMY),
-                                                new K3IDTerm(y, FileLocation.DUMMY)),
+                                                new K3IdTerm(x, FileLocation.DUMMY),
+                                                new K3IdTerm(y, FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         FileLocation.DUMMY)),
                                 ImmutableList.of())),
@@ -112,8 +112,8 @@ public class K3ParserTest {
                 new VerifyCallCommand(
                     procedureDeclaration,
                     ImmutableList.of(
-                        new K3IDTerm(w, FileLocation.DUMMY),
-                        new K3IDTerm(z, FileLocation.DUMMY)))));
+                        new K3IdTerm(w, FileLocation.DUMMY), new K3IdTerm(z, FileLocation.DUMMY)),
+                    FileLocation.DUMMY)));
     Path filePath = Path.of(examplesPath(), "simple-correct.smt2");
 
     testScriptParsing(filePath, output);
@@ -142,8 +142,8 @@ public class K3ParserTest {
     K3Script output =
         new K3Script(
             ImmutableList.of(
-                new K3VariableDeclarationCommand(w),
-                new K3VariableDeclarationCommand(z),
+                new K3VariableDeclarationCommand(w, FileLocation.DUMMY),
+                new K3VariableDeclarationCommand(z, FileLocation.DUMMY),
                 new K3ProcedureDefinitionCommand(
                     FileLocation.DUMMY,
                     procedureDeclaration,
@@ -154,8 +154,8 @@ public class K3ParserTest {
                                 new K3SymbolApplicationTerm(
                                     "=",
                                     ImmutableList.of(
-                                        new K3IDTerm(x, FileLocation.DUMMY),
-                                        new K3IDTerm(y, FileLocation.DUMMY)),
+                                        new K3IdTerm(x, FileLocation.DUMMY),
+                                        new K3IdTerm(y, FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(),
                                 ImmutableList.of()),
@@ -164,8 +164,8 @@ public class K3ParserTest {
                                 new K3SymbolApplicationTerm(
                                     "=",
                                     ImmutableList.of(
-                                        new K3IDTerm(x, FileLocation.DUMMY),
-                                        new K3IDTerm(y, FileLocation.DUMMY)),
+                                        new K3IdTerm(x, FileLocation.DUMMY),
+                                        new K3IdTerm(y, FileLocation.DUMMY)),
                                     FileLocation.DUMMY),
                                 ImmutableList.of(
                                     new K3AssertTag(
@@ -175,8 +175,8 @@ public class K3ParserTest {
                                                 new K3SymbolApplicationTerm(
                                                     "=",
                                                     ImmutableList.of(
-                                                        new K3IDTerm(x, FileLocation.DUMMY),
-                                                        new K3IDTerm(y, FileLocation.DUMMY)),
+                                                        new K3IdTerm(x, FileLocation.DUMMY),
+                                                        new K3IdTerm(y, FileLocation.DUMMY)),
                                                     FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         FileLocation.DUMMY)),
@@ -187,8 +187,8 @@ public class K3ParserTest {
                 new VerifyCallCommand(
                     procedureDeclaration,
                     ImmutableList.of(
-                        new K3IDTerm(w, FileLocation.DUMMY),
-                        new K3IDTerm(z, FileLocation.DUMMY)))));
+                        new K3IdTerm(w, FileLocation.DUMMY), new K3IdTerm(z, FileLocation.DUMMY)),
+                    FileLocation.DUMMY)));
     Path filePath = Path.of(examplesPath(), "simple-incorrect.smt2");
 
     testScriptParsing(filePath, output);

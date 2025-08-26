@@ -10,7 +10,13 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 public interface K3TagAttributeVisitor<R, X extends Exception> {
 
-  R accept(K3TagReference pK3TagReference);
+  R accept(K3TagReference pK3TagReference) throws X;
 
-  R accept(K3AssertTag pK3AssertTag);
+  R accept(K3AssertTag pK3AssertTag) throws X;
+
+  R accept(K3RequiresTag pK3RequiresTag) throws X;
+
+  R accept(K3EnsuresTag pK3EnsuresTag) throws X;
+
+  R accept(K3InvariantTag pK3InvariantTag) throws X;
 }

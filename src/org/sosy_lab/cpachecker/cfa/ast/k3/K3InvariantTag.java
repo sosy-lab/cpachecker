@@ -12,13 +12,13 @@ import com.google.common.base.Objects;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class K3AssertTag implements K3TagProperty {
+public final class K3InvariantTag implements K3TagProperty {
 
   @Serial private static final long serialVersionUID = 1135747516635566858L;
   private final K3RelationalTerm term;
   private final FileLocation fileLocation;
 
-  public K3AssertTag(K3RelationalTerm pTerm, FileLocation pFileLocation) {
+  public K3InvariantTag(K3RelationalTerm pTerm, FileLocation pFileLocation) {
     term = pTerm;
     fileLocation = pFileLocation;
   }
@@ -35,12 +35,12 @@ public final class K3AssertTag implements K3TagProperty {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":assert " + term.toASTString(pAAstNodeRepresentation);
+    return ":invariant " + term.toASTString(pAAstNodeRepresentation);
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":assert " + term.toParenthesizedASTString(pAAstNodeRepresentation);
+    return ":invariant " + term.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
   public K3RelationalTerm getTerm() {
@@ -52,7 +52,7 @@ public final class K3AssertTag implements K3TagProperty {
     if (this == pO) {
       return true;
     }
-    return pO instanceof K3AssertTag other && Objects.equal(term, other.term);
+    return pO instanceof K3InvariantTag other && Objects.equal(term, other.term);
   }
 
   @Override

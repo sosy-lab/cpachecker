@@ -8,4 +8,5 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
-public sealed interface K3TagProperty extends K3TagAttribute permits K3AssertTag {}
+public sealed interface K3TagProperty extends K3TagAttribute
+    permits K3AssertTag, K3EnsuresTag, K3InvariantTag, K3RequiresTag {}

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.io.Serial;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class K3VariableDeclarationCommand implements K3Command {
 
@@ -17,8 +18,12 @@ public final class K3VariableDeclarationCommand implements K3Command {
 
   private final K3VariableDeclaration variableDeclaration;
 
-  public K3VariableDeclarationCommand(K3VariableDeclaration pVariableDeclaration) {
+  private final FileLocation fileLocation;
+
+  public K3VariableDeclarationCommand(
+      K3VariableDeclaration pVariableDeclaration, FileLocation pFileLocation) {
     variableDeclaration = pVariableDeclaration;
+    fileLocation = pFileLocation;
   }
 
   public K3VariableDeclaration getVariableDeclaration() {
@@ -38,5 +43,9 @@ public final class K3VariableDeclarationCommand implements K3Command {
   @Override
   public int hashCode() {
     return Objects.hashCode(variableDeclaration);
+  }
+
+  public FileLocation getFileLocation() {
+    return fileLocation;
   }
 }

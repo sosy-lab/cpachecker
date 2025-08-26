@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class K3CfaEdgeStatement extends K3Statement implements AStatement
-    permits K3AssignmentStatement, K3ProcedureCallStatement {
+    permits K3AssignmentStatement, K3HavocStatement, K3ProcedureCallStatement {
   @Serial private static final long serialVersionUID = 5250154309306501123L;
 
   protected K3CfaEdgeStatement(
@@ -24,7 +24,7 @@ public abstract sealed class K3CfaEdgeStatement extends K3Statement implements A
     super(pFileLocation, pTagAttributes, pTagReferences);
   }
 
-  abstract <R, X extends Exception> R accept(K3ExecutionStatementVisitor<R, X> v) throws X;
+  abstract <R, X extends Exception> R accept(K3CfaEdgeStatementVisitor<R, X> v) throws X;
 
   @Override
   public boolean equals(Object pO) {

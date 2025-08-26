@@ -11,4 +11,9 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 import java.io.Serializable;
 
 public sealed interface K3Command extends Serializable
-    permits K3ProcedureDefinitionCommand, K3VariableDeclarationCommand, VerifyCallCommand {}
+    permits K3AnnotateTagCommand,
+        K3GetCounterexampleCommand,
+        K3GetProofCommand,
+        K3ProcedureDefinitionCommand,
+        K3VariableDeclarationCommand,
+        VerifyCallCommand {}
