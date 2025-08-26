@@ -8,15 +8,28 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.test;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableTable;
+import java.math.BigInteger;
+import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
@@ -24,6 +37,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class MemoryModelFunctionTest {
 
@@ -73,8 +91,15 @@ public class MemoryModelFunctionTest {
 
   private final CFANode DUMMY_SUCCESSOR = CFANode.newDummyCFANode();
 
+  private final FunctionExitNode DUMMY_FUNCTION_EXIT_NODE =
+      new FunctionExitNode(DUMMY_FUNCTION_DECLARATION);
+
   private final CFunctionEntryNode DUMMY_FUNCTION_ENTRY_NODE =
-      (CFunctionEntryNode) CFunctionEntryNode.newDummyCFANode();
+      new CFunctionEntryNode(
+          FileLocation.DUMMY,
+          DUMMY_FUNCTION_DECLARATION,
+          DUMMY_FUNCTION_EXIT_NODE,
+          Optional.empty());
 
   // CFA Edges
 
@@ -95,4 +120,87 @@ public class MemoryModelFunctionTest {
           DUMMY_FUNCTION_ENTRY_NODE,
           DUMMY_FUNCTION_CALL_STATEMENT,
           DUMMY_FUNCTION_SUMMARY_EDGE);
+
+  // ThreadEdge
+
+  private final ThreadEdge DUMMY_CALL_CONTEXT =
+      new ThreadEdge(0, DUMMY_FUNCTION_CALL_EDGE, Optional.empty());
+
+  // Expressions
+
+  private final CIntegerLiteralExpression INT_0 =
+      new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(0));
+
+  // Initializers
+
+  private final CInitializer INT_0_INITIALIZER =
+      new CInitializerExpression(FileLocation.DUMMY, INT_0);
+
+  // CDeclaration
+
+  private final CVariableDeclaration GLOBAL_X_DECLARATION =
+      new CVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          CStorageClass.AUTO,
+          INT_TYPE,
+          "global_X",
+          "global_X",
+          "global_X",
+          INT_0_INITIALIZER);
+
+  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P =
+      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P");
+
+  private final CParameterDeclaration PARAMETER_DECLARATION_Q =
+      new CParameterDeclaration(FileLocation.DUMMY, INT_TYPE, "param_Q");
+
+  // Memory Locations (primitives)
+
+  private final MemoryLocation GLOBAL_X_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
+
+  private final MemoryLocation PARAMETER_P_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_P);
+
+  private final MemoryLocation PARAMETER_Q_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_Q);
+
+  // Memory Location IDs
+
+  private final ImmutableMap<MemoryLocation, Integer> memory_location_ids =
+      ImmutableMap.<MemoryLocation, Integer>builder()
+          .put(GLOBAL_X_MEMORY_LOCATION, 0)
+          .put(PARAMETER_P_MEMORY_LOCATION, 1)
+          .put(PARAMETER_Q_MEMORY_LOCATION, 2)
+          .buildOrThrow();
+
+  @Test
+  public void test_pointer_parameter_dereference() {
+    // param_ptr_P = &global_X; i.e. pointer parameter assignment
+    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
+            .put(DUMMY_CALL_CONTEXT, PARAMETER_DECLARATION_POINTER_P, GLOBAL_X_MEMORY_LOCATION)
+            .build();
+    // *param_ptr_P i.e. pointer parameter dereference
+    ImmutableSet<MemoryLocation> pointerDereferences =
+        ImmutableSet.<MemoryLocation>builder().add(PARAMETER_P_MEMORY_LOCATION).build();
+
+    // create memory model
+    MemoryModel testMemoryModel =
+        new MemoryModel(
+            memory_location_ids,
+            ImmutableSetMultimap.of(),
+            pointerParameterAssignments,
+            pointerDereferences);
+
+    // find the mem locations associated with deref of 'param_ptr_P' in the given call context
+    ImmutableSet<MemoryLocation> memoryLocations =
+        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            PARAMETER_P_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+
+    // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
+    assertThat(memoryLocations.size() == 1).isTrue();
+    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
+  }
 }

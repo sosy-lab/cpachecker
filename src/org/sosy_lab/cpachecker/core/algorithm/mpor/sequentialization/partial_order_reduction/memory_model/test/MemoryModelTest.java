@@ -164,8 +164,10 @@ public class MemoryModelTest {
 
   @Test
   public void test_memory_location_equals() {
+    // create new MemoryLocation with the same parameters
     MemoryLocation int_pointer_a_memory_location_alt =
         MemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+    // test that .equals returns true
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.equals(int_pointer_a_memory_location_alt)).isTrue();
   }
 
