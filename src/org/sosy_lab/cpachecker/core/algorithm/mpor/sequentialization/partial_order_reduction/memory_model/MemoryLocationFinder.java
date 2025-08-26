@@ -213,31 +213,17 @@ public class MemoryLocationFinder {
 
     // prevent infinite loop, e.g. if a pointer is assigned itself: 'ptr = ptr;'
     if (pVisited.add(pCurrentMemoryLocation)) {
-      CSimpleDeclaration simpleDeclaration = pCurrentMemoryLocation.getSimpleDeclaration();
-      if (simpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
-        if (variableDeclaration.getType() instanceof CPointerType) {
-          // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
-          // and then dereferenced -> the pointer is not associated with the address of a var
-          if (pMemoryModel.isAssignedPointer(pCurrentMemoryLocation)) {
-            ImmutableSet<MemoryLocation> rightHandSides =
-                pMemoryModel.getRightHandSidesByPointer(pCurrentMemoryLocation);
-            for (MemoryLocation rightHandSide : rightHandSides) {
-              recursivelyFindMemoryLocationsByPointerDereference(
-                  rightHandSide, pMemoryModel, pFound, pVisited);
-            }
-          }
-        } else {
-          pFound.add(pCurrentMemoryLocation);
-        }
-
-      } else if (simpleDeclaration instanceof CParameterDeclaration) {
-        // in pthread_create that does not pass an arg to start_routine, the pair is not present
-        if (pMemoryModel.isAssignedPointerParameter(pCurrentMemoryLocation)) {
-          MemoryLocation rightHandSide =
-              pMemoryModel.getRightHandSideByParameter(pCurrentMemoryLocation);
+      // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
+      // and then dereferenced -> the pointer is not associated with the address of a var
+      if (pMemoryModel.isAssignedPointer(pCurrentMemoryLocation)) {
+        ImmutableSet<MemoryLocation> assignedMemoryLocations =
+            pMemoryModel.getAssignedMemoryLocations(pCurrentMemoryLocation);
+        for (MemoryLocation assignedMemoryLocation : assignedMemoryLocations) {
           recursivelyFindMemoryLocationsByPointerDereference(
-              rightHandSide, pMemoryModel, pFound, pVisited);
+              assignedMemoryLocation, pMemoryModel, pFound, pVisited);
         }
+      } else {
+        pFound.add(pCurrentMemoryLocation);
       }
     }
   }

@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -85,26 +86,12 @@ public class MemoryModel {
   // boolean helpers ===============================================================================
 
   /**
-   * Returns true if the pointer in {@code pVariableDeclaration} is assigned a pointer {@code ptr},
-   * or the address of a non-pointer {@code &non_ptr}.
+   * Returns true if the pointer in {@code pMemoryLocation} is assigned a pointer {@code ptr}, or
+   * the address of a non-pointer {@code &non_ptr}.
    */
   public boolean isAssignedPointer(MemoryLocation pMemoryLocation) {
-    checkArgument(
-        pMemoryLocation.getSimpleDeclaration().getType() instanceof CPointerType,
-        "pVariableDeclaration must be CPointerType, got %s",
-        pMemoryLocation.getSimpleDeclaration().getType());
-    return pointerAssignments.containsKey(pMemoryLocation);
-  }
-
-  /**
-   * Returns true if the pointer in {@code pParameterDeclaration} is assigned a pointer {@code ptr},
-   * or the address of a non-pointer {@code &non_ptr} in any function call.
-   */
-  public boolean isAssignedPointerParameter(MemoryLocation pMemoryLocation) {
-    if (pMemoryLocation.getSimpleDeclaration().getType() instanceof CPointerType) {
-      return pointerParameterAssignments.containsKey(pMemoryLocation);
-    }
-    return false;
+    return pointerAssignments.containsKey(pMemoryLocation)
+        || pointerParameterAssignments.containsKey(pMemoryLocation);
   }
 
   /**
@@ -166,14 +153,14 @@ public class MemoryModel {
 
   // getters =======================================================================================
 
-  public ImmutableSet<MemoryLocation> getRightHandSidesByPointer(
-      MemoryLocation pVariableDeclaration) {
-
-    return pointerAssignments.get(pVariableDeclaration);
-  }
-
-  public MemoryLocation getRightHandSideByParameter(MemoryLocation pMemoryLocation) {
-    return parameterAssignments.get(pMemoryLocation);
+  public ImmutableSet<MemoryLocation> getAssignedMemoryLocations(MemoryLocation pMemoryLocation) {
+    ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
+    rMemoryLocations.addAll(pointerAssignments.get(pMemoryLocation));
+    if (pointerParameterAssignments.containsKey(pMemoryLocation)) {
+      rMemoryLocations.add(
+          Objects.requireNonNull(pointerParameterAssignments.get(pMemoryLocation)));
+    }
+    return rMemoryLocations.build();
   }
 
   public int getMemoryLocationAmount() {
