@@ -943,14 +943,13 @@ public class CustomInstruction {
 
     private boolean isValidSimpleType(final CSimpleType ciST, final CSimpleType pAciType) {
       return ciST.hasComplexSpecifier() == pAciType.hasComplexSpecifier()
-          && ciST.isConst() == pAciType.isConst()
+          && ciST.getQualifiers().equals(pAciType.getQualifiers())
           && ciST.hasImaginarySpecifier() == pAciType.hasImaginarySpecifier()
           && ciST.hasLongSpecifier() == pAciType.hasLongSpecifier()
           && ciST.hasLongLongSpecifier() == pAciType.hasLongLongSpecifier()
           && ciST.hasShortSpecifier() == pAciType.hasShortSpecifier()
           && ciST.hasSignedSpecifier() == pAciType.hasSignedSpecifier()
           && ciST.hasUnsignedSpecifier() == pAciType.hasUnsignedSpecifier()
-          && ciST.isVolatile() == pAciType.isVolatile()
           && (ciST.getType().isIntegerType() || ciST.getType().isFloatingPointType())
           && ciST.hasComplexSpecifier() == ciST.hasImaginarySpecifier()
           && ciST.hasImaginarySpecifier() == ciST.hasLongSpecifier()

@@ -56,8 +56,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /** This Class contains functions, that convert types from C-source into CPAchecker-format. */
@@ -115,14 +115,14 @@ class ASTTypeConverter {
         // Replace it with a CElaboratedType.
         if (oldType != null) {
           yield new CElaboratedType(
-              false, false, kind, oldType.getName(), oldType.getOrigName(), oldType);
+              CTypeQualifiers.NONE, kind, oldType.getName(), oldType.getOrigName(), oldType);
         }
         // empty linkedList for the Fields of the struct, they are created afterward
         // with the right references in case of pointers to a struct of the same type
         // otherwise they would not point to the correct struct
         // TODO: volatile and const cannot be checked here until no, so both is set
         //       to false
-        CCompositeType compType = new CCompositeType(false, false, kind, name, name);
+        CCompositeType compType = new CCompositeType(CTypeQualifiers.NONE, kind, name, name);
         // We need to cache compType before converting the type of its fields!
         // Otherwise, we run into an infinite recursion if the type of one field
         // is (a pointer to) the struct itself.
@@ -131,7 +131,7 @@ class ASTTypeConverter {
         // This means that wherever the ICompositeType instance appears, it will be
         // replaced by a CElaboratedType.
         CElaboratedType elaborateType =
-            new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType);
+            new CElaboratedType(CTypeQualifiers.NONE, kind, name, compType.getOrigName(), compType);
         parseContext.rememberCType(t, elaborateType, filePrefix);
         compType.setMembers(conv(ct.getFields()));
         yield compType;
@@ -216,8 +216,7 @@ class ASTTypeConverter {
 
       // TODO why is there no isConst() and isVolatile() here?
       return new CSimpleType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           type,
           c.isLong(),
           c.isShort(),
@@ -233,7 +232,8 @@ class ASTTypeConverter {
   }
 
   private CPointerType conv(final IPointerType t) {
-    return new CPointerType(t.isConst(), t.isVolatile(), convert(t.getType()));
+    return new CPointerType(
+        CTypeQualifiers.create(t.isConst(), t.isVolatile()), convert(t.getType()));
   }
 
   private CTypedefType conv(final ITypedef t) {
@@ -244,10 +244,10 @@ class ASTTypeConverter {
 
     // We have seen this type already.
     if (oldType != null) {
-      return new CTypedefType(false, false, scope.getFileSpecificTypeName(name), oldType);
+      return new CTypedefType(CTypeQualifiers.NONE, scope.getFileSpecificTypeName(name), oldType);
     } else { // New typedef type (somehow recognized by CDT, but not found in declared types)
       return new CTypedefType(
-          false, false, scope.getFileSpecificTypeName(name), convert(t.getType()));
+          CTypeQualifiers.NONE, scope.getFileSpecificTypeName(name), convert(t.getType()));
     }
   }
 
@@ -281,7 +281,8 @@ class ASTTypeConverter {
         throw new CFAGenerationRuntimeException(e);
       }
     }
-    return new CArrayType(t.isConst(), t.isVolatile(), convert(t.getType()), length);
+    return new CArrayType(
+        CTypeQualifiers.create(t.isConst(), t.isVolatile()), convert(t.getType()), length);
   }
 
   private CType conv(final IQualifierType t) {
@@ -290,11 +291,7 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    i = CTypes.withConstSetTo(i, isConst);
-    i = CTypes.withVolatileSetTo(i, isVolatile);
-
-    assert i instanceof CProblemType || (isConst == i.isConst() && isVolatile == i.isVolatile());
-    return i;
+    return i.withQualifiersSetTo(CTypeQualifiers.create(isConst, isVolatile));
   }
 
   private CType conv(final IEnumeration e) {
@@ -308,7 +305,8 @@ class ASTTypeConverter {
     } else {
       name = scope.getFileSpecificTypeName(name);
     }
-    return new CElaboratedType(false, false, ComplexTypeKind.ENUM, name, origName, realType);
+    return new CElaboratedType(
+        CTypeQualifiers.NONE, ComplexTypeKind.ENUM, name, origName, realType);
   }
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
@@ -333,7 +331,7 @@ class ASTTypeConverter {
             || dd.isUnsigned()) {
           throw parseContext.parseError("Void type with illegal modifier", dd);
         }
-        return CVoidType.create(dd.isConst(), dd.isVolatile());
+        return CVoidType.create(convertCTypeQualifiers(dd));
       }
       case IASTSimpleDeclSpecifier.t_typeof -> {
         CType ctype;
@@ -347,13 +345,12 @@ class ASTTypeConverter {
           ctype = convert(dd.getDeclTypeExpression().getExpressionType());
         }
 
-        // readd the information about isVolatile and isConst if they got lost in
-        // the previous conversion
-        if (dd.isConst()) {
-          ctype = CTypes.withConst(ctype);
-        }
-        if (dd.isVolatile()) {
-          ctype = CTypes.withVolatile(ctype);
+        if (!(ctype instanceof CProblemType)) {
+          // We can have something like "const __typeof__(volatile int)", we need to combine inner
+          // and outer qualifier.
+          ctype =
+              ctype.withQualifiersSetTo(
+                  CTypeQualifiers.union(ctype.getQualifiers(), convertCTypeQualifiers(dd)));
         }
         return ctype;
       }
@@ -370,8 +367,7 @@ class ASTTypeConverter {
     }
 
     return new CSimpleType(
-        dd.isConst(),
-        dd.isVolatile(),
+        convertCTypeQualifiers(dd),
         type,
         dd.isLong(),
         dd.isShort(),
@@ -398,11 +394,11 @@ class ASTTypeConverter {
       type = convert(iType);
     }
 
-    if (d.isConst()) {
-      type = CTypes.withConst(type);
-    }
-    if (d.isVolatile()) {
-      type = CTypes.withVolatile(type);
+    if (!(type instanceof CProblemType)) {
+      // Should have only typedefs here, and these do not have qualifiers themselves.
+      verify(type instanceof CTypedefType);
+      verify(type.getQualifiers().isEmpty());
+      type = type.withQualifiersSetTo(convertCTypeQualifiers(d));
     }
 
     return type;
@@ -419,6 +415,10 @@ class ASTTypeConverter {
       case IASTDeclSpecifier.sc_typedef -> CStorageClass.TYPEDEF;
       default -> throw parseContext.parseError("Unsupported storage class", d);
     };
+  }
+
+  CTypeQualifiers convertCTypeQualifiers(final IASTDeclSpecifier d) {
+    return CTypeQualifiers.create(d.isConst(), d.isVolatile());
   }
 
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
@@ -439,13 +439,13 @@ class ASTTypeConverter {
       name = scope.getFileSpecificTypeName(name);
     }
 
-    return new CElaboratedType(d.isConst(), d.isVolatile(), type, name, origName, realType);
+    return new CElaboratedType(convertCTypeQualifiers(d), type, name, origName, realType);
   }
 
   /** returns a pointerType, that wraps the type. */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
     if (po instanceof IASTPointer p) {
-      return new CPointerType(p.isConst(), p.isVolatile(), type);
+      return new CPointerType(CTypeQualifiers.create(p.isConst(), p.isVolatile()), type);
 
     } else {
       throw parseContext.parseError("Unknown pointer operator", po);

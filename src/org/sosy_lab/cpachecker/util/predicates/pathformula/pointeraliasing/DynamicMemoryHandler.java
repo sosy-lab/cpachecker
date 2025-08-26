@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -258,9 +259,9 @@ class DynamicMemoryHandler {
       final CType operand1Type = getSizeofType(product.getOperand1());
       final CType operand2Type = getSizeofType(product.getOperand2());
       if (operand1Type != null) {
-        newType = new CArrayType(false, false, operand1Type, product.getOperand2());
+        newType = new CArrayType(CTypeQualifiers.NONE, operand1Type, product.getOperand2());
       } else if (operand2Type != null) {
-        newType = new CArrayType(false, false, operand2Type, product.getOperand1());
+        newType = new CArrayType(CTypeQualifiers.NONE, operand2Type, product.getOperand1());
       } else {
         throw new UnrecognizedCodeException(
             "Can't determine type for internal memory allocation", edge, e);
@@ -279,7 +280,7 @@ class DynamicMemoryHandler {
         } else {
           length = parameter;
         }
-        newType = new CArrayType(false, false, CVoidType.VOID, length);
+        newType = new CArrayType(CTypeQualifiers.NONE, CVoidType.VOID, length);
       } else {
         newType = null;
       }
@@ -574,8 +575,7 @@ class DynamicMemoryHandler {
       }
 
       return new CArrayType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           type,
           new CIntegerLiteralExpression(
               sizeLiteral.getFileLocation(),

@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Utility class for initializer-related tasks. */
@@ -412,8 +411,8 @@ public final class CInitializers {
       final CType currentType = currentSubobject.getExpressionType().getCanonicalType();
 
       // Ignore modifiers const and volatile for equality checks.
-      CType currentTypeWithoutModifier = CTypes.copyDequalified(currentType);
-      CType targetTypeWithoutModifier = CTypes.copyDequalified(targetType);
+      CType currentTypeWithoutModifier = currentType.withoutQualifiers();
+      CType targetTypeWithoutModifier = targetType.withoutQualifiers();
       if (targetTypeWithoutModifier.equals(currentTypeWithoutModifier)) {
         break;
       }
