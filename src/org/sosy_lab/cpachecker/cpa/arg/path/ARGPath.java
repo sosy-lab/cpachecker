@@ -56,7 +56,7 @@ public class ARGPath extends AbstractAppender {
       justification =
           "This variable is only used for caching the full path for later use"
               + " without having to compute it again.")
-  private List<CFAEdge> fullPath = null;
+  private ImmutableList<CFAEdge> fullPath = null;
 
   protected ARGPath(ARGPath pArgPath) {
     states = pArgPath.states;
@@ -108,7 +108,7 @@ public class ARGPath extends AbstractAppender {
    * <p>If there is no path (null edges can not be filled up, may be happening when using bam) we
    * return an empty list instead.
    */
-  public List<CFAEdge> getFullPath() {
+  public ImmutableList<CFAEdge> getFullPath() {
     if (fullPath == null) {
       fullPath = buildFullPath();
     }
@@ -122,7 +122,7 @@ public class ARGPath extends AbstractAppender {
    * expensive.
    */
   @ForOverride
-  protected List<CFAEdge> buildFullPath() {
+  protected ImmutableList<CFAEdge> buildFullPath() {
     ImmutableList.Builder<CFAEdge> newFullPath = ImmutableList.builder();
     PathIterator it = pathIterator();
 
@@ -256,7 +256,7 @@ public class ARGPath extends AbstractAppender {
 
   @Override
   public void appendTo(Appendable appendable) throws IOException {
-    Joiner.on(System.lineSeparator()).skipNulls().appendTo(appendable, getFullPath());
+    Joiner.on(System.lineSeparator()).appendTo(appendable, getFullPath());
     appendable.append(System.lineSeparator());
   }
 }

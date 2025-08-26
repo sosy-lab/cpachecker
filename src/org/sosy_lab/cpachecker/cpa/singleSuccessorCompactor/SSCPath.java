@@ -50,7 +50,7 @@ public class SSCPath extends ARGPath {
   }
 
   @Override
-  protected List<CFAEdge> buildFullPath() {
+  protected ImmutableList<CFAEdge> buildFullPath() {
     ImmutableList.Builder<CFAEdge> newFullPathBuilder = ImmutableList.builder();
     PathIterator it = pathIterator();
     while (it.hasNext()) {

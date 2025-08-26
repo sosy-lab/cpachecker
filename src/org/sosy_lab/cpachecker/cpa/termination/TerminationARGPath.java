@@ -39,7 +39,7 @@ public class TerminationARGPath extends ARGPath {
   private final TerminationLoopInformation terminationInformation;
 
   // Construct full path at most once.
-  @Nullable private List<CFAEdge> terminationFullPath = null;
+  @Nullable private ImmutableList<CFAEdge> terminationFullPath = null;
 
   public TerminationARGPath(
       ARGPath pBasicArgPath, TerminationLoopInformation pTerminationInformation) {
@@ -48,7 +48,7 @@ public class TerminationARGPath extends ARGPath {
   }
 
   @Override
-  public List<CFAEdge> getFullPath() {
+  public ImmutableList<CFAEdge> getFullPath() {
     if (terminationFullPath != null) {
       return terminationFullPath;
     }
