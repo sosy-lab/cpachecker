@@ -18,8 +18,4 @@ public interface K3AstNodeVisitor<R, X extends Exception>
   R visit(K3ProcedureDeclaration pK3ProcedureDeclaration);
 
   R visit(K3ParameterDeclaration pK3ParameterDeclaration);
-
-  R accept(K3SymbolApplicationTerm pK3SymbolApplicationTerm);
-
-  R accept(K3IdTerm pK3IdTerm);
 }

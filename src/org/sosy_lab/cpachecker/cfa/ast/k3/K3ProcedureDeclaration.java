@@ -65,6 +65,7 @@ public final class K3ProcedureDeclaration extends AFunctionDeclaration implement
     return getType().toASTString(getName());
   }
 
+  @Override
   public List<K3ParameterDeclaration> getParameters() {
     return parameters;
   }

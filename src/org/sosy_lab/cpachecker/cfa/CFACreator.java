@@ -538,7 +538,7 @@ public class CFACreator {
           checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
         }
         case C -> mainFunction = getCMainFunction(sourceFiles, c.functions());
-        case K3 -> mainFunction = getK3MainFunction(sourceFiles, c.functions());
+        case K3 -> mainFunction = getK3MainFunction(c.functions());
         default -> throw new AssertionError();
       }
 
@@ -560,8 +560,7 @@ public class CFACreator {
     }
   }
 
-  private FunctionEntryNode getK3MainFunction(
-      List<String> pSourceFiles, NavigableMap<String, FunctionEntryNode> pFunctions) {
+  private FunctionEntryNode getK3MainFunction(NavigableMap<String, FunctionEntryNode> pFunctions) {
     String mainFunctioName = K3ProcedureDeclaration.mainFunctionDeclaration().getOrigName();
     return pFunctions.get(mainFunctioName);
   }

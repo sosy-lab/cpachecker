@@ -64,7 +64,7 @@ public final class K3OldTerm implements K3RelationalTerm {
       return true;
     }
 
-    return pO instanceof K3OldTerm && term.equals(((K3OldTerm) pO).term);
+    return pO instanceof K3OldTerm other && term.equals(other.term);
   }
 
   public K3Term getTerm() {

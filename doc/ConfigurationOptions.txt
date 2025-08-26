@@ -4483,11 +4483,11 @@ java.version = JavaCore.VERSION_1_7
 # auto-detection will occur. LLVM IR is currently unsupported as input (cf.
 # https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).
 language = C
-  enum:     [C, JAVA, LLVM]
+  enum:     [C, JAVA, LLVM, K3]
 language = no default value
-  enum:     [C, JAVA, LLVM]
+  enum:     [C, JAVA, LLVM, K3]
 language = C
-  enum:     [C, JAVA, LLVM]
+  enum:     [C, JAVA, LLVM, K3]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)

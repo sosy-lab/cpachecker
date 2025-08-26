@@ -59,8 +59,14 @@ import org.sosy_lab.cpachecker.util.Pair;
 class K3CfaBuilder {
 
   private final LogManager logger;
+
+  @SuppressWarnings("unused")
   private final Configuration config;
+
+  @SuppressWarnings("unused")
   private final MachineModel machineModel;
+
+  @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
   public K3CfaBuilder(
