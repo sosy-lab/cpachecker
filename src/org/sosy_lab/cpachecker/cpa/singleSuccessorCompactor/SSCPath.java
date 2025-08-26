@@ -51,12 +51,13 @@ public class SSCPath extends ARGPath {
 
   @Override
   protected List<CFAEdge> buildFullPath() {
-    List<CFAEdge> newFullPath = new ArrayList<>();
+    ImmutableList.Builder<CFAEdge> newFullPathBuilder = ImmutableList.builder();
     PathIterator it = pathIterator();
     while (it.hasNext()) {
-      getInnerEdgesFromTo(newFullPath, it.getAbstractState(), it.getNextAbstractState());
+      getInnerEdgesFromTo(newFullPathBuilder, it.getAbstractState(), it.getNextAbstractState());
       it.advance();
     }
+    ImmutableList<CFAEdge> newFullPath = newFullPathBuilder.build();
 
     assert checkFullPath(newFullPath) : Joiner.on("\n").join(Iterables.skip(newFullPath, 0));
     return newFullPath;
@@ -83,7 +84,8 @@ public class SSCPath extends ARGPath {
    *
    * @param newFullPath where the resulting edges are added to.
    */
-  private void getInnerEdgesFromTo(List<CFAEdge> newFullPath, ARGState prev, ARGState succ) {
+  private void getInnerEdgesFromTo(
+      ImmutableList.Builder<CFAEdge> newFullPath, ARGState prev, ARGState succ) {
     final List<AbstractState> innerStates = new ArrayList<>();
     try {
       @SuppressWarnings("unused") // only inner states are important
@@ -117,7 +119,7 @@ public class SSCPath extends ARGPath {
    * @param newFullPath where the resulting edges are added to.
    */
   private void getEdgesFromTo(
-      List<CFAEdge> newFullPath, AbstractState parent, AbstractState child) {
+      ImmutableList.Builder<CFAEdge> newFullPath, AbstractState parent, AbstractState child) {
     CFANode parentLoc = extractLocation(parent);
     CFANode childLoc = extractLocation(child);
     // handle multi-edges, i.e. chains of edges that have only one succeeding CFA-location.
