@@ -87,11 +87,40 @@ public class NodeMapping {
     return objectMap.get(object);
   }
 
-  public NodeMapping copyAndAddMapping(SMGValue vOld, SMGValue vNew) {
+  /**
+   * Maps the values vOld -> vNew for target spec of vNew. Automatically retrieves and sanity checks
+   * both values in their SPC/SMG and retrieves the target spec from vNew in spcNew.
+   */
+  public NodeMapping copyAndAddMapping(
+      SMGValue vOld,
+      SymbolicProgramConfiguration spcOld,
+      SMGValue vNew,
+      SymbolicProgramConfiguration spcNew) {
     checkNotNull(vOld);
     checkNotNull(vNew);
-    // TODO: add assertion that these are regions?
-    return copyAndAddMapping(vOld, vNew, IS_REGION);
+    checkNotNull(spcOld);
+    checkNotNull(spcNew);
+    checkArgument(spcOld.getSmg().hasValue(vOld));
+    checkArgument(spcOld.getValueFromSMGValue(vOld).isPresent());
+    checkArgument(spcNew.getSmg().hasValue(vNew));
+    checkArgument(spcNew.getValueFromSMGValue(vNew).isPresent());
+
+    if (spcOld.getSmg().isPointer(vOld) && spcNew.getSmg().isPointer(vNew)) {
+      SMGPointsToEdge oldPTE = spcOld.getSmg().getPTEdge(vOld).orElseThrow();
+      SMGPointsToEdge newPTE = spcNew.getSmg().getPTEdge(vNew).orElseThrow();
+
+      // Naive, might not hold
+      checkArgument(
+          oldPTE.targetSpecifier().equals(newPTE.targetSpecifier())
+              || oldPTE.targetSpecifier().equals(IS_REGION));
+
+      return copyAndAddMapping(vOld, vNew, newPTE.targetSpecifier());
+
+    } else {
+      checkArgument(!spcOld.getSmg().isPointer(vOld) || spcNew.getSmg().isPointer(vNew));
+      // Use region as default for non-pointers for now
+      return copyAndAddMapping(vOld, vNew, IS_REGION);
+    }
   }
 
   public boolean containsKey(SMGObject pObject) {
@@ -104,11 +133,11 @@ public class NodeMapping {
     return valueMap.containsKey(pValue);
   }
 
-  public NodeMapping copyAndAddMapping(
-      SMGValue vOld, SMGValue vNew, SMGTargetSpecifier pSMGTargetSpecifier) {
+  private NodeMapping copyAndAddMapping(
+      SMGValue vOld, SMGValue vNew, SMGTargetSpecifier pTargetSpecifierOfNewValue) {
     checkNotNull(vOld);
     checkNotNull(vNew);
-    checkNotNull(pSMGTargetSpecifier);
+    checkNotNull(pTargetSpecifierOfNewValue);
     checkArgument(!vOld.isZero());
     checkArgument(!vNew.isZero());
 
@@ -128,17 +157,16 @@ public class NodeMapping {
           vOld,
           ImmutableMap.<SMGTargetSpecifier, SMGValue>builder()
               .putAll(existingInnerMap)
-              .put(pSMGTargetSpecifier, vNew)
+              .put(pTargetSpecifierOfNewValue, vNew)
               .buildOrThrow());
       for (Entry<SMGValue, Map<SMGTargetSpecifier, SMGValue>> oldEntry : valueMap.entrySet()) {
         if (oldEntry.getValue() != existingInnerMap) {
-          // TODO: is buildKeepingLast faster than this?
           newMapBuilder.put(oldEntry);
         }
       }
 
     } else {
-      newMapBuilder.putAll(valueMap).put(vOld, ImmutableMap.of(pSMGTargetSpecifier, vNew));
+      newMapBuilder.putAll(valueMap).put(vOld, ImmutableMap.of(pTargetSpecifierOfNewValue, vNew));
     }
     return new NodeMapping(objectMap, newMapBuilder.buildOrThrow());
   }
