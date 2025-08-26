@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 @RunWith(Parameterized.class)
 public class CTypesTest {
 
+  static final CType CONST_VOLATILE_INT = CNumericTypes.INT.withConst().withVolatile();
+
   private static final MachineModel TEST_MACHINE_MODEL = MachineModel.LINUX32;
   public static final CIntegerLiteralExpression TWO =
       CIntegerLiteralExpression.createDummyLiteral(2L, CNumericTypes.INT);
