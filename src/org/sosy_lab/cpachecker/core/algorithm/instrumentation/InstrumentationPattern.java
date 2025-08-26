@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -219,9 +218,9 @@ public class InstrumentationPattern {
         CRightHandSide operand2 = pAssignment.getRightHandSide();
 
         if ((operand1 instanceof CIdExpression
-            && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType)
+                && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType)
             && (operand2 instanceof CIdExpression
-            && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType)) {
+                && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType)) {
           return ImmutableList.of(
               removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
               removeIndicesOfVariablesWithSameName((CIdExpression) operand2, pCFAEdge));
@@ -234,8 +233,7 @@ public class InstrumentationPattern {
   }
 
   @Nullable
-  private ImmutableList<String> getOneVariableFromAssignment(
-      CFAEdge pCFAEdge) {
+  private ImmutableList<String> getOneVariableFromAssignment(CFAEdge pCFAEdge) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
 
@@ -244,9 +242,9 @@ public class InstrumentationPattern {
         CRightHandSide operand2 = pAssignment.getRightHandSide();
 
         if ((operand1 instanceof CIdExpression
-            && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType)
+                && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType)
             && !(operand2 instanceof CIdExpression
-            && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType)) {
+                && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType)) {
           return ImmutableList.of(removeIndicesOfVariablesWithSameName(operand1, pCFAEdge));
         } else {
           return ImmutableList.of();

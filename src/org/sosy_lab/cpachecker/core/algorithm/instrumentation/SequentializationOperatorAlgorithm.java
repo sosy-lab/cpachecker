@@ -132,7 +132,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     } else {
       if (instrumentationProperty == InstrumentationProperty.DATA_RACE) {
         ImmutableMap.Builder<String, String> builder = new Builder<>();
-        for (String variable : cfa.getMetadata().getLiveVariables().get().getAllLiveVariables().stream().map(e-> e.getName()).toList()) {
+        for (String variable :
+            cfa.getMetadata().getLiveVariables().get().getAllLiveVariables().stream()
+                .map(e -> e.getName())
+                .toList()) {
           if (cProgramScope.variableNameInUse(variable)) {
             builder.put(variable, cProgramScope.lookupVariable(variable).getType().toString());
           }

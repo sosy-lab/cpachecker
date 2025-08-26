@@ -216,7 +216,8 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("vars_un_assign"),
             new InstrumentationOperation(
                 "__VERIFIER_atomic_begin();\\n"
-                    + "__VERIFIER_assert((write_INSTR_x_instr_1 <= 0 && read_INSTR_x_instr_1 <= 0));\\n"
+                    + "__VERIFIER_assert((write_INSTR_x_instr_1 <= 0 && read_INSTR_x_instr_1 <="
+                    + " 0));\\n"
                     + "write_INSTR_x_instr_1++; read_INSTR_x_instr_1;\\n"
                     + "__VERIFIER_atomic_end();\\n"
                     + "__VERIFIER_atomic_begin();"),
