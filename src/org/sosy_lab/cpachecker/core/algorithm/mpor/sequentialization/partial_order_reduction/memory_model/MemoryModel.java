@@ -14,7 +14,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -29,6 +32,7 @@ public class MemoryModel {
 
   private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
 
+  // TODO we could map MemoryLocation, MemoryLocation here directly
   private final ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments;
 
   private final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
@@ -107,10 +111,15 @@ public class MemoryModel {
     if (pMemoryLocation.isGlobal()) {
       return false;
     }
+    // TODO also handle parameterPointerAssignments here
     for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
       if (pointerAssignments.get(pointerDeclaration).contains(pMemoryLocation)) {
-        if (pointerDeclaration.isGlobal()) {
-          return true;
+        ImmutableSet<CVariableDeclaration> transitivePointerDeclarations =
+            findPointerDeclarationsByPointerAssignments(pointerDeclaration);
+        for (CVariableDeclaration transitivePointerDeclaration : transitivePointerDeclarations) {
+          if (transitivePointerDeclaration.isGlobal()) {
+            return true;
+          }
         }
       }
     }
@@ -127,6 +136,46 @@ public class MemoryModel {
       }
     }
     return false;
+  }
+
+  private ImmutableSet<CVariableDeclaration> findPointerDeclarationsByPointerAssignments(
+      CVariableDeclaration pPointerDeclaration) {
+
+    Set<CVariableDeclaration> rFound = new HashSet<>();
+    rFound.add(pPointerDeclaration);
+    recursivelyFindPointerDeclarationsByPointerAssignments(
+        pPointerDeclaration, rFound, new HashSet<>());
+    return ImmutableSet.copyOf(rFound);
+  }
+
+  private void recursivelyFindPointerDeclarationsByPointerAssignments(
+      CVariableDeclaration pCurrentPointerDeclaration,
+      Set<CVariableDeclaration> pFound,
+      Set<CVariableDeclaration> pVisited) {
+
+    // should always hold, so we use assert instead of checkArgument
+    assert pCurrentPointerDeclaration.getType() instanceof CPointerType
+        : "type of pCurrentPointerDeclaration must be CPointerType";
+
+    if (pVisited.add(pCurrentPointerDeclaration)) {
+      if (pointerAssignments.containsKey(pCurrentPointerDeclaration)) {
+        for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
+          if (pVisited.add(pointerDeclaration)) {
+            for (MemoryLocation assignedMemoryLocation :
+                pointerAssignments.get(pointerDeclaration)) {
+              CSimpleDeclaration simpleDeclaration = assignedMemoryLocation.getSimpleDeclaration();
+              if (simpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
+                if (pointerAssignments.containsKey(variableDeclaration)) {
+                  pFound.add(pointerDeclaration);
+                  recursivelyFindPointerDeclarationsByPointerAssignments(
+                      pointerDeclaration, pFound, pVisited);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   // getters =======================================================================================
@@ -158,6 +207,7 @@ public class MemoryModel {
   public ImmutableSet<MemoryLocation> getRelevantMemoryLocations() {
     ImmutableSet.Builder<MemoryLocation> rRelevant = ImmutableSet.builder();
     for (MemoryLocation memoryLocation : memoryLocationIds.keySet()) {
+      // TODO non-pointer parameters should be included. e.g. 'global_ptr = &non-ptr_param'
       // exclude parameters, they are not memory locations themselves
       if (!memoryLocation.isParameter()) {
         // exclude const CPAchecker_TMP, they do not have any effect in the input program
