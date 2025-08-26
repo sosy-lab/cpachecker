@@ -125,6 +125,9 @@ public class MemoryModel {
     }
     if (isPointedTo(pMemoryLocation)) {
       for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
+        if (pointerDeclaration.isGlobal()) {
+          return true;
+        }
         ImmutableSet<CVariableDeclaration> transitivePointerDeclarations =
             MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
                 pointerDeclaration, pointerAssignments, parameterAssignments);
