@@ -2080,10 +2080,10 @@ public class SymbolicProgramConfiguration {
     SMGValue a = mergedSPC.getSMGValueFromValue(newAddressValue).orElseThrow();
     // 6. Extend the mapping of nodes such that m1 (a1) = m2 (a2) = a.
     // We know that a1, a2, and a are all pointers
-    pMapping1 = pMapping1.copyAndAddMapping(a1, pMergingSPC1, a, pMergedSPC);
-    pMapping2 = pMapping2.copyAndAddMapping(a2, pMergingSPC2, a, pMergedSPC);
+    NodeMapping newMapping1 = pMapping1.copyAndAddMapping(a1, pMergingSPC1, a, mergedSPC);
+    NodeMapping newMapping2 = pMapping2.copyAndAddMapping(a2, pMergingSPC2, a, mergedSPC);
     // 7. Return (G, m1 , m2 , a).
-    return MergedSPCWithMappingsAndAddressValue.of(mergedSPC, a, pMapping1, pMapping2);
+    return MergedSPCWithMappingsAndAddressValue.of(mergedSPC, a, newMapping1, newMapping2);
   }
 
   /**
