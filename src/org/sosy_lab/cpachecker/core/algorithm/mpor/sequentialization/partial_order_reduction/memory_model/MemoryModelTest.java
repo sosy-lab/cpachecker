@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import java.math.BigInteger;
-import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -56,7 +56,7 @@ public class MemoryModelTest {
           false,
           false,
           ComplexTypeKind.STRUCT,
-          List.of(inner_struct_member_declaration),
+          ImmutableList.of(inner_struct_member_declaration),
           "inner_struct_complex",
           "inner_struct_complex");
 
@@ -87,7 +87,8 @@ public class MemoryModelTest {
           false,
           false,
           ComplexTypeKind.STRUCT,
-          List.of(outer_struct_member_declaration, outer_struct_inner_struct_member_declaration),
+          ImmutableList.of(
+              outer_struct_member_declaration, outer_struct_inner_struct_member_declaration),
           "outer_struct_complex",
           "outer_struct_complex");
 
@@ -114,7 +115,7 @@ public class MemoryModelTest {
       new CInitializerExpression(FileLocation.DUMMY, int_0);
 
   private final CInitializerList empty_initializer_list =
-      new CInitializerList(FileLocation.DUMMY, List.of());
+      new CInitializerList(FileLocation.DUMMY, ImmutableList.of());
 
   // Declarations
 
@@ -195,6 +196,18 @@ public class MemoryModelTest {
       MemoryLocation.of(
           Optional.empty(), outer_struct_declaration, inner_struct_member_declaration);
 
+  // Memory Location IDs
+
+  private final ImmutableMap<MemoryLocation, Integer> memory_location_ids =
+      ImmutableMap.<MemoryLocation, Integer>builder()
+          .put(int_pointer_a_memory_location, 0)
+          .put(int_pointer_b_memory_location, 1)
+          .put(int_a_memory_location, 2)
+          .put(int_b_memory_location, 3)
+          .put(outer_struct_member_memory_location, 4)
+          .put(outer_struct_inner_struct_member_memory_location, 5)
+          .buildOrThrow();
+
   @Test
   public void test_memory_location_equals() {
     MemoryLocation int_pointer_a_memory_location_alt =
@@ -204,12 +217,6 @@ public class MemoryModelTest {
 
   @Test
   public void test_single_pointer_assignment() {
-    // first create necessary collections
-    ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
-        ImmutableMap.<MemoryLocation, Integer>builder()
-            .put(int_pointer_a_memory_location, 0)
-            .put(int_a_memory_location, 1)
-            .buildOrThrow();
     // int_ptr_A = &int_A; i.e. pointer assignment
     ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
         ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
@@ -222,7 +229,7 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            memoryLocationIds, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            memory_location_ids, pointerAssignments, ImmutableTable.of(), pointerDereferences);
 
     // find the memory locations associated with dereference of 'int_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
@@ -236,13 +243,6 @@ public class MemoryModelTest {
 
   @Test
   public void test_multi_pointer_assignment() {
-    // first create necessary collections
-    ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
-        ImmutableMap.<MemoryLocation, Integer>builder()
-            .put(int_pointer_a_memory_location, 0)
-            .put(int_a_memory_location, 1)
-            .put(int_b_memory_location, 2)
-            .buildOrThrow();
     // int_ptr_A = &int_A; and int_ptr_A = &int_B; i.e. pointer assignments
     ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
         ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
@@ -256,7 +256,7 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            memoryLocationIds, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            memory_location_ids, pointerAssignments, ImmutableTable.of(), pointerDereferences);
 
     // find the memory locations associated with dereference of 'int_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
@@ -271,13 +271,6 @@ public class MemoryModelTest {
 
   @Test
   public void test_transitive_pointer_assignment() {
-    // first create necessary collections
-    ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
-        ImmutableMap.<MemoryLocation, Integer>builder()
-            .put(int_pointer_a_memory_location, 0)
-            .put(int_a_memory_location, 1)
-            .put(int_pointer_b_memory_location, 2)
-            .buildOrThrow();
     // int_ptr_A = &int_A; and int_ptr_B = int_ptr_A; i.e. pointer assignment (transitive)
     ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
         ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
@@ -291,7 +284,7 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            memoryLocationIds, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            memory_location_ids, pointerAssignments, ImmutableTable.of(), pointerDereferences);
 
     // find the memory locations associated with dereference of 'int_ptr_B'
     ImmutableSet<MemoryLocation> memoryLocations =
@@ -306,12 +299,6 @@ public class MemoryModelTest {
 
   @Test
   public void test_field_owner_field_member() {
-    // first create necessary collections
-    ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
-        ImmutableMap.<MemoryLocation, Integer>builder()
-            .put(int_pointer_a_memory_location, 0)
-            .put(outer_struct_member_memory_location, 1)
-            .buildOrThrow();
     // int_ptr_A = &outer_struct.outer_member; i.e. pointer assignment
     ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
         ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
@@ -324,7 +311,7 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            memoryLocationIds, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            memory_location_ids, pointerAssignments, ImmutableTable.of(), pointerDereferences);
 
     // find the memory locations associated with dereference of 'int_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
@@ -339,14 +326,6 @@ public class MemoryModelTest {
 
   @Test
   public void test_outer_inner_struct() {
-    // first create necessary collections
-    ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
-        ImmutableMap.<MemoryLocation, Integer>builder()
-            .put(int_pointer_a_memory_location, 0)
-            .put(int_pointer_b_memory_location, 1)
-            .put(outer_struct_member_memory_location, 2)
-            .put(outer_struct_inner_struct_member_memory_location, 3)
-            .buildOrThrow();
     // int_ptr_A = &outer_struct.outer_member; i.e. pointer assignment and
     // int_ptr_B = &outer_struct.inner_struct.inner_member
     ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
@@ -364,7 +343,7 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            memoryLocationIds, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            memory_location_ids, pointerAssignments, ImmutableTable.of(), pointerDereferences);
 
     // find the memory locations associated with dereference of 'int_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocationsA =
