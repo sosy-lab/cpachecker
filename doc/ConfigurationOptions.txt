@@ -1905,7 +1905,8 @@ cpa.constraints.removeOutdated = true
 # simplification
 cpa.constraints.removeTrivial = false
 
-# Resolve definite assignments. Note: Currently not working properly. Might
+# Resolve definite assignments, i.e. use the solver to find out whether there
+# is only a single satisfiable value for variables and assign it. Might
 # result in inefficient SMT solver usage with reuseSolver = true.
 cpa.constraints.resolveDefinites = false
 

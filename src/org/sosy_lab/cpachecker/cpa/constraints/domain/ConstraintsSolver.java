@@ -109,8 +109,9 @@ public class ConstraintsSolver {
   @Option(
       secure = true,
       description =
-          "Resolve definite assignments. Note: Currently not working properly. Might result in"
-              + " inefficient SMT solver usage with reuseSolver = true.",
+          "Resolve definite assignments, i.e. use the solver to find out whether there is only a"
+              + " single satisfiable value for variables and assign it. Might result in inefficient"
+              + " SMT solver usage with reuseSolver = true.",
       name = "resolveDefinites")
   private boolean resolveDefinites = false;
 
@@ -383,7 +384,8 @@ public class ConstraintsSolver {
 
       // doing this while the complete formula is still on the prover environment stack is
       // cheaper than performing another complete SAT check when the assignment is really
-      // requested
+      // requested, but also reduces the benefit of reusing the solver as constraints might need
+      // to be removed later on
       if (resolveDefinites) {
         ImmutableCollection<ValueAssignment> definiteAssignmentsInModel =
             resolveDefiniteAssignments(pConstraintsToCheck, satisfyingModel, prover);
@@ -722,8 +724,11 @@ public class ConstraintsSolver {
     return newDefinites.build();
   }
 
-  // TODO: use distinct prover? Is more inefficient on this check, but this check might make the
-  //  other checks more inefficient for persistent provers.
+  // TODO: use distinct prover? Reusing the previous solver is more inefficient on this check, but
+  //  might make the subsequent checks more inefficient for persistent provers as constraints need
+  //  to be removed. Also, persistent provers know definite assignments already and reuse them
+  //  automatically, but it should be assumed that this is only the case as long as the stack is
+  //  not popped.
   //  https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1350
   private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm, ProverEnvironment prover)
       throws SolverException, InterruptedException {
