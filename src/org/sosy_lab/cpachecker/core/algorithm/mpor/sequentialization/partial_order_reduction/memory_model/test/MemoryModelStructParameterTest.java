@@ -254,6 +254,12 @@ public class MemoryModelStructParameterTest {
       new CParameterDeclaration(
           FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_inner_struct_member");
 
+  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P1 =
+      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P1");
+
+  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P2 =
+      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P2");
+
   // Memory Locations (structs)
 
   private final MemoryLocation OUTER_STRUCT_MEMORY_LOCATION =
@@ -282,6 +288,12 @@ public class MemoryModelStructParameterTest {
   private final MemoryLocation PARAMETER_POINTER_INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_INNER_STRUCT_MEMBER);
 
+  private final MemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_P1);
+
+  private final MemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_P2);
+
   // Memory Location IDs
 
   private final ImmutableMap<MemoryLocation, Integer> MEMORY_LOCATION_IDS =
@@ -294,11 +306,13 @@ public class MemoryModelStructParameterTest {
           .put(PARAMETER_POINTER_OUTER_STRUCT_MEMBER_MEMORY_LOCATION, 5)
           .put(PARAMETER_POINTER_INNER_STRUCT_MEMORY_LOCATION, 6)
           .put(PARAMETER_POINTER_INNER_STRUCT_MEMBER_MEMORY_LOCATION, 7)
+          .put(PARAMETER_POINTER_P1_MEMORY_LOCATION, 7)
+          .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, 8)
           .buildOrThrow();
 
   @Test
   public void test_outer_struct_pointer_parameter_dereference() {
-    // param_ptr_outer_struct = &outer_struct; i.e. pointer parameter assignment
+    // param_ptr_outer = &outer; i.e. pointer parameter assignment
     ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
         ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
             .put(
@@ -308,7 +322,7 @@ public class MemoryModelStructParameterTest {
             .build();
     ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
-    // *param_ptr_outer_struct i.e. pointer parameter dereference
+    // *param_ptr_outer i.e. pointer parameter dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
         ImmutableSet.<MemoryLocation>builder()
             .add(PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION)
@@ -323,15 +337,65 @@ public class MemoryModelStructParameterTest {
             pointerParameterAssignments,
             pointerDereferences);
 
-    // find the mem locations associated with deref of 'param_ptr_outer_struct'
+    // find the mem locations associated with deref of 'param_ptr_outer'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
             PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION,
             Optional.of(DUMMY_CALL_CONTEXT),
             testMemoryModel);
 
-    // memory location of 'outer_struct' should be associated with deref of 'param_ptr_outer_struct'
+    // memory location of 'outer' should be associated with deref of 'param_ptr_outer'
     assertThat(memoryLocations.size() == 1).isTrue();
     assertThat(memoryLocations.contains(OUTER_STRUCT_MEMORY_LOCATION)).isTrue();
+  }
+
+  @Test
+  public void test_struct_members_pointer_parameter_dereference() {
+    // param_ptr_P1 = &outer.member; and param_ptr_P2 = &outer.inner.member
+    // i.e. pointer parameter assignment
+    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
+        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
+            .put(
+                DUMMY_CALL_CONTEXT,
+                PARAMETER_DECLARATION_POINTER_P1,
+                OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
+            .put(
+                DUMMY_CALL_CONTEXT,
+                PARAMETER_DECLARATION_POINTER_P2,
+                INNER_STRUCT_MEMBER_MEMORY_LOCATION)
+            .build();
+    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
+    // *param_ptr_P1 and *param_ptr_P2 i.e. pointer parameter dereference
+    ImmutableSet<MemoryLocation> pointerDereferences =
+        ImmutableSet.<MemoryLocation>builder()
+            .add(PARAMETER_POINTER_P1_MEMORY_LOCATION)
+            .add(PARAMETER_POINTER_P2_MEMORY_LOCATION)
+            .build();
+
+    // create memory model
+    MemoryModel testMemoryModel =
+        new MemoryModel(
+            MEMORY_LOCATION_IDS,
+            ImmutableSetMultimap.of(),
+            parameterAssignments,
+            pointerParameterAssignments,
+            pointerDereferences);
+
+    // find the mem locations associated with deref of 'param_ptr_P1'
+    ImmutableSet<MemoryLocation> memoryLocationsP1 =
+        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            PARAMETER_POINTER_P1_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+    // find the mem locations associated with deref of 'param_ptr_P2'
+    ImmutableSet<MemoryLocation> memoryLocationsP2 =
+        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            PARAMETER_POINTER_P2_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+
+    // memory location of 'outer.member' should be associated with deref of 'param_ptr_P1'
+    assertThat(memoryLocationsP1.size() == 1).isTrue();
+    assertThat(memoryLocationsP1.contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
+    // memory location of 'outer.inner.member' should be associated with deref of 'param_ptr_P2'
+    assertThat(memoryLocationsP2.size() == 1).isTrue();
+    assertThat(memoryLocationsP1.contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
   }
 }
