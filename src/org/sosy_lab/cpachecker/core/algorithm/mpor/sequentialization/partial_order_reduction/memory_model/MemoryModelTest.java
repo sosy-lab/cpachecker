@@ -163,6 +163,17 @@ public class MemoryModelTest {
           "int_B",
           int_0_initializer);
 
+  private final CVariableDeclaration local_int_c_declaration =
+      new CVariableDeclaration(
+          FileLocation.DUMMY,
+          false,
+          CStorageClass.AUTO,
+          int_type,
+          "local_int_C",
+          "local_int_C",
+          "local_int_C",
+          int_0_initializer);
+
   private final CVariableDeclaration outer_struct_declaration =
       new CVariableDeclaration(
           FileLocation.DUMMY,
@@ -187,6 +198,9 @@ public class MemoryModelTest {
 
   private final MemoryLocation int_b_memory_location =
       MemoryLocation.of(Optional.empty(), int_b_declaration);
+
+  private final MemoryLocation local_int_c_memory_location =
+      MemoryLocation.of(Optional.empty(), local_int_c_declaration);
 
   private final MemoryLocation outer_struct_member_memory_location =
       MemoryLocation.of(
@@ -318,8 +332,7 @@ public class MemoryModelTest {
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
             int_pointer_a_memory_location, Optional.empty(), testMemoryModel);
 
-    // memory location of 'outer_struct.outer_member' should be associated with dereference of
-    // 'int_ptr_A'
+    // mem location 'outer_struct.outer_member' should be associated with dereference of 'int_ptr_A'
     assertThat(memoryLocations.size() == 1).isTrue();
     assertThat(memoryLocations.contains(outer_struct_member_memory_location)).isTrue();
   }
@@ -349,8 +362,7 @@ public class MemoryModelTest {
     ImmutableSet<MemoryLocation> memoryLocationsA =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
             int_pointer_a_memory_location, Optional.empty(), testMemoryModel);
-    // memory location of 'outer_struct.outer_member' should be associated with dereference of
-    // 'int_ptr_A'
+    // mem location 'outer_struct.outer_member' should be associated with deref of 'int_ptr_A'
     assertThat(memoryLocationsA.size() == 1).isTrue();
     assertThat(memoryLocationsA.contains(outer_struct_member_memory_location)).isTrue();
 
@@ -358,10 +370,29 @@ public class MemoryModelTest {
     ImmutableSet<MemoryLocation> memoryLocationsB =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
             int_pointer_b_memory_location, Optional.empty(), testMemoryModel);
-    // memory location of 'outer_struct.inner_struct.member' should be associated with dereference
-    // of 'int_ptr_B'
+    // mem location 'outer_struct.inner_struct.member' should be associated with deref 'int_ptr_B'
     assertThat(memoryLocationsB.size() == 1).isTrue();
     assertThat(memoryLocationsB.contains(outer_struct_inner_struct_member_memory_location))
         .isTrue();
+  }
+
+  @Test
+  public void test_implicit_global() {
+    // int_ptr_A = &local_int_C; i.e. pointer assignment
+    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
+            .put(int_pointer_a_declaration, local_int_c_memory_location)
+            .build();
+
+    // create memory model
+    MemoryModel testMemoryModel =
+        new MemoryModel(
+            memory_location_ids, pointerAssignments, ImmutableTable.of(), ImmutableSet.of());
+
+    // test that local_int_C is now an implicit global memory location, because the global pointer
+    // 'int_ptr_A' gets its address, and can be dereferenced by other threads
+    assertThat(int_pointer_a_declaration.isGlobal()).isTrue();
+    assertThat(local_int_c_memory_location.isGlobal()).isFalse();
+    assertThat(testMemoryModel.isImplicitGlobal(local_int_c_memory_location)).isTrue();
   }
 }

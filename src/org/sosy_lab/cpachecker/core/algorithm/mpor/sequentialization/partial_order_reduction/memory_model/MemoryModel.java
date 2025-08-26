@@ -103,7 +103,7 @@ public class MemoryModel {
    * Returns {@code true} if {@code pMemoryLocation} is implicitly global e.g. through {@code
    * global_ptr = &local_var;}. Returns {@code false} even if the memory location itself is global.
    */
-  private boolean isImplicitGlobal(MemoryLocation pMemoryLocation) {
+  public boolean isImplicitGlobal(MemoryLocation pMemoryLocation) {
     if (pMemoryLocation.isGlobal()) {
       return false;
     }
