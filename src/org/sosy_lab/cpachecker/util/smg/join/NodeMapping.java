@@ -73,13 +73,18 @@ public class NodeMapping {
     return innerMap.get(pSMGTargetSpecifier);
   }
 
+  /**
+   * spcToGetTargetSpecifier is supposed to be the specifier currently under construction (i.e. the
+   * specifier of the new value, e.g. from the other mapping). It might match oldValue, but oldValue
+   * might be REGION, while it is not for the returned value and therefore spcToGetTargetSpecifier.
+   */
   public SMGValue getMappedValue(
-      SMGValue value, SymbolicProgramConfiguration spcToGetTargetSpecifier) {
+      SMGValue oldValue, SymbolicProgramConfiguration spcToGetTargetSpecifier) {
     // TODO: allow return of null for no mapping for efficiency reasons
-    checkNotNull(value);
+    checkNotNull(oldValue);
     checkNotNull(spcToGetTargetSpecifier);
-    Optional<SMGPointsToEdge> maybeSpec = spcToGetTargetSpecifier.getSmg().getPTEdge(value);
-    return getMappedValue(value, maybeSpec.orElseThrow().targetSpecifier());
+    Optional<SMGPointsToEdge> maybeSpec = spcToGetTargetSpecifier.getSmg().getPTEdge(oldValue);
+    return getMappedValue(oldValue, maybeSpec.orElseThrow().targetSpecifier());
   }
 
   public @Nullable SMGObject getMappedObject(SMGObject object) {
@@ -121,16 +126,6 @@ public class NodeMapping {
       // Use region as default for non-pointers for now
       return copyAndAddMapping(vOld, vNew, IS_REGION);
     }
-  }
-
-  public boolean containsKey(SMGObject pObject) {
-    checkNotNull(pObject);
-    return objectMap.containsKey(pObject);
-  }
-
-  public boolean containsKey(SMGValue pValue) {
-    checkNotNull(pValue);
-    return valueMap.containsKey(pValue);
   }
 
   private NodeMapping copyAndAddMapping(
@@ -184,6 +179,9 @@ public class NodeMapping {
         valueMap);
   }
 
+  /**
+   * Returns true if the value entered has SOME mapping, irrespective of target specification etc.
+   */
   public boolean hasMapping(SMGValue pValue) {
     checkNotNull(pValue);
     return valueMap.containsKey(pValue);

@@ -1112,10 +1112,12 @@ public class SymbolicProgramConfiguration {
         pSpc1.smg.isPointer(v1)
             && pSpc1.smg.getPTEdge(v1).orElseThrow().pointsTo()
                 instanceof SMGSinglyLinkedListSegment);
+
     SMGPointsToEdge pte1 = pSpc1.smg.getPTEdge(v1).orElseThrow();
     SMGTargetSpecifier targetSpec1 = pte1.targetSpecifier();
     SMGSinglyLinkedListSegment sll1 = (SMGSinglyLinkedListSegment) pte1.pointsTo();
     SMGDoublyLinkedListSegment dll1 = null;
+
     if (sll1 instanceof SMGDoublyLinkedListSegment) {
       dll1 = (SMGDoublyLinkedListSegment) sll1;
     }
@@ -1176,7 +1178,7 @@ public class SymbolicProgramConfiguration {
       // If m1(v1) does not exist, create a new value node a,
       //   and a new PTE a -> d (with offset/size of v1) for the new SMG,
       //   and extend the mapping of nodes such that m1(v1) = a.
-      if (!mapping1.hasMapping(v1, targetSpec1)) {
+      if (!mapping1.hasMapping(v1)) {
         Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
         CType type1 = spc1.valueToTypeMap.get(v1);
         Preconditions.checkNotNull(type1);
@@ -1423,7 +1425,7 @@ public class SymbolicProgramConfiguration {
       // If m2(v2) does not exist, create a new value node a,
       //   and a new PTE a -> d (with offset/size of v2) for the new SMG,
       //   and extend the mapping of nodes such that m2(v2) = a.
-      if (!mapping2.hasMapping(v2, targetSpec2)) {
+      if (!mapping2.hasMapping(v2)) {
         Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
         CType type2 = spc2.valueToTypeMap.get(v2);
         Preconditions.checkNotNull(type2);
@@ -1468,7 +1470,7 @@ public class SymbolicProgramConfiguration {
     // 5. If m2(aNext) not existing and m1(v1) not existing and m2(aNext) != m1(v1), return
     // recoverable fail.
     if (mapping2.hasMapping(aNext)
-        && mapping1.containsKey(v1)
+        && mapping1.hasMapping(v1)
         && !mapping2.getMappedValue(aNext, spc2).equals(mapping1.getMappedValue(v1, spc1))) {
       return Optional.of(
           MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.recoverableFailure(
@@ -1508,7 +1510,7 @@ public class SymbolicProgramConfiguration {
 
     checkArgument(newSPC.heapObjects.contains(d));
     checkArgument(newSPC.smg.getObjects().contains(d));
-    checkState(mapping2.containsKey(sll2) && mapping2.getMappedObject(sll2).equals(d));
+    checkState(mapping2.hasMapping(sll2) && mapping2.getMappedObject(sll2).equals(d));
     checkArgument(((SMGSinglyLinkedListSegment) d).getMinLength() == 0);
     // 9. Let value a be the address such that the PTE of a equals the offset,
     //      size and target d if such an address already exists in new SMG.
@@ -1741,7 +1743,7 @@ public class SymbolicProgramConfiguration {
       SMGValue smgValueRoot = hve.hasValue();
       SMGPointsToEdge pteRoot = rootSPC.smg.getPTEdge(smgValueRoot).orElseThrow();
       SMGObject rootTargetMemory = pteRoot.pointsTo();
-      checkState(mappingOfNodes.getValueMap().containsKey(smgValueRoot));
+      checkState(mappingOfNodes.hasMapping(smgValueRoot));
       SMGValue newSMGValue = mappingOfNodes.getMappedValue(smgValueRoot);
       boolean copyMemoryRecursivly = false;
 
@@ -1793,7 +1795,7 @@ public class SymbolicProgramConfiguration {
         // There is a PTE in the new SPC already, make some checks that it's OK.
         SMGPointsToEdge pteNew = currentNewSPC.smg.getPTEdge(newSMGValue).orElseThrow();
         checkState(pteRoot.getOffset().equals(pteNew.getOffset()));
-        checkState(mappingOfNodes.containsKey(pteRoot.pointsTo()));
+        checkState(mappingOfNodes.hasMapping(pteRoot.pointsTo()));
         checkState(mappingOfNodes.getMappedObject(pteRoot.pointsTo()).equals(pteNew.pointsTo()));
         checkState(pteRoot.targetSpecifier().equals(pteNew.targetSpecifier()));
       }
@@ -2984,7 +2986,7 @@ public class SymbolicProgramConfiguration {
       SMGValue smgValueInTarget = smgValueSource;
       Value valueInTarget = valueInSource;
       int nestingLevel = sourceSPC.getNestingLevel(smgValueSource);
-      if (mappingBetweenStates.containsKey(smgValueSource)) {
+      if (mappingBetweenStates.hasMapping(smgValueSource)) {
         // We know the value mapping already, use it
         smgValueInTarget = mappingBetweenStates.getMappedValue(smgValueSource);
         checkArgument(newTargetState.smg.getValues().containsKey(smgValueInTarget));
