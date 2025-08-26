@@ -190,9 +190,9 @@ public class MemoryModelStructTest {
   @Test
   public void test_field_owner_field_member() {
     // global_ptr_A = &outer_struct.outer_member; i.e. pointer assignment
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
+    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
             .build();
     // *global_ptr_A i.e. pointer dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
@@ -222,10 +222,10 @@ public class MemoryModelStructTest {
   public void test_outer_inner_struct() {
     // global_ptr_A = &outer_struct.outer_member; i.e. pointer assignment and
     // global_ptr_B = &outer_struct.inner_struct.inner_member
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
-            .put(GLOBAL_POINTER_B_DECLARATION, INNER_STRUCT_MEMBER_MEMORY_LOCATION)
+    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
+            .put(GLOBAL_POINTER_B_MEMORY_LOCATION, INNER_STRUCT_MEMBER_MEMORY_LOCATION)
             .build();
     // *global_ptr_A and *global_ptr_B i.e. pointer dereference
     ImmutableSet<MemoryLocation> pointerDereferences =

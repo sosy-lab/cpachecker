@@ -15,7 +15,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -29,7 +30,7 @@ public class MemoryModel {
 
   private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
 
-  private final ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments;
+  private final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments;
 
   /**
    * The table of call context i.e. {@link ThreadEdge} sensitive {@link CParameterDeclaration}
@@ -48,7 +49,7 @@ public class MemoryModel {
   // public constructor for unit tests
   public MemoryModel(
       ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
-      ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
           pPointerParameterAssignments,
@@ -64,13 +65,25 @@ public class MemoryModel {
   }
 
   private static void checkArguments(
-      ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments) {
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments) {
 
-    for (CVariableDeclaration variableDeclaration : pPointerAssignments.keySet()) {
-      checkArgument(
-          variableDeclaration.getType() instanceof CPointerType,
-          "variableDeclaration must be CPointerType, got %s",
-          variableDeclaration.getType());
+    for (MemoryLocation memoryLocation : pPointerAssignments.keySet()) {
+      if (memoryLocation.fieldMember.isPresent()) {
+        // for field owner / members: only the member must be CPointerType
+        CCompositeTypeMemberDeclaration memberDeclaration =
+            memoryLocation.fieldMember.orElseThrow().getValue();
+        checkArgument(
+            memberDeclaration.getType() instanceof CPointerType,
+            "memberDeclaration must be CPointerType, got %s",
+            memberDeclaration.getType());
+      } else {
+        // for all else: the variable itself must be CPointerType
+        CSimpleDeclaration simpleDeclaration = memoryLocation.getSimpleDeclaration();
+        checkArgument(
+            simpleDeclaration.getType() instanceof CPointerType,
+            "variableDeclaration must be CPointerType, got %s",
+            simpleDeclaration.getType());
+      }
     }
   }
 
@@ -80,12 +93,12 @@ public class MemoryModel {
    * Returns true if the pointer in {@code pVariableDeclaration} is assigned a pointer {@code ptr},
    * or the address of a non-pointer {@code &non_ptr}.
    */
-  public boolean isAssignedPointer(CVariableDeclaration pVariableDeclaration) {
+  public boolean isAssignedPointer(MemoryLocation pMemoryLocation) {
     checkArgument(
-        pVariableDeclaration.getType() instanceof CPointerType,
+        pMemoryLocation.getSimpleDeclaration().getType() instanceof CPointerType,
         "pVariableDeclaration must be CPointerType, got %s",
-        pVariableDeclaration.getType());
-    return pointerAssignments.containsKey(pVariableDeclaration);
+        pMemoryLocation.getSimpleDeclaration().getType());
+    return pointerAssignments.containsKey(pMemoryLocation);
   }
 
   /**
@@ -125,8 +138,8 @@ public class MemoryModel {
     }
     if (isPointedTo(pMemoryLocation)) {
       // inexpensive shortcut: first check for direct assignments
-      for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
-        if (pointerDeclaration.isGlobal()) {
+      for (MemoryLocation pointerDeclaration : pointerAssignments.keySet()) {
+        if (pointerDeclaration.isExplicitGlobal()) {
           return true;
         }
       }
@@ -144,12 +157,12 @@ public class MemoryModel {
         }
       }
       // lastly perform most expensive check on transitive pointer assignments
-      for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
-        ImmutableSet<CVariableDeclaration> transitivePointerDeclarations =
+      for (MemoryLocation pointerDeclaration : pointerAssignments.keySet()) {
+        ImmutableSet<MemoryLocation> transitivePointerDeclarations =
             MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
                 pointerDeclaration, pointerAssignments, parameterAssignments);
-        for (CVariableDeclaration transitivePointerDeclaration : transitivePointerDeclarations) {
-          if (transitivePointerDeclaration.isGlobal()) {
+        for (MemoryLocation transitivePointerDeclaration : transitivePointerDeclarations) {
+          if (transitivePointerDeclaration.isExplicitGlobal()) {
             return true;
           }
         }
@@ -161,7 +174,7 @@ public class MemoryModel {
   // getters =======================================================================================
 
   public ImmutableSet<MemoryLocation> getRightHandSidesByPointer(
-      CVariableDeclaration pVariableDeclaration) {
+      MemoryLocation pVariableDeclaration) {
 
     return pointerAssignments.get(pVariableDeclaration);
   }

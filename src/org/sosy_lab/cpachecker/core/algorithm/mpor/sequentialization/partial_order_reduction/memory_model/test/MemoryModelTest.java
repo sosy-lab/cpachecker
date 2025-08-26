@@ -174,9 +174,9 @@ public class MemoryModelTest {
   @Test
   public void test_single_pointer_assignment() {
     // global_ptr_A = &global_X; i.e. pointer assignment
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, GLOBAL_X_MEMORY_LOCATION)
+    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .build();
     // *global_ptr_A i.e. pointer dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
@@ -204,10 +204,10 @@ public class MemoryModelTest {
   @Test
   public void test_multi_pointer_assignment() {
     // global_ptr_A = &global_X; and global_ptr_A = &global_Y; i.e. pointer assignments
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, GLOBAL_X_MEMORY_LOCATION)
-            .put(GLOBAL_POINTER_A_DECLARATION, GLOBAL_Y_MEMORY_LOCATION)
+    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
+            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, GLOBAL_Y_MEMORY_LOCATION)
             .build();
     // *global_ptr_A i.e. pointer dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
@@ -237,10 +237,10 @@ public class MemoryModelTest {
   public void test_transitive_pointer_assignment() {
     // global_ptr_A = &global_X; and global_ptr_B = global_ptr_A;
     // i.e. pointer assignment (transitive)
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, GLOBAL_X_MEMORY_LOCATION)
-            .put(GLOBAL_POINTER_B_DECLARATION, GLOBAL_POINTER_A_MEMORY_LOCATION)
+    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
+            .put(GLOBAL_POINTER_B_MEMORY_LOCATION, GLOBAL_POINTER_A_MEMORY_LOCATION)
             .build();
     // *global_ptr_B i.e. pointer dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
@@ -269,9 +269,9 @@ public class MemoryModelTest {
   @Test
   public void test_implicit_global() {
     // global_ptr_A = &local_Z; i.e. pointer assignment
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, LOCAL_Z_MEMORY_LOCATION)
+    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
             .build();
 
     // create memory model
@@ -294,11 +294,11 @@ public class MemoryModelTest {
   public void test_transitive_implicit_global() {
     // 'local_ptr_C = &local_Z;' and 'local_ptr_D = local_ptr_C;' and 'global_ptr_A = local_ptr_D'
     // i.e. transitive pointer assignments
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(LOCAL_POINTER_C_DECLARATION, LOCAL_Z_MEMORY_LOCATION)
-            .put(LOCAL_POINTER_D_DECLARATION, LOCAL_POINTER_C_MEMORY_LOCATION)
-            .put(GLOBAL_POINTER_A_DECLARATION, LOCAL_POINTER_D_MEMORY_LOCATION)
+    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+            .put(LOCAL_POINTER_C_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
+            .put(LOCAL_POINTER_D_MEMORY_LOCATION, LOCAL_POINTER_C_MEMORY_LOCATION)
+            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, LOCAL_POINTER_D_MEMORY_LOCATION)
             .build();
 
     // create memory model

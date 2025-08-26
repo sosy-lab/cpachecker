@@ -266,9 +266,9 @@ public class MemoryModelParameterTest {
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // local_ptr_C = &global_X; i.e. pointer assignment
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(LOCAL_POINTER_C_DECLARATION, GLOBAL_X_MEMORY_LOCATION)
+    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+            .put(LOCAL_POINTER_C_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .build();
 
     // *param_ptr_P i.e. pointer parameter dereference
@@ -305,9 +305,9 @@ public class MemoryModelParameterTest {
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // global_ptr_A = &param_Q; i.e. pointer assignment
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, PARAMETER_Q_MEMORY_LOCATION)
+    ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<MemoryLocation, MemoryLocation>builder()
+            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, PARAMETER_Q_MEMORY_LOCATION)
             .build();
 
     // create memory model
