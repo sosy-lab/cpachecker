@@ -344,7 +344,7 @@ public class MemoryModelStructParameterTest {
     ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
         ImmutableMap.<MemoryLocation, MemoryLocation>builder()
             .put(PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION, OUTER_STRUCT_MEMORY_LOCATION)
-            .build();
+            .buildOrThrow();
     ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
     // *param_ptr_outer i.e. pointer parameter dereference
@@ -380,7 +380,7 @@ public class MemoryModelStructParameterTest {
         ImmutableMap.<MemoryLocation, MemoryLocation>builder()
             .put(PARAMETER_POINTER_P1_MEMORY_LOCATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
             .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_MEMBER_MEMORY_LOCATION)
-            .build();
+            .buildOrThrow();
     ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
     // *param_ptr_P1 and *param_ptr_P2 i.e. pointer parameter dereference
@@ -431,7 +431,7 @@ public class MemoryModelStructParameterTest {
         ImmutableMap.<MemoryLocation, MemoryLocation>builder()
             .put(PARAMETER_POINTER_P1_MEMORY_LOCATION, OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
             .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
-            .build();
+            .buildOrThrow();
     ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 

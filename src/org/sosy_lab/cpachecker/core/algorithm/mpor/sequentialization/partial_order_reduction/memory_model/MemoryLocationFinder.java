@@ -12,12 +12,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
@@ -123,67 +119,32 @@ public class MemoryLocationFinder {
   // Extraction by Pointer Assignments (including Parameters) ======================================
 
   public static ImmutableSet<MemoryLocation> findPointerDeclarationsByPointerAssignments(
-      MemoryLocation pPointerDeclaration,
-      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments) {
+      MemoryLocation pPointerDeclaration, MemoryModel pMemoryModel) {
 
     Set<MemoryLocation> rFound = new HashSet<>();
     recursivelyFindPointerDeclarationsByPointerAssignments(
-        pPointerDeclaration, pPointerAssignments, pParameterAssignments, rFound, new HashSet<>());
+        pPointerDeclaration, pMemoryModel, rFound, new HashSet<>());
     return ImmutableSet.copyOf(rFound);
   }
 
   private static void recursivelyFindPointerDeclarationsByPointerAssignments(
-      MemoryLocation pCurrentPointerDeclaration,
-      final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      final ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
+      MemoryLocation pCurrentMemoryLocation,
+      final MemoryModel pMemoryModel,
       Set<MemoryLocation> pFound,
       Set<MemoryLocation> pVisited) {
 
-    CSimpleDeclaration simpleDeclaration = pCurrentPointerDeclaration.getSimpleDeclaration();
-    // should always hold, so we use assert instead of checkArgument
-    assert pCurrentPointerDeclaration.getSimpleDeclaration().getType() instanceof CPointerType
-        : "type of pCurrentPointerDeclaration must be CPointerType";
-
-    if (simpleDeclaration instanceof CVariableDeclaration) {
-      if (pPointerAssignments.containsKey(pCurrentPointerDeclaration)) {
-        for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
-          if (pVisited.add(pointerDeclaration)) {
-            for (MemoryLocation memoryLocation : pPointerAssignments.get(pointerDeclaration)) {
-              CSimpleDeclaration innerSimpleDeclaration = memoryLocation.getSimpleDeclaration();
-              if (innerSimpleDeclaration instanceof CVariableDeclaration) {
-                if (pPointerAssignments.containsKey(memoryLocation)) {
-                  pFound.add(pointerDeclaration);
-                  recursivelyFindPointerDeclarationsByPointerAssignments(
-                      memoryLocation, pPointerAssignments, pParameterAssignments, pFound, pVisited);
-                }
-              }
-              if (innerSimpleDeclaration instanceof CParameterDeclaration) {
-                pFound.add(pointerDeclaration);
-                // consider only pointer parameters, all others are not relevant
-                if (simpleDeclaration.getType() instanceof CPointerType) {
-                  if (pParameterAssignments.containsKey(memoryLocation)) {
-                    recursivelyFindPointerDeclarationsByPointerAssignments(
-                        pointerDeclaration,
-                        pPointerAssignments,
-                        pParameterAssignments,
-                        pFound,
-                        pVisited);
-                  }
-                }
-              }
+    if (pMemoryModel.isAssignedPointer(pCurrentMemoryLocation)) {
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
+          pMemoryModel.pointerAssignments;
+      for (MemoryLocation pointerDeclaration : pointerAssignments.keySet()) {
+        if (pVisited.add(pointerDeclaration)) {
+          for (MemoryLocation memoryLocation : pointerAssignments.get(pointerDeclaration)) {
+            if (pMemoryModel.isAssignedPointer(memoryLocation)) {
+              pFound.add(pointerDeclaration);
+              recursivelyFindPointerDeclarationsByPointerAssignments(
+                  memoryLocation, pMemoryModel, pFound, pVisited);
             }
           }
-        }
-      }
-    }
-    if (simpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
-      if (parameterDeclaration.getType() instanceof CPointerType) {
-        if (pParameterAssignments.containsKey(pCurrentPointerDeclaration)) {
-          MemoryLocation rightHandSide =
-              Objects.requireNonNull(pParameterAssignments.get(pCurrentPointerDeclaration));
-          recursivelyFindPointerDeclarationsByPointerAssignments(
-              rightHandSide, pPointerAssignments, pParameterAssignments, pFound, pVisited);
         }
       }
     }

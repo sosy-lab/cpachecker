@@ -28,7 +28,7 @@ public class MemoryModel {
 
   private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
 
-  private final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments;
+  public final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments;
 
   /**
    * The map of call context-sensitive {@link MemoryLocation} mapped to their assigned {@link
@@ -36,7 +36,7 @@ public class MemoryModel {
    * is not restricted to pointers, since non-pointer parameters can be made implicitly global
    * through global pointers.
    */
-  private final ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments;
+  public final ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments;
 
   /** The subset of parameters that are pointers. */
   private final ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments;
@@ -140,7 +140,7 @@ public class MemoryModel {
       for (MemoryLocation pointerDeclaration : pointerAssignments.keySet()) {
         ImmutableSet<MemoryLocation> transitivePointerDeclarations =
             MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
-                pointerDeclaration, pointerAssignments, parameterAssignments);
+                pointerDeclaration, this);
         for (MemoryLocation transitivePointerDeclaration : transitivePointerDeclarations) {
           if (transitivePointerDeclaration.isExplicitGlobal()) {
             return true;
