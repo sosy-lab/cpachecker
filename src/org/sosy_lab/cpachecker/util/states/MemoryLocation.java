@@ -132,7 +132,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     @Nullable Long offset = hasOffset ? Long.parseLong(offsetParts.get(1)) : null;
 
     if (isScoped) {
-      String functionName = nameParts.get(0);
+      String functionName = nameParts.getFirst();
       String varName = nameParts.get(1);
       if (hasOffset) {
         varName = varName.replace("/" + offset, "");
@@ -140,7 +140,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       return new MemoryLocation(functionName, varName, offset);
 
     } else {
-      String varName = nameParts.get(0);
+      String varName = nameParts.getFirst();
       if (hasOffset) {
         varName = varName.replace("/" + offset, "");
       }

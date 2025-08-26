@@ -198,7 +198,7 @@ class CodeAppender implements Appendable {
         appendDeclaration(returnType, RETVAL_NAME);
         if (inputValues.size() == 1) {
           append("  ");
-          appendAssignment(RETVAL_NAME, inputValues.iterator().next());
+          appendAssignment(RETVAL_NAME, inputValues.getFirst());
           appendln();
         } else if (inputValues.size() > 1) {
           append("  switch (");

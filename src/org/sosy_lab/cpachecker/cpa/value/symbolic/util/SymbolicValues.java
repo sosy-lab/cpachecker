@@ -95,47 +95,40 @@ public class SymbolicValues {
       return false;
     }
 
-    if (pValue1 instanceof SymbolicIdentifier symbolicIdentifier) {
-      assert pValue2 instanceof SymbolicIdentifier;
-
-      return symbolicIdentifier.getId() == ((SymbolicIdentifier) pValue2).getId();
-
-    } else if (pValue1 instanceof ConstantSymbolicExpression constantSymbolicExpression) {
-      assert pValue2 instanceof ConstantSymbolicExpression;
-
-      final Value innerVal1 = constantSymbolicExpression.getValue();
-      final Value innerVal2 = ((ConstantSymbolicExpression) pValue2).getValue();
-
-      if (innerVal1 instanceof SymbolicValue symVal1
-          && innerVal2 instanceof SymbolicValue symVal2) {
-        return representSameSymbolicMeaning(symVal1, symVal2);
-
-      } else {
-        return innerVal1.equals(innerVal2);
+    return switch (pValue1) {
+      case SymbolicIdentifier symbolicIdentifier -> {
+        assert pValue2 instanceof SymbolicIdentifier;
+        yield symbolicIdentifier.getId() == ((SymbolicIdentifier) pValue2).getId();
       }
+      case ConstantSymbolicExpression constantSymbolicExpression -> {
+        assert pValue2 instanceof ConstantSymbolicExpression;
+        final Value innerVal1 = constantSymbolicExpression.getValue();
+        final Value innerVal2 = ((ConstantSymbolicExpression) pValue2).getValue();
+        if (innerVal1 instanceof SymbolicValue symVal1
+            && innerVal2 instanceof SymbolicValue symVal2) {
+          yield representSameSymbolicMeaning(symVal1, symVal2);
 
-    } else if (pValue1 instanceof UnarySymbolicExpression unarySymbolicExpression) {
-      assert pValue2 instanceof UnarySymbolicExpression;
-
-      final SymbolicValue val1Op = unarySymbolicExpression.getOperand();
-      final SymbolicValue val2Op = ((UnarySymbolicExpression) pValue2).getOperand();
-
-      return representSameSymbolicMeaning(val1Op, val2Op);
-
-    } else if (pValue1 instanceof BinarySymbolicExpression binarySymbolicExpression) {
-      assert pValue2 instanceof BinarySymbolicExpression;
-
-      final SymbolicValue val1Op1 = binarySymbolicExpression.getOperand1();
-      final SymbolicValue val1Op2 = binarySymbolicExpression.getOperand2();
-      final SymbolicValue val2Op1 = ((BinarySymbolicExpression) pValue2).getOperand1();
-      final SymbolicValue val2Op2 = ((BinarySymbolicExpression) pValue2).getOperand2();
-
-      return representSameSymbolicMeaning(val1Op1, val2Op1)
-          && representSameSymbolicMeaning(val1Op2, val2Op2);
-
-    } else {
-      throw new AssertionError("Unhandled symbolic value type " + pValue1.getClass());
-    }
+        } else {
+          yield innerVal1.equals(innerVal2);
+        }
+      }
+      case UnarySymbolicExpression unarySymbolicExpression -> {
+        assert pValue2 instanceof UnarySymbolicExpression;
+        final SymbolicValue val1Op = unarySymbolicExpression.getOperand();
+        final SymbolicValue val2Op = ((UnarySymbolicExpression) pValue2).getOperand();
+        yield representSameSymbolicMeaning(val1Op, val2Op);
+      }
+      case BinarySymbolicExpression binarySymbolicExpression -> {
+        assert pValue2 instanceof BinarySymbolicExpression;
+        final SymbolicValue val1Op1 = binarySymbolicExpression.getOperand1();
+        final SymbolicValue val1Op2 = binarySymbolicExpression.getOperand2();
+        final SymbolicValue val2Op1 = ((BinarySymbolicExpression) pValue2).getOperand1();
+        final SymbolicValue val2Op2 = ((BinarySymbolicExpression) pValue2).getOperand2();
+        yield representSameSymbolicMeaning(val1Op1, val2Op1)
+            && representSameSymbolicMeaning(val1Op2, val2Op2);
+      }
+      default -> throw new AssertionError("Unhandled symbolic value type " + pValue1.getClass());
+    };
   }
 
   public static Collection<SymbolicIdentifier> getContainedSymbolicIdentifiers(

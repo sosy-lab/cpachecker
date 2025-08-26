@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -124,7 +125,7 @@ public class BDDPartitionOrderer {
     // add partitions, that are not dependent, in front of all other partitions
     for (Partition p : varClass.getPartitions()) {
       if (!partitions.contains(p)) {
-        orderedPartitions.add(0, p);
+        orderedPartitions.addFirst(p);
       }
     }
     return orderedPartitions;
@@ -146,7 +147,7 @@ public class BDDPartitionOrderer {
    */
   private static class CFAUntilSplitCollector implements CFAVisitor {
 
-    private Set<CFAEdge> edges = new LinkedHashSet<>();
+    private SequencedSet<CFAEdge> edges = new LinkedHashSet<>();
 
     Set<CFAEdge> getEdges() {
       return edges;

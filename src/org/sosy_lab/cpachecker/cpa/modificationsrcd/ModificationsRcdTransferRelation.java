@@ -391,65 +391,69 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     VariableIdentifierVisitor visitor = new VariableIdentifierVisitor();
     Set<String> usedVars = new HashSet<>();
 
-    // EdgeType is..
-    if (pEdge instanceof CDeclarationEdge cDeclarationEdge) { // DeclarationEdge
-      CDeclaration decl = cDeclarationEdge.getDeclaration();
-
-      if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
-        return false;
-      } else if (decl instanceof CVariableDeclaration cVariableDeclaration) {
-        CInitializer initl = cVariableDeclaration.getInitializer();
-        if (initl instanceof CInitializerExpression cInitializerExpression) {
-          usedVars = cInitializerExpression.getExpression().accept(visitor);
+    switch (pEdge) {
+      case CDeclarationEdge cDeclarationEdge -> {
+        CDeclaration decl = cDeclarationEdge.getDeclaration();
+        if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
+          return false;
+        } else if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+          CInitializer initl = cVariableDeclaration.getInitializer();
+          if (initl instanceof CInitializerExpression cInitializerExpression) {
+            usedVars = cInitializerExpression.getExpression().accept(visitor);
+          } else {
+            return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+          }
+        }
+      }
+      case CReturnStatementEdge cReturnStatementEdge -> {
+        CExpression exp = cReturnStatementEdge.getExpression().orElse(null);
+        if (exp != null) {
+          usedVars = exp.accept(visitor);
         } else {
-          return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+          return !pVars.isEmpty(); // fallback, shouldn't happen
         }
       }
-
-    } else if (pEdge instanceof CReturnStatementEdge cReturnStatementEdge) { // ReturnStatementEdge
-      CExpression exp = cReturnStatementEdge.getExpression().orElse(null);
-      if (exp != null) {
-        usedVars = exp.accept(visitor);
-      } else {
-        return !pVars.isEmpty(); // fallback, shouldn't happen
-      }
-    } else if (pEdge instanceof CAssumeEdge cAssumeEdge) { // AssumeEdge
-      usedVars = cAssumeEdge.getExpression().accept(visitor);
-    } else if (pEdge instanceof CStatementEdge cStatementEdge) { // StatementEdge
-      CStatement stmt = cStatementEdge.getStatement();
-
-      if (stmt instanceof CExpressionStatement cExpressionStatement) {
-        usedVars = cExpressionStatement.getExpression().accept(visitor);
-      } else {
-        if (stmt instanceof CAssignment cAssignment) {
-          CLeftHandSide lhs = cAssignment.getLeftHandSide();
-          if (!(lhs instanceof CIdExpression)) {
-            usedVars.addAll(lhs.accept(visitor));
+      case CAssumeEdge cAssumeEdge -> usedVars = cAssumeEdge.getExpression().accept(visitor);
+      case CStatementEdge cStatementEdge -> {
+        CStatement stmt = cStatementEdge.getStatement();
+        if (stmt instanceof CExpressionStatement cExpressionStatement) {
+          usedVars = cExpressionStatement.getExpression().accept(visitor);
+        } else {
+          if (stmt instanceof CAssignment cAssignment) {
+            CLeftHandSide lhs = cAssignment.getLeftHandSide();
+            if (!(lhs instanceof CIdExpression)) {
+              usedVars.addAll(lhs.accept(visitor));
+            }
+            if (stmt instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+              usedVars.addAll(cExpressionAssignmentStatement.getRightHandSide().accept(visitor));
+            }
           }
-          if (stmt instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
-            usedVars.addAll(cExpressionAssignmentStatement.getRightHandSide().accept(visitor));
-          }
-        }
-        if (stmt instanceof CFunctionCall cFunctionCall) {
-          CFunctionCallExpression funCall = cFunctionCall.getFunctionCallExpression();
-          usedVars.addAll(funCall.getFunctionNameExpression().accept(visitor));
-          for (CExpression exp : funCall.getParameterExpressions()) {
-            usedVars.addAll(exp.accept(visitor));
+          if (stmt instanceof CFunctionCall cFunctionCall) {
+            CFunctionCallExpression funCall = cFunctionCall.getFunctionCallExpression();
+            usedVars.addAll(funCall.getFunctionNameExpression().accept(visitor));
+            for (CExpression exp : funCall.getParameterExpressions()) {
+              usedVars.addAll(exp.accept(visitor));
+            }
           }
         }
       }
-
-    } else if (pEdge instanceof BlankEdge) { // BlankEdge
-      return false;
-    } else if (pEdge instanceof CFunctionCallEdge cFunctionCallEdge) { // FunctionCallEdge
-      for (CExpression exp : cFunctionCallEdge.getArguments()) {
-        usedVars.addAll(exp.accept(visitor));
+      case BlankEdge blankEdge -> {
+        return false;
       }
-    } else if (pEdge instanceof CFunctionSummaryEdge
-        || pEdge instanceof CFunctionReturnEdge) { // CallToReturnEdge, FunctionReturnEdge
-      return false;
-    } else {
-      return !pVars.isEmpty();
+      case CFunctionCallEdge cFunctionCallEdge -> {
+        for (CExpression exp : cFunctionCallEdge.getArguments()) {
+          usedVars.addAll(exp.accept(visitor));
+        }
+      }
+      case CFunctionSummaryEdge summaryEdge -> {
+        return false;
+      }
+      case CFunctionReturnEdge returnEdge -> {
+        return false;
+      }
+      default -> {
+        return !pVars.isEmpty();
+      }
     }
 
     return !Collections.disjoint(usedVars, pVars);

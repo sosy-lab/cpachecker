@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -2266,7 +2267,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public Map<MemoryLocation, SMGRegion> getStackVariables() {
 
-    Map<MemoryLocation, SMGRegion> result = new LinkedHashMap<>();
+    SequencedMap<MemoryLocation, SMGRegion> result = new LinkedHashMap<>();
 
     for (Entry<String, SMGRegion> variableEntry : heap.getGlobalObjects().entrySet()) {
       String variableName = variableEntry.getKey();

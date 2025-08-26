@@ -15,7 +15,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -434,8 +433,8 @@ class LoopTransitionFinder implements StatisticsProvider {
         }
       }
       edges = l.build();
-      predecessor = edges.iterator().next().getPredecessor();
-      successor = Iterables.getLast(edges).getSuccessor();
+      predecessor = edges.getFirst().getPredecessor();
+      successor = edges.getLast().getSuccessor();
     }
 
     @Override
@@ -476,8 +475,8 @@ class LoopTransitionFinder implements StatisticsProvider {
     OrEdge(List<EdgeWrapper> pEdges) {
       Preconditions.checkState(!pEdges.isEmpty());
       edges = ImmutableList.copyOf(pEdges);
-      predecessor = edges.iterator().next().getPredecessor();
-      successor = edges.iterator().next().getSuccessor();
+      predecessor = edges.getFirst().getPredecessor();
+      successor = edges.getFirst().getSuccessor();
     }
 
     @Override
@@ -495,7 +494,7 @@ class LoopTransitionFinder implements StatisticsProvider {
         throws CPATransferException, InterruptedException {
       Preconditions.checkState(!edges.isEmpty());
 
-      EdgeWrapper first = edges.iterator().next();
+      EdgeWrapper first = edges.getFirst();
       PathFormula out = first.toPathFormula(prev);
 
       for (EdgeWrapper edge : edges) {

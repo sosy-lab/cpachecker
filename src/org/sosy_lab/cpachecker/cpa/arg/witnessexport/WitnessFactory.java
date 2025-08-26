@@ -56,6 +56,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiPredicate;
@@ -170,9 +172,11 @@ class WitnessFactory implements EdgeAppender {
   private final Multimap<String, Edge> leavingEdges = LinkedHashMultimap.create();
   private final Multimap<String, Edge> enteringEdges = LinkedHashMultimap.create();
 
-  private final Map<String, ExpressionTree<Object>> stateInvariants = new LinkedHashMap<>();
-  private final Map<String, ExpressionTree<Object>> stateQuasiInvariants = new LinkedHashMap<>();
-  private final Map<String, String> stateScopes = new LinkedHashMap<>();
+  private final SequencedMap<String, ExpressionTree<Object>> stateInvariants =
+      new LinkedHashMap<>();
+  private final SequencedMap<String, ExpressionTree<Object>> stateQuasiInvariants =
+      new LinkedHashMap<>();
+  private final SequencedMap<String, String> stateScopes = new LinkedHashMap<>();
   private final Set<String> invariantExportStates = new TreeSet<>();
 
   private final Map<Edge, CFANode> loopHeadEnteringEdges = new HashMap<>();
@@ -1037,7 +1041,7 @@ class WitnessFactory implements EdgeAppender {
         if (cex instanceof FaultLocalizationInfoWithTraceFormula fInfo) {
           List<Fault> faults = fInfo.getRankedList();
           if (!faults.isEmpty()) {
-            Fault bestFault = faults.get(0);
+            Fault bestFault = faults.getFirst();
             FluentIterable.from(bestFault)
                 .transform(FaultContribution::correspondingEdge)
                 .copyInto(edgesInFault);
@@ -1514,7 +1518,7 @@ class WitnessFactory implements EdgeAppender {
     // Merge mapping
     stateToARGStates.putAll(nodeToKeep, stateToARGStates.removeAll(nodeToRemove));
 
-    Set<Edge> replacementEdges = new LinkedHashSet<>();
+    SequencedSet<Edge> replacementEdges = new LinkedHashSet<>();
 
     // Move the leaving edges
     Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(leavingEdges.get(nodeToRemove));
@@ -1829,7 +1833,7 @@ class WitnessFactory implements EdgeAppender {
     }
     while (!waitlist.isEmpty()) {
       List<CFANode> current = waitlist.pop();
-      CFANode currentNode = current.get(current.size() - 1);
+      CFANode currentNode = current.getLast();
       Boolean memoized = loopProximityMemo.get(currentNode);
       if (memoized != null && !memoized) {
         continue;

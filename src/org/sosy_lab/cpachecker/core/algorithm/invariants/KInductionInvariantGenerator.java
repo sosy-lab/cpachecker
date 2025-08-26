@@ -40,6 +40,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -492,7 +494,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           InterruptedException,
           InvalidWitnessException {
 
-    final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
+    final SequencedSet<CandidateInvariant> candidates = new LinkedHashSet<>();
 
     Iterables.addAll(
         candidates,
@@ -580,7 +582,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
    * @return the relevant assume edges.
    */
   private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    final SequencedSet<AssumeEdge> assumeEdges = new LinkedHashSet<>();
     Set<CFANode> visited = new HashSet<>(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
@@ -710,7 +712,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
               }
             };
 
-        Set<Wrapper<AssumeEdge>> assumeEdges = new LinkedHashSet<>();
+        SequencedSet<Wrapper<AssumeEdge>> assumeEdges = new LinkedHashSet<>();
         for (AssumeEdge baseAssumeEdge : baseAssumeEdges) {
           assumeEdges.add(equivalence.wrap(baseAssumeEdge));
         }
@@ -837,7 +839,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                 Sets.intersection(
                     varClassification.getAssumedVariables().elementSet(),
                     varClassification.getIntAddVars()));
-        Map<String, CIdExpression> idExpressions = new LinkedHashMap<>();
+        SequencedMap<String, CIdExpression> idExpressions = new LinkedHashMap<>();
         NavigableSet<BigInteger> constants = new TreeSet<>();
         Multimap<CType, String> typePartitions = LinkedHashMultimap.create();
         Map<CIdExpression, AFunctionDeclaration> functions = new HashMap<>();

@@ -293,9 +293,9 @@ public class RCNFManager implements StatisticsProvider {
           public BooleanFormula visitFunction(
               Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
             if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ
-                && fmgr.getFormulaType(newArgs.get(0)).isNumeralType()) {
+                && fmgr.getFormulaType(newArgs.getFirst()).isNumeralType()) {
               Preconditions.checkState(newArgs.size() == 2);
-              Formula a = newArgs.get(0);
+              Formula a = newArgs.getFirst();
               Formula b = newArgs.get(1);
               return bfmgr.and(
                   fmgr.makeGreaterOrEqual(a, b, true), fmgr.makeLessOrEqual(a, b, true));

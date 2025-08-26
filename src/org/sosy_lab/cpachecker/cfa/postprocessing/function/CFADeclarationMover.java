@@ -88,9 +88,9 @@ public class CFADeclarationMover {
       for (CFAEdge e : secondRealFunctionEdge) {
         CFAEdge tmpEdge = moveEdgeToOtherPredecessor(e, tmpNode);
         actNode.removeLeavingEdge(e);
-        if (declarations.contains(e)) {
-          declarations.add(declarations.indexOf(e), tmpEdge);
-          declarations.remove(e);
+        int edgeIndex = declarations.indexOf(e);
+        if (edgeIndex != -1) {
+          declarations.set(edgeIndex, tmpEdge);
         }
       }
       secondRealFunctionEdge.clear();

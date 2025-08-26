@@ -24,13 +24,13 @@ workflow:
 variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 9f3f9b03f29fa8a744af91fa66d276049a85d84a
+  REFASTER_REPO_REVISION: d0df2ab5b02285f95bef9d3c6263f2ecdb3752ad
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.41.0
 
 auto-update-dependencies:
   stage: deploy
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
   before_script:
     - apt-get update
     - apt-get install -y --no-install-recommends git xmlstarlet openssh-client

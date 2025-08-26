@@ -200,7 +200,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
     builder.append("( ");
     if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
-      if (!fmgr.visit(pArgs.get(0), this)) {
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
         return false;
       }
       builder.append(" ? ");
@@ -213,7 +213,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       }
     } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
       builder.append(op).append(" ");
-      if (!fmgr.visit(pArgs.get(0), this)) {
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
         return false;
       }
     } else if (N_ARY_OPS.contains(kind)) {
@@ -226,7 +226,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         }
       }
     } else if (pArgs.size() == 2) {
-      if (!fmgr.visit(pArgs.get(0), this)) {
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
         return false;
       }
       builder.append(" ").append(op).append(" ");

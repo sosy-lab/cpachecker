@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -211,7 +212,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
    */
   @Override
   public Set<CExpression> assumptionsForEdge(CFAEdge pEdge) throws UnrecognizedCodeException {
-    Set<CExpression> result = new LinkedHashSet<>();
+    SequencedSet<CExpression> result = new LinkedHashSet<>();
 
     // Node is used for liveness calculation, and predecessor will contain
     // the live variables of the successor.

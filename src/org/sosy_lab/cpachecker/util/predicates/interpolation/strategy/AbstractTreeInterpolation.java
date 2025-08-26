@@ -90,9 +90,9 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
         : "number of interpolants should match the tree-structure";
 
     // check (A)
-    if (!solver.implies(formulas.get(0), interpolants.get(0))) {
+    if (!solver.implies(formulas.getFirst(), interpolants.getFirst())) {
       throw new SolverException(
-          String.format("interpolant %s is not implied by leaf formula.", interpolants.get(0)));
+          String.format("interpolant %s is not implied by leaf formula.", interpolants.getFirst()));
     }
     for (int i = 1; i < subtrees.length() - 1; i++) {
       if (subtrees.get(i) > subtrees.get(i - 1)) {
@@ -282,7 +282,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
     final ImmutableIntArray.Builder startOfSubTree = ImmutableIntArray.builder();
     final Deque<Pair<InterpolationGroup<T>, Integer>> stack = new ArrayDeque<>();
     final Pair<InterpolationGroup<T>, Integer> leftMostSubtree =
-        Pair.of(formulasWithStatesAndGroupdIds.get(0), 0); // initial element of the tree
+        Pair.of(formulasWithStatesAndGroupdIds.getFirst(), 0); // initial element of the tree
 
     stack.add(leftMostSubtree); // every tree starts at the left-most node, post-order!
     for (int positionOfA = 0; positionOfA < formulasWithStatesAndGroupdIds.size(); positionOfA++) {

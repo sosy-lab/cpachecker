@@ -191,7 +191,7 @@ public class TestCaseExporter {
         List<Path> testCaseFiles = getTestCaseFiles(testXMLFile, numPaths);
         if (isFirstTest()) {
           List<Path> metadataFile = new ArrayList<>();
-          metadataFile.add(testCaseFiles.get(0).resolveSibling("metadata.xml"));
+          metadataFile.add(testCaseFiles.getFirst().resolveSibling("metadata.xml"));
           writeTestCase(metadataFile, targetPath, pCex, FormatType.METADATA, pSpec);
         }
         writeTestCase(testCaseFiles, targetPath, pCex, FormatType.XML, pSpec);
@@ -242,7 +242,7 @@ public class TestCaseExporter {
         Preconditions.checkArgument(!pTestCaseFiles.isEmpty());
         if (zipTestCases) {
           try (FileSystem zipFS = openZipFS()) {
-            Path fileName = pTestCaseFiles.get(0).getFileName();
+            Path fileName = pTestCaseFiles.getFirst().getFileName();
             Path testFile =
                 zipFS.getPath(
                     fileName != null ? fileName.toString() : id.getFreshId() + "test.txt");
@@ -278,7 +278,7 @@ public class TestCaseExporter {
               };
 
           if (content != null) {
-            IO.writeFile(pTestCaseFiles.get(0), Charset.defaultCharset(), content);
+            IO.writeFile(pTestCaseFiles.getFirst(), Charset.defaultCharset(), content);
           }
         }
       } catch (IOException e) {

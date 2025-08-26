@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -100,7 +101,7 @@ public class TerminationLoopInformation {
   // reusing of intermediate location is required to build counter examples
   private List<CFANode> relevantVariablesInitializationIntermediateLocations = ImmutableList.of();
 
-  private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
+  private SequencedSet<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
   private Optional<CFANode> targetNode = Optional.empty();
 

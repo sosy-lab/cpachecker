@@ -88,10 +88,9 @@ public class ARGPathTest {
 
     // last ARGState is the end of the CFA-path we created before
     LocationState lastState = Mockito.mock(LocationState.class);
-    Mockito.when(lastState.getLocationNode())
-        .thenReturn(edges.get(edges.size() - 1).getSuccessor());
+    Mockito.when(lastState.getLocationNode()).thenReturn(edges.getLast().getSuccessor());
     Mockito.when(lastState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.get(edges.size() - 1).getSuccessor()));
+        .thenReturn(Collections.singleton(edges.getLast().getSuccessor()));
 
     // build argPath
     ARGPathBuilder builder = ARGPath.builder();
@@ -199,7 +198,7 @@ public class ARGPathTest {
     PathIterator it = path.pathIterator();
     it.advance();
     assertThat(it.getPrefixInclusive())
-        .isEqualTo(ARGPath.builder().add(firstARGState, edges.get(0)).build(secondARGState));
+        .isEqualTo(ARGPath.builder().add(firstARGState, edges.getFirst()).build(secondARGState));
   }
 
   @Test

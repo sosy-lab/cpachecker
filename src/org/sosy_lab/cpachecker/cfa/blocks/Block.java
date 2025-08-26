@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -82,7 +83,7 @@ public class Block {
    */
   public Set<String> getOutOfScopeVariables() {
     if (outOfScopeVariables == null) {
-      Set<ASimpleDeclaration> declarations = new LinkedHashSet<>();
+      SequencedSet<ASimpleDeclaration> declarations = new LinkedHashSet<>();
       for (CFANode node : nodes) {
         declarations.addAll(node.getOutOfScopeVariables());
         if (node instanceof FunctionExitNode functionExitNode) {

@@ -207,11 +207,11 @@ public class ARGToDotWriter {
 
           builder
               .append("Lines ")
-              .append(edges.get(0).getLineNumber())
+              .append(edges.getFirst().getLineNumber())
               .append(" - ")
-              .append(edges.get(edges.size() - 1).getLineNumber());
+              .append(edges.getLast().getLineNumber());
         } else {
-          builder.append("Line ").append(edges.get(0).getLineNumber());
+          builder.append("Line ").append(edges.getFirst().getLineNumber());
         }
         builder.append(": \\l");
 

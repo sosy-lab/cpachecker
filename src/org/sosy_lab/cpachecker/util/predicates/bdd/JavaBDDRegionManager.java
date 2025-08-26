@@ -670,7 +670,7 @@ class JavaBDDRegionManager implements RegionManager {
     private BDD visitMulti(BDDFactory.BDDOp operator, List<BooleanFormula> pOperands) {
       checkArgument(pOperands.size() >= 2);
 
-      BDD result = convert(pOperands.get(0));
+      BDD result = convert(pOperands.getFirst());
       for (int i = 1; i < pOperands.size(); i++) {
         // optimization: applyWith() destroys arg0 and arg1,
         // but this is ok, because we would free them otherwise anyway
