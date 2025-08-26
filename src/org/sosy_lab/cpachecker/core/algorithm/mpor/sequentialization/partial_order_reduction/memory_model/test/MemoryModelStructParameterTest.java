@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -34,17 +35,23 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
-public class MemoryModelFunctionTest {
+public class MemoryModelStructParameterTest {
 
   // Simple Types
 
@@ -62,6 +69,76 @@ public class MemoryModelFunctionTest {
 
   private final CInitializer INT_0_INITIALIZER =
       new CInitializerExpression(FileLocation.DUMMY, INT_0);
+
+  private final CInitializerList EMPTY_INITIALIZER_LIST =
+      new CInitializerList(FileLocation.DUMMY, ImmutableList.of());
+
+  // Composite Type Member Declarations (inner struct)
+
+  private final CCompositeTypeMemberDeclaration INNER_STRUCT_MEMBER_DECLARATION =
+      new CCompositeTypeMemberDeclaration(INT_TYPE, "inner_member");
+
+  // Complex Types (inner struct)
+
+  private final CComplexType INNER_STRUCT_COMPLEX_TYPE =
+      new CCompositeType(
+          false,
+          false,
+          ComplexTypeKind.STRUCT,
+          ImmutableList.of(INNER_STRUCT_MEMBER_DECLARATION),
+          "inner_struct_complex",
+          "inner_struct_complex");
+
+  private final CElaboratedType INNER_STRUCT_ELABORATED_TYPE =
+      new CElaboratedType(
+          false,
+          false,
+          ComplexTypeKind.STRUCT,
+          "inner_struct_elaborated",
+          "inner_struct_elaborated",
+          INNER_STRUCT_COMPLEX_TYPE);
+
+  private final CTypedefType INNER_STRUCT_TYPE =
+      new CTypedefType(false, false, "Inner", INNER_STRUCT_ELABORATED_TYPE);
+
+  // Composite Type Member Declarations (outer struct)
+
+  private final CCompositeTypeMemberDeclaration OUTER_STRUCT_MEMBER_DECLARATION =
+      new CCompositeTypeMemberDeclaration(INT_TYPE, "outer_member");
+
+  private final CCompositeTypeMemberDeclaration INNER_STRUCT_DECLARATION =
+      new CCompositeTypeMemberDeclaration(INNER_STRUCT_TYPE, "inner_struct");
+
+  // Complex Types (outer struct)
+
+  private final CComplexType OUTER_STRUCT_COMPLEX_TYPE =
+      new CCompositeType(
+          false,
+          false,
+          ComplexTypeKind.STRUCT,
+          ImmutableList.of(OUTER_STRUCT_MEMBER_DECLARATION, INNER_STRUCT_DECLARATION),
+          "outer_struct_complex",
+          "outer_struct_complex");
+
+  private final CElaboratedType OUTER_STRUCT_ELABORATED_TYPE =
+      new CElaboratedType(
+          false,
+          false,
+          ComplexTypeKind.STRUCT,
+          "outer_struct_elaborated",
+          "outer_struct_elaborated",
+          OUTER_STRUCT_COMPLEX_TYPE);
+
+  private final CTypedefType OUTER_STRUCT_TYPE =
+      new CTypedefType(false, false, "Outer", OUTER_STRUCT_ELABORATED_TYPE);
+
+  // Pointer Types to Complex Types
+
+  private final CPointerType OUTER_STRUCT_POINTER_TYPE =
+      new CPointerType(false, false, OUTER_STRUCT_COMPLEX_TYPE);
+
+  private final CPointerType INNER_STRUCT_POINTER_TYPE =
+      new CPointerType(false, false, INNER_STRUCT_COMPLEX_TYPE);
 
   // CFunctionType
 
@@ -150,88 +227,92 @@ public class MemoryModelFunctionTest {
           "global_ptr_A",
           INT_0_INITIALIZER);
 
-  private final CVariableDeclaration GLOBAL_X_DECLARATION =
+  private final CVariableDeclaration OUTER_STRUCT_DECLARATION =
       new CVariableDeclaration(
           FileLocation.DUMMY,
           true,
           CStorageClass.AUTO,
-          INT_TYPE,
-          "global_X",
-          "global_X",
-          "global_X",
-          INT_0_INITIALIZER);
+          OUTER_STRUCT_TYPE,
+          "outer_struct",
+          "outer_struct",
+          "outer_struct",
+          EMPTY_INITIALIZER_LIST);
 
-  private final CVariableDeclaration LOCAL_POINTER_C_DECLARATION =
-      new CVariableDeclaration(
-          FileLocation.DUMMY,
-          false,
-          CStorageClass.AUTO,
-          INT_POINTER_TYPE,
-          "local_ptr_C",
-          "local_ptr_C",
-          "local_ptr_C",
-          INT_0_INITIALIZER);
+  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_OUTER_STRUCT =
+      new CParameterDeclaration(
+          FileLocation.DUMMY, OUTER_STRUCT_POINTER_TYPE, "param_ptr_outer_struct");
 
-  private final CVariableDeclaration LOCAL_Z_DECLARATION =
-      new CVariableDeclaration(
-          FileLocation.DUMMY,
-          false,
-          CStorageClass.AUTO,
-          INT_TYPE,
-          "local_Z",
-          "local_Z",
-          "local_Z",
-          INT_0_INITIALIZER);
+  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_OUTER_STRUCT_MEMBER =
+      new CParameterDeclaration(
+          FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_outer_struct_member");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P");
+  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_INNER_STRUCT =
+      new CParameterDeclaration(
+          FileLocation.DUMMY, INNER_STRUCT_POINTER_TYPE, "param_ptr_inner_struct");
 
-  private final CParameterDeclaration PARAMETER_DECLARATION_Q =
-      new CParameterDeclaration(FileLocation.DUMMY, INT_TYPE, "param_Q");
+  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_INNER_STRUCT_MEMBER =
+      new CParameterDeclaration(
+          FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_inner_struct_member");
 
-  // Memory Locations (primitives)
+  // Memory Locations (structs)
 
-  private final MemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+  private final MemoryLocation OUTER_STRUCT_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), OUTER_STRUCT_DECLARATION);
 
-  private final MemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
+  private final MemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
+      MemoryLocation.of(
+          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_MEMBER_DECLARATION);
 
-  private final MemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_POINTER_C_DECLARATION);
+  private final MemoryLocation INNER_STRUCT_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_DECLARATION);
 
-  private final MemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
+  private final MemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
+      MemoryLocation.of(
+          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
 
-  private final MemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_P);
+  private final MemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_OUTER_STRUCT);
 
-  private final MemoryLocation PARAMETER_Q_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_Q);
+  private final MemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_OUTER_STRUCT_MEMBER);
+
+  private final MemoryLocation PARAMETER_POINTER_INNER_STRUCT_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_INNER_STRUCT);
+
+  private final MemoryLocation PARAMETER_POINTER_INNER_STRUCT_MEMBER_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_INNER_STRUCT_MEMBER);
 
   // Memory Location IDs
 
   private final ImmutableMap<MemoryLocation, Integer> MEMORY_LOCATION_IDS =
       ImmutableMap.<MemoryLocation, Integer>builder()
-          .put(GLOBAL_X_MEMORY_LOCATION, 0)
-          .put(LOCAL_POINTER_C_MEMORY_LOCATION, 1)
-          .put(LOCAL_Z_MEMORY_LOCATION, 2)
-          .put(PARAMETER_POINTER_P_MEMORY_LOCATION, 3)
-          .put(PARAMETER_Q_MEMORY_LOCATION, 4)
+          .put(OUTER_STRUCT_MEMORY_LOCATION, 0)
+          .put(OUTER_STRUCT_MEMBER_MEMORY_LOCATION, 1)
+          .put(INNER_STRUCT_MEMORY_LOCATION, 2)
+          .put(INNER_STRUCT_MEMBER_MEMORY_LOCATION, 3)
+          .put(PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION, 4)
+          .put(PARAMETER_POINTER_OUTER_STRUCT_MEMBER_MEMORY_LOCATION, 5)
+          .put(PARAMETER_POINTER_INNER_STRUCT_MEMORY_LOCATION, 6)
+          .put(PARAMETER_POINTER_INNER_STRUCT_MEMBER_MEMORY_LOCATION, 7)
           .buildOrThrow();
 
   @Test
-  public void test_pointer_parameter_dereference() {
-    // param_ptr_P = &global_X; i.e. pointer parameter assignment
+  public void test_outer_struct_pointer_parameter_dereference() {
+    // param_ptr_outer_struct = &outer_struct; i.e. pointer parameter assignment
     ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
         ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
-            .put(DUMMY_CALL_CONTEXT, PARAMETER_DECLARATION_POINTER_P, GLOBAL_X_MEMORY_LOCATION)
+            .put(
+                DUMMY_CALL_CONTEXT,
+                PARAMETER_DECLARATION_POINTER_OUTER_STRUCT,
+                OUTER_STRUCT_MEMORY_LOCATION)
             .build();
     ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
-    // *param_ptr_P i.e. pointer parameter dereference
+    // *param_ptr_outer_struct i.e. pointer parameter dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
-        ImmutableSet.<MemoryLocation>builder().add(PARAMETER_POINTER_P_MEMORY_LOCATION).build();
+        ImmutableSet.<MemoryLocation>builder()
+            .add(PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION)
+            .build();
 
     // create memory model
     MemoryModel testMemoryModel =
@@ -242,88 +323,15 @@ public class MemoryModelFunctionTest {
             pointerParameterAssignments,
             pointerDereferences);
 
-    // find the mem locations associated with deref of 'param_ptr_P' in the given call context
+    // find the mem locations associated with deref of 'param_ptr_outer_struct'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+            PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION,
+            Optional.of(DUMMY_CALL_CONTEXT),
+            testMemoryModel);
 
-    // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
+    // memory location of 'outer_struct' should be associated with deref of 'param_ptr_outer_struct'
     assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
-  }
-
-  @Test
-  public void test_transitive_pointer_parameter_dereference() {
-    // param_ptr_P = local_ptr_C; i.e. transitive pointer parameter assignment
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
-        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
-            .put(
-                DUMMY_CALL_CONTEXT,
-                PARAMETER_DECLARATION_POINTER_P,
-                LOCAL_POINTER_C_MEMORY_LOCATION)
-            .build();
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
-
-    // local_ptr_C = &global_X; i.e. pointer assignment
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(LOCAL_POINTER_C_DECLARATION, GLOBAL_X_MEMORY_LOCATION)
-            .build();
-
-    // *param_ptr_P i.e. pointer parameter dereference
-    ImmutableSet<MemoryLocation> pointerDereferences =
-        ImmutableSet.<MemoryLocation>builder().add(PARAMETER_POINTER_P_MEMORY_LOCATION).build();
-
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            MEMORY_LOCATION_IDS,
-            pointerAssignments,
-            parameterAssignments,
-            pointerParameterAssignments,
-            pointerDereferences);
-
-    // find the mem locations associated with deref of 'param_ptr_P' in the given call context
-    ImmutableSet<MemoryLocation> memoryLocations =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
-
-    // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
-  }
-
-  @Test
-  public void test_parameter_implicit_global() {
-    // param_Q = local_Z; i.e. non-pointer parameter assignment with local variable
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
-        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
-            .put(DUMMY_CALL_CONTEXT, PARAMETER_DECLARATION_Q, LOCAL_Z_MEMORY_LOCATION)
-            .build();
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
-        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
-
-    // global_ptr_A = &param_Q; i.e. pointer assignment
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, PARAMETER_Q_MEMORY_LOCATION)
-            .build();
-
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            MEMORY_LOCATION_IDS,
-            pointerAssignments,
-            parameterAssignments,
-            pointerParameterAssignments,
-            ImmutableSet.of());
-
-    // assert that param_Q is now an implicit global memory location, but local_Z is not
-    assertThat(PARAMETER_Q_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isExplicitGlobal()).isTrue();
-    assertThat(testMemoryModel.isImplicitGlobal(LOCAL_Z_MEMORY_LOCATION)).isFalse();
-    assertThat(testMemoryModel.isImplicitGlobal(PARAMETER_Q_MEMORY_LOCATION)).isTrue();
+    assertThat(memoryLocations.contains(OUTER_STRUCT_MEMORY_LOCATION)).isTrue();
   }
 }
