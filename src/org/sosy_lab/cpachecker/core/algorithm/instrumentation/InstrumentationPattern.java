@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -25,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -77,6 +80,14 @@ public class InstrumentationPattern {
       // Returns variables from binary operations, needed especially for data races
       case "vars_un_op":
         type = patternType.VARS_UN_OP;
+        break;
+      // Returns both variables from assignment, needed especially for data races
+      case "vars_bin_assign":
+        type = patternType.VARS_BIN_ASSIGN;
+        break;
+      // Returns left variable from assignment, needed especially for data races
+      case "vars_un_assign":
+        type = patternType.VARS_UN_ASSIGN;
         break;
       case "ptr_deref":
         type = patternType.PTR_DEREF;
@@ -162,6 +173,8 @@ public class InstrumentationPattern {
       case PTR_DECLAR -> getTheOperandsFromPointerDeclaration(pCFAEdge);
       case VARS_BIN_OP -> getTheVariablesFromBinaryOperation(pCFAEdge, pDecomposedMap);
       case VARS_UN_OP -> getTheVariablesFromUnaryOperation(pCFAEdge, pDecomposedMap);
+      case VARS_BIN_ASSIGN -> getTwoVariablesFromAssignment(pCFAEdge);
+      case VARS_UN_ASSIGN -> getOneVariableFromAssignment(pCFAEdge);
       case DECLAR -> getTheOperandsFromDeclaration(pCFAEdge);
       case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap);
       case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS, pDecomposedMap);
@@ -194,6 +207,53 @@ public class InstrumentationPattern {
 
   public String getFunctionName() {
     return functionName;
+  }
+
+  @Nullable
+  private ImmutableList<String> getTwoVariablesFromAssignment(CFAEdge pCFAEdge) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+
+      if (astNode instanceof CAssignment pAssignment) {
+        CExpression operand1 = pAssignment.getLeftHandSide();
+        CRightHandSide operand2 = pAssignment.getRightHandSide();
+
+        if ((operand1 instanceof CIdExpression
+            && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType)
+            && (operand2 instanceof CIdExpression
+            && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType)) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
+              removeIndicesOfVariablesWithSameName((CIdExpression) operand2, pCFAEdge));
+        } else {
+          return ImmutableList.of();
+        }
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private ImmutableList<String> getOneVariableFromAssignment(
+      CFAEdge pCFAEdge) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+
+      if (astNode instanceof CAssignment pAssignment) {
+        CExpression operand1 = pAssignment.getLeftHandSide();
+        CRightHandSide operand2 = pAssignment.getRightHandSide();
+
+        if ((operand1 instanceof CIdExpression
+            && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType)
+            && !(operand2 instanceof CIdExpression
+            && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType)) {
+          return ImmutableList.of(removeIndicesOfVariablesWithSameName(operand1, pCFAEdge));
+        } else {
+          return ImmutableList.of();
+        }
+      }
+    }
+    return null;
   }
 
   @Nullable
@@ -505,6 +565,8 @@ public class InstrumentationPattern {
     PTR_DECLAR,
     VARS_BIN_OP,
     VARS_UN_OP,
+    VARS_BIN_ASSIGN,
+    VARS_UN_ASSIGN,
     DECLAR,
     ADD,
     SUB,

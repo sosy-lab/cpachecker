@@ -188,8 +188,51 @@ public class InstrumentationAutomaton {
                 "write_INSTR_x_instr_1--;\\n" + "__VERIFIER_atomic_end();\\n"),
             InstrumentationOrder.AFTER,
             q2);
+    InstrumentationTransition t6 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("vars_bin_assign"),
+            new InstrumentationOperation(
+                "__VERIFIER_atomic_begin();\\n"
+                    + "__VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
+                    + "read_INSTR_x_instr_1 <= 0 && write_INSTR_x_instr_2 <= 0));\\n"
+                    + "write_INSTR_x_instr_1++; read_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
+                    + "__VERIFIER_atomic_end();\\n"
+                    + "__VERIFIER_atomic_begin();"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t7 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("vars_bin_assign"),
+            new InstrumentationOperation(
+                "write_INSTR_x_instr_1--; read_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
+                    + "__VERIFIER_atomic_end();\\n"),
+            InstrumentationOrder.AFTER,
+            q2);
+    InstrumentationTransition t8 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("vars_un_assign"),
+            new InstrumentationOperation(
+                "__VERIFIER_atomic_begin();\\n"
+                    + "__VERIFIER_assert((write_INSTR_x_instr_1 <= 0 && read_INSTR_x_instr_1 <= 0));\\n"
+                    + "write_INSTR_x_instr_1++; read_INSTR_x_instr_1;\\n"
+                    + "__VERIFIER_atomic_end();\\n"
+                    + "__VERIFIER_atomic_begin();"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t9 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("vars_un_assign"),
+            new InstrumentationOperation(
+                "write_INSTR_x_instr_1--; read_INSTR_x_instr_1--;\\n"
+                    + "__VERIFIER_atomic_end();\\n"),
+            InstrumentationOrder.AFTER,
+            q2);
 
-    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3, t4, t5);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3, t4, t5, t6, t7, t8, t9);
   }
 
   private InstrumentationState initializeMemorySafety(

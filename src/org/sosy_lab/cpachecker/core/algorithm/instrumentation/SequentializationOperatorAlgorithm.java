@@ -132,9 +132,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     } else {
       if (instrumentationProperty == InstrumentationProperty.DATA_RACE) {
         ImmutableMap.Builder<String, String> builder = new Builder<>();
-        for (String variable :
-            cfa.getMetadata().getVariableClassification().get().getAssignedVariables()) {
-          builder.put(variable, cProgramScope.lookupVariable(variable).getType().toString());
+        for (String variable : cfa.getMetadata().getLiveVariables().get().getAllLiveVariables().stream().map(e-> e.getName()).toList()) {
+          if (cProgramScope.variableNameInUse(variable)) {
+            builder.put(variable, cProgramScope.lookupVariable(variable).getType().toString());
+          }
         }
         ImmutableMap<String, String> varsWithTypes = builder.build();
         mapAutomataToLocations.put(
@@ -308,6 +309,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         && !pTransition.getPattern().toString().equals("ptr_declar")
         && !pTransition.getPattern().toString().equals("vars_bin_op")
         && !pTransition.getPattern().toString().equals("vars_un_op")
+        && !pTransition.getPattern().toString().equals("vars_bin_assign")
+        && !pTransition.getPattern().toString().equals("vars_un_assign")
         && !pTransition.getPattern().toString().equals("ADD")
         && !pTransition.getPattern().toString().equals("SUB")
         && !pTransition.getPattern().toString().equals("MUL")
