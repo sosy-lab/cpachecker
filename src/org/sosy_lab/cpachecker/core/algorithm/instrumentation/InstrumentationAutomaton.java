@@ -185,13 +185,11 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("vars_un_op"),
             new InstrumentationOperation(
-                "write_INSTR_x_instr_1--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
+                "write_INSTR_x_instr_1--;\\n" + "__VERIFIER_atomic_end();\\n"),
             InstrumentationOrder.AFTER,
             q2);
 
-    this.instrumentationTransitions =
-        ImmutableList.of(t1, t2, t3, t4, t5);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3, t4, t5);
   }
 
   private InstrumentationState initializeMemorySafety(

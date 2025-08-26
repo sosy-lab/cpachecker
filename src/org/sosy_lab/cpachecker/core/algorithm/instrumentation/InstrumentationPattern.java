@@ -70,7 +70,7 @@ public class InstrumentationPattern {
       case "[!cond]":
         type = patternType.NOT_COND;
         break;
-        // Returns variables from binary operations, needed especially for data races
+      // Returns variables from binary operations, needed especially for data races
       case "vars_bin_op":
         type = patternType.VARS_BIN_OP;
         break;
@@ -211,13 +211,15 @@ public class InstrumentationPattern {
         CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
         CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
 
-        if ((operand1 instanceof CIdExpression && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType)
-            && (operand2 instanceof CIdExpression && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType)) {
+        if ((operand1 instanceof CIdExpression
+                && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType)
+            && (operand2 instanceof CIdExpression
+                && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType)) {
           return ImmutableList.of(
               removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
               removeIndicesOfVariablesWithSameName(operand2, pCFAEdge),
               condition);
-        }  else {
+        } else {
           return ImmutableList.of();
         }
       }
@@ -239,10 +241,10 @@ public class InstrumentationPattern {
       if (expression instanceof CUnaryExpression) {
         CExpression operand = ((CUnaryExpression) expression).getOperand();
 
-        if (operand instanceof CIdExpression && ((CIdExpression) operand).getDeclaration().getType() instanceof CSimpleType) {
+        if (operand instanceof CIdExpression
+            && ((CIdExpression) operand).getDeclaration().getType() instanceof CSimpleType) {
           return ImmutableList.of(
-              removeIndicesOfVariablesWithSameName(operand, pCFAEdge),
-              condition);
+              removeIndicesOfVariablesWithSameName(operand, pCFAEdge), condition);
         } else {
           return ImmutableList.of();
         }
@@ -252,16 +254,16 @@ public class InstrumentationPattern {
         CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
         CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
 
-        if (operand1 instanceof CIdExpression && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType
+        if (operand1 instanceof CIdExpression
+            && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType
             && !(operand2 instanceof CIdExpression)) {
           return ImmutableList.of(
-              removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
-              condition);
-        } else if (operand2 instanceof CIdExpression && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType
+              removeIndicesOfVariablesWithSameName(operand1, pCFAEdge), condition);
+        } else if (operand2 instanceof CIdExpression
+            && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType
             && !(operand1 instanceof CIdExpression)) {
           return ImmutableList.of(
-              removeIndicesOfVariablesWithSameName(operand2, pCFAEdge),
-              condition);
+              removeIndicesOfVariablesWithSameName(operand2, pCFAEdge), condition);
         } else {
           return ImmutableList.of();
         }
