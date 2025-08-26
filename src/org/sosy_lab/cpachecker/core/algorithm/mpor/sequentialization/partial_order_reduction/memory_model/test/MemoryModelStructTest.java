@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.test;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -34,8 +34,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 
-public class MemoryModelTest {
+public class MemoryModelStructTest {
 
   // Simple Types
 
@@ -140,61 +143,6 @@ public class MemoryModelTest {
           "global_ptr_B",
           INT_0_INITIALIZER);
 
-  private final CVariableDeclaration LOCAL_POINTER_C_DECLARATION =
-      new CVariableDeclaration(
-          FileLocation.DUMMY,
-          false,
-          CStorageClass.AUTO,
-          INT_POINTER_TYPE,
-          "local_ptr_C",
-          "local_ptr_C",
-          "local_ptr_C",
-          INT_0_INITIALIZER);
-
-  private final CVariableDeclaration LOCAL_POINTER_D_DECLARATION =
-      new CVariableDeclaration(
-          FileLocation.DUMMY,
-          false,
-          CStorageClass.AUTO,
-          INT_POINTER_TYPE,
-          "local_ptr_D",
-          "local_ptr_D",
-          "local_ptr_D",
-          INT_0_INITIALIZER);
-
-  private final CVariableDeclaration GLOBAL_X_DECLARATION =
-      new CVariableDeclaration(
-          FileLocation.DUMMY,
-          true,
-          CStorageClass.AUTO,
-          INT_TYPE,
-          "global_X",
-          "global_X",
-          "global_X",
-          INT_0_INITIALIZER);
-
-  private final CVariableDeclaration GLOBAL_Y_DECLARATION =
-      new CVariableDeclaration(
-          FileLocation.DUMMY,
-          true,
-          CStorageClass.AUTO,
-          INT_TYPE,
-          "global_Y",
-          "global_Y",
-          "global_Y",
-          INT_0_INITIALIZER);
-
-  private final CVariableDeclaration LOCAL_Z_DECLARATION =
-      new CVariableDeclaration(
-          FileLocation.DUMMY,
-          false,
-          CStorageClass.AUTO,
-          INT_TYPE,
-          "local_Z",
-          "local_Z",
-          "local_Z",
-          INT_0_INITIALIZER);
-
   private final CVariableDeclaration OUTER_STRUCT_DECLARATION =
       new CVariableDeclaration(
           FileLocation.DUMMY,
@@ -213,21 +161,6 @@ public class MemoryModelTest {
 
   private final MemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
       MemoryLocation.of(Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
-
-  private final MemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_POINTER_C_DECLARATION);
-
-  private final MemoryLocation LOCAL_POINTER_D_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_POINTER_D_DECLARATION);
-
-  private final MemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
-
-  private final MemoryLocation GLOBAL_Y_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_Y_DECLARATION);
-
-  private final MemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
 
   // Memory Locations (structs)
 
@@ -249,105 +182,10 @@ public class MemoryModelTest {
 
   private final ImmutableMap<MemoryLocation, Integer> memory_location_ids =
       ImmutableMap.<MemoryLocation, Integer>builder()
-          .put(GLOBAL_POINTER_A_MEMORY_LOCATION, 0)
-          .put(GLOBAL_POINTER_B_MEMORY_LOCATION, 1)
-          .put(GLOBAL_X_MEMORY_LOCATION, 2)
-          .put(GLOBAL_Y_MEMORY_LOCATION, 3)
-          .put(LOCAL_Z_MEMORY_LOCATION, 4)
-          .put(OUTER_STRUCT_MEMORY_LOCATION, 5)
-          .put(INNER_STRUCT_MEMORY_LOCATION, 6)
-          .put(INNER_STRUCT_MEMBER_MEMORY_LOCATION, 7)
+          .put(OUTER_STRUCT_MEMORY_LOCATION, 0)
+          .put(INNER_STRUCT_MEMORY_LOCATION, 1)
+          .put(INNER_STRUCT_MEMBER_MEMORY_LOCATION, 2)
           .buildOrThrow();
-
-  @Test
-  public void test_memory_location_equals() {
-    MemoryLocation int_pointer_a_memory_location_alt =
-        MemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.equals(int_pointer_a_memory_location_alt)).isTrue();
-  }
-
-  @Test
-  public void test_single_pointer_assignment() {
-    // global_ptr_A = &global_X; i.e. pointer assignment
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, GLOBAL_X_MEMORY_LOCATION)
-            .build();
-    // *global_ptr_A i.e. pointer dereference
-    ImmutableSet<MemoryLocation> pointerDereferences =
-        ImmutableSet.<MemoryLocation>builder().add(GLOBAL_POINTER_A_MEMORY_LOCATION).build();
-
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            memory_location_ids, pointerAssignments, ImmutableTable.of(), pointerDereferences);
-
-    // find the memory locations associated with dereference of 'global_ptr_A'
-    ImmutableSet<MemoryLocation> memoryLocations =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION, Optional.empty(), testMemoryModel);
-
-    // only memory location of 'global_X' should be associated with dereference of 'global_ptr_A'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
-  }
-
-  @Test
-  public void test_multi_pointer_assignment() {
-    // global_ptr_A = &global_X; and global_ptr_A = &global_Y; i.e. pointer assignments
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, GLOBAL_X_MEMORY_LOCATION)
-            .put(GLOBAL_POINTER_A_DECLARATION, GLOBAL_Y_MEMORY_LOCATION)
-            .build();
-    // *global_ptr_A i.e. pointer dereference
-    ImmutableSet<MemoryLocation> pointerDereferences =
-        ImmutableSet.<MemoryLocation>builder().add(GLOBAL_POINTER_A_MEMORY_LOCATION).build();
-
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            memory_location_ids, pointerAssignments, ImmutableTable.of(), pointerDereferences);
-
-    // find the memory locations associated with dereference of 'global_ptr_A'
-    ImmutableSet<MemoryLocation> memoryLocations =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION, Optional.empty(), testMemoryModel);
-
-    // mem location of 'global_X' and 'global_Y' should be associated with deref of 'global_ptr_A'
-    assertThat(memoryLocations.size() == 2).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_Y_MEMORY_LOCATION)).isTrue();
-  }
-
-  @Test
-  public void test_transitive_pointer_assignment() {
-    // global_ptr_A = &global_X; and global_ptr_B = global_ptr_A;
-    // i.e. pointer assignment (transitive)
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, GLOBAL_X_MEMORY_LOCATION)
-            .put(GLOBAL_POINTER_B_DECLARATION, GLOBAL_POINTER_A_MEMORY_LOCATION)
-            .build();
-    // *global_ptr_B i.e. pointer dereference
-    ImmutableSet<MemoryLocation> pointerDereferences =
-        ImmutableSet.<MemoryLocation>builder().add(GLOBAL_POINTER_B_MEMORY_LOCATION).build();
-
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            memory_location_ids, pointerAssignments, ImmutableTable.of(), pointerDereferences);
-
-    // find the memory locations associated with dereference of 'global_ptr_B'
-    ImmutableSet<MemoryLocation> memoryLocations =
-        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_B_MEMORY_LOCATION, Optional.empty(), testMemoryModel);
-
-    // memory location of 'global_X' should be associated with dereference of 'global_ptr_B'
-    // even without direct assignment, due to transitive assignment of 'global_ptr_B = global_ptr_A'
-    assertThat(memoryLocations.size() == 1).isTrue();
-    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
-  }
 
   @Test
   public void test_field_owner_field_member() {
@@ -413,50 +251,5 @@ public class MemoryModelTest {
     // 'global_ptr_B'
     assertThat(memoryLocationsB.size() == 1).isTrue();
     assertThat(memoryLocationsB.contains(INNER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
-  }
-
-  @Test
-  public void test_implicit_global() {
-    // global_ptr_A = &local_Z; i.e. pointer assignment
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_DECLARATION, LOCAL_Z_MEMORY_LOCATION)
-            .build();
-
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            memory_location_ids, pointerAssignments, ImmutableTable.of(), ImmutableSet.of());
-
-    // test that local_Z is now an implicit global memory location, because the global pointer
-    // 'global_ptr_A' gets its address, and can be dereferenced by other threads
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isGlobal()).isTrue();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(testMemoryModel.isImplicitGlobal(LOCAL_Z_MEMORY_LOCATION)).isTrue();
-  }
-
-  @Test
-  public void test_transitive_implicit_global() {
-    // 'local_ptr_C = &local_Z;' and 'local_ptr_D = local_ptr_C;' and 'global_ptr_A = local_ptr_D'
-    // i.e. transitive pointer assignments
-    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
-            .put(LOCAL_POINTER_C_DECLARATION, LOCAL_Z_MEMORY_LOCATION)
-            .put(LOCAL_POINTER_D_DECLARATION, LOCAL_POINTER_C_MEMORY_LOCATION)
-            .put(GLOBAL_POINTER_A_DECLARATION, LOCAL_POINTER_D_MEMORY_LOCATION)
-            .build();
-
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            memory_location_ids, pointerAssignments, ImmutableTable.of(), ImmutableSet.of());
-
-    // test that local_Z is now an implicit global memory location, because of transitivity:
-    // 'global_ptr_A -> local_ptr_D -> local_ptr_C', and can then be dereferenced by other threads
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isGlobal()).isTrue();
-    assertThat(LOCAL_POINTER_C_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(LOCAL_POINTER_D_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(testMemoryModel.isImplicitGlobal(LOCAL_Z_MEMORY_LOCATION)).isTrue();
   }
 }
