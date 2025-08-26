@@ -16,7 +16,6 @@ import com.google.common.collect.Sets;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -36,7 +35,7 @@ public class SubstituteEdge {
 
   // POINTER ASSIGNMENTS ===========================================================================
 
-  public final ImmutableMap<CVariableDeclaration, MemoryLocation> pointerAssignments;
+  public final ImmutableMap<MemoryLocation, MemoryLocation> pointerAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
@@ -66,7 +65,7 @@ public class SubstituteEdge {
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
       ImmutableSet<CParameterDeclaration> pAccessedMainFunctionArgs,
-      ImmutableMap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableSet<MemoryLocation> pAccessedPointerDereferences,
       ImmutableSet<MemoryLocation> pWrittenPointerDereferences,
       ImmutableSet<MemoryLocation> pAccessedMemoryLocations,

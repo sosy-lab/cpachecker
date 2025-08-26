@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Table.Cell;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -152,28 +151,29 @@ public class SubstituteUtil {
    * Maps pointers {@code ptr} to the memory locations e.g. {@code &var} assigned to them based on
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
-  public static ImmutableMap<CVariableDeclaration, MemoryLocation> mapPointerAssignments(
+  public static ImmutableMap<MemoryLocation, MemoryLocation> mapPointerAssignments(
       MPOROptions pOptions,
       MPORThread pThread,
       Optional<ThreadEdge> pCallContext,
       MPORSubstitutionTracker pTracker) {
 
-    ImmutableMap.Builder<CVariableDeclaration, MemoryLocation> rAssignments =
-        ImmutableMap.builder();
+    ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      MemoryLocation memoryLocation =
+      MemoryLocation leftHandSide = MemoryLocation.of(Optional.empty(), entry.getKey());
+      MemoryLocation rightHandSide =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
               pOptions, pThread, pCallContext, entry.getValue());
-      rAssignments.put(entry.getKey(), memoryLocation);
+      rAssignments.put(leftHandSide, rightHandSide);
     }
     ImmutableSet<Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
         cellSet = pTracker.getPointerFieldMemberAssignments().cellSet();
     for (Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration> cell :
         cellSet) {
-      MemoryLocation memoryLocation =
+      MemoryLocation leftHandSide = MemoryLocation.of(Optional.empty(), cell.getRowKey());
+      MemoryLocation rightHandSide =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
               pOptions, pThread, pCallContext, cell.getColumnKey(), cell.getValue());
-      rAssignments.put(Objects.requireNonNull(cell.getRowKey()), memoryLocation);
+      rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();
   }

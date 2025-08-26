@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
@@ -187,14 +186,14 @@ public class MemoryModelTest {
         new MemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
-            ImmutableTable.of(),
-            ImmutableTable.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             pointerDereferences);
 
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION, Optional.empty(), testMemoryModel);
+            GLOBAL_POINTER_A_MEMORY_LOCATION, testMemoryModel);
 
     // only memory location of 'global_X' should be associated with dereference of 'global_ptr_A'
     assertThat(memoryLocations.size() == 1).isTrue();
@@ -218,14 +217,14 @@ public class MemoryModelTest {
         new MemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
-            ImmutableTable.of(),
-            ImmutableTable.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             pointerDereferences);
 
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION, Optional.empty(), testMemoryModel);
+            GLOBAL_POINTER_A_MEMORY_LOCATION, testMemoryModel);
 
     // mem location of 'global_X' and 'global_Y' should be associated with deref of 'global_ptr_A'
     assertThat(memoryLocations.size() == 2).isTrue();
@@ -251,14 +250,14 @@ public class MemoryModelTest {
         new MemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
-            ImmutableTable.of(),
-            ImmutableTable.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             pointerDereferences);
 
     // find the memory locations associated with dereference of 'global_ptr_B'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_B_MEMORY_LOCATION, Optional.empty(), testMemoryModel);
+            GLOBAL_POINTER_B_MEMORY_LOCATION, testMemoryModel);
 
     // memory location of 'global_X' should be associated with dereference of 'global_ptr_B'
     // even without direct assignment, due to transitive assignment of 'global_ptr_B = global_ptr_A'
@@ -279,8 +278,8 @@ public class MemoryModelTest {
         new MemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
-            ImmutableTable.of(),
-            ImmutableTable.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableSet.of());
 
     // test that local_Z is now an implicit global memory location, because the global pointer
@@ -306,8 +305,8 @@ public class MemoryModelTest {
         new MemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
-            ImmutableTable.of(),
-            ImmutableTable.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
             ImmutableSet.of());
 
     // test that local_Z is now an implicit global memory location, because of transitivity:

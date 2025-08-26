@@ -13,12 +13,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 /**
  * A class to keep track of all memory locations in the concurrent input program, including pointers
@@ -33,16 +30,15 @@ public class MemoryModel {
   private final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments;
 
   /**
-   * The table of call context i.e. {@link ThreadEdge} sensitive {@link CParameterDeclaration}
-   * mapped to their assigned {@link MemoryLocation}. Note that this is not restricted to pointers,
-   * since non-pointer parameters can be made implicitly global through global pointers.
+   * The map of call context-sensitive {@link MemoryLocation} mapped to their assigned {@link
+   * MemoryLocation}. Each parameter is only assigned once due to function cloning. Note that this
+   * is not restricted to pointers, since non-pointer parameters can be made implicitly global
+   * through global pointers.
    */
-  private final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-      parameterAssignments;
+  private final ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments;
 
   /** The subset of parameters that are pointers. */
-  private final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-      pointerParameterAssignments;
+  private final ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments;
 
   private final ImmutableSet<MemoryLocation> pointerDereferences;
 
@@ -50,17 +46,16 @@ public class MemoryModel {
   public MemoryModel(
       ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-          pPointerParameterAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
     checkArguments(pPointerAssignments);
     memoryLocationAmount = pMemoryLocationIds.size();
     memoryLocationIds = pMemoryLocationIds;
     pointerAssignments = pPointerAssignments;
-    pointerParameterAssignments = pPointerParameterAssignments;
     parameterAssignments = pParameterAssignments;
+    pointerParameterAssignments = pPointerParameterAssignments;
     pointerDereferences = pPointerDereferences;
   }
 
@@ -105,11 +100,9 @@ public class MemoryModel {
    * Returns true if the pointer in {@code pParameterDeclaration} is assigned a pointer {@code ptr},
    * or the address of a non-pointer {@code &non_ptr} in any function call.
    */
-  public boolean isAssignedPointerParameter(
-      ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
-
-    if (pParameterDeclaration.getType() instanceof CPointerType) {
-      return parameterAssignments.contains(pCallContext, pParameterDeclaration);
+  public boolean isAssignedPointerParameter(MemoryLocation pMemoryLocation) {
+    if (pMemoryLocation.getSimpleDeclaration().getType() instanceof CPointerType) {
+      return pointerParameterAssignments.containsKey(pMemoryLocation);
     }
     return false;
   }
@@ -148,7 +141,7 @@ public class MemoryModel {
         if (pointerDereference.equals(pMemoryLocation)) {
           ImmutableSet<MemoryLocation> memoryLocations =
               MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-                  pointerDereference, pMemoryLocation.callContext, this);
+                  pointerDereference, this);
           for (MemoryLocation memoryLocation : memoryLocations) {
             if (memoryLocation.isExplicitGlobal()) {
               return true;
@@ -179,10 +172,8 @@ public class MemoryModel {
     return pointerAssignments.get(pVariableDeclaration);
   }
 
-  public MemoryLocation getRightHandSideByParameter(
-      ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
-
-    return parameterAssignments.get(pCallContext, pParameterDeclaration);
+  public MemoryLocation getRightHandSideByParameter(MemoryLocation pMemoryLocation) {
+    return parameterAssignments.get(pMemoryLocation);
   }
 
   public int getMemoryLocationAmount() {

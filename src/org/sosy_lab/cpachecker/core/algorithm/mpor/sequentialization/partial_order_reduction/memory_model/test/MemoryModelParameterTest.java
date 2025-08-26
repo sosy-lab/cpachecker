@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
@@ -204,10 +203,10 @@ public class MemoryModelParameterTest {
       MemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
 
   private final MemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_P);
+      MemoryLocation.of(Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_POINTER_P);
 
   private final MemoryLocation PARAMETER_Q_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_Q);
+      MemoryLocation.of(Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_Q);
 
   // Memory Location IDs
 
@@ -223,11 +222,11 @@ public class MemoryModelParameterTest {
   @Test
   public void test_pointer_parameter_dereference() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
-        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
-            .put(DUMMY_CALL_CONTEXT, PARAMETER_DECLARATION_POINTER_P, GLOBAL_X_MEMORY_LOCATION)
+    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
+        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+            .put(PARAMETER_POINTER_P_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .build();
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
     // *param_ptr_P i.e. pointer parameter dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
@@ -245,7 +244,7 @@ public class MemoryModelParameterTest {
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+            PARAMETER_POINTER_P_MEMORY_LOCATION, testMemoryModel);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
     assertThat(memoryLocations.size() == 1).isTrue();
@@ -255,14 +254,11 @@ public class MemoryModelParameterTest {
   @Test
   public void test_transitive_pointer_parameter_dereference() {
     // param_ptr_P = local_ptr_C; i.e. transitive pointer parameter assignment
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
-        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
-            .put(
-                DUMMY_CALL_CONTEXT,
-                PARAMETER_DECLARATION_POINTER_P,
-                LOCAL_POINTER_C_MEMORY_LOCATION)
+    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
+        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+            .put(PARAMETER_POINTER_P_MEMORY_LOCATION, LOCAL_POINTER_C_MEMORY_LOCATION)
             .build();
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // local_ptr_C = &global_X; i.e. pointer assignment
@@ -287,7 +283,7 @@ public class MemoryModelParameterTest {
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+            PARAMETER_POINTER_P_MEMORY_LOCATION, testMemoryModel);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
     assertThat(memoryLocations.size() == 1).isTrue();
@@ -297,11 +293,11 @@ public class MemoryModelParameterTest {
   @Test
   public void test_parameter_implicit_global() {
     // param_Q = local_Z; i.e. non-pointer parameter assignment with local variable
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
-        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
-            .put(DUMMY_CALL_CONTEXT, PARAMETER_DECLARATION_Q, LOCAL_Z_MEMORY_LOCATION)
+    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
+        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+            .put(PARAMETER_Q_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
             .build();
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // global_ptr_A = &param_Q; i.e. pointer assignment

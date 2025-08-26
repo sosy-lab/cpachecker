@@ -11,9 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import java.util.HashSet;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -23,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class MemoryLocationFinder {
 
@@ -117,8 +115,7 @@ public class MemoryLocationFinder {
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
     for (MemoryLocation pointerDereference : pointerDereferences) {
       rMemLocations.addAll(
-          findMemoryLocationsByPointerDereference(
-              pointerDereference, pSubstituteEdge.getCallContext(), pMemoryModel));
+          findMemoryLocationsByPointerDereference(pointerDereference, pMemoryModel));
     }
     return rMemLocations.build();
   }
@@ -128,7 +125,7 @@ public class MemoryLocationFinder {
   public static ImmutableSet<MemoryLocation> findPointerDeclarationsByPointerAssignments(
       MemoryLocation pPointerDeclaration,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments) {
+      ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments) {
 
     Set<MemoryLocation> rFound = new HashSet<>();
     recursivelyFindPointerDeclarationsByPointerAssignments(
@@ -139,7 +136,7 @@ public class MemoryLocationFinder {
   private static void recursivelyFindPointerDeclarationsByPointerAssignments(
       MemoryLocation pCurrentPointerDeclaration,
       final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments,
+      final ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
       Set<MemoryLocation> pFound,
       Set<MemoryLocation> pVisited) {
 
@@ -165,9 +162,7 @@ public class MemoryLocationFinder {
                 pFound.add(pointerDeclaration);
                 // consider only pointer parameters, all others are not relevant
                 if (simpleDeclaration.getType() instanceof CPointerType) {
-                  // call context is always present for parameters
-                  ThreadEdge callContext = memoryLocation.callContext.orElseThrow();
-                  if (pParameterAssignments.contains(callContext, innerSimpleDeclaration)) {
+                  if (pParameterAssignments.containsKey(memoryLocation)) {
                     recursivelyFindPointerDeclarationsByPointerAssignments(
                         pointerDeclaration,
                         pPointerAssignments,
@@ -184,13 +179,11 @@ public class MemoryLocationFinder {
     }
     if (simpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       if (parameterDeclaration.getType() instanceof CPointerType) {
-        if (pParameterAssignments.containsColumn(parameterDeclaration)) {
-          ImmutableMap<ThreadEdge, MemoryLocation> column =
-              pParameterAssignments.column(parameterDeclaration);
-          for (MemoryLocation memoryLocation : column.values()) {
-            recursivelyFindPointerDeclarationsByPointerAssignments(
-                memoryLocation, pPointerAssignments, pParameterAssignments, pFound, pVisited);
-          }
+        if (pParameterAssignments.containsKey(pCurrentPointerDeclaration)) {
+          MemoryLocation rightHandSide =
+              Objects.requireNonNull(pParameterAssignments.get(pCurrentPointerDeclaration));
+          recursivelyFindPointerDeclarationsByPointerAssignments(
+              rightHandSide, pPointerAssignments, pParameterAssignments, pFound, pVisited);
         }
       }
     }
@@ -199,13 +192,11 @@ public class MemoryLocationFinder {
   // Extraction by Pointer Dereference =============================================================
 
   public static ImmutableSet<MemoryLocation> findMemoryLocationsByPointerDereference(
-      MemoryLocation pPointerDereference,
-      Optional<ThreadEdge> pCallContext,
-      MemoryModel pMemoryModel) {
+      MemoryLocation pPointerDereference, MemoryModel pMemoryModel) {
 
     Set<MemoryLocation> found = new HashSet<>();
     recursivelyFindMemoryLocationsByPointerDereference(
-        pPointerDereference, pCallContext, pMemoryModel, found, new HashSet<>());
+        pPointerDereference, pMemoryModel, found, new HashSet<>());
     return ImmutableSet.copyOf(found);
   }
 
@@ -216,7 +207,6 @@ public class MemoryLocationFinder {
    */
   private static void recursivelyFindMemoryLocationsByPointerDereference(
       MemoryLocation pCurrentMemoryLocation,
-      final Optional<ThreadEdge> pCallContext,
       final MemoryModel pMemoryModel,
       Set<MemoryLocation> pFound,
       Set<MemoryLocation> pVisited) {
@@ -233,22 +223,20 @@ public class MemoryLocationFinder {
                 pMemoryModel.getRightHandSidesByPointer(pCurrentMemoryLocation);
             for (MemoryLocation rightHandSide : rightHandSides) {
               recursivelyFindMemoryLocationsByPointerDereference(
-                  rightHandSide, pCallContext, pMemoryModel, pFound, pVisited);
+                  rightHandSide, pMemoryModel, pFound, pVisited);
             }
           }
         } else {
           pFound.add(pCurrentMemoryLocation);
         }
 
-      } else if (simpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
-        assert pCallContext.isPresent() : "call context must be present for CParameterDeclaration";
-        ThreadEdge callContext = pCallContext.orElseThrow();
+      } else if (simpleDeclaration instanceof CParameterDeclaration) {
         // in pthread_create that does not pass an arg to start_routine, the pair is not present
-        if (pMemoryModel.isAssignedPointerParameter(callContext, parameterDeclaration)) {
+        if (pMemoryModel.isAssignedPointerParameter(pCurrentMemoryLocation)) {
           MemoryLocation rightHandSide =
-              pMemoryModel.getRightHandSideByParameter(callContext, parameterDeclaration);
+              pMemoryModel.getRightHandSideByParameter(pCurrentMemoryLocation);
           recursivelyFindMemoryLocationsByPointerDereference(
-              rightHandSide, pCallContext, pMemoryModel, pFound, pVisited);
+              rightHandSide, pMemoryModel, pFound, pVisited);
         }
       }
     }

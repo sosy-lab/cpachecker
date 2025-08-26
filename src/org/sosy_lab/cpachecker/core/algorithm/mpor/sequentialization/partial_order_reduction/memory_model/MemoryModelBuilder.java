@@ -13,14 +13,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.Table.Cell;
-import com.google.common.collect.Tables;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -50,15 +46,15 @@ public class MemoryModelBuilder {
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     if (pOptions.linkReduction) {
-      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
+      ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
           mapParameterAssignments(pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
-      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-          pointerParameterAssignments = extractPointerParameters(parameterAssignments);
+      ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
+          extractPointerParameters(parameterAssignments);
       ImmutableCollection<MemoryLocation> newMemoryLocations = parameterAssignments.values();
 
       ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
           assignMemoryLocationIds(pInitialMemoryLocations, newMemoryLocations);
-      ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
           mapPointerAssignments(pSubstituteEdges);
       ImmutableSet<MemoryLocation> pointerDereferences =
           getAllPointerDereferences(pSubstituteEdges);
@@ -95,10 +91,10 @@ public class MemoryModelBuilder {
 
   // Pointer Assignments ===========================================================================
 
-  private static ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> mapPointerAssignments(
+  private static ImmutableSetMultimap<MemoryLocation, MemoryLocation> mapPointerAssignments(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableSetMultimap.Builder<CVariableDeclaration, MemoryLocation> rAllAssignments =
+    ImmutableSetMultimap.Builder<MemoryLocation, MemoryLocation> rAllAssignments =
         ImmutableSetMultimap.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rAllAssignments.putAll(substituteEdge.pointerAssignments.asMultimap());
@@ -108,42 +104,35 @@ public class MemoryModelBuilder {
 
   // Parameter Assignments =================================================================
 
-  private static ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-      mapParameterAssignments(
-          MPOROptions pOptions,
-          ImmutableList<MPORThread> pThreads,
-          ImmutableCollection<SubstituteEdge> pSubstituteEdges,
-          ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+  private static ImmutableMap<MemoryLocation, MemoryLocation> mapParameterAssignments(
+      MPOROptions pOptions,
+      ImmutableList<MPORThread> pThreads,
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
-    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, MemoryLocation> rAssignments =
-        ImmutableTable.builder();
+    ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       // use the original edge, so that we use the original variable declarations
       if (substituteEdge.getOriginalEdge() instanceof CFunctionCallEdge functionCallEdge) {
         // the function call edge is used as the call context, not the actual call context
         ThreadEdge callContext = substituteEdge.getThreadEdge();
         MPORThread thread = ThreadUtil.getThreadById(pThreads, callContext.threadId);
-        ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> assignments =
+        rAssignments.putAll(
             buildParameterAssignments(
-                pOptions, thread, callContext, functionCallEdge, pInitialMemoryLocations);
-        for (Cell<ThreadEdge, CParameterDeclaration, MemoryLocation> cell : assignments) {
-          rAssignments.put(cell);
-        }
+                pOptions, thread, callContext, functionCallEdge, pInitialMemoryLocations));
       }
     }
     return rAssignments.buildOrThrow();
   }
 
-  private static ImmutableList<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>>
-      buildParameterAssignments(
-          MPOROptions pOptions,
-          MPORThread pThread,
-          ThreadEdge pCallContext,
-          CFunctionCallEdge pFunctionCallEdge,
-          ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+  private static ImmutableMap<MemoryLocation, MemoryLocation> buildParameterAssignments(
+      MPOROptions pOptions,
+      MPORThread pThread,
+      ThreadEdge pCallContext,
+      CFunctionCallEdge pFunctionCallEdge,
+      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
-    ImmutableList.Builder<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> rAssignments =
-        ImmutableList.builder();
+    ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     List<CExpression> arguments = pFunctionCallEdge.getArguments();
     List<CParameterDeclaration> parameterDeclarations =
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
@@ -157,10 +146,11 @@ public class MemoryModelBuilder {
           extractMemoryLocation(
               pOptions, pThread, pCallContext, arguments.get(i), pInitialMemoryLocations);
       if (!rhsMemoryLocation.isEmpty()) {
-        rAssignments.add(Tables.immutableCell(pCallContext, leftHandSide, rhsMemoryLocation));
+        rAssignments.put(
+            MemoryLocation.of(Optional.of(pCallContext), leftHandSide), rhsMemoryLocation);
       }
     }
-    return rAssignments.build();
+    return rAssignments.buildOrThrow();
   }
 
   private static MemoryLocation extractMemoryLocation(
@@ -265,17 +255,13 @@ public class MemoryModelBuilder {
 
   // Pointer Parameter Assignments =================================================================
 
-  public static ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-      extractPointerParameters(
-          ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments) {
+  public static ImmutableMap<MemoryLocation, MemoryLocation> extractPointerParameters(
+      ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments) {
 
-    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, MemoryLocation> rPointers =
-        ImmutableTable.builder();
-    ImmutableSet<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> cells =
-        pParameterAssignments.cellSet();
-    for (Cell<ThreadEdge, CParameterDeclaration, MemoryLocation> cell : cells) {
-      if (Objects.requireNonNull(cell.getColumnKey()).getType() instanceof CPointerType) {
-        rPointers.put(cell);
+    ImmutableMap.Builder<MemoryLocation, MemoryLocation> rPointers = ImmutableMap.builder();
+    for (var entry : pParameterAssignments.entrySet()) {
+      if (entry.getKey().getSimpleDeclaration().getType() instanceof CPointerType) {
+        rPointers.put(entry);
       }
     }
     return rPointers.buildOrThrow();

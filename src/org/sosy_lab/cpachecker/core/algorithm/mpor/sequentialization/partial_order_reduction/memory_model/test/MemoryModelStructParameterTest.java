@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
@@ -308,16 +307,18 @@ public class MemoryModelStructParameterTest {
   // Memory Locations (parameters)
 
   private final MemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_OUTER_STRUCT);
+      MemoryLocation.of(
+          Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_POINTER_OUTER_STRUCT);
 
   private final MemoryLocation PARAMETER_POINTER_INNER_STRUCT_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_INNER_STRUCT);
+      MemoryLocation.of(
+          Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_POINTER_INNER_STRUCT);
 
   private final MemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_P1);
+      MemoryLocation.of(Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_POINTER_P1);
 
   private final MemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_P2);
+      MemoryLocation.of(Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_POINTER_P2);
 
   // Memory Location IDs
 
@@ -340,14 +341,11 @@ public class MemoryModelStructParameterTest {
   @Test
   public void test_outer_struct_pointer_parameter_dereference() {
     // param_ptr_outer = &outer; i.e. pointer parameter assignment
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
-        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
-            .put(
-                DUMMY_CALL_CONTEXT,
-                PARAMETER_DECLARATION_POINTER_OUTER_STRUCT,
-                OUTER_STRUCT_MEMORY_LOCATION)
+    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
+        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+            .put(PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION, OUTER_STRUCT_MEMORY_LOCATION)
             .build();
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
     // *param_ptr_outer i.e. pointer parameter dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
@@ -367,9 +365,7 @@ public class MemoryModelStructParameterTest {
     // find the mem locations associated with deref of 'param_ptr_outer'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION,
-            Optional.of(DUMMY_CALL_CONTEXT),
-            testMemoryModel);
+            PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION, testMemoryModel);
 
     // memory location of 'outer' should be associated with deref of 'param_ptr_outer'
     assertThat(memoryLocations.size() == 1).isTrue();
@@ -380,18 +376,12 @@ public class MemoryModelStructParameterTest {
   public void test_struct_members_pointer_parameter_dereference() {
     // param_ptr_P1 = &outer.member; and param_ptr_P2 = &outer.inner.member
     // i.e. pointer parameter assignment
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
-        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
-            .put(
-                DUMMY_CALL_CONTEXT,
-                PARAMETER_DECLARATION_POINTER_P1,
-                OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
-            .put(
-                DUMMY_CALL_CONTEXT,
-                PARAMETER_DECLARATION_POINTER_P2,
-                INNER_STRUCT_MEMBER_MEMORY_LOCATION)
+    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
+        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+            .put(PARAMETER_POINTER_P1_MEMORY_LOCATION, OUTER_STRUCT_MEMBER_MEMORY_LOCATION)
+            .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_MEMBER_MEMORY_LOCATION)
             .build();
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
     // *param_ptr_P1 and *param_ptr_P2 i.e. pointer parameter dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
@@ -412,11 +402,11 @@ public class MemoryModelStructParameterTest {
     // find the mem locations associated with deref of 'param_ptr_P1'
     ImmutableSet<MemoryLocation> memoryLocationsP1 =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P1_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+            PARAMETER_POINTER_P1_MEMORY_LOCATION, testMemoryModel);
     // find the mem locations associated with deref of 'param_ptr_P2'
     ImmutableSet<MemoryLocation> memoryLocationsP2 =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P2_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+            PARAMETER_POINTER_P2_MEMORY_LOCATION, testMemoryModel);
 
     // memory location of 'outer.member' should be associated with deref of 'param_ptr_P1'
     assertThat(memoryLocationsP1.size() == 1).isTrue();
@@ -437,18 +427,12 @@ public class MemoryModelStructParameterTest {
 
     // param_ptr_P1 = outer.member_ptr; and param_ptr_P2 = outer.inner.member_ptr
     // i.e. pointer parameter assignment
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
-        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
-            .put(
-                DUMMY_CALL_CONTEXT,
-                PARAMETER_DECLARATION_POINTER_P1,
-                OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
-            .put(
-                DUMMY_CALL_CONTEXT,
-                PARAMETER_DECLARATION_POINTER_P2,
-                INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
+    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
+        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+            .put(PARAMETER_POINTER_P1_MEMORY_LOCATION, OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
+            .put(PARAMETER_POINTER_P2_MEMORY_LOCATION, INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION)
             .build();
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // dereference both param_ptr_P1 and param_ptr_P2
@@ -469,10 +453,10 @@ public class MemoryModelStructParameterTest {
 
     ImmutableSet<MemoryLocation> memoryLocationsP1 =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P1_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+            PARAMETER_POINTER_P1_MEMORY_LOCATION, testMemoryModel);
     ImmutableSet<MemoryLocation> memoryLocationsP2 =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P2_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+            PARAMETER_POINTER_P2_MEMORY_LOCATION, testMemoryModel);
 
     // asser that param_ptr_P1 is associated with local_l1 and param_ptr_P2 with global_G1
     assertThat(memoryLocationsP1.size() == 1).isTrue();
