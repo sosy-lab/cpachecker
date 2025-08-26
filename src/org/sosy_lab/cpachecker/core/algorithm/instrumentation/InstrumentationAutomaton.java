@@ -133,14 +133,14 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                liveVariablesAndTypes.entrySet().stream()
+                liveVariablesAndTypes.keySet().stream()
                         .map(
                             (entry) ->
                                 "int read_INSTR_"
-                                    + entry.getKey()
+                                    + entry
                                     + " = 0; "
                                     + "int write_INSTR_"
-                                    + entry.getKey()
+                                    + entry
                                     + " = 0")
                         .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? ";" : "")),
@@ -149,7 +149,7 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t2 =
         new InstrumentationTransition(
             q2,
-            new InstrumentationPattern("ADD"),
+            new InstrumentationPattern("vars_bin_op"),
             new InstrumentationOperation(
                 "__VERIFIER_atomic_begin();\\n"
                     + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
@@ -162,7 +162,7 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t3 =
         new InstrumentationTransition(
             q2,
-            new InstrumentationPattern("ADD"),
+            new InstrumentationPattern("vars_bin_op"),
             new InstrumentationOperation(
                 "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
                     + "__VERIFIER_atomic_end();\\n"),
@@ -171,12 +171,11 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t4 =
         new InstrumentationTransition(
             q2,
-            new InstrumentationPattern("SUB"),
+            new InstrumentationPattern("vars_un_op"),
             new InstrumentationOperation(
                 "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
+                    + " if (x_instr_2) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0)); }\\n"
+                    + "write_INSTR_x_instr_1++;\\n"
                     + "__VERIFIER_atomic_end();\\n"
                     + "__VERIFIER_atomic_begin();"),
             InstrumentationOrder.BEFORE,
@@ -184,345 +183,15 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t5 =
         new InstrumentationTransition(
             q2,
-            new InstrumentationPattern("SUB"),
+            new InstrumentationPattern("vars_un_op"),
             new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
+                "write_INSTR_x_instr_1--;\\n"
                     + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t6 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("MUL"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t7 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("MUL"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t8 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("DIV"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t9 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("DIV"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t10 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("MOD"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t11 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("MOD"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t12 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("SHIFT"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t13 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("SHIFT"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t14 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("EQ"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t15 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("EQ"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t16 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("GEQ"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t17 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("GEQ"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t18 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("GR"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t19 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("GR"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t20 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("LEQ"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t21 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("LEQ"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t22 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("LS"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t23 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("LS"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t24 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("NEQ"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t25 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("NEQ"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t26 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("RSHIFT"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t27 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("RSHIFT"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t28 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("AND"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t29 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("AND"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t30 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("OR"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t31 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("OR"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t32 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("XOR"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
-                    + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t33 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("XOR"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
-            InstrumentationOrder.AFTER,
-            q2);
-    InstrumentationTransition t34 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("NEG"),
-            new InstrumentationOperation(
-                "__VERIFIER_atomic_begin();\\n"
-                    + " if (x_instr_2) { __VERIFIER_assert(write_INSTR_x_instr_1 <= 0); }\\n"
-                    + "write_INSTR_x_instr_1++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
-            InstrumentationOrder.BEFORE,
-            q2);
-    InstrumentationTransition t35 =
-        new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("NEG"),
-            new InstrumentationOperation(
-                "write_INSTR_x_instr_1--;\\n" + "__VERIFIER_atomic_end();\\n"),
             InstrumentationOrder.AFTER,
             q2);
 
     this.instrumentationTransitions =
-        ImmutableList.of(
-            t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19,
-            t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32, t33, t34, t35);
+        ImmutableList.of(t1, t2, t3, t4, t5);
   }
 
   private InstrumentationState initializeMemorySafety(

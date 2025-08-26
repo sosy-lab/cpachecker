@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 /**
  * Class for patterns defined on the transitions of instrumentation automaton. Should not be used
@@ -67,6 +69,14 @@ public class InstrumentationPattern {
         break;
       case "[!cond]":
         type = patternType.NOT_COND;
+        break;
+        // Returns variables from binary operations, needed especially for data races
+      case "vars_bin_op":
+        type = patternType.VARS_BIN_OP;
+        break;
+      // Returns variables from binary operations, needed especially for data races
+      case "vars_un_op":
+        type = patternType.VARS_UN_OP;
         break;
       case "ptr_deref":
         type = patternType.PTR_DEREF;
@@ -150,6 +160,8 @@ public class InstrumentationPattern {
       case FUNC -> getTheOperandsFromFunctionCall(pCFAEdge, pDecomposedMap);
       case PTR_DEREF -> getTheOperandsFromPointerDereference(pCFAEdge);
       case PTR_DECLAR -> getTheOperandsFromPointerDeclaration(pCFAEdge);
+      case VARS_BIN_OP -> getTheVariablesFromBinaryOperation(pCFAEdge, pDecomposedMap);
+      case VARS_UN_OP -> getTheVariablesFromUnaryOperation(pCFAEdge, pDecomposedMap);
       case DECLAR -> getTheOperandsFromDeclaration(pCFAEdge);
       case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap);
       case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS, pDecomposedMap);
@@ -182,6 +194,80 @@ public class InstrumentationPattern {
 
   public String getFunctionName() {
     return functionName;
+  }
+
+  @Nullable
+  private ImmutableList<String> getTheVariablesFromBinaryOperation(
+      CFAEdge pCFAEdge, Map<CFANode, String> pDecomposedMap) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      CExpression expression = LoopInfoUtils.extractExpression(astNode);
+      String condition = collectConditionFromPreviousEdge(pCFAEdge);
+      if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
+        condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
+      }
+
+      if (expression instanceof CBinaryExpression) {
+        CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
+        CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
+
+        if ((operand1 instanceof CIdExpression && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType)
+            && (operand2 instanceof CIdExpression && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType)) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
+              removeIndicesOfVariablesWithSameName(operand2, pCFAEdge),
+              condition);
+        }  else {
+          return ImmutableList.of();
+        }
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private ImmutableList<String> getTheVariablesFromUnaryOperation(
+      CFAEdge pCFAEdge, Map<CFANode, String> pDecomposedMap) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      CExpression expression = LoopInfoUtils.extractExpression(astNode);
+      String condition = collectConditionFromPreviousEdge(pCFAEdge);
+      if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
+        condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
+      }
+
+      if (expression instanceof CUnaryExpression) {
+        CExpression operand = ((CUnaryExpression) expression).getOperand();
+
+        if (operand instanceof CIdExpression && ((CIdExpression) operand).getDeclaration().getType() instanceof CSimpleType) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(operand, pCFAEdge),
+              condition);
+        } else {
+          return ImmutableList.of();
+        }
+      }
+
+      if (expression instanceof CBinaryExpression) {
+        CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
+        CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
+
+        if (operand1 instanceof CIdExpression && ((CIdExpression) operand1).getDeclaration().getType() instanceof CSimpleType
+            && !(operand2 instanceof CIdExpression)) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
+              condition);
+        } else if (operand2 instanceof CIdExpression && ((CIdExpression) operand2).getDeclaration().getType() instanceof CSimpleType
+            && !(operand1 instanceof CIdExpression)) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(operand2, pCFAEdge),
+              condition);
+        } else {
+          return ImmutableList.of();
+        }
+      }
+    }
+    return null;
   }
 
   @Nullable
@@ -415,6 +501,8 @@ public class InstrumentationPattern {
     NOT_COND,
     PTR_DEREF,
     PTR_DECLAR,
+    VARS_BIN_OP,
+    VARS_UN_OP,
     DECLAR,
     ADD,
     SUB,

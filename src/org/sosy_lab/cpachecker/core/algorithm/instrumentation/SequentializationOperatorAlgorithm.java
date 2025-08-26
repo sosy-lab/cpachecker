@@ -306,6 +306,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       ImmutableList<String> pMatchedVariables) {
     if (!pTransition.getPattern().toString().equals("ptr_deref")
         && !pTransition.getPattern().toString().equals("ptr_declar")
+        && !pTransition.getPattern().toString().equals("vars_bin_op")
+        && !pTransition.getPattern().toString().equals("vars_un_op")
         && !pTransition.getPattern().toString().equals("ADD")
         && !pTransition.getPattern().toString().equals("SUB")
         && !pTransition.getPattern().toString().equals("MUL")
