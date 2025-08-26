@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.DELAYED_MERGE;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.LEFT_LIST_LONGER;
@@ -81,6 +82,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.smg.join.NodeMapping;
 import org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus;
 import org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatusOrRecoverableFailure;
 import org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure;
@@ -270,8 +272,8 @@ public class SymbolicProgramConfiguration {
     }
     // 1. create fresh, empty SMG
     SymbolicProgramConfiguration mergedSPC = of(thisSMG.getSizeOfPointer());
-    ImmutableMap<SMGNode, SMGNode> mapping1 = ImmutableMap.of();
-    ImmutableMap<SMGNode, SMGNode> mapping2 = ImmutableMap.of();
+    NodeMapping mapping1 = new NodeMapping();
+    NodeMapping mapping2 = new NodeMapping();
     Deque<SMGObjectMergeTriple> objectsToBeMerged = new ArrayDeque<>();
 
     // 2. For each program variable:
@@ -305,16 +307,6 @@ public class SymbolicProgramConfiguration {
       SMGObject newObject =
           SMGObject.of(0, thisGlobalObj.getSize(), thisGlobalObj.getOffset(), thisVarName);
       mergedSPC = mergedSPC.copyAndAddGlobalObject(newObject, thisVarName, thisType);
-      mapping1 =
-          ImmutableMap.<SMGNode, SMGNode>builder()
-              .putAll(mapping1)
-              .put(thisGlobalObj, newObject)
-              .buildOrThrow();
-      mapping2 =
-          ImmutableMap.<SMGNode, SMGNode>builder()
-              .putAll(mapping2)
-              .put(otherGlobalObj, newObject)
-              .buildOrThrow();
       addObjectsToBeMerged(
           thisSMG,
           thisGlobalObj,
@@ -394,16 +386,6 @@ public class SymbolicProgramConfiguration {
         // Copy
         SMGObject newObject = SMGObject.of(0, otherObj.getSize(), BigInteger.ZERO, otherVarName);
         mergedSPC = mergedSPC.copyAndAddStackObject(newObject, otherVarName, thisType);
-        mapping1 =
-            ImmutableMap.<SMGNode, SMGNode>builder()
-                .putAll(mapping1)
-                .put(thisObj, newObject)
-                .buildOrThrow();
-        mapping2 =
-            ImmutableMap.<SMGNode, SMGNode>builder()
-                .putAll(mapping2)
-                .put(otherObj, newObject)
-                .buildOrThrow();
         addObjectsToBeMerged(
             thisSMG,
             thisObj,
@@ -427,6 +409,8 @@ public class SymbolicProgramConfiguration {
       SMGObject thisGlobalObj = objects.getLeftVariableObject();
       SMGObject otherGlobalObj = objects.getRightVariableObject();
       SMGObject newGlobalObj = objects.getMergeObject();
+      mapping1 = mapping1.copyAndAddMapping(thisGlobalObj, newGlobalObj);
+      mapping2 = mapping2.copyAndAddMapping(otherGlobalObj, newGlobalObj);
 
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> maybeMergeResult =
           mergeSubSMGs(
@@ -481,11 +465,6 @@ public class SymbolicProgramConfiguration {
       }
     }
 
-    // Those are never supposed to end up in the mappings!
-    assert !mapping1.containsKey(SMGValue.zeroValue());
-    assert !mapping1.containsKey(SMGObject.nullInstance());
-    assert !mapping2.containsKey(SMGValue.zeroValue());
-    assert !mapping2.containsKey(SMGObject.nullInstance());
     return Optional.of(MergedSPCAndMergeStatus.of(mergedSPC, mergeStatus));
   }
 
@@ -541,8 +520,8 @@ public class SymbolicProgramConfiguration {
       SymbolicProgramConfiguration originalNewSPC,
       SMGObject newObj,
       SMGMergeStatus initialStatus,
-      ImmutableMap<SMGNode, SMGNode> mapping1,
-      ImmutableMap<SMGNode, SMGNode> mapping2,
+      NodeMapping mapping1,
+      NodeMapping mapping2,
       int nestingDiff)
       throws SMGException {
     Preconditions.checkNotNull(initialStatus);
@@ -665,8 +644,8 @@ public class SymbolicProgramConfiguration {
       SMGValue v1,
       SMGValue v2,
       SymbolicProgramConfiguration pNewSpc,
-      ImmutableMap<SMGNode, SMGNode> mapping1,
-      ImmutableMap<SMGNode, SMGNode> mapping2,
+      NodeMapping mapping1,
+      NodeMapping mapping2,
       SMGMergeStatus initialJoinStatus,
       int nestingDiff)
       throws SMGException {
@@ -708,9 +687,12 @@ public class SymbolicProgramConfiguration {
     }
 
     // 2. if m1(v1) == m2(v2) = v != 0, return (already joined). (m1 == mapping1 etc.)
-    if (mapping1.containsKey(v1) && mapping2.containsKey(v2)) {
-      SMGValue mv1 = (SMGValue) mapping1.get(v1);
-      SMGValue mv2 = (SMGValue) mapping2.get(v2);
+
+    if (mapping1.hasMapping(v1) && mapping2.hasMapping(v2)) {
+      // If this fails, add spec to getter
+      checkState(pSpc1.getSmg().isPointer(v1) || pSpc2.getSmg().isPointer(v2));
+      SMGValue mv1 = mapping1.getMappedValue(v1);
+      SMGValue mv2 = mapping2.getMappedValue(v2);
       if (mv1.equals(mv2) && !mv1.isZero()) {
         return Optional.of(
             MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
@@ -723,7 +705,7 @@ public class SymbolicProgramConfiguration {
     SMGMergeStatus status = initialJoinStatus;
     // 3. If both v1 and v2 are non-address values, then:
     if (!pSpc1.smg.isPointer(v1) && !pSpc2.smg.isPointer(v2)) {
-      if (mapping1.containsKey(v1) || mapping2.containsKey(v2)) {
+      if (mapping1.hasMapping(v1) || mapping2.hasMapping(v2)) {
         // If there is a mapping for v1 or v2 already present, return bottom.
         return Optional.empty();
       }
@@ -761,18 +743,10 @@ public class SymbolicProgramConfiguration {
       SymbolicProgramConfiguration newSPC =
           pNewSpc.copyAndPutValue(valueToWrite, v, level, sharedType);
       // Extend mapping such that m1(v1) == m2(v2) == v
-      mapping1 =
-          ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(v1, v).buildOrThrow();
-      mapping2 =
-          ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(v2, v).buildOrThrow();
+      mapping1 = mapping1.copyAndAddMapping(v1, v);
+      mapping2 = mapping2.copyAndAddMapping(v2, v);
       assert newSPC.smg.hasValue(v);
       assert newSPC.getValueFromSMGValue(v).isPresent();
-
-      // Note on the nesting level here: we use 0 for all non-ptr values, so this will never fail.
-      // Reason being that we don't want to have copies of concrete values that are irrelevant in
-      // the nesting, and we don't want to add additional complexity to the SMT solving
-      // (constraints of values with copies based on nesting level etc.)
-      // Since values can only be changed when merging or on concrete elements, this is no issue.
 
       // If level(v1) - level(v2) < nestingLevel, update join status with ⊏
       if (v1NestingLvl - v2NestingLvl < nestingDiff) {
@@ -820,8 +794,8 @@ public class SymbolicProgramConfiguration {
           SMGValue v1,
           SMGValue v2,
           SymbolicProgramConfiguration pNewSpc,
-          ImmutableMap<SMGNode, SMGNode> mapping1,
-          ImmutableMap<SMGNode, SMGNode> mapping2,
+          NodeMapping mapping1,
+          NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
           int nestingDiff,
           Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> res)
@@ -967,10 +941,10 @@ public class SymbolicProgramConfiguration {
   }
 
   private static boolean areMappedValuesInSPC(
-      SymbolicProgramConfiguration pNewSpc, ImmutableMap<SMGNode, SMGNode> mapping) {
-    for (SMGNode targetMappings : mapping.values()) {
-      if (targetMappings instanceof SMGValue v1Target) {
-        if (!pNewSpc.smg.hasValue(v1Target)) {
+      SymbolicProgramConfiguration pNewSpc, NodeMapping mapping) {
+    for (Map<SMGTargetSpecifier, SMGValue> innerMap : mapping.getValueMap().values()) {
+      for (SMGValue targetMappings : innerMap.values()) {
+        if (!pNewSpc.smg.hasValue(targetMappings)) {
           return false;
         }
       }
@@ -982,8 +956,8 @@ public class SymbolicProgramConfiguration {
       SMGMergeStatus initialJoinStatus,
       SymbolicProgramConfiguration spc1,
       SymbolicProgramConfiguration spc2,
-      ImmutableMap<SMGNode, SMGNode> mapping1,
-      ImmutableMap<SMGNode, SMGNode> mapping2,
+      NodeMapping mapping1,
+      NodeMapping mapping2,
       SMGObject obj1,
       SMGObject obj2) {
     // 1. If o1 = # or o2 = #, return ⊥.
@@ -995,29 +969,27 @@ public class SymbolicProgramConfiguration {
     } else if (obj2.isZero()) {
       return Optional.of(SMGMergeStatusOrRecoverableFailure.of(LEFT_LIST_LONGER));
     }
-    SMGNode m1o1 = mapping1.get(obj1);
-    SMGNode m2o2 = mapping2.get(obj2);
-    boolean m1Exists = mapping1.containsKey(obj1);
-    boolean m2Exists = mapping2.containsKey(obj2);
+    SMGObject m1o1 = mapping1.getMappedObject(obj1);
+    SMGObject m2o2 = mapping2.getMappedObject(obj2);
     // 2. If m1 (o1) != ⊥ != m2 (o2) and m1 (o1) != m2 (o2), return ⊥.
-    if (m1Exists && m2Exists && !m1o1.equals(m2o2)) {
+    if (m1o1 != null && m2o2 != null && !m1o1.equals(m2o2)) {
       return Optional.empty();
     }
     // 3. If m1 (o1) != ⊥ and ∃o'2 ∈ O2 : m1 (o1) = m2 (o'2), return ⊥.
-    if (m1Exists) {
-      for (Entry<SMGNode, SMGNode> nodes : mapping2.entrySet()) {
-        if (nodes.getValue() instanceof SMGObject m2o2Iter && m1o1.equals(m2o2Iter)) {
-          assert spc2.isHeapObject((SMGObject) nodes.getKey());
+    if (m1o1 != null) {
+      for (Entry<SMGObject, SMGObject> nodes : mapping2.getObjectMap().entrySet()) {
+        if (m1o1.equals(nodes.getValue())) {
+          assert spc2.isHeapObject(nodes.getKey());
           // Suspect that the right list is longer and might find the correct mapping later
           return Optional.of(SMGMergeStatusOrRecoverableFailure.of(RIGHT_LIST_LONGER));
         }
       }
     }
     // 4. If m2 (o2) != ⊥ and ∃o'1 ∈ O1 : m1 (o'1) = m2 (o2), return ⊥.
-    if (m2Exists) {
-      for (Entry<SMGNode, SMGNode> nodes : mapping1.entrySet()) {
-        if (nodes.getValue() instanceof SMGObject m1o1Iter && m2o2.equals(m1o1Iter)) {
-          assert spc1.isHeapObject((SMGObject) nodes.getKey());
+    if (m2o2 != null) {
+      for (Entry<SMGObject, SMGObject> nodes : mapping1.getObjectMap().entrySet()) {
+        if (m2o2.equals(nodes.getValue())) {
+          assert spc1.isHeapObject(nodes.getKey());
           return Optional.empty();
         }
       }
@@ -1066,10 +1038,11 @@ public class SymbolicProgramConfiguration {
         SMGValue v2 = hve2.hasValue();
         if (offset1 == offset2 && size1 == size2) {
           hves2.remove(hve2);
-          // – If v1 != ⊥ != v2 and m1 (v1) != ⊥ != m2 (v2) and m1 (v1) != m2(v2), return ⊥.
-          if (mapping1.containsKey(v1)
-              && mapping2.containsKey(v2)
-              && !mapping1.get(v1).equals(mapping2.get(v2))) {
+          // – If v1 != ⊥ != v2 and m1(v1) != ⊥ != m2(v2) and m1(v1) != m2(v2), return ⊥.
+          if (mapping1.hasMapping(v1)
+              && mapping2.hasMapping(v2)
+              && !mapping1.getMappedValue(v1).equals(mapping2.getMappedValue(v2))) {
+            checkState(!spc1.getSmg().isPointer(v1) && !spc2.getSmg().isPointer(v2));
             return Optional.empty();
           }
           iter2 = hves2.iterator();
@@ -1129,8 +1102,8 @@ public class SymbolicProgramConfiguration {
           SMGValue v1,
           SMGValue v2,
           SymbolicProgramConfiguration pNewSpc,
-          ImmutableMap<SMGNode, SMGNode> mapping1,
-          ImmutableMap<SMGNode, SMGNode> mapping2,
+          NodeMapping mapping1,
+          NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
           int nestingDiff)
           throws SMGException {
@@ -1163,7 +1136,7 @@ public class SymbolicProgramConfiguration {
     }
 
     // 3. Get existing HVE in the target of v1 with the working offset found
-    Preconditions.checkState(
+    checkState(
         sll1.getSize().isNumericValue()
             && sll1.getSize()
                     .asNumericValue()
@@ -1190,11 +1163,11 @@ public class SymbolicProgramConfiguration {
 
     // 4. If m1(d1) exists:
     SMGObject d;
-    if (mapping1.containsKey(sll1)) {
+    if (mapping1.hasMapping(sll1)) {
       // Let d = m1(d1)
-      d = (SMGObject) mapping1.get(sll1);
+      d = mapping1.getMappedObject(sll1);
       // If exists object: m2(o) == d, return recoverable failure
-      for (SMGNode m2Values : mapping2.values()) {
+      for (SMGNode m2Values : mapping2.getObjectMap().values()) {
         if (m2Values.equals(d)) {
           return Optional.of(
               MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.recoverableFailure(
@@ -1204,24 +1177,21 @@ public class SymbolicProgramConfiguration {
       // If m1(v1) does not exist, create a new value node a,
       //   and a new PTE a -> d (with offset/size of v1) for the new SMG,
       //   and extend the mapping of nodes such that m1(v1) = a.
-      if (!mapping1.containsKey(v1)) {
+      if (!mapping1.hasMapping(v1, targetSpec1)) {
         Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
         CType type1 = spc1.valueToTypeMap.get(v1);
         Preconditions.checkNotNull(type1);
+        // Note: Pointer nesting level is based on the target object
         newSPC =
             newSPC.copyAndAddPointerFromAddressToMemory(
                 addressValue, d, type1, pte1.getOffset(), 0, pte1.targetSpecifier());
         SMGValue newSMGValue = newSPC.getSMGValueFromValue(addressValue).orElseThrow();
-        mapping1 =
-            ImmutableMap.<SMGNode, SMGNode>builder()
-                .putAll(mapping1)
-                .put(v1, newSMGValue)
-                .buildOrThrow();
+        mapping1 = mapping1.copyAndAddMapping(v1, newSMGValue, targetSpec1);
         assert newSPC.smg.hasValue(newSMGValue);
         assert newSPC.getValueFromSMGValue(newSMGValue).isPresent();
       } else {
         //   Otherwise let a = m1(v1) and return with a.
-        SMGValue a = (SMGValue) mapping1.get(v1);
+        SMGValue a = mapping1.getMappedValue(v1, targetSpec1);
         return Optional.of(
             MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
                 a,
@@ -1250,11 +1220,11 @@ public class SymbolicProgramConfiguration {
       mapping1 = resRest.getMapping1();
       mapping2 = resRest.getMapping2();
     }
-    // 5. If m1(aNext) not existing and m2(v2) not existing and m1(aNext) != m2(v2), return
+    // 5. If m1(aNext) existing and m2(v2) existing and m1(aNext) != m2(v2), return
     // recoverable fail.
-    if (mapping1.containsKey(aNext)
-        && mapping2.containsKey(v2)
-        && !mapping1.get(aNext).equals(mapping2.get(v2))) {
+    if (mapping1.hasMapping(aNext)
+        && mapping2.hasMapping(v2)
+        && !mapping1.getMappedValue(aNext).equals(mapping2.getMappedValue(v2))) {
       return Optional.of(
           MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.recoverableFailure(
               DELAYED_MERGE));
@@ -1293,7 +1263,7 @@ public class SymbolicProgramConfiguration {
 
     Preconditions.checkArgument(newSPC.heapObjects.contains(d));
     Preconditions.checkArgument(newSPC.smg.getObjects().contains(d));
-    Preconditions.checkState(mapping1.containsKey(sll1) && mapping1.get(sll1).equals(d));
+    checkState(mapping1.hasMapping(sll1) && mapping1.getMappedObject(sll1).equals(d));
     Preconditions.checkArgument(((SMGSinglyLinkedListSegment) d).getMinLength() == 0);
     // 9. Let value a be the address such that the PTE of a equals the offset,
     //      size and target d if such an address already exists in new SMG.
@@ -1316,7 +1286,7 @@ public class SymbolicProgramConfiguration {
     }
 
     // Remember the mapping of v1 to a
-    mapping1 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(v1, a).buildOrThrow();
+    mapping1 = mapping1.copyAndAddMapping(v1, a);
     assert newSPC.smg.hasValue(a);
     assert newSPC.getValueFromSMGValue(a).isPresent();
 
@@ -1381,8 +1351,8 @@ public class SymbolicProgramConfiguration {
           SMGValue v1,
           SMGValue v2,
           SymbolicProgramConfiguration pNewSpc,
-          ImmutableMap<SMGNode, SMGNode> mapping1,
-          ImmutableMap<SMGNode, SMGNode> mapping2,
+          NodeMapping mapping1,
+          NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
           int nestingDiff)
           throws SMGException {
@@ -1415,7 +1385,7 @@ public class SymbolicProgramConfiguration {
     }
 
     // 3. Get existing HVE in the target of v2 with the working offset found
-    Preconditions.checkState(
+    checkState(
         sll2.getSize().isNumericValue()
             && sll2.getSize()
                     .asNumericValue()
@@ -1442,12 +1412,12 @@ public class SymbolicProgramConfiguration {
 
     // 4. If m2(d2) exists:
     SMGObject d;
-    if (mapping2.containsKey(sll2)) {
+    if (mapping2.hasMapping(sll2)) {
       // Let d = m2(d2)
-      d = (SMGObject) mapping2.get(sll2);
+      d = mapping2.getMappedObject(sll2);
       // If exists object: m1(o) == d, return recoverable failure
-      for (SMGNode m1Values : mapping1.values()) {
-        if (m1Values.equals(d)) {
+      for (SMGObject m1MappedObj : mapping1.getObjectMap().values()) {
+        if (m1MappedObj.equals(d)) {
           return Optional.of(
               MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.recoverableFailure(
                   DELAYED_MERGE));
@@ -1456,7 +1426,7 @@ public class SymbolicProgramConfiguration {
       // If m2(v2) does not exist, create a new value node a,
       //   and a new PTE a -> d (with offset/size of v2) for the new SMG,
       //   and extend the mapping of nodes such that m2(v2) = a.
-      if (!mapping2.containsKey(v2)) {
+      if (!mapping2.hasMapping(v2, targetSpec2)) {
         Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
         CType type2 = spc2.valueToTypeMap.get(v2);
         Preconditions.checkNotNull(type2);
@@ -1464,16 +1434,12 @@ public class SymbolicProgramConfiguration {
             newSPC.copyAndAddPointerFromAddressToMemory(
                 addressValue, d, type2, pte2.getOffset(), 0, pte2.targetSpecifier());
         SMGValue newSMGValue = newSPC.getSMGValueFromValue(addressValue).orElseThrow();
-        mapping2 =
-            ImmutableMap.<SMGNode, SMGNode>builder()
-                .putAll(mapping2)
-                .put(v2, newSMGValue)
-                .buildOrThrow();
+        mapping2 = mapping2.copyAndAddMapping(v2, newSMGValue);
         assert newSPC.smg.hasValue(newSMGValue);
         assert newSPC.getValueFromSMGValue(newSMGValue).isPresent();
       } else {
         //   Otherwise let a = m2(v2) and return with a.
-        SMGValue a = (SMGValue) mapping2.get(v2);
+        SMGValue a = mapping2.getMappedValue(v2);
         return Optional.of(
             MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
                 a,
@@ -1505,9 +1471,9 @@ public class SymbolicProgramConfiguration {
     }
     // 5. If m2(aNext) not existing and m1(v1) not existing and m2(aNext) != m1(v1), return
     // recoverable fail.
-    if (mapping2.containsKey(aNext)
+    if (mapping2.hasMapping(aNext)
         && mapping1.containsKey(v1)
-        && !mapping2.get(aNext).equals(mapping1.get(v1))) {
+        && !mapping2.getMappedValue(aNext, spc2).equals(mapping1.getMappedValue(v1, spc1))) {
       return Optional.of(
           MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.recoverableFailure(
               DELAYED_MERGE));
@@ -1546,7 +1512,7 @@ public class SymbolicProgramConfiguration {
 
     Preconditions.checkArgument(newSPC.heapObjects.contains(d));
     Preconditions.checkArgument(newSPC.smg.getObjects().contains(d));
-    Preconditions.checkState(mapping2.containsKey(sll2) && mapping2.get(sll2).equals(d));
+    checkState(mapping2.containsKey(sll2) && mapping2.getMappedObject(sll2).equals(d));
     Preconditions.checkArgument(((SMGSinglyLinkedListSegment) d).getMinLength() == 0);
     // 9. Let value a be the address such that the PTE of a equals the offset,
     //      size and target d if such an address already exists in new SMG.
@@ -1568,7 +1534,7 @@ public class SymbolicProgramConfiguration {
       a = maybeAddressValue.orElseThrow();
     }
     // Remember the mapping of v2 to a
-    mapping2 = ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(v2, a).buildOrThrow();
+    mapping2 = mapping2.copyAndAddMapping(v2, a);
     assert newSPC.smg.hasValue(a);
     assert newSPC.getValueFromSMGValue(a).isPresent();
 
@@ -1638,14 +1604,13 @@ public class SymbolicProgramConfiguration {
               .removeAndCopy(newExternalObjectAllocation);
     }
 
-    Preconditions.checkState(isHeapObject(pOldObject));
+    checkState(isHeapObject(pOldObject));
 
     SymbolicProgramConfiguration newSPC =
         copyAndAddHeapObject(pNewObject)
             .copyWithNewSMG(smg.copyAndReplaceObject(pOldObject, pNewObject));
 
-    Preconditions.checkState(
-        newSPC.smg.getAllSourcesForPointersPointingTowards(pOldObject).isEmpty());
+    checkState(newSPC.smg.getAllSourcesForPointersPointingTowards(pOldObject).isEmpty());
 
     return new SymbolicProgramConfiguration(
         newSPC.smg,
@@ -1683,7 +1648,7 @@ public class SymbolicProgramConfiguration {
       SymbolicProgramConfiguration rootSPC,
       SymbolicProgramConfiguration newSPC,
       BigInteger restrictionOffset,
-      ImmutableMap<SMGNode, SMGNode> mappingOfStates)
+      NodeMapping mappingOfStates)
       throws SMGException {
     // Add all values. next/prev pointer is wrong here, depending on left/right sided
     // materialization! We write this later in the materialization.
@@ -1722,17 +1687,17 @@ public class SymbolicProgramConfiguration {
       SMGObject newMemory,
       SymbolicProgramConfiguration rootSPC,
       SymbolicProgramConfiguration newSPC,
-      ImmutableMap<SMGNode, SMGNode> mappingOfNodes,
+      NodeMapping mappingOfNodes,
       Set<BigInteger> excludedOffsets)
       throws SMGException {
     // We can't handle stack variables here. Alloca would be fine.
     // TODO: handle non variable stack memory here.
-    Preconditions.checkState(rootSPC.isHeapObject(rootObj));
+    checkState(rootSPC.isHeapObject(rootObj));
     SymbolicProgramConfiguration currentNewSPC = newSPC;
-    SMGNode mappedNodeForRootObj = mappingOfNodes.get(rootObj);
+    SMGNode mappedNodeForRootObj = mappingOfNodes.getMappedObject(rootObj);
     if (mappedNodeForRootObj != null) {
       // Already added/done
-      Preconditions.checkState(mappedNodeForRootObj == newMemory);
+      checkState(mappedNodeForRootObj == newMemory);
       assert rootSPC
           .smg
           .getSMGObjectsWithSMGHasValueEdges()
@@ -1744,11 +1709,7 @@ public class SymbolicProgramConfiguration {
                   .getOrDefault(newMemory, PersistentSet.of()));
       return MergedSPCAndMapping.of(currentNewSPC, mappingOfNodes);
     } else {
-      mappingOfNodes =
-          ImmutableMap.<SMGNode, SMGNode>builder()
-              .putAll(mappingOfNodes)
-              .put(rootObj, newMemory)
-              .buildOrThrow();
+      mappingOfNodes = mappingOfNodes.copyAndAddMapping(rootObj, newMemory);
       currentNewSPC = newSPC.copyAndAddHeapObject(newMemory);
     }
     if (rootSPC.externalObjectAllocation.containsKey(rootObj)) {
@@ -1786,18 +1747,16 @@ public class SymbolicProgramConfiguration {
       SMGValue smgValueRoot = hve.hasValue();
       SMGPointsToEdge pteRoot = rootSPC.smg.getPTEdge(smgValueRoot).orElseThrow();
       SMGObject rootTargetMemory = pteRoot.pointsTo();
-      Preconditions.checkState(mappingOfNodes.containsKey(smgValueRoot));
-      SMGValue newSMGValue = (SMGValue) mappingOfNodes.get(smgValueRoot);
+      checkState(mappingOfNodes.getValueMap().containsKey(smgValueRoot));
+      SMGValue newSMGValue = mappingOfNodes.getMappedValue(smgValueRoot);
       boolean copyMemoryRecursivly = false;
 
       // Replicate sub-SMG if not yet done (the value was copied, but not the PTE)
       if (!currentNewSPC.smg.isPointer(newSMGValue)) {
-        SMGObject newMemoryTargetObject;
-        SMGNode mappedNodeForTargetMemory = mappingOfNodes.get(rootTargetMemory);
-        if (mappedNodeForTargetMemory != null) {
+        SMGObject newMemoryTargetObject = mappingOfNodes.getMappedObject(rootTargetMemory);
+        if (newMemoryTargetObject != null) {
           // Known memory, just insert PTE
-          newMemoryTargetObject = (SMGObject) mappedNodeForTargetMemory;
-          Preconditions.checkState(currentNewSPC.isHeapObject(newMemoryTargetObject));
+          checkState(currentNewSPC.isHeapObject(newMemoryTargetObject));
           assert currentNewSPC
               .smg
               .getSMGObjectsWithSMGHasValueEdges()
@@ -1806,10 +1765,10 @@ public class SymbolicProgramConfiguration {
 
         } else {
           // Copy memory and insert PTE
-          Preconditions.checkState(!currentNewSPC.heapObjects.contains(rootTargetMemory));
+          checkState(!currentNewSPC.heapObjects.contains(rootTargetMemory));
           // We can't handle stack variables here. Alloca would be fine.
           // TODO: handle non variable stack memory here.
-          Preconditions.checkState(rootSPC.isHeapObject(rootTargetMemory));
+          checkState(rootSPC.isHeapObject(rootTargetMemory));
           newMemoryTargetObject = rootTargetMemory;
           copyMemoryRecursivly = true;
         }
@@ -1839,10 +1798,10 @@ public class SymbolicProgramConfiguration {
       } else {
         // There is a PTE in the new SPC already, make some checks that it's OK.
         SMGPointsToEdge pteNew = currentNewSPC.smg.getPTEdge(newSMGValue).orElseThrow();
-        Preconditions.checkState(pteRoot.getOffset().equals(pteNew.getOffset()));
-        Preconditions.checkState(mappingOfNodes.containsKey(pteRoot.pointsTo()));
-        Preconditions.checkState(mappingOfNodes.get(pteRoot.pointsTo()).equals(pteNew.pointsTo()));
-        Preconditions.checkState(pteRoot.targetSpecifier().equals(pteNew.targetSpecifier()));
+        checkState(pteRoot.getOffset().equals(pteNew.getOffset()));
+        checkState(mappingOfNodes.containsKey(pteRoot.pointsTo()));
+        checkState(mappingOfNodes.getMappedObject(pteRoot.pointsTo()).equals(pteNew.pointsTo()));
+        checkState(pteRoot.targetSpecifier().equals(pteNew.targetSpecifier()));
       }
     }
     return MergedSPCAndMapping.of(currentNewSPC, mappingOfNodes);
@@ -1861,8 +1820,8 @@ public class SymbolicProgramConfiguration {
           SymbolicProgramConfiguration pSpc2,
           SMGValue v1,
           SMGValue v2,
-          ImmutableMap<SMGNode, SMGNode> mapping1,
-          ImmutableMap<SMGNode, SMGNode> mapping2,
+          NodeMapping mapping1,
+          NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
           int nestingDiff)
           throws SMGException {
@@ -1896,19 +1855,19 @@ public class SymbolicProgramConfiguration {
     //      In this case the targets are already joined,
     //      and we need to create a new address for the object o in newSMG.
     if ((o2.isZero() && o1.isZero())
-        || (mapping1.containsKey(o1)
-            && mapping2.containsKey(o2)
-            && mapping1.get(o1).equals(mapping2.get(o2)))) {
+        || (mapping1.hasMapping(o1)
+            && mapping2.hasMapping(o2)
+            && mapping1.getMappedObject(o1).equals(mapping2.getMappedObject(o2)))) {
       MergedSPCWithMappingsAndAddressValue res =
           mapTargetAddress(newSPC, spc1, spc2, v1, v2, mapping1, mapping2);
       newSPC = res.getMergedSPC();
       mapping1 = res.getMapping1();
       mapping2 = res.getMapping2();
       SMGValue a = res.getAddressValue();
-      Preconditions.checkState(newSPC.valueToTypeMap.containsKey(a));
-      Preconditions.checkState(newSPC.smg.isPointer(a));
-      Preconditions.checkState(
-          newSPC.smg.getPTEdge(a).orElseThrow().pointsTo().equals(mapping1.get(o1)));
+      checkState(newSPC.valueToTypeMap.containsKey(a));
+      checkState(newSPC.smg.isPointer(a));
+      checkState(
+          newSPC.smg.getPTEdge(a).orElseThrow().pointsTo().equals(mapping1.getMappedObject(o1)));
       return Optional.of(
           MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
               a,
@@ -1926,9 +1885,10 @@ public class SymbolicProgramConfiguration {
 
     // 5. If kind(o1) != kind(o2) and m1(o1) != m2(o2), return recoverable failure.
     if (!o1.getClass().equals(o2.getClass())) {
-      boolean contains1 = mapping1.containsKey(o1);
-      boolean contains2 = mapping2.containsKey(o2);
-      if (contains1 != contains2 || (contains1 && !mapping1.get(o1).equals(mapping2.get(o2)))) {
+      boolean contains1 = mapping1.hasMapping(o1);
+      boolean contains2 = mapping2.hasMapping(o2);
+      if (contains1 != contains2
+          || (contains1 && !mapping1.getMappedObject(o1).equals(mapping2.getMappedObject(o2)))) {
         // TODO: is this the correct intepretation?
         return Optional.of(
             MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.recoverableFailure(
@@ -1956,7 +1916,7 @@ public class SymbolicProgramConfiguration {
     // 10. Let level(o) = max level of o1 and o2
     SMGObject o = o1.join(o2);
     // TODO: We could also have stack objs due to alloca(), if we hit this, implement it.
-    Preconditions.checkState(spc1.heapObjects.contains(o1) && spc2.heapObjects.contains(o2));
+    checkState(spc1.heapObjects.contains(o1) && spc2.heapObjects.contains(o2));
     assert o.getMinLength() == Integer.min(o1.getMinLength(), o2.getMinLength());
     if (!newSPC.heapObjects.contains(o)) {
       newSPC = newSPC.copyAndAddHeapObject(o);
@@ -1970,11 +1930,11 @@ public class SymbolicProgramConfiguration {
     //     and remove the items of m1 whose target nodes were removed.
     boolean mapO1 = true;
     boolean mapO2 = true;
-    if (mapping1.containsKey(o1) && mapping1.get(o1) != o) {
-      SMGObject oldTarget1 = (SMGObject) mapping1.get(o1);
+    if (mapping1.hasMapping(o1) && mapping1.getMappedObject(o1) != o) {
+      SMGObject oldTarget1 = mapping1.getMappedObject(o1);
       // Replace pointers in SMG
       newSPC = newSPC.replaceAllPointersTowardsWith(oldTarget1, o);
-      Preconditions.checkState(
+      checkState(
           newSPC
               .smg
               .getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(oldTarget1)
@@ -1983,33 +1943,18 @@ public class SymbolicProgramConfiguration {
       SPCAndSMGObjects newSPCAndRemoved = newSPC.copyAndRemoveObjectAndAssociatedSubSMG(oldTarget1);
       newSPC = newSPCAndRemoved.getSPC();
       Collection<SMGObject> removed1 = newSPCAndRemoved.getSMGObjects();
-      ImmutableMap.Builder<SMGNode, SMGNode> newMapping1 = ImmutableMap.builder();
-      for (Entry<SMGNode, SMGNode> mappingIn1 : mapping1.entrySet()) {
-        if (mappingIn1.getValue() instanceof SMGValue m1v) {
-          if (newSPC.smg.isPointer(m1v)) {
-            if (!removed1.contains(newSPC.smg.getPTEdge(m1v).orElseThrow().pointsTo())) {
-              newMapping1.put(mappingIn1);
-            }
-          } else {
-            newMapping1.put(mappingIn1);
-          }
-        } else if (!removed1.contains(mappingIn1.getValue())) {
-          newMapping1.put(mappingIn1);
-        }
-      }
-
-      mapping1 = newMapping1.buildOrThrow();
-      Preconditions.checkArgument(!mapping1.containsKey(o1));
-    } else if (mapping1.containsKey(o1)) {
+      mapping1 = mapping1.copyAndRemoveMappingsTo(removed1, spc1);
+      Preconditions.checkArgument(!mapping1.hasMapping(o1));
+    } else if (mapping1.hasMapping(o1)) {
       mapO1 = false;
     }
 
     //     If m2(o2) exists, do the same.
     //     This performs a delayed join (C.6)
-    if (mapping2.containsKey(o2) && mapping2.get(o2) != o) {
-      SMGObject oldTarget2 = (SMGObject) mapping2.get(o2);
+    if (mapping2.hasMapping(o2) && mapping2.getMappedObject(o2) != o) {
+      SMGObject oldTarget2 = mapping2.getMappedObject(o2);
       newSPC = newSPC.replaceAllPointersTowardsWith(oldTarget2, o);
-      Preconditions.checkState(
+      checkState(
           newSPC
               .smg
               .getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(oldTarget2)
@@ -2018,47 +1963,31 @@ public class SymbolicProgramConfiguration {
       SPCAndSMGObjects newSPCAndRemoved = newSPC.copyAndRemoveObjectAndAssociatedSubSMG(oldTarget2);
       newSPC = newSPCAndRemoved.getSPC();
       Collection<SMGObject> removed2 = newSPCAndRemoved.getSMGObjects();
-      ImmutableMap.Builder<SMGNode, SMGNode> newMapping2 = ImmutableMap.builder();
-      for (Entry<SMGNode, SMGNode> mappingIn2 : mapping2.entrySet()) {
-        if (mappingIn2.getValue() instanceof SMGValue m2v) {
-          if (newSPC.smg.isPointer(m2v)) {
-            if (!removed2.contains(newSPC.smg.getPTEdge(m2v).orElseThrow().pointsTo())) {
-              newMapping2.put(mappingIn2);
-            }
-          } else {
-            newMapping2.put(mappingIn2);
-          }
-        } else if (!removed2.contains(mappingIn2.getValue())) {
-          newMapping2.put(mappingIn2);
-        }
-      }
+      mapping2 = mapping2.copyAndRemoveMappingsTo(removed2, spc2);
+      Preconditions.checkArgument(!mapping2.hasMapping(o2));
 
-      mapping2 = newMapping2.buildOrThrow();
-      Preconditions.checkArgument(!mapping2.containsKey(o2));
-    } else if (mapping2.containsKey(o2)) {
+    } else if (mapping2.hasMapping(o2)) {
       mapO2 = false;
     }
 
     // 12. Extend mapping
     if (mapO1) {
-      mapping1 =
-          ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping1).put(o1, o).buildOrThrow();
+      mapping1 = mapping1.copyAndAddMapping(o1, o);
     }
     if (mapO2) {
-      mapping2 =
-          ImmutableMap.<SMGNode, SMGNode>builder().putAll(mapping2).put(o2, o).buildOrThrow();
+      mapping2 = mapping2.copyAndAddMapping(o2, o);
     }
-    assert mapping1.get(o1) == o;
-    assert mapping2.get(o2) == o;
+    assert mapping1.getMappedObject(o1) == o;
+    assert mapping2.getMappedObject(o2) == o;
 
     // 13. Let (G, m1 , m2 , a) := mapTargetAddress(G1 , G2 , G, m1 , m2 , a1 , a2 ).
     MergedSPCWithMappingsAndAddressValue resMapTargetAddress =
         mapTargetAddress(newSPC, spc1, spc2, v1, v2, mapping1, mapping2);
     SMGValue a = resMapTargetAddress.getAddressValue();
     newSPC = resMapTargetAddress.getMergedSPC();
-    Preconditions.checkState(newSPC.smg.isPointer(a));
-    Preconditions.checkState(newSPC.valueToTypeMap.containsKey(a));
-    Preconditions.checkState(newSPC.smg.getPTEdge(a).orElseThrow().pointsTo().equals(o));
+    checkState(newSPC.smg.isPointer(a));
+    checkState(newSPC.valueToTypeMap.containsKey(a));
+    checkState(newSPC.smg.getPTEdge(a).orElseThrow().pointsTo().equals(o));
     mapping1 = resMapTargetAddress.getMapping1();
     mapping2 = resMapTargetAddress.getMapping2();
 
@@ -2095,8 +2024,8 @@ public class SymbolicProgramConfiguration {
       SymbolicProgramConfiguration pMergingSPC2,
       SMGValue a1,
       SMGValue a2,
-      ImmutableMap<SMGNode, SMGNode> pMapping1,
-      ImmutableMap<SMGNode, SMGNode> pMapping2)
+      NodeMapping pMapping1,
+      NodeMapping pMapping2)
       throws SMGException {
     // 1. Let o1 := o(P1(a1)), of := of (P1(a1)).
     SMGPointsToEdge pte1 = pMergingSPC1.smg.getPTEdge(a1).orElseThrow();
@@ -2110,9 +2039,9 @@ public class SymbolicProgramConfiguration {
     if (o1.isZero()) {
       o = SMGObject.nullInstance();
     } else {
-      Preconditions.checkArgument(pMapping1.containsKey(o1) && pMapping2.containsKey(o2));
-      o = (SMGObject) pMapping1.get(o1);
-      Preconditions.checkArgument(o.equals(pMapping2.get(o2)));
+      Preconditions.checkArgument(pMapping1.hasMapping(o1) && pMapping2.hasMapping(o2));
+      o = pMapping1.getMappedObject(o1);
+      Preconditions.checkArgument(o.equals(pMapping2.getMappedObject(o2)));
     }
     // 3. If kind1(o1) = dls, let tg := tg(P1(a1)). Otherwise, let tg := tg(P2(a2)).
     SMGTargetSpecifier tg;
@@ -2154,10 +2083,8 @@ public class SymbolicProgramConfiguration {
             tg);
     SMGValue a = mergedSPC.getSMGValueFromValue(newAddressValue).orElseThrow();
     // 6. Extend the mapping of nodes such that m1 (a1) = m2 (a2) = a.
-    pMapping1 =
-        ImmutableMap.<SMGNode, SMGNode>builder().putAll(pMapping1).put(a1, a).buildOrThrow();
-    pMapping2 =
-        ImmutableMap.<SMGNode, SMGNode>builder().putAll(pMapping2).put(a2, a).buildOrThrow();
+    pMapping1 = pMapping1.copyAndAddMapping(a1, a);
+    pMapping2 = pMapping2.copyAndAddMapping(a2, a);
     assert mergedSPC.smg.hasValue(a);
     assert mergedSPC.getValueFromSMGValue(a).isPresent();
     // 7. Return (G, m1 , m2 , a).
@@ -3040,7 +2967,7 @@ public class SymbolicProgramConfiguration {
       SMGObject source,
       SymbolicProgramConfiguration pTargetSPC,
       SMGObject target,
-      ImmutableMap<SMGNode, SMGNode> mappingBetweenStates,
+      NodeMapping mappingBetweenStates,
       Set<BigInteger> excludedOffsets)
       throws SMGException {
     SymbolicProgramConfiguration newTargetState = pTargetSPC;
@@ -3048,7 +2975,7 @@ public class SymbolicProgramConfiguration {
     PersistentSet<SMGHasValueEdge> setOfValuesSource =
         sourceSPC.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(source, PersistentSet.of());
     // We expect that there are NO edges in the target!
-    Preconditions.checkState(
+    checkState(
         newTargetState
             .smg
             .getSMGObjectsWithSMGHasValueEdges()
@@ -3067,7 +2994,7 @@ public class SymbolicProgramConfiguration {
       int nestingLevel = sourceSPC.getNestingLevel(smgValueSource);
       if (mappingBetweenStates.containsKey(smgValueSource)) {
         // We know the value mapping already, use it
-        smgValueInTarget = (SMGValue) mappingBetweenStates.get(smgValueSource);
+        smgValueInTarget = mappingBetweenStates.getMappedValue(smgValueSource);
         Preconditions.checkArgument(newTargetState.smg.getValues().containsKey(smgValueInTarget));
         Optional<Value> maybeNewSPCValue = newTargetState.getValueFromSMGValue(smgValueInTarget);
         if (maybeNewSPCValue.isEmpty()) {
@@ -3081,13 +3008,10 @@ public class SymbolicProgramConfiguration {
         if (!smgValueSource.isZero()) {
           // Add new mapping
           // Check that the target SPC/SMG does not have a mapping for this value
-          Preconditions.checkState(!newTargetState.containsValueInMapping(valueInSource));
-          Preconditions.checkState(!newTargetState.containsValueInMapping(smgValueInTarget));
+          checkState(!newTargetState.containsValueInMapping(valueInSource));
+          checkState(!newTargetState.containsValueInMapping(smgValueInTarget));
           mappingBetweenStates =
-              ImmutableMap.<SMGNode, SMGNode>builder()
-                  .putAll(mappingBetweenStates)
-                  .put(smgValueSource, smgValueInTarget)
-                  .buildOrThrow();
+              mappingBetweenStates.copyAndAddMapping(smgValueSource, smgValueInTarget);
         }
       }
       CType typeSource = sourceSPC.valueToTypeMap.get(smgValueSource);

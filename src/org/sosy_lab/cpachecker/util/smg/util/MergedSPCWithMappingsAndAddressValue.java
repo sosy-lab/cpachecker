@@ -9,22 +9,21 @@
 package org.sosy_lab.cpachecker.util.smg.util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGNode;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.smg.join.NodeMapping;
 
 public class MergedSPCWithMappingsAndAddressValue {
   private final SymbolicProgramConfiguration spc;
   private final SMGValue address;
-  private final ImmutableMap<SMGNode, SMGNode> mapping1;
-  private final ImmutableMap<SMGNode, SMGNode> mapping2;
+  private final NodeMapping mapping1;
+  private final NodeMapping mapping2;
 
   private MergedSPCWithMappingsAndAddressValue(
       SymbolicProgramConfiguration pSPc,
       SMGValue pAddressValue,
-      ImmutableMap<SMGNode, SMGNode> pMapping1,
-      ImmutableMap<SMGNode, SMGNode> pMapping2) {
+      NodeMapping pMapping1,
+      NodeMapping pMapping2) {
     Preconditions.checkNotNull(pSPc);
     Preconditions.checkNotNull(pAddressValue);
     Preconditions.checkNotNull(pMapping1);
@@ -38,8 +37,8 @@ public class MergedSPCWithMappingsAndAddressValue {
   public static MergedSPCWithMappingsAndAddressValue of(
       SymbolicProgramConfiguration pSPc,
       SMGValue pAddressValue,
-      ImmutableMap<SMGNode, SMGNode> pMapping1,
-      ImmutableMap<SMGNode, SMGNode> pMapping2) {
+      NodeMapping pMapping1,
+      NodeMapping pMapping2) {
     return new MergedSPCWithMappingsAndAddressValue(pSPc, pAddressValue, pMapping1, pMapping2);
   }
 
@@ -51,11 +50,11 @@ public class MergedSPCWithMappingsAndAddressValue {
     return address;
   }
 
-  public ImmutableMap<SMGNode, SMGNode> getMapping1() {
+  public NodeMapping getMapping1() {
     return mapping1;
   }
 
-  public ImmutableMap<SMGNode, SMGNode> getMapping2() {
+  public NodeMapping getMapping2() {
     return mapping2;
   }
 }

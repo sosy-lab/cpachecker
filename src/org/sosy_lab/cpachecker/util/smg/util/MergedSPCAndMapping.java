@@ -9,17 +9,15 @@
 package org.sosy_lab.cpachecker.util.smg.util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGNode;
+import org.sosy_lab.cpachecker.util.smg.join.NodeMapping;
 
 public class MergedSPCAndMapping {
 
   private final SymbolicProgramConfiguration mergedSPC;
-  private final ImmutableMap<SMGNode, SMGNode> mapping;
+  private final NodeMapping mapping;
 
-  private MergedSPCAndMapping(
-      SymbolicProgramConfiguration pMergedSPC, ImmutableMap<SMGNode, SMGNode> pMapping) {
+  private MergedSPCAndMapping(SymbolicProgramConfiguration pMergedSPC, NodeMapping pMapping) {
     Preconditions.checkNotNull(pMergedSPC);
     Preconditions.checkNotNull(pMapping);
     mergedSPC = pMergedSPC;
@@ -27,7 +25,7 @@ public class MergedSPCAndMapping {
   }
 
   public static MergedSPCAndMapping of(
-      SymbolicProgramConfiguration pMergedSpc, ImmutableMap<SMGNode, SMGNode> pMapping) {
+      SymbolicProgramConfiguration pMergedSpc, NodeMapping pMapping) {
     return new MergedSPCAndMapping(pMergedSpc, pMapping);
   }
 
@@ -35,7 +33,7 @@ public class MergedSPCAndMapping {
     return mergedSPC;
   }
 
-  public ImmutableMap<SMGNode, SMGNode> getMapping() {
+  public NodeMapping getMapping() {
     return mapping;
   }
 }
