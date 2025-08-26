@@ -201,7 +201,11 @@ public class MemoryModelStructTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            MEMORY_LOCATION_IDS, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            MEMORY_LOCATION_IDS,
+            pointerAssignments,
+            ImmutableTable.of(),
+            ImmutableTable.of(),
+            pointerDereferences);
 
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
@@ -233,7 +237,11 @@ public class MemoryModelStructTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            MEMORY_LOCATION_IDS, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            MEMORY_LOCATION_IDS,
+            pointerAssignments,
+            ImmutableTable.of(),
+            ImmutableTable.of(),
+            pointerDereferences);
 
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocationsA =

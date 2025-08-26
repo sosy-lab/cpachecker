@@ -14,10 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableTable;
-import java.util.HashSet;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -32,7 +29,6 @@ public class MemoryModel {
 
   private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
 
-  // TODO we could map MemoryLocation, MemoryLocation here directly
   private final ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments;
 
   /**
@@ -43,6 +39,10 @@ public class MemoryModel {
   private final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
       parameterAssignments;
 
+  /** The subset of parameters that are pointers. */
+  private final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
+      pointerParameterAssignments;
+
   private final ImmutableSet<MemoryLocation> pointerDereferences;
 
   // public constructor for unit tests
@@ -50,12 +50,15 @@ public class MemoryModel {
       ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
       ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
+          pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
     checkArguments(pPointerAssignments);
     memoryLocationAmount = pMemoryLocationIds.size();
     memoryLocationIds = pMemoryLocationIds;
     pointerAssignments = pPointerAssignments;
+    pointerParameterAssignments = pPointerParameterAssignments;
     parameterAssignments = pParameterAssignments;
     pointerDereferences = pPointerDereferences;
   }
@@ -99,6 +102,20 @@ public class MemoryModel {
   }
 
   /**
+   * Returns {@code true} if any pointer (parameter or variable, both local and global) points to
+   * {@code pMemoryLocation}.
+   */
+  private boolean isPointedTo(MemoryLocation pMemoryLocation) {
+    if (pointerAssignments.values().contains(pMemoryLocation)) {
+      return true;
+    }
+    if (pointerParameterAssignments.containsValue(pMemoryLocation)) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Returns {@code true} if {@code pMemoryLocation} is implicitly global e.g. through {@code
    * global_ptr = &local_var;}. Returns {@code false} even if the memory location itself is global.
    */
@@ -106,71 +123,31 @@ public class MemoryModel {
     if (pMemoryLocation.isGlobal()) {
       return false;
     }
-    // TODO also handle parameterPointerAssignments here
-    for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
-      if (pointerAssignments.get(pointerDeclaration).contains(pMemoryLocation)) {
+    if (isPointedTo(pMemoryLocation)) {
+      for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
         ImmutableSet<CVariableDeclaration> transitivePointerDeclarations =
-            findPointerDeclarationsByPointerAssignments(pointerDeclaration);
+            MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
+                pointerDeclaration, pointerAssignments, parameterAssignments);
         for (CVariableDeclaration transitivePointerDeclaration : transitivePointerDeclarations) {
           if (transitivePointerDeclaration.isGlobal()) {
             return true;
           }
         }
       }
-    }
-    for (MemoryLocation pointerDereference : pointerDereferences) {
-      if (pointerDereference.equals(pMemoryLocation)) {
-        ImmutableSet<MemoryLocation> memoryLocations =
-            MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-                pointerDereference, pMemoryLocation.callContext, this);
-        for (MemoryLocation memoryLocation : memoryLocations) {
-          if (memoryLocation.isGlobal()) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  }
-
-  private ImmutableSet<CVariableDeclaration> findPointerDeclarationsByPointerAssignments(
-      CVariableDeclaration pPointerDeclaration) {
-
-    Set<CVariableDeclaration> rFound = new HashSet<>();
-    rFound.add(pPointerDeclaration);
-    recursivelyFindPointerDeclarationsByPointerAssignments(
-        pPointerDeclaration, rFound, new HashSet<>());
-    return ImmutableSet.copyOf(rFound);
-  }
-
-  private void recursivelyFindPointerDeclarationsByPointerAssignments(
-      CVariableDeclaration pCurrentPointerDeclaration,
-      Set<CVariableDeclaration> pFound,
-      Set<CVariableDeclaration> pVisited) {
-
-    // should always hold, so we use assert instead of checkArgument
-    assert pCurrentPointerDeclaration.getType() instanceof CPointerType
-        : "type of pCurrentPointerDeclaration must be CPointerType";
-
-    if (pVisited.add(pCurrentPointerDeclaration)) {
-      if (pointerAssignments.containsKey(pCurrentPointerDeclaration)) {
-        for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
-          if (pVisited.add(pointerDeclaration)) {
-            for (MemoryLocation assignedMemoryLocation :
-                pointerAssignments.get(pointerDeclaration)) {
-              CSimpleDeclaration simpleDeclaration = assignedMemoryLocation.getSimpleDeclaration();
-              if (simpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
-                if (pointerAssignments.containsKey(variableDeclaration)) {
-                  pFound.add(pointerDeclaration);
-                  recursivelyFindPointerDeclarationsByPointerAssignments(
-                      pointerDeclaration, pFound, pVisited);
-                }
-              }
+      for (MemoryLocation pointerDereference : pointerDereferences) {
+        if (pointerDereference.equals(pMemoryLocation)) {
+          ImmutableSet<MemoryLocation> memoryLocations =
+              MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+                  pointerDereference, pMemoryLocation.callContext, this);
+          for (MemoryLocation memoryLocation : memoryLocations) {
+            if (memoryLocation.isGlobal()) {
+              return true;
             }
           }
         }
       }
     }
+    return false;
   }
 
   // getters =======================================================================================
@@ -181,7 +158,7 @@ public class MemoryModel {
     return pointerAssignments.get(pVariableDeclaration);
   }
 
-  public MemoryLocation getRightHandSideByPointerParameter(
+  public MemoryLocation getRightHandSideByParameter(
       ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
 
     return parameterAssignments.get(pCallContext, pParameterDeclaration);
@@ -202,14 +179,10 @@ public class MemoryModel {
   public ImmutableSet<MemoryLocation> getRelevantMemoryLocations() {
     ImmutableSet.Builder<MemoryLocation> rRelevant = ImmutableSet.builder();
     for (MemoryLocation memoryLocation : memoryLocationIds.keySet()) {
-      // TODO non-pointer parameters should be included. e.g. 'global_ptr = &non-ptr_param'
-      // exclude parameters, they are not memory locations themselves
-      if (!memoryLocation.isParameter()) {
-        // exclude const CPAchecker_TMP, they do not have any effect in the input program
-        if (!MemoryLocationUtil.isConstCpaCheckerTmp(memoryLocation)) {
-          if (memoryLocation.isGlobal() || isImplicitGlobal(memoryLocation)) {
-            rRelevant.add(memoryLocation);
-          }
+      // exclude const CPAchecker_TMP, they do not have any effect in the input program
+      if (!MemoryLocationUtil.isConstCpaCheckerTmp(memoryLocation)) {
+        if (memoryLocation.isGlobal() || isImplicitGlobal(memoryLocation)) {
+          rRelevant.add(memoryLocation);
         }
       }
     }

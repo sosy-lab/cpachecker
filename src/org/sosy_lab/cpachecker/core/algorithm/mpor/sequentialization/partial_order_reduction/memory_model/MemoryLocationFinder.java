@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableTable;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -121,6 +123,86 @@ public class MemoryLocationFinder {
     return rMemLocations.build();
   }
 
+  // Extraction by Pointer Assignments (including Parameters) ======================================
+
+  public static ImmutableSet<CVariableDeclaration> findPointerDeclarationsByPointerAssignments(
+      CVariableDeclaration pPointerDeclaration,
+      ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments) {
+
+    Set<CVariableDeclaration> rFound = new HashSet<>();
+    recursivelyFindPointerDeclarationsByPointerAssignments(
+        pPointerDeclaration, pPointerAssignments, pParameterAssignments, rFound, new HashSet<>());
+    return ImmutableSet.copyOf(rFound);
+  }
+
+  private static void recursivelyFindPointerDeclarationsByPointerAssignments(
+      CSimpleDeclaration pCurrentPointerDeclaration,
+      final ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
+      final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments,
+      Set<CVariableDeclaration> pFound,
+      Set<CSimpleDeclaration> pVisited) {
+
+    // should always hold, so we use assert instead of checkArgument
+    assert pCurrentPointerDeclaration.getType() instanceof CPointerType
+        : "type of pCurrentPointerDeclaration must be CPointerType";
+
+    if (pCurrentPointerDeclaration instanceof CVariableDeclaration) {
+      if (pPointerAssignments.containsKey(pCurrentPointerDeclaration)) {
+        for (CVariableDeclaration pointerDeclaration : pPointerAssignments.keySet()) {
+          if (pVisited.add(pointerDeclaration)) {
+            for (MemoryLocation memoryLocation : pPointerAssignments.get(pointerDeclaration)) {
+              CSimpleDeclaration simpleDeclaration = memoryLocation.getSimpleDeclaration();
+              if (simpleDeclaration instanceof CVariableDeclaration) {
+                if (pPointerAssignments.containsKey(simpleDeclaration)) {
+                  pFound.add(pointerDeclaration);
+                  recursivelyFindPointerDeclarationsByPointerAssignments(
+                      pointerDeclaration,
+                      pPointerAssignments,
+                      pParameterAssignments,
+                      pFound,
+                      pVisited);
+                }
+              }
+              if (simpleDeclaration instanceof CParameterDeclaration) {
+                pFound.add(pointerDeclaration);
+                // consider only pointer parameters, all others are not relevant
+                if (simpleDeclaration.getType() instanceof CPointerType) {
+                  // call context is always present for parameters
+                  ThreadEdge callContext = memoryLocation.callContext.orElseThrow();
+                  if (pParameterAssignments.contains(callContext, simpleDeclaration)) {
+                    recursivelyFindPointerDeclarationsByPointerAssignments(
+                        pointerDeclaration,
+                        pPointerAssignments,
+                        pParameterAssignments,
+                        pFound,
+                        pVisited);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    if (pCurrentPointerDeclaration instanceof CParameterDeclaration parameterDeclaration) {
+      if (parameterDeclaration.getType() instanceof CPointerType) {
+        if (pParameterAssignments.containsColumn(parameterDeclaration)) {
+          ImmutableMap<ThreadEdge, MemoryLocation> column =
+              pParameterAssignments.column(parameterDeclaration);
+          for (MemoryLocation memoryLocation : column.values()) {
+            recursivelyFindPointerDeclarationsByPointerAssignments(
+                memoryLocation.getSimpleDeclaration(),
+                pPointerAssignments,
+                pParameterAssignments,
+                pFound,
+                pVisited);
+          }
+        }
+      }
+    }
+  }
+
   // Extraction by Pointer Dereference =============================================================
 
   public static ImmutableSet<MemoryLocation> findMemoryLocationsByPointerDereference(
@@ -171,7 +253,7 @@ public class MemoryLocationFinder {
         // in pthread_create that does not pass an arg to start_routine, the pair is not present
         if (pMemoryModel.isAssignedPointerParameter(callContext, parameterDeclaration)) {
           MemoryLocation rightHandSide =
-              pMemoryModel.getRightHandSideByPointerParameter(callContext, parameterDeclaration);
+              pMemoryModel.getRightHandSideByParameter(callContext, parameterDeclaration);
           recursivelyFindMemoryLocationsByPointerDereference(
               rightHandSide, pCallContext, pMemoryModel, pFound, pVisited);
         }

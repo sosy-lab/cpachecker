@@ -185,7 +185,11 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            MEMORY_LOCATION_IDS, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            MEMORY_LOCATION_IDS,
+            pointerAssignments,
+            ImmutableTable.of(),
+            ImmutableTable.of(),
+            pointerDereferences);
 
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
@@ -212,7 +216,11 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            MEMORY_LOCATION_IDS, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            MEMORY_LOCATION_IDS,
+            pointerAssignments,
+            ImmutableTable.of(),
+            ImmutableTable.of(),
+            pointerDereferences);
 
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
@@ -241,7 +249,11 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            MEMORY_LOCATION_IDS, pointerAssignments, ImmutableTable.of(), pointerDereferences);
+            MEMORY_LOCATION_IDS,
+            pointerAssignments,
+            ImmutableTable.of(),
+            ImmutableTable.of(),
+            pointerDereferences);
 
     // find the memory locations associated with dereference of 'global_ptr_B'
     ImmutableSet<MemoryLocation> memoryLocations =
@@ -265,7 +277,11 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            MEMORY_LOCATION_IDS, pointerAssignments, ImmutableTable.of(), ImmutableSet.of());
+            MEMORY_LOCATION_IDS,
+            pointerAssignments,
+            ImmutableTable.of(),
+            ImmutableTable.of(),
+            ImmutableSet.of());
 
     // test that local_Z is now an implicit global memory location, because the global pointer
     // 'global_ptr_A' gets its address, and can be dereferenced by other threads
@@ -288,7 +304,11 @@ public class MemoryModelTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            MEMORY_LOCATION_IDS, pointerAssignments, ImmutableTable.of(), ImmutableSet.of());
+            MEMORY_LOCATION_IDS,
+            pointerAssignments,
+            ImmutableTable.of(),
+            ImmutableTable.of(),
+            ImmutableSet.of());
 
     // test that local_Z is now an implicit global memory location, because of transitivity:
     // 'global_ptr_A -> local_ptr_D -> local_ptr_C', and can then be dereferenced by other threads

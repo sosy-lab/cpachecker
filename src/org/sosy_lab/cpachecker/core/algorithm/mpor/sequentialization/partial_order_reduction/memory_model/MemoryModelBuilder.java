@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -50,6 +52,8 @@ public class MemoryModelBuilder {
     if (pOptions.linkReduction) {
       ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
           mapParameterAssignments(pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
+      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
+          pointerParameterAssignments = extractPointerParameters(parameterAssignments);
       ImmutableCollection<MemoryLocation> newMemoryLocations = parameterAssignments.values();
 
       ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
@@ -61,7 +65,11 @@ public class MemoryModelBuilder {
 
       MemoryModel memoryModel =
           new MemoryModel(
-              memoryLocationIds, pointerAssignments, parameterAssignments, pointerDereferences);
+              memoryLocationIds,
+              pointerAssignments,
+              parameterAssignments,
+              pointerParameterAssignments,
+              pointerDereferences);
       return Optional.of(memoryModel);
 
     } else {
@@ -98,7 +106,7 @@ public class MemoryModelBuilder {
     return rAllAssignments.build();
   }
 
-  // Pointer Parameter Assignments =================================================================
+  // Parameter Assignments =================================================================
 
   private static ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
       mapParameterAssignments(
@@ -253,6 +261,24 @@ public class MemoryModelBuilder {
     }
     return MemoryLocation.of(
         pOptions, pThread, Optional.of(pCallContext), pFieldOwner, pFieldMember);
+  }
+
+  // Pointer Parameter Assignments =================================================================
+
+  public static ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
+      extractPointerParameters(
+          ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments) {
+
+    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, MemoryLocation> rPointers =
+        ImmutableTable.builder();
+    ImmutableSet<Cell<ThreadEdge, CParameterDeclaration, MemoryLocation>> cells =
+        pParameterAssignments.cellSet();
+    for (Cell<ThreadEdge, CParameterDeclaration, MemoryLocation> cell : cells) {
+      if (Objects.requireNonNull(cell.getColumnKey()).getType() instanceof CPointerType) {
+        rPointers.put(cell);
+      }
+    }
+    return rPointers.buildOrThrow();
   }
 
   // Pointer Dereferences ==========================================================================

@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class MemoryModelFunctionTest {
@@ -222,10 +223,12 @@ public class MemoryModelFunctionTest {
   @Test
   public void test_pointer_parameter_dereference() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
         ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
             .put(DUMMY_CALL_CONTEXT, PARAMETER_DECLARATION_POINTER_P, GLOBAL_X_MEMORY_LOCATION)
             .build();
+    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
     // *param_ptr_P i.e. pointer parameter dereference
     ImmutableSet<MemoryLocation> pointerDereferences =
         ImmutableSet.<MemoryLocation>builder().add(PARAMETER_POINTER_P_MEMORY_LOCATION).build();
@@ -235,6 +238,7 @@ public class MemoryModelFunctionTest {
         new MemoryModel(
             MEMORY_LOCATION_IDS,
             ImmutableSetMultimap.of(),
+            parameterAssignments,
             pointerParameterAssignments,
             pointerDereferences);
 
@@ -251,13 +255,15 @@ public class MemoryModelFunctionTest {
   @Test
   public void test_transitive_pointer_parameter_dereference() {
     // param_ptr_P = local_ptr_C; i.e. transitive pointer parameter assignment
-    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
         ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
             .put(
                 DUMMY_CALL_CONTEXT,
                 PARAMETER_DECLARATION_POINTER_P,
                 LOCAL_POINTER_C_MEMORY_LOCATION)
             .build();
+    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // local_ptr_C = &global_X; i.e. pointer assignment
     ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
@@ -274,6 +280,7 @@ public class MemoryModelFunctionTest {
         new MemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
+            parameterAssignments,
             pointerParameterAssignments,
             pointerDereferences);
 
@@ -289,11 +296,13 @@ public class MemoryModelFunctionTest {
 
   @Test
   public void test_parameter_implicit_global() {
-    // param_Q = local_Z; i.e. transitive pointer parameter assignment
+    // param_Q = local_Z; i.e. non-pointer parameter assignment with local variable
     ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
         ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
             .put(DUMMY_CALL_CONTEXT, PARAMETER_DECLARATION_Q, LOCAL_Z_MEMORY_LOCATION)
             .build();
+    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
 
     // global_ptr_A = &param_Q; i.e. pointer assignment
     ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
@@ -304,7 +313,11 @@ public class MemoryModelFunctionTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            MEMORY_LOCATION_IDS, pointerAssignments, parameterAssignments, ImmutableSet.of());
+            MEMORY_LOCATION_IDS,
+            pointerAssignments,
+            parameterAssignments,
+            pointerParameterAssignments,
+            ImmutableSet.of());
 
     // assert that param_Q is now an implicit global memory location, but local_Z is not
     assertThat(PARAMETER_Q_MEMORY_LOCATION.isGlobal()).isFalse();
