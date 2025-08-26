@@ -40,7 +40,7 @@ public class MemoryLocationFinder {
         findDirectMemoryLocationsByAccessType(
             pLabelBlockMap, pMemoryModel, pBlock, MemoryAccessType.ACCESS);
     return !memoryLocations.stream()
-        .filter(MemoryLocation::isGlobal)
+        .filter(MemoryLocation::isExplicitGlobal)
         .collect(ImmutableSet.toImmutableSet())
         .isEmpty();
   }

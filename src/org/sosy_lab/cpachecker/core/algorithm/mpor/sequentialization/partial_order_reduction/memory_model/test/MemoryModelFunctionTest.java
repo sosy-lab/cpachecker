@@ -320,9 +320,9 @@ public class MemoryModelFunctionTest {
             ImmutableSet.of());
 
     // assert that param_Q is now an implicit global memory location, but local_Z is not
-    assertThat(PARAMETER_Q_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isGlobal()).isTrue();
+    assertThat(PARAMETER_Q_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isExplicitGlobal()).isTrue();
     assertThat(testMemoryModel.isImplicitGlobal(LOCAL_Z_MEMORY_LOCATION)).isFalse();
     assertThat(testMemoryModel.isImplicitGlobal(PARAMETER_Q_MEMORY_LOCATION)).isTrue();
   }

@@ -33,7 +33,7 @@ public class MemoryLocation {
 
   public final Optional<ThreadEdge> callContext;
 
-  private final boolean isGlobal;
+  private final boolean isExplicitGlobal;
 
   private final boolean isParameter;
 
@@ -54,11 +54,11 @@ public class MemoryLocation {
         "either pVariable or pFieldMember must be empty");
     threadPrefix = pThreadPrefix;
     callContext = pCallContext;
-    isGlobal = MemoryLocationUtil.isGlobal(pVariable, pFieldMember);
+    isExplicitGlobal = MemoryLocationUtil.isExplicitGlobal(pVariable, pFieldMember);
     isParameter = MemoryLocationUtil.isParameter(pVariable, pFieldMember);
     // check after assignment that the thread is present, if the memory location is local
     checkArgument(
-        threadPrefix.isEmpty() || !isGlobal,
+        threadPrefix.isEmpty() || !isExplicitGlobal,
         "if threadPrefix is not empty, the memory location must be local");
     variable = pVariable;
     fieldMember = pFieldMember;
@@ -140,8 +140,8 @@ public class MemoryLocation {
     return variable.isEmpty() && fieldMember.isEmpty();
   }
 
-  public boolean isGlobal() {
-    return isGlobal;
+  public boolean isExplicitGlobal() {
+    return isExplicitGlobal;
   }
 
   public boolean isParameter() {
@@ -154,7 +154,7 @@ public class MemoryLocation {
         threadPrefix,
         // consider the call context only if it is a parameter memory location
         (isParameter ? callContext : null),
-        isGlobal,
+        isExplicitGlobal,
         isParameter,
         variable,
         fieldMember);
@@ -169,7 +169,7 @@ public class MemoryLocation {
         && threadPrefix.equals(other.threadPrefix)
         // consider the call context only if it is a parameter memory location
         && (!isParameter || callContext.equals(other.callContext))
-        && isGlobal == other.isGlobal
+        && isExplicitGlobal == other.isExplicitGlobal
         && isParameter == other.isParameter
         && variable.equals(other.variable)
         && fieldMember.equals(other.fieldMember);

@@ -120,32 +120,37 @@ public class MemoryModel {
    * global_ptr = &local_var;}. Returns {@code false} even if the memory location itself is global.
    */
   public boolean isImplicitGlobal(MemoryLocation pMemoryLocation) {
-    if (pMemoryLocation.isGlobal()) {
+    if (pMemoryLocation.isExplicitGlobal()) {
       return false;
     }
     if (isPointedTo(pMemoryLocation)) {
+      // inexpensive shortcut: first check for direct assignments
       for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
         if (pointerDeclaration.isGlobal()) {
           return true;
         }
-        ImmutableSet<CVariableDeclaration> transitivePointerDeclarations =
-            MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
-                pointerDeclaration, pointerAssignments, parameterAssignments);
-        for (CVariableDeclaration transitivePointerDeclaration : transitivePointerDeclarations) {
-          if (transitivePointerDeclaration.isGlobal()) {
-            return true;
-          }
-        }
       }
+      // then check if a global pointer deref is associated with the memory location
       for (MemoryLocation pointerDereference : pointerDereferences) {
         if (pointerDereference.equals(pMemoryLocation)) {
           ImmutableSet<MemoryLocation> memoryLocations =
               MemoryLocationFinder.findMemoryLocationsByPointerDereference(
                   pointerDereference, pMemoryLocation.callContext, this);
           for (MemoryLocation memoryLocation : memoryLocations) {
-            if (memoryLocation.isGlobal()) {
+            if (memoryLocation.isExplicitGlobal()) {
               return true;
             }
+          }
+        }
+      }
+      // lastly perform most expensive check on transitive pointer assignments
+      for (CVariableDeclaration pointerDeclaration : pointerAssignments.keySet()) {
+        ImmutableSet<CVariableDeclaration> transitivePointerDeclarations =
+            MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
+                pointerDeclaration, pointerAssignments, parameterAssignments);
+        for (CVariableDeclaration transitivePointerDeclaration : transitivePointerDeclarations) {
+          if (transitivePointerDeclaration.isGlobal()) {
+            return true;
           }
         }
       }
@@ -184,7 +189,7 @@ public class MemoryModel {
     for (MemoryLocation memoryLocation : memoryLocationIds.keySet()) {
       // exclude const CPAchecker_TMP, they do not have any effect in the input program
       if (!MemoryLocationUtil.isConstCpaCheckerTmp(memoryLocation)) {
-        if (memoryLocation.isGlobal() || isImplicitGlobal(memoryLocation)) {
+        if (memoryLocation.isExplicitGlobal() || isImplicitGlobal(memoryLocation)) {
           rRelevant.add(memoryLocation);
         }
       }

@@ -58,7 +58,7 @@ public class MemoryLocationUtil {
     return MemoryLocation.of(pCallContext, pFieldOwner, pFieldMember);
   }
 
-  static boolean isGlobal(
+  static boolean isExplicitGlobal(
       Optional<CSimpleDeclaration> pVariable,
       Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
           pFieldMember) {
