@@ -52,6 +52,16 @@ public class MemoryModelFunctionTest {
 
   private final CPointerType INT_POINTER_TYPE = new CPointerType(false, false, INT_TYPE);
 
+  // Expressions
+
+  private final CIntegerLiteralExpression INT_0 =
+      new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(0));
+
+  // Initializers
+
+  private final CInitializer INT_0_INITIALIZER =
+      new CInitializerExpression(FileLocation.DUMMY, INT_0);
+
   // CFunctionType
 
   private final CFunctionType DUMMY_FUNCTION_TYPE =
@@ -126,16 +136,6 @@ public class MemoryModelFunctionTest {
   private final ThreadEdge DUMMY_CALL_CONTEXT =
       new ThreadEdge(0, DUMMY_FUNCTION_CALL_EDGE, Optional.empty());
 
-  // Expressions
-
-  private final CIntegerLiteralExpression INT_0 =
-      new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(0));
-
-  // Initializers
-
-  private final CInitializer INT_0_INITIALIZER =
-      new CInitializerExpression(FileLocation.DUMMY, INT_0);
-
   // CDeclaration
 
   private final CVariableDeclaration GLOBAL_X_DECLARATION =
@@ -149,6 +149,28 @@ public class MemoryModelFunctionTest {
           "global_X",
           INT_0_INITIALIZER);
 
+  private final CVariableDeclaration LOCAL_POINTER_C_DECLARATION =
+      new CVariableDeclaration(
+          FileLocation.DUMMY,
+          false,
+          CStorageClass.AUTO,
+          INT_POINTER_TYPE,
+          "local_ptr_C",
+          "local_ptr_C",
+          "local_ptr_C",
+          INT_0_INITIALIZER);
+
+  private final CVariableDeclaration LOCAL_Z_DECLARATION =
+      new CVariableDeclaration(
+          FileLocation.DUMMY,
+          false,
+          CStorageClass.AUTO,
+          INT_TYPE,
+          "local_Z",
+          "local_Z",
+          "local_Z",
+          INT_0_INITIALIZER);
+
   private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_P =
       new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_P");
 
@@ -160,6 +182,12 @@ public class MemoryModelFunctionTest {
   private final MemoryLocation GLOBAL_X_MEMORY_LOCATION =
       MemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
 
+  private final MemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), LOCAL_POINTER_C_DECLARATION);
+
+  private final MemoryLocation LOCAL_Z_MEMORY_LOCATION =
+      MemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
+
   private final MemoryLocation PARAMETER_P_MEMORY_LOCATION =
       MemoryLocation.of(Optional.empty(), PARAMETER_DECLARATION_POINTER_P);
 
@@ -168,11 +196,13 @@ public class MemoryModelFunctionTest {
 
   // Memory Location IDs
 
-  private final ImmutableMap<MemoryLocation, Integer> memory_location_ids =
+  private final ImmutableMap<MemoryLocation, Integer> MEMORY_LOCATION_IDS =
       ImmutableMap.<MemoryLocation, Integer>builder()
           .put(GLOBAL_X_MEMORY_LOCATION, 0)
-          .put(PARAMETER_P_MEMORY_LOCATION, 1)
-          .put(PARAMETER_Q_MEMORY_LOCATION, 2)
+          .put(LOCAL_POINTER_C_MEMORY_LOCATION, 1)
+          .put(LOCAL_Z_MEMORY_LOCATION, 2)
+          .put(PARAMETER_P_MEMORY_LOCATION, 3)
+          .put(PARAMETER_Q_MEMORY_LOCATION, 4)
           .buildOrThrow();
 
   @Test
@@ -189,8 +219,47 @@ public class MemoryModelFunctionTest {
     // create memory model
     MemoryModel testMemoryModel =
         new MemoryModel(
-            memory_location_ids,
+            MEMORY_LOCATION_IDS,
             ImmutableSetMultimap.of(),
+            pointerParameterAssignments,
+            pointerDereferences);
+
+    // find the mem locations associated with deref of 'param_ptr_P' in the given call context
+    ImmutableSet<MemoryLocation> memoryLocations =
+        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            PARAMETER_P_MEMORY_LOCATION, Optional.of(DUMMY_CALL_CONTEXT), testMemoryModel);
+
+    // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
+    assertThat(memoryLocations.size() == 1).isTrue();
+    assertThat(memoryLocations.contains(GLOBAL_X_MEMORY_LOCATION)).isTrue();
+  }
+
+  @Test
+  public void test_transitive_pointer_parameter_dereference() {
+    // param_ptr_P = local_ptr_C; i.e. transitive pointer parameter assignment
+    ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pointerParameterAssignments =
+        ImmutableTable.<ThreadEdge, CParameterDeclaration, MemoryLocation>builder()
+            .put(
+                DUMMY_CALL_CONTEXT,
+                PARAMETER_DECLARATION_POINTER_P,
+                LOCAL_POINTER_C_MEMORY_LOCATION)
+            .build();
+
+    // local_ptr_C = &global_X; i.e. pointer assignment
+    ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments =
+        ImmutableSetMultimap.<CVariableDeclaration, MemoryLocation>builder()
+            .put(LOCAL_POINTER_C_DECLARATION, GLOBAL_X_MEMORY_LOCATION)
+            .build();
+
+    // *param_ptr_P i.e. pointer parameter dereference
+    ImmutableSet<MemoryLocation> pointerDereferences =
+        ImmutableSet.<MemoryLocation>builder().add(PARAMETER_P_MEMORY_LOCATION).build();
+
+    // create memory model
+    MemoryModel testMemoryModel =
+        new MemoryModel(
+            MEMORY_LOCATION_IDS,
+            pointerAssignments,
             pointerParameterAssignments,
             pointerDereferences);
 
