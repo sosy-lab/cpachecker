@@ -35,8 +35,13 @@ public class MemoryModel {
   // TODO we could map MemoryLocation, MemoryLocation here directly
   private final ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pointerAssignments;
 
+  /**
+   * The table of call context i.e. {@link ThreadEdge} sensitive {@link CParameterDeclaration}
+   * mapped to their assigned {@link MemoryLocation}. Note that this is not restricted to pointers,
+   * since non-pointer parameters can be made implicitly global through global pointers.
+   */
   private final ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-      pointerParameterAssignments;
+      parameterAssignments;
 
   private final ImmutableSet<MemoryLocation> pointerDereferences;
 
@@ -44,34 +49,25 @@ public class MemoryModel {
   public MemoryModel(
       ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
       ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-          pPointerParameterAssignments,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> pParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
-    checkArguments(pPointerAssignments, pPointerParameterAssignments);
+    checkArguments(pPointerAssignments);
     memoryLocationAmount = pMemoryLocationIds.size();
     memoryLocationIds = pMemoryLocationIds;
     pointerAssignments = pPointerAssignments;
-    pointerParameterAssignments = pPointerParameterAssignments;
+    parameterAssignments = pParameterAssignments;
     pointerDereferences = pPointerDereferences;
   }
 
   private static void checkArguments(
-      ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments,
-      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-          pPointerParameterAssignments) {
+      ImmutableSetMultimap<CVariableDeclaration, MemoryLocation> pPointerAssignments) {
 
     for (CVariableDeclaration variableDeclaration : pPointerAssignments.keySet()) {
       checkArgument(
           variableDeclaration.getType() instanceof CPointerType,
           "variableDeclaration must be CPointerType, got %s",
           variableDeclaration.getType());
-    }
-    for (CParameterDeclaration parameterDeclaration : pPointerParameterAssignments.columnKeySet()) {
-      checkArgument(
-          parameterDeclaration.getType() instanceof CPointerType,
-          "parameterDeclaration must be CPointerType, got %s",
-          parameterDeclaration.getType());
     }
   }
 
@@ -96,11 +92,10 @@ public class MemoryModel {
   public boolean isAssignedPointerParameter(
       ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
 
-    checkArgument(
-        pParameterDeclaration.getType() instanceof CPointerType,
-        "pParameterDeclaration must be CPointerType, got %s",
-        pParameterDeclaration.getType());
-    return pointerParameterAssignments.contains(pCallContext, pParameterDeclaration);
+    if (pParameterDeclaration.getType() instanceof CPointerType) {
+      return parameterAssignments.contains(pCallContext, pParameterDeclaration);
+    }
+    return false;
   }
 
   /**
@@ -189,7 +184,7 @@ public class MemoryModel {
   public MemoryLocation getRightHandSideByPointerParameter(
       ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
 
-    return pointerParameterAssignments.get(pCallContext, pParameterDeclaration);
+    return parameterAssignments.get(pCallContext, pParameterDeclaration);
   }
 
   public int getMemoryLocationAmount() {

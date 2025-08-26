@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -49,11 +48,9 @@ public class MemoryModelBuilder {
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     if (pOptions.linkReduction) {
-      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-          pointerParameterAssignments =
-              mapPointerParameterAssignments(
-                  pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
-      ImmutableCollection<MemoryLocation> newMemoryLocations = pointerParameterAssignments.values();
+      ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation> parameterAssignments =
+          mapParameterAssignments(pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
+      ImmutableCollection<MemoryLocation> newMemoryLocations = parameterAssignments.values();
 
       ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
           assignMemoryLocationIds(pInitialMemoryLocations, newMemoryLocations);
@@ -64,10 +61,7 @@ public class MemoryModelBuilder {
 
       MemoryModel memoryModel =
           new MemoryModel(
-              memoryLocationIds,
-              pointerAssignments,
-              pointerParameterAssignments,
-              pointerDereferences);
+              memoryLocationIds, pointerAssignments, parameterAssignments, pointerDereferences);
       return Optional.of(memoryModel);
 
     } else {
@@ -107,7 +101,7 @@ public class MemoryModelBuilder {
   // Pointer Parameter Assignments =================================================================
 
   private static ImmutableTable<ThreadEdge, CParameterDeclaration, MemoryLocation>
-      mapPointerParameterAssignments(
+      mapParameterAssignments(
           MPOROptions pOptions,
           ImmutableList<MPORThread> pThreads,
           ImmutableCollection<SubstituteEdge> pSubstituteEdges,
@@ -149,15 +143,13 @@ public class MemoryModelBuilder {
     assert arguments.size() == parameterDeclarations.size()
         : "function argument number should be same as parameter declaration number";
     for (int i = 0; i < arguments.size(); i++) {
+      // we use both pointer and non-pointer parameters, e.g. 'global_ptr = &non_ptr_param;'
       CParameterDeclaration leftHandSide = parameterDeclarations.get(i);
-      // TODO we also need non-pointers, e.g. for 'global_ptr = &non_ptr_param;'
-      if (leftHandSide.getType() instanceof CPointerType) {
-        MemoryLocation rhsMemoryLocation =
-            extractMemoryLocation(
-                pOptions, pThread, pCallContext, arguments.get(i), pInitialMemoryLocations);
-        if (!rhsMemoryLocation.isEmpty()) {
-          rAssignments.add(Tables.immutableCell(pCallContext, leftHandSide, rhsMemoryLocation));
-        }
+      MemoryLocation rhsMemoryLocation =
+          extractMemoryLocation(
+              pOptions, pThread, pCallContext, arguments.get(i), pInitialMemoryLocations);
+      if (!rhsMemoryLocation.isEmpty()) {
+        rAssignments.add(Tables.immutableCell(pCallContext, leftHandSide, rhsMemoryLocation));
       }
     }
     return rAssignments.build();
