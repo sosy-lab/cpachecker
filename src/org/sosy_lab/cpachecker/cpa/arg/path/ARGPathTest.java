@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.cfa.model.CFANode.newDummyCFANode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -34,7 +35,7 @@ public class ARGPathTest {
 
   // for the full path and path iterator tests
   private List<CFAEdge> edges;
-  private List<CFAEdge> innerEdges;
+  private List<@Nullable CFAEdge> innerEdges;
   private static final int STATE_POS_1 = 0; // position of first ARGState in ARGPath
   private static final int STATE_POS_2 = 1; // position of second ARGState in ARGPath
   private static final int STATE_POS_3 = 4; // position of third ARGState in ARGPath

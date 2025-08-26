@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -49,7 +50,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class ARGPath extends AbstractAppender {
 
   private final ImmutableList<ARGState> states;
-  private final List<CFAEdge> edges; // immutable, but may contain null
+  private final List<@Nullable CFAEdge> edges; // immutable, but may contain null
 
   @SuppressFBWarnings(
       value = "JCIP_FIELD_ISNT_FINAL_IN_IMMUTABLE_CLASS",
@@ -67,7 +68,7 @@ public class ARGPath extends AbstractAppender {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     states = ImmutableList.copyOf(pStates);
 
-    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
+    List<@Nullable CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
     for (int i = 0; i < states.size() - 1; i++) {
       ARGState parent = states.get(i);
       ARGState child = states.get(i + 1);
@@ -78,7 +79,7 @@ public class ARGPath extends AbstractAppender {
     assert states.size() - 1 == edges.size();
   }
 
-  public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
+  public ARGPath(List<ARGState> pStates, List<@Nullable CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     checkArgument(
         pStates.size() - 1 == pEdges.size(), "ARGPaths must have one state more than edges");
@@ -95,7 +96,7 @@ public class ARGPath extends AbstractAppender {
    * Return the list of edges between the states. The result of this method is always one element
    * shorter than {@link #asStatesList()}.
    */
-  public List<CFAEdge> getInnerEdges() {
+  public List<@Nullable CFAEdge> getInnerEdges() {
     return edges;
   }
 

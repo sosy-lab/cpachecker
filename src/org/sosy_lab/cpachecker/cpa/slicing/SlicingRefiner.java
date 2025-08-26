@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -412,7 +413,7 @@ public class SlicingRefiner implements Refiner {
 
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException, CPAException {
 
-    List<CFAEdge> innerEdges = pPath.getInnerEdges();
+    List<@Nullable CFAEdge> innerEdges = pPath.getInnerEdges();
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     Set<CFAEdge> relevantEdges = new HashSet<>();
 

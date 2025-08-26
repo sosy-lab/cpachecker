@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -67,8 +68,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
   protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
-    List<CFAEdge> firstPath = getPath(firstUsage);
-    List<CFAEdge> secondPath = getPath(secondUsage);
+    @Nullable List<@Nullable CFAEdge> firstPath = getPath(firstUsage);
+    @Nullable List<@Nullable CFAEdge> secondPath = getPath(secondUsage);
 
     if (firstPath == null || secondPath == null) {
       return;
