@@ -42,6 +42,11 @@ public enum CTypeQualifiers {
     return create(a.containsConst || b.containsConst, a.containsVolatile || b.containsVolatile);
   }
 
+  /** Return whether this instance represents no qualifiers, e.g., is equal to {@link #NONE}. */
+  public boolean isEmpty() {
+    return this == NONE;
+  }
+
   public boolean containsConst() {
     return containsConst;
   }

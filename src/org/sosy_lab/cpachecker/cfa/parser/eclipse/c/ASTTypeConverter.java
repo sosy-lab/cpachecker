@@ -397,7 +397,7 @@ class ASTTypeConverter {
     if (!(type instanceof CProblemType)) {
       // Should have only typedefs here, and these do not have qualifiers themselves.
       verify(type instanceof CTypedefType);
-      verify(type.getQualifiers().equals(CTypeQualifiers.NONE));
+      verify(type.getQualifiers().isEmpty());
       type = type.withQualifiersSetTo(convertCTypeQualifiers(d));
     }
 

@@ -157,8 +157,7 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
   @DoNotCall
   public final CFunctionType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
     checkArgument(
-        pNewQualifiers.equals(CTypeQualifiers.NONE),
-        "Cannot create qualified function types, this is undefined");
+        pNewQualifiers.isEmpty(), "Cannot create qualified function types, this is undefined");
     return this;
   }
 }

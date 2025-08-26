@@ -166,7 +166,7 @@ class CTypeUtils {
    */
   static <T extends CType> T checkIsSimplified(final T type) {
     checkArgument(
-        type.getQualifiers().equals(CTypeQualifiers.NONE),
+        type.getQualifiers().isEmpty(),
         "Type %s has qualifiers but should have been simplified.",
         type);
     // More expensive checks as assertions
