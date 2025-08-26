@@ -32,7 +32,7 @@ public enum CVoidType implements CType {
   }
 
   public static CVoidType create(CTypeQualifiers pQualifiers) {
-    return create(pQualifiers.isConst(), pQualifiers.isVolatile());
+    return create(pQualifiers.containsConst(), pQualifiers.containsVolatile());
   }
 
   private final CTypeQualifiers qualifiers;

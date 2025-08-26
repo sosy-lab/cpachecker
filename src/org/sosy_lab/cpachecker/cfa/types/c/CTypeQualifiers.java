@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 /**
- * Represents the qualifiers of a type, e.g., its const/volatile flags. Other qualifiers are not yet
- * implemented but may be added in the future.
+ * Represents the set of qualifiers of a type, e.g., its const/volatile flags. Other qualifiers are
+ * not yet implemented but may be added in the future.
  *
  * <p>More information can be found in C11 § 6.7.3.
  */
@@ -21,12 +21,12 @@ public enum CTypeQualifiers {
   CONST_VOLATILE(true, true),
   ;
 
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final boolean containsConst;
+  private final boolean containsVolatile;
 
   private CTypeQualifiers(boolean pConst, boolean pVolatile) {
-    isConst = pConst;
-    isVolatile = pVolatile;
+    containsConst = pConst;
+    containsVolatile = pVolatile;
   }
 
   public static CTypeQualifiers create(boolean pConst, boolean pVolatile) {
@@ -39,15 +39,15 @@ public enum CTypeQualifiers {
 
   /** Create an instance that combines all qualifiers from both inputs. */
   public static CTypeQualifiers union(CTypeQualifiers a, CTypeQualifiers b) {
-    return create(a.isConst || b.isConst, a.isVolatile || b.isVolatile);
+    return create(a.containsConst || b.containsConst, a.containsVolatile || b.containsVolatile);
   }
 
-  public boolean isConst() {
-    return isConst;
+  public boolean containsConst() {
+    return containsConst;
   }
 
-  public boolean isVolatile() {
-    return isVolatile;
+  public boolean containsVolatile() {
+    return containsVolatile;
   }
 
   public boolean containsAllOf(CTypeQualifiers other) {
@@ -79,7 +79,7 @@ public enum CTypeQualifiers {
 
   /** Returns an instance with const as given but all other qualifiers keeping their value. */
   public CTypeQualifiers withConstSetTo(boolean pNewConst) {
-    return create(pNewConst, isVolatile);
+    return create(pNewConst, containsVolatile);
   }
 
   /** Returns an instance without volatile but all other qualifiers keeping their value. */
@@ -94,6 +94,6 @@ public enum CTypeQualifiers {
 
   /** Returns an instance with volatile as given but all other qualifiers keeping their value. */
   public CTypeQualifiers withVolatileSetTo(boolean pNewVolatile) {
-    return create(isConst, pNewVolatile);
+    return create(containsConst, pNewVolatile);
   }
 }

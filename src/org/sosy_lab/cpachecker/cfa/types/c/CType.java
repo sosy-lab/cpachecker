@@ -44,14 +44,14 @@ public sealed interface CType extends Type
   CTypeQualifiers getQualifiers();
 
   default boolean isConst() {
-    return getQualifiers().isConst();
+    return getQualifiers().containsConst();
   }
 
   @Override
   String toString();
 
   default boolean isVolatile() {
-    return getQualifiers().isVolatile();
+    return getQualifiers().containsVolatile();
   }
 
   /**
