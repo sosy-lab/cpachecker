@@ -180,7 +180,7 @@ public class ConstraintsSolver {
   }
 
   /**
-   * Returns the resulting {@link Satisfiability} for checking the given {@link Constraint}.Will
+   * Returns the resulting {@link Satisfiability} for checking the given {@link Constraint}. Will
    * build a new, empty SMT solver instance (i.e. {@link ProverEnvironment}) to calculate results.
    * Only to be used for irrelevant models in SAT cases.
    *
@@ -196,19 +196,17 @@ public class ConstraintsSolver {
   }
 
   /**
-   * Returns the given constraints {@link Satisfiability} within a {@link SolverResult}, bundling
-   * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
-   * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
-   * the existing {@link ProverEnvironment} incrementally, as far as possible, if option {@link
-   * #reuseSolver} is true. Incremental solving can improve computation time by re-using information
-   * stored in the solver from previous computations. This effect is strongest when the previously
-   * checked constraints are a true subset of the constraints in {@code pConstraintsToCheck}. More
-   * information about incremental usage can be found in the description of {@link #checkUnsat}. If
-   * option {@link #reuseSolver} is false, this method behaves like {@link
+   * Returns the resulting {@link Satisfiability} for checking the given {@link Constraint}. Will
+   * try to reuse the existing {@link ProverEnvironment} incrementally, as far as possible, if
+   * option {@link #reuseSolver} is true. Incremental solving can improve computation time by
+   * re-using information stored in the solver from previous computations. This effect is strongest
+   * when the previously checked constraints are a true subset of the constraints in {@code
+   * pConstraintsToCheck}. More information about solver reuse can be found in the description of
+   * {@link #checkUnsat}. If option {@link #reuseSolver} is false, this method behaves like {@link
    * #checkUnsatWithFreshSolver(Constraint, String)}.
    *
-   * @param pSingleConstraintToCheck the single constraint to check.
-   * @param pFunctionName the name of the function scope of {@code pSingleConstraintToCheck}.
+   * @param pSingleConstraintToCheck the single {@link Constraint} to check.
+   * @param pFunctionName the name of the function scope of pSingleConstraintToCheck.
    * @return {@link Satisfiability} of the given constraint.
    */
   public Satisfiability checkUnsatWithOptionDefinedSolverReuse(
