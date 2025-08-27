@@ -222,6 +222,7 @@ public class MemoryModelParameterTest {
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
             PARAMETER_POINTER_P_MEMORY_LOCATION,
             ImmutableSetMultimap.of(),
+            ImmutableMap.of(),
             pointerParameterAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
@@ -248,7 +249,10 @@ public class MemoryModelParameterTest {
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, pointerAssignments, pointerParameterAssignments);
+            PARAMETER_POINTER_P_MEMORY_LOCATION,
+            pointerAssignments,
+            ImmutableMap.of(),
+            pointerParameterAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
     assertThat(memoryLocations.size() == 1).isTrue();
@@ -279,6 +283,7 @@ public class MemoryModelParameterTest {
             MemoryModelBuilder.isImplicitGlobal(
                 LOCAL_Z_MEMORY_LOCATION,
                 pointerAssignments,
+                ImmutableMap.of(),
                 pointerParameterAssignments,
                 ImmutableSet.of()))
         .isFalse();
@@ -286,6 +291,7 @@ public class MemoryModelParameterTest {
             MemoryModelBuilder.isImplicitGlobal(
                 PARAMETER_Q_MEMORY_LOCATION,
                 pointerAssignments,
+                ImmutableMap.of(),
                 parameterAssignments,
                 ImmutableSet.of()))
         .isTrue();

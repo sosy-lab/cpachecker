@@ -162,25 +162,25 @@ public class SubstituteEdgeBuilder {
     return Optional.empty();
   }
 
-  private static CAssumeEdge substituteAssumeEdge(CAssumeEdge pOriginal, CExpression pExpr) {
+  private static CAssumeEdge substituteAssumeEdge(CAssumeEdge pOriginal, CExpression pExpression) {
     return new CAssumeEdge(
         pOriginal.getRawStatement(),
         pOriginal.getFileLocation(),
         pOriginal.getPredecessor(),
         pOriginal.getSuccessor(),
-        pExpr,
+        pExpression,
         pOriginal.getTruthAssumption());
   }
 
   private static CDeclarationEdge substituteDeclarationEdge(
-      CDeclarationEdge pOriginal, CVariableDeclaration pVarDec) {
+      CDeclarationEdge pOriginal, CVariableDeclaration pVariableDeclaration) {
 
     return new CDeclarationEdge(
         pOriginal.getRawStatement(),
         pOriginal.getFileLocation(),
         pOriginal.getPredecessor(),
         pOriginal.getSuccessor(),
-        pVarDec);
+        pVariableDeclaration);
   }
 
   private static CStatementEdge substituteStatementEdge(
@@ -195,26 +195,26 @@ public class SubstituteEdgeBuilder {
   }
 
   private static CFunctionSummaryEdge substituteFunctionSummaryEdge(
-      CFunctionSummaryEdge pOriginal, CStatement pFuncCall) {
+      CFunctionSummaryEdge pOriginal, CStatement pFunctionCall) {
 
     return new CFunctionSummaryEdge(
         pOriginal.getRawStatement(),
         pOriginal.getFileLocation(),
         pOriginal.getPredecessor(),
         pOriginal.getSuccessor(),
-        (CFunctionCall) pFuncCall,
+        (CFunctionCall) pFunctionCall,
         pOriginal.getFunctionEntry());
   }
 
   private static CFunctionCallEdge substituteFunctionCallEdge(
-      CFunctionCallEdge pOriginal, CFunctionCall pFuncCall) {
+      CFunctionCallEdge pOriginal, CFunctionCall pFunctionCall) {
 
     return new CFunctionCallEdge(
         pOriginal.getRawStatement(),
         pOriginal.getFileLocation(),
         pOriginal.getPredecessor(),
         pOriginal.getSuccessor(),
-        pFuncCall,
+        pFunctionCall,
         pOriginal.getSummaryEdge());
   }
 

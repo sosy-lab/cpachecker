@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -58,7 +59,12 @@ public class MemoryModelBuilder {
           mapParameterAssignments(pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
       ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
           extractPointerParameters(parameterAssignments);
-      ImmutableCollection<MemoryLocation> newMemoryLocations = parameterAssignments.values();
+      ImmutableCollection<MemoryLocation> newMemoryLocations =
+          ImmutableSet.<MemoryLocation>builder()
+              .addAll(parameterAssignments.values())
+              .addAll(startRoutineArgAssignments.keySet())
+              .addAll(startRoutineArgAssignments.values())
+              .build();
 
       ImmutableSet<MemoryLocation> allMemoryLocations =
           ImmutableSet.<MemoryLocation>builder()
@@ -96,6 +102,7 @@ public class MemoryModelBuilder {
         getRelevantMemoryLocationsIds(
             pAllMemoryLocations,
             pPointerAssignments,
+            pStartRoutineArgAssignments,
             pPointerParameterAssignments,
             pPointerDereferences);
     return new MemoryModel(
@@ -113,6 +120,7 @@ public class MemoryModelBuilder {
   private static ImmutableMap<MemoryLocation, Integer> getRelevantMemoryLocationsIds(
       ImmutableSet<MemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
@@ -122,6 +130,7 @@ public class MemoryModelBuilder {
       if (isRelevantMemoryLocation(
           memoryLocation,
           pPointerAssignments,
+          pStartRoutineArgAssignments,
           pPointerParameterAssignments,
           pPointerDereferences)) {
         rRelevantIds.put(memoryLocation, currentId++);
@@ -133,6 +142,7 @@ public class MemoryModelBuilder {
   private static boolean isRelevantMemoryLocation(
       MemoryLocation pMemoryLocation,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
@@ -143,6 +153,7 @@ public class MemoryModelBuilder {
           || isImplicitGlobal(
               pMemoryLocation,
               pPointerAssignments,
+              pStartRoutineArgAssignments,
               pPointerParameterAssignments,
               pPointerDereferences)) {
         return true;
@@ -158,16 +169,20 @@ public class MemoryModelBuilder {
   public static boolean isImplicitGlobal(
       MemoryLocation pMemoryLocation,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
     if (pMemoryLocation.isExplicitGlobal()) {
       return false;
     }
+    if (isStartRoutineArg(pMemoryLocation, pStartRoutineArgAssignments)) {
+      return true;
+    }
     if (isPointedTo(pMemoryLocation, pPointerAssignments, pPointerParameterAssignments)) {
       // inexpensive shortcut: first check for direct assignments
       for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
-        if (pointerDeclaration.isExplicitGlobal()) {
+        if (isExplicitGlobalOrStartRoutineArg(pointerDeclaration, pStartRoutineArgAssignments)) {
           return true;
         }
       }
@@ -176,9 +191,12 @@ public class MemoryModelBuilder {
         if (pointerDereference.equals(pMemoryLocation)) {
           ImmutableSet<MemoryLocation> memoryLocations =
               MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-                  pointerDereference, pPointerAssignments, pPointerParameterAssignments);
+                  pointerDereference,
+                  pPointerAssignments,
+                  pStartRoutineArgAssignments,
+                  pPointerParameterAssignments);
           for (MemoryLocation memoryLocation : memoryLocations) {
-            if (memoryLocation.isExplicitGlobal()) {
+            if (isExplicitGlobalOrStartRoutineArg(memoryLocation, pStartRoutineArgAssignments)) {
               return true;
             }
           }
@@ -188,15 +206,35 @@ public class MemoryModelBuilder {
       for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
         ImmutableSet<MemoryLocation> transitivePointerDeclarations =
             MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
-                pointerDeclaration, pPointerAssignments, pPointerParameterAssignments);
-        for (MemoryLocation transitivePointerDeclaration : transitivePointerDeclarations) {
-          if (transitivePointerDeclaration.isExplicitGlobal()) {
+                pointerDeclaration,
+                pPointerAssignments,
+                pStartRoutineArgAssignments,
+                pPointerParameterAssignments);
+        for (MemoryLocation otherPointerDeclaration : transitivePointerDeclarations) {
+          if (isExplicitGlobalOrStartRoutineArg(
+              otherPointerDeclaration, pStartRoutineArgAssignments)) {
             return true;
           }
         }
       }
     }
     return false;
+  }
+
+  private static boolean isStartRoutineArg(
+      MemoryLocation pMemoryLocation,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments) {
+
+    return pStartRoutineArgAssignments.containsKey(pMemoryLocation)
+        || pStartRoutineArgAssignments.containsValue(pMemoryLocation);
+  }
+
+  private static boolean isExplicitGlobalOrStartRoutineArg(
+      MemoryLocation pMemoryLocation,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments) {
+
+    return pMemoryLocation.isExplicitGlobal()
+        || isStartRoutineArg(pMemoryLocation, pStartRoutineArgAssignments);
   }
 
   /**
@@ -330,23 +368,17 @@ public class MemoryModelBuilder {
       return getMemoryLocationByDeclaration(
           pOptions, pThread, pCallContext, idExpression.getDeclaration(), pInitialMemoryLocations);
 
-    } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-        return getMemoryLocationByDeclaration(
-            pOptions,
-            pThread,
-            pCallContext,
-            idExpression.getDeclaration(),
-            pInitialMemoryLocations);
-
-      } else if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
-        return extractFieldReferenceMemoryLocation(
-            pOptions, pThread, pCallContext, fieldReference, pInitialMemoryLocations);
-      }
-
     } else if (pRightHandSide instanceof CFieldReference fieldReference) {
       return extractFieldReferenceMemoryLocation(
           pOptions, pThread, pCallContext, fieldReference, pInitialMemoryLocations);
+
+    } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
+      return extractMemoryLocation(
+          pOptions, pThread, pCallContext, unaryExpression.getOperand(), pInitialMemoryLocations);
+
+    } else if (pRightHandSide instanceof CCastExpression castExpression) {
+      return extractMemoryLocation(
+          pOptions, pThread, pCallContext, castExpression.getOperand(), pInitialMemoryLocations);
     }
     // can e.g. occur with 'param = 4' i.e. literal integer expressions
     return MemoryLocation.empty();

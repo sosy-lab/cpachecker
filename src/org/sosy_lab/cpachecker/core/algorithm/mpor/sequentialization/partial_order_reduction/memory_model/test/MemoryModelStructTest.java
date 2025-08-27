@@ -181,7 +181,10 @@ public class MemoryModelStructTest {
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION, pointerAssignments, ImmutableMap.of());
+            GLOBAL_POINTER_A_MEMORY_LOCATION,
+            pointerAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of());
 
     // mem location 'outer_struct.outer_member' should be associated with dereference of
     // 'global_ptr_A'
@@ -202,7 +205,10 @@ public class MemoryModelStructTest {
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocationsA =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION, pointerAssignments, ImmutableMap.of());
+            GLOBAL_POINTER_A_MEMORY_LOCATION,
+            pointerAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of());
     // mem location 'outer_struct.outer_member' should be associated with deref of 'global_ptr_A'
     assertThat(memoryLocationsA.size() == 1).isTrue();
     assertThat(memoryLocationsA.contains(OUTER_STRUCT_MEMBER_MEMORY_LOCATION)).isTrue();
@@ -210,7 +216,10 @@ public class MemoryModelStructTest {
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocationsB =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_B_MEMORY_LOCATION, pointerAssignments, ImmutableMap.of());
+            GLOBAL_POINTER_B_MEMORY_LOCATION,
+            pointerAssignments,
+            ImmutableMap.of(),
+            ImmutableMap.of());
     // mem location 'outer_struct.inner_struct.member' should be associated with deref
     // 'global_ptr_B'
     assertThat(memoryLocationsB.size() == 1).isTrue();

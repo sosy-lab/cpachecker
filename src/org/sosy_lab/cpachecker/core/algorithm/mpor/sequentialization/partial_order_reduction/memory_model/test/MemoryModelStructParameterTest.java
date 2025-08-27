@@ -320,6 +320,7 @@ public class MemoryModelStructParameterTest {
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
             PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION,
             ImmutableSetMultimap.of(),
+            ImmutableMap.of(),
             pointerParameterAssignments);
 
     // memory location of 'outer' should be associated with deref of 'param_ptr_outer'
@@ -344,12 +345,14 @@ public class MemoryModelStructParameterTest {
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
             PARAMETER_POINTER_P1_MEMORY_LOCATION,
             ImmutableSetMultimap.of(),
+            ImmutableMap.of(),
             pointerParameterAssignments);
     // find the mem locations associated with deref of 'param_ptr_P2'
     ImmutableSet<MemoryLocation> memoryLocationsP2 =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
             PARAMETER_POINTER_P2_MEMORY_LOCATION,
             ImmutableSetMultimap.of(),
+            ImmutableMap.of(),
             pointerParameterAssignments);
 
     // memory location of 'outer.member' should be associated with deref of 'param_ptr_P1'
@@ -381,10 +384,16 @@ public class MemoryModelStructParameterTest {
 
     ImmutableSet<MemoryLocation> memoryLocationsP1 =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P1_MEMORY_LOCATION, pointerAssignments, pointerParameterAssignments);
+            PARAMETER_POINTER_P1_MEMORY_LOCATION,
+            pointerAssignments,
+            ImmutableMap.of(),
+            pointerParameterAssignments);
     ImmutableSet<MemoryLocation> memoryLocationsP2 =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P2_MEMORY_LOCATION, pointerAssignments, pointerParameterAssignments);
+            PARAMETER_POINTER_P2_MEMORY_LOCATION,
+            pointerAssignments,
+            ImmutableMap.of(),
+            pointerParameterAssignments);
 
     // asser that param_ptr_P1 is associated with local_l1 and param_ptr_P2 with global_G1
     assertThat(memoryLocationsP1.size() == 1).isTrue();

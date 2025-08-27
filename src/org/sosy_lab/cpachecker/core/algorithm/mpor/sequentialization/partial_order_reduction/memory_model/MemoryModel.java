@@ -107,9 +107,11 @@ public class MemoryModel {
   public static boolean isAssignedPointer(
       MemoryLocation pMemoryLocation,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
     return pPointerAssignments.containsKey(pMemoryLocation)
+        || pStartRoutineArgAssignments.containsKey(pMemoryLocation)
         || pPointerParameterAssignments.containsKey(pMemoryLocation);
   }
 
@@ -119,10 +121,15 @@ public class MemoryModel {
   public static ImmutableSet<MemoryLocation> getAssignedMemoryLocations(
       MemoryLocation pMemoryLocation,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     rMemoryLocations.addAll(pPointerAssignments.get(pMemoryLocation));
+    if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
+      rMemoryLocations.add(
+          Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
+    }
     if (pPointerParameterAssignments.containsKey(pMemoryLocation)) {
       rMemoryLocations.add(
           Objects.requireNonNull(pPointerParameterAssignments.get(pMemoryLocation)));
