@@ -138,8 +138,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           if (cProgramScope.variableNameInUse(variable)) {
             try {
               builder.put(variable, cProgramScope.lookupVariable(variable).getType().toString());
-            } catch (NullPointerException e) {
-              continue;
+            } catch (Exception e) {
+              logger.log(Level.WARNING, "There is a skipped variable without known type.");
             }
           }
         }
