@@ -804,15 +804,15 @@ public class MPORSubstitution {
     return rParameterDeclarations.build();
   }
 
-  public ImmutableList<CVariableDeclaration> getStartRoutineArgDeclarations() {
-    ImmutableList.Builder<CVariableDeclaration> rStartRoutineArgDeclarations =
+  public ImmutableList<CParameterDeclaration> getStartRoutineArgDeclarations() {
+    ImmutableList.Builder<CParameterDeclaration> rStartRoutineArgDeclarations =
         ImmutableList.builder();
     for (ImmutableMap<CParameterDeclaration, CIdExpression> substitutes :
         startRoutineArgSubstitutes.values()) {
       for (CIdExpression startRoutineArg : substitutes.values()) {
-        CVariableDeclaration declaration =
-            castTo(startRoutineArg.getDeclaration(), CVariableDeclaration.class);
-        rStartRoutineArgDeclarations.add(declaration);
+        CParameterDeclaration parameterDeclaration =
+            castTo(startRoutineArg.getDeclaration(), CParameterDeclaration.class);
+        rStartRoutineArgDeclarations.add(parameterDeclaration);
       }
     }
     return rStartRoutineArgDeclarations.build();

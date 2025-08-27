@@ -286,12 +286,10 @@ public class MPORSubstitutionBuilder {
                       parameterDeclaration,
                       createdThread.id,
                       startRoutineDeclaration.getOrigName());
-              // we use variable declarations for start_routine args in the sequentialization
-              CVariableDeclaration variableDeclaration =
-                  substituteVariableDeclaration(
-                      parameterDeclaration.asVariableDeclaration(), varName);
+              CParameterDeclaration substituteParameterDeclaration =
+                  substituteParameterDeclaration(parameterDeclaration, varName);
               CIdExpression substitute =
-                  SeqExpressionBuilder.buildIdExpression(variableDeclaration);
+                  SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration);
               rArgSubstitutes.put(threadEdge, ImmutableMap.of(parameterDeclaration, substitute));
             }
           }

@@ -10,15 +10,16 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builde
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
 public class SeqLeftHandSideBuilder {
 
   public static ImmutableList<CLeftHandSide> buildPcLeftHandSides(
-      int pNumThreads, boolean pScalarPc) {
+      MPOROptions pOptions, int pNumThreads) {
 
     ImmutableList.Builder<CLeftHandSide> rPcExpressions = ImmutableList.builder();
     rPcExpressions.addAll(
-        pScalarPc
+        pOptions.scalarPc
             ? SeqExpressionBuilder.buildScalarPcExpressions(pNumThreads)
             : SeqExpressionBuilder.buildArrayPcExpressions(pNumThreads));
     return rPcExpressions.build();

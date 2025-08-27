@@ -169,7 +169,7 @@ public class SubstituteEdge {
     return threadEdge.callContext;
   }
 
-  public CFAEdge getOriginalEdge() {
+  public CFAEdge getOriginalCfaEdge() {
     return threadEdge.cfaEdge;
   }
 }

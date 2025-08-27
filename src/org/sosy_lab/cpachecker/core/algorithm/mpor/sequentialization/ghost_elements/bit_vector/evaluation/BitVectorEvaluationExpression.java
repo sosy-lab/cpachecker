@@ -24,7 +24,6 @@ public class BitVectorEvaluationExpression implements SeqExpression {
   public BitVectorEvaluationExpression(
       Optional<CBinaryExpression> pBinaryExpression, Optional<SeqExpression> pLogicalExpression) {
 
-    // both the binary and logical expression can be empty due to local thread synchronizations
     binaryExpression = pBinaryExpression;
     logicalExpression = pLogicalExpression;
   }

@@ -24,12 +24,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostVariableUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockMerger;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -52,16 +48,14 @@ public class SeqThreadStatementClauseBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       Optional<BitVectorVariables> pBitVectorVariables,
       Optional<MemoryModel> pMemoryModel,
-      ProgramCounterVariables pPcVariables,
-      ThreadSynchronizationVariables pThreadSimulationVariables,
+      GhostElements pGhostElements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
     // initialize clauses from ThreadCFAs
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> initialClauses =
-        initClauses(
-            pOptions, pSubstitutions, pSubstituteEdges, pPcVariables, pThreadSimulationVariables);
+        initClauses(pOptions, pSubstitutions, pSubstituteEdges, pGhostElements);
     // if enabled, prune clauses so that no clause has only pc writes
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> prunedClauses =
         pOptions.pruneEmptyStatements ? SeqPruner.pruneClauses(initialClauses) : initialClauses;
@@ -98,8 +92,7 @@ public class SeqThreadStatementClauseBuilder {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      ProgramCounterVariables pPcVariables,
-      ThreadSynchronizationVariables pThreadSimulationVariables)
+      GhostElements pGhostElements)
       throws UnrecognizedCodeException {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
@@ -108,12 +101,6 @@ public class SeqThreadStatementClauseBuilder {
       MPORThread thread = substitution.thread;
       ImmutableList.Builder<SeqThreadStatementClause> clauses = ImmutableList.builder();
       Set<ThreadNode> coveredNodes = new HashSet<>();
-
-      FunctionStatements functionVariables =
-          GhostVariableUtil.buildFunctionVariables(thread, substitution, pSubstituteEdges);
-      GhostVariables ghostVariables =
-          new GhostVariables(functionVariables, pPcVariables, pThreadSimulationVariables);
-
       clauses.addAll(
           initClauses(
               pOptions,
@@ -121,7 +108,7 @@ public class SeqThreadStatementClauseBuilder {
               SubstituteUtil.extractThreads(pSubstitutions),
               coveredNodes,
               pSubstituteEdges,
-              ghostVariables));
+              pGhostElements));
       rClauses.putAll(thread, clauses.build());
     }
     // TODO add optional pc validation here
@@ -169,7 +156,7 @@ public class SeqThreadStatementClauseBuilder {
       ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostVariables pGhostVariables) {
+      GhostElements pGhostVariables) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
 
@@ -204,14 +191,15 @@ public class SeqThreadStatementClauseBuilder {
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostVariables pGhostVariables) {
+      GhostElements pGhostVariables) {
 
     pCoveredNodes.add(pThreadNode);
 
     int labelPc = pThreadNode.pc;
     ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
 
-    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.getPcLeftHandSide(pThread.id);
+    CLeftHandSide pcLeftHandSide =
+        pGhostVariables.programCounterVariables.getPcLeftHandSide(pThread.id);
 
     ImmutableList<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
     if (leavingEdges.isEmpty()) {

@@ -35,10 +35,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -194,13 +193,14 @@ public class LineOfCodeUtil {
     if (pOptions.comments) {
       rStartRoutineArgDeclarations.add(LineOfCode.of(SeqComment.START_ROUTINE_ARG_SUBSTITUTES));
     }
-    ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
+    ImmutableList<CParameterDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarations();
-    for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
+    for (CParameterDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
       // TODO why exclude pthread objects here? add explaining comment
       if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {
+        // add trailing ; as CParameterDeclaration is without semicolons
         rStartRoutineArgDeclarations.add(
-            LineOfCodeUtil.buildLineOfCode(startRoutineArgDeclaration));
+            LineOfCode.of(startRoutineArgDeclaration.toASTString() + SeqSyntax.SEMICOLON));
       }
     }
     return rStartRoutineArgDeclarations.build();
@@ -251,8 +251,7 @@ public class LineOfCodeUtil {
       Optional<MemoryModel> pMemoryModel,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       Optional<BitVectorVariables> pBitVectorVariables,
-      ProgramCounterVariables pPcVariables,
-      ThreadSynchronizationVariables pThreadSimulationVariables,
+      GhostElements pGhostElements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -274,8 +273,7 @@ public class LineOfCodeUtil {
             pSubstituteEdges,
             pBitVectorVariables,
             pMemoryModel,
-            pPcVariables,
-            pThreadSimulationVariables,
+            pGhostElements,
             pBinaryExpressionBuilder,
             pLogger);
     SeqMainFunction mainFunction =
@@ -284,9 +282,9 @@ public class LineOfCodeUtil {
             pSubstitutions,
             clauses,
             pBitVectorVariables,
-            pPcVariables,
+            pGhostElements.programCounterVariables,
             pMemoryModel,
-            pThreadSimulationVariables,
+            pGhostElements.threadSynchronizationVariables,
             pBinaryExpressionBuilder,
             pLogger);
     rFunctionDefinitions.addAll(mainFunction.buildDefinition());

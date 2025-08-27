@@ -26,10 +26,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqLeftHandSideBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostVariableUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
@@ -112,8 +112,6 @@ public class Sequentialization {
 
   private final ImmutableList<MPORSubstitution> substitutions;
 
-  private final int numThreads;
-
   private final String inputFileName;
 
   private final String outputFileName;
@@ -138,14 +136,13 @@ public class Sequentialization {
 
     options = pOptions;
     substitutions = pSubstitutions;
-    numThreads = pSubstitutions.size();
     inputFileName = pInputFileName;
     outputFileName = pOutputFileName;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
     ImmutableList<CLeftHandSide> pcLeftHandSides =
-        SeqLeftHandSideBuilder.buildPcLeftHandSides(numThreads, options.scalarPc);
+        SeqLeftHandSideBuilder.buildPcLeftHandSides(options, pSubstitutions.size());
     ImmutableList<CBinaryExpression> threadNotActiveExpressions =
         SeqExpressionBuilder.buildThreadNotActiveExpressions(
             pcLeftHandSides, binaryExpressionBuilder);
@@ -181,17 +178,20 @@ public class Sequentialization {
     MPORSubstitution mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
+    GhostElements ghostElements =
+        GhostElementUtil.buildGhostElements(
+            options, threads, substitutions, substituteEdges, pcVariables, binaryExpressionBuilder);
     ImmutableSet<MemoryLocation> initialMemoryLocations =
         SubstituteUtil.getInitialMemoryLocations(substituteEdges.values());
     Optional<MemoryModel> memoryModel =
         MemoryModelBuilder.tryBuildMemoryModel(
-            options, threads, initialMemoryLocations, substituteEdges.values());
+            options,
+            threads,
+            initialMemoryLocations,
+            substituteEdges.values(),
+            ghostElements.getFunctionStatements());
     Optional<BitVectorVariables> bitVectorVariables =
-        GhostVariableUtil.buildBitVectorVariables(options, threads, memoryModel);
-    // TODO rename simulation -> synchronizationVariables
-    ThreadSynchronizationVariables threadSimulationVariables =
-        GhostVariableUtil.buildThreadSimulationVariables(
-            options, threads, substituteEdges, binaryExpressionBuilder);
+        GhostElementUtil.buildBitVectorVariables(options, threads, memoryModel);
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
@@ -215,8 +215,7 @@ public class Sequentialization {
             memoryModel,
             substituteEdges,
             bitVectorVariables,
-            pcVariables,
-            threadSimulationVariables,
+            ghostElements,
             binaryExpressionBuilder,
             logger));
 

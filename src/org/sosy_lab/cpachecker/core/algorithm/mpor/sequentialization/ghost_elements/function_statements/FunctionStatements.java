@@ -18,7 +18,7 @@ public class FunctionStatements {
   public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       parameterAssignments;
 
-  public final ImmutableMap<ThreadEdge, FunctionParameterAssignment> startRoutineArgAssignments;
+  private final ImmutableMap<ThreadEdge, FunctionParameterAssignment> startRoutineArgAssignments;
 
   public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       returnValueAssignments;
@@ -35,5 +35,13 @@ public class FunctionStatements {
     startRoutineArgAssignments = pStartRoutineArgAssignments;
     returnValueAssignments = pReturnValueAssignments;
     startRoutineExitAssignments = pStartRoutineExitAssignments;
+  }
+
+  public FunctionParameterAssignment getStartRoutineArgAssignmentByThreadEdge(
+      ThreadEdge pThreadEdge) {
+
+    assert startRoutineArgAssignments.containsKey(pThreadEdge)
+        : "startRoutineArgAssignments does not contain pThreadEdge";
+    return startRoutineArgAssignments.get(pThreadEdge);
   }
 }

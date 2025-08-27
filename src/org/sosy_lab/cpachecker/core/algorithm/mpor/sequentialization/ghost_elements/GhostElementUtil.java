@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
@@ -62,7 +63,24 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class GhostVariableUtil {
+public class GhostElementUtil {
+
+  public static GhostElements buildGhostElements(
+      MPOROptions pOptions,
+      ImmutableList<MPORThread> pThreads,
+      ImmutableList<MPORSubstitution> pSubstitutions,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ProgramCounterVariables pPcVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableMap<MPORThread, FunctionStatements> functionStatements =
+        buildFunctionStatements(pThreads, pSubstitutions, pSubstituteEdges);
+    ThreadSynchronizationVariables threadSynchronizationVariables =
+        GhostElementUtil.buildThreadSynchronizationVariables(
+            pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder);
+    return new GhostElements(functionStatements, pPcVariables, threadSynchronizationVariables);
+  }
 
   // Bit Vectors ===================================================================================
 
@@ -292,9 +310,27 @@ public class GhostVariableUtil {
     return Optional.of(rMap.buildOrThrow());
   }
 
-  // Function Variables ============================================================================
+  // Function Statements ===========================================================================
 
-  public static FunctionStatements buildFunctionVariables(
+  private static ImmutableMap<MPORThread, FunctionStatements> buildFunctionStatements(
+      ImmutableList<MPORThread> pThreads,
+      ImmutableList<MPORSubstitution> pSubstitutions,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+
+    ImmutableMap.Builder<MPORThread, FunctionStatements> rFunctionStatements =
+        ImmutableMap.builder();
+    for (MPORSubstitution substitution : pSubstitutions) {
+      for (MPORThread thread : pThreads) {
+        if (substitution.thread.equals(thread)) {
+          rFunctionStatements.put(
+              thread, buildFunctionStatements(thread, substitution, pSubstituteEdges));
+        }
+      }
+    }
+    return rFunctionStatements.buildOrThrow();
+  }
+
+  private static FunctionStatements buildFunctionStatements(
       MPORThread pThread,
       MPORSubstitution pSubstitution,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
@@ -306,7 +342,9 @@ public class GhostVariableUtil {
         buildStartRoutineExitAssignments(pThread, pSubstituteEdges));
   }
 
-  public static ThreadSynchronizationVariables buildThreadSimulationVariables(
+  // Thread Synchronization Variables ==============================================================
+
+  private static ThreadSynchronizationVariables buildThreadSynchronizationVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,

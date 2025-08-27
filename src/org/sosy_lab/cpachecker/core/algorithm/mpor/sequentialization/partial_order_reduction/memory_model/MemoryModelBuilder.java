@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -23,13 +24,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -41,11 +47,13 @@ public class MemoryModelBuilder {
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
       ImmutableSet<MemoryLocation> pInitialMemoryLocations,
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<MPORThread, FunctionStatements> pFunctionStatements) {
 
     if (pOptions.linkReduction) {
       ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
-          mapParameterAssignments(pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
+          mapParameterAssignments(
+              pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations, pFunctionStatements);
       ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
           extractPointerParameters(parameterAssignments);
       ImmutableCollection<MemoryLocation> newMemoryLocations = parameterAssignments.values();
@@ -223,18 +231,38 @@ public class MemoryModelBuilder {
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
       ImmutableCollection<SubstituteEdge> pSubstituteEdges,
-      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      ImmutableSet<MemoryLocation> pInitialMemoryLocations,
+      ImmutableMap<MPORThread, FunctionStatements> pFunctionStatements) {
 
     ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       // use the original edge, so that we use the original variable declarations
-      if (substituteEdge.getOriginalEdge() instanceof CFunctionCallEdge functionCallEdge) {
-        // the function call edge is used as the call context, not the actual call context
-        ThreadEdge callContext = substituteEdge.getThreadEdge();
-        MPORThread thread = ThreadUtil.getThreadById(pThreads, callContext.threadId);
+      CFAEdge original = substituteEdge.getOriginalCfaEdge();
+      ThreadEdge callContext = substituteEdge.getThreadEdge();
+      MPORThread thread = ThreadUtil.getThreadById(pThreads, callContext.threadId);
+      if (original instanceof CFunctionCallEdge functionCallEdge) {
         rAssignments.putAll(
             buildParameterAssignments(
                 pOptions, thread, callContext, functionCallEdge, pInitialMemoryLocations));
+
+      } else if (PthreadUtil.callsPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
+        FunctionStatements functionStatements =
+            Objects.requireNonNull(pFunctionStatements.get(thread));
+        FunctionParameterAssignment startRoutineArgAssignment =
+            functionStatements.getStartRoutineArgAssignmentByThreadEdge(callContext);
+        CParameterDeclaration parameterDeclaration =
+            startRoutineArgAssignment.getLeftHandSideParameterDeclaration();
+        MemoryLocation rhsMemoryLocation =
+            extractMemoryLocation(
+                pOptions,
+                thread,
+                callContext,
+                startRoutineArgAssignment.getRightHandSide(),
+                pInitialMemoryLocations);
+        if (!rhsMemoryLocation.isEmpty()) {
+          rAssignments.put(
+              MemoryLocation.of(Optional.of(callContext), parameterDeclaration), rhsMemoryLocation);
+        }
       }
     }
     return rAssignments.buildOrThrow();
