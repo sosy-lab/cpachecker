@@ -317,7 +317,7 @@ public final class CTypes {
         pType = new CPointerType(sizeType.getQualifiers(), innerType);
       }
     } else if (pType instanceof CFunctionType) {
-      pType = new CPointerType(pType.getQualifiers(), pType);
+      pType = new CPointerType(CTypeQualifiers.NONE, pType);
     }
     return pType;
   }
