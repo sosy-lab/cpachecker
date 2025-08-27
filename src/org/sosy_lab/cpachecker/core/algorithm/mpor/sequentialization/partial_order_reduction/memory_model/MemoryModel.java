@@ -28,6 +28,12 @@ public class MemoryModel {
 
   private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
 
+  /**
+   * The set of relevant {@link MemoryLocation}s, i.e. all that are needed to decide whether a
+   * statement commutes. This includes explicit and implicit (through pointers) memory locations.
+   */
+  private final ImmutableSet<MemoryLocation> relevantMemoryLocations;
+
   public final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments;
 
   /**
@@ -39,13 +45,13 @@ public class MemoryModel {
   public final ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments;
 
   /** The subset of parameters that are pointers. */
-  private final ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments;
+  public final ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments;
 
-  private final ImmutableSet<MemoryLocation> pointerDereferences;
+  public final ImmutableSet<MemoryLocation> pointerDereferences;
 
-  // public constructor for unit tests
-  public MemoryModel(
+  MemoryModel(
       ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
+      ImmutableSet<MemoryLocation> pRelevantMemoryLocations,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
@@ -54,6 +60,7 @@ public class MemoryModel {
     checkArguments(pPointerAssignments);
     memoryLocationAmount = pMemoryLocationIds.size();
     memoryLocationIds = pMemoryLocationIds;
+    relevantMemoryLocations = pRelevantMemoryLocations;
     pointerAssignments = pPointerAssignments;
     parameterAssignments = pParameterAssignments;
     pointerParameterAssignments = pPointerParameterAssignments;
@@ -89,76 +96,28 @@ public class MemoryModel {
    * Returns true if the pointer in {@code pMemoryLocation} is assigned a pointer {@code ptr}, or
    * the address of a non-pointer {@code &non_ptr}.
    */
-  public boolean isAssignedPointer(MemoryLocation pMemoryLocation) {
-    return pointerAssignments.containsKey(pMemoryLocation)
-        || pointerParameterAssignments.containsKey(pMemoryLocation);
-  }
+  public static boolean isAssignedPointer(
+      MemoryLocation pMemoryLocation,
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
-  /**
-   * Returns {@code true} if any pointer (parameter or variable, both local and global) points to
-   * {@code pMemoryLocation}.
-   */
-  private boolean isPointedTo(MemoryLocation pMemoryLocation) {
-    if (pointerAssignments.values().contains(pMemoryLocation)) {
-      return true;
-    }
-    if (pointerParameterAssignments.containsValue(pMemoryLocation)) {
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Returns {@code true} if {@code pMemoryLocation} is implicitly global e.g. through {@code
-   * global_ptr = &local_var;}. Returns {@code false} even if the memory location itself is global.
-   */
-  public boolean isImplicitGlobal(MemoryLocation pMemoryLocation) {
-    if (pMemoryLocation.isExplicitGlobal()) {
-      return false;
-    }
-    if (isPointedTo(pMemoryLocation)) {
-      // inexpensive shortcut: first check for direct assignments
-      for (MemoryLocation pointerDeclaration : pointerAssignments.keySet()) {
-        if (pointerDeclaration.isExplicitGlobal()) {
-          return true;
-        }
-      }
-      // then check if a global pointer deref is associated with the memory location
-      for (MemoryLocation pointerDereference : pointerDereferences) {
-        if (pointerDereference.equals(pMemoryLocation)) {
-          ImmutableSet<MemoryLocation> memoryLocations =
-              MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-                  pointerDereference, this);
-          for (MemoryLocation memoryLocation : memoryLocations) {
-            if (memoryLocation.isExplicitGlobal()) {
-              return true;
-            }
-          }
-        }
-      }
-      // lastly perform most expensive check on transitive pointer assignments
-      for (MemoryLocation pointerDeclaration : pointerAssignments.keySet()) {
-        ImmutableSet<MemoryLocation> transitivePointerDeclarations =
-            MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
-                pointerDeclaration, this);
-        for (MemoryLocation transitivePointerDeclaration : transitivePointerDeclarations) {
-          if (transitivePointerDeclaration.isExplicitGlobal()) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+    return pPointerAssignments.containsKey(pMemoryLocation)
+        || pPointerParameterAssignments.containsKey(pMemoryLocation);
   }
 
   // getters =======================================================================================
 
-  public ImmutableSet<MemoryLocation> getAssignedMemoryLocations(MemoryLocation pMemoryLocation) {
+  // TODO this can be optimized by using an ImmutableSetMultimap and saving it on creation
+  public static ImmutableSet<MemoryLocation> getAssignedMemoryLocations(
+      MemoryLocation pMemoryLocation,
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
+
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
-    rMemoryLocations.addAll(pointerAssignments.get(pMemoryLocation));
-    if (pointerParameterAssignments.containsKey(pMemoryLocation)) {
+    rMemoryLocations.addAll(pPointerAssignments.get(pMemoryLocation));
+    if (pPointerParameterAssignments.containsKey(pMemoryLocation)) {
       rMemoryLocations.add(
-          Objects.requireNonNull(pointerParameterAssignments.get(pMemoryLocation)));
+          Objects.requireNonNull(pPointerParameterAssignments.get(pMemoryLocation)));
     }
     return rMemoryLocations.build();
   }
@@ -176,15 +135,6 @@ public class MemoryModel {
    * statements commute. These are all explicit and implicit global memory locations.
    */
   public ImmutableSet<MemoryLocation> getRelevantMemoryLocations() {
-    ImmutableSet.Builder<MemoryLocation> rRelevant = ImmutableSet.builder();
-    for (MemoryLocation memoryLocation : memoryLocationIds.keySet()) {
-      // exclude const CPAchecker_TMP, they do not have any effect in the input program
-      if (!MemoryLocationUtil.isConstCpaCheckerTmp(memoryLocation)) {
-        if (memoryLocation.isExplicitGlobal() || isImplicitGlobal(memoryLocation)) {
-          rRelevant.add(memoryLocation);
-        }
-      }
-    }
-    return rRelevant.build();
+    return relevantMemoryLocations;
   }
 }

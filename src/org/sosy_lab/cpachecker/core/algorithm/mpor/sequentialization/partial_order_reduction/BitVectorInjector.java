@@ -329,7 +329,7 @@ public class BitVectorInjector {
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.ACCESS);
+                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.ACCESS);
         ImmutableSet<MemoryLocation> reachableLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.ACCESS);
@@ -344,14 +344,14 @@ public class BitVectorInjector {
       case READ_AND_WRITE -> {
         ImmutableSet<MemoryLocation> directReadLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.READ);
+                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.READ);
         ImmutableSet<MemoryLocation> reachableWriteLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.WRITE);
 
         ImmutableSet<MemoryLocation> directWriteLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.WRITE);
+                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.WRITE);
         ImmutableSet<MemoryLocation> reachableReadLocations =
             MemoryLocationFinder.findReachableMemoryLocationsByAccessType(
                 pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.READ);

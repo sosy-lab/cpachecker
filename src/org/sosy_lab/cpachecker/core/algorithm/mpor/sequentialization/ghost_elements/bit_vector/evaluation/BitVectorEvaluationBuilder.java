@@ -88,7 +88,7 @@ public class BitVectorEvaluationBuilder {
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directAccessMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.ACCESS);
+                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.ACCESS);
         yield buildLastAccessBitVectorEvaluationByEncoding(
             pOptions,
             directAccessMemoryLocations,
@@ -99,10 +99,10 @@ public class BitVectorEvaluationBuilder {
       case READ_AND_WRITE -> {
         ImmutableSet<MemoryLocation> directReadMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.READ);
+                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.READ);
         ImmutableSet<MemoryLocation> directWriteMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.WRITE);
+                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.WRITE);
         yield buildLastReadWriteBitVectorEvaluationByEncoding(
             pOptions,
             directReadMemoryLocations,
@@ -231,7 +231,7 @@ public class BitVectorEvaluationBuilder {
       case ACCESS_ONLY -> {
         ImmutableSet<MemoryLocation> directAccessMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.ACCESS);
+                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.ACCESS);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,
@@ -245,10 +245,10 @@ public class BitVectorEvaluationBuilder {
       case READ_AND_WRITE -> {
         ImmutableSet<MemoryLocation> directReadMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.READ);
+                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.READ);
         ImmutableSet<MemoryLocation> directWriteMemoryLocations =
             MemoryLocationFinder.findDirectMemoryLocationsByAccessType(
-                pLabelBlockMap, pMemoryModel, pTargetBlock, MemoryAccessType.WRITE);
+                pLabelBlockMap, pTargetBlock, pMemoryModel, MemoryAccessType.WRITE);
         yield buildEvaluationByReduction(
             pOptions,
             pOtherThreads,

@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -208,17 +207,6 @@ public class MemoryModelParameterTest {
   private final MemoryLocation PARAMETER_Q_MEMORY_LOCATION =
       MemoryLocation.of(Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_Q);
 
-  // Memory Location IDs
-
-  private final ImmutableMap<MemoryLocation, Integer> MEMORY_LOCATION_IDS =
-      ImmutableMap.<MemoryLocation, Integer>builder()
-          .put(GLOBAL_X_MEMORY_LOCATION, 0)
-          .put(LOCAL_POINTER_C_MEMORY_LOCATION, 1)
-          .put(LOCAL_Z_MEMORY_LOCATION, 2)
-          .put(PARAMETER_POINTER_P_MEMORY_LOCATION, 3)
-          .put(PARAMETER_Q_MEMORY_LOCATION, 4)
-          .buildOrThrow();
-
   @Test
   public void test_pointer_parameter_dereference() {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
@@ -228,23 +216,13 @@ public class MemoryModelParameterTest {
             .buildOrThrow();
     ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
         MemoryModelBuilder.extractPointerParameters(parameterAssignments);
-    // *param_ptr_P i.e. pointer parameter dereference
-    ImmutableSet<MemoryLocation> pointerDereferences =
-        ImmutableSet.<MemoryLocation>builder().add(PARAMETER_POINTER_P_MEMORY_LOCATION).build();
-
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            MEMORY_LOCATION_IDS,
-            ImmutableSetMultimap.of(),
-            parameterAssignments,
-            pointerParameterAssignments,
-            pointerDereferences);
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, testMemoryModel);
+            PARAMETER_POINTER_P_MEMORY_LOCATION,
+            ImmutableSetMultimap.of(),
+            pointerParameterAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
     assertThat(memoryLocations.size() == 1).isTrue();
@@ -267,23 +245,10 @@ public class MemoryModelParameterTest {
             .put(LOCAL_POINTER_C_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
             .build();
 
-    // *param_ptr_P i.e. pointer parameter dereference
-    ImmutableSet<MemoryLocation> pointerDereferences =
-        ImmutableSet.<MemoryLocation>builder().add(PARAMETER_POINTER_P_MEMORY_LOCATION).build();
-
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            MEMORY_LOCATION_IDS,
-            pointerAssignments,
-            parameterAssignments,
-            pointerParameterAssignments,
-            pointerDereferences);
-
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, testMemoryModel);
+            PARAMETER_POINTER_P_MEMORY_LOCATION, pointerAssignments, pointerParameterAssignments);
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
     assertThat(memoryLocations.size() == 1).isTrue();
@@ -306,20 +271,23 @@ public class MemoryModelParameterTest {
             .put(GLOBAL_POINTER_A_MEMORY_LOCATION, PARAMETER_Q_MEMORY_LOCATION)
             .build();
 
-    // create memory model
-    MemoryModel testMemoryModel =
-        new MemoryModel(
-            MEMORY_LOCATION_IDS,
-            pointerAssignments,
-            parameterAssignments,
-            pointerParameterAssignments,
-            ImmutableSet.of());
-
     // assert that param_Q is now an implicit global memory location, but local_Z is not
     assertThat(PARAMETER_Q_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
     assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isExplicitGlobal()).isTrue();
-    assertThat(testMemoryModel.isImplicitGlobal(LOCAL_Z_MEMORY_LOCATION)).isFalse();
-    assertThat(testMemoryModel.isImplicitGlobal(PARAMETER_Q_MEMORY_LOCATION)).isTrue();
+    assertThat(
+            MemoryModelBuilder.isImplicitGlobal(
+                LOCAL_Z_MEMORY_LOCATION,
+                pointerAssignments,
+                pointerParameterAssignments,
+                ImmutableSet.of()))
+        .isFalse();
+    assertThat(
+            MemoryModelBuilder.isImplicitGlobal(
+                PARAMETER_Q_MEMORY_LOCATION,
+                pointerAssignments,
+                parameterAssignments,
+                ImmutableSet.of()))
+        .isTrue();
   }
 }

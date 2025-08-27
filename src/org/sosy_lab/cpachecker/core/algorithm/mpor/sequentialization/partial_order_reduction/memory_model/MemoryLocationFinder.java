@@ -25,18 +25,16 @@ public class MemoryLocationFinder {
    * Returns {@code true} if any global memory location is (possibly) accessed when executing {@code
    * pBlock} and its directly linked blocks.
    */
-  public static boolean hasGlobalAccess(
+  public static boolean containsRelevantMemoryLocation(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      MemoryModel pMemoryModel,
-      SeqThreadStatementBlock pBlock) {
+      SeqThreadStatementBlock pBlock,
+      MemoryModel pMemoryModel) {
 
-    ImmutableSet<MemoryLocation> memoryLocations =
+    ImmutableSet<MemoryLocation> foundMemoryLocations =
         findDirectMemoryLocationsByAccessType(
-            pLabelBlockMap, pMemoryModel, pBlock, MemoryAccessType.ACCESS);
-    return !memoryLocations.stream()
-        .filter(MemoryLocation::isExplicitGlobal)
-        .collect(ImmutableSet.toImmutableSet())
-        .isEmpty();
+            pLabelBlockMap, pBlock, pMemoryModel, MemoryAccessType.ACCESS);
+    return pMemoryModel.getRelevantMemoryLocations().stream()
+        .anyMatch(relevantMemoryLocation -> foundMemoryLocations.contains(relevantMemoryLocation));
   }
 
   /**
@@ -45,8 +43,8 @@ public class MemoryLocationFinder {
    */
   public static ImmutableSet<MemoryLocation> findDirectMemoryLocationsByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      MemoryModel pMemoryModel,
       SeqThreadStatementBlock pBlock,
+      MemoryModel pMemoryModel,
       MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemLocations = ImmutableSet.builder();
@@ -111,7 +109,10 @@ public class MemoryLocationFinder {
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
     for (MemoryLocation pointerDereference : pointerDereferences) {
       rMemLocations.addAll(
-          findMemoryLocationsByPointerDereference(pointerDereference, pMemoryModel));
+          findMemoryLocationsByPointerDereference(
+              pointerDereference,
+              pMemoryModel.pointerAssignments,
+              pMemoryModel.pointerParameterAssignments));
     }
     return rMemLocations.build();
   }
@@ -119,31 +120,39 @@ public class MemoryLocationFinder {
   // Extraction by Pointer Assignments (including Parameters) ======================================
 
   public static ImmutableSet<MemoryLocation> findPointerDeclarationsByPointerAssignments(
-      MemoryLocation pPointerDeclaration, MemoryModel pMemoryModel) {
+      MemoryLocation pPointerDeclaration,
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
     Set<MemoryLocation> rFound = new HashSet<>();
     recursivelyFindPointerDeclarationsByPointerAssignments(
-        pPointerDeclaration, pMemoryModel, rFound, new HashSet<>());
+        pPointerDeclaration,
+        pPointerAssignments,
+        pPointerParameterAssignments,
+        rFound,
+        new HashSet<>());
     return ImmutableSet.copyOf(rFound);
   }
 
   private static void recursivelyFindPointerDeclarationsByPointerAssignments(
       MemoryLocation pCurrentMemoryLocation,
-      final MemoryModel pMemoryModel,
+      final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      final ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       Set<MemoryLocation> pFound,
       Set<MemoryLocation> pVisited) {
 
-    if (pMemoryModel.isAssignedPointer(pCurrentMemoryLocation)) {
-      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
-          pMemoryModel.pointerAssignments;
-      for (MemoryLocation pointerDeclaration : pointerAssignments.keySet()) {
+    if (MemoryModel.isAssignedPointer(
+        pCurrentMemoryLocation, pPointerAssignments, pPointerParameterAssignments)) {
+      for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
         if (pVisited.add(pointerDeclaration)) {
-          for (MemoryLocation memoryLocation : pointerAssignments.get(pointerDeclaration)) {
-            if (pMemoryModel.isAssignedPointer(memoryLocation)) {
-              pFound.add(pointerDeclaration);
-              recursivelyFindPointerDeclarationsByPointerAssignments(
-                  memoryLocation, pMemoryModel, pFound, pVisited);
-            }
+          for (MemoryLocation memoryLocation : pPointerAssignments.get(pointerDeclaration)) {
+            pFound.add(pointerDeclaration);
+            recursivelyFindPointerDeclarationsByPointerAssignments(
+                memoryLocation,
+                pPointerAssignments,
+                pPointerParameterAssignments,
+                pFound,
+                pVisited);
           }
         }
       }
@@ -153,11 +162,17 @@ public class MemoryLocationFinder {
   // Extraction by Pointer Dereference =============================================================
 
   public static ImmutableSet<MemoryLocation> findMemoryLocationsByPointerDereference(
-      MemoryLocation pPointerDereference, MemoryModel pMemoryModel) {
+      MemoryLocation pPointerDereference,
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
     Set<MemoryLocation> found = new HashSet<>();
     recursivelyFindMemoryLocationsByPointerDereference(
-        pPointerDereference, pMemoryModel, found, new HashSet<>());
+        pPointerDereference,
+        pPointerAssignments,
+        pPointerParameterAssignments,
+        found,
+        new HashSet<>());
     return ImmutableSet.copyOf(found);
   }
 
@@ -168,7 +183,8 @@ public class MemoryLocationFinder {
    */
   private static void recursivelyFindMemoryLocationsByPointerDereference(
       MemoryLocation pCurrentMemoryLocation,
-      final MemoryModel pMemoryModel,
+      final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      final ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       Set<MemoryLocation> pFound,
       Set<MemoryLocation> pVisited) {
 
@@ -176,12 +192,18 @@ public class MemoryLocationFinder {
     if (pVisited.add(pCurrentMemoryLocation)) {
       // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
       // and then dereferenced -> the pointer is not associated with the address of a var
-      if (pMemoryModel.isAssignedPointer(pCurrentMemoryLocation)) {
+      if (MemoryModel.isAssignedPointer(
+          pCurrentMemoryLocation, pPointerAssignments, pPointerParameterAssignments)) {
         ImmutableSet<MemoryLocation> assignedMemoryLocations =
-            pMemoryModel.getAssignedMemoryLocations(pCurrentMemoryLocation);
+            MemoryModel.getAssignedMemoryLocations(
+                pCurrentMemoryLocation, pPointerAssignments, pPointerParameterAssignments);
         for (MemoryLocation assignedMemoryLocation : assignedMemoryLocations) {
           recursivelyFindMemoryLocationsByPointerDereference(
-              assignedMemoryLocation, pMemoryModel, pFound, pVisited);
+              assignedMemoryLocation,
+              pPointerAssignments,
+              pPointerParameterAssignments,
+              pFound,
+              pVisited);
         }
       } else {
         pFound.add(pCurrentMemoryLocation);

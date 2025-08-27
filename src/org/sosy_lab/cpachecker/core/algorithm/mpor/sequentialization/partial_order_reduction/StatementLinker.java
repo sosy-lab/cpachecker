@@ -127,15 +127,16 @@ public class StatementLinker {
         // thread synchronization statements must be directly reachable (via pc) -> no linking
         && !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
         // only consider global accesses if not ignored
-        && !(!canIgnoreGlobal(pTarget)
-            && MemoryLocationFinder.hasGlobalAccess(pLabelBlockMap, pMemoryModel, targetBlock));
+        && !(!canIgnoreRelevantMemoryLocation(pTarget)
+            && MemoryLocationFinder.containsRelevantMemoryLocation(
+                pLabelBlockMap, targetBlock, pMemoryModel));
   }
 
   /**
-   * Whether we can ignore the local/global property of {@code pClause}, e.g. unlocks of global
-   * mutexes.
+   * Whether we can ignore the local/global property of {@code pClause} even if the operation may
+   * not (always) commute, e.g. unlocks of global mutexes.
    */
-  private static boolean canIgnoreGlobal(SeqThreadStatementClause pTarget) {
+  private static boolean canIgnoreRelevantMemoryLocation(SeqThreadStatementClause pTarget) {
     // TODO there should be more checks, this only holds if the only global access is the mutex,
     //  what if there are other global accesses?
     // TODO only holds without pthread_mutex_trylock (i.e. unlock does not guarantee commute

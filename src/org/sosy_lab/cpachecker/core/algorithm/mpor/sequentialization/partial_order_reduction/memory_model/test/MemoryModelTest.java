@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 
 public class MemoryModelTest {
 
@@ -183,7 +184,7 @@ public class MemoryModelTest {
 
     // create memory model
     MemoryModel testMemoryModel =
-        new MemoryModel(
+        MemoryModelBuilder.buildMemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
             ImmutableMap.of(),
@@ -193,7 +194,7 @@ public class MemoryModelTest {
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION, testMemoryModel);
+            GLOBAL_POINTER_A_MEMORY_LOCATION, pointerAssignments, ImmutableMap.of());
 
     // only memory location of 'global_X' should be associated with dereference of 'global_ptr_A'
     assertThat(memoryLocations.size() == 1).isTrue();
@@ -214,7 +215,7 @@ public class MemoryModelTest {
 
     // create memory model
     MemoryModel testMemoryModel =
-        new MemoryModel(
+        MemoryModelBuilder.buildMemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
             ImmutableMap.of(),
@@ -224,7 +225,7 @@ public class MemoryModelTest {
     // find the memory locations associated with dereference of 'global_ptr_A'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_A_MEMORY_LOCATION, testMemoryModel);
+            GLOBAL_POINTER_A_MEMORY_LOCATION, pointerAssignments, ImmutableMap.of());
 
     // mem location of 'global_X' and 'global_Y' should be associated with deref of 'global_ptr_A'
     assertThat(memoryLocations.size() == 2).isTrue();
@@ -247,7 +248,7 @@ public class MemoryModelTest {
 
     // create memory model
     MemoryModel testMemoryModel =
-        new MemoryModel(
+        MemoryModelBuilder.buildMemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
             ImmutableMap.of(),
@@ -257,7 +258,7 @@ public class MemoryModelTest {
     // find the memory locations associated with dereference of 'global_ptr_B'
     ImmutableSet<MemoryLocation> memoryLocations =
         MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            GLOBAL_POINTER_B_MEMORY_LOCATION, testMemoryModel);
+            GLOBAL_POINTER_B_MEMORY_LOCATION, pointerAssignments, ImmutableMap.of());
 
     // memory location of 'global_X' should be associated with dereference of 'global_ptr_B'
     // even without direct assignment, due to transitive assignment of 'global_ptr_B = global_ptr_A'
@@ -275,7 +276,7 @@ public class MemoryModelTest {
 
     // create memory model
     MemoryModel testMemoryModel =
-        new MemoryModel(
+        MemoryModelBuilder.buildMemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
             ImmutableMap.of(),
@@ -286,7 +287,10 @@ public class MemoryModelTest {
     // 'global_ptr_A' gets its address, and can be dereferenced by other threads
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isExplicitGlobal()).isTrue();
     assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(testMemoryModel.isImplicitGlobal(LOCAL_Z_MEMORY_LOCATION)).isTrue();
+    assertThat(
+            MemoryModelBuilder.isImplicitGlobal(
+                LOCAL_Z_MEMORY_LOCATION, pointerAssignments, ImmutableMap.of(), ImmutableSet.of()))
+        .isTrue();
   }
 
   @Test
@@ -302,7 +306,7 @@ public class MemoryModelTest {
 
     // create memory model
     MemoryModel testMemoryModel =
-        new MemoryModel(
+        MemoryModelBuilder.buildMemoryModel(
             MEMORY_LOCATION_IDS,
             pointerAssignments,
             ImmutableMap.of(),
@@ -315,6 +319,9 @@ public class MemoryModelTest {
     assertThat(LOCAL_POINTER_C_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
     assertThat(LOCAL_POINTER_D_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
     assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
-    assertThat(testMemoryModel.isImplicitGlobal(LOCAL_Z_MEMORY_LOCATION)).isTrue();
+    assertThat(
+            MemoryModelBuilder.isImplicitGlobal(
+                LOCAL_Z_MEMORY_LOCATION, pointerAssignments, ImmutableMap.of(), ImmutableSet.of()))
+        .isTrue();
   }
 }
