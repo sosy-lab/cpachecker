@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.Nondeterminism
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
@@ -44,6 +45,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
@@ -65,6 +68,10 @@ public class SeqMainFunction extends SeqFunction {
   private final MPOROptions options;
 
   private final MPORSubstitution mainSubstitution;
+
+  private final ImmutableList<MPORSubstitution> substitutions;
+
+  private final int numThreads;
 
   private final CIdExpression numThreadsVariable;
 
@@ -104,10 +111,10 @@ public class SeqMainFunction extends SeqFunction {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    int numThreads = pSubstitutions.size();
-
     options = pOptions;
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(pSubstitutions);
+    substitutions = pSubstitutions;
+    numThreads = pSubstitutions.size();
     numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(numThreads);
     clauses = pClauses;
     bitVectorVariables = pBitVectorVariables;
@@ -137,9 +144,14 @@ public class SeqMainFunction extends SeqFunction {
     // declare main() local variables NUM_THREADS, pc, next_thread
     // TODO its probably best to remove num threads entirely and just place the int
     rBody.addAll(
-        buildLocalThreadSimulationVariableDeclarations(
+        buildThreadSimulationVariableDeclarations(
             options,
             clauses.keySet(),
+            pcVariables,
+            bitVectorVariables,
+            numThreads,
+            substitutions,
+            memoryModel,
             numThreadsVariable.getDeclaration(),
             threadSimulationVariables));
 
@@ -152,7 +164,6 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(LineOfCode.of(lastThreadAssignNumThreads.toASTString()));
     }
 
-    // add bit vector initializations
     rBody.addAll(buildBitVectorInitializations(clauses, bitVectorVariables));
 
     // add main function argument non-deterministic assignments
@@ -316,16 +327,59 @@ public class SeqMainFunction extends SeqFunction {
    * {@code main} function. Variables that are used in other functions are declared beforehand as
    * global variables.
    */
-  private ImmutableList<LineOfCode> buildLocalThreadSimulationVariableDeclarations(
+  private static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pThreads,
+      ProgramCounterVariables pPcVariables,
+      Optional<BitVectorVariables> pBitVectorVariables,
+      int pNumThreads,
+      ImmutableList<MPORSubstitution> pSubstitutions,
+      Optional<MemoryModel> pMemoryModel,
       CSimpleDeclaration pNumThreadDeclaration,
-      ThreadSynchronizationVariables pThreadSimulationVariables) {
+      ThreadSynchronizationVariables pThreadSimulationVariables)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rDeclarations = ImmutableList.builder();
 
     // NUM_THREADS
     rDeclarations.add(LineOfCode.of(pNumThreadDeclaration.toASTString()));
+
+    // last_thread is always unsigned, we assign NUM_THREADS if the current thread terminates
+    if (pOptions.conflictReduction) {
+      rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_UNSIGNED.toASTString()));
+    }
+
+    // next_thread
+    if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+      if (pOptions.nondeterminismSigned) {
+        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
+      } else {
+        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
+      }
+    }
+
+    // pc variable(s)
+    if (pOptions.comments) {
+      rDeclarations.add(LineOfCode.of(SeqComment.PC_DECLARATION));
+    }
+    ImmutableList<CVariableDeclaration> pcDeclarations =
+        SeqDeclarationBuilder.buildPcDeclarations(pOptions, pPcVariables, pNumThreads);
+    for (CVariableDeclaration pcDeclaration : pcDeclarations) {
+      rDeclarations.add(LineOfCode.of(pcDeclaration.toASTString()));
+    }
+
+    // if enabled: bit vectors
+    if (pOptions.areBitVectorsEnabled()) {
+      ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
+          SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(
+              pOptions,
+              pBitVectorVariables,
+              pMemoryModel,
+              SubstituteUtil.extractThreads(pSubstitutions));
+      for (SeqBitVectorDeclaration bitVectorDeclaration : bitVectorDeclarations) {
+        rDeclarations.add(LineOfCode.of(bitVectorDeclaration.toASTString()));
+      }
+    }
 
     // active_thread_count / cnt
     if (!pOptions.nondeterminismSource.isNextThreadNondeterministic()) {

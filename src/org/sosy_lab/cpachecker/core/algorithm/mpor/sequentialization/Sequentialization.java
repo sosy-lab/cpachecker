@@ -22,16 +22,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqLeftHandSideBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -209,16 +205,6 @@ public class Sequentialization {
     rProgram.addAll(LineOfCodeUtil.buildMainFunctionArgDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildStartRoutineArgDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, threads));
-
-    // add variable declarations for ghost variables
-    ImmutableList<CVariableDeclaration> pcDeclarations =
-        SeqDeclarationBuilder.buildPcDeclarations(options, pcVariables, numThreads);
-    ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
-        SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(
-            options, bitVectorVariables, memoryModel, SubstituteUtil.extractThreads(substitutions));
-    rProgram.addAll(
-        LineOfCodeUtil.buildGlobalThreadSimulationVariableDeclarations(
-            options, pcDeclarations, bitVectorDeclarations));
 
     // add custom function declarations and definitions
     rProgram.addAll(LineOfCodeUtil.buildFunctionDeclarations(options));

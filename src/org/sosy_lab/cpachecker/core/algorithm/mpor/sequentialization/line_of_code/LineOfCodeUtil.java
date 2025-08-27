@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
@@ -39,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -224,52 +222,6 @@ public class LineOfCodeUtil {
       }
     }
     return rStartRoutineExitDeclarations.build();
-  }
-
-  // TODO since conflict evaluations are not in a separate function, put all this into main()
-  /**
-   * Creates all thread simulation variables that are global, so that they can be used in functions
-   * separate from the {@code main} function. Accessing them directly should be more efficient than
-   * passing them as parameters.
-   */
-  public static ImmutableList<LineOfCode> buildGlobalThreadSimulationVariableDeclarations(
-      MPOROptions pOptions,
-      ImmutableList<CVariableDeclaration> pPcDeclarations,
-      ImmutableList<SeqBitVectorDeclaration> pBitVectorDeclarations)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<LineOfCode> rDeclarations = ImmutableList.builder();
-
-    // last_thread is always signed so that we can assign -1 when the current thread terminates
-    if (pOptions.conflictReduction) {
-      rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_UNSIGNED.toASTString()));
-    }
-
-    // next_thread
-    if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
-      if (pOptions.nondeterminismSigned) {
-        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
-      } else {
-        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
-      }
-    }
-
-    // pc
-    if (pOptions.comments) {
-      rDeclarations.add(LineOfCode.of(SeqComment.PC_DECLARATION));
-    }
-    for (CVariableDeclaration pcDeclaration : pPcDeclarations) {
-      rDeclarations.add(LineOfCode.of(pcDeclaration.toASTString()));
-    }
-
-    // if enabled: bit vectors (for partial order reductions)
-    if (pOptions.areBitVectorsEnabled()) {
-      for (SeqBitVectorDeclaration bitVectorDeclaration : pBitVectorDeclarations) {
-        rDeclarations.add(LineOfCode.of(bitVectorDeclaration.toASTString()));
-      }
-    }
-
-    return rDeclarations.build();
   }
 
   public static ImmutableList<LineOfCode> buildFunctionDeclarations(MPOROptions pOptions) {
