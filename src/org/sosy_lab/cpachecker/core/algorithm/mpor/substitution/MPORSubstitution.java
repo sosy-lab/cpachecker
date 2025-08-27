@@ -415,7 +415,7 @@ public class MPORSubstitution {
       CExpression arrayExpression = arraySubscript.getArrayExpression();
       CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
       CExpression arraySubstitute =
-          substitute(arrayExpression, pCallContext, true, false, false, pIsUnaryAmper, pTracker);
+          substitute(arrayExpression, pCallContext, pIsWrite, false, false, pIsUnaryAmper, pTracker);
       // the subscript is not a LHS in an assignment -> no write
       CExpression subscriptSubstitute =
           substitute(
