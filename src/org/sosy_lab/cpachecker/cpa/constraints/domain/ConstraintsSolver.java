@@ -296,7 +296,7 @@ public class ConstraintsSolver {
       ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraintsToCheck);
 
       // This list is deduplicated due to the input-set
-      List<BooleanFormula> constraintsAsFormulas =
+      ImmutableSet<BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
       CacheResult res = cache.getCachedResult(constraintsAsFormulas);
 
@@ -415,7 +415,7 @@ public class ConstraintsSolver {
     }
   }
 
-  private void preparePersistentProverForCheck(List<BooleanFormula> constraintsToCheck)
+  private void preparePersistentProverForCheck(ImmutableSet<BooleanFormula> constraintsToCheck)
       throws InterruptedException {
     AtomicInteger totalKeptRef = new AtomicInteger();
     AtomicInteger totalRemovedRef = new AtomicInteger();
@@ -453,7 +453,7 @@ public class ConstraintsSolver {
 
   // Builds the prover stack incrementally based on the set of common constraints
   private void buildProverStackBasedOnCommonConstraints(
-      List<BooleanFormula> constraintsToCheckList,
+      ImmutableSet<BooleanFormula> constraintsToCheckList,
       AtomicInteger totalKept,
       AtomicInteger totalRemoved)
       throws InterruptedException {
@@ -627,13 +627,13 @@ public class ConstraintsSolver {
 
   /**
    * Returns the set of formulas representing all constraints of this state. If no constraints
-   * exist, this method will return an empty list.
+   * exist, this method will return an empty set.
    *
-   * @return the list of formulas representing all constraints of this state
+   * @return the {@link ImmutableSet} of formulas representing all constraints of this state
    * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
-  private List<BooleanFormula> getFullFormula(
+  private ImmutableSet<BooleanFormula> getFullFormula(
       Collection<Constraint> pConstraints, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -645,7 +645,7 @@ public class ConstraintsSolver {
       formulasBuilder.add(constraintFormulas.get(c));
     }
 
-    return formulasBuilder.build().asList();
+    return formulasBuilder.build();
   }
 
   private BooleanFormula createConstraintFormulas(Constraint pConstraint, String pFunctionName)
