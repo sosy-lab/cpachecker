@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastSparseBitVector;
@@ -101,6 +102,8 @@ public class ConflictResolver {
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rWithOrders = ImmutableList.builder();
+    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock mergedBlock : clause.getBlocks()) {
@@ -109,6 +112,7 @@ public class ConflictResolver {
                 pOptions,
                 mergedBlock,
                 pActiveThread,
+                labelClauseMap,
                 pLabelBlockMap,
                 pBitVectorVariables,
                 pMemoryModel,
@@ -123,6 +127,7 @@ public class ConflictResolver {
       MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
       MPORThread pActiveThread,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
@@ -136,6 +141,7 @@ public class ConflictResolver {
               pOptions,
               statement,
               pActiveThread,
+              pLabelClauseMap,
               pLabelBlockMap,
               pBitVectorVariables,
               pMemoryModel,
@@ -148,6 +154,7 @@ public class ConflictResolver {
       MPOROptions pOptions,
       SeqThreadStatement pStatement,
       MPORThread pActiveThread,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       BitVectorVariables pBitVectorVariables,
       MemoryModel pMemoryModel,
@@ -160,24 +167,28 @@ public class ConflictResolver {
     }
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pStatement.getTargetPc())) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
-      SeqThreadStatementBlock targetBlock = pLabelBlockMap.get(targetPc);
-      // build conflict order statement (with bit vector evaluations based on pTargetBlock)
-      BitVectorEvaluationExpression lastBitVectorEvaluation =
-          BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
-              pOptions,
-              pLabelBlockMap,
-              targetBlock,
-              pBitVectorVariables,
-              pMemoryModel,
-              pBinaryExpressionBuilder);
-      SeqConflictOrderStatement conflictOrderStatement =
-          new SeqConflictOrderStatement(
-              pActiveThread, lastBitVectorEvaluation, pBinaryExpressionBuilder);
-      return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(conflictOrderStatement));
-    } else {
-      // no valid target pc -> no conflict order required
-      return pStatement;
+      SeqThreadStatementClause targetClause = pLabelClauseMap.get(targetPc);
+      assert targetClause != null : "could not find targetPc in pLabelBlockMap";
+      if (!SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
+        SeqThreadStatementBlock targetBlock = pLabelBlockMap.get(targetPc);
+        // build conflict order statement (with bit vector evaluations based on targetBlock)
+        BitVectorEvaluationExpression lastBitVectorEvaluation =
+            BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
+                pOptions,
+                pLabelBlockMap,
+                targetBlock,
+                pBitVectorVariables,
+                pMemoryModel,
+                pBinaryExpressionBuilder);
+        SeqConflictOrderStatement conflictOrderStatement =
+            new SeqConflictOrderStatement(
+                pActiveThread, lastBitVectorEvaluation, pBinaryExpressionBuilder);
+        return pStatement.cloneAppendingInjectedStatements(
+            ImmutableList.of(conflictOrderStatement));
+      }
     }
+    // no conflict order injected
+    return pStatement;
   }
 
   // Last Updates ==================================================================================
