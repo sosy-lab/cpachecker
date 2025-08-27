@@ -280,8 +280,8 @@ public class DetailedCounterexampleExport implements Algorithm {
           variable = Splitter.on("@").limit(2).splitToList(variable).get(0);
         }
         preciseCexExport
-            .append("Function: ")
-            .append(cfaEdge.getPredecessor().getFunction())
+            .append("Functions: ")
+            .append(cfaEdge.getSuccessor().getFunction())
             .append("\n")
             .append(cfaEdge)
             .append('\n')
