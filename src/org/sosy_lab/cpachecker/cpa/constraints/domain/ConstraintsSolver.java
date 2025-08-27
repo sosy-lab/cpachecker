@@ -192,7 +192,7 @@ public class ConstraintsSolver {
       Constraint pSingleConstraintToCheck, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
     ConstraintsState s = new ConstraintsState(ImmutableSet.of(pSingleConstraintToCheck));
-    return checkUnsat(s, pFunctionName, true).satisfiability();
+    return checkUnsatWithFreshSolver(s, pFunctionName).satisfiability();
   }
 
   /**
@@ -215,7 +215,7 @@ public class ConstraintsSolver {
       Constraint pSingleConstraintToCheck, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
     ConstraintsState s = new ConstraintsState(Collections.singleton(pSingleConstraintToCheck));
-    return checkUnsat(s, pFunctionName, false).satisfiability();
+    return checkUnsatWithOptionDefinedSolverReuse(s, pFunctionName).satisfiability();
   }
 
   /**
@@ -255,7 +255,7 @@ public class ConstraintsSolver {
   public SolverResult checkUnsatWithOptionDefinedSolverReuse(
       ConstraintsState pConstraintsToCheck, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
-    return checkUnsat(pConstraintsToCheck, pFunctionName, false);
+    return checkUnsat(pConstraintsToCheck, pFunctionName, !reuseSolver);
   }
 
   /**
@@ -268,12 +268,10 @@ public class ConstraintsSolver {
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
    * @param forceFreshProver if true, uses a new {@link ProverEnvironment} for checking the
-   *     constraints, that is closed after the method is finished, overwriting option {@link
-   *     #reuseSolver}. If false, will use option {@link #reuseSolver} to determine reuse of the
-   *     existing prover. Incremental solving can improve computation time by re-using information
-   *     stored in the solver from previous computations. This effect is strongest when the
-   *     previously checked constraints are a subset of the constraints in {@code
-   *     pConstraintsToCheck}.
+   *     constraints, that is closed after the method is finished. If false, will use incremental
+   *     solving, which can improve computation time by re-using information stored in the solver
+   *     from previous computations. This effect is strongest when the previously checked
+   *     constraints are a subset of the constraints in {@code pConstraintsToCheck}.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
    */
@@ -310,7 +308,7 @@ public class ConstraintsSolver {
       } else {
 
         stats.timeForProverPreparation.start();
-        if (forceFreshProver || !reuseSolver) {
+        if (forceFreshProver) {
           // Non-Incremental
           stats.distinctFreshProversUsed.inc();
           try (ProverEnvironment prover =
