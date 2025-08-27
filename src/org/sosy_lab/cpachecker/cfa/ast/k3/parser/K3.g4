@@ -8,171 +8,99 @@
 
 grammar K3;
 
-// import SMTLIBv2;
+import SMTLIBv2;
 
-// Lexer Rules
-LPAREN: '(' ;
-RPAREN: ')' ;
+// Parser Rules
 
-IDENT: [a-zA-Z_] [a-zA-Z_0-9]* ;
-
-SYM : '+'
-    | '='
-    | '/'
-    | '*'
-    | '%'
-    | '?'
-    | '!'
-    | '$'
-    | '-'
-    | '_'
-    | '~'
-    | '&'
-    | '^'
-    | '<'
-    | '>'
-    | '@'
-    | '.'
+script
+    : commandk3+
     ;
 
-WS: [ \t\r\n]+ -> skip ;
-
-Semicolon: ';' ;
-
-Comment
-    : Semicolon ~[\r\n]* -> skip
-    ;
-
-Nondigit
-    : 'a' ..'z'
-    | 'A' .. 'Z'
-    ;
-
-Integer
-    : NonNegativeInteger
-    | NegativeInteger
-    ;
-
-NonNegativeInteger
-    : NonZeroDigit (Digit)*
-    | [0]
-    ;
-
-NegativeInteger
-    : '-' NonZeroDigit (Digit)*
-    ;
-
-fragment Digit
-    : [0-9]
-    ;
-
-fragment NonZeroDigit
-    : [1-9]
-    ;
-
-variable: IDENT;
-
-sort: IDENT;
-
-tagName: IDENT;
-
-procedureName: IDENT;
-
-label: IDENT;
-
-term
-    : LPAREN (SYM | IDENT) term* RPAREN                         # ApplicationTerm
-    | variable                                                  # VariableTerm
+commandk3
+    : ParOpen 'declare-var' symbol sort ParClose                      # DeclareVar
+    | ParOpen
+          'define-proc' symbol
+            ParOpen procDeclarationArguments ParClose
+            ParOpen procDeclarationArguments ParClose
+            ParOpen procDeclarationArguments ParClose
+                statement
+      ParClose                                                        # DefineProc
+    | ParOpen 'annotate-tag' symbol attribute+ ParClose               # AnnotateTag
+    | ParOpen 'select-trace' trace ParClose                           # SelectTrace
+    | ParOpen 'verify-call' symbol
+            ParOpen term* ParClose
+      ParClose                                                        # VerifyCall
+    | ParOpen 'get-proof' ParClose                                    # GetProof
+    | ParOpen 'get-counterexample' ParClose                           # GetCounterexample
+    | Comment                                                         # Comment
+    | command                                                         # SMTLIBv2Command
     ;
 
 statement
-    : LPAREN 'assume' term RPAREN                               # AssumeStatement
-    | LPAREN 'assign' LPAREN
-            (LPAREN IDENT term RPAREN)+
-      RPAREN RPAREN                                             # AssignStatement
-    | LPAREN 'sequence' statement+ RPAREN                       # SequenceStatement
-    | LPAREN '!' statement attribute+ RPAREN                    # AnnotatedStatement
-    | LPAREN 'call'
-            procedureName
-            LPAREN term* RPAREN
-            LPAREN variable* RPAREN
-        RPAREN                                                  # CallStatement
-    | LPAREN 'return' RPAREN                                    # ReturnStatement
-    | LPAREN 'label' label RPAREN                               # LabelStatement
-    | LPAREN 'goto' label RPAREN                                # GotoStatement
-    | LPAREN 'if' term statement statement? RPAREN              # IfStatement
-    | LPAREN 'while' term statement RPAREN                      # WhileStatement
-    | LPAREN 'break' RPAREN                                     # BreakStatement
-    | LPAREN 'continue' RPAREN                                  # ContinueStatement
-    | LPAREN 'havoc' LPAREN variable+ RPAREN RPAREN             # HavocStatement
-    | LPAREN 'choice' LPAREN statement+ RPAREN RPAREN           # ChoiceStatement
-    ;
-
-trace
-    :   (LPAREN 'global' variable value  RPAREN)*
-        (LPAREN 'call' variable (value)* RPAREN)
-        (step)*
-        (LPAREN 'incorrect-tag' tagName attribute+ RPAREN)
-    ;
-
-step
-    : LPAREN 'local' LPAREN (value)* RPAREN RPAREN              # ChooseLocalVariableValue
-    | LPAREN 'havoc' LPAREN (value)* RPAREN RPAREN              # ChooseHavocVariableValue
-    | LPAREN 'choice' NonNegativeInteger RPAREN                 # ChooseChoiceStatement
-    ;
-
-value
-    : Integer
+    : ParOpen 'assume' term ParClose                                  # AssumeStatement
+    | ParOpen 'assign'
+            (ParOpen symbol term ParClose)+
+      ParClose                                                        # AssignStatement
+    | ParOpen 'sequence' statement+ ParClose                          # SequenceStatement
+    | ParOpen GRW_Exclamation statement attribute+ ParClose           # AnnotatedStatement
+    | ParOpen 'call'
+            symbol
+            ParOpen term* ParClose
+            ParOpen symbol* ParClose
+        ParClose                                                      # CallStatement
+    | ParOpen 'return' ParClose                                       # ReturnStatement
+    | ParOpen 'label' symbol ParClose                                 # LabelStatement
+    | ParOpen 'goto' symbol ParClose                                  # GotoStatement
+    | ParOpen 'if' term statement statement? ParClose                 # IfStatement
+    | ParOpen 'while' term statement ParClose                         # WhileStatement
+    | ParOpen 'break' ParClose                                        # BreakStatement
+    | ParOpen 'continue' ParClose                                     # ContinueStatement
+    | ParOpen 'havoc' ParOpen symbol+ ParClose ParClose               # HavocStatement
+    | ParOpen 'choice' ParOpen statement+ ParClose ParClose           # ChoiceStatement
     ;
 
 attribute
-    : ':tag' tagName                                            # TagAttribute
-    | property                                                  # TagProperty
+    : ':tag' symbol                                                   # TagAttribute
+    | property                                                        # TagProperty
     ;
 
 // TODO: This currently does not support the LTL tag
 property
-    : ':assert' relationalTerm                                  # AssertProperty
-    | ':live'                                                   # LiveProperty
-    | ':not-live'                                               # NotLiveProperty
-    | ':ghost' LPAREN variable+ RPAREN                          # GhostProperty
-    | ':requires' term                                          # RequiresProperty
-    | ':ensures' relationalTerm                                 # EnsuresProperty
-    | ':invariant' relationalTerm                               # InvariantProperty
-    | ':decreases' term                                         # DecreasesProperty
-    | ':decreases' LPAREN term+ RPAREN                          # DecreasesProperty
-    | ':modifies' LPAREN variable+ RPAREN                       # ModifiesProperty
+    : ':assert' relationalTerm                                        # AssertProperty
+    | ':live'                                                         # LiveProperty
+    | ':not-live'                                                     # NotLiveProperty
+    | ':ghost' ParOpen symbol+ ParClose                               # GhostProperty
+    | ':requires' term                                                # RequiresProperty
+    | ':ensures' relationalTerm                                       # EnsuresProperty
+    | ':invariant' relationalTerm                                     # InvariantProperty
+    | ':decreases' term                                               # DecreasesProperty
+    | ':decreases' ParOpen term+ ParClose                             # DecreasesProperty
+    | ':modifies' ParOpen symbol+ ParClose                            # ModifiesProperty
+    ;
+
+
+trace
+    :   (ParOpen 'global' symbol term  ParClose)*
+        (ParOpen 'call' symbol (term)* ParClose)
+        (step)*
+        (ParOpen 'incorrect-tag' symbol attribute+ ParClose)
+    ;
+
+step
+    : ParOpen 'local' ParOpen (term)* ParClose ParClose               # ChooseLocalVariableValue
+    | ParOpen 'havoc' ParOpen (term)* ParClose ParClose               # ChooseHavocVariableValue
+    | ParOpen 'choice' Numeral ParClose                               # ChooseChoiceStatement
     ;
 
 relationalTerm
     : term
-    | LPAREN 'old' variable RPAREN
+    | ParOpen 'old' symbol ParClose
     ;
 
 procDeclarationArguments
-    : (LPAREN variable sort RPAREN)*
+    : (ParOpen symbol sort ParClose)*
     ;
 
-command
-    : LPAREN 'declare-var' variable sort RPAREN                 # DeclareVar
-    | LPAREN
-          'define-proc' procedureName
-            LPAREN procDeclarationArguments RPAREN
-            LPAREN procDeclarationArguments RPAREN
-            LPAREN procDeclarationArguments RPAREN
-                statement
-      RPAREN                                                    # DefineProc
-    | LPAREN 'annotate-tag' tagName attribute+ RPAREN           # AnnotateTag
-    | LPAREN 'select-trace' trace RPAREN                        # SelectTrace
-    | LPAREN 'verify-call' procedureName
-            LPAREN term* RPAREN
-      RPAREN                                                    # VerifyCall
-    | LPAREN 'get-proof' RPAREN                                 # GetProof
-    | LPAREN 'get-counterexample' RPAREN                        # GetCounterexample
-    | Comment                                                   # Comment
-    ;
+// Parser rules end
 
-
-script
-    : command+
-    ;
+WS: [ \t\r\n]+ -> skip ;

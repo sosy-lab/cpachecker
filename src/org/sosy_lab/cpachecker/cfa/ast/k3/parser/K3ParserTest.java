@@ -193,4 +193,81 @@ public class K3ParserTest {
 
     testScriptParsing(filePath, output);
   }
+
+  @Test
+  public void parseLoopAdd() throws K3AstParseException {
+
+    K3ParameterDeclaration x =
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "x");
+    K3ParameterDeclaration y =
+        new K3ParameterDeclaration(FileLocation.DUMMY, K3Type.getTypeForString("Int"), "y");
+    K3ProcedureDeclaration procedureDeclaration =
+        new K3ProcedureDeclaration(
+            FileLocation.DUMMY,
+            "f1",
+            ImmutableList.of(x, y),
+            ImmutableList.of(),
+            ImmutableList.of());
+    K3VariableDeclaration w =
+        new K3VariableDeclaration(
+            FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "w", "w", "w");
+    K3VariableDeclaration z =
+        new K3VariableDeclaration(
+            FileLocation.DUMMY, true, K3Type.getTypeForString("Int"), "z", "z", "z");
+
+    K3Script output =
+        new K3Script(
+            ImmutableList.of(
+                new K3VariableDeclarationCommand(w, FileLocation.DUMMY),
+                new K3VariableDeclarationCommand(z, FileLocation.DUMMY),
+                new K3ProcedureDefinitionCommand(
+                    FileLocation.DUMMY,
+                    procedureDeclaration,
+                    new K3SequenceStatement(
+                        ImmutableList.of(
+                            new K3AssumeStatement(
+                                FileLocation.DUMMY,
+                                new K3SymbolApplicationTerm(
+                                    "=",
+                                    ImmutableList.of(
+                                        new K3IdTerm(x, FileLocation.DUMMY),
+                                        new K3IdTerm(y, FileLocation.DUMMY)),
+                                    FileLocation.DUMMY),
+                                ImmutableList.of(),
+                                ImmutableList.of()),
+                            new K3AssumeStatement(
+                                FileLocation.DUMMY,
+                                new K3SymbolApplicationTerm(
+                                    "=",
+                                    ImmutableList.of(
+                                        new K3IdTerm(x, FileLocation.DUMMY),
+                                        new K3IdTerm(y, FileLocation.DUMMY)),
+                                    FileLocation.DUMMY),
+                                ImmutableList.of(
+                                    new K3AssertTag(
+                                        new K3SymbolApplicationTerm(
+                                            "not",
+                                            ImmutableList.of(
+                                                new K3SymbolApplicationTerm(
+                                                    "=",
+                                                    ImmutableList.of(
+                                                        new K3IdTerm(x, FileLocation.DUMMY),
+                                                        new K3IdTerm(y, FileLocation.DUMMY)),
+                                                    FileLocation.DUMMY)),
+                                            FileLocation.DUMMY),
+                                        FileLocation.DUMMY)),
+                                ImmutableList.of())),
+                        FileLocation.DUMMY,
+                        ImmutableList.of(),
+                        ImmutableList.of())),
+                new VerifyCallCommand(
+                    procedureDeclaration,
+                    ImmutableList.of(
+                        new K3IdTerm(w, FileLocation.DUMMY), new K3IdTerm(z, FileLocation.DUMMY)),
+                    FileLocation.DUMMY)));
+
+    Path filePath = Path.of(examplesPath(), "loop-add.smt2");
+
+    testScriptParsing(filePath, output);
+  }
 }
