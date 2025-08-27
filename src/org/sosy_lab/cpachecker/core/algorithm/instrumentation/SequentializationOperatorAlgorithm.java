@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
@@ -131,20 +130,24 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       }
     } else {
       if (instrumentationProperty == InstrumentationProperty.DATA_RACE) {
-        ImmutableMap.Builder<String, String> builder = new Builder<>();
+        ImmutableMap.Builder<String, String> builder = new ImmutableMap.Builder<>();
         for (String variable :
             cfa.getMetadata().getLiveVariables().get().getAllLiveVariables().stream()
                 .map(e -> e.getName())
                 .toList()) {
           if (cProgramScope.variableNameInUse(variable)) {
-            builder.put(variable, cProgramScope.lookupVariable(variable).getType().toString());
+            try {
+              builder.put(variable, cProgramScope.lookupVariable(variable).getType().toString());
+            } catch (NullPointerException e) {
+              continue;
+            }
           }
         }
         ImmutableMap<String, String> varsWithTypes = builder.build();
         mapAutomataToLocations.put(
             0,
             new InstrumentationAutomaton(instrumentationProperty, varsWithTypes, varsWithTypes, 0));
-        ImmutableMap.Builder<CFANode, Integer> builder1 = new Builder<>();
+        ImmutableMap.Builder<CFANode, Integer> builder1 = new ImmutableMap.Builder<>();
         // This is needed because many functions are called by reference from pthread functions
         for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {
           builder1.put(functionEntryNode, 0);
