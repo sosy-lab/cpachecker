@@ -264,11 +264,11 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally as far as possible. If parameter {@code
-   * useFreshProver} is false and option {@link #reuseSolver} is true.
+   * forceFreshProver} is false and option {@link #reuseSolver} is true.
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
-   * @param useFreshProver if true, uses a new {@link ProverEnvironment} for checking the
+   * @param forceFreshProver if true, uses a new {@link ProverEnvironment} for checking the
    *     constraints, that is closed after the method is finished, overwriting option {@link
    *     #reuseSolver}. If false, will use option {@link #reuseSolver} to determine reuse of the
    *     existing prover. Incremental solving can improve computation time by re-using information
@@ -279,7 +279,7 @@ public class ConstraintsSolver {
    *     model is automatically included for {@link Satisfiability#SAT}.
    */
   private SolverResult checkUnsat(
-      ConstraintsState pConstraintsToCheck, String pFunctionName, boolean useFreshProver)
+      ConstraintsState pConstraintsToCheck, String pFunctionName, boolean forceFreshProver)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
     if (pConstraintsToCheck.isEmpty()) {
@@ -311,7 +311,7 @@ public class ConstraintsSolver {
       } else {
 
         stats.timeForProverPreparation.start();
-        if (useFreshProver || !reuseSolver) {
+        if (forceFreshProver || !reuseSolver) {
           // Non-Incremental
           stats.distinctFreshProversUsed.inc();
           try (ProverEnvironment prover =
