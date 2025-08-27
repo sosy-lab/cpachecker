@@ -112,7 +112,8 @@ public sealed interface CType extends Type
 
   /**
    * Implements assignment compatibility for simple assignments (=) as described in the constraints
-   * of C-Standard §6.5.16.1 (1).
+   * of C-Standard §6.5.16.1 (1). Note that this does not forbid assigning to const objects, so this
+   * method does not check whether the current instance is const.
    *
    * <p>Currently the fifth of those constraints is not considered, since a {@link CType} does not
    * expose if it is a null pointer constant.
@@ -151,6 +152,9 @@ public sealed interface CType extends Type
     // Cf. C-Standard §6.3.2.3 (1):
     if (leftHandSide instanceof CPointerType cPointerType) {
       if (cPointerType.getType() instanceof CVoidType) {
+        // TODO This is wrong, cf. #1035 and
+        // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/c8bc0c7a1433b70fc28771314d61c26ea6f618b6#note_1170818138
+        // When fixed, update the test in CTypeCompatibilityTest
         if (rightHandSide.isIncomplete() || CTypes.isObjectType(rightHandSide)) {
           return true;
         }

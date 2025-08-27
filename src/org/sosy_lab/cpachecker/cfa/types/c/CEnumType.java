@@ -129,6 +129,10 @@ public final class CEnumType implements CComplexType {
    * Be careful, this method compares the CType as it is to the given object, typedefs won't be
    * resolved. If you want to compare the type without having typedefs in it use
    * #getCanonicalType().equals()
+   *
+   * <p>Note that this method also compares the enumerators (and their values). Two enum types will
+   * be treated as equal only if they match exactly. (This differs from {@link
+   * CCompositeType#equals(Object)} currently, cf. #1376.)
    */
   @Override
   public boolean equals(@Nullable Object obj) {

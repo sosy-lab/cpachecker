@@ -348,6 +348,7 @@ class ASTTypeConverter {
         if (!(ctype instanceof CProblemType)) {
           // We can have something like "const __typeof__(volatile int)", we need to combine inner
           // and outer qualifier.
+          // TODO wrong for arrays once we fix its getCanonicalType(), cf. #1375
           ctype =
               ctype.withQualifiersSetTo(
                   CTypeQualifiers.union(ctype.getQualifiers(), convertCTypeQualifiers(dd)));

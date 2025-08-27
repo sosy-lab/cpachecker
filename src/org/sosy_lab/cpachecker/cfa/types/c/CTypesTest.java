@@ -37,10 +37,10 @@ public class CTypesTest {
   static final CType CONST_VOLATILE_INT = CNumericTypes.INT.withConst().withVolatile();
 
   private static final MachineModel TEST_MACHINE_MODEL = MachineModel.LINUX32;
-  public static final CIntegerLiteralExpression TWO =
+  static final CIntegerLiteralExpression TWO =
       CIntegerLiteralExpression.createDummyLiteral(2L, CNumericTypes.INT);
 
-  private static final CIdExpression VAR_N =
+  static final CIdExpression VAR_N =
       new CIdExpression(
           FileLocation.DUMMY,
           CNumericTypes.INT,
@@ -54,7 +54,7 @@ public class CTypesTest {
               "n",
               "n",
               null));
-  private static final CIdExpression VAR_CONST =
+  static final CIdExpression VAR_CONST =
       new CIdExpression(
           FileLocation.DUMMY,
           CNumericTypes.INT.withConst(),
@@ -69,12 +69,11 @@ public class CTypesTest {
               "c",
               new CInitializerExpression(FileLocation.DUMMY, TWO)));
 
-  private static final CArrayType CONSTANT_ARRAY =
+  static final CArrayType CONSTANT_ARRAY =
       new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, TWO);
-  private static final CArrayType VARIABLE_ARRAY =
+  static final CArrayType VARIABLE_ARRAY =
       new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, VAR_N);
-  private static final CArrayType UNKNOWN_ARRAY =
-      new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT);
+  static final CArrayType UNKNOWN_ARRAY = new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT);
 
   @Parameters(name = "{0}")
   public static List<Object[]> parameters() {

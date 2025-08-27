@@ -59,6 +59,7 @@ public class CanonicalTypeTest {
     CArrayType array = new CArrayType(CTypeQualifiers.CONST_VOLATILE, CNumericTypes.INT);
 
     // arrays push their qualifiers to the element type (C11 § 6.7.3 (9))
+    // TODO: wrong, cf. #1375
     CArrayType expected =
         new CArrayType(CTypeQualifiers.NONE, CONST_VOLATILE_INT.getCanonicalType());
     assertThat(array.getCanonicalType()).isEqualTo(expected);
