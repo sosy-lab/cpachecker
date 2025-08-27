@@ -279,8 +279,17 @@ public class DetailedCounterexampleExport implements Algorithm {
         if (variable.contains("@")) {
           variable = Splitter.on("@").limit(2).splitToList(variable).get(0);
         }
-        preciseCexExport.append(cfaEdge).append('\n');
-        preciseCexExport.append("  ").append(variable).append(" == ").append(value).append(";\n");
+        preciseCexExport
+            .append("Function: ")
+            .append(cfaEdge.getPredecessor().getFunction())
+            .append("\n")
+            .append(cfaEdge)
+            .append('\n')
+            .append("  ")
+            .append(variable)
+            .append(" == ")
+            .append(value)
+            .append(";\n");
       }
       IO.writeFile(pCounterexamplePath, StandardCharsets.UTF_8, preciseCexExport.toString());
     }
