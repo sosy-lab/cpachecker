@@ -37,6 +37,12 @@ public class MemoryModel {
   public final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments;
 
   /**
+   * Keep track of {@code start_routine arg} assignments in {@code pthread_create} separately, since
+   * even a local memory address passed here is implicitly global.
+   */
+  public final ImmutableMap<MemoryLocation, MemoryLocation> startRoutineArgAssignments;
+
+  /**
    * The map of call context-sensitive {@link MemoryLocation} mapped to their assigned {@link
    * MemoryLocation}. Each parameter is only assigned once due to function cloning. Note that this
    * is not restricted to pointers, since non-pointer parameters can be made implicitly global
@@ -53,6 +59,7 @@ public class MemoryModel {
       ImmutableSet<MemoryLocation> pAllMemoryLocations,
       ImmutableMap<MemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
@@ -61,6 +68,7 @@ public class MemoryModel {
     allMemoryLocations = pAllMemoryLocations;
     relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
     relevantMemoryLocations = pRelevantMemoryLocationIds;
+    startRoutineArgAssignments = pStartRoutineArgAssignments;
     pointerAssignments = pPointerAssignments;
     parameterAssignments = pParameterAssignments;
     pointerParameterAssignments = pPointerParameterAssignments;

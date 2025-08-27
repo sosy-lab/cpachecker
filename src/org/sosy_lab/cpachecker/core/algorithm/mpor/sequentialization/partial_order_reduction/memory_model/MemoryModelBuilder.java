@@ -51,9 +51,11 @@ public class MemoryModelBuilder {
       ImmutableMap<MPORThread, FunctionStatements> pFunctionStatements) {
 
     if (pOptions.linkReduction) {
-      ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
-          mapParameterAssignments(
+      ImmutableMap<MemoryLocation, MemoryLocation> startRoutineArgAssignments =
+          mapStartRoutineArgAssignments(
               pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations, pFunctionStatements);
+      ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
+          mapParameterAssignments(pOptions, pThreads, pSubstituteEdges, pInitialMemoryLocations);
       ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
           extractPointerParameters(parameterAssignments);
       ImmutableCollection<MemoryLocation> newMemoryLocations = parameterAssignments.values();
@@ -72,6 +74,7 @@ public class MemoryModelBuilder {
           buildMemoryModel(
               allMemoryLocations,
               pointerAssignments,
+              startRoutineArgAssignments,
               parameterAssignments,
               pointerParameterAssignments,
               pointerDereferences);
@@ -84,6 +87,7 @@ public class MemoryModelBuilder {
   public static MemoryModel buildMemoryModel(
       ImmutableSet<MemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
@@ -98,6 +102,7 @@ public class MemoryModelBuilder {
         pAllMemoryLocations,
         relevantMemoryLocationIds,
         pPointerAssignments,
+        pStartRoutineArgAssignments,
         pParameterAssignments,
         pPointerParameterAssignments,
         pPointerDereferences);
@@ -225,9 +230,9 @@ public class MemoryModelBuilder {
     return rAllAssignments.build();
   }
 
-  // Parameter Assignments =================================================================
+  // start_routine arg Assignments =================================================================
 
-  private static ImmutableMap<MemoryLocation, MemoryLocation> mapParameterAssignments(
+  private static ImmutableMap<MemoryLocation, MemoryLocation> mapStartRoutineArgAssignments(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
       ImmutableCollection<SubstituteEdge> pSubstituteEdges,
@@ -238,14 +243,9 @@ public class MemoryModelBuilder {
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       // use the original edge, so that we use the original variable declarations
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
-      ThreadEdge callContext = substituteEdge.getThreadEdge();
-      MPORThread thread = ThreadUtil.getThreadById(pThreads, callContext.threadId);
-      if (original instanceof CFunctionCallEdge functionCallEdge) {
-        rAssignments.putAll(
-            buildParameterAssignments(
-                pOptions, thread, callContext, functionCallEdge, pInitialMemoryLocations));
-
-      } else if (PthreadUtil.callsPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
+      if (PthreadUtil.callsPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
+        ThreadEdge callContext = substituteEdge.getThreadEdge();
+        MPORThread thread = ThreadUtil.getThreadById(pThreads, callContext.threadId);
         FunctionStatements functionStatements =
             Objects.requireNonNull(pFunctionStatements.get(thread));
         FunctionParameterAssignment startRoutineArgAssignment =
@@ -263,6 +263,29 @@ public class MemoryModelBuilder {
           rAssignments.put(
               MemoryLocation.of(Optional.of(callContext), parameterDeclaration), rhsMemoryLocation);
         }
+      }
+    }
+    return rAssignments.buildOrThrow();
+  }
+
+  // Parameter Assignments =========================================================================
+
+  private static ImmutableMap<MemoryLocation, MemoryLocation> mapParameterAssignments(
+      MPOROptions pOptions,
+      ImmutableList<MPORThread> pThreads,
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+
+    ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+      // use the original edge, so that we use the original variable declarations
+      CFAEdge original = substituteEdge.getOriginalCfaEdge();
+      if (original instanceof CFunctionCallEdge functionCallEdge) {
+        ThreadEdge callContext = substituteEdge.getThreadEdge();
+        MPORThread thread = ThreadUtil.getThreadById(pThreads, callContext.threadId);
+        rAssignments.putAll(
+            buildParameterAssignments(
+                pOptions, thread, callContext, functionCallEdge, pInitialMemoryLocations));
       }
     }
     return rAssignments.buildOrThrow();
