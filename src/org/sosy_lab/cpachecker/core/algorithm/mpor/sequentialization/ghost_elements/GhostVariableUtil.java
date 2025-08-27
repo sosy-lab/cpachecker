@@ -395,6 +395,7 @@ public class GhostVariableUtil {
                     false,
                     false,
                     false,
+                    false,
                     Optional.empty()));
         assignments.add(parameterAssignment);
       }
@@ -424,6 +425,7 @@ public class GhostVariableUtil {
                       // the inner call context is the context in which pthread_create is called
                       rightHandSide,
                       callContext.callContext,
+                      false,
                       false,
                       false,
                       false,

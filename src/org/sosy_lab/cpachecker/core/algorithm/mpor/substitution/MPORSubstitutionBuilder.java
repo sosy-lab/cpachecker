@@ -147,6 +147,7 @@ public class MPORSubstitutionBuilder {
                     false,
                     false,
                     false,
+                    false,
                     Optional.empty()));
         CVariableDeclaration finalSubstitute =
             substituteVariableDeclaration(
@@ -367,6 +368,7 @@ public class MPORSubstitutionBuilder {
                   dummySubstitution.substitute(
                       initializerExpression.getExpression(),
                       callContext,
+                      true,
                       false,
                       false,
                       false,
