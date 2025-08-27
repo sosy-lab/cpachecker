@@ -395,12 +395,14 @@ public class BitVectorInjector {
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
       for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
-        boolean value = pReachableMemoryLocations.contains(entry.getKey());
-        SparseBitVectorValueExpression sparseBitVectorExpression =
-            new SparseBitVectorValueExpression(value);
-        rStatements.add(
-            new SeqBitVectorAssignmentStatement(
-                accessVariables.get(pThread), sparseBitVectorExpression));
+        // consider only 0 writes (at some point the memory location is not reachable anymore)
+        if (!pReachableMemoryLocations.contains(entry.getKey())) {
+          SparseBitVectorValueExpression sparseBitVectorExpression =
+              new SparseBitVectorValueExpression(false);
+          rStatements.add(
+              new SeqBitVectorAssignmentStatement(
+                  accessVariables.get(pThread), sparseBitVectorExpression));
+        }
       }
     } else {
       if (pOptions.kIgnoreZeroReduction) {
@@ -421,6 +423,7 @@ public class BitVectorInjector {
     return rStatements.build();
   }
 
+  // TODO split into several functions
   private static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorReadWriteAssignments(
       MPOROptions pOptions,
       MPORThread pThread,
@@ -437,22 +440,26 @@ public class BitVectorInjector {
       for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
         MemoryLocation memoryLocation = entry.getKey();
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
-        boolean value = pReachableAccessMemoryLocations.contains(memoryLocation);
-        SparseBitVectorValueExpression sparseBitVectorExpression =
-            new SparseBitVectorValueExpression(value);
-        rStatements.add(
-            new SeqBitVectorAssignmentStatement(
-                accessVariables.get(pThread), sparseBitVectorExpression));
+        // consider only 0 writes (at some point the memory location is not reachable anymore)
+        if (!pReachableAccessMemoryLocations.contains(memoryLocation)) {
+          SparseBitVectorValueExpression sparseBitVectorExpression =
+              new SparseBitVectorValueExpression(false);
+          rStatements.add(
+              new SeqBitVectorAssignmentStatement(
+                  accessVariables.get(pThread), sparseBitVectorExpression));
+        }
       }
       // sparse write bit vectors
       for (var entry : pBitVectorVariables.getSparseWriteBitVectors().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> writeVariables = entry.getValue().variables;
-        boolean value = pReachableWriteMemoryLocations.contains(entry.getKey());
-        SparseBitVectorValueExpression sparseBitVectorExpression =
-            new SparseBitVectorValueExpression(value);
-        rStatements.add(
-            new SeqBitVectorAssignmentStatement(
-                writeVariables.get(pThread), sparseBitVectorExpression));
+        // consider only 0 writes (at some point the memory location is not reachable anymore)
+        if (!pReachableWriteMemoryLocations.contains(entry.getKey())) {
+          SparseBitVectorValueExpression sparseBitVectorExpression =
+              new SparseBitVectorValueExpression(false);
+          rStatements.add(
+              new SeqBitVectorAssignmentStatement(
+                  writeVariables.get(pThread), sparseBitVectorExpression));
+        }
       }
     } else {
       // dense bit vectors
