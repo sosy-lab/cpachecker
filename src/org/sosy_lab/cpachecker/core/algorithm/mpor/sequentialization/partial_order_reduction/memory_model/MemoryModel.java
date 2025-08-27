@@ -24,15 +24,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
  */
 public class MemoryModel {
 
-  private final int memoryLocationAmount;
+  private final ImmutableSet<MemoryLocation> allMemoryLocations;
 
-  private final ImmutableMap<MemoryLocation, Integer> memoryLocationIds;
+  private final int relevantMemoryLocationAmount;
 
   /**
    * The set of relevant {@link MemoryLocation}s, i.e. all that are needed to decide whether a
    * statement commutes. This includes explicit and implicit (through pointers) memory locations.
    */
-  private final ImmutableSet<MemoryLocation> relevantMemoryLocations;
+  private final ImmutableMap<MemoryLocation, Integer> relevantMemoryLocations;
 
   public final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments;
 
@@ -50,17 +50,17 @@ public class MemoryModel {
   public final ImmutableSet<MemoryLocation> pointerDereferences;
 
   MemoryModel(
-      ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
-      ImmutableSet<MemoryLocation> pRelevantMemoryLocations,
+      ImmutableSet<MemoryLocation> pAllMemoryLocations,
+      ImmutableMap<MemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
     checkArguments(pPointerAssignments);
-    memoryLocationAmount = pMemoryLocationIds.size();
-    memoryLocationIds = pMemoryLocationIds;
-    relevantMemoryLocations = pRelevantMemoryLocations;
+    allMemoryLocations = pAllMemoryLocations;
+    relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
+    relevantMemoryLocations = pRelevantMemoryLocationIds;
     pointerAssignments = pPointerAssignments;
     parameterAssignments = pParameterAssignments;
     pointerParameterAssignments = pPointerParameterAssignments;
@@ -122,19 +122,19 @@ public class MemoryModel {
     return rMemoryLocations.build();
   }
 
-  public int getMemoryLocationAmount() {
-    return memoryLocationAmount;
+  public int getRelevantMemoryLocationAmount() {
+    return relevantMemoryLocationAmount;
   }
 
-  public ImmutableMap<MemoryLocation, Integer> getMemoryLocationIds() {
-    return memoryLocationIds;
+  public ImmutableSet<MemoryLocation> getAllMemoryLocations() {
+    return allMemoryLocations;
   }
 
   /**
    * Returns the set of relevant memory locations, i.e. all that are important to decide whether two
    * statements commute. These are all explicit and implicit global memory locations.
    */
-  public ImmutableSet<MemoryLocation> getRelevantMemoryLocations() {
+  public ImmutableMap<MemoryLocation, Integer> getRelevantMemoryLocations() {
     return relevantMemoryLocations;
   }
 }

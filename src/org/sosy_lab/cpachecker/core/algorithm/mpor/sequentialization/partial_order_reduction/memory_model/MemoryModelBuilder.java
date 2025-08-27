@@ -13,9 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -52,8 +50,11 @@ public class MemoryModelBuilder {
           extractPointerParameters(parameterAssignments);
       ImmutableCollection<MemoryLocation> newMemoryLocations = parameterAssignments.values();
 
-      ImmutableMap<MemoryLocation, Integer> memoryLocationIds =
-          assignMemoryLocationIds(pInitialMemoryLocations, newMemoryLocations);
+      ImmutableSet<MemoryLocation> allMemoryLocations =
+          ImmutableSet.<MemoryLocation>builder()
+              .addAll(pInitialMemoryLocations)
+              .addAll(newMemoryLocations)
+              .build();
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
           mapPointerAssignments(pSubstituteEdges);
       ImmutableSet<MemoryLocation> pointerDereferences =
@@ -61,7 +62,7 @@ public class MemoryModelBuilder {
 
       MemoryModel memoryModel =
           buildMemoryModel(
-              memoryLocationIds,
+              allMemoryLocations,
               pointerAssignments,
               parameterAssignments,
               pointerParameterAssignments,
@@ -73,21 +74,21 @@ public class MemoryModelBuilder {
   }
 
   public static MemoryModel buildMemoryModel(
-      ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
+      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
-    ImmutableSet<MemoryLocation> relevantMemoryLocations =
-        getRelevantMemoryLocations(
-            pMemoryLocationIds,
+    ImmutableMap<MemoryLocation, Integer> relevantMemoryLocationIds =
+        getRelevantMemoryLocationsIds(
+            pAllMemoryLocations,
             pPointerAssignments,
             pPointerParameterAssignments,
             pPointerDereferences);
     return new MemoryModel(
-        pMemoryLocationIds,
-        relevantMemoryLocations,
+        pAllMemoryLocations,
+        relevantMemoryLocationIds,
         pPointerAssignments,
         pParameterAssignments,
         pPointerParameterAssignments,
@@ -96,39 +97,24 @@ public class MemoryModelBuilder {
 
   // Collection helpers ============================================================================
 
-  private static ImmutableMap<MemoryLocation, Integer> assignMemoryLocationIds(
-      ImmutableSet<MemoryLocation> pInitial, ImmutableCollection<MemoryLocation> pNew) {
-
-    Map<MemoryLocation, Integer> rMemoryLocationIds = new HashMap<>();
-    int id = BitVectorUtil.RIGHT_INDEX;
-    for (MemoryLocation initialMemoryLocation : pInitial) {
-      rMemoryLocationIds.put(initialMemoryLocation, id++);
-    }
-    for (MemoryLocation newMemoryLocation : pNew) {
-      if (!rMemoryLocationIds.containsKey(newMemoryLocation)) {
-        rMemoryLocationIds.put(newMemoryLocation, id++);
-      }
-    }
-    return ImmutableMap.copyOf(rMemoryLocationIds);
-  }
-
-  private static ImmutableSet<MemoryLocation> getRelevantMemoryLocations(
-      ImmutableMap<MemoryLocation, Integer> pMemoryLocationIds,
+  private static ImmutableMap<MemoryLocation, Integer> getRelevantMemoryLocationsIds(
+      ImmutableSet<MemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
-    ImmutableSet.Builder<MemoryLocation> rRelevant = ImmutableSet.builder();
-    for (MemoryLocation memoryLocation : pMemoryLocationIds.keySet()) {
+    ImmutableMap.Builder<MemoryLocation, Integer> rRelevantIds = ImmutableMap.builder();
+    int currentId = BitVectorUtil.RIGHT_INDEX;
+    for (MemoryLocation memoryLocation : pAllMemoryLocations) {
       if (isRelevantMemoryLocation(
           memoryLocation,
           pPointerAssignments,
           pPointerParameterAssignments,
           pPointerDereferences)) {
-        rRelevant.add(memoryLocation);
+        rRelevantIds.put(memoryLocation, currentId++);
       }
     }
-    return rRelevant.build();
+    return rRelevantIds.buildOrThrow();
   }
 
   private static boolean isRelevantMemoryLocation(

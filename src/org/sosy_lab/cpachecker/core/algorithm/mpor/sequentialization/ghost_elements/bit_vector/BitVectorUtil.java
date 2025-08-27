@@ -60,13 +60,13 @@ public class BitVectorUtil {
 
     checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
-        pMemoryModel.getMemoryLocationIds().keySet().containsAll(pMemoryLocations),
+        pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
-    // retrieve all variable ids from pMemoryLocationIds that are in pMemoryLocations
+    // retrieve all relevant memory location IDs
     ImmutableSet<Integer> setBits =
         pMemoryLocations.stream()
-            .map(pMemoryModel.getMemoryLocationIds()::get)
+            .map(pMemoryModel.getRelevantMemoryLocations()::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
     return buildBitVectorExpressionByEncoding(pOptions.bitVectorEncoding, pMemoryModel, setBits);
@@ -95,13 +95,13 @@ public class BitVectorUtil {
       MemoryModel pMemoryModel, ImmutableSet<MemoryLocation> pMemoryLocations) {
 
     checkArgument(
-        pMemoryModel.getMemoryLocationIds().keySet().containsAll(pMemoryLocations),
+        pMemoryModel.getAllMemoryLocations().containsAll(pMemoryLocations),
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // for decimal, use the sum of variable ids (starting from 1)
     ImmutableSet<Integer> setBits =
         pMemoryLocations.stream()
-            .map(pMemoryModel.getMemoryLocationIds()::get)
+            .map(pMemoryModel.getRelevantMemoryLocations()::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
 
@@ -145,7 +145,7 @@ public class BitVectorUtil {
       BitVectorEncoding pEncoding, MemoryModel pMemoryModel) {
 
     checkArgument(
-        pMemoryModel.getMemoryLocationAmount() <= MAX_BINARY_LENGTH,
+        pMemoryModel.getRelevantMemoryLocationAmount() <= MAX_BINARY_LENGTH,
         "cannot have more than %s global variables, please disable bit vectors for this program.",
         MAX_BINARY_LENGTH);
 
@@ -153,14 +153,14 @@ public class BitVectorUtil {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY -> getBinaryLength(pMemoryModel);
       // the length does not matter for these, but we use the number of global variables
-      case DECIMAL, SPARSE -> pMemoryModel.getMemoryLocationAmount();
+      case DECIMAL, SPARSE -> pMemoryModel.getRelevantMemoryLocationAmount();
       case HEXADECIMAL -> convertBinaryLengthToHex(getBinaryLength(pMemoryModel));
     };
   }
 
   public static int getBinaryLength(MemoryModel pMemoryModel) {
     int rLength = MIN_BINARY_LENGTH;
-    while (rLength < pMemoryModel.getMemoryLocationAmount()) {
+    while (rLength < pMemoryModel.getRelevantMemoryLocationAmount()) {
       rLength *= 2;
     }
     assert isValidBinaryLength(rLength) : "binary bit vector length is invalid: " + rLength;

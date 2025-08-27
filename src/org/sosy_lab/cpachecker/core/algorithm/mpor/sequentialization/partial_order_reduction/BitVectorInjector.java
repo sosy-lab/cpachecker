@@ -98,7 +98,7 @@ public class BitVectorInjector {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    if (pMemoryModel.getMemoryLocationAmount() == 0) {
+    if (pMemoryModel.getRelevantMemoryLocationAmount() == 0) {
       pLogger.log(
           Level.INFO,
           "bit vectors are enabled, but the program does not contain any memory locations.");

@@ -33,7 +33,7 @@ public class MemoryLocationFinder {
     ImmutableSet<MemoryLocation> foundMemoryLocations =
         findDirectMemoryLocationsByAccessType(
             pLabelBlockMap, pBlock, pMemoryModel, MemoryAccessType.ACCESS);
-    return pMemoryModel.getRelevantMemoryLocations().stream()
+    return pMemoryModel.getRelevantMemoryLocations().keySet().stream()
         .anyMatch(relevantMemoryLocation -> foundMemoryLocations.contains(relevantMemoryLocation));
   }
 
