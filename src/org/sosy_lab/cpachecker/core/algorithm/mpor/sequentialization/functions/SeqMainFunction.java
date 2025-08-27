@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -40,19 +39,16 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqForExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqWhileExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.BitVectorInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -68,8 +64,6 @@ public class SeqMainFunction extends SeqFunction {
   private final MPOROptions options;
 
   private final MPORSubstitution mainSubstitution;
-
-  private final ImmutableList<MPORSubstitution> substitutions;
 
   private final int numThreads;
 
@@ -113,7 +107,6 @@ public class SeqMainFunction extends SeqFunction {
 
     options = pOptions;
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(pSubstitutions);
-    substitutions = pSubstitutions;
     numThreads = pSubstitutions.size();
     numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(numThreads);
     clauses = pClauses;
@@ -150,7 +143,7 @@ public class SeqMainFunction extends SeqFunction {
             pcVariables,
             bitVectorVariables,
             numThreads,
-            substitutions,
+            clauses,
             memoryModel,
             numThreadsVariable.getDeclaration(),
             threadSimulationVariables));
@@ -163,8 +156,6 @@ public class SeqMainFunction extends SeqFunction {
               SeqExpressionBuilder.buildIntegerLiteralExpression(clauses.keySet().size()));
       rBody.add(LineOfCode.of(lastThreadAssignNumThreads.toASTString()));
     }
-
-    rBody.addAll(buildBitVectorInitializations(clauses, bitVectorVariables));
 
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, clauses, logger));
@@ -238,37 +229,6 @@ public class SeqMainFunction extends SeqFunction {
     return ImmutableList.of();
   }
 
-  private ImmutableList<LineOfCode> buildBitVectorInitializations(
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      Optional<BitVectorVariables> pBitVectorVariables)
-      throws UnrecognizedCodeException {
-
-    if (pBitVectorVariables.isEmpty()) {
-      return ImmutableList.of();
-    }
-    ImmutableList.Builder<LineOfCode> rInitializations = ImmutableList.builder();
-    for (MPORThread thread : pClauses.keySet()) {
-      ImmutableList<SeqThreadStatementClause> currentClauses = pClauses.get(thread);
-      SeqThreadStatementBlock firstBlock = currentClauses.getFirst().getFirstBlock();
-      ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToClause(currentClauses);
-      ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToBlock(currentClauses);
-      ImmutableList<SeqBitVectorAssignmentStatement> bitVectorInitializations =
-          BitVectorInjector.buildBitVectorAssignmentsByReduction(
-              options,
-              thread,
-              firstBlock,
-              labelClauseMap,
-              labelBlockMap,
-              pBitVectorVariables.orElseThrow(),
-              memoryModel.orElseThrow());
-      rInitializations.addAll(
-          LineOfCodeUtil.buildLinesOfCodeFromSeqAstNodes(bitVectorInitializations));
-    }
-    return rInitializations.build();
-  }
-
   /**
    * Adds the non-deterministic initializations of {@code main} function arguments, e.g. {@code arg
    * = __VERIFIER_nondet_int;}
@@ -333,7 +293,7 @@ public class SeqMainFunction extends SeqFunction {
       ProgramCounterVariables pPcVariables,
       Optional<BitVectorVariables> pBitVectorVariables,
       int pNumThreads,
-      ImmutableList<MPORSubstitution> pSubstitutions,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       Optional<MemoryModel> pMemoryModel,
       CSimpleDeclaration pNumThreadDeclaration,
       ThreadSynchronizationVariables pThreadSimulationVariables)
@@ -372,10 +332,7 @@ public class SeqMainFunction extends SeqFunction {
     if (pOptions.areBitVectorsEnabled()) {
       ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
           SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(
-              pOptions,
-              pBitVectorVariables,
-              pMemoryModel,
-              SubstituteUtil.extractThreads(pSubstitutions));
+              pOptions, pBitVectorVariables, pMemoryModel, pClauses);
       for (SeqBitVectorDeclaration bitVectorDeclaration : bitVectorDeclarations) {
         rDeclarations.add(LineOfCode.of(bitVectorDeclaration.toASTString()));
       }

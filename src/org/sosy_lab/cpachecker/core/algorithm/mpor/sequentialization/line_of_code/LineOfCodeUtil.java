@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
@@ -321,17 +320,6 @@ public class LineOfCodeUtil {
     ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
     for (CAstNode astNode : pAstNodes) {
       rLinesOfCode.add(buildLineOfCode(astNode));
-    }
-    return rLinesOfCode.build();
-  }
-
-  /** Return the list of {@link LineOfCode} for {@code pSeqAstNodes}. */
-  public static ImmutableList<LineOfCode> buildLinesOfCodeFromSeqAstNodes(
-      ImmutableList<? extends SeqASTNode> pSeqAstNodes) throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
-    for (SeqASTNode astNode : pSeqAstNodes) {
-      rLinesOfCode.add(LineOfCode.of(astNode.toASTString()));
     }
     return rLinesOfCode.build();
   }
