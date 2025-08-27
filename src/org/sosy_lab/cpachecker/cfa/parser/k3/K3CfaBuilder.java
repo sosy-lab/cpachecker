@@ -8,14 +8,20 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.k3;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -42,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3ReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
@@ -68,6 +75,12 @@ class K3CfaBuilder {
 
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
+
+  private final Map<String, CFANode> labelToNode = new HashMap<>();
+
+  private Optional<CFANode> outermostLoopHead = Optional.empty();
+
+  private Map<CFANode, String> gotoNodesToLabel = new HashMap<>();
 
   public K3CfaBuilder(
       LogManager pLogger,
@@ -112,7 +125,10 @@ class K3CfaBuilder {
   }
 
   private Pair<CFANode, List<CFANode>> buildCfaForStatement(
-      K3Statement pStatement, CFANode pCurrentNode, K3ProcedureDeclaration pProcedure)
+      K3Statement pStatement,
+      CFANode pCurrentNode,
+      K3ProcedureDeclaration pProcedure,
+      FunctionExitNode pFunctionExitNode)
       throws K3ParserException, InterruptedException {
     ImmutableList.Builder<CFANode> builder = ImmutableList.builder();
     CFANode predecessorNode = pCurrentNode;
@@ -149,7 +165,7 @@ class K3CfaBuilder {
         // Handle sequence statements.
         for (K3Statement subStatement : sequenceStatement.getStatements()) {
           Pair<CFANode, List<CFANode>> lastNodeWithAllNodes =
-              buildCfaForStatement(subStatement, predecessorNode, pProcedure);
+              buildCfaForStatement(subStatement, predecessorNode, pProcedure, pFunctionExitNode);
           builder.addAll(lastNodeWithAllNodes.getSecondNotNull());
           predecessorNode = lastNodeWithAllNodes.getFirstNotNull();
         }
@@ -167,14 +183,186 @@ class K3CfaBuilder {
                 currentSuccessorNode);
         CFACreationUtils.addEdgeToCFA(edge, logger);
       }
-      case K3BreakStatement pK3BreakStatement -> {}
-      case K3ContinueStatement pK3ContinueStatement -> {}
-      case K3GotoStatement pK3GotoStatement -> {}
-      case K3HavocStatement pK3HavocStatement -> {}
-      case K3IfStatement pK3IfStatement -> {}
-      case K3LabelStatement pK3LabelStatement -> {}
-      case K3ReturnStatement pK3ReturnStatement -> {}
-      case K3WhileStatement pK3WhileStatement -> {}
+      case K3BreakStatement pK3BreakStatement -> {
+        Verify.verify(outermostLoopHead.isPresent());
+        CFAEdge edge =
+            new BlankEdge(
+                "break",
+                pK3BreakStatement.getFileLocation(),
+                predecessorNode,
+                outermostLoopHead.get(),
+                "break");
+        CFACreationUtils.addEdgeToCFA(edge, logger);
+      }
+      case K3ContinueStatement pK3ContinueStatement -> {
+        Verify.verify(outermostLoopHead.isPresent());
+        CFAEdge edge =
+            new BlankEdge(
+                "continue",
+                pK3ContinueStatement.getFileLocation(),
+                predecessorNode,
+                outermostLoopHead.get(),
+                "continue");
+        CFACreationUtils.addEdgeToCFA(edge, logger);
+      }
+
+      case K3GotoStatement pK3GotoStatement -> {
+        // We may not have all the labels yet, so we just store the information for later.
+        String label = pK3GotoStatement.getLabel();
+        gotoNodesToLabel.put(predecessorNode, label);
+      }
+
+      case K3HavocStatement pK3HavocStatement -> {
+        CFAEdge egde =
+            new K3StatementEdge(
+                pK3HavocStatement.toASTString(),
+                pK3HavocStatement,
+                pK3HavocStatement.getFileLocation(),
+                predecessorNode,
+                currentSuccessorNode);
+        CFACreationUtils.addEdgeToCFA(egde, logger);
+      }
+      case K3IfStatement pK3IfStatement -> {
+        // Handle conditions
+        CFANode trueConditionNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
+        CFANode falseConditionNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
+
+        CFAEdge trueEdge =
+            new K3AssumeEdge(
+                pK3IfStatement.getCondition().toASTString(),
+                pK3IfStatement.getFileLocation(),
+                predecessorNode,
+                trueConditionNode,
+                pK3IfStatement.getCondition(),
+                true,
+                false,
+                false);
+        CFAEdge falseEdge =
+            new K3AssumeEdge(
+                "!(" + pK3IfStatement.getCondition().toASTString() + ")",
+                pK3IfStatement.getFileLocation(),
+                predecessorNode,
+                falseConditionNode,
+                pK3IfStatement.getCondition(),
+                false,
+                false,
+                false);
+        CFACreationUtils.addEdgeToCFA(trueEdge, logger);
+        CFACreationUtils.addEdgeToCFA(falseEdge, logger);
+
+        // Handle the then branch
+        Pair<CFANode, List<CFANode>> thenBranchNodes =
+            buildCfaForStatement(
+                pK3IfStatement.getThenBranch(), trueConditionNode, pProcedure, pFunctionExitNode);
+        builder.addAll(thenBranchNodes.getSecondNotNull());
+        final CFANode thenBranchEndNode = thenBranchNodes.getFirstNotNull();
+
+        // Handle the else branch if it exists
+        final CFANode elseBranchEndNode;
+        if (pK3IfStatement.getElseBranch().isPresent()) {
+          Pair<CFANode, List<CFANode>> elseBranchNodes =
+              buildCfaForStatement(
+                  pK3IfStatement.getElseBranch().orElseThrow(),
+                  falseConditionNode,
+                  pProcedure,
+                  pFunctionExitNode);
+          builder.addAll(elseBranchNodes.getSecondNotNull());
+          elseBranchEndNode = elseBranchNodes.getFirstNotNull();
+        } else {
+          elseBranchEndNode = falseConditionNode;
+        }
+
+        // Connect the end nodes with the node after the if statement
+        CFACreationUtils.addEdgeToCFA(
+            new BlankEdge(
+                "",
+                FileLocation.DUMMY,
+                thenBranchEndNode,
+                currentSuccessorNode,
+                "End of if-then(-else)"),
+            logger);
+        CFACreationUtils.addEdgeToCFA(
+            new BlankEdge(
+                "",
+                FileLocation.DUMMY,
+                elseBranchEndNode,
+                currentSuccessorNode,
+                "End of if-then(-else)"),
+            logger);
+      }
+      case K3LabelStatement pK3LabelStatement -> {
+        String label = pK3LabelStatement.getLabel();
+        labelToNode.put(label, predecessorNode);
+      }
+      case K3ReturnStatement pK3ReturnStatement -> {
+        CFACreationUtils.addEdgeToCFA(
+            new BlankEdge(
+                "return",
+                pK3ReturnStatement.getFileLocation(),
+                predecessorNode,
+                pFunctionExitNode,
+                "return"),
+            logger);
+      }
+      case K3WhileStatement pK3WhileStatement -> {
+        // Create the loop head and update the outermost loop head
+        CFANode loopHeadNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
+        Optional<CFANode> previousOutermostLoopHead = outermostLoopHead;
+
+        outermostLoopHead = Optional.of(loopHeadNode);
+
+        // Connect the predecessor to the loop head
+        CFACreationUtils.addEdgeToCFA(
+            new BlankEdge(
+                "",
+                pK3WhileStatement.getFileLocation(),
+                predecessorNode,
+                loopHeadNode,
+                "entering loop"),
+            logger);
+
+        // Create the edges for the condition
+        CFANode trueConditionNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
+        CFANode falseConditionNode = newNodeAddedToBuilder(pProcedure, node -> builder.add(node));
+
+        CFAEdge trueEdge =
+            new K3AssumeEdge(
+                pK3WhileStatement.getCondition().toASTString(),
+                pK3WhileStatement.getFileLocation(),
+                loopHeadNode,
+                trueConditionNode,
+                pK3WhileStatement.getCondition(),
+                true,
+                false,
+                false);
+        CFAEdge falseEdge =
+            new K3AssumeEdge(
+                "!(" + pK3WhileStatement.getCondition().toASTString() + ")",
+                pK3WhileStatement.getFileLocation(),
+                loopHeadNode,
+                falseConditionNode,
+                pK3WhileStatement.getCondition(),
+                false,
+                false,
+                false);
+        CFACreationUtils.addEdgeToCFA(trueEdge, logger);
+        CFACreationUtils.addEdgeToCFA(falseEdge, logger);
+
+        // Handle the body of the while loop
+        Pair<CFANode, List<CFANode>> bodyNodes =
+            buildCfaForStatement(
+                pK3WhileStatement.getBody(), trueConditionNode, pProcedure, pFunctionExitNode);
+        builder.addAll(bodyNodes.getSecondNotNull());
+        CFANode bodyEndNode = bodyNodes.getFirstNotNull();
+
+        // Connect the end of the body back to the loop head
+        CFACreationUtils.addEdgeToCFA(
+            new BlankEdge("", FileLocation.DUMMY, bodyEndNode, loopHeadNode, "Return to loop head"),
+            logger);
+
+        // Reset the outermost loop head
+        outermostLoopHead = previousOutermostLoopHead;
+      }
     }
 
     return Pair.of(currentSuccessorNode, builder.build());
@@ -194,7 +382,8 @@ class K3CfaBuilder {
     FunctionEntryNode functionEntryNode = functionNodes.getFirstNotNull();
 
     Pair<CFANode, List<CFANode>> bodyNodes =
-        buildCfaForStatement(pCommand.getBody(), functionEntryNode, procedureDeclaration);
+        buildCfaForStatement(
+            pCommand.getBody(), functionEntryNode, procedureDeclaration, functionExitNode);
     CFACreationUtils.addEdgeToCFA(
         new BlankEdge("", FileLocation.DUMMY, bodyNodes.getFirstNotNull(), functionExitNode, ""),
         logger);
@@ -230,7 +419,15 @@ class K3CfaBuilder {
     CFANode currentMainFunctionNode = mainFunctionNodes.getFirstNotNull();
 
     // Go through all the commands in the script and parse them.
-    for (K3Command command : script.getCommands()) {
+    List<K3Command> commands = script.getCommands();
+    int indexOfFirstVerifyCall = -1;
+    ImmutableSetMultimap.Builder<String, K3TagAttribute> tagAnnotations =
+        ImmutableSetMultimap.builder();
+
+    for (int i = 0; i < commands.size() && indexOfFirstVerifyCall < 0; i++) {
+
+      K3Command command = commands.get(i);
+
       switch (command) {
         case K3VariableDeclarationCommand variableDeclarationCommand ->
             globalDeclarations.add(parseGlobalVariable(variableDeclarationCommand));
@@ -276,11 +473,52 @@ class K3CfaBuilder {
 
           // Update the nodes for the next command
           currentMainFunctionNode = successorNode;
+
+          indexOfFirstVerifyCall = i;
         }
-        case K3AnnotateTagCommand pK3AnnotateTagCommand -> {}
-        case K3GetCounterexampleCommand pK3GetCounterexampleCommand -> {}
-        case K3GetProofCommand pK3GetProofCommand -> {}
+        case K3AnnotateTagCommand pK3AnnotateTagCommand -> {
+          tagAnnotations.putAll(
+              pK3AnnotateTagCommand.getTagName(), pK3AnnotateTagCommand.getTags());
+        }
+        case K3GetCounterexampleCommand pK3GetCounterexampleCommand -> {
+          logger.log(
+              Level.WARNING,
+              "Ignoring get-counterexample command, since there was no verify call command before.");
+        }
+        case K3GetProofCommand pK3GetProofCommand -> {
+          logger.log(
+              Level.WARNING,
+              "Ignoring get-proof command, since there was no verify call command before.");
+        }
       }
+    }
+
+    Verify.verify(indexOfFirstVerifyCall >= 0, "There must be at least one verify call command");
+
+    // We now see if we should export a witness after the verify call.
+    // After the verify call command we stop parsing the script, since we need to execute
+    // this command first before continuing. Therefore, we need to stop here.
+    // We will print a warning if there are any commands after this one.
+    boolean exportWitness = false;
+    if (indexOfFirstVerifyCall + 1 < commands.size()) {
+      switch (commands.get(indexOfFirstVerifyCall + 1)) {
+        case K3GetCounterexampleCommand pK3GetCounterexampleCommand -> {
+          exportWitness = true;
+        }
+        case K3GetProofCommand pK3GetProofCommand -> {
+          exportWitness = true;
+        }
+        default ->
+            logger.log(
+                Level.WARNING,
+                "The command after the verify call command is neither a get-proof nor a get-counterexample command. It will be ignored.");
+      }
+    }
+
+    if (indexOfFirstVerifyCall + 2 < commands.size()) {
+      logger.log(
+          Level.WARNING,
+          "There are commands after the verify call and the possible get-proof/get-counterexample command. These will be ignored.");
     }
 
     // Finish the main function
@@ -293,6 +531,7 @@ class K3CfaBuilder {
             ""),
         logger);
 
-    return new ParseResult(functions, cfaNodes, globalDeclarations, fileNames);
+    return new ParseResult(
+        functions, cfaNodes, globalDeclarations, fileNames, tagAnnotations.build(), exportWitness);
   }
 }

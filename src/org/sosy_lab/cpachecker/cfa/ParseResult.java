@@ -12,6 +12,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
@@ -23,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -49,7 +51,10 @@ public record ParseResult(
     Optional<List<FileLocation>> commentLocations,
     Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
-    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope) {
+    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
+    // Only relevant for K3 scripts
+    Optional<ImmutableSetMultimap<String, K3TagAttribute>> tagAnnotations,
+    Optional<Boolean> exportWitness) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -61,6 +66,8 @@ public record ParseResult(
         pCfaNodes,
         pGlobalDeclarations,
         pFileNames,
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -84,7 +91,30 @@ public record ParseResult(
         Optional.of(pCommentLocations),
         Optional.of(pBlocks),
         Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty());
+  }
+
+  public ParseResult(
+      NavigableMap<String, FunctionEntryNode> pFunctions,
+      TreeMultimap<String, CFANode> pCfaNodes,
+      List<Pair<ADeclaration, String>> pGlobalDeclarations,
+      List<Path> pFileNames,
+      ImmutableSetMultimap<String, K3TagAttribute> pTagAnnotations,
+      boolean pExportWitness) {
+    this(
+        pFunctions,
+        pCfaNodes,
+        pGlobalDeclarations,
+        pFileNames,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(pTagAnnotations),
+        Optional.of(pExportWitness));
   }
 
   public boolean isEmpty() {
@@ -108,7 +138,9 @@ public record ParseResult(
         commentLocations,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
-        cfaNodeToAstParametersInScope);
+        cfaNodeToAstParametersInScope,
+        Optional.empty(),
+        Optional.empty());
   }
 
   public ParseResult withInScopeInformation(
@@ -125,7 +157,9 @@ public record ParseResult(
         commentLocations,
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
-        Optional.of(pCfaNodeToAstParametersInScope));
+        Optional.of(pCfaNodeToAstParametersInScope),
+        Optional.empty(),
+        Optional.empty());
   }
 
   public ParseResult withFileNames(List<Path> pFileNames) {
@@ -138,6 +172,8 @@ public record ParseResult(
         commentLocations,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
-        cfaNodeToAstParametersInScope);
+        cfaNodeToAstParametersInScope,
+        Optional.empty(),
+        Optional.empty());
   }
 }

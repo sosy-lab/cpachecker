@@ -46,6 +46,10 @@ public final class K3LabelStatement extends K3ControlFlowStatement {
     return "(label " + label + ")";
   }
 
+  public String getLabel() {
+    return label;
+  }
+
   @Override
   public int hashCode() {
     return super.hashCode() + 31 * label.hashCode();
