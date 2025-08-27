@@ -14,6 +14,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
+/**
+ * Contains ghost elements not present in the input program, e.g. to simulate threads or functions.
+ */
 public class GhostElements {
 
   private final ImmutableMap<MPORThread, FunctionStatements> functionStatements;

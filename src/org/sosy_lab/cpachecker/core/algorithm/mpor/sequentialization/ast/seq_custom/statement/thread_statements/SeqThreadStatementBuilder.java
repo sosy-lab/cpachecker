@@ -63,7 +63,7 @@ public class SeqThreadStatementBuilder {
       CLeftHandSide pPcLeftHandSide,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostElements pGhostVariables) {
+      GhostElements pGhostElements) {
 
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
 
@@ -90,7 +90,7 @@ public class SeqThreadStatementBuilder {
                   i == numLeavingEdges - 1,
                   threadEdge,
                   substitute,
-                  pGhostVariables);
+                  pGhostElements);
           rStatements.add(statement);
         }
       }
@@ -302,12 +302,12 @@ public class SeqThreadStatementBuilder {
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
-      GhostElements pGhostVariables) {
+      GhostElements pGhostElements) {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(cfaEdge);
     CLeftHandSide pcLeftHandSide =
-        pGhostVariables.programCounterVariables.getPcLeftHandSide(pThread.id);
+        pGhostElements.programCounterVariables.getPcLeftHandSide(pThread.id);
 
     return switch (pthreadFunctionType) {
       case PTHREAD_CREATE ->
@@ -317,31 +317,31 @@ public class SeqThreadStatementBuilder {
               pThreadEdge,
               pSubstituteEdge,
               pTargetPc,
-              pGhostVariables.getFunctionStatementsByThread(pThread),
-              pGhostVariables.programCounterVariables);
+              pGhostElements.getFunctionStatementsByThread(pThread),
+              pGhostElements.programCounterVariables);
       case PTHREAD_EXIT ->
           buildThreadExitStatement(
               pThreadEdge,
               pSubstituteEdge,
               pTargetPc,
-              pGhostVariables.getFunctionStatementsByThread(pThread),
+              pGhostElements.getFunctionStatementsByThread(pThread),
               pcLeftHandSide);
       case PTHREAD_JOIN ->
           buildThreadJoinStatement(
-              pThread, pAllThreads, pSubstituteEdge, pTargetPc, pGhostVariables);
+              pThread, pAllThreads, pSubstituteEdge, pTargetPc, pGhostElements);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
               pThreadEdge,
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostVariables.threadSynchronizationVariables);
+              pGhostElements.threadSynchronizationVariables);
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexUnlockStatement(
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostVariables.threadSynchronizationVariables);
+              pGhostElements.threadSynchronizationVariables);
       case __VERIFIER_ATOMIC_BEGIN ->
           buildAtomicBeginStatement(pSubstituteEdge, pTargetPc, pcLeftHandSide);
       case __VERIFIER_ATOMIC_END ->
@@ -402,15 +402,15 @@ public class SeqThreadStatementBuilder {
       ImmutableList<MPORThread> pAllThreads,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
-      GhostElements pGhostVariables) {
+      GhostElements pGhostElements) {
 
     MPORThread targetThread = ThreadUtil.getThreadByCfaEdge(pAllThreads, pSubstituteEdge.cfaEdge);
     return new SeqThreadJoinStatement(
         targetThread.startRoutineExitVariable,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc,
-        pGhostVariables.programCounterVariables.getThreadNotActiveExpression(targetThread.id),
-        pGhostVariables.programCounterVariables.getPcLeftHandSide(pThread.id));
+        pGhostElements.programCounterVariables.getThreadNotActiveExpression(targetThread.id),
+        pGhostElements.programCounterVariables.getPcLeftHandSide(pThread.id));
   }
 
   private static SeqMutexLockStatement buildMutexLockStatement(

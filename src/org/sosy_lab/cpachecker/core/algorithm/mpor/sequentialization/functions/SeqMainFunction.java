@@ -20,6 +20,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -31,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
@@ -147,15 +150,6 @@ public class SeqMainFunction extends SeqFunction {
             memoryModel,
             numThreadsVariable.getDeclaration(),
             threadSimulationVariables));
-
-    if (options.conflictReduction) {
-      // TODO is this dependent on nondet source?
-      CExpressionAssignmentStatement lastThreadAssignNumThreads =
-          SeqStatementBuilder.buildExpressionAssignmentStatement(
-              SeqIdExpression.LAST_THREAD,
-              SeqExpressionBuilder.buildIntegerLiteralExpression(clauses.keySet().size()));
-      rBody.add(LineOfCode.of(lastThreadAssignNumThreads.toASTString()));
-    }
 
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, clauses, logger));
@@ -306,7 +300,17 @@ public class SeqMainFunction extends SeqFunction {
 
     // last_thread is always unsigned, we assign NUM_THREADS if the current thread terminates
     if (pOptions.conflictReduction) {
-      rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_UNSIGNED.toASTString()));
+      CIntegerLiteralExpression numThreadsLiteral =
+          SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads);
+      CInitializer lastThreadInitializer =
+          SeqInitializerBuilder.buildInitializerExpression(numThreadsLiteral);
+      CVariableDeclaration lastThreadDeclaration =
+          SeqDeclarationBuilder.buildVariableDeclaration(
+              false,
+              SeqSimpleType.UNSIGNED_INT,
+              SeqIdExpression.LAST_THREAD.getName(),
+              lastThreadInitializer);
+      rDeclarations.add(LineOfCode.of(lastThreadDeclaration.toASTString()));
     }
 
     // next_thread

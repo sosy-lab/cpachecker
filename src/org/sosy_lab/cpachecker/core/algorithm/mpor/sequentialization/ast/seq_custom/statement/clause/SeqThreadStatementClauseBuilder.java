@@ -156,7 +156,7 @@ public class SeqThreadStatementClauseBuilder {
       ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostElements pGhostVariables) {
+      GhostElements pGhostElements) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
 
@@ -170,7 +170,7 @@ public class SeqThreadStatementClauseBuilder {
                 pCoveredNodes,
                 threadNode,
                 pSubstituteEdges,
-                pGhostVariables);
+                pGhostElements);
         if (clause.isPresent()) {
           rClauses.add(clause.orElseThrow());
         }
@@ -191,7 +191,7 @@ public class SeqThreadStatementClauseBuilder {
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostElements pGhostVariables) {
+      GhostElements pGhostElements) {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -199,7 +199,7 @@ public class SeqThreadStatementClauseBuilder {
     ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
 
     CLeftHandSide pcLeftHandSide =
-        pGhostVariables.programCounterVariables.getPcLeftHandSide(pThread.id);
+        pGhostElements.programCounterVariables.getPcLeftHandSide(pThread.id);
 
     ImmutableList<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
     if (leavingEdges.isEmpty()) {
@@ -220,7 +220,7 @@ public class SeqThreadStatementClauseBuilder {
               pcLeftHandSide,
               pCoveredNodes,
               pSubstituteEdges,
-              pGhostVariables));
+              pGhostElements));
     }
     SeqBlockLabelStatement blockLabelStatement =
         buildBlockLabelStatement(pOptions, pThread.id, labelPc);
