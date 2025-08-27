@@ -204,7 +204,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             getAssignable(lVarInBinaryExp, currentState);
         Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
         SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
-            leftHandSideAssignments.get(0);
+            leftHandSideAssignments.getFirst();
         currentState = leftHandSideAssignment.getSMGState();
 
         if (isAssignable(leftHandSideAssignments)) {
@@ -235,7 +235,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               getAssignable(rVarInBinaryExp, currentState);
           Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
           SMGStateAndOptionalSMGObjectAndOffset rightHandSideAssignment =
-              rightHandSideAssignments.get(0);
+              rightHandSideAssignments.getFirst();
           currentState = rightHandSideAssignment.getSMGState();
 
           if (isAssignable(rightHandSideAssignments)) {
@@ -302,7 +302,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               getAssignable(lVarInBinaryExp, currentState);
           Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
           SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
-              leftHandSideAssignments.get(0);
+              leftHandSideAssignments.getFirst();
           currentState = leftHandSideAssignment.getSMGState();
           if (isAssignable(leftHandSideAssignments)
               && getInitialVisitorOptions().isOptimizeBooleanVariables()) {
@@ -361,7 +361,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                 getAssignable(rVarInBinaryExp, currentState);
             Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
             SMGStateAndOptionalSMGObjectAndOffset rightHandSideAssignment =
-                rightHandSideAssignments.get(0);
+                rightHandSideAssignments.getFirst();
             currentState = rightHandSideAssignment.getSMGState();
 
             if (isAssignable(rightHandSideAssignments)) {
@@ -691,7 +691,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       }
       // TODO: replace this ugliness once we know its only ever 1 returned state
       ImmutableList<SMGState> returnList = resultStateBuilder.build();
-      return returnList.isEmpty() ? Optional.empty() : Optional.of(returnList.get(0));
+      return returnList.isEmpty() ? Optional.empty() : Optional.of(returnList.getFirst());
 
     } catch (InterruptedException | SolverException e) {
       throw new SMGSolverException(e, initialState);

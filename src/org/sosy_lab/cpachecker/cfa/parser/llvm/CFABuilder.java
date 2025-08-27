@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -519,11 +520,11 @@ class CFABuilder {
         CExpression conditionForElse = getBranchConditionForElse(condition, pFileName);
         CExpression trueValue = getExpression(valueIf, ifType, pFileName);
         CStatement trueAssignment =
-            (CStatement) getAssignStatement(i, trueValue, funcName, pFileName).get(0);
+            (CStatement) getAssignStatement(i, trueValue, funcName, pFileName).getFirst();
         // we can use ifType again, since ifType == elseType for `select` instruction
         CExpression falseValue = getExpression(valueElse, ifType, pFileName);
         CStatement falseAssignment =
-            (CStatement) getAssignStatement(i, falseValue, funcName, pFileName).get(0);
+            (CStatement) getAssignStatement(i, falseValue, funcName, pFileName).getFirst();
 
         CFANode trueNode = newNode(pFunction);
         CFANode falseNode = newNode(pFunction);
@@ -1601,7 +1602,7 @@ class CFABuilder {
   }
 
   private CType getPointerOfType(final CType type) {
-    return new CPointerType(false, false, type);
+    return new CPointerType(CTypeQualifiers.NONE, type);
   }
 
   private CExpression getReference(FileLocation fileLocation, CExpression expr) {

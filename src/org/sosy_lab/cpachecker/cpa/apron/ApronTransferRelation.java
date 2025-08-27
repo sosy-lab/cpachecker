@@ -165,22 +165,21 @@ public class ApronTransferRelation
       throws CPATransferException {
 
     if (expression instanceof CLiteralExpression) {
-      if (expression instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
-        return handleLiteralBooleanExpression(
-            cIntegerLiteralExpression.asLong(), truthAssumption, state);
-
-      } else if (expression instanceof CCharLiteralExpression cCharLiteralExpression) {
-        return handleLiteralBooleanExpression(
-            cCharLiteralExpression.getCharacter(), truthAssumption, state);
-
-      } else if (expression instanceof CFloatLiteralExpression floatExpression) {
-        // only when the float is exactly zero the condition is wrong, for all other float values it
-        // is true
-        int val = floatExpression.getValue().isZero() ? 0 : 1;
-        return handleLiteralBooleanExpression(val, truthAssumption, state);
-      } else {
-        return Collections.singleton(state);
-      }
+      return switch (expression) {
+        case CIntegerLiteralExpression cIntegerLiteralExpression ->
+            handleLiteralBooleanExpression(
+                cIntegerLiteralExpression.asLong(), truthAssumption, state);
+        case CCharLiteralExpression cCharLiteralExpression ->
+            handleLiteralBooleanExpression(
+                cCharLiteralExpression.getCharacter(), truthAssumption, state);
+        case CFloatLiteralExpression floatExpression -> {
+          // only when the float is exactly zero the condition is wrong, for all other float values
+          // it is true
+          int val = floatExpression.getValue().isZero() ? 0 : 1;
+          yield handleLiteralBooleanExpression(val, truthAssumption, state);
+        }
+        default -> Collections.singleton(state);
+      };
 
     } else if (expression instanceof CBinaryExpression) {
       return handleBinaryAssumption(expression, truthAssumption);
@@ -788,16 +787,15 @@ public class ApronTransferRelation
   }
 
   private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {
-    String variableName = null;
-    if (left instanceof CArraySubscriptExpression cArraySubscriptExpression) {
-      variableName = cArraySubscriptExpression.getArrayExpression().toASTString();
-    } else if (left instanceof CPointerExpression cPointerExpression) {
-      variableName = cPointerExpression.getOperand().toASTString();
-    } else if (left instanceof CFieldReference cFieldReference) {
-      variableName = cFieldReference.getFieldOwner().toASTString();
-    } else {
-      variableName = left.toASTString();
-    }
+    String variableName =
+        switch (left) {
+          case CArraySubscriptExpression cArraySubscriptExpression ->
+              cArraySubscriptExpression.getArrayExpression().toASTString();
+          case CPointerExpression cPointerExpression ->
+              cPointerExpression.getOperand().toASTString();
+          case CFieldReference cFieldReference -> cFieldReference.getFieldOwner().toASTString();
+          default -> left.toASTString();
+        };
 
     if (!isGlobal(left)) {
       return MemoryLocation.forLocalVariable(pFunctionName, variableName);

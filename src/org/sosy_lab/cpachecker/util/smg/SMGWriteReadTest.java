@@ -1607,9 +1607,11 @@ public class SMGWriteReadTest extends SMGTest0 {
             smg.readValue(testObject, BigInteger.valueOf(start), BigInteger.valueOf(i), true);
         smg = readAndSPC.getSMG();
         assertThat(readAndSPC.getHvEdges()).hasSize(1);
-        assertThat(readAndSPC.getHvEdges().get(0).hasValue()).isEqualTo(values[j]);
-        assertThat(readAndSPC.getHvEdges().get(0).getOffset()).isEqualTo(BigInteger.valueOf(start));
-        assertThat(readAndSPC.getHvEdges().get(0).getSizeInBits()).isEqualTo(BigInteger.valueOf(i));
+        assertThat(readAndSPC.getHvEdges().getFirst().hasValue()).isEqualTo(values[j]);
+        assertThat(readAndSPC.getHvEdges().getFirst().getOffset())
+            .isEqualTo(BigInteger.valueOf(start));
+        assertThat(readAndSPC.getHvEdges().getFirst().getSizeInBits())
+            .isEqualTo(BigInteger.valueOf(i));
         start = start + i;
         j++;
       }
@@ -1618,9 +1620,10 @@ public class SMGWriteReadTest extends SMGTest0 {
           smg.readValue(testObject, BigInteger.ZERO, BigInteger.valueOf(8), true);
       smg = read0AndSPC.getSMG();
       assertThat(read0AndSPC.getHvEdges()).hasSize(1);
-      assertThat(read0AndSPC.getHvEdges().get(0).hasValue()).isEqualTo(SMGValue.zeroValue());
-      assertThat(read0AndSPC.getHvEdges().get(0).getOffset()).isEqualTo(BigInteger.valueOf(0));
-      assertThat(read0AndSPC.getHvEdges().get(0).getSizeInBits()).isEqualTo(BigInteger.valueOf(8));
+      assertThat(read0AndSPC.getHvEdges().getFirst().hasValue()).isEqualTo(SMGValue.zeroValue());
+      assertThat(read0AndSPC.getHvEdges().getFirst().getOffset()).isEqualTo(BigInteger.valueOf(0));
+      assertThat(read0AndSPC.getHvEdges().getFirst().getSizeInBits())
+          .isEqualTo(BigInteger.valueOf(8));
 
       // And the unknown at the end
       SMGAndHasValueEdges readUAndSPC =
@@ -1628,12 +1631,14 @@ public class SMGWriteReadTest extends SMGTest0 {
       smg = readUAndSPC.getSMG();
       assertThat(readUAndSPC.getHvEdges()).hasSize(1);
       if (symbolicValue == null) {
-        symbolicValue = readUAndSPC.getHvEdges().get(0).hasValue();
+        symbolicValue = readUAndSPC.getHvEdges().getFirst().hasValue();
       } else {
-        assertThat(readUAndSPC.getHvEdges().get(0).hasValue()).isEqualTo(symbolicValue);
+        assertThat(readUAndSPC.getHvEdges().getFirst().hasValue()).isEqualTo(symbolicValue);
       }
-      assertThat(readUAndSPC.getHvEdges().get(0).getOffset()).isEqualTo(BigInteger.valueOf(248));
-      assertThat(readUAndSPC.getHvEdges().get(0).getSizeInBits()).isEqualTo(BigInteger.valueOf(8));
+      assertThat(readUAndSPC.getHvEdges().getFirst().getOffset())
+          .isEqualTo(BigInteger.valueOf(248));
+      assertThat(readUAndSPC.getHvEdges().getFirst().getSizeInBits())
+          .isEqualTo(BigInteger.valueOf(8));
     }
   }
 
@@ -1672,10 +1677,10 @@ public class SMGWriteReadTest extends SMGTest0 {
         smg = readEdgesAndSMG.getSMG();
         assertThat(readEdgesAndSMG.getHvEdges()).hasSize(1);
         if (i < 128) {
-          assertThat(readEdgesAndSMG.getHvEdges().get(0).hasValue()).isEqualTo(expectedValue);
+          assertThat(readEdgesAndSMG.getHvEdges().getFirst().hasValue()).isEqualTo(expectedValue);
         }
         // TODO: unknown value in the end
-        assertThat(readEdgesAndSMG.getHvEdges().get(0).getOffset())
+        assertThat(readEdgesAndSMG.getHvEdges().getFirst().getOffset())
             .isEqualTo(BigInteger.valueOf(start));
         start = start + i;
         j++;
@@ -1707,7 +1712,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     SMG newSMG = readReinterpretation.getSMG();
 
     assertThat(readReinterpretation.getHvEdges()).hasSize(1);
-    assertThat(readReinterpretation.getHvEdges().get(0).hasValue()).isEqualTo(expectedValue);
+    assertThat(readReinterpretation.getHvEdges().getFirst().hasValue()).isEqualTo(expectedValue);
     // Check that no new values are introduced by the read
     assertThat(newSMG.getValues().keySet()).isEqualTo(allValuesBeforeRead);
     return newSMG;
@@ -1742,13 +1747,13 @@ public class SMGWriteReadTest extends SMGTest0 {
             .findFirst()
             .orElseThrow();
     assertThat(readReinterpretation.getHvEdges()).hasSize(1);
-    assertThat(readReinterpretation.getHvEdges().get(0).hasValue()).isEqualTo(newValue);
+    assertThat(readReinterpretation.getHvEdges().getFirst().hasValue()).isEqualTo(newValue);
     // Assert that there is now a new SMGHasValueEdge for the field with the new value.
     // Since its sets, it doesn't matter if this is read repeatedly.
     assertThat(newSMG.getEdges(testObject))
         .isEqualTo(oldEdgesForObject.addAndCopy(new SMGHasValueEdge(newValue, offset, size)));
     assertThat(readReinterpretation.getHvEdges()).hasSize(1);
-    return new SMGandValue(newSMG, readReinterpretation.getHvEdges().get(0).hasValue());
+    return new SMGandValue(newSMG, readReinterpretation.getHvEdges().getFirst().hasValue());
   }
 
   private SMG checkReadPreciseValuesInOrder(

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
@@ -86,7 +85,7 @@ public class CallstackState
       stack.add(state.getCurrentFunction());
       state = state.getPreviousState();
     }
-    return Lists.reverse(stack);
+    return stack.reversed();
   }
 
   @Override

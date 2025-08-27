@@ -842,7 +842,7 @@ public class CProgramScope implements Scope {
     if (parts.size() < 2) {
       return false;
     }
-    return parts.get(1).equals(ARTIFICIAL_RETVAL_NAME + parts.get(0) + "__");
+    return parts.get(1).equals(ARTIFICIAL_RETVAL_NAME + parts.getFirst() + "__");
   }
 
   public static String getFunctionNameOfArtificialReturnVar(CIdExpression pCIdExpression) {

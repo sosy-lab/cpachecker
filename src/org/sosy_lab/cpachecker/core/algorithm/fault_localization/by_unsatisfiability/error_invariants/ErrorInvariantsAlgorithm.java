@@ -153,7 +153,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     // sort the intervals and calculate abstract error trace
     sortedIntervals.sort(Comparator.comparingInt(Interval::getStart));
     ImmutableList<TraceAtom> selectors = ImmutableList.copyOf(errorTrace.getTrace());
-    Interval maxInterval = sortedIntervals.get(0);
+    Interval maxInterval = sortedIntervals.getFirst();
     int prevEnd = 0;
     List<AbstractTraceElement> abstractTrace = new ArrayList<>();
     for (Interval currInterval : sortedIntervals) {
@@ -232,7 +232,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       if (abstractTraceElement instanceof TraceAtom traceAtom) {
         if (abstractTraceElement.equals(lastSelector)) {
           Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
-          Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
+          Interval lastInterval = (Interval) summarizedList.removeLast();
           Interval merged = Interval.merge(toMerge, lastInterval, bmgr);
           summarizedList.add(summarizedList.size() - 1, merged);
         } else {
@@ -257,7 +257,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   private Set<Fault> createFaults(List<AbstractTraceElement> abstractTrace) {
     // Stores description of last interval
     ImmutableList<TraceAtom> allSelectors = ImmutableList.copyOf(errorTrace.getTrace());
-    TraceAtom prev = allSelectors.get(0);
+    TraceAtom prev = allSelectors.getFirst();
     Set<Fault> faults = new HashSet<>();
     for (int i = 0; i < abstractTrace.size(); i++) {
       AbstractTraceElement errorInvariant = abstractTrace.get(i);
@@ -273,7 +273,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         if (i + 1 < abstractTrace.size()) {
           next = (TraceAtom) abstractTrace.get(i + 1);
         } else {
-          next = allSelectors.get(allSelectors.size() - 1);
+          next = allSelectors.getLast();
         }
         Set<FaultContribution> contributions = new HashSet<>();
         for (int j = allSelectors.indexOf(prev); j < allSelectors.indexOf(next); j++) {
@@ -366,7 +366,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     SSAMap shift =
         SSAMap.merge(
             maps.get(slicePosition),
-            maps.get(0),
+            maps.getFirst(),
             MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 

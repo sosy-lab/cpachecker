@@ -260,7 +260,7 @@ public class LocalTransferRelation
       List<CExpression> parameters = right.getParameterExpressions();
       // Usually it looks like 'priv = netdev_priv(dev)'
       // Other cases will be handled if they appear
-      CExpression targetParam = parameters.get(0);
+      CExpression targetParam = parameters.getFirst();
       // TODO How it works with *a = f(b) ?
       AbstractIdentifier paramId = createId(targetParam, dereference);
       alias(pSuccessor, leftId, paramId);
@@ -410,15 +410,12 @@ public class LocalTransferRelation
   }
 
   public static int findDereference(CType type) {
-    if (type instanceof CPointerType pointerType) {
-      return (findDereference(pointerType.getType()) + 1);
-    } else if (type instanceof CArrayType arrayType) {
-      return (findDereference(arrayType.getType()) + 1);
-    } else if (type instanceof CTypedefType cTypedefType) {
-      return findDereference(cTypedefType.getRealType());
-    } else {
-      return 0;
-    }
+    return switch (type) {
+      case CPointerType pointerType -> findDereference(pointerType.getType()) + 1;
+      case CArrayType arrayType -> findDereference(arrayType.getType()) + 1;
+      case CTypedefType cTypedefType -> findDereference(cTypedefType.getRealType());
+      case null /*TODO check if null is necessary*/, default -> 0;
+    };
   }
 
   private boolean isAllocatedFunction(String funcName) {

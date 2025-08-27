@@ -220,7 +220,7 @@ final class SMGJoinSubSMGs {
 
     for (List<SMGGenericAbstractionCandidate> abstractionCandidates :
         valueAbstractionCandidates.values()) {
-      abstractionCandidates.iterator().next().execute(destSMG);
+      abstractionCandidates.getFirst().execute(destSMG);
     }
 
     defined = true;

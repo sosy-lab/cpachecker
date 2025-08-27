@@ -21,6 +21,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -255,7 +257,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    * @return all removed valid objects, that are not externally allocated and might leak memory.
    */
   private Set<SMGObject> removeObjects(Collection<SMGObject> objects) {
-    Set<SMGObject> unreachableObjects = new LinkedHashSet<>();
+    SequencedSet<SMGObject> unreachableObjects = new LinkedHashSet<>();
     for (SMGObject object : objects) {
       if (object != SMGNullObject.INSTANCE) {
         if (isObjectValid(object) && !isObjectExternallyAllocated(object)) {
@@ -355,7 +357,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   private Map<MemoryLocation, SMGValue> getMapOfMemoryLocationsWithValue() {
-    Map<MemoryLocation, SMGValue> result = new LinkedHashMap<>();
+    SequencedMap<MemoryLocation, SMGValue> result = new LinkedHashMap<>();
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
@@ -659,7 +661,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     SMGHasValueEdges hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
     Set<SMGEdgePointsTo> ptes = getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(pObj));
-    Set<SMGEdgePointsTo> resultPtes = new LinkedHashSet<>(ptes);
+    SequencedSet<SMGEdgePointsTo> resultPtes = new LinkedHashSet<>(ptes);
 
     for (SMGEdgeHasValue edge : hves) {
       if (isPointer(edge.getValue())) {

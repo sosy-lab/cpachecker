@@ -126,7 +126,7 @@ public class SMGCPAAddressVisitor
               cfaEdge.getFileLocation(),
               e);
       Preconditions.checkArgument(statesWithString.size() == 1);
-      currentState = statesWithString.get(0);
+      currentState = statesWithString.getFirst();
       // throw new SMGException("Could not find C String literal address.");
     }
     // TODO: assertion that the Strings are immutable
@@ -256,7 +256,7 @@ public class SMGCPAAddressVisitor
       // If this ever fails, handle the list.
       Preconditions.checkArgument(maybeTargetMemoriesAndOffsets.size() == 1);
       SMGStateAndOptionalSMGObjectAndOffset maybeTargetMemoryAndOffset =
-          maybeTargetMemoriesAndOffsets.get(0);
+          maybeTargetMemoriesAndOffsets.getFirst();
       if (!maybeTargetMemoryAndOffset.hasSMGObjectAndOffset()) {
         return maybeTargetMemoriesAndOffsets;
       }

@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -451,7 +452,7 @@ public class CBinaryExpressionBuilder {
             getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
 
-      return new CPointerType(at.isConst(), at.isVolatile(), at.getType());
+      return new CPointerType(at.getQualifiers(), at.getType());
     }
 
     if (pType instanceof CProblemType) {
@@ -608,8 +609,7 @@ public class CBinaryExpressionBuilder {
 
     if (t1.hasSignedSpecifier()) {
       return new CSimpleType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           INT,
           t1.hasLongSpecifier(),
           false,
@@ -622,8 +622,7 @@ public class CBinaryExpressionBuilder {
 
     if (t2.hasSignedSpecifier()) {
       return new CSimpleType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           INT,
           t2.hasLongSpecifier(),
           false,

@@ -18,7 +18,6 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -527,7 +526,8 @@ public final class ValueAnalysisState
               + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      ValueAndType val = constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
+      ValueAndType val =
+          constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.getFirst()));
       if (val == null) {
         return false;
       }
@@ -596,7 +596,7 @@ public final class ValueAnalysisState
                   + pModification
                   + "\" is invalid. Could not split the property string correctly.");
         } else {
-          String varName = assignmentParts.get(0);
+          String varName = assignmentParts.getFirst();
           try {
             Value newValue = new NumericValue(Long.parseLong(assignmentParts.get(1)));
             this.assignConstant(varName, newValue);
@@ -734,7 +734,7 @@ public final class ValueAnalysisState
   }
 
   public Set<Entry<MemoryLocation, ValueAndType>> getConstants() {
-    return Collections.unmodifiableSet(constantsMap.entrySet());
+    return constantsMap.entrySet();
   }
 
   /**

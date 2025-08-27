@@ -95,7 +95,7 @@ public final class ConstraintsState extends ForwardingSet<Constraint>
   public ConstraintsState copyWithNew(List<Constraint> pConstraints) {
     checkNotNull(pConstraints);
 
-    Optional<Constraint> addedConstraint = Optional.of(pConstraints.get(pConstraints.size() - 1));
+    Optional<Constraint> addedConstraint = Optional.of(pConstraints.getLast());
     ImmutableSet<Constraint> newConstraints =
         ImmutableSet.<Constraint>builder().addAll(constraints).addAll(pConstraints).build();
     return new ConstraintsState(

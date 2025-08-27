@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -70,7 +71,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -211,7 +211,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
    */
   @Override
   public Set<CExpression> assumptionsForEdge(CFAEdge pEdge) throws UnrecognizedCodeException {
-    Set<CExpression> result = new LinkedHashSet<>();
+    SequencedSet<CExpression> result = new LinkedHashSet<>();
 
     // Node is used for liveness calculation, and predecessor will contain
     // the live variables of the successor.
@@ -304,7 +304,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     if (isBinaryExpressionThatMayOverflow(exp)) {
       CBinaryExpression binexp = (CBinaryExpression) exp;
       BinaryOperator binop = binexp.getOperator();
-      CType calculationType = CTypes.copyDequalified(binexp.getCalculationType());
+      CType calculationType = binexp.getCalculationType().withoutQualifiers();
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
       if (trackAdditiveOperations
@@ -332,7 +332,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
         }
       }
     } else if (exp instanceof CUnaryExpression unaryexp) {
-      CType calculationType = CTypes.copyDequalified(exp.getExpressionType());
+      CType calculationType = exp.getExpressionType().withoutQualifiers();
 
       if (unaryexp.getOperator().equals(CUnaryExpression.UnaryOperator.MINUS)
           && lowerBounds.get(calculationType) != null) {

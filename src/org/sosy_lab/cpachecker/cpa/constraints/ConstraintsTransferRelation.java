@@ -188,22 +188,18 @@ public class ConstraintsTransferRelation
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
       throws UnrecognizedCodeException {
 
-    if (pExpression instanceof JBinaryExpression jBinaryExpression) {
-      return createConstraint(jBinaryExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof JUnaryExpression jUnaryExpression) {
-      return createConstraint(jUnaryExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof CBinaryExpression cBinaryExpression) {
-      return createConstraint(cBinaryExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof AIdExpression aIdExpression) {
+    return switch (pExpression) {
+      case JBinaryExpression jBinaryExpression ->
+          createConstraint(jBinaryExpression, pFactory, pTruthAssumption);
+      case JUnaryExpression jUnaryExpression ->
+          createConstraint(jUnaryExpression, pFactory, pTruthAssumption);
+      case CBinaryExpression cBinaryExpression ->
+          createConstraint(cBinaryExpression, pFactory, pTruthAssumption);
       // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-      return createConstraint(aIdExpression, pFactory, pTruthAssumption);
-
-    } else {
-      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
-    }
+      case AIdExpression aIdExpression ->
+          createConstraint(aIdExpression, pFactory, pTruthAssumption);
+      default -> throw new AssertionError("Unhandled expression type " + pExpression.getClass());
+    };
   }
 
   private Optional<Constraint> createConstraint(
@@ -289,7 +285,7 @@ public class ConstraintsTransferRelation
     boolean nothingChanged = true;
 
     for (AbstractState currStrengtheningState : pStrengtheningStates) {
-      ConstraintsState currStateToStrengthen = newStates.get(0);
+      ConstraintsState currStateToStrengthen = newStates.getFirst();
       StrengthenOperator strengthenOperator = null;
 
       if (currStrengtheningState instanceof ValueAnalysisState) {

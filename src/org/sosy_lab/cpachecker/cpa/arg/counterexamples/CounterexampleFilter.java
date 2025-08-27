@@ -61,7 +61,7 @@ public interface CounterexampleFilter {
         return new NullCounterexampleFilter();
       }
       case 1 -> {
-        return cexFilterClasses.get(0).create(config, logger, cpa);
+        return cexFilterClasses.getFirst().create(config, logger, cpa);
       }
       default -> {
         List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());

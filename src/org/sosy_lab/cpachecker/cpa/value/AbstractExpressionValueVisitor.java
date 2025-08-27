@@ -598,34 +598,33 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     try {
-      switch (type.getType()) {
+      return switch (type.getType()) {
         case INT -> {
           // Both l and r must be of the same type, which in this case is INT, so we can cast to
           // long.
           long lVal = lNum.getNumber().longValue();
           long rVal = rNum.getNumber().longValue();
           long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-          return new NumericValue(result);
+          yield new NumericValue(result);
         }
         case INT128 -> {
           BigInteger lVal = lNum.bigIntegerValue();
           BigInteger rVal = rNum.bigIntegerValue();
           BigInteger result = arithmeticOperation(lVal, rVal, op, logger);
-          return new NumericValue(result);
+          yield new NumericValue(result);
         }
-        case FLOAT, DOUBLE, FLOAT128 -> {
-          return new NumericValue(
-              arithmeticOperation(
-                  op,
-                  castToFloat(machineModel, type, lNum),
-                  castToFloat(machineModel, type, rNum)));
-        }
+        case FLOAT, DOUBLE, FLOAT128 ->
+            new NumericValue(
+                arithmeticOperation(
+                    op,
+                    castToFloat(machineModel, type, lNum),
+                    castToFloat(machineModel, type, rNum)));
         default -> {
           logger.logf(
               Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-          return Value.UnknownValue.getInstance();
+          yield Value.UnknownValue.getInstance();
         }
-      }
+      };
     } catch (ArithmeticException e) { // log warning and ignore expression
       logger.logf(
           Level.WARNING,
@@ -761,7 +760,7 @@ public abstract class AbstractExpressionValueVisitor
   private Value handleBuiltinFunction2(
       String pName, List<Value> pArguments, BiFunction<FloatValue, FloatValue, Value> pOperation) {
     checkArgument(pArguments.size() == 2);
-    Value parameter1 = pArguments.get(0);
+    Value parameter1 = pArguments.getFirst();
     Value parameter2 = pArguments.get(1);
 
     if (parameter1.isExplicitlyKnown() && parameter2.isExplicitlyKnown()) {
@@ -979,7 +978,7 @@ public abstract class AbstractExpressionValueVisitor
           // We only need the return value and can ignore the integer part that needs to be written
           // to the pointer in the 2nd argument
           if (parameterValues.size() == 2) {
-            Value value = parameterValues.get(0);
+            Value value = parameterValues.getFirst();
             if (value.isExplicitlyKnown()) {
               FloatValue arg =
                   castToFloat(
@@ -1530,29 +1529,28 @@ public abstract class AbstractExpressionValueVisitor
       rVal = pRightValue.doubleValue();
     }
 
-    switch (pBinaryOperator) {
-      case PLUS, MINUS, DIVIDE, MULTIPLY, MODULO -> {
-        return switch (pBinaryOperator) {
-          case PLUS -> new NumericValue(lVal + rVal);
+    return switch (pBinaryOperator) {
+      case PLUS, MINUS, DIVIDE, MULTIPLY, MODULO ->
+          switch (pBinaryOperator) {
+            case PLUS -> new NumericValue(lVal + rVal);
 
-          case MINUS -> new NumericValue(lVal - rVal);
+            case MINUS -> new NumericValue(lVal - rVal);
 
-          case DIVIDE -> {
-            if (rVal == 0) {
-              throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
+            case DIVIDE -> {
+              if (rVal == 0) {
+                throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
+              }
+              yield new NumericValue(lVal / rVal);
             }
-            yield new NumericValue(lVal / rVal);
-          }
 
-          case MULTIPLY -> new NumericValue(lVal * rVal);
+            case MULTIPLY -> new NumericValue(lVal * rVal);
 
-          case MODULO -> new NumericValue(lVal % rVal);
+            case MODULO -> new NumericValue(lVal % rVal);
 
-          default ->
-              throw new AssertionError(
-                  "Unsupported binary operation " + pBinaryOperator + " on double values");
-        };
-      }
+            default ->
+                throw new AssertionError(
+                    "Unsupported binary operation " + pBinaryOperator + " on double values");
+          };
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         final boolean result =
             switch (pBinaryOperator) {
@@ -1569,13 +1567,10 @@ public abstract class AbstractExpressionValueVisitor
                           + " on floating point values");
             };
         // return 1 if expression holds, 0 otherwise
-        return BooleanValue.valueOf(result);
+        yield BooleanValue.valueOf(result);
       }
-      default -> {
-        // TODO check which cases can be handled
-        return UnknownValue.getInstance();
-      }
-    }
+      default -> /* TODO check which cases can be handled */ UnknownValue.getInstance();
+    };
   }
 
   private Value calculateBooleanOperation(
@@ -2223,31 +2218,19 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static Value createValue(long value, JSimpleType targetType) {
-    switch (targetType) {
-      case BYTE -> {
-        return new NumericValue((byte) value);
-      }
+    return switch (targetType) {
+      case BYTE -> new NumericValue((byte) value);
       case CHAR -> {
         char castedValue = (char) value;
-        return new NumericValue((int) castedValue);
+        yield new NumericValue((int) castedValue);
       }
-      case SHORT -> {
-        return new NumericValue((short) value);
-      }
-      case INT -> {
-        return new NumericValue((int) value);
-      }
-      case LONG -> {
-        return new NumericValue(value);
-      }
-      case FLOAT -> {
-        return new NumericValue((float) value);
-      }
-      case DOUBLE -> {
-        return new NumericValue((double) value);
-      }
+      case SHORT -> new NumericValue((short) value);
+      case INT -> new NumericValue((int) value);
+      case LONG -> new NumericValue(value);
+      case FLOAT -> new NumericValue((float) value);
+      case DOUBLE -> new NumericValue((double) value);
       default -> throw new AssertionError("Trying to cast to unsupported type " + targetType);
-    }
+    };
   }
 
   private static Value createValue(double value, JSimpleType targetType) {

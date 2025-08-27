@@ -609,7 +609,7 @@ public class CPAMain {
     if (propertyFiles.size() > 1) {
       throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
     }
-    String propertyFile = propertyFiles.get(0);
+    String propertyFile = propertyFiles.getFirst();
 
     // Parse property files
     PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));

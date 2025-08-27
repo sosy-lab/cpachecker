@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -169,7 +170,7 @@ public class BuiltinOverflowFunctions {
       return ImmutableList.of(
           type.orElseThrow(),
           type.orElseThrow(),
-          new CPointerType(false, false, type.orElseThrow()));
+          new CPointerType(CTypeQualifiers.NONE, type.orElseThrow()));
     } else {
       return ImmutableList.of();
     }
@@ -256,7 +257,7 @@ public class BuiltinOverflowFunctions {
         List<CExpression> parameters = functionCallExpression.getParameterExpressions();
         if (parameters.size() == 3) {
           Value firstParameterValue =
-              evv.evaluate(parameters.get(0), parameters.get(0).getExpressionType());
+              evv.evaluate(parameters.getFirst(), parameters.getFirst().getExpressionType());
           Value secondParameterValue =
               evv.evaluate(parameters.get(1), parameters.get(1).getExpressionType());
           CSimpleType resultType = getTargetType(nameOfCalledFunc, parameters.get(2));

@@ -705,7 +705,7 @@ public class CFAUtils {
     waitlist.offer(ImmutableList.of(pNode));
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
-      CFANode pathSucc = currentPath.get(currentPath.size() - 1);
+      CFANode pathSucc = currentPath.getLast();
       List<BlankEdge> leavingBlankEdges =
           CFAUtils.leavingEdges(pathSucc).filter(BlankEdge.class).toList();
       if (pathSucc.getNumLeavingEdges() <= 0
@@ -725,7 +725,7 @@ public class CFAUtils {
     blankPaths.clear();
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
-      CFANode pathPred = currentPath.get(0);
+      CFANode pathPred = currentPath.getFirst();
       List<BlankEdge> enteringBlankEdges =
           CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
       if (pathPred.getNumEnteringEdges() <= 0
@@ -792,15 +792,13 @@ public class CFAUtils {
   }
 
   public static Iterable<AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
-    switch (edge.getEdgeType()) {
+    return switch (edge.getEdgeType()) {
       case CallToReturnEdge -> {
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
-        return ImmutableSet.of(fnSumEdge.getExpression());
+        yield ImmutableSet.of(fnSumEdge.getExpression());
       }
-      default -> {
-        return Optionals.asSet(edge.getRawAST());
-      }
-    }
+      default -> Optionals.asSet(edge.getRawAST());
+    };
   }
 
   /**

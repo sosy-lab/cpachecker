@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -170,9 +171,9 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
   private Set<AbstractionPredicate> getRelevantPredicates(
       Block pContext, Collection<AbstractionPredicate> predicates) throws InterruptedException {
 
-    final Set<AbstractionPredicate> relevantPredicates = new LinkedHashSet<>();
-    Set<String> relevantVariables = new LinkedHashSet<>();
-    Set<AbstractionPredicate> irrelevantPredicates = new LinkedHashSet<>();
+    final SequencedSet<AbstractionPredicate> relevantPredicates = new LinkedHashSet<>();
+    SequencedSet<String> relevantVariables = new LinkedHashSet<>();
+    SequencedSet<AbstractionPredicate> irrelevantPredicates = new LinkedHashSet<>();
 
     // get predicates that are directly relevant
     for (AbstractionPredicate predicate : predicates) {
@@ -189,8 +190,8 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
     // predicates that are important because they contain variables used in relevant predicates.
     while (!relevantVariables.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
-      Set<String> newRelevantVariables = new LinkedHashSet<>();
-      Set<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
+      SequencedSet<String> newRelevantVariables = new LinkedHashSet<>();
+      SequencedSet<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
       for (AbstractionPredicate predicate : irrelevantPredicates) { // shrinking with each iteration
         Set<String> variables = getVariables(predicate);
         if (isAnyVariableRelevant(relevantVariables, variables)) {

@@ -37,7 +37,7 @@ public class ToCExpressionVisitor
       elements.add(element.accept(this));
     }
 
-    CExpression result = elements.get(0);
+    CExpression result = elements.getFirst();
 
     for (CExpression expr : Iterables.skip(elements, 1)) {
       // TODO: AFAIK this should be wrong, since the result of a binary AND operation must not
@@ -56,7 +56,7 @@ public class ToCExpressionVisitor
       elements.add(element.accept(this));
     }
 
-    CExpression result = elements.get(0);
+    CExpression result = elements.getFirst();
 
     for (CExpression expr : Iterables.skip(elements, 1)) {
       result = builder.buildBinaryExpression(result, expr, BinaryOperator.BINARY_OR);

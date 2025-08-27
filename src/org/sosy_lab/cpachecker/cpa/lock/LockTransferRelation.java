@@ -302,7 +302,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     ImmutableList.Builder<AbstractLockEffect> result = ImmutableList.builder();
 
     if (effect == SetLockEffect.getInstance()) {
-      CExpression expression = function.getParameterExpressions().get(0);
+      CExpression expression = function.getParameterExpressions().getFirst();
       // Replace it by parametrical one
       if (expression instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
         int newValue = cIntegerLiteralExpression.getValue().intValue();

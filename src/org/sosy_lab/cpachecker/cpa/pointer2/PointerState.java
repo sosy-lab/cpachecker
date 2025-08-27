@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cpa.pointer2;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
-import java.util.NavigableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -184,8 +182,8 @@ public class PointerState implements AbstractState {
    *
    * @return the points-to map of this state.
    */
-  public NavigableMap<MemoryLocation, LocationSet> getPointsToMap() {
-    return Collections.unmodifiableNavigableMap(pointsToMap);
+  public PersistentSortedMap<MemoryLocation, LocationSet> getPointsToMap() {
+    return pointsToMap;
   }
 
   @Override

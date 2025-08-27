@@ -621,8 +621,7 @@ public final class InterpolationManager {
     if (!bfmgr.isTrue(bitwiseAxioms)) {
       logger.log(
           Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE", "LAST GROUP: ", bitwiseAxioms);
-      return listAndElement(
-          f.subList(0, f.size() - 1), bfmgr.and(f.get(f.size() - 1), bitwiseAxioms));
+      return listAndElement(f.subList(0, f.size() - 1), bfmgr.and(f.getLast(), bitwiseAxioms));
     }
 
     return f;

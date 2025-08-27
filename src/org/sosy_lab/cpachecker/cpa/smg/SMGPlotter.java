@@ -24,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
@@ -282,7 +283,7 @@ public final class SMGPlotter {
                 + pStackFrame.getFunctionDeclaration().toASTString()
                 + "\";"));
 
-    Map<String, SMGRegion> to_print = new LinkedHashMap<>(pStackFrame.getVariables());
+    SequencedMap<String, SMGRegion> to_print = new LinkedHashMap<>(pStackFrame.getVariables());
 
     SMGRegion returnObject = pStackFrame.getReturnObject();
     if (returnObject != null) {
