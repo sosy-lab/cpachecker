@@ -923,7 +923,9 @@ class WebInterface:
                         witness_path = next(i)
 
                         # upload witness file
-                        witness_file = self._add_file_to_params(params, "witnessText", witness_path)
+                        witness_file = self._add_file_to_params(
+                            params, "witnessText", witness_path
+                        )
                         opened_files.append(witness_file)
 
                     elif option[0] == "-":
