@@ -239,6 +239,8 @@ public class SeqMainFunction extends SeqFunction {
     for (MPORThread thread : pClauses.keySet()) {
       ImmutableList<SeqThreadStatementClause> currentClauses = pClauses.get(thread);
       SeqThreadStatementBlock firstBlock = currentClauses.getFirst().getFirstBlock();
+      ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+          SeqThreadStatementClauseUtil.mapLabelNumberToClause(currentClauses);
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToBlock(currentClauses);
       ImmutableList<SeqBitVectorAssignmentStatement> bitVectorInitializations =
@@ -246,6 +248,7 @@ public class SeqMainFunction extends SeqFunction {
               options,
               thread,
               firstBlock,
+              labelClauseMap,
               labelBlockMap,
               pBitVectorVariables.orElseThrow(),
               memoryModel.orElseThrow());

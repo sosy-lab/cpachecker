@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Objects;
@@ -64,11 +65,7 @@ public class BitVectorUtil {
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // retrieve all relevant memory location IDs
-    ImmutableSet<Integer> setBits =
-        pMemoryLocations.stream()
-            .map(pMemoryModel.getRelevantMemoryLocations()::get)
-            .filter(Objects::nonNull)
-            .collect(ImmutableSet.toImmutableSet());
+    ImmutableSet<Integer> setBits = getSetBits(pMemoryLocations, pMemoryModel);
     return buildBitVectorExpressionByEncoding(pOptions.bitVectorEncoding, pMemoryModel, setBits);
   }
 
@@ -99,12 +96,7 @@ public class BitVectorUtil {
         "pMemoryLocationIds must contain all pMemoryLocations as keys.");
 
     // for decimal, use the sum of variable ids (starting from 1)
-    ImmutableSet<Integer> setBits =
-        pMemoryLocations.stream()
-            .map(pMemoryModel.getRelevantMemoryLocations()::get)
-            .filter(Objects::nonNull)
-            .collect(ImmutableSet.toImmutableSet());
-
+    ImmutableSet<Integer> setBits = getSetBits(pMemoryLocations, pMemoryModel);
     return new CIntegerLiteralExpression(
         FileLocation.DUMMY,
         getTypeByBinaryLength(getBinaryLength(pMemoryModel)),
@@ -128,6 +120,20 @@ public class BitVectorUtil {
       }
     }
     throw new IllegalArgumentException("invalid pBinaryLength");
+  }
+
+  private static ImmutableSet<Integer> getSetBits(
+      ImmutableSet<MemoryLocation> pAccessedMemoryLocations, MemoryModel pMemoryModel) {
+
+    ImmutableSet.Builder<Integer> rSetBits = ImmutableSet.builder();
+    final ImmutableMap<MemoryLocation, Integer> relevantMemoryLocations =
+        pMemoryModel.getRelevantMemoryLocations();
+    for (MemoryLocation accessedMemoryLocation : pAccessedMemoryLocations) {
+      if (relevantMemoryLocations.containsKey(accessedMemoryLocation)) {
+        rSetBits.add(Objects.requireNonNull(relevantMemoryLocations.get(accessedMemoryLocation)));
+      }
+    }
+    return rSetBits.build();
   }
 
   // Vector Length =================================================================================
