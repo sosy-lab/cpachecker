@@ -180,13 +180,12 @@ public class ConstraintsSolver {
   }
 
   /**
-   * Returns the given constraints {@link Satisfiability} within a {@link SolverResult}, bundling
-   * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
-   * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will build a new,
-   * empty SMT solver instance (i.e. {@link ProverEnvironment}) to calculate results.
+   * Returns the resulting {@link Satisfiability} for checking the given {@link Constraint}.Will
+   * build a new, empty SMT solver instance (i.e. {@link ProverEnvironment}) to calculate results.
+   * Only to be used for irrelevant models in SAT cases.
    *
-   * @param pSingleConstraintToCheck the single constraint to check.
-   * @param pFunctionName the name of the function scope of {@code pSingleConstraintToCheck}.
+   * @param pSingleConstraintToCheck the single {@link Constraint} to check.
+   * @param pFunctionName the name of the function scope of pSingleConstraintToCheck.
    * @return {@link Satisfiability} of the given constraint.
    */
   public Satisfiability checkUnsatWithFreshSolver(
