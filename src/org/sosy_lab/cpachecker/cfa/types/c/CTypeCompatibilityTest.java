@@ -166,6 +166,7 @@ public class CTypeCompatibilityTest {
 
     for (List<CType> typePair : Lists.cartesianProduct(allTypes, allTypes)) {
       verify(typePair.size() == 2);
+      @SuppressWarnings("SequencedCollectionGetFirst")
       CType type1 = typePair.get(0);
       CType type2 = typePair.get(1);
       if (type1 != type2) {
