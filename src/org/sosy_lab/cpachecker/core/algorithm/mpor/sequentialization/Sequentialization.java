@@ -18,17 +18,13 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqLeftHandSideBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
@@ -121,8 +117,6 @@ public class Sequentialization {
 
   private final LogManager logger;
 
-  private final ProgramCounterVariables pcVariables;
-
   public Sequentialization(
       ImmutableList<MPORSubstitution> pSubstitutions,
       MPOROptions pOptions,
@@ -140,12 +134,6 @@ public class Sequentialization {
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
-    ImmutableList<CLeftHandSide> pcLeftHandSides =
-        SeqLeftHandSideBuilder.buildPcLeftHandSides(options, pSubstitutions.size());
-    ImmutableList<CBinaryExpression> threadNotActiveExpressions =
-        SeqExpressionBuilder.buildThreadNotActiveExpressions(
-            pcLeftHandSides, binaryExpressionBuilder);
-    pcVariables = new ProgramCounterVariables(pcLeftHandSides, threadNotActiveExpressions);
   }
 
   @Override
@@ -183,14 +171,8 @@ public class Sequentialization {
         MemoryModelBuilder.tryBuildMemoryModel(
             options, threads, initialMemoryLocations, substituteEdges.values());
     GhostElements ghostElements =
-        GhostElementUtil.buildGhostElements(
-            options,
-            threads,
-            substitutions,
-            substituteEdges,
-            pcVariables,
-            memoryModel,
-            binaryExpressionBuilder);
+        GhostElementBuilder.buildGhostElements(
+            options, threads, substitutions, substituteEdges, memoryModel, binaryExpressionBuilder);
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));

@@ -22,7 +22,7 @@ public class SparseBitVector {
   public final MemoryAccessType accessType;
 
   // TODO need direct and reachable variable maps
-  public SparseBitVector(
+  SparseBitVector(
       ImmutableMap<MPORThread, CIdExpression> pAccessVariables, MemoryAccessType pAccessType) {
 
     checkArgument(!pAccessType.equals(MemoryAccessType.NONE));

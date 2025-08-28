@@ -29,7 +29,7 @@ public class DenseBitVector {
 
   public final BitVectorEncoding encoding;
 
-  public DenseBitVector(
+  DenseBitVector(
       MPORThread pThread,
       // note that both direct and reachable can be empty, when there are no global variables
       Optional<CIdExpression> pDirectVariable,

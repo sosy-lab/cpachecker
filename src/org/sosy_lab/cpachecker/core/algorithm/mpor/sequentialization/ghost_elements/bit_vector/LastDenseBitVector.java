@@ -22,7 +22,7 @@ public class LastDenseBitVector {
 
   public final BitVectorEncoding encoding;
 
-  public LastDenseBitVector(
+  LastDenseBitVector(
       CIdExpression pReachableVariable, MemoryAccessType pAccessType, BitVectorEncoding pEncoding) {
 
     // TODO why parametrize?

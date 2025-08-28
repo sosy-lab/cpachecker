@@ -19,7 +19,7 @@ public class LastSparseBitVector {
 
   public final MemoryAccessType accessType;
 
-  public LastSparseBitVector(CIdExpression pVariable, MemoryAccessType pAccessType) {
+  LastSparseBitVector(CIdExpression pVariable, MemoryAccessType pAccessType) {
     checkArgument(!pAccessType.equals(MemoryAccessType.NONE));
     variable = pVariable;
     accessType = pAccessType;

@@ -22,7 +22,7 @@ public class FunctionStatements {
 
   public final ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> startRoutineExitAssignments;
 
-  public FunctionStatements(
+  FunctionStatements(
       ImmutableListMultimap<ThreadEdge, FunctionParameterAssignment> pParameterAssignments,
       ImmutableMap<ThreadEdge, FunctionParameterAssignment> pStartRoutineArgAssignments,
       ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> pReturnValueAssignments,

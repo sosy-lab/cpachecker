@@ -18,7 +18,7 @@ public class ProgramCounterVariables {
 
   private final ImmutableList<CBinaryExpression> threadNotActiveExpressions;
 
-  public ProgramCounterVariables(
+  ProgramCounterVariables(
       ImmutableList<CLeftHandSide> pProgramCounter,
       ImmutableList<CBinaryExpression> pThreadNotActiveExpressions) {
 

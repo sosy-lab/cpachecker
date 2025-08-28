@@ -18,7 +18,7 @@ public class ThreadSynchronizationVariables {
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
 
-  public ThreadSynchronizationVariables(ImmutableMap<CIdExpression, MutexLocked> pLocked) {
+  ThreadSynchronizationVariables(ImmutableMap<CIdExpression, MutexLocked> pLocked) {
     locked = pLocked;
   }
 

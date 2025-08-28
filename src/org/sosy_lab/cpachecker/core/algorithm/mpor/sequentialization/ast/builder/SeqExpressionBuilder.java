@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondet
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
@@ -54,14 +53,6 @@ public class SeqExpressionBuilder {
         SeqArrayType.UNSIGNED_INT_ARRAY,
         SeqIdExpression.DUMMY_PC,
         pSubscriptExpr);
-  }
-
-  static ImmutableList<CArraySubscriptExpression> buildArrayPcExpressions(int pNumThreads) {
-    ImmutableList.Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
-    for (int i = 0; i < pNumThreads; i++) {
-      rArrayPc.add(buildPcSubscriptExpression(buildIntegerLiteralExpression(i)));
-    }
-    return rArrayPc.build();
   }
 
   // CBinaryExpression =============================================================================
@@ -176,19 +167,6 @@ public class SeqExpressionBuilder {
             SeqToken.NUM_THREADS,
             SeqInitializerBuilder.buildInitializerExpression(
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads))));
-  }
-
-  static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {
-    ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
-    for (int i = 0; i < pNumThreads; i++) {
-      CInitializer initializer = SeqInitializer.getPcInitializer(i == 0);
-      rScalarPc.add(
-          new CIdExpression(
-              FileLocation.DUMMY,
-              SeqDeclarationBuilder.buildVariableDeclaration(
-                  false, SeqSimpleType.UNSIGNED_INT, SeqToken.pc + i, initializer)));
-    }
-    return rScalarPc.build();
   }
 
   // CStringLiteralExpression ======================================================================
