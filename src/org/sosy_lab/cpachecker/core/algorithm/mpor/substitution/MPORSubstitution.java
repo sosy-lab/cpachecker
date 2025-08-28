@@ -170,7 +170,7 @@ public class MPORSubstitution {
     // only track the global variables when actually substituting the declaration. otherwise when
     // we use the local, non-pointer variable, the global variable is considered as accessed too
     if (pIsDeclaration) {
-      for (CVariableDeclaration variable : pLocalSubstitute.accessedVariables) {
+      for (CVariableDeclaration variable : pLocalSubstitute.accessedGlobalVariables) {
         pTracker.orElseThrow().addAccessedVariable(variable);
       }
     }
@@ -306,6 +306,10 @@ public class MPORSubstitution {
         if (pointerType.getType() instanceof CTypedefType typedefType) {
           trackFieldReferenceByTypedefType(
               pFieldReference, idExpression, typedefType, pIsWrite, pTracker.orElseThrow());
+
+        } else if (pointerType.getType() instanceof CElaboratedType elaboratedType) {
+          trackFieldReferenceByElaboratedType(
+              pFieldReference, idExpression, elaboratedType, pIsWrite, pTracker.orElseThrow());
         }
       }
 
@@ -322,18 +326,29 @@ public class MPORSubstitution {
       boolean pIsWrite,
       MPORSubstitutionTracker pTracker) {
 
-    if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-      // elaborated type is e.g. struct __anon_type_QType
-      if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-        // composite type contains the composite type members, e.g. 'amount'
-        if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
-          for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-            if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-              if (pIsWrite) {
-                pTracker.addWrittenFieldMember(variableDeclaration, memberDeclaration);
-              }
-              pTracker.addAccessedFieldMember(variableDeclaration, memberDeclaration);
+    // elaborated type is e.g. struct __anon_type_QType
+    if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
+      trackFieldReferenceByElaboratedType(
+          pFieldReference, pIdExpression, elaboratedType, pIsWrite, pTracker);
+    }
+  }
+
+  private void trackFieldReferenceByElaboratedType(
+      CFieldReference pFieldReference,
+      CIdExpression pIdExpression,
+      CElaboratedType pElaboratedType,
+      boolean pIsWrite,
+      MPORSubstitutionTracker pTracker) {
+
+    // composite type contains the composite type members, e.g. 'amount'
+    if (pElaboratedType.getRealType() instanceof CCompositeType compositeType) {
+      if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
+            if (pIsWrite) {
+              pTracker.addWrittenFieldMember(variableDeclaration, memberDeclaration);
             }
+            pTracker.addAccessedFieldMember(variableDeclaration, memberDeclaration);
           }
         }
       }
