@@ -88,7 +88,6 @@ public class SubstituteUtil {
 
   static ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(
       MPOROptions pOptions,
-      MPORThread pThread,
       Optional<ThreadEdge> pCallContext,
       MPORSubstitutionTracker pTracker,
       MemoryAccessType pAccessType) {
@@ -98,7 +97,7 @@ public class SubstituteUtil {
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
       MemoryLocation memoryLocation =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-              pOptions, pThread, pCallContext, pointerDereference);
+              pOptions, pCallContext, pointerDereference);
       rPointerDereferences.add(memoryLocation);
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
@@ -109,7 +108,7 @@ public class SubstituteUtil {
           fieldReferencePointerDereferences.get(fieldOwner)) {
         MemoryLocation memoryLocation =
             MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-                pOptions, pThread, pCallContext, fieldOwner, fieldMember);
+                pOptions, pCallContext, fieldOwner, fieldMember);
         rPointerDereferences.add(memoryLocation);
       }
     }
@@ -118,7 +117,6 @@ public class SubstituteUtil {
 
   static ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(
       MPOROptions pOptions,
-      MPORThread pThread,
       Optional<ThreadEdge> pCallContext,
       MPORSubstitutionTracker pTracker,
       MemoryAccessType pAccessType) {
@@ -127,7 +125,7 @@ public class SubstituteUtil {
     for (CSimpleDeclaration declaration : pTracker.getDeclarationsByAccessType(pAccessType)) {
       MemoryLocation memoryLocation =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-              pOptions, pThread, pCallContext, declaration);
+              pOptions, pCallContext, declaration);
       rMemoryLocations.add(memoryLocation);
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
@@ -136,7 +134,7 @@ public class SubstituteUtil {
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
         MemoryLocation memoryLocation =
             MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-                pOptions, pThread, pCallContext, fieldOwner, fieldMember);
+                pOptions, pCallContext, fieldOwner, fieldMember);
         rMemoryLocations.add(memoryLocation);
       }
     }
@@ -150,24 +148,21 @@ public class SubstituteUtil {
    * {@code pSubstituteEdges}, including both global and local memory locations.
    */
   public static ImmutableMap<MemoryLocation, MemoryLocation> mapPointerAssignments(
-      MPOROptions pOptions,
-      MPORThread pThread,
-      Optional<ThreadEdge> pCallContext,
-      MPORSubstitutionTracker pTracker) {
+      MPOROptions pOptions, Optional<ThreadEdge> pCallContext, MPORSubstitutionTracker pTracker) {
 
     ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      MemoryLocation leftHandSide = MemoryLocation.of(pOptions, Optional.empty(), entry.getKey());
+      MemoryLocation leftHandSide = MemoryLocation.of(pOptions, pCallContext, entry.getKey());
       MemoryLocation rightHandSide =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-              pOptions, pThread, pCallContext, entry.getValue());
+              pOptions, pCallContext, entry.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     for (var cell : pTracker.getPointerFieldMemberAssignments().cellSet()) {
-      MemoryLocation leftHandSide = MemoryLocation.of(pOptions, Optional.empty(), cell.getRowKey());
+      MemoryLocation leftHandSide = MemoryLocation.of(pOptions, pCallContext, cell.getRowKey());
       MemoryLocation rightHandSide =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-              pOptions, pThread, pCallContext, cell.getColumnKey(), cell.getValue());
+              pOptions, pCallContext, cell.getColumnKey(), cell.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();

@@ -32,7 +32,6 @@ public class SequentializationFieldsTest {
 
   @Test
   public void test_13_privatized_04_priv_multi_true() throws Exception {
-    // this program contains multiple loops whose condition only contains local variables
     Path path =
         Path.of("./test/programs/mpor/sequentialization/13-privatized_04-priv_multi_true.c");
     assertThat(Files.exists(path)).isTrue();

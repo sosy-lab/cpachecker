@@ -78,7 +78,6 @@ public class SequentializationFields {
     memoryModel =
         MemoryModelBuilder.tryBuildMemoryModel(
             pOptions,
-            threads,
             SubstituteUtil.getInitialMemoryLocations(substituteEdges.values()),
             substituteEdges.values());
     ghostElements =

@@ -274,7 +274,6 @@ public class MemoryModelStructParameterTest {
   private final MemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
           MPOROptions.defaultTestInstance(),
-          0,
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_MEMBER_DECLARATION);
@@ -282,7 +281,6 @@ public class MemoryModelStructParameterTest {
   private final MemoryLocation OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
           MPOROptions.defaultTestInstance(),
-          0,
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_POINTER_MEMBER_DECLARATION);
@@ -290,7 +288,6 @@ public class MemoryModelStructParameterTest {
   private final MemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
           MPOROptions.defaultTestInstance(),
-          0,
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           INNER_STRUCT_MEMBER_DECLARATION);
@@ -298,7 +295,6 @@ public class MemoryModelStructParameterTest {
   private final MemoryLocation INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
           MPOROptions.defaultTestInstance(),
-          0,
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           INNER_STRUCT_POINTER_MEMBER_DECLARATION);

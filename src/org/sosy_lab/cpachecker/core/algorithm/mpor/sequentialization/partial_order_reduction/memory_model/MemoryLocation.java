@@ -15,7 +15,9 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -24,11 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class MemoryLocation {
 
-  /**
-   * The thread that this memory location belongs to, if it is local. Empty string if the memory
-   * location is global.
-   */
-  private final String threadPrefix;
+  public final MPOROptions options;
 
   public final Optional<ThreadEdge> callContext;
 
@@ -42,7 +40,7 @@ public class MemoryLocation {
       fieldMember;
 
   private MemoryLocation(
-      String pThreadPrefix,
+      MPOROptions pOptions,
       Optional<ThreadEdge> pCallContext,
       Optional<CSimpleDeclaration> pDeclaration,
       Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
@@ -51,7 +49,7 @@ public class MemoryLocation {
     checkArgument(
         pDeclaration.isEmpty() || pFieldMember.isEmpty(),
         "either pDeclaration or pFieldMember must be empty");
-    threadPrefix = pThreadPrefix;
+    options = pOptions;
     callContext = pCallContext;
     isExplicitGlobal = MemoryLocationUtil.isExplicitGlobal(pDeclaration, pFieldMember);
     isParameter = MemoryLocationUtil.isParameter(pDeclaration, pFieldMember);
@@ -65,35 +63,17 @@ public class MemoryLocation {
   public static MemoryLocation of(
       MPOROptions pOptions, Optional<ThreadEdge> pCallContext, CSimpleDeclaration pDeclaration) {
 
-    if (pCallContext.isPresent()) {
-      int threadId = pCallContext.orElseThrow().threadId;
-      return MemoryLocation.of(pOptions, threadId, pCallContext, pDeclaration);
-    }
-    return new MemoryLocation(
-        SeqSyntax.EMPTY_STRING, pCallContext, Optional.of(pDeclaration), Optional.empty());
-  }
-
-  static MemoryLocation of(
-      MPOROptions pOptions,
-      int pThreadId,
-      Optional<ThreadEdge> pCallContext,
-      CSimpleDeclaration pDeclaration) {
-
-    String threadPrefix = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId);
-    return new MemoryLocation(
-        threadPrefix, pCallContext, Optional.of(pDeclaration), Optional.empty());
+    return new MemoryLocation(pOptions, pCallContext, Optional.of(pDeclaration), Optional.empty());
   }
 
   public static MemoryLocation of(
       MPOROptions pOptions,
-      int pThreadId,
       Optional<ThreadEdge> pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
-    String threadPrefix = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId);
     return new MemoryLocation(
-        threadPrefix,
+        pOptions,
         pCallContext,
         Optional.empty(),
         Optional.of(new AbstractMap.SimpleImmutableEntry<>(pFieldOwner, pFieldMember)));
@@ -101,7 +81,7 @@ public class MemoryLocation {
 
   static MemoryLocation empty() {
     return new MemoryLocation(
-        SeqSyntax.EMPTY_STRING, Optional.empty(), Optional.empty(), Optional.empty());
+        MPOROptions.defaultTestInstance(), Optional.empty(), Optional.empty(), Optional.empty());
   }
 
   public CSimpleDeclaration getSimpleDeclaration() {
@@ -116,6 +96,7 @@ public class MemoryLocation {
   }
 
   public String getName() {
+    String threadPrefix = buildThreadPrefix(options, callContext, getSimpleDeclaration());
     if (declaration.isPresent()) {
       return threadPrefix + declaration.orElseThrow().getName();
     }
@@ -124,6 +105,24 @@ public class MemoryLocation {
         + entry.getKey().getName()
         + SeqSyntax.UNDERSCORE
         + entry.getValue().getName();
+  }
+
+  private static String buildThreadPrefix(
+      MPOROptions pOptions, Optional<ThreadEdge> pCallContext, CSimpleDeclaration pDeclaration) {
+
+    if (pDeclaration instanceof CVariableDeclaration variableDeclaration) {
+      if (variableDeclaration.isGlobal()) {
+        // global declarations have to thread prefix, they "belong" to no thread
+        return SeqSyntax.EMPTY_STRING;
+      }
+    }
+    if (pDeclaration instanceof CFunctionDeclaration) {
+      // function declarations have to thread prefix, they "belong" to no thread
+      return SeqSyntax.EMPTY_STRING;
+    }
+    // use call context ID if possible, otherwise use 0 (only main() declarations have no context)
+    int threadId = pCallContext.isPresent() ? pCallContext.orElseThrow().threadId : 0;
+    return SeqNameUtil.buildThreadPrefix(pOptions, threadId);
   }
 
   public boolean isEmpty() {
@@ -141,7 +140,6 @@ public class MemoryLocation {
   @Override
   public int hashCode() {
     return Objects.hash(
-        threadPrefix,
         // consider the call context only if it is a parameter memory location
         (isParameter ? callContext : null),
         isExplicitGlobal,
@@ -156,7 +154,6 @@ public class MemoryLocation {
       return true;
     }
     return pOther instanceof MemoryLocation other
-        && threadPrefix.equals(other.threadPrefix)
         // consider the call context only if it is a parameter memory location
         && (!isParameter || callContext.equals(other.callContext))
         && isExplicitGlobal == other.isExplicitGlobal
@@ -167,6 +164,7 @@ public class MemoryLocation {
 
   @Override
   public String toString() {
+    assert !isEmpty() : "cannot build String, MemoryLocation is empty";
     if (declaration.isPresent()) {
       return declaration.orElseThrow().toASTString();
     }

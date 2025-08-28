@@ -16,46 +16,41 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class MemoryLocationUtil {
 
   public static MemoryLocation buildMemoryLocationByDeclarationScope(
-      MPOROptions pOptions,
-      MPORThread pThread,
-      Optional<ThreadEdge> pCallContext,
-      CSimpleDeclaration pDeclaration) {
+      MPOROptions pOptions, Optional<ThreadEdge> pCallContext, CSimpleDeclaration pDeclaration) {
 
     if (pDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (!variableDeclaration.isGlobal()) {
-        return MemoryLocation.of(pOptions, pThread.id, pCallContext, pDeclaration);
+        return MemoryLocation.of(pOptions, pCallContext, pDeclaration);
       }
     }
     // treat all parameter declarations as local
     if (pDeclaration instanceof CParameterDeclaration) {
-      return MemoryLocation.of(pOptions, pThread.id, pCallContext, pDeclaration);
+      return MemoryLocation.of(pOptions, pCallContext, pDeclaration);
     }
     return MemoryLocation.of(pOptions, pCallContext, pDeclaration);
   }
 
   public static MemoryLocation buildMemoryLocationByDeclarationScope(
       MPOROptions pOptions,
-      MPORThread pThread,
       Optional<ThreadEdge> pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
     if (pFieldOwner instanceof CVariableDeclaration variableDeclaration) {
       if (!variableDeclaration.isGlobal()) {
-        return MemoryLocation.of(pOptions, pThread.id, pCallContext, pFieldOwner, pFieldMember);
+        return MemoryLocation.of(pOptions, pCallContext, pFieldOwner, pFieldMember);
       }
     }
     // treat all parameter declarations as local
     if (pFieldOwner instanceof CParameterDeclaration) {
-      return MemoryLocation.of(pOptions, pThread.id, pCallContext, pFieldOwner, pFieldMember);
+      return MemoryLocation.of(pOptions, pCallContext, pFieldOwner, pFieldMember);
     }
-    return MemoryLocation.of(pOptions, pThread.id, pCallContext, pFieldOwner, pFieldMember);
+    return MemoryLocation.of(pOptions, pCallContext, pFieldOwner, pFieldMember);
   }
 
   static boolean isExplicitGlobal(
