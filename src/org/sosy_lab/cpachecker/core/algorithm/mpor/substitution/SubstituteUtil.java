@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Table.Cell;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -125,11 +124,10 @@ public class SubstituteUtil {
       MemoryAccessType pAccessType) {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
-    for (CVariableDeclaration variableDeclaration :
-        pTracker.getVariablesByAccessType(pAccessType)) {
+    for (CSimpleDeclaration declaration : pTracker.getDeclarationsByAccessType(pAccessType)) {
       MemoryLocation memoryLocation =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-              pOptions, pThread, pCallContext, variableDeclaration);
+              pOptions, pThread, pCallContext, declaration);
       rMemoryLocations.add(memoryLocation);
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
@@ -165,10 +163,7 @@ public class SubstituteUtil {
               pOptions, pThread, pCallContext, entry.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
-    ImmutableSet<Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-        cellSet = pTracker.getPointerFieldMemberAssignments().cellSet();
-    for (Cell<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration> cell :
-        cellSet) {
+    for (var cell : pTracker.getPointerFieldMemberAssignments().cellSet()) {
       MemoryLocation leftHandSide = MemoryLocation.of(Optional.empty(), cell.getRowKey());
       MemoryLocation rightHandSide =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(

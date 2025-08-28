@@ -129,7 +129,7 @@ public class MPORSubstitution {
    * sets. {@code pIsWrite} is used to determine whether the expression to substitute is written,
    * i.e. a LHS in an assignment.
    */
-  private void trackVariableAccess(
+  private void trackDeclarationAccess(
       CIdExpression pIdExpression,
       boolean pIsWrite,
       boolean pIsPointerDereference,
@@ -144,22 +144,20 @@ public class MPORSubstitution {
     if (pTracker.isEmpty() || pIsFieldReference) {
       return;
     }
-    // otherwise, if applicable, add declaration to global reads/writes
-    if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-      // exclude pointer dereferences, they are handled separately
-      if (!pIsPointerDereference) {
-        pTracker.orElseThrow().addAccessedVariable(variableDeclaration);
-        CType type = variableDeclaration.getType();
-        boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
-        // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
-        if (pIsWrite || isMutex) {
-          pTracker.orElseThrow().addWrittenVariable(variableDeclaration);
-        }
+    // exclude pointer dereferences, they are handled separately
+    if (!pIsPointerDereference) {
+      CSimpleDeclaration simpleDeclaration = pIdExpression.getDeclaration();
+      pTracker.orElseThrow().addAccessedDeclaration(simpleDeclaration);
+      CType type = simpleDeclaration.getType();
+      boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
+      // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
+      if (pIsWrite || isMutex) {
+        pTracker.orElseThrow().addWrittenDeclaration(simpleDeclaration);
       }
     }
   }
 
-  private void trackLocalVariableDeclaration(
+  private void trackContentFromLocalVariableDeclaration(
       boolean pIsDeclaration,
       LocalVariableDeclarationSubstitute pLocalVariableDeclarationSubstitute,
       Optional<MPORSubstitutionTracker> pTracker) {
@@ -194,26 +192,25 @@ public class MPORSubstitution {
     }
     CLeftHandSide leftHandSide = pAssignment.getLeftHandSide();
     if (leftHandSide instanceof CIdExpression lhsId) {
-      if (lhsId.getDeclaration() instanceof CVariableDeclaration lhsDeclaration) {
-        if (lhsDeclaration.getType() instanceof CPointerType) {
-          CExpression rightHandSide = pAssignment.getRightHandSide();
-          Optional<CSimpleDeclaration> pointerDeclaration =
-              MPORUtil.tryGetPointerDeclaration(rightHandSide);
-          if (pointerDeclaration.isPresent()) {
+      CSimpleDeclaration lhsDeclaration = lhsId.getDeclaration();
+      if (lhsDeclaration.getType() instanceof CPointerType) {
+        CExpression rightHandSide = pAssignment.getRightHandSide();
+        Optional<CSimpleDeclaration> pointerDeclaration =
+            MPORUtil.tryGetPointerDeclaration(rightHandSide);
+        if (pointerDeclaration.isPresent()) {
+          pTracker
+              .orElseThrow()
+              .addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
+        } else {
+          Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>> fieldMemberPointer =
+              MPORUtil.tryGetFieldMemberPointer(rightHandSide);
+          if (fieldMemberPointer.isPresent()) {
             pTracker
                 .orElseThrow()
-                .addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
-          } else {
-            Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-                fieldMemberPointer = MPORUtil.tryGetFieldMemberPointer(rightHandSide);
-            if (fieldMemberPointer.isPresent()) {
-              pTracker
-                  .orElseThrow()
-                  .addPointerFieldMemberAssignment(
-                      lhsDeclaration,
-                      fieldMemberPointer.orElseThrow().getKey(),
-                      fieldMemberPointer.orElseThrow().getValue());
-            }
+                .addPointerFieldMemberAssignment(
+                    lhsDeclaration,
+                    fieldMemberPointer.orElseThrow().getKey(),
+                    fieldMemberPointer.orElseThrow().getValue());
           }
         }
       }
@@ -386,7 +383,7 @@ public class MPORSubstitution {
     if (pExpression instanceof CIdExpression idExpression) {
       CSimpleDeclaration declaration = idExpression.getDeclaration();
       if (isSubstitutable(declaration)) {
-        trackVariableAccess(
+        trackDeclarationAccess(
             idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
         return getVariableSubstitute(
             idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
@@ -688,7 +685,7 @@ public class MPORSubstitution {
             Objects.requireNonNull(localSubstitutes.get(variableDeclaration));
         ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes =
             Objects.requireNonNull(localSubstitute.substitutes);
-        trackLocalVariableDeclaration(pIsDeclaration, localSubstitute, pTracker);
+        trackContentFromLocalVariableDeclaration(pIsDeclaration, localSubstitute, pTracker);
         return Objects.requireNonNull(substitutes.get(pCallContext));
       } else {
         checkArgument(

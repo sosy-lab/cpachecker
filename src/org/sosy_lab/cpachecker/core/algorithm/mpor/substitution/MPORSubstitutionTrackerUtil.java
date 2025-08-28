@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 
 public class MPORSubstitutionTrackerUtil {
@@ -49,12 +48,12 @@ public class MPORSubstitutionTrackerUtil {
         pTo.addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember);
       }
     }
-    // variables accessed
-    for (CVariableDeclaration accessedVariable : pFrom.getAccessedVariables()) {
-      pTo.addAccessedVariable(accessedVariable);
+    // declarations accessed
+    for (CSimpleDeclaration accessedDeclaration : pFrom.getAccessedDeclarations()) {
+      pTo.addAccessedDeclaration(accessedDeclaration);
     }
-    for (CVariableDeclaration writtenVariable : pFrom.getWrittenVariables()) {
-      pTo.addWrittenVariable(writtenVariable);
+    for (CSimpleDeclaration writtenDeclaration : pFrom.getWrittenDeclarations()) {
+      pTo.addWrittenDeclaration(writtenDeclaration);
     }
     // field members accessed
     for (CSimpleDeclaration fieldOwner : pFrom.getAccessedFieldMembers().keySet()) {
