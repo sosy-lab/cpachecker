@@ -91,7 +91,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectLanguageNotC() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/HelloJava.java");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/HelloJava.java");
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
     CFACreator creator =
@@ -104,7 +104,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectNotParallel() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/relax-1.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/relax-1.c");
     testExpectedRejection(
         defaultTestOptions,
         inputFilePath,
@@ -115,7 +115,7 @@ public class InputRejectionTest {
   @Test
   public void testRejectUnsupportedFunction() throws Exception {
     // this program uses pthread_cond_wait and pthread_cond_signal
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/sync01.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sync01.c");
     testExpectedRejection(
         defaultTestOptions,
         inputFilePath,
@@ -125,8 +125,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectPthreadArrayIdentifiers() throws Exception {
-    Path inputFilePath =
-        Path.of("./test/programs/mpor_seq/input_rejections/indexer-no-pthread-exit.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/indexer-no-pthread-exit.c");
     testExpectedRejection(
         defaultTestOptions,
         inputFilePath,
@@ -141,7 +140,7 @@ public class InputRejectionTest {
   @Ignore
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/twostage_3.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/twostage_3.c");
     testExpectedRejection(
         defaultTestOptions,
         inputFilePath,
@@ -152,7 +151,7 @@ public class InputRejectionTest {
   @Test
   public void testRejectPthreadCreateLoop() throws Exception {
     Path inputFilePath =
-        Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-pthread-create-loop.c");
+        Path.of("./test/programs/mpor/input_rejections/queue_longest-pthread-create-loop.c");
     testExpectedRejection(
         defaultTestOptions,
         inputFilePath,
@@ -163,7 +162,7 @@ public class InputRejectionTest {
   @Test
   public void testRejectDirectRecursion() throws Exception {
     Path inputFilePath =
-        Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-direct-recursion.c");
+        Path.of("./test/programs/mpor/input_rejections/queue_longest-direct-recursion.c");
     testExpectedRejection(
         defaultTestOptions,
         inputFilePath,
@@ -174,7 +173,7 @@ public class InputRejectionTest {
   @Test
   public void testRejectIndirectRecursion() throws Exception {
     Path inputFilePath =
-        Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-indirect-recursion.c");
+        Path.of("./test/programs/mpor/input_rejections/queue_longest-indirect-recursion.c");
     testExpectedRejection(
         defaultTestOptions,
         inputFilePath,
@@ -184,7 +183,7 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectPointerWrite() throws Exception {
-    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/pointer-write.c");
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pointer-write.c");
     MPOROptions customOptions =
         MPOROptions.testInstance(
             // do not allow pointer writes, so that this program is rejected

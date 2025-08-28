@@ -142,21 +142,15 @@ public class Sequentialization {
     }
   }
 
-  private static SequentializationFields buildFields(
-      MPOROptions pOptions,
-      CFA pCfa,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger)
-      throws UnrecognizedCodeException {
-
-    return new SequentializationFields(pOptions, pCfa, pBinaryExpressionBuilder, pLogger);
+  SequentializationFields buildFields() throws UnrecognizedCodeException {
+    return new SequentializationFields(options, cfa, binaryExpressionBuilder, logger);
   }
 
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
   private ImmutableList<LineOfCode> initProgram() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
 
-    SequentializationFields fields = buildFields(options, cfa, binaryExpressionBuilder, logger);
+    SequentializationFields fields = buildFields();
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, fields.threads));

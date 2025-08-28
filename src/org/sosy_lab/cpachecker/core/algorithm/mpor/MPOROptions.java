@@ -202,7 +202,8 @@ public class MPOROptions {
         false,
         false,
         false,
-        false,
+        // true so that MemoryModel is created
+        true,
         false,
         0,
         false,
@@ -218,7 +219,7 @@ public class MPOROptions {
         false,
         false,
         true,
-        false);
+        true);
   }
 
   /** Returns a test instance where only the program customization, not output, can be specified. */
