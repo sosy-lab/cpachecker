@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 
@@ -155,20 +156,30 @@ public class MemoryModelStructTest {
   // Memory Locations (primitives)
 
   private final MemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final MemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   // Memory Locations (structs)
 
   private final MemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_MEMBER_DECLARATION);
+          MPOROptions.defaultTestInstance(),
+          0,
+          Optional.empty(),
+          OUTER_STRUCT_DECLARATION,
+          OUTER_STRUCT_MEMBER_DECLARATION);
 
   private final MemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
+          MPOROptions.defaultTestInstance(),
+          0,
+          Optional.empty(),
+          OUTER_STRUCT_DECLARATION,
+          INNER_STRUCT_MEMBER_DECLARATION);
 
   @Test
   public void test_field_owner_field_member() {

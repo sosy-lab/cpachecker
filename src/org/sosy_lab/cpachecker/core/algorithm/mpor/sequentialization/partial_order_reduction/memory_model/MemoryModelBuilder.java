@@ -281,12 +281,16 @@ public class MemoryModelBuilder {
       if (PthreadUtil.callsPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
         ThreadEdge callContext = substituteEdge.getThreadEdge();
         MPORThread thread = ThreadUtil.getThreadById(pThreads, callContext.threadId);
-        int startRoutineArgIndex = PthreadFunctionType.PTHREAD_CREATE.getStartRoutineArgIndex();
-        CExpression startRoutineArg = CFAUtils.getParameterAtIndex(original, startRoutineArgIndex);
+        CExpression startRoutineArg =
+            CFAUtils.getParameterAtIndex(
+                original, PthreadFunctionType.PTHREAD_CREATE.getStartRoutineArgIndex());
         MemoryLocation rhsMemoryLocation =
             extractMemoryLocation(
                 pOptions, thread, callContext, startRoutineArg, pInitialMemoryLocations);
         if (!rhsMemoryLocation.isEmpty()) {
+          // use the ID of the created thread for the parameter declaration
+          CIdExpression pthreadT = PthreadUtil.extractPthreadT(original);
+          MPORThread createdThread = ThreadUtil.getThreadByObject(pThreads, Optional.of(pthreadT));
           CFunctionDeclaration functionDeclaration =
               PthreadUtil.extractStartRoutineDeclaration(original);
           assert functionDeclaration.getParameters().size() == 1
@@ -294,7 +298,9 @@ public class MemoryModelBuilder {
           CParameterDeclaration parameterDeclaration =
               functionDeclaration.getParameters().getFirst();
           rAssignments.put(
-              MemoryLocation.of(Optional.of(callContext), parameterDeclaration), rhsMemoryLocation);
+              MemoryLocation.of(
+                  pOptions, createdThread.id, Optional.of(callContext), parameterDeclaration),
+              rhsMemoryLocation);
         }
       }
     }
@@ -346,7 +352,8 @@ public class MemoryModelBuilder {
               pOptions, pThread, pCallContext, arguments.get(i), pInitialMemoryLocations);
       if (!rhsMemoryLocation.isEmpty()) {
         rAssignments.put(
-            MemoryLocation.of(Optional.of(pCallContext), leftHandSide), rhsMemoryLocation);
+            MemoryLocation.of(pOptions, Optional.of(pCallContext), leftHandSide),
+            rhsMemoryLocation);
       }
     }
     return rAssignments.buildOrThrow();
@@ -415,7 +422,7 @@ public class MemoryModelBuilder {
         }
       }
     }
-    return MemoryLocation.of(pOptions, pThread, Optional.of(pCallContext), pDeclaration);
+    return MemoryLocation.of(pOptions, pThread.id, Optional.of(pCallContext), pDeclaration);
   }
 
   private static MemoryLocation getMemoryLocationByFieldReference(
@@ -439,11 +446,12 @@ public class MemoryModelBuilder {
     }
     if (pFieldOwner instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.isGlobal()) {
-        return MemoryLocation.of(Optional.of(pCallContext), pFieldOwner, pFieldMember);
+        return MemoryLocation.of(
+            pOptions, pThread.id, Optional.of(pCallContext), pFieldOwner, pFieldMember);
       }
     }
     return MemoryLocation.of(
-        pOptions, pThread, Optional.of(pCallContext), pFieldOwner, pFieldMember);
+        pOptions, pThread.id, Optional.of(pCallContext), pFieldOwner, pFieldMember);
   }
 
   // Pointer Parameter Assignments =================================================================

@@ -29,14 +29,14 @@ public class MemoryLocationUtil {
 
     if (pDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (!variableDeclaration.isGlobal()) {
-        return MemoryLocation.of(pOptions, pThread, pCallContext, pDeclaration);
+        return MemoryLocation.of(pOptions, pThread.id, pCallContext, pDeclaration);
       }
     }
     // treat all parameter declarations as local
     if (pDeclaration instanceof CParameterDeclaration) {
-      return MemoryLocation.of(pOptions, pThread, pCallContext, pDeclaration);
+      return MemoryLocation.of(pOptions, pThread.id, pCallContext, pDeclaration);
     }
-    return MemoryLocation.of(pCallContext, pDeclaration);
+    return MemoryLocation.of(pOptions, pCallContext, pDeclaration);
   }
 
   public static MemoryLocation buildMemoryLocationByDeclarationScope(
@@ -48,14 +48,14 @@ public class MemoryLocationUtil {
 
     if (pFieldOwner instanceof CVariableDeclaration variableDeclaration) {
       if (!variableDeclaration.isGlobal()) {
-        return MemoryLocation.of(pOptions, pThread, pCallContext, pFieldOwner, pFieldMember);
+        return MemoryLocation.of(pOptions, pThread.id, pCallContext, pFieldOwner, pFieldMember);
       }
     }
     // treat all parameter declarations as local
     if (pFieldOwner instanceof CParameterDeclaration) {
-      return MemoryLocation.of(pOptions, pThread, pCallContext, pFieldOwner, pFieldMember);
+      return MemoryLocation.of(pOptions, pThread.id, pCallContext, pFieldOwner, pFieldMember);
     }
-    return MemoryLocation.of(pCallContext, pFieldOwner, pFieldMember);
+    return MemoryLocation.of(pOptions, pThread.id, pCallContext, pFieldOwner, pFieldMember);
   }
 
   static boolean isExplicitGlobal(

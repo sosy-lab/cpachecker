@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class MemoryLocation {
@@ -56,52 +55,43 @@ public class MemoryLocation {
     callContext = pCallContext;
     isExplicitGlobal = MemoryLocationUtil.isExplicitGlobal(pDeclaration, pFieldMember);
     isParameter = MemoryLocationUtil.isParameter(pDeclaration, pFieldMember);
-    // check after assignment that the thread is present, if the memory location is local
-    checkArgument(
-        threadPrefix.isEmpty() || !isExplicitGlobal,
-        "if threadPrefix is not empty, the memory location must be local");
     declaration = pDeclaration;
     fieldMember = pFieldMember;
+    // checks after assignments
+    assert !isExplicitGlobal || !isParameter
+        : "explicit global memory locations cannot be parameters";
   }
 
   public static MemoryLocation of(
-      Optional<ThreadEdge> pCallContext, CSimpleDeclaration pDeclaration) {
+      MPOROptions pOptions, Optional<ThreadEdge> pCallContext, CSimpleDeclaration pDeclaration) {
 
+    if (pCallContext.isPresent()) {
+      int threadId = pCallContext.orElseThrow().threadId;
+      return MemoryLocation.of(pOptions, threadId, pCallContext, pDeclaration);
+    }
     return new MemoryLocation(
         SeqSyntax.EMPTY_STRING, pCallContext, Optional.of(pDeclaration), Optional.empty());
   }
 
-  public static MemoryLocation of(
+  static MemoryLocation of(
       MPOROptions pOptions,
-      MPORThread pThread,
+      int pThreadId,
       Optional<ThreadEdge> pCallContext,
       CSimpleDeclaration pDeclaration) {
 
-    String threadPrefix = SeqNameUtil.buildThreadPrefix(pOptions, pThread.id);
+    String threadPrefix = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId);
     return new MemoryLocation(
         threadPrefix, pCallContext, Optional.of(pDeclaration), Optional.empty());
   }
 
   public static MemoryLocation of(
-      Optional<ThreadEdge> pCallContext,
-      CSimpleDeclaration pFieldOwner,
-      CCompositeTypeMemberDeclaration pFieldMember) {
-
-    return new MemoryLocation(
-        SeqSyntax.EMPTY_STRING,
-        pCallContext,
-        Optional.empty(),
-        Optional.of(new AbstractMap.SimpleImmutableEntry<>(pFieldOwner, pFieldMember)));
-  }
-
-  public static MemoryLocation of(
       MPOROptions pOptions,
-      MPORThread pThread,
+      int pThreadId,
       Optional<ThreadEdge> pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
-    String threadPrefix = SeqNameUtil.buildThreadPrefix(pOptions, pThread.id);
+    String threadPrefix = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId);
     return new MemoryLocation(
         threadPrefix,
         pCallContext,
@@ -109,7 +99,7 @@ public class MemoryLocation {
         Optional.of(new AbstractMap.SimpleImmutableEntry<>(pFieldOwner, pFieldMember)));
   }
 
-  public static MemoryLocation empty() {
+  static MemoryLocation empty() {
     return new MemoryLocation(
         SeqSyntax.EMPTY_STRING, Optional.empty(), Optional.empty(), Optional.empty());
   }

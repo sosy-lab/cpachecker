@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 
@@ -70,10 +71,11 @@ public class MemoryModelStartRoutineArgTest {
   // Memory Locations (primitives)
 
   private final MemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION);
+      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
 
   private final MemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), START_ROUTINE_ARG_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(), Optional.empty(), START_ROUTINE_ARG_DECLARATION);
 
   @Test
   public void test_local_start_routine_arg_implicit_global() {

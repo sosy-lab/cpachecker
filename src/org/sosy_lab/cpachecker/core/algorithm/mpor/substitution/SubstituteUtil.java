@@ -157,14 +157,14 @@ public class SubstituteUtil {
 
     ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
-      MemoryLocation leftHandSide = MemoryLocation.of(Optional.empty(), entry.getKey());
+      MemoryLocation leftHandSide = MemoryLocation.of(pOptions, Optional.empty(), entry.getKey());
       MemoryLocation rightHandSide =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
               pOptions, pThread, pCallContext, entry.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     for (var cell : pTracker.getPointerFieldMemberAssignments().cellSet()) {
-      MemoryLocation leftHandSide = MemoryLocation.of(Optional.empty(), cell.getRowKey());
+      MemoryLocation leftHandSide = MemoryLocation.of(pOptions, Optional.empty(), cell.getRowKey());
       MemoryLocation rightHandSide =
           MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
               pOptions, pThread, pCallContext, cell.getColumnKey(), cell.getValue());

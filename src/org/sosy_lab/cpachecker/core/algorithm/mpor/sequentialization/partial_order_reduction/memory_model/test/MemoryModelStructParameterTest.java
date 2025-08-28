@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
@@ -267,43 +268,68 @@ public class MemoryModelStructParameterTest {
   // Memory Locations (structs)
 
   private final MemoryLocation OUTER_STRUCT_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), OUTER_STRUCT_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(), Optional.empty(), OUTER_STRUCT_DECLARATION);
 
   private final MemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_MEMBER_DECLARATION);
+          MPOROptions.defaultTestInstance(),
+          0,
+          Optional.empty(),
+          OUTER_STRUCT_DECLARATION,
+          OUTER_STRUCT_MEMBER_DECLARATION);
 
   private final MemoryLocation OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, OUTER_STRUCT_POINTER_MEMBER_DECLARATION);
+          MPOROptions.defaultTestInstance(),
+          0,
+          Optional.empty(),
+          OUTER_STRUCT_DECLARATION,
+          OUTER_STRUCT_POINTER_MEMBER_DECLARATION);
 
   private final MemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_MEMBER_DECLARATION);
+          MPOROptions.defaultTestInstance(),
+          0,
+          Optional.empty(),
+          OUTER_STRUCT_DECLARATION,
+          INNER_STRUCT_MEMBER_DECLARATION);
 
   private final MemoryLocation INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          Optional.empty(), OUTER_STRUCT_DECLARATION, INNER_STRUCT_POINTER_MEMBER_DECLARATION);
+          MPOROptions.defaultTestInstance(),
+          0,
+          Optional.empty(),
+          OUTER_STRUCT_DECLARATION,
+          INNER_STRUCT_POINTER_MEMBER_DECLARATION);
 
   // Memory Locations (primitives)
 
   private final MemoryLocation GLOBAL_G1_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_G1_DECLARATION);
+      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_G1_DECLARATION);
 
   private final MemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION);
+      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
 
   // Memory Locations (parameters)
 
   private final MemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
       MemoryLocation.of(
-          Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_POINTER_OUTER_STRUCT);
+          MPOROptions.defaultTestInstance(),
+          Optional.of(DUMMY_CALL_CONTEXT),
+          PARAMETER_DECLARATION_POINTER_OUTER_STRUCT);
 
   private final MemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_POINTER_P1);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(),
+          Optional.of(DUMMY_CALL_CONTEXT),
+          PARAMETER_DECLARATION_POINTER_P1);
 
   private final MemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.of(DUMMY_CALL_CONTEXT), PARAMETER_DECLARATION_POINTER_P2);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(),
+          Optional.of(DUMMY_CALL_CONTEXT),
+          PARAMETER_DECLARATION_POINTER_P2);
 
   @Test
   public void test_outer_struct_pointer_parameter_dereference() {

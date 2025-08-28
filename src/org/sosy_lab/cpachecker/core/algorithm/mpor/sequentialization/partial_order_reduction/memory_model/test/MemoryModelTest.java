@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
@@ -130,33 +131,40 @@ public class MemoryModelTest {
   // Memory Locations (primitives)
 
   private final MemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final MemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   private final MemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_POINTER_C_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
   private final MemoryLocation LOCAL_POINTER_D_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_POINTER_D_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_POINTER_D_DECLARATION);
 
   private final MemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
+      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
 
   private final MemoryLocation GLOBAL_Y_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), GLOBAL_Y_DECLARATION);
+      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_Y_DECLARATION);
 
   private final MemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      MemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
+      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
   @Test
   public void test_memory_location_equals() {
     // create new MemoryLocation with the same parameters
     MemoryLocation int_pointer_a_memory_location_alt =
-        MemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+        MemoryLocation.of(
+            MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
     // test that .equals returns true
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.equals(int_pointer_a_memory_location_alt)).isTrue();
+    // test that .equals returns false
+    assertThat(GLOBAL_X_MEMORY_LOCATION.equals(int_pointer_a_memory_location_alt)).isFalse();
   }
 
   @Test

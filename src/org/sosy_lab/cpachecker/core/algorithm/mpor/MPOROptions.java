@@ -182,6 +182,45 @@ public class MPOROptions {
     validatePc = pValidatePc;
   }
 
+  public static MPOROptions defaultTestInstance() {
+    return new MPOROptions(
+        true,
+        true,
+        BitVectorEncoding.NONE,
+        false,
+        false,
+        false,
+        false,
+        true,
+        MultiControlStatementEncoding.SWITCH_CASE,
+        MultiControlStatementEncoding.NONE,
+        false,
+        ClangFormatStyle.WEBKIT,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        0,
+        false,
+        NondeterminismSource.NUM_STATEMENTS,
+        false,
+        false,
+        false,
+        SeqWriter.DEFAULT_OUTPUT_PATH,
+        false,
+        true,
+        ReductionMode.NONE,
+        false,
+        false,
+        false,
+        true,
+        false);
+  }
+
   /** Returns a test instance where only the program customization, not output, can be specified. */
   public static MPOROptions testInstance(
       boolean pAllowPointerWrites,
