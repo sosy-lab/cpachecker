@@ -100,5 +100,15 @@ public class MemoryModelStartRoutineArgTest {
                 pointerParameterAssignments,
                 ImmutableSet.of()))
         .isTrue();
+    // start_routine_arg is not explicit or implicit global
+    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(
+            MemoryModelBuilder.isImplicitGlobal(
+                START_ROUTINE_ARG_MEMORY_LOCATION,
+                ImmutableSetMultimap.of(),
+                startRoutineArgAssignments,
+                pointerParameterAssignments,
+                ImmutableSet.of()))
+        .isFalse();
   }
 }

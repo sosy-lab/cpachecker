@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -54,8 +55,8 @@ public class MPORSubstitutionBuilder {
 
     // step 1: create global variable substitutes, their initializer cannot be local/param variables
     MPORThread mainThread = ThreadUtil.extractMainThread(pThreads);
-    ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubstitutes =
-        getGlobalVariableSubstitutes(
+    ImmutableMap<CVariableDeclaration, CIdExpression> globalVariableSubstitutes =
+        buildGlobalVariableSubstitutes(
             pOptions, mainThread, pGlobalVariableDeclarations, pBinaryExpressionBuilder, pLogger);
     ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes =
         getMainFunctionArgSubstitutes(pOptions, mainThread);
@@ -69,25 +70,26 @@ public class MPORSubstitutionBuilder {
     for (MPORThread thread : pThreads) {
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           parameterSubstitutes = getParameterSubstitutes(pOptions, thread);
-      ImmutableMap<CVariableDeclaration, LocalVariableDeclarationSubstitute> localVarSubstitutes =
-          buildVariableDeclarationSubstitutes(
-              pOptions,
-              thread,
-              globalVarSubstitutes,
-              parameterSubstitutes,
-              mainFunctionArgSubstitutes,
-              startRoutineArgSubstitutes,
-              thread.id,
-              thread.localVariables,
-              pBinaryExpressionBuilder,
-              pLogger);
+      ImmutableTable<Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+          localVariableSubstitutes =
+              buildVariableDeclarationSubstitutes(
+                  pOptions,
+                  thread,
+                  globalVariableSubstitutes,
+                  parameterSubstitutes,
+                  mainFunctionArgSubstitutes,
+                  startRoutineArgSubstitutes,
+                  thread.id,
+                  thread.localVariables,
+                  pBinaryExpressionBuilder,
+                  pLogger);
       rSubstitutions.add(
           new MPORSubstitution(
               false,
               pOptions,
               thread,
-              globalVarSubstitutes,
-              localVarSubstitutes,
+              globalVariableSubstitutes,
+              localVariableSubstitutes,
               parameterSubstitutes,
               mainFunctionArgSubstitutes,
               startRoutineArgSubstitutes,
@@ -97,7 +99,7 @@ public class MPORSubstitutionBuilder {
     return rSubstitutions.build();
   }
 
-  private static ImmutableMap<CVariableDeclaration, CIdExpression> getGlobalVariableSubstitutes(
+  private static ImmutableMap<CVariableDeclaration, CIdExpression> buildGlobalVariableSubstitutes(
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableSet<CVariableDeclaration> pGlobalVariableDeclarations,
@@ -118,7 +120,7 @@ public class MPORSubstitutionBuilder {
             pOptions,
             pThread,
             dummyGlobalSubstitutes,
-            ImmutableMap.of(),
+            ImmutableTable.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
@@ -149,12 +151,13 @@ public class MPORSubstitutionBuilder {
                     false,
                     false,
                     Optional.empty()));
-        CVariableDeclaration finalSubstitute =
+        CVariableDeclaration newSubstituteDeclaration =
             substituteVariableDeclaration(
                 (CVariableDeclaration) idExpression.getDeclaration(),
                 substituteInitializerExpression);
-        CIdExpression finalIdExpression = SeqExpressionBuilder.buildIdExpression(finalSubstitute);
-        rFinalSubstitutes.put(variableDeclaration, finalIdExpression);
+        CIdExpression newIdExpression =
+            SeqExpressionBuilder.buildIdExpression(newSubstituteDeclaration);
+        rFinalSubstitutes.put(variableDeclaration, newIdExpression);
       } else {
         rFinalSubstitutes.put(variableDeclaration, idExpression);
       }
@@ -306,7 +309,8 @@ public class MPORSubstitutionBuilder {
    * Creates substitutes for all variables in the program and maps them to their original. The
    * substitutes differ only in their name.
    */
-  private static ImmutableMap<CVariableDeclaration, LocalVariableDeclarationSubstitute>
+  private static ImmutableTable<
+          Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
       buildVariableDeclarationSubstitutes(
           MPOROptions pOptions,
           MPORThread pThread,
@@ -322,8 +326,9 @@ public class MPORSubstitutionBuilder {
           LogManager pLogger) {
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
-    ImmutableMap<CVariableDeclaration, LocalVariableDeclarationSubstitute> dummySubstitutes =
-        buildLocalVariableDummySubstitutes(pOptions, pThreadId, pLocalVariableDeclarations);
+    ImmutableTable<Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+        dummySubstitutes =
+            buildLocalVariableDummySubstitutes(pOptions, pThreadId, pLocalVariableDeclarations);
 
     // create dummy substitution
     MPORSubstitution dummySubstitution =
@@ -340,66 +345,59 @@ public class MPORSubstitutionBuilder {
             pLogger);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
-    ImmutableMap.Builder<CVariableDeclaration, LocalVariableDeclarationSubstitute>
-        rFinalSubstitutes = ImmutableMap.builder();
+    ImmutableTable.Builder<
+            Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+        rFinalSubstitutes = ImmutableTable.builder();
 
-    for (var dummySubstitute : dummySubstitutes.entrySet()) {
-      CVariableDeclaration variableDeclaration = dummySubstitute.getKey();
-      ImmutableMap.Builder<Optional<ThreadEdge>, CIdExpression> substitutes =
-          ImmutableMap.builder();
-      MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
-      for (var substitute : dummySubstitute.getValue().substitutes.entrySet()) {
-        CInitializer initializer = variableDeclaration.getInitializer();
-        // TODO handle CInitializerList
-        if (initializer instanceof CInitializerExpression initializerExpression) {
-          CIdExpression substituteExpression = substitute.getValue();
-          assert substituteExpression.getDeclaration() instanceof CVariableDeclaration
-              : "substitute expression declaration must be variable declaration";
-          CVariableDeclaration substituteDeclaration =
-              (CVariableDeclaration) substituteExpression.getDeclaration();
-
-          Optional<ThreadEdge> callContext =
-              ThreadUtil.getCallContextOrStartRoutineCall(substitute.getKey(), pThread);
-          CInitializerExpression initializerSubstitute =
-              substituteInitializerExpression(
-                  initializerExpression,
-                  dummySubstitution.substitute(
-                      initializerExpression.getExpression(),
-                      callContext,
-                      true,
-                      false,
-                      false,
-                      false,
-                      false,
-                      Optional.of(tracker)));
-          CVariableDeclaration finalSubstitute =
-              substituteVariableDeclaration(substituteDeclaration, initializerSubstitute);
-          substitutes.put(callContext, SeqExpressionBuilder.buildIdExpression(finalSubstitute));
-        } else {
-          substitutes.put(substitute);
-        }
+    for (var cell : dummySubstitutes.cellSet()) {
+      CVariableDeclaration variableDeclaration = cell.getColumnKey();
+      CInitializer initializer = variableDeclaration.getInitializer();
+      // TODO handle CInitializerList
+      if (initializer instanceof CInitializerExpression initializerExpression) {
+        LocalVariableDeclarationSubstitute substituteDeclaration = cell.getValue();
+        Optional<ThreadEdge> callContext = cell.getRowKey();
+        MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
+        CInitializerExpression initializerSubstitute =
+            substituteInitializerExpression(
+                initializerExpression,
+                dummySubstitution.substitute(
+                    initializerExpression.getExpression(),
+                    callContext,
+                    true,
+                    false,
+                    false,
+                    false,
+                    false,
+                    Optional.of(tracker)));
+        CVariableDeclaration newDeclarationSubstitute =
+            substituteVariableDeclaration(
+                substituteDeclaration.getSubstituteVariableDeclaration(), initializerSubstitute);
+        CIdExpression newIdExpression =
+            SeqExpressionBuilder.buildIdExpression(newDeclarationSubstitute);
+        LocalVariableDeclarationSubstitute newSubstituteDeclaration =
+            new LocalVariableDeclarationSubstitute(newIdExpression, Optional.of(tracker));
+        rFinalSubstitutes.put(callContext, variableDeclaration, newSubstituteDeclaration);
+      } else {
+        rFinalSubstitutes.put(cell);
       }
-      LocalVariableDeclarationSubstitute localSubstitute =
-          new LocalVariableDeclarationSubstitute(substitutes.buildOrThrow(), Optional.of(tracker));
-      rFinalSubstitutes.put(variableDeclaration, localSubstitute);
     }
-    return rFinalSubstitutes.buildOrThrow();
+    return rFinalSubstitutes.build();
   }
 
-  private static ImmutableMap<CVariableDeclaration, LocalVariableDeclarationSubstitute>
+  private static ImmutableTable<
+          Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
       buildLocalVariableDummySubstitutes(
           MPOROptions pOptions,
           int pThreadId,
           ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pVariableDeclarations) {
 
-    ImmutableMap.Builder<CVariableDeclaration, LocalVariableDeclarationSubstitute>
-        dummySubstitutes = ImmutableMap.builder();
+    ImmutableTable.Builder<
+            Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+        dummySubstitutes = ImmutableTable.builder();
     Set<CVariableDeclaration> visitedKeys = new HashSet<>();
     for (var entry : pVariableDeclarations.entries()) {
       CVariableDeclaration variableDeclaration = entry.getKey();
       if (visitedKeys.add(variableDeclaration)) {
-        ImmutableMap.Builder<Optional<ThreadEdge>, CIdExpression> substitutes =
-            ImmutableMap.builder();
         int call = 1;
         for (Optional<ThreadEdge> callContext : pVariableDeclarations.get(entry.getKey())) {
           CStorageClass storageClass = variableDeclaration.getCStorageClass();
@@ -410,15 +408,16 @@ public class MPORSubstitutionBuilder {
             String substituteName =
                 SeqNameUtil.buildLocalVariableName(
                     pOptions, variableDeclaration, pThreadId, call++, functionName);
-            CVariableDeclaration substitute =
+            CVariableDeclaration substituteDeclaration =
                 substituteVariableDeclaration(variableDeclaration, substituteName);
-            CIdExpression substituteExpression = SeqExpressionBuilder.buildIdExpression(substitute);
-            substitutes.put(callContext, substituteExpression);
+            CIdExpression substituteExpression =
+                SeqExpressionBuilder.buildIdExpression(substituteDeclaration);
+            dummySubstitutes.put(
+                callContext,
+                variableDeclaration,
+                new LocalVariableDeclarationSubstitute(substituteExpression, Optional.empty()));
           }
         }
-        LocalVariableDeclarationSubstitute substitute =
-            new LocalVariableDeclarationSubstitute(substitutes.buildOrThrow(), Optional.empty());
-        dummySubstitutes.put(variableDeclaration, substitute);
       }
     }
     return dummySubstitutes.buildOrThrow();

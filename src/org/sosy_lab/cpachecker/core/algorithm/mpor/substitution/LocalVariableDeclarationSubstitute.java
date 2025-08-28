@@ -8,29 +8,30 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 
 public class LocalVariableDeclarationSubstitute {
 
-  // TODO what if multiple declarations have no call context - duplicate key in map?
-  /** Not every local variable declaration has a calling context, hence {@link Optional}s. */
-  public final ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes;
+  public final CIdExpression expression;
 
   private final Optional<MPORSubstitutionTracker> tracker;
 
   public LocalVariableDeclarationSubstitute(
-      ImmutableMap<Optional<ThreadEdge>, CIdExpression> pSubstitutes,
-      Optional<MPORSubstitutionTracker> pTracker) {
+      CIdExpression pExpression, Optional<MPORSubstitutionTracker> pTracker) {
 
-    substitutes = pSubstitutes;
+    expression = pExpression;
     tracker = pTracker;
   }
 
   public boolean isTrackerPresent() {
     return tracker.isPresent();
+  }
+
+  public CVariableDeclaration getSubstituteVariableDeclaration() {
+    assert expression.getDeclaration() instanceof CVariableDeclaration;
+    return (CVariableDeclaration) expression.getDeclaration();
   }
 
   public MPORSubstitutionTracker getTracker() {

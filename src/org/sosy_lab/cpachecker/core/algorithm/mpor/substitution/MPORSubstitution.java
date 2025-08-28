@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableTable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -74,11 +75,12 @@ public class MPORSubstitution {
    * The map of global variable declarations to their substitutes. {@link Optional#empty()} if this
    * instance serves as a dummy.
    */
-  private final ImmutableMap<CVariableDeclaration, CIdExpression> globalSubstitutes;
+  private final ImmutableMap<CVariableDeclaration, CIdExpression> globalVariableSubstitutes;
 
-  /** The map of thread local variable declarations to their substitutes. */
-  private final ImmutableMap<CVariableDeclaration, LocalVariableDeclarationSubstitute>
-      localSubstitutes;
+  /** The map of call context-sensitive thread local variable declarations to their substitutes. */
+  private final ImmutableTable<
+          Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+      localVariableSubstitutes;
 
   /**
    * The map of parameter to variable declaration substitutes. The {@link ThreadEdge}s allow
@@ -100,8 +102,9 @@ public class MPORSubstitution {
       boolean pIsDummy,
       MPOROptions pOptions,
       MPORThread pThread,
-      ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
-      ImmutableMap<CVariableDeclaration, LocalVariableDeclarationSubstitute> pLocalSubstitutes,
+      ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalVariableSubstitutes,
+      ImmutableTable<Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+          pLocalVariableDeclarationSubstitutes,
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           pParameterSubstitutes,
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
@@ -113,8 +116,8 @@ public class MPORSubstitution {
     isDummy = pIsDummy;
     options = pOptions;
     thread = pThread;
-    globalSubstitutes = pGlobalSubstitutes;
-    localSubstitutes = pLocalSubstitutes;
+    globalVariableSubstitutes = pGlobalVariableSubstitutes;
+    localVariableSubstitutes = pLocalVariableDeclarationSubstitutes;
     parameterSubstitutes = pParameterSubstitutes;
     mainFunctionArgSubstitutes = pMainFunctionArgSubstitutes;
     startRoutineArgSubstitutes = pStartRoutineArgSubstitutes;
@@ -693,19 +696,17 @@ public class MPORSubstitution {
       Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
-      if (localSubstitutes.containsKey(variableDeclaration)) {
+      if (localVariableSubstitutes.contains(pCallContext, variableDeclaration)) {
         LocalVariableDeclarationSubstitute localSubstitute =
-            Objects.requireNonNull(localSubstitutes.get(variableDeclaration));
-        ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes =
-            Objects.requireNonNull(localSubstitute.substitutes);
+            Objects.requireNonNull(localVariableSubstitutes.get(pCallContext, variableDeclaration));
         trackContentFromLocalVariableDeclaration(pIsDeclaration, localSubstitute, pTracker);
-        return Objects.requireNonNull(substitutes.get(pCallContext));
+        return localSubstitute.expression;
       } else {
         checkArgument(
-            globalSubstitutes.containsKey(variableDeclaration),
+            globalVariableSubstitutes.containsKey(variableDeclaration),
             "no substitute found for %s",
             variableDeclaration.toASTString());
-        return Objects.requireNonNull(globalSubstitutes.get(variableDeclaration));
+        return Objects.requireNonNull(globalVariableSubstitutes.get(variableDeclaration));
       }
 
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
@@ -792,7 +793,7 @@ public class MPORSubstitution {
 
   public ImmutableList<CVariableDeclaration> getGlobalDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rGlobalDeclarations = ImmutableList.builder();
-    for (CIdExpression globalVariable : globalSubstitutes.values()) {
+    for (CIdExpression globalVariable : globalVariableSubstitutes.values()) {
       CVariableDeclaration variableDeclaration =
           castTo(globalVariable.getDeclaration(), CVariableDeclaration.class);
       rGlobalDeclarations.add(variableDeclaration);
@@ -802,12 +803,8 @@ public class MPORSubstitution {
 
   public ImmutableList<CVariableDeclaration> getLocalDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
-    for (LocalVariableDeclarationSubstitute localSubstitute : localSubstitutes.values()) {
-      for (CIdExpression idExpression : localSubstitute.substitutes.values()) {
-        CVariableDeclaration variableDeclaration =
-            castTo(idExpression.getDeclaration(), CVariableDeclaration.class);
-        rLocalDeclarations.add(variableDeclaration);
-      }
+    for (LocalVariableDeclarationSubstitute localSubstitute : localVariableSubstitutes.values()) {
+      rLocalDeclarations.add(localSubstitute.getSubstituteVariableDeclaration());
     }
     return rLocalDeclarations.build();
   }
