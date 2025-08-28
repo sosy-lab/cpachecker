@@ -369,170 +369,172 @@ public class MPORSubstitution {
       boolean pIsUnaryAmper,
       Optional<MPORSubstitutionTracker> pTracker) {
 
-    // shortcut for optimization: never substitute pure int or strings
-    if (pExpression instanceof CIntegerLiteralExpression) {
-      return pExpression;
-    } else if (pExpression instanceof CStringLiteralExpression) {
-      return pExpression;
-    }
-
     FileLocation fileLocation = pExpression.getFileLocation();
     CType type = pExpression.getExpressionType();
 
-    // TODO replace with return switch
-    if (pExpression instanceof CIdExpression idExpression) {
-      CSimpleDeclaration declaration = idExpression.getDeclaration();
-      if (isSubstitutable(declaration)) {
-        trackDeclarationAccess(
-            idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
-        return getVariableSubstitute(
-            idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
+    switch (pExpression) {
+      // shortcut for optimization: never substitute pure int or strings
+      case CIntegerLiteralExpression ignored -> {
+        return pExpression;
       }
-      // when accessing function pointers e.g. &func. this is also possible without the unary amper
-      // operator '&', but the example tasks used only this expression, so we restrict it.
-      if (pIsUnaryAmper) {
-        if (declaration instanceof CFunctionDeclaration functionDeclaration) {
-          if (pTracker.isPresent()) {
-            pTracker.orElseThrow().addAccessedFunctionPointer(functionDeclaration);
+      case CStringLiteralExpression ignored -> {
+        return pExpression;
+      }
+      case CIdExpression idExpression -> {
+        CSimpleDeclaration declaration = idExpression.getDeclaration();
+        if (isSubstitutable(declaration)) {
+          trackDeclarationAccess(
+              idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
+          return getVariableSubstitute(
+              idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
+        }
+        // when accessing function pointers e.g. &func. this is also possible without the unary
+        // amper
+        // operator '&', but the example tasks used only this expression, so we restrict it.
+        if (pIsUnaryAmper) {
+          if (declaration instanceof CFunctionDeclaration functionDeclaration) {
+            if (pTracker.isPresent()) {
+              pTracker.orElseThrow().addAccessedFunctionPointer(functionDeclaration);
+            }
           }
         }
       }
-
-    } else if (pExpression instanceof CBinaryExpression binary) {
-      // recursively substitute operands of binary expressions
-      CExpression op1 =
-          substitute(
-              binary.getOperand1(),
-              pCallContext,
-              pIsDeclaration,
-              // binary expressions are never LHS in assignments -> no write
-              false,
-              false,
-              false,
-              pIsUnaryAmper,
-              pTracker);
-      CExpression op2 =
-          substitute(
-              binary.getOperand2(),
-              pCallContext,
-              pIsDeclaration,
-              // binary expressions are never LHS in assignments -> no write
-              false,
-              false,
-              false,
-              pIsUnaryAmper,
-              pTracker);
-      // only create a new expression if any operand was substituted (compare references)
-      if (op1 != binary.getOperand1() || op2 != binary.getOperand2()) {
-        try {
-          return binaryExpressionBuilder.buildBinaryExpression(op1, op2, binary.getOperator());
-        } catch (UnrecognizedCodeException e) {
-          // "convert" exception -> no UnrecognizedCodeException in signature
-          throw new RuntimeException(e);
+      case CBinaryExpression binary -> {
+        // recursively substitute operands of binary expressions
+        CExpression op1 =
+            substitute(
+                binary.getOperand1(),
+                pCallContext,
+                pIsDeclaration,
+                // binary expressions are never LHS in assignments -> no write
+                false,
+                false,
+                false,
+                pIsUnaryAmper,
+                pTracker);
+        CExpression op2 =
+            substitute(
+                binary.getOperand2(),
+                pCallContext,
+                pIsDeclaration,
+                // binary expressions are never LHS in assignments -> no write
+                false,
+                false,
+                false,
+                pIsUnaryAmper,
+                pTracker);
+        // only create a new expression if any operand was substituted (compare references)
+        if (op1 != binary.getOperand1() || op2 != binary.getOperand2()) {
+          try {
+            return binaryExpressionBuilder.buildBinaryExpression(op1, op2, binary.getOperator());
+          } catch (UnrecognizedCodeException e) {
+            // "convert" exception -> no UnrecognizedCodeException in signature
+            throw new RuntimeException(e);
+          }
         }
       }
-
-    } else if (pExpression instanceof CArraySubscriptExpression arraySubscript) {
-      CExpression arrayExpression = arraySubscript.getArrayExpression();
-      CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
-      CExpression arraySubstitute =
-          substitute(
-              arrayExpression,
-              pCallContext,
-              pIsDeclaration,
-              pIsWrite,
-              false,
-              false,
-              pIsUnaryAmper,
-              pTracker);
-      // the subscript is not a LHS in an assignment -> no write
-      CExpression subscriptSubstitute =
-          substitute(
-              subscriptExpression,
-              pCallContext,
-              pIsDeclaration,
-              false,
-              false,
-              false,
-              pIsUnaryAmper,
-              pTracker);
-      // only create a new expression if any expr was substituted (compare references)
-      if (arraySubstitute != arrayExpression || subscriptSubstitute != subscriptExpression) {
-        return new CArraySubscriptExpression(
-            fileLocation, type, arraySubstitute, subscriptSubstitute);
+      case CArraySubscriptExpression arraySubscript -> {
+        CExpression arrayExpression = arraySubscript.getArrayExpression();
+        CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
+        CExpression arraySubstitute =
+            substitute(
+                arrayExpression,
+                pCallContext,
+                pIsDeclaration,
+                pIsWrite,
+                false,
+                false,
+                pIsUnaryAmper,
+                pTracker);
+        // the subscript is not a LHS in an assignment -> no write
+        CExpression subscriptSubstitute =
+            substitute(
+                subscriptExpression,
+                pCallContext,
+                pIsDeclaration,
+                false,
+                false,
+                false,
+                pIsUnaryAmper,
+                pTracker);
+        // only create a new expression if any expr was substituted (compare references)
+        if (arraySubstitute != arrayExpression || subscriptSubstitute != subscriptExpression) {
+          return new CArraySubscriptExpression(
+              fileLocation, type, arraySubstitute, subscriptSubstitute);
+        }
       }
-
-    } else if (pExpression instanceof CFieldReference fieldReference) {
-      trackFieldReference(fieldReference, pIsWrite, pTracker);
-      CExpression fieldOwnerSubstitute =
-          substitute(
-              fieldReference.getFieldOwner(),
-              pCallContext,
-              pIsDeclaration,
-              pIsWrite,
-              // field->member <==> (*field).member, i.e. pIsPointerDereference may be false here,
-              // but the field reference may actually be a pointer dereference
-              fieldReference.isPointerDereference(),
-              true,
-              pIsUnaryAmper,
-              pTracker);
-      // only create a new expression if any expr was substituted (compare references)
-      if (fieldOwnerSubstitute != fieldReference.getFieldOwner()) {
-        return new CFieldReference(
-            fileLocation,
-            fieldReference.getExpressionType(),
-            fieldReference.getFieldName(),
-            fieldOwnerSubstitute,
-            fieldReference.isPointerDereference());
+      case CFieldReference fieldReference -> {
+        trackFieldReference(fieldReference, pIsWrite, pTracker);
+        CExpression fieldOwnerSubstitute =
+            substitute(
+                fieldReference.getFieldOwner(),
+                pCallContext,
+                pIsDeclaration,
+                pIsWrite,
+                // field->member <==> (*field).member, i.e. pIsPointerDereference may be false here,
+                // but the field reference may actually be a pointer dereference
+                fieldReference.isPointerDereference(),
+                true,
+                pIsUnaryAmper,
+                pTracker);
+        // only create a new expression if any expr was substituted (compare references)
+        if (fieldOwnerSubstitute != fieldReference.getFieldOwner()) {
+          return new CFieldReference(
+              fileLocation,
+              fieldReference.getExpressionType(),
+              fieldReference.getFieldName(),
+              fieldOwnerSubstitute,
+              fieldReference.isPointerDereference());
+        }
       }
-
-    } else if (pExpression instanceof CUnaryExpression unary) {
-      return new CUnaryExpression(
-          unary.getFileLocation(),
-          unary.getExpressionType(),
-          substitute(
-              unary.getOperand(),
-              pCallContext,
-              pIsDeclaration,
-              // unary expressions such as '&var' are never LHS in assignments -> no write
-              false,
-              false,
-              false,
-              unary.getOperator().equals(UnaryOperator.AMPER),
-              pTracker),
-          unary.getOperator());
-
-    } else if (pExpression instanceof CPointerExpression pointer) {
-      trackPointerDereferenceByPointerExpression(pointer, pIsWrite, pTracker);
-      return new CPointerExpression(
-          pointer.getFileLocation(),
-          pointer.getExpressionType(),
-          substitute(
-              pointer.getOperand(),
-              pCallContext,
-              pIsDeclaration,
-              pIsWrite,
-              true,
-              false,
-              pIsUnaryAmper,
-              pTracker));
-
-    } else if (pExpression instanceof CCastExpression cast) {
-      return new CCastExpression(
-          cast.getFileLocation(),
-          cast.getCastType(),
-          substitute(
-              cast.getOperand(),
-              pCallContext,
-              pIsDeclaration,
-              // cast expressions are never LHS -> no write
-              pIsWrite,
-              pIsPointerDereference,
-              false,
-              pIsUnaryAmper,
-              pTracker));
+      case CUnaryExpression unary -> {
+        return new CUnaryExpression(
+            unary.getFileLocation(),
+            unary.getExpressionType(),
+            substitute(
+                unary.getOperand(),
+                pCallContext,
+                pIsDeclaration,
+                // unary expressions such as '&var' are never LHS in assignments -> no write
+                false,
+                false,
+                false,
+                unary.getOperator().equals(UnaryOperator.AMPER),
+                pTracker),
+            unary.getOperator());
+      }
+      case CPointerExpression pointer -> {
+        trackPointerDereferenceByPointerExpression(pointer, pIsWrite, pTracker);
+        return new CPointerExpression(
+            pointer.getFileLocation(),
+            pointer.getExpressionType(),
+            substitute(
+                pointer.getOperand(),
+                pCallContext,
+                pIsDeclaration,
+                pIsWrite,
+                true,
+                false,
+                pIsUnaryAmper,
+                pTracker));
+      }
+      case CCastExpression cast -> {
+        return new CCastExpression(
+            cast.getFileLocation(),
+            cast.getCastType(),
+            substitute(
+                cast.getOperand(),
+                pCallContext,
+                pIsDeclaration,
+                // cast expressions are never LHS -> no write
+                pIsWrite,
+                pIsPointerDereference,
+                false,
+                pIsUnaryAmper,
+                pTracker));
+      }
+      default -> {}
     }
-
     return pExpression;
   }
 
@@ -545,77 +547,88 @@ public class MPORSubstitution {
     FileLocation fileLocation = pStatement.getFileLocation();
 
     // e.g. n = fib(42); or arr[n] = fib(42);
-    if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
-      CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
-      CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
-      // TODO need CFieldReference, CPointerExpression, ... here too
-      if (leftHandSide instanceof CIdExpression idExpression) {
-        CExpression substitute =
-            substitute(
-                idExpression, pCallContext, pIsDeclaration, false, false, false, false, pTracker);
-        if (substitute instanceof CIdExpression idExpressionSubstitute) {
-          return new CFunctionCallAssignmentStatement(
-              fileLocation,
-              idExpressionSubstitute,
-              substitute(rightHandSide, pIsDeclaration, pCallContext, pTracker));
+    switch (pStatement) {
+      case CFunctionCallAssignmentStatement functionCallAssignment -> {
+        CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
+        CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
+        // TODO need CFieldReference, CPointerExpression, ... here too
+        if (leftHandSide instanceof CIdExpression idExpression) {
+          CExpression substitute =
+              substitute(
+                  idExpression, pCallContext, pIsDeclaration, false, false, false, false, pTracker);
+          if (substitute instanceof CIdExpression idExpressionSubstitute) {
+            return new CFunctionCallAssignmentStatement(
+                fileLocation,
+                idExpressionSubstitute,
+                substitute(rightHandSide, pIsDeclaration, pCallContext, pTracker));
+          }
+        } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
+          CExpression substitute =
+              substitute(
+                  arraySubscriptExpression,
+                  pCallContext,
+                  pIsDeclaration,
+                  false,
+                  false,
+                  false,
+                  false,
+                  pTracker);
+          if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
+            return new CFunctionCallAssignmentStatement(
+                fileLocation,
+                arraySubscriptExpressionSubstitute,
+                substitute(rightHandSide, pIsDeclaration, pCallContext, pTracker));
+          }
         }
-      } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
+
+        // e.g. fib(42);
+      }
+      case CFunctionCallStatement functionCall -> {
+        return new CFunctionCallStatement(
+            functionCall.getFileLocation(),
+            substitute(
+                functionCall.getFunctionCallExpression(), pIsDeclaration, pCallContext, pTracker));
+      }
+
+      // e.g. int x = 42;
+      case CExpressionAssignmentStatement assignment -> {
+        trackPointerAssignment(assignment, pTracker);
+        CLeftHandSide leftHandSide = assignment.getLeftHandSide();
+        CExpression rightHandSide = assignment.getRightHandSide();
         CExpression substitute =
             substitute(
-                arraySubscriptExpression,
+                leftHandSide, pCallContext, pIsDeclaration, true, false, false, false, pTracker);
+        if (substitute instanceof CLeftHandSide leftHandSideSubstitute) {
+          return new CExpressionAssignmentStatement(
+              fileLocation,
+              leftHandSideSubstitute,
+              // for the RHS, it's not a left hand side of an assignment
+              substitute(
+                  rightHandSide,
+                  pCallContext,
+                  pIsDeclaration,
+                  false,
+                  false,
+                  false,
+                  false,
+                  pTracker));
+        }
+      }
+      case CExpressionStatement expression -> {
+        return new CExpressionStatement(
+            fileLocation,
+            substitute(
+                expression.getExpression(),
                 pCallContext,
                 pIsDeclaration,
                 false,
                 false,
                 false,
                 false,
-                pTracker);
-        if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
-          return new CFunctionCallAssignmentStatement(
-              fileLocation,
-              arraySubscriptExpressionSubstitute,
-              substitute(rightHandSide, pIsDeclaration, pCallContext, pTracker));
-        }
+                pTracker));
       }
-
-      // e.g. fib(42);
-    } else if (pStatement instanceof CFunctionCallStatement functionCall) {
-      return new CFunctionCallStatement(
-          functionCall.getFileLocation(),
-          substitute(
-              functionCall.getFunctionCallExpression(), pIsDeclaration, pCallContext, pTracker));
-
-      // e.g. int x = 42;
-    } else if (pStatement instanceof CExpressionAssignmentStatement assignment) {
-      trackPointerAssignment(assignment, pTracker);
-      CLeftHandSide leftHandSide = assignment.getLeftHandSide();
-      CExpression rightHandSide = assignment.getRightHandSide();
-      CExpression substitute =
-          substitute(
-              leftHandSide, pCallContext, pIsDeclaration, true, false, false, false, pTracker);
-      if (substitute instanceof CLeftHandSide leftHandSideSubstitute) {
-        return new CExpressionAssignmentStatement(
-            fileLocation,
-            leftHandSideSubstitute,
-            // for the RHS, it's not a left hand side of an assignment
-            substitute(
-                rightHandSide, pCallContext, pIsDeclaration, false, false, false, false, pTracker));
-      }
-
-    } else if (pStatement instanceof CExpressionStatement expression) {
-      return new CExpressionStatement(
-          fileLocation,
-          substitute(
-              expression.getExpression(),
-              pCallContext,
-              pIsDeclaration,
-              false,
-              false,
-              false,
-              false,
-              pTracker));
+      default -> {}
     }
-
     return pStatement;
   }
 
