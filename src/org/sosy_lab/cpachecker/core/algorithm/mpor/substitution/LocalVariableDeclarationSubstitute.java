@@ -9,14 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class LocalVariableDeclarationSubstitute {
@@ -25,37 +19,22 @@ public class LocalVariableDeclarationSubstitute {
   /** Not every local variable declaration has a calling context, hence {@link Optional}s. */
   public final ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes;
 
-  /** The set of global variables used to initialize this local variable. */
-  public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
-
-  public final ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-      accessedFieldMembers;
-
-  /** The map of pointer assignments in this local variable declaration. */
-  public final ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pointerAssignments;
-
-  public final ImmutableTable<
-          CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      pointerFieldMemberAssignments;
-
-  /** The set of pointer dereferences used in this local variable declaration. */
-  public final ImmutableSet<CSimpleDeclaration> pointerDereferences;
+  private final Optional<MPORSubstitutionTracker> tracker;
 
   public LocalVariableDeclarationSubstitute(
       ImmutableMap<Optional<ThreadEdge>, CIdExpression> pSubstitutes,
-      ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
-      ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
-          pAccessedFieldMembers,
-      ImmutableMap<CVariableDeclaration, CSimpleDeclaration> pPointerAssignments,
-      ImmutableTable<CVariableDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-          pPointerFieldMemberAssignments,
-      ImmutableSet<CSimpleDeclaration> pPointerDereferences) {
+      Optional<MPORSubstitutionTracker> pTracker) {
 
     substitutes = pSubstitutes;
-    accessedGlobalVariables = pAccessedGlobalVariables;
-    accessedFieldMembers = pAccessedFieldMembers;
-    pointerAssignments = pPointerAssignments;
-    pointerFieldMemberAssignments = pPointerFieldMemberAssignments;
-    pointerDereferences = pPointerDereferences;
+    tracker = pTracker;
+  }
+
+  public boolean isTrackerPresent() {
+    return tracker.isPresent();
+  }
+
+  public MPORSubstitutionTracker getTracker() {
+    assert tracker.isPresent() : "cannot get tracker, tracker is not present";
+    return tracker.orElseThrow();
   }
 }

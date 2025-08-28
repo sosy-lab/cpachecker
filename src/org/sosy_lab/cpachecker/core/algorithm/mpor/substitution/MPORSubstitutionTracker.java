@@ -90,14 +90,14 @@ public class MPORSubstitutionTracker {
    * are not unique to the instance of a struct, forcing us to use the {@link CSimpleDeclaration} of
    * the owner too. Contains both reads and writes.
    */
-  private final SetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
+  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       accessedFieldMembers;
 
   /**
    * Maps written field members to the declaration of their owner, e.g. of the form {@code
    * field->member = 42;}.
    */
-  private final SetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
+  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       writtenFieldMembers;
 
   // FUNCTION POINTERS =============================================================================
@@ -178,14 +178,13 @@ public class MPORSubstitutionTracker {
   }
 
   public void addAccessedFieldMember(
-      CVariableDeclaration pOwnerDeclaration,
-      CCompositeTypeMemberDeclaration pAccessedFieldMember) {
+      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pAccessedFieldMember) {
 
     accessedFieldMembers.put(pOwnerDeclaration, pAccessedFieldMember);
   }
 
   public void addWrittenFieldMember(
-      CVariableDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pWrittenFieldMember) {
+      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pWrittenFieldMember) {
 
     writtenFieldMembers.put(pOwnerDeclaration, pWrittenFieldMember);
   }
@@ -276,7 +275,7 @@ public class MPORSubstitutionTracker {
 
   // field members
 
-  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       getFieldMembersByAccessType(MemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
@@ -287,13 +286,13 @@ public class MPORSubstitutionTracker {
     };
   }
 
-  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       getAccessedFieldMembers() {
 
     return ImmutableSetMultimap.copyOf(accessedFieldMembers);
   }
 
-  public ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration>
+  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       getWrittenFieldMembers() {
 
     return ImmutableSetMultimap.copyOf(writtenFieldMembers);

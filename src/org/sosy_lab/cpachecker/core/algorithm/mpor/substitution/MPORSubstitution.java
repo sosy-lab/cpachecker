@@ -159,9 +159,9 @@ public class MPORSubstitution {
     }
   }
 
-  private void trackGlobalVariableAccessedInLocalVariableDeclaration(
+  private void trackLocalVariableDeclaration(
       boolean pIsDeclaration,
-      LocalVariableDeclarationSubstitute pLocalSubstitute,
+      LocalVariableDeclarationSubstitute pLocalVariableDeclarationSubstitute,
       Optional<MPORSubstitutionTracker> pTracker) {
 
     if (pTracker.isEmpty()) {
@@ -170,8 +170,9 @@ public class MPORSubstitution {
     // only track the global variables when actually substituting the declaration. otherwise when
     // we use the local, non-pointer variable, the global variable is considered as accessed too
     if (pIsDeclaration) {
-      for (CVariableDeclaration variable : pLocalSubstitute.accessedGlobalVariables) {
-        pTracker.orElseThrow().addAccessedVariable(variable);
+      if (pLocalVariableDeclarationSubstitute.isTrackerPresent()) {
+        MPORSubstitutionTrackerUtil.copyContents(
+            pLocalVariableDeclarationSubstitute.getTracker(), pTracker.orElseThrow());
       }
     }
   }
@@ -342,14 +343,13 @@ public class MPORSubstitution {
 
     // composite type contains the composite type members, e.g. 'amount'
     if (pElaboratedType.getRealType() instanceof CCompositeType compositeType) {
-      if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-            if (pIsWrite) {
-              pTracker.addWrittenFieldMember(variableDeclaration, memberDeclaration);
-            }
-            pTracker.addAccessedFieldMember(variableDeclaration, memberDeclaration);
+      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
+          CSimpleDeclaration simpleDeclaration = pIdExpression.getDeclaration();
+          if (pIsWrite) {
+            pTracker.addWrittenFieldMember(simpleDeclaration, memberDeclaration);
           }
+          pTracker.addAccessedFieldMember(simpleDeclaration, memberDeclaration);
         }
       }
     }
@@ -688,8 +688,7 @@ public class MPORSubstitution {
             Objects.requireNonNull(localSubstitutes.get(variableDeclaration));
         ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes =
             Objects.requireNonNull(localSubstitute.substitutes);
-        trackGlobalVariableAccessedInLocalVariableDeclaration(
-            pIsDeclaration, localSubstitute, pTracker);
+        trackLocalVariableDeclaration(pIsDeclaration, localSubstitute, pTracker);
         return Objects.requireNonNull(substitutes.get(pCallContext));
       } else {
         checkArgument(

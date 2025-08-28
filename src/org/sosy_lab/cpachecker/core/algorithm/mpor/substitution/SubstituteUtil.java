@@ -132,9 +132,9 @@ public class SubstituteUtil {
               pOptions, pThread, pCallContext, variableDeclaration);
       rMemoryLocations.add(memoryLocation);
     }
-    ImmutableSetMultimap<CVariableDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
+    ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
         pTracker.getFieldMembersByAccessType(pAccessType);
-    for (CVariableDeclaration fieldOwner : fieldMembers.keySet()) {
+    for (CSimpleDeclaration fieldOwner : fieldMembers.keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
         MemoryLocation memoryLocation =
             MemoryLocationUtil.buildMemoryLocationByDeclarationScope(

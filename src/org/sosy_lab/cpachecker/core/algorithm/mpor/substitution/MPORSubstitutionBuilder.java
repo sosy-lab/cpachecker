@@ -14,8 +14,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -39,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -383,13 +380,7 @@ public class MPORSubstitutionBuilder {
         }
       }
       LocalVariableDeclarationSubstitute localSubstitute =
-          new LocalVariableDeclarationSubstitute(
-              substitutes.buildOrThrow(),
-              tracker.getAccessedVariables(),
-              tracker.getAccessedFieldMembers(),
-              tracker.getPointerAssignments(),
-              tracker.getPointerFieldMemberAssignments(),
-              tracker.getPointerDereferencesByAccessType(MemoryAccessType.ACCESS));
+          new LocalVariableDeclarationSubstitute(substitutes.buildOrThrow(), Optional.of(tracker));
       rFinalSubstitutes.put(variableDeclaration, localSubstitute);
     }
     return rFinalSubstitutes.buildOrThrow();
@@ -426,13 +417,7 @@ public class MPORSubstitutionBuilder {
           }
         }
         LocalVariableDeclarationSubstitute substitute =
-            new LocalVariableDeclarationSubstitute(
-                substitutes.buildOrThrow(),
-                ImmutableSet.of(),
-                ImmutableSetMultimap.of(),
-                ImmutableMap.of(),
-                ImmutableTable.of(),
-                ImmutableSet.of());
+            new LocalVariableDeclarationSubstitute(substitutes.buildOrThrow(), Optional.empty());
         dummySubstitutes.put(variableDeclaration, substitute);
       }
     }
