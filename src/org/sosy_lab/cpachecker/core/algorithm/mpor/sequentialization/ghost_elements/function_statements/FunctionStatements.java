@@ -8,29 +8,24 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class FunctionStatements {
 
-  // TODO use ImmutableListMultimap
-  public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
-      parameterAssignments;
+  public final ImmutableListMultimap<ThreadEdge, FunctionParameterAssignment> parameterAssignments;
 
   private final ImmutableMap<ThreadEdge, FunctionParameterAssignment> startRoutineArgAssignments;
 
-  // TODO use ImmutableSetMultiMap
-  public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
-      returnValueAssignments;
+  public final ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> returnValueAssignments;
 
   public final ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> startRoutineExitAssignments;
 
   public FunctionStatements(
-      ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>> pParameterAssignments,
+      ImmutableListMultimap<ThreadEdge, FunctionParameterAssignment> pParameterAssignments,
       ImmutableMap<ThreadEdge, FunctionParameterAssignment> pStartRoutineArgAssignments,
-      ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> pReturnValueAssignments,
+      ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> pReturnValueAssignments,
       ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> pStartRoutineExitAssignments) {
 
     parameterAssignments = pParameterAssignments;

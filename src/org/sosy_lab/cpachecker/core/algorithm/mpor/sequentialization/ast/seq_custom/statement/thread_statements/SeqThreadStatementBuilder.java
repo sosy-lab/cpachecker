@@ -264,7 +264,7 @@ public class SeqThreadStatementBuilder {
     if (pFunctionStatements.parameterAssignments.containsKey(pThreadEdge)) {
       // handle function with parameters
       ImmutableList<FunctionParameterAssignment> assignments =
-          Objects.requireNonNull(pFunctionStatements.parameterAssignments.get(pThreadEdge));
+          pFunctionStatements.parameterAssignments.get(pThreadEdge);
       assert !assignments.isEmpty() : "function has no parameters";
       if (MPORUtil.isAssumeAbortIfNotCall(pThreadEdge.cfaEdge)) {
         // add separate assume call - it triggers loop head assumption re-evaluation
@@ -286,19 +286,17 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      FunctionStatements pFunctionVariables) {
+      FunctionStatements pFunctionStatements) {
 
-    // TODO add support and test for pthread_join(id, &start_routine_return)
-    //  where start_routine_return is assigned the return value of the threads start routine
     // returning from non-start-routine function: assign return value to return vars
-    ImmutableSet<FunctionReturnValueAssignment> assignments =
-        Objects.requireNonNull(pFunctionVariables.returnValueAssignments.get(pThreadEdge));
-    if (assignments.isEmpty()) { // -> function does not return anything, i.e. return;
-      return new SeqBlankStatement(pPcLeftHandSide, pTargetPc);
-    } else {
-      FunctionReturnValueAssignment assignment = assignments.iterator().next();
+    if (pFunctionStatements.returnValueAssignments.containsKey(pThreadEdge)) {
+      FunctionReturnValueAssignment assignment =
+          Objects.requireNonNull(pFunctionStatements.returnValueAssignments.get(pThreadEdge));
       return new SeqReturnValueAssignmentStatement(
           assignment.statement, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+    } else {
+      // -> function does not return anything, i.e. return;
+      return new SeqBlankStatement(pPcLeftHandSide, pTargetPc);
     }
   }
 

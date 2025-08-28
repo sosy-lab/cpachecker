@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType.PTHREAD_MUTEX_LOCK;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
@@ -24,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -399,18 +399,16 @@ public class GhostElementUtil {
    * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution variables are declared in {@link
    * MPORSubstitution#parameterSubstitutes}.
    */
-  private static ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
+  private static ImmutableListMultimap<ThreadEdge, FunctionParameterAssignment>
       buildParameterAssignments(MPORSubstitution pSubstitution) {
 
-    ImmutableMap.Builder<ThreadEdge, ImmutableList<FunctionParameterAssignment>> rAssignments =
-        ImmutableMap.builder();
+    ImmutableListMultimap.Builder<ThreadEdge, FunctionParameterAssignment> rAssignments =
+        ImmutableListMultimap.builder();
 
     // for each function call edge (= calling context)
     for (ThreadEdge callContext : pSubstitution.parameterSubstitutes.rowKeySet()) {
       assert callContext.cfaEdge instanceof CFunctionCallEdge;
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) callContext.cfaEdge;
-
-      ImmutableList.Builder<FunctionParameterAssignment> assignments = ImmutableList.builder();
       List<CParameterDeclaration> parameterDeclarations =
           functionCallEdge.getSuccessor().getFunctionDefinition().getParameters();
 
@@ -435,11 +433,10 @@ public class GhostElementUtil {
                     false,
                     false,
                     Optional.empty()));
-        assignments.add(parameterAssignment);
+        rAssignments.put(callContext, parameterAssignment);
       }
-      rAssignments.put(callContext, assignments.build());
     }
-    return rAssignments.buildOrThrow();
+    return rAssignments.build();
   }
 
   private static ImmutableMap<ThreadEdge, FunctionParameterAssignment>
@@ -477,6 +474,8 @@ public class GhostElementUtil {
     return rAssignments.buildOrThrow();
   }
 
+  // return value assignments ======================================================================
+
   /**
    * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CReturnStatementEdge} to {@link
    * FunctionReturnValueAssignment}s where the CPAchecker_TMP vars are assigned the return value.
@@ -486,51 +485,61 @@ public class GhostElementUtil {
    * <p>Note that {@code main} functions and start_routines of threads oftentimes do not have
    * corresponding {@link CFunctionSummaryEdge}s.
    */
-  private static ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
+  private static ImmutableMap<ThreadEdge, FunctionReturnValueAssignment>
       buildReturnValueAssignments(
           MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableMap.Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
-        rReturnStatements = ImmutableMap.builder();
-    for (ThreadEdge threadEdgeA : pThread.cfa.threadEdges) {
-      if (pSubstituteEdges.containsKey(threadEdgeA)) {
-        SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubstituteEdges.get(threadEdgeA));
-
+    ImmutableMap.Builder<ThreadEdge, FunctionReturnValueAssignment> rReturnStatements =
+        ImmutableMap.builder();
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      if (pSubstituteEdges.containsKey(threadEdge)) {
+        SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
         if (substituteEdgeA.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
-          ImmutableSet.Builder<FunctionReturnValueAssignment> assigns = ImmutableSet.builder();
-          for (ThreadEdge threadEdgeB : pThread.cfa.threadEdges) {
-            if (pSubstituteEdges.containsKey(threadEdgeB)) {
-              SubstituteEdge substituteEdgeB =
-                  Objects.requireNonNull(pSubstituteEdges.get(threadEdgeB));
-
-              if (substituteEdgeB.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
-                // if the summary edge is of the form value = func(); (i.e. an assignment)
-                if (functionSummary.getExpression()
-                    instanceof CFunctionCallAssignmentStatement assignmentStatement) {
-                  AFunctionDeclaration functionDeclarationA =
-                      returnStatementEdge.getSuccessor().getFunction();
-                  AFunctionType functionTypeA = functionDeclarationA.getType();
-                  AFunctionType functionTypeB =
-                      functionSummary.getFunctionEntry().getFunction().getType();
-                  // TODO compare declarations here instead?
-                  if (functionTypeA.equals(functionTypeB)) {
-                    assert functionDeclarationA instanceof CFunctionDeclaration;
-                    FunctionReturnValueAssignment assign =
-                        new FunctionReturnValueAssignment(
-                            assignmentStatement.getLeftHandSide(),
-                            returnStatementEdge.getExpression().orElseThrow());
-                    assigns.add(assign);
-                  }
-                }
-              }
-            }
+          Optional<FunctionReturnValueAssignment> assignment =
+              tryBuildReturnValueAssignmentFromReturnStatementEdge(
+                  pThread, pSubstituteEdges, returnStatementEdge);
+          if (assignment.isPresent()) {
+            rReturnStatements.put(threadEdge, assignment.orElseThrow());
           }
-          rReturnStatements.put(threadEdgeA, assigns.build());
         }
       }
     }
-    return rReturnStatements.buildOrThrow();
+    return rReturnStatements.build();
   }
+
+  private static Optional<FunctionReturnValueAssignment>
+      tryBuildReturnValueAssignmentFromReturnStatementEdge(
+          MPORThread pThread,
+          ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+          CReturnStatementEdge pReturnStatementEdge) {
+
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      if (pSubstituteEdges.containsKey(threadEdge)) {
+        SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+        if (substituteEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
+          // if the summary edge is of the form value = func(); (i.e. an assignment)
+          if (functionSummary.getExpression()
+              instanceof CFunctionCallAssignmentStatement assignmentStatement) {
+            AFunctionDeclaration functionDeclarationA =
+                pReturnStatementEdge.getSuccessor().getFunction();
+            AFunctionType functionTypeA = functionDeclarationA.getType();
+            AFunctionType functionTypeB =
+                functionSummary.getFunctionEntry().getFunction().getType();
+            // TODO compare declarations here instead?
+            if (functionTypeA.equals(functionTypeB)) {
+              return Optional.of(
+                  new FunctionReturnValueAssignment(
+                      assignmentStatement.getLeftHandSide(),
+                      pReturnStatementEdge.getExpression().orElseThrow()));
+            }
+          }
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
+  // start_routine exit ============================================================================
 
   /**
    * Links {@link ThreadEdge}s that call {@code pthread_exit} to {@link
