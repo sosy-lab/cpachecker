@@ -379,7 +379,7 @@ class ASTTypeConverter {
         dd.isLongLong());
   }
 
-  CType convert(final IASTNamedTypeSpecifier d) {
+  CTypedefType convert(final IASTNamedTypeSpecifier d) {
     org.eclipse.cdt.core.dom.ast.IASTName astName = d.getName();
     String name = ASTConverter.convert(astName);
     org.eclipse.cdt.core.dom.ast.IBinding binding = astName.resolveBinding();
@@ -394,15 +394,7 @@ class ASTTypeConverter {
     if (type == null) {
       type = convert(iType);
     }
-
-    if (!(type instanceof CProblemType)) {
-      // Should have only typedefs here, and these do not have qualifiers themselves.
-      verify(type instanceof CTypedefType);
-      verify(type.getQualifiers().isEmpty());
-      type = type.withQualifiersSetTo(convertCTypeQualifiers(d));
-    }
-
-    return type;
+    return new CTypedefType(convertCTypeQualifiers(d), scope.getFileSpecificTypeName(name), type);
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
