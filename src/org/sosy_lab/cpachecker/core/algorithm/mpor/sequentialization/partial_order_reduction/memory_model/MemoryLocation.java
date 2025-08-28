@@ -37,7 +37,7 @@ public class MemoryLocation {
 
   private final boolean isParameter;
 
-  public final Optional<CSimpleDeclaration> variable;
+  public final Optional<CSimpleDeclaration> declaration;
 
   public final Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
       fieldMember;
@@ -45,22 +45,22 @@ public class MemoryLocation {
   private MemoryLocation(
       String pThreadPrefix,
       Optional<ThreadEdge> pCallContext,
-      Optional<CSimpleDeclaration> pVariable,
+      Optional<CSimpleDeclaration> pDeclaration,
       Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
           pFieldMember) {
 
     checkArgument(
-        pVariable.isEmpty() || pFieldMember.isEmpty(),
-        "either pVariable or pFieldMember must be empty");
+        pDeclaration.isEmpty() || pFieldMember.isEmpty(),
+        "either pDeclaration or pFieldMember must be empty");
     threadPrefix = pThreadPrefix;
     callContext = pCallContext;
-    isExplicitGlobal = MemoryLocationUtil.isExplicitGlobal(pVariable, pFieldMember);
-    isParameter = MemoryLocationUtil.isParameter(pVariable, pFieldMember);
+    isExplicitGlobal = MemoryLocationUtil.isExplicitGlobal(pDeclaration, pFieldMember);
+    isParameter = MemoryLocationUtil.isParameter(pDeclaration, pFieldMember);
     // check after assignment that the thread is present, if the memory location is local
     checkArgument(
         threadPrefix.isEmpty() || !isExplicitGlobal,
         "if threadPrefix is not empty, the memory location must be local");
-    variable = pVariable;
+    declaration = pDeclaration;
     fieldMember = pFieldMember;
   }
 
@@ -115,8 +115,8 @@ public class MemoryLocation {
   }
 
   public CSimpleDeclaration getSimpleDeclaration() {
-    if (variable.isPresent()) {
-      return variable.orElseThrow();
+    if (declaration.isPresent()) {
+      return declaration.orElseThrow();
     }
     if (fieldMember.isPresent()) {
       return fieldMember.orElseThrow().getKey();
@@ -126,8 +126,8 @@ public class MemoryLocation {
   }
 
   public String getName() {
-    if (variable.isPresent()) {
-      return threadPrefix + variable.orElseThrow().getName();
+    if (declaration.isPresent()) {
+      return threadPrefix + declaration.orElseThrow().getName();
     }
     Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
     return threadPrefix
@@ -137,7 +137,7 @@ public class MemoryLocation {
   }
 
   public boolean isEmpty() {
-    return variable.isEmpty() && fieldMember.isEmpty();
+    return declaration.isEmpty() && fieldMember.isEmpty();
   }
 
   public boolean isExplicitGlobal() {
@@ -156,7 +156,7 @@ public class MemoryLocation {
         (isParameter ? callContext : null),
         isExplicitGlobal,
         isParameter,
-        variable,
+        declaration,
         fieldMember);
   }
 
@@ -171,14 +171,14 @@ public class MemoryLocation {
         && (!isParameter || callContext.equals(other.callContext))
         && isExplicitGlobal == other.isExplicitGlobal
         && isParameter == other.isParameter
-        && variable.equals(other.variable)
+        && declaration.equals(other.declaration)
         && fieldMember.equals(other.fieldMember);
   }
 
   @Override
   public String toString() {
-    if (variable.isPresent()) {
-      return variable.orElseThrow().toASTString();
+    if (declaration.isPresent()) {
+      return declaration.orElseThrow().toASTString();
     }
     if (fieldMember.isPresent()) {
       Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();

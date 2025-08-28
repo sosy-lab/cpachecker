@@ -14,8 +14,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -71,7 +73,7 @@ public class PthreadUtil {
             + " CIdExpression");
   }
 
-  public static CFunctionType extractStartRoutine(CFAEdge pEdge) {
+  public static CFunctionType extractStartRoutineType(CFAEdge pEdge) {
     checkArgument(
         callsAnyPthreadFunctionWithStartRoutineParameter(pEdge),
         "pEdge must be call to a pthread method with a start_routine param");
@@ -79,6 +81,29 @@ public class PthreadUtil {
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
     return CFAUtils.getCFunctionTypeFromCExpression(
         CFAUtils.getParameterAtIndex(pEdge, functionType.getStartRoutineIndex()));
+  }
+
+  public static CFunctionDeclaration extractStartRoutineDeclaration(CFAEdge pEdge) {
+    checkArgument(
+        callsAnyPthreadFunctionWithStartRoutineParameter(pEdge),
+        "pEdge must be call to a pthread method with a start_routine param");
+
+    PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
+    CExpression startRoutineParameter =
+        CFAUtils.getParameterAtIndex(pEdge, functionType.getStartRoutineIndex());
+    if (startRoutineParameter instanceof CIdExpression idExpression) {
+      if (idExpression.getDeclaration() instanceof CFunctionDeclaration functionDeclaration) {
+        return functionDeclaration;
+      }
+    }
+    if (startRoutineParameter instanceof CUnaryExpression unaryExpression) {
+      if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
+        if (idExpression.getDeclaration() instanceof CFunctionDeclaration functionDeclaration) {
+          return functionDeclaration;
+        }
+      }
+    }
+    throw new IllegalArgumentException("could not extract start_routine declaration from pEdge");
   }
 
   public static CExpression extractStartRoutineArg(CFAEdge pEdge) {

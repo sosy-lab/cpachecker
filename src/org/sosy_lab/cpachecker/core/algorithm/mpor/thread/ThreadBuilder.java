@@ -91,7 +91,7 @@ public class ThreadBuilder {
         // extract the first parameter of pthread_create, i.e. the pthread_t value
         CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
         // extract the third parameter of pthread_create which points to the start_routine function
-        CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
+        CFunctionType startRoutine = PthreadUtil.extractStartRoutineType(cfaEdge);
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
         MPORThread newThread =

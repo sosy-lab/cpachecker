@@ -77,12 +77,12 @@ public class MemoryLocationUtil {
   }
 
   static boolean isParameter(
-      Optional<CSimpleDeclaration> pVariable,
+      Optional<CSimpleDeclaration> pDeclaration,
       Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
           pFieldMember) {
 
-    if (pVariable.isPresent()) {
-      if (pVariable.orElseThrow() instanceof CParameterDeclaration) {
+    if (pDeclaration.isPresent()) {
+      if (pDeclaration.orElseThrow() instanceof CParameterDeclaration) {
         return true;
       }
     }

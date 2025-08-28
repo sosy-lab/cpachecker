@@ -185,11 +185,7 @@ public class Sequentialization {
         SubstituteUtil.getInitialMemoryLocations(substituteEdges.values());
     Optional<MemoryModel> memoryModel =
         MemoryModelBuilder.tryBuildMemoryModel(
-            options,
-            threads,
-            initialMemoryLocations,
-            substituteEdges.values(),
-            ghostElements.getFunctionStatements());
+            options, threads, initialMemoryLocations, substituteEdges.values());
     Optional<BitVectorVariables> bitVectorVariables =
         GhostElementUtil.buildBitVectorVariables(options, threads, memoryModel);
 

@@ -141,7 +141,6 @@ public class SubstituteEdge {
   }
 
   public ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(MemoryAccessType pAccessType) {
-
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> accessedMemoryLocations;

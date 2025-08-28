@@ -272,7 +272,7 @@ public class MPORSubstitutionBuilder {
               ThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
           // pthread_t matches
           if (pthreadT.equals(createdThread.threadObject.orElseThrow())) {
-            CFunctionType startRoutineType = PthreadUtil.extractStartRoutine(cfaEdge);
+            CFunctionType startRoutineType = PthreadUtil.extractStartRoutineType(cfaEdge);
             CFunctionDeclaration startRoutineDeclaration =
                 (CFunctionDeclaration) createdThread.cfa.entryNode.getFunction();
             // start_routine matches
