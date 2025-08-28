@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_co
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -29,22 +27,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -246,10 +240,7 @@ public class LineOfCodeUtil {
 
   public static ImmutableList<LineOfCode> buildFunctionDefinitions(
       MPOROptions pOptions,
-      ImmutableList<MPORSubstitution> pSubstitutions,
-      Optional<MemoryModel> pMemoryModel,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostElements pGhostElements,
+      SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -264,24 +255,8 @@ public class LineOfCodeUtil {
     SeqAssumeFunction assume = new SeqAssumeFunction(pBinaryExpressionBuilder);
     rFunctionDefinitions.addAll(assume.buildDefinition());
     // create clauses in main method
-    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses =
-        SeqThreadStatementClauseBuilder.buildClauses(
-            pOptions,
-            pSubstitutions,
-            pSubstituteEdges,
-            pMemoryModel,
-            pGhostElements,
-            pBinaryExpressionBuilder,
-            pLogger);
     SeqMainFunction mainFunction =
-        new SeqMainFunction(
-            pOptions,
-            pSubstitutions,
-            clauses,
-            pGhostElements,
-            pMemoryModel,
-            pBinaryExpressionBuilder,
-            pLogger);
+        new SeqMainFunction(pOptions, pFields, pBinaryExpressionBuilder, pLogger);
     rFunctionDefinitions.addAll(mainFunction.buildDefinition());
     return rFunctionDefinitions.build();
   }

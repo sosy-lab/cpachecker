@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Objects;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -20,7 +18,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
@@ -32,15 +29,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * The Modular Partial Order Reduction (MPOR) algorithm produces a sequentialization of a concurrent
@@ -255,7 +246,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException {
     // just use the first input file name for naming purposes
-    Path firstInputFilePath = inputCfa.getFileNames().getFirst();
+    Path firstInputFilePath = cfa.getFileNames().getFirst();
     String inputFileName = firstInputFilePath.toString();
     String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
     Sequentialization sequentialization = buildSequentialization(inputFileName, outputFileName);
@@ -263,18 +254,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String formattedProgram =
         options.formatCode ? ClangFormatter.format(program, options.formatStyle, logger) : program;
     SeqWriter seqWriter =
-        new SeqWriter(shutdownNotifier, logger, outputFileName, inputCfa.getFileNames(), options);
+        new SeqWriter(shutdownNotifier, logger, outputFileName, cfa.getFileNames(), options);
     seqWriter.write(formattedProgram);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
-  public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName)
-      throws UnrecognizedCodeException {
-
+  public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName) {
     return new Sequentialization(
-        substitutions,
         options,
+        cfa,
         pInputFileName,
         pOutputFileName,
         binaryExpressionBuilder,
@@ -290,18 +279,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final ShutdownNotifier shutdownNotifier;
 
-  private final CFA inputCfa;
+  private final CFA cfa;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  /** The list of threads in the program, including the main thread and all pthreads. */
-  private final ImmutableList<MPORThread> threads;
-
-  /**
-   * The list of thread specific variable declaration substitutions. The substitution for the main
-   * thread (0) handles global variables.
-   */
-  private final ImmutableList<MPORSubstitution> substitutions;
 
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -363,20 +343,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     config = pConfiguration;
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
-    inputCfa = pInputCfa;
+    cfa = pInputCfa;
 
     options.handleOptionRejections(logger);
     options.handleOptionWarnings(logger);
-    InputRejection.handleRejections(logger, inputCfa);
+    InputRejection.handleRejections(logger, cfa);
 
-    binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
-
-    threads = ThreadBuilder.createThreads(options, inputCfa);
-    ImmutableSet<CVariableDeclaration> globalVariableDeclarations =
-        CFAUtils.getGlobalVariableDeclarations(inputCfa);
-    substitutions =
-        MPORSubstitutionBuilder.buildSubstitutions(
-            options, globalVariableDeclarations, threads, binaryExpressionBuilder, logger);
+    binaryExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
   }
 
   public static MPORAlgorithm testInstance(

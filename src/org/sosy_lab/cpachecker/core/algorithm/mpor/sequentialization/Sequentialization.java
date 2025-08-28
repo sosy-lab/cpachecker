@@ -9,36 +9,23 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.time.Year;
 import java.time.ZoneId;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModelBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdgeBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -105,7 +92,7 @@ public class Sequentialization {
 
   private final MPOROptions options;
 
-  private final ImmutableList<MPORSubstitution> substitutions;
+  private final CFA cfa;
 
   private final String inputFileName;
 
@@ -118,17 +105,16 @@ public class Sequentialization {
   private final LogManager logger;
 
   public Sequentialization(
-      ImmutableList<MPORSubstitution> pSubstitutions,
       MPOROptions pOptions,
+      CFA pCfa,
       String pInputFileName,
       String pOutputFileName,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
-      throws UnrecognizedCodeException {
+      LogManager pLogger) {
 
     options = pOptions;
-    substitutions = pSubstitutions;
+    cfa = pCfa;
     inputFileName = pInputFileName;
     outputFileName = pOutputFileName;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
@@ -156,48 +142,44 @@ public class Sequentialization {
     }
   }
 
+  private static SequentializationFields buildFields(
+      MPOROptions pOptions,
+      CFA pCfa,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
+      throws UnrecognizedCodeException {
+
+    return new SequentializationFields(pOptions, pCfa, pBinaryExpressionBuilder, pLogger);
+  }
+
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
   private ImmutableList<LineOfCode> initProgram() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
 
-    // first initialize some variables needed for the declarations and definitions
-    ImmutableList<MPORThread> threads = SubstituteUtil.extractThreads(substitutions);
-    MPORSubstitution mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
-    ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
-        SubstituteEdgeBuilder.substituteEdges(options, substitutions);
-    ImmutableSet<MemoryLocation> initialMemoryLocations =
-        SubstituteUtil.getInitialMemoryLocations(substituteEdges.values());
-    Optional<MemoryModel> memoryModel =
-        MemoryModelBuilder.tryBuildMemoryModel(
-            options, threads, initialMemoryLocations, substituteEdges.values());
-    GhostElements ghostElements =
-        GhostElementBuilder.buildGhostElements(
-            options, threads, substitutions, substituteEdges, memoryModel, binaryExpressionBuilder);
+    SequentializationFields fields = buildFields(options, cfa, binaryExpressionBuilder, logger);
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
-    rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
+    rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, fields.threads));
     rProgram.addAll(LineOfCodeUtil.buildBitVectorTypeDeclarations());
     // add input function declarations without definition when their function pointers are used
-    rProgram.addAll(LineOfCodeUtil.buildEmptyInputFunctionDeclarations(substituteEdges.values()));
+    rProgram.addAll(
+        LineOfCodeUtil.buildEmptyInputFunctionDeclarations(fields.substituteEdges.values()));
     // add struct and variable declarations
-    rProgram.addAll(LineOfCodeUtil.buildInputGlobalVariableDeclarations(options, mainSubstitution));
-    rProgram.addAll(LineOfCodeUtil.buildInputLocalVariableDeclarations(options, substitutions));
-    rProgram.addAll(LineOfCodeUtil.buildInputParameterDeclarations(options, substitutions));
-    rProgram.addAll(LineOfCodeUtil.buildMainFunctionArgDeclarations(options, mainSubstitution));
-    rProgram.addAll(LineOfCodeUtil.buildStartRoutineArgDeclarations(options, mainSubstitution));
-    rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, threads));
+    rProgram.addAll(
+        LineOfCodeUtil.buildInputGlobalVariableDeclarations(options, fields.mainSubstitution));
+    rProgram.addAll(
+        LineOfCodeUtil.buildInputLocalVariableDeclarations(options, fields.substitutions));
+    rProgram.addAll(LineOfCodeUtil.buildInputParameterDeclarations(options, fields.substitutions));
+    rProgram.addAll(
+        LineOfCodeUtil.buildMainFunctionArgDeclarations(options, fields.mainSubstitution));
+    rProgram.addAll(
+        LineOfCodeUtil.buildStartRoutineArgDeclarations(options, fields.mainSubstitution));
+    rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, fields.threads));
 
     // add custom function declarations and definitions
     rProgram.addAll(LineOfCodeUtil.buildFunctionDeclarations(options));
     rProgram.addAll(
-        LineOfCodeUtil.buildFunctionDefinitions(
-            options,
-            substitutions,
-            memoryModel,
-            substituteEdges,
-            ghostElements,
-            binaryExpressionBuilder,
-            logger));
+        LineOfCodeUtil.buildFunctionDefinitions(options, fields, binaryExpressionBuilder, logger));
 
     return rProgram.build();
   }

@@ -16,10 +16,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -41,23 +41,23 @@ public class SeqDeclarationBuilder {
   }
 
   public static ImmutableList<CVariableDeclaration> buildPcDeclarations(
-      MPOROptions pOptions, ProgramCounterVariables pPcVariables, int pNumThreads) {
+      MPOROptions pOptions, SequentializationFields pFields) {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
     if (pOptions.scalarPc) {
       // declare scalar int for each thread: pc0 = 0; pc1 = -1; ...
-      for (int i = 0; i < pNumThreads; i++) {
+      for (int i = 0; i < pFields.numThreads; i++) {
         rDeclarations.add(
             SeqDeclarationBuilder.buildVariableDeclaration(
                 true,
                 SeqSimpleType.UNSIGNED_INT,
-                pPcVariables.getPcLeftHandSide(i).toASTString(),
+                pFields.ghostElements.getPcVariables().getPcLeftHandSide(i).toASTString(),
                 SeqInitializer.getPcInitializer(i == 0)));
       }
     } else {
       // declare int array: pc[] = { 0, -1, ... };
       ImmutableList.Builder<CInitializer> initializers = ImmutableList.builder();
-      for (int i = 0; i < pNumThreads; i++) {
+      for (int i = 0; i < pFields.numThreads; i++) {
         initializers.add(SeqInitializer.getPcInitializer(i == 0));
       }
       CInitializerList initializerList =

@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -41,10 +42,7 @@ public class SeqBitVectorDeclarationBuilder {
    * on the threads first statement is done when a thread is marked as active / created.
    */
   public static ImmutableList<SeqBitVectorDeclaration> buildBitVectorDeclarationsByEncoding(
-      MPOROptions pOptions,
-      Optional<BitVectorVariables> pBitVectorVariables,
-      Optional<MemoryModel> pMemoryModel,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
+      MPOROptions pOptions, SequentializationFields pFields) {
 
     if (!pOptions.areBitVectorsEnabled()) {
       return ImmutableList.of();
@@ -53,10 +51,16 @@ public class SeqBitVectorDeclarationBuilder {
       case NONE -> ImmutableList.of();
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildDenseBitVectorDeclarationsByReduction(
-              pOptions, pBitVectorVariables.orElseThrow(), pMemoryModel.orElseThrow(), pClauses);
+              pOptions,
+              pFields.ghostElements.getBitVectorVariables().orElseThrow(),
+              pFields.memoryModel.orElseThrow(),
+              pFields.clauses);
       case SPARSE ->
           buildSparseBitVectorDeclarationsByReduction(
-              pOptions, pBitVectorVariables.orElseThrow(), pMemoryModel.orElseThrow(), pClauses);
+              pOptions,
+              pFields.ghostElements.getBitVectorVariables().orElseThrow(),
+              pFields.memoryModel.orElseThrow(),
+              pFields.clauses);
     };
   }
 
