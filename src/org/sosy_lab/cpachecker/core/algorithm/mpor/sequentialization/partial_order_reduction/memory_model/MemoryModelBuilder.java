@@ -174,7 +174,8 @@ public class MemoryModelBuilder {
     if (pMemoryLocation.isExplicitGlobal()) {
       return false;
     }
-    if (isStartRoutineArg(pMemoryLocation, pStartRoutineArgAssignments)) {
+    // e.g. (void*) arg = &local_var -> local_var can be accessed by both threads
+    if (pStartRoutineArgAssignments.containsValue(pMemoryLocation)) {
       return true;
     }
     if (isPointedTo(pMemoryLocation, pPointerAssignments, pPointerParameterAssignments)) {
@@ -219,20 +220,12 @@ public class MemoryModelBuilder {
     return false;
   }
 
-  private static boolean isStartRoutineArg(
-      MemoryLocation pMemoryLocation,
-      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments) {
-
-    return pStartRoutineArgAssignments.containsKey(pMemoryLocation)
-        || pStartRoutineArgAssignments.containsValue(pMemoryLocation);
-  }
-
   private static boolean isExplicitGlobalOrStartRoutineArg(
       MemoryLocation pMemoryLocation,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments) {
 
     return pMemoryLocation.isExplicitGlobal()
-        || isStartRoutineArg(pMemoryLocation, pStartRoutineArgAssignments);
+        || pStartRoutineArgAssignments.containsValue(pMemoryLocation);
   }
 
   /**
