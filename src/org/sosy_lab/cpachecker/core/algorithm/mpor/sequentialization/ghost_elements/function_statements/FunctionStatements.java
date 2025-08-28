@@ -15,11 +15,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class FunctionStatements {
 
+  // TODO use ImmutableListMultimap
   public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       parameterAssignments;
 
   private final ImmutableMap<ThreadEdge, FunctionParameterAssignment> startRoutineArgAssignments;
 
+  // TODO use ImmutableSetMultiMap
   public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       returnValueAssignments;
 

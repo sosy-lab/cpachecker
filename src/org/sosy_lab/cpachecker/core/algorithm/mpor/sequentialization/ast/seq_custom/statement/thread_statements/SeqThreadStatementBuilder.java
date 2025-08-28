@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SeqThreadStatementBuilder {
 
@@ -169,7 +170,7 @@ public class SeqThreadStatementBuilder {
             declarationEdge, pSubstituteEdge, pcLeftHandSide, targetPc);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge) {
-        return handleFunctionCallEdge(
+        return buildFunctionCallStatement(
             pThread,
             pThreadEdge,
             pSubstituteEdge,
@@ -245,7 +246,7 @@ public class SeqThreadStatementBuilder {
         pTargetPc);
   }
 
-  private static SeqThreadStatement handleFunctionCallEdge(
+  private static SeqThreadStatement buildFunctionCallStatement(
       MPORThread pThread,
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
@@ -260,19 +261,24 @@ public class SeqThreadStatementBuilder {
       return new SeqReachErrorStatement(
           pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
     }
-    assert pFunctionStatements.parameterAssignments.containsKey(pThreadEdge);
-    ImmutableList<FunctionParameterAssignment> assignments =
-        Objects.requireNonNull(pFunctionStatements.parameterAssignments.get(pThreadEdge));
-    if (MPORUtil.isAssumeAbortIfNotCall(pThreadEdge.cfaEdge)) {
-      // add separate assume call - it triggers loop head assumption re-evaluation
-      return new SeqAssumeAbortIfNotStatement(
+    if (pFunctionStatements.parameterAssignments.containsKey(pThreadEdge)) {
+      // handle function with parameters
+      ImmutableList<FunctionParameterAssignment> assignments =
+          Objects.requireNonNull(pFunctionStatements.parameterAssignments.get(pThreadEdge));
+      assert !assignments.isEmpty() : "function has no parameters";
+      if (MPORUtil.isAssumeAbortIfNotCall(pThreadEdge.cfaEdge)) {
+        // add separate assume call - it triggers loop head assumption re-evaluation
+        return new SeqAssumeAbortIfNotStatement(
+            assignments, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+      }
+      return new SeqParameterAssignmentStatements(
           assignments, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
-    }
-    if (assignments.isEmpty()) {
+    } else {
+      // handle function without parameters
+      assert CFAUtils.getParameterDeclarationsFromCfaEdge(pThreadEdge.cfaEdge).isEmpty()
+          : "function has parameters, but they are not present in pFunctionStatements";
       return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
     }
-    return new SeqParameterAssignmentStatements(
-        assignments, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqThreadStatement buildReturnValueAssignmentStatement(

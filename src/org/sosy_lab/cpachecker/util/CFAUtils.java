@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -864,6 +865,18 @@ public class CFAUtils {
         .getFunctionCallExpression()
         .getFunctionNameExpression()
         .toASTString();
+  }
+
+  public static CFunctionDeclaration getCFunctionDeclarationFromCFaEdge(CFAEdge pCfaEdge) {
+    CFunctionCall functionCall = getCFunctionCallFromCfaEdge(pCfaEdge);
+    return functionCall.getFunctionCallExpression().getDeclaration();
+  }
+
+  public static ImmutableList<CParameterDeclaration> getParameterDeclarationsFromCfaEdge(
+      CFAEdge pCfaEdge) {
+
+    CFunctionDeclaration functionDeclaration = getCFunctionDeclarationFromCFaEdge(pCfaEdge);
+    return ImmutableList.copyOf(functionDeclaration.getParameters());
   }
 
   /**

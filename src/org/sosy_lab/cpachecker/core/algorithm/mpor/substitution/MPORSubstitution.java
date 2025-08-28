@@ -86,12 +86,12 @@ public class MPORSubstitution {
    * The map of parameter to variable declaration substitutes. The {@link ThreadEdge}s allow
    * call-context sensitive parameter substitutes.
    */
-  public final ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
+  public final ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression>
       parameterSubstitutes;
 
   public final ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes;
 
-  public final ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
+  public final ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression>
       startRoutineArgSubstitutes;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
@@ -105,11 +105,9 @@ public class MPORSubstitution {
       ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalVariableSubstitutes,
       ImmutableTable<Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           pLocalVariableDeclarationSubstitutes,
-      ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-          pParameterSubstitutes,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression> pParameterSubstitutes,
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
-      ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-          pStartRoutineArgSubstitutes,
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression> pStartRoutineArgSubstitutes,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger) {
 
@@ -717,14 +715,11 @@ public class MPORSubstitution {
       }
       // normal function called within thread, including start_routines, always have call context
       ThreadEdge callContext = pCallContext.orElseThrow();
-      if (parameterSubstitutes.containsKey(callContext)) {
-        return getParameterSubstituteByCallContext(callContext, parameterDeclaration);
+      if (parameterSubstitutes.containsRow(callContext)) {
+        return getSubstituteParameterDeclarationByCallContext(callContext, parameterDeclaration);
 
-      } else if (startRoutineArgSubstitutes.containsKey(callContext)) {
-        ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
-            Objects.requireNonNull(startRoutineArgSubstitutes.get(callContext));
-        assert substitutes.size() == 1 : "start_routines can have only one parameter";
-        return Objects.requireNonNull(substitutes.get(parameterDeclaration));
+      } else if (startRoutineArgSubstitutes.containsRow(callContext)) {
+        return startRoutineArgSubstitutes.get(callContext, parameterDeclaration);
       }
       throw new IllegalArgumentException("parameter declaration could not be found");
     }
@@ -732,13 +727,11 @@ public class MPORSubstitution {
         "pSimpleDeclaration must be CVariable- or CParameterDeclaration");
   }
 
-  public CIdExpression getParameterSubstituteByCallContext(
+  public CIdExpression getSubstituteParameterDeclarationByCallContext(
       ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
 
-    ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
-        Objects.requireNonNull(parameterSubstitutes.get(pCallContext));
-    if (substitutes.containsKey(pParameterDeclaration)) {
-      return Objects.requireNonNull(substitutes.get(pParameterDeclaration));
+    if (parameterSubstitutes.containsColumn(pParameterDeclaration)) {
+      return parameterSubstitutes.get(pCallContext, pParameterDeclaration);
     } else {
       // no substitute found -> function declaration contains only parameter types, not names
       // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
@@ -750,8 +743,8 @@ public class MPORSubstitution {
           functionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
       // search for the corresponding parameter, throw if not found
       for (CParameterDeclaration parameterDeclarationWithoutName : parameterDeclarations) {
-        if (substitutes.containsKey(parameterDeclarationWithoutName)) {
-          return Objects.requireNonNull(substitutes.get(parameterDeclarationWithoutName));
+        if (parameterSubstitutes.containsColumn(parameterDeclarationWithoutName)) {
+          return parameterSubstitutes.get(pCallContext, parameterDeclarationWithoutName);
         }
       }
     }
@@ -813,28 +806,23 @@ public class MPORSubstitution {
    * Note that these are not {@link CParameterDeclaration} but {@link CVariableDeclaration} because
    * they are treated as variables in the sequentialization (cf. inlining functions).
    */
-  public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
+  public ImmutableList<CParameterDeclaration> getSubstituteParameterDeclarations() {
     ImmutableList.Builder<CParameterDeclaration> rParameterDeclarations = ImmutableList.builder();
-    for (ImmutableMap<CParameterDeclaration, CIdExpression> substitutes :
-        parameterSubstitutes.values()) {
-      for (CIdExpression parameter : substitutes.values()) {
-        checkArgument(parameter.getDeclaration() instanceof CParameterDeclaration);
-        rParameterDeclarations.add((CParameterDeclaration) parameter.getDeclaration());
-      }
+    for (var cell : parameterSubstitutes.cellSet()) {
+      CParameterDeclaration substituteDeclaration =
+          castTo(cell.getValue().getDeclaration(), CParameterDeclaration.class);
+      rParameterDeclarations.add(substituteDeclaration);
     }
     return rParameterDeclarations.build();
   }
 
-  public ImmutableList<CParameterDeclaration> getStartRoutineArgDeclarations() {
+  public ImmutableList<CParameterDeclaration> getSubstituteStartRoutineArgDeclarations() {
     ImmutableList.Builder<CParameterDeclaration> rStartRoutineArgDeclarations =
         ImmutableList.builder();
-    for (ImmutableMap<CParameterDeclaration, CIdExpression> substitutes :
-        startRoutineArgSubstitutes.values()) {
-      for (CIdExpression startRoutineArg : substitutes.values()) {
-        CParameterDeclaration parameterDeclaration =
-            castTo(startRoutineArg.getDeclaration(), CParameterDeclaration.class);
-        rStartRoutineArgDeclarations.add(parameterDeclaration);
-      }
+    for (var cell : startRoutineArgSubstitutes.cellSet()) {
+      CParameterDeclaration substituteDeclaration =
+          castTo(cell.getValue().getDeclaration(), CParameterDeclaration.class);
+      rStartRoutineArgDeclarations.add(substituteDeclaration);
     }
     return rStartRoutineArgDeclarations.build();
   }

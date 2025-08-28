@@ -406,10 +406,9 @@ public class GhostElementUtil {
         ImmutableMap.builder();
 
     // for each function call edge (= calling context)
-    for (var entryA : pSubstitution.parameterSubstitutes.entrySet()) {
-      ThreadEdge threadEdge = entryA.getKey();
-      assert threadEdge.cfaEdge instanceof CFunctionCallEdge;
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) entryA.getKey().cfaEdge;
+    for (ThreadEdge callContext : pSubstitution.parameterSubstitutes.rowKeySet()) {
+      assert callContext.cfaEdge instanceof CFunctionCallEdge;
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) callContext.cfaEdge;
 
       ImmutableList.Builder<FunctionParameterAssignment> assignments = ImmutableList.builder();
       List<CParameterDeclaration> parameterDeclarations =
@@ -421,14 +420,15 @@ public class GhostElementUtil {
         CExpression rightHandSide =
             functionCallEdge.getFunctionCallExpression().getParameterExpressions().get(i);
         CIdExpression parameterSubstitute =
-            pSubstitution.getParameterSubstituteByCallContext(threadEdge, parameterDeclaration);
+            pSubstitution.getSubstituteParameterDeclarationByCallContext(
+                callContext, parameterDeclaration);
         FunctionParameterAssignment parameterAssignment =
             new FunctionParameterAssignment(
-                threadEdge,
+                callContext,
                 parameterSubstitute,
                 pSubstitution.substitute(
                     rightHandSide,
-                    threadEdge.callContext,
+                    callContext.callContext,
                     false,
                     false,
                     false,
@@ -437,7 +437,7 @@ public class GhostElementUtil {
                     Optional.empty()));
         assignments.add(parameterAssignment);
       }
-      rAssignments.put(threadEdge, assignments.build());
+      rAssignments.put(callContext, assignments.build());
     }
     return rAssignments.buildOrThrow();
   }
@@ -447,13 +447,14 @@ public class GhostElementUtil {
 
     ImmutableMap.Builder<ThreadEdge, FunctionParameterAssignment> rAssignments =
         ImmutableMap.builder();
-    for (var entry : pSubstitution.startRoutineArgSubstitutes.entrySet()) {
+    Set<ThreadEdge> visited = new HashSet<>();
+    for (var cell : pSubstitution.startRoutineArgSubstitutes.cellSet()) {
       // this call context is the call to pthread_create
-      ThreadEdge callContext = entry.getKey();
-      // only the thread calling pthread_create assigns the start_routine arg
-      if (pSubstitution.thread.id == callContext.threadId) {
-        assert entry.getValue().size() == 1 : "start_routines must have exactly 1 parameter";
-        for (CIdExpression leftHandSide : entry.getValue().values()) {
+      ThreadEdge callContext = cell.getRowKey();
+      if (visited.add(callContext)) {
+        // only the thread calling pthread_create assigns the start_routine arg
+        if (pSubstitution.thread.id == callContext.threadId) {
+          CIdExpression leftHandSide = cell.getValue();
           CExpression rightHandSide = PthreadUtil.extractStartRoutineArg(callContext.cfaEdge);
           FunctionParameterAssignment startRoutineArgAssignment =
               new FunctionParameterAssignment(

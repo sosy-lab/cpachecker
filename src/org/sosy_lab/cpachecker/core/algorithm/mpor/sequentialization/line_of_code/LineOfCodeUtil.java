@@ -157,7 +157,7 @@ public class LineOfCodeUtil {
     }
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CParameterDeclaration> parameterDeclarations =
-          substitution.getParameterDeclarations();
+          substitution.getSubstituteParameterDeclarations();
       for (CParameterDeclaration parameterDeclaration : parameterDeclarations) {
         if (!PthreadUtil.isPthreadObjectType(parameterDeclaration.getType())) {
           // CParameterDeclarations require addition semicolon
@@ -194,7 +194,7 @@ public class LineOfCodeUtil {
       rStartRoutineArgDeclarations.add(LineOfCode.of(SeqComment.START_ROUTINE_ARG_SUBSTITUTES));
     }
     ImmutableList<CParameterDeclaration> startRoutineArgDeclarations =
-        pMainThreadSubstitution.getStartRoutineArgDeclarations();
+        pMainThreadSubstitution.getSubstituteStartRoutineArgDeclarations();
     for (CParameterDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
       // TODO why exclude pthread objects here? add explaining comment
       if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {

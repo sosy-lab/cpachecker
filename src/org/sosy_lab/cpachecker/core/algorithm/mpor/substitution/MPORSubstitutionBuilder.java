@@ -61,15 +61,15 @@ public class MPORSubstitutionBuilder {
     ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes =
         getMainFunctionArgSubstitutes(pOptions, mainThread);
     // use same start_routine arg substitutes across threads, so that all threads can access them
-    ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-        startRoutineArgSubstitutes = getStartRoutineArgSubstitutes(pOptions, pThreads);
+    ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression> startRoutineArgSubstitutes =
+        buildStartRoutineArgSubstitutes(pOptions, pThreads);
 
     ImmutableList.Builder<MPORSubstitution> rSubstitutions = ImmutableList.builder();
 
     // step 2: for each thread, create substitution
     for (MPORThread thread : pThreads) {
-      ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-          parameterSubstitutes = getParameterSubstitutes(pOptions, thread);
+      ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression> parameterSubstitutes =
+          buildParameterSubstitutes(pOptions, thread);
       ImmutableTable<Optional<ThreadEdge>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           localVariableSubstitutes =
               buildVariableDeclarationSubstitutes(
@@ -121,9 +121,9 @@ public class MPORSubstitutionBuilder {
             pThread,
             dummyGlobalSubstitutes,
             ImmutableTable.of(),
+            ImmutableTable.of(),
             ImmutableMap.of(),
-            ImmutableMap.of(),
-            ImmutableMap.of(),
+            ImmutableTable.of(),
             pBinaryExpressionBuilder,
             pLogger);
 
@@ -190,11 +190,11 @@ public class MPORSubstitutionBuilder {
    * For each {@link CFunctionCallEdge} (i.e. calling context), we map the parameter declaration to
    * the created parameter variable.
    */
-  private static ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-      getParameterSubstitutes(MPOROptions pOptions, MPORThread pThread) {
+  private static ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression>
+      buildParameterSubstitutes(MPOROptions pOptions, MPORThread pThread) {
 
-    ImmutableMap.Builder<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-        rParameterSubstitutes = ImmutableMap.builder();
+    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, CIdExpression> rParameterSubstitutes =
+        ImmutableTable.builder();
     Map<CFunctionDeclaration, Integer> callCounts = new HashMap<>();
 
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
@@ -206,21 +206,24 @@ public class MPORSubstitutionBuilder {
         }
         callCounts.put(functionDeclaration, callCounts.get(functionDeclaration) + 1);
         int callNumber = callCounts.get(functionDeclaration);
-        rParameterSubstitutes.put(
-            threadEdge,
-            buildParameterSubstitutes(pOptions, pThread, functionDeclaration, callNumber));
+        rParameterSubstitutes.putAll(
+            buildParameterSubstitutes(
+                pOptions, pThread, threadEdge, functionDeclaration, callNumber));
       }
     }
     return rParameterSubstitutes.buildOrThrow();
   }
 
-  private static ImmutableMap<CParameterDeclaration, CIdExpression> buildParameterSubstitutes(
-      MPOROptions pOptions,
-      MPORThread pThread,
-      CFunctionDeclaration pFunctionDeclaration,
-      int pCallNumber) {
+  private static ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression>
+      buildParameterSubstitutes(
+          MPOROptions pOptions,
+          MPORThread pThread,
+          ThreadEdge pCallContext,
+          CFunctionDeclaration pFunctionDeclaration,
+          int pCallNumber) {
 
-    ImmutableMap.Builder<CParameterDeclaration, CIdExpression> substitutes = ImmutableMap.builder();
+    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, CIdExpression> substitutes =
+        ImmutableTable.builder();
     for (CParameterDeclaration parameterDeclaration : pFunctionDeclaration.getParameters()) {
       String varName =
           SeqNameUtil.buildParameterName(
@@ -233,6 +236,7 @@ public class MPORSubstitutionBuilder {
       CParameterDeclaration substituteParameterDeclaration =
           substituteParameterDeclaration(parameterDeclaration, varName);
       substitutes.put(
+          pCallContext,
           parameterDeclaration,
           SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration));
     }
@@ -258,11 +262,11 @@ public class MPORSubstitutionBuilder {
 
   // Start Routine Args ============================================================================
 
-  private static ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-      getStartRoutineArgSubstitutes(MPOROptions pOptions, ImmutableList<MPORThread> pAllThreads) {
+  private static ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression>
+      buildStartRoutineArgSubstitutes(MPOROptions pOptions, ImmutableList<MPORThread> pAllThreads) {
 
-    ImmutableMap.Builder<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-        rArgSubstitutes = ImmutableMap.builder();
+    ImmutableTable.Builder<ThreadEdge, CParameterDeclaration, CIdExpression> rArgSubstitutes =
+        ImmutableTable.builder();
 
     for (MPORThread thread : pAllThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
@@ -293,7 +297,7 @@ public class MPORSubstitutionBuilder {
                   substituteParameterDeclaration(parameterDeclaration, varName);
               CIdExpression substitute =
                   SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration);
-              rArgSubstitutes.put(threadEdge, ImmutableMap.of(parameterDeclaration, substitute));
+              rArgSubstitutes.put(threadEdge, parameterDeclaration, substitute);
             }
           }
         }
@@ -315,10 +319,9 @@ public class MPORSubstitutionBuilder {
           MPOROptions pOptions,
           MPORThread pThread,
           ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
-          ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-              pParameterSubstitutes,
+          ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression> pParameterSubstitutes,
           ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
-          ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
+          ImmutableTable<ThreadEdge, CParameterDeclaration, CIdExpression>
               pStartRoutineArgSubstitutes,
           int pThreadId,
           ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariableDeclarations,
