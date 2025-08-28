@@ -45,11 +45,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations.NondeterministicSimulationUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -86,11 +84,7 @@ public class SeqMainFunction extends SeqFunction {
 
   private final Optional<CFunctionCallStatement> countAssumption;
 
-  private final Optional<BitVectorVariables> bitVectorVariables;
-
-  private final ProgramCounterVariables pcVariables;
-
-  private final ThreadSynchronizationVariables threadSimulationVariables;
+  private final GhostElements ghostElements;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -100,10 +94,8 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      Optional<BitVectorVariables> pBitVectorVariables,
-      ProgramCounterVariables pPcVariables,
+      GhostElements pGhostElements,
       Optional<MemoryModel> pMemoryModel,
-      ThreadSynchronizationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -113,10 +105,8 @@ public class SeqMainFunction extends SeqFunction {
     numThreads = pSubstitutions.size();
     numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(numThreads);
     clauses = pClauses;
-    bitVectorVariables = pBitVectorVariables;
-    pcVariables = pPcVariables;
+    ghostElements = pGhostElements;
     memoryModel = pMemoryModel;
-    threadSimulationVariables = pThreadSimulationVariables;
 
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
@@ -143,13 +133,11 @@ public class SeqMainFunction extends SeqFunction {
         buildThreadSimulationVariableDeclarations(
             options,
             clauses.keySet(),
-            pcVariables,
-            bitVectorVariables,
             numThreads,
             clauses,
+            ghostElements,
             memoryModel,
-            numThreadsVariable.getDeclaration(),
-            threadSimulationVariables));
+            numThreadsVariable.getDeclaration()));
 
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, clauses, logger));
@@ -197,7 +185,7 @@ public class SeqMainFunction extends SeqFunction {
     }
     rBody.addAll(
         NondeterministicSimulationUtil.buildThreadSimulationsByNondeterminismSource(
-            options, bitVectorVariables, pcVariables, clauses, binaryExpressionBuilder));
+            options, ghostElements, clauses, binaryExpressionBuilder));
     rBody.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     // --- loop ends here ---
 
@@ -284,13 +272,11 @@ public class SeqMainFunction extends SeqFunction {
   private static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pThreads,
-      ProgramCounterVariables pPcVariables,
-      Optional<BitVectorVariables> pBitVectorVariables,
       int pNumThreads,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      GhostElements pGhostElements,
       Optional<MemoryModel> pMemoryModel,
-      CSimpleDeclaration pNumThreadDeclaration,
-      ThreadSynchronizationVariables pThreadSimulationVariables)
+      CSimpleDeclaration pNumThreadDeclaration)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rDeclarations = ImmutableList.builder();
@@ -327,7 +313,8 @@ public class SeqMainFunction extends SeqFunction {
       rDeclarations.add(LineOfCode.of(SeqComment.PC_DECLARATION));
     }
     ImmutableList<CVariableDeclaration> pcDeclarations =
-        SeqDeclarationBuilder.buildPcDeclarations(pOptions, pPcVariables, pNumThreads);
+        SeqDeclarationBuilder.buildPcDeclarations(
+            pOptions, pGhostElements.getPcVariables(), pNumThreads);
     for (CVariableDeclaration pcDeclaration : pcDeclarations) {
       rDeclarations.add(LineOfCode.of(pcDeclaration.toASTString()));
     }
@@ -336,7 +323,7 @@ public class SeqMainFunction extends SeqFunction {
     if (pOptions.areBitVectorsEnabled()) {
       ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
           SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(
-              pOptions, pBitVectorVariables, pMemoryModel, pClauses);
+              pOptions, pGhostElements.getBitVectorVariables(), pMemoryModel, pClauses);
       for (SeqBitVectorDeclaration bitVectorDeclaration : bitVectorDeclarations) {
         rDeclarations.add(LineOfCode.of(bitVectorDeclaration.toASTString()));
       }
@@ -370,10 +357,9 @@ public class SeqMainFunction extends SeqFunction {
     if (pOptions.comments) {
       rDeclarations.add(LineOfCode.of(SeqComment.THREAD_SIMULATION_VARIABLES));
     }
-    for (CIdExpression threadVariable : pThreadSimulationVariables.getIdExpressions()) {
-      assert threadVariable.getDeclaration() instanceof CVariableDeclaration;
-      CVariableDeclaration varDeclaration = (CVariableDeclaration) threadVariable.getDeclaration();
-      rDeclarations.add(LineOfCode.of(varDeclaration.toASTString()));
+    for (CSimpleDeclaration declaration :
+        pGhostElements.getThreadSynchronizationVariables().getDeclarations()) {
+      rDeclarations.add(LineOfCode.of(declaration.toASTString()));
     }
     return rDeclarations.build();
   }

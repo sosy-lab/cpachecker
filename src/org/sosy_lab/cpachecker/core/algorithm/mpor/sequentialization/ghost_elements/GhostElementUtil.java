@@ -71,15 +71,19 @@ public class GhostElementUtil {
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       ProgramCounterVariables pPcVariables,
+      Optional<MemoryModel> pMemoryModel,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    Optional<BitVectorVariables> bitVectorVariables =
+        GhostElementUtil.buildBitVectorVariables(pOptions, pThreads, pMemoryModel);
     ImmutableMap<MPORThread, FunctionStatements> functionStatements =
         buildFunctionStatements(pThreads, pSubstitutions, pSubstituteEdges);
     ThreadSynchronizationVariables threadSynchronizationVariables =
         GhostElementUtil.buildThreadSynchronizationVariables(
             pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder);
-    return new GhostElements(functionStatements, pPcVariables, threadSynchronizationVariables);
+    return new GhostElements(
+        bitVectorVariables, functionStatements, pPcVariables, threadSynchronizationVariables);
   }
 
   // Bit Vectors ===================================================================================
@@ -504,7 +508,7 @@ public class GhostElementUtil {
         }
       }
     }
-    return rReturnStatements.build();
+    return rReturnStatements.buildOrThrow();
   }
 
   private static Optional<FunctionReturnValueAssignment>

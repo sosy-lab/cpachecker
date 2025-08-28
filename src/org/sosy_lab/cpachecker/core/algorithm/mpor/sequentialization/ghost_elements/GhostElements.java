@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
@@ -19,20 +21,28 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
  */
 public class GhostElements {
 
-  private final ImmutableMap<MPORThread, FunctionStatements> functionStatements;
-  // TODO make private
-  public final ProgramCounterVariables programCounterVariables;
+  private final Optional<BitVectorVariables> bitVectorVariables;
 
-  public final ThreadSynchronizationVariables threadSynchronizationVariables;
+  private final ImmutableMap<MPORThread, FunctionStatements> functionStatements;
+
+  private final ProgramCounterVariables programCounterVariables;
+
+  private final ThreadSynchronizationVariables threadSynchronizationVariables;
 
   public GhostElements(
+      Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableMap<MPORThread, FunctionStatements> pFunctionStatements,
       ProgramCounterVariables pProgramCounterVariables,
       ThreadSynchronizationVariables pThreadSynchronizationVariables) {
 
+    bitVectorVariables = pBitVectorVariables;
     functionStatements = pFunctionStatements;
     programCounterVariables = pProgramCounterVariables;
     threadSynchronizationVariables = pThreadSynchronizationVariables;
+  }
+
+  public Optional<BitVectorVariables> getBitVectorVariables() {
+    return bitVectorVariables;
   }
 
   public ImmutableMap<MPORThread, FunctionStatements> getFunctionStatements() {
@@ -43,5 +53,13 @@ public class GhostElements {
     assert functionStatements.containsKey(pThread)
         : "functionStatements does not contain pThread key";
     return functionStatements.get(pThread);
+  }
+
+  public ProgramCounterVariables getPcVariables() {
+    return programCounterVariables;
+  }
+
+  public ThreadSynchronizationVariables getThreadSynchronizationVariables() {
+    return threadSynchronizationVariables;
   }
 }

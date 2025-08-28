@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -250,7 +249,6 @@ public class LineOfCodeUtil {
       ImmutableList<MPORSubstitution> pSubstitutions,
       Optional<MemoryModel> pMemoryModel,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      Optional<BitVectorVariables> pBitVectorVariables,
       GhostElements pGhostElements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
@@ -271,7 +269,6 @@ public class LineOfCodeUtil {
             pOptions,
             pSubstitutions,
             pSubstituteEdges,
-            pBitVectorVariables,
             pMemoryModel,
             pGhostElements,
             pBinaryExpressionBuilder,
@@ -281,10 +278,8 @@ public class LineOfCodeUtil {
             pOptions,
             pSubstitutions,
             clauses,
-            pBitVectorVariables,
-            pGhostElements.programCounterVariables,
+            pGhostElements,
             pMemoryModel,
-            pGhostElements.threadSynchronizationVariables,
             pBinaryExpressionBuilder,
             pLogger);
     rFunctionDefinitions.addAll(mainFunction.buildDefinition());

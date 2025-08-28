@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -46,8 +46,7 @@ public class NondeterministicSimulationUtil {
 
   public static ImmutableList<LineOfCode> buildThreadSimulationsByNondeterminismSource(
       MPOROptions pOptions,
-      Optional<BitVectorVariables> pBitVectorVariables,
-      ProgramCounterVariables pPcVariables,
+      GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -55,13 +54,13 @@ public class NondeterministicSimulationUtil {
     return switch (pOptions.nondeterminismSource) {
       case NEXT_THREAD ->
           NextThreadNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);
+              pOptions, pGhostElements.getPcVariables(), pClauses, pBinaryExpressionBuilder);
       case NUM_STATEMENTS ->
           NumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pBitVectorVariables, pPcVariables, pClauses, pBinaryExpressionBuilder);
+              pOptions, pGhostElements, pClauses, pBinaryExpressionBuilder);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);
+              pOptions, pGhostElements.getPcVariables(), pClauses, pBinaryExpressionBuilder);
     };
   }
 

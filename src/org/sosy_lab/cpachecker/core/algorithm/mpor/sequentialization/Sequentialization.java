@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqLeftHandSideBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
@@ -178,16 +177,20 @@ public class Sequentialization {
     MPORSubstitution mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
-    GhostElements ghostElements =
-        GhostElementUtil.buildGhostElements(
-            options, threads, substitutions, substituteEdges, pcVariables, binaryExpressionBuilder);
     ImmutableSet<MemoryLocation> initialMemoryLocations =
         SubstituteUtil.getInitialMemoryLocations(substituteEdges.values());
     Optional<MemoryModel> memoryModel =
         MemoryModelBuilder.tryBuildMemoryModel(
             options, threads, initialMemoryLocations, substituteEdges.values());
-    Optional<BitVectorVariables> bitVectorVariables =
-        GhostElementUtil.buildBitVectorVariables(options, threads, memoryModel);
+    GhostElements ghostElements =
+        GhostElementUtil.buildGhostElements(
+            options,
+            threads,
+            substitutions,
+            substituteEdges,
+            pcVariables,
+            memoryModel,
+            binaryExpressionBuilder);
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
@@ -210,7 +213,6 @@ public class Sequentialization {
             substitutions,
             memoryModel,
             substituteEdges,
-            bitVectorVariables,
             ghostElements,
             binaryExpressionBuilder,
             logger));

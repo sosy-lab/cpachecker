@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 public class ThreadSynchronizationVariables {
 
@@ -22,11 +23,11 @@ public class ThreadSynchronizationVariables {
   }
 
   /** Returns all CIdExpressions of the vars in the order locked - locks - joins. */
-  public ImmutableList<CIdExpression> getIdExpressions() {
-    ImmutableList.Builder<CIdExpression> rIdExpressions = ImmutableList.builder();
-    for (MutexLocked var : locked.values()) {
-      rIdExpressions.add(var.idExpression);
+  public ImmutableList<CSimpleDeclaration> getDeclarations() {
+    ImmutableList.Builder<CSimpleDeclaration> rDeclarations = ImmutableList.builder();
+    for (MutexLocked mutexLockedVariable : locked.values()) {
+      rDeclarations.add(mutexLockedVariable.idExpression.getDeclaration());
     }
-    return rIdExpressions.build();
+    return rDeclarations.build();
   }
 }

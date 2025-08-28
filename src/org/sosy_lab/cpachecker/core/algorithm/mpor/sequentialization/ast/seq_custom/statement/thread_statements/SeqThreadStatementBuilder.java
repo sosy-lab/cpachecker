@@ -154,8 +154,7 @@ public class SeqThreadStatementBuilder {
     CFAEdge edge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
-    CLeftHandSide pcLeftHandSide =
-        pGhostElements.programCounterVariables.getPcLeftHandSide(pThread.id);
+    CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id);
 
     if (yieldsNoStatement(pThread, pSubstituteEdge, successor)) {
       return buildBlankStatement(pcLeftHandSide, targetPc);
@@ -175,7 +174,7 @@ public class SeqThreadStatementBuilder {
             pThreadEdge,
             pSubstituteEdge,
             targetPc,
-            pGhostElements.programCounterVariables,
+            pGhostElements.getPcVariables(),
             pGhostElements.getFunctionStatementsByThread(pThread));
 
       } else if (pSubstituteEdge.cfaEdge instanceof CReturnStatementEdge) {
@@ -310,8 +309,7 @@ public class SeqThreadStatementBuilder {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(cfaEdge);
-    CLeftHandSide pcLeftHandSide =
-        pGhostElements.programCounterVariables.getPcLeftHandSide(pThread.id);
+    CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id);
 
     return switch (pthreadFunctionType) {
       case PTHREAD_CREATE ->
@@ -322,7 +320,7 @@ public class SeqThreadStatementBuilder {
               pSubstituteEdge,
               pTargetPc,
               pGhostElements.getFunctionStatementsByThread(pThread),
-              pGhostElements.programCounterVariables);
+              pGhostElements.getPcVariables());
       case PTHREAD_EXIT ->
           buildThreadExitStatement(
               pThreadEdge,
@@ -339,13 +337,13 @@ public class SeqThreadStatementBuilder {
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostElements.threadSynchronizationVariables);
+              pGhostElements.getThreadSynchronizationVariables());
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexUnlockStatement(
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostElements.threadSynchronizationVariables);
+              pGhostElements.getThreadSynchronizationVariables());
       case __VERIFIER_ATOMIC_BEGIN ->
           buildAtomicBeginStatement(pSubstituteEdge, pTargetPc, pcLeftHandSide);
       case __VERIFIER_ATOMIC_END ->
@@ -413,8 +411,8 @@ public class SeqThreadStatementBuilder {
         targetThread.startRoutineExitVariable,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc,
-        pGhostElements.programCounterVariables.getThreadNotActiveExpression(targetThread.id),
-        pGhostElements.programCounterVariables.getPcLeftHandSide(pThread.id));
+        pGhostElements.getPcVariables().getThreadNotActiveExpression(targetThread.id),
+        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id));
   }
 
   private static SeqMutexLockStatement buildMutexLockStatement(
@@ -422,12 +420,12 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      ThreadSynchronizationVariables pThreadVariables) {
+      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
 
     CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
-    assert pThreadVariables.locked.containsKey(lockedMutexT);
+    assert pThreadSynchronizationVariables.locked.containsKey(lockedMutexT);
     MutexLocked mutexLockedVariable =
-        Objects.requireNonNull(pThreadVariables.locked.get(lockedMutexT));
+        Objects.requireNonNull(pThreadSynchronizationVariables.locked.get(lockedMutexT));
     return new SeqMutexLockStatement(
         mutexLockedVariable, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
@@ -436,14 +434,15 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      ThreadSynchronizationVariables pThreadVariables) {
+      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
 
     CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(pSubstituteEdge.cfaEdge);
-    assert pThreadVariables.locked.containsKey(unlockedMutexT);
+    assert pThreadSynchronizationVariables.locked.containsKey(unlockedMutexT);
     // assign 0 to locked variable
     CExpressionAssignmentStatement lockedFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            Objects.requireNonNull(pThreadVariables.locked.get(unlockedMutexT)).idExpression,
+            Objects.requireNonNull(pThreadSynchronizationVariables.locked.get(unlockedMutexT))
+                .idExpression,
             SeqIntegerLiteralExpression.INT_0);
     return new SeqMutexUnlockStatement(
         lockedFalse, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);

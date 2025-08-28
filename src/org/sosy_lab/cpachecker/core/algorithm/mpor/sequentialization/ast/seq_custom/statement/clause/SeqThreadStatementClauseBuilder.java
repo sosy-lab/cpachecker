@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockMerger;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -46,7 +45,6 @@ public class SeqThreadStatementClauseBuilder {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      Optional<BitVectorVariables> pBitVectorVariables,
       Optional<MemoryModel> pMemoryModel,
       GhostElements pGhostElements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -67,7 +65,7 @@ public class SeqThreadStatementClauseBuilder {
         PartialOrderReducer.reduce(
             pOptions,
             atomicBlocks,
-            pBitVectorVariables,
+            pGhostElements.getBitVectorVariables(),
             pMemoryModel,
             pBinaryExpressionBuilder,
             pLogger);
@@ -198,8 +196,7 @@ public class SeqThreadStatementClauseBuilder {
     int labelPc = pThreadNode.pc;
     ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
 
-    CLeftHandSide pcLeftHandSide =
-        pGhostElements.programCounterVariables.getPcLeftHandSide(pThread.id);
+    CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id);
 
     ImmutableList<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
     if (leavingEdges.isEmpty()) {

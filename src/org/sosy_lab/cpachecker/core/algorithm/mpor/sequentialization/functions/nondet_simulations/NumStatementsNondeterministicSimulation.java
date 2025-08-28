@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
@@ -62,21 +63,19 @@ public class NumStatementsNondeterministicSimulation {
 
   static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
-      Optional<BitVectorVariables> pBitVectorVariables,
-      ProgramCounterVariables pPcVariables,
+      GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRReset();
     return buildThreadSimulations(
-        pOptions, pBitVectorVariables, pPcVariables, pClauses, rReset, pBinaryExpressionBuilder);
+        pOptions, pGhostElements, pClauses, rReset, pBinaryExpressionBuilder);
   }
 
   private static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
-      Optional<BitVectorVariables> pBitVectorVariables,
-      ProgramCounterVariables pPcVariables,
+      GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CExpressionAssignmentStatement pRReset,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -106,8 +105,7 @@ public class NumStatementsNondeterministicSimulation {
               thread,
               otherThreads,
               kGreaterZero,
-              pBitVectorVariables,
-              pPcVariables,
+              pGhostElements,
               pBinaryExpressionBuilder);
       SeqIfExpression ifExpression = new SeqIfExpression(ifCondition);
       rLines.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
@@ -122,7 +120,7 @@ public class NumStatementsNondeterministicSimulation {
                 thread,
                 otherThreads,
                 kGreaterZero,
-                pBitVectorVariables,
+                pGhostElements.getBitVectorVariables(),
                 pBinaryExpressionBuilder);
 
         // for finite loops, assume K0 > 0 in the first loop iteration (similar to Lazy-CSeq)
@@ -153,7 +151,11 @@ public class NumStatementsNondeterministicSimulation {
       // add the thread loop statements (assumptions and switch)
       rLines.addAll(
           buildSingleThreadClausesWithCount(
-              pOptions, pPcVariables, thread, clauses, pBinaryExpressionBuilder));
+              pOptions,
+              pGhostElements.getPcVariables(),
+              thread,
+              clauses,
+              pBinaryExpressionBuilder));
 
       // add additional closing bracket, if needed
       if (pOptions.kAssignLazy) {
@@ -232,14 +234,13 @@ public class NumStatementsNondeterministicSimulation {
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
       CBinaryExpression pKGreaterZero,
-      Optional<BitVectorVariables> pBitVectorVariables,
-      ProgramCounterVariables pPcVariables,
+      GhostElements pGhostElements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     SeqExpression leftHandSide =
         buildIfConditionLeftHandSideExpression(
-            pOptions, pActiveThread, pPcVariables, pBinaryExpressionBuilder);
+            pOptions, pActiveThread, pGhostElements.getPcVariables(), pBinaryExpressionBuilder);
     // for lazy assignments (i.e. after if), just need if (pc != 0)
     if (pOptions.kAssignLazy) {
       return leftHandSide;
@@ -251,7 +252,7 @@ public class NumStatementsNondeterministicSimulation {
               pActiveThread,
               pOtherThreads,
               pKGreaterZero,
-              pBitVectorVariables,
+              pGhostElements.getBitVectorVariables(),
               pBinaryExpressionBuilder);
       return new SeqLogicalAndExpression(leftHandSide, kZeroExpression);
     }
