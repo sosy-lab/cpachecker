@@ -2334,6 +2334,8 @@ class ASTConverter {
         }
         String mode = getAttributeString(attribute.getArgumentClause().getTokenCharImage());
         type = handleModeAttribute((CSimpleType) type, mode, d);
+      } else if (name.equals(EclipseCdtWrapper.ATOMIC_ATTRIBUTE)) {
+        throw parseContext.parseError("_Atomic currently unsupported for declarators", d);
       }
     }
     return type;
@@ -2449,7 +2451,10 @@ class ASTConverter {
         lengthExp = createTemporaryVariableWithInitializer(getLocation(am), lengthExp);
       }
       return new CArrayType(
-          CTypeQualifiers.create(ASTTypeConverter.ATOMIC_MISSING, a.isConst(), a.isVolatile()),
+          CTypeQualifiers.create(
+              typeConverter.hasUnexpectedCPAcheckerAttributeForAtomic(a),
+              a.isConst(),
+              a.isVolatile()),
           type,
           lengthExp);
 

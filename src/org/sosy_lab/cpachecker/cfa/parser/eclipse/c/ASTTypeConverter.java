@@ -65,9 +65,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 /** This Class contains functions, that convert types from C-source into CPAchecker-format. */
 class ASTTypeConverter {
 
-  // CDT has no builtin support for _Atomic.
+  // CDT has no builtin support for _Atomic. In some cases we can use a workaround where we convert
+  // _Atomic into an attribute and get the info from there, but whenever we need to convert an IType
+  // instance we do not know whether it should be _Atomic. Use this constant to mark such places.
   // Cf. #1253, https://github.com/eclipse-cdt/cdt/issues/946
-  static final boolean ATOMIC_MISSING = false;
+  private static final boolean ATOMIC_MISSING_FOR_ITYPES = false;
 
   private final Scope scope;
   private final ASTConverter converter;
@@ -239,7 +241,8 @@ class ASTTypeConverter {
 
   private CPointerType conv(final IPointerType t) {
     return new CPointerType(
-        CTypeQualifiers.create(ATOMIC_MISSING, t.isConst(), t.isVolatile()), convert(t.getType()));
+        CTypeQualifiers.create(ATOMIC_MISSING_FOR_ITYPES, t.isConst(), t.isVolatile()),
+        convert(t.getType()));
   }
 
   private CTypedefType conv(final ITypedef t) {
@@ -288,7 +291,7 @@ class ASTTypeConverter {
       }
     }
     return new CArrayType(
-        CTypeQualifiers.create(ATOMIC_MISSING, t.isConst(), t.isVolatile()),
+        CTypeQualifiers.create(ATOMIC_MISSING_FOR_ITYPES, t.isConst(), t.isVolatile()),
         convert(t.getType()),
         length);
   }
@@ -299,7 +302,8 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    return i.withQualifiersSetTo(CTypeQualifiers.create(ATOMIC_MISSING, isConst, isVolatile));
+    return i.withQualifiersSetTo(
+        CTypeQualifiers.create(ATOMIC_MISSING_FOR_ITYPES, isConst, isVolatile));
   }
 
   private CType conv(final IEnumeration e) {
@@ -436,6 +440,15 @@ class ASTTypeConverter {
     return false;
   }
 
+  boolean hasUnexpectedCPAcheckerAttributeForAtomic(IASTAttributeOwner ao) {
+    for (IASTAttribute attr : ao.getAttributes()) {
+      if (String.valueOf(attr.getName()).equals(EclipseCdtWrapper.ATOMIC_ATTRIBUTE)) {
+        throw parseContext.parseError("_Atomic in currently unsupported location", ao.getParent());
+      }
+    }
+    return false;
+  }
+
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
     ComplexTypeKind type =
         switch (d.getKind()) {
@@ -461,7 +474,9 @@ class ASTTypeConverter {
   CPointerType convert(final IASTPointerOperator po, final CType type) {
     if (po instanceof IASTPointer p) {
       return new CPointerType(
-          CTypeQualifiers.create(ATOMIC_MISSING, p.isConst(), p.isVolatile()), type);
+          CTypeQualifiers.create(
+              hasUnexpectedCPAcheckerAttributeForAtomic(p), p.isConst(), p.isVolatile()),
+          type);
 
     } else {
       throw parseContext.parseError("Unknown pointer operator", po);
