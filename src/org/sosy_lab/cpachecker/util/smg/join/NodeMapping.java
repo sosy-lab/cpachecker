@@ -56,8 +56,10 @@ public class NodeMapping {
     // TODO: allow return of null for no mapping for efficiency reasons
     Map<SMGTargetSpecifier, SMGValue> innerMap = valueMap.get(value);
     checkNotNull(innerMap);
-    checkState(innerMap.size() == 1 && innerMap.get(IS_REGION) != null);
-    return innerMap.get(IS_REGION);
+    checkArgument(
+        innerMap.size() == 1,
+        "Requested mapping for " + value + ", but multiple mappings present: " + innerMap);
+    return innerMap.values().iterator().next();
   }
 
   public SMGValue getMappedValue(SMGValue value, SMGTargetSpecifier pSMGTargetSpecifier) {
@@ -72,6 +74,49 @@ public class NodeMapping {
     checkState(!innerMap.containsKey(IS_REGION) || innerMap.size() == 1);
     return innerMap.get(pSMGTargetSpecifier);
   }
+
+  // TODO: WIP
+  @SuppressWarnings("all")
+  public static MappedValueTuple getMappedValues(
+      SMGValue v1,
+      SymbolicProgramConfiguration spc1,
+      NodeMapping mapping1,
+      SMGValue v2,
+      SymbolicProgramConfiguration spc2,
+      NodeMapping mapping2) {
+    Optional<SMGPointsToEdge> maybePTE1 = spc1.getSmg().getPTEdge(v1);
+    Optional<SMGPointsToEdge> maybePTE2 = spc2.getSmg().getPTEdge(v2);
+
+    Map<SMGTargetSpecifier, SMGValue> innerMap1 = mapping1.getValueMap().get(v1);
+    Map<SMGTargetSpecifier, SMGValue> innerMap2 = mapping2.getValueMap().get(v2);
+
+    if ((maybePTE1.isEmpty() && maybePTE2.isEmpty())
+        || (innerMap1.size() <= 1 && innerMap2.size() <= 1)) {
+      // TODO: allow null return?
+      // Null currently blocked in getMappedValue()
+      return new MappedValueTuple(mapping1.getMappedValue(v1), mapping2.getMappedValue(v2));
+    } else {
+      // At least 1 source is a pointer
+      if (innerMap1.size() <= 1) {}
+
+      if (innerMap2.size() <= 1) {}
+
+      if (maybePTE1.isPresent() && maybePTE2.isPresent()) {
+        // The source specifier might not match the mapped value(s) specifier, as region might map
+        // to non-region.
+        // This might happen for only one source,
+        //  e.g. v1 REGION -> mappedV1 FIRST, v2 REGION -> mappedV2 REGION
+
+      } else if (true) {
+
+      } else {
+
+      }
+    }
+    return null;
+  }
+
+  public record MappedValueTuple(SMGValue mappedValue1, SMGValue mappedValue2) {}
 
   /**
    * spcToGetTargetSpecifier is supposed to be the specifier currently under construction (i.e. the
@@ -196,6 +241,46 @@ public class NodeMapping {
   public boolean hasMapping(SMGObject pObject) {
     checkNotNull(pObject);
     return objectMap.containsKey(pObject);
+  }
+
+  public static boolean hasSomeEqualMapping(
+      NodeMapping mapping1,
+      SMGValue v1,
+      NodeMapping mapping2,
+      SMGValue v2,
+      boolean allowZeroMapping) {
+    checkNotNull(v1);
+    checkNotNull(v2);
+    Map<SMGTargetSpecifier, SMGValue> innerMap1 = mapping1.getValueMap().get(v1);
+    Map<SMGTargetSpecifier, SMGValue> innerMap2 = mapping2.getValueMap().get(v2);
+    if (innerMap1.equals(innerMap2)) {
+      if (innerMap1.size() > 1) {
+        return true;
+      }
+      return true;
+    } else if (innerMap1 == null || innerMap2 == null) {
+      return false;
+    } else {
+      boolean strictMatch =
+          innerMap1.entrySet().stream()
+              .anyMatch(
+                  e ->
+                      innerMap2.entrySet().contains(e)
+                          && (allowZeroMapping || !e.getValue().isZero()));
+      boolean looseMatch =
+          innerMap1.entrySet().stream()
+              .anyMatch(
+                  e ->
+                      innerMap2.containsValue(e.getValue())
+                          && (allowZeroMapping || !e.getValue().isZero()));
+      if (strictMatch) {
+        return true;
+      } else if (looseMatch) {
+        return true;
+      } else {
+        return false;
+      }
+    }
   }
 
   public Map<SMGObject, SMGObject> getObjectMap() {
