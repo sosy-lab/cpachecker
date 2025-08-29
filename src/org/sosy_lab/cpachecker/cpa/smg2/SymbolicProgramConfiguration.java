@@ -692,14 +692,30 @@ public class SymbolicProgramConfiguration {
     if (mapping1.hasMapping(v1) && mapping2.hasMapping(v2)) {
       // If this fails, add spec to getter
       checkState(pSpc1.getSmg().isPointer(v1) || pSpc2.getSmg().isPointer(v2));
-      SMGValue mv1 = mapping1.getMappedValue(v1);
-      SMGValue mv2 = mapping2.getMappedValue(v2);
-      if (mv1.equals(mv2) && !mv1.isZero()) {
-        return Optional.of(
-            MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
-                mv1,
-                MergedSPCAndMergeStatusWithMergingSPCsAndMapping.of(
-                    pNewSpc, initialJoinStatus, pSpc1, pSpc2, mapping1, mapping2)));
+      Optional<SMGPointsToEdge> maybePTE1 = pSpc1.getSmg().getPTEdge(v1);
+      Optional<SMGPointsToEdge> maybePTE2 = pSpc2.getSmg().getPTEdge(v2);
+      checkState(maybePTE1.isPresent() || maybePTE2.isPresent());
+      // If one of the original values is FIRST/LAST, and the mapped spec is equal,
+      //  then the other mapped value also needs this spec.
+      // Both specs might be REGION, and the mapping might be FIRST/LAST, or even both.
+      //  (signaling an inserted linked-list)
+      // TODO: how to resolve gracefully? With source obj?
+      boolean someEqualMapping = NodeMapping.hasSomeEqualMapping(mapping1, v1, mapping2, v2, false);
+      if (someEqualMapping) {
+        // There is an equal value possible, figure out which one
+        // TODO: the same way? Or even just return it with the method?
+        SMGValue mv1 = mapping1.getMappedValue(v1);
+        SMGValue mv2 = mapping2.getMappedValue(v2);
+
+        // == someEqualMapping
+        checkState((mv1.equals(mv2) && !mv1.isZero()));
+        if (mv1.equals(mv2) && !mv1.isZero()) {
+          return Optional.of(
+              MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
+                  mv1,
+                  MergedSPCAndMergeStatusWithMergingSPCsAndMapping.of(
+                      pNewSpc, initialJoinStatus, pSpc1, pSpc2, mapping1, mapping2)));
+        }
       }
     }
 
@@ -1040,7 +1056,7 @@ public class SymbolicProgramConfiguration {
           // – If v1 != ⊥ != v2 and m1(v1) != ⊥ != m2(v2) and m1(v1) != m2(v2), return ⊥.
           if (mapping1.hasMapping(v1)
               && mapping2.hasMapping(v2)
-              && !mapping1.getMappedValue(v1).equals(mapping2.getMappedValue(v2))) {
+              && !NodeMapping.hasSomeEqualMapping(mapping1, v1, mapping2, v2, true)) {
             checkState(!spc1.getSmg().isPointer(v1) && !spc2.getSmg().isPointer(v2));
             return Optional.empty();
           }
