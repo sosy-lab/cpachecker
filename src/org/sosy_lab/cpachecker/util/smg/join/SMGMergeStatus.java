@@ -15,15 +15,15 @@ public enum SMGMergeStatus {
   RIGHT_ENTAIL("⊐"),
   INCOMPARABLE("⋈");
 
-  private final String name;
+  private final String symbol;
 
-  SMGMergeStatus(String pName) {
-    name = pName;
+  SMGMergeStatus(String pSymbol) {
+    symbol = pSymbol;
   }
 
   @Override
   public String toString() {
-    return name;
+    return symbol + " (" + name() + ")";
   }
 
   /**
