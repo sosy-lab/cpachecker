@@ -14,6 +14,7 @@ import static com.google.common.base.Verify.verify;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTAttribute;
@@ -76,12 +77,21 @@ class ASTTypeConverter {
   private final String filePrefix;
   private final ParseContext parseContext;
 
+  // All cases of _Atomic that were not handled so far. This set is pre-filled and we need to remove
+  // locations once we handled their respective AST node.
+  private final Set<FileLocation> unhandledAtomicOccurrences;
+
   ASTTypeConverter(
-      Scope pScope, ASTConverter pConverter, String pFilePrefix, ParseContext pParseContext) {
+      Scope pScope,
+      ASTConverter pConverter,
+      String pFilePrefix,
+      ParseContext pParseContext,
+      Set<FileLocation> pUnhandledAtomicOccurrences) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
     parseContext = pParseContext;
+    unhandledAtomicOccurrences = pUnhandledAtomicOccurrences;
 
     pParseContext.registerTypeMemoizationFilePrefixIfAbsent(filePrefix);
   }
@@ -434,6 +444,9 @@ class ASTTypeConverter {
     for (IASTAttribute attr : ao.getAttributes()) {
       String name = String.valueOf(attr.getName());
       if (name.equals(EclipseCdtWrapper.ATOMIC_ATTRIBUTE)) {
+        FileLocation loc = converter.getLocation(attr);
+        // We cannot check that loc is still in unhandledAtomic, some AST nodes are handled twice.
+        unhandledAtomicOccurrences.remove(loc);
         return true;
       }
     }

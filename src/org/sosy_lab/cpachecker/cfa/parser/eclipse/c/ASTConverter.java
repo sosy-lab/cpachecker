@@ -28,6 +28,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -330,11 +331,14 @@ class ASTConverter {
       ParseContext pParseContext,
       MachineModel pMachineModel,
       String pStaticVariablePrefix,
-      Sideassignments pSideAssignmentStack) {
+      Sideassignments pSideAssignmentStack,
+      Set<FileLocation> pUnhandledAtomicOccurrences) {
     options = pOptions;
     scope = pScope;
     logger = pLogger;
-    typeConverter = new ASTTypeConverter(scope, this, pStaticVariablePrefix, pParseContext);
+    typeConverter =
+        new ASTTypeConverter(
+            scope, this, pStaticVariablePrefix, pParseContext, pUnhandledAtomicOccurrences);
     literalConverter = new ASTLiteralConverter(pMachineModel, pParseContext);
     operatorConverter = new ASTOperatorConverter(pParseContext);
     parseContext = pParseContext;

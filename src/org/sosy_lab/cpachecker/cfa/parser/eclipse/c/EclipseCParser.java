@@ -19,6 +19,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import java.io.File;
@@ -211,7 +212,8 @@ class EclipseCParser implements CParser {
         ParseContext.dummy(),
         machine,
         "",
-        sa);
+        sa,
+        ImmutableSet.of());
   }
 
   @Override
