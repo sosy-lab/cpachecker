@@ -184,6 +184,7 @@ public final class CArrayType extends AArrayType implements CType {
     // on an array type always refer to the element type, not the array type.
     // So we push these modifiers down to the element type here.
     // TODO: wrong, cf. #1375 Only pQualifiersToAdd needs to be pushed down.
+    // TODO 6.7.3 (3) specifies that _Atomic must not be applied to array types.
     return new CArrayType(
         CTypeQualifiers.NONE,
         getType().getCanonicalType(CTypeQualifiers.union(qualifiers, pQualifiersToAdd)),

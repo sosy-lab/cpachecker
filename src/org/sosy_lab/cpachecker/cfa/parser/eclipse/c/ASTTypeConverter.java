@@ -63,6 +63,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 /** This Class contains functions, that convert types from C-source into CPAchecker-format. */
 class ASTTypeConverter {
 
+  // CDT has no builtin support for _Atomic.
+  // Cf. #1253, https://github.com/eclipse-cdt/cdt/issues/946
+  static final boolean ATOMIC_MISSING = false;
+
   private final Scope scope;
   private final ASTConverter converter;
   private final String filePrefix;
@@ -233,7 +237,7 @@ class ASTTypeConverter {
 
   private CPointerType conv(final IPointerType t) {
     return new CPointerType(
-        CTypeQualifiers.create(t.isConst(), t.isVolatile()), convert(t.getType()));
+        CTypeQualifiers.create(ATOMIC_MISSING, t.isConst(), t.isVolatile()), convert(t.getType()));
   }
 
   private CTypedefType conv(final ITypedef t) {
@@ -282,7 +286,9 @@ class ASTTypeConverter {
       }
     }
     return new CArrayType(
-        CTypeQualifiers.create(t.isConst(), t.isVolatile()), convert(t.getType()), length);
+        CTypeQualifiers.create(ATOMIC_MISSING, t.isConst(), t.isVolatile()),
+        convert(t.getType()),
+        length);
   }
 
   private CType conv(final IQualifierType t) {
@@ -291,7 +297,7 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    return i.withQualifiersSetTo(CTypeQualifiers.create(isConst, isVolatile));
+    return i.withQualifiersSetTo(CTypeQualifiers.create(ATOMIC_MISSING, isConst, isVolatile));
   }
 
   private CType conv(final IEnumeration e) {
@@ -411,7 +417,7 @@ class ASTTypeConverter {
   }
 
   CTypeQualifiers convertCTypeQualifiers(final IASTDeclSpecifier d) {
-    return CTypeQualifiers.create(d.isConst(), d.isVolatile());
+    return CTypeQualifiers.create(ATOMIC_MISSING, d.isConst(), d.isVolatile());
   }
 
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
@@ -438,7 +444,8 @@ class ASTTypeConverter {
   /** returns a pointerType, that wraps the type. */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
     if (po instanceof IASTPointer p) {
-      return new CPointerType(CTypeQualifiers.create(p.isConst(), p.isVolatile()), type);
+      return new CPointerType(
+          CTypeQualifiers.create(ATOMIC_MISSING, p.isConst(), p.isVolatile()), type);
 
     } else {
       throw parseContext.parseError("Unknown pointer operator", po);

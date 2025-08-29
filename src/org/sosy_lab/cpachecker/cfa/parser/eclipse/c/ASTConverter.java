@@ -2448,7 +2448,10 @@ class ASTConverter {
       if (!isFunctionParameter && !isSafeAsArrayLength(lengthExp)) {
         lengthExp = createTemporaryVariableWithInitializer(getLocation(am), lengthExp);
       }
-      return new CArrayType(CTypeQualifiers.create(a.isConst(), a.isVolatile()), type, lengthExp);
+      return new CArrayType(
+          CTypeQualifiers.create(ASTTypeConverter.ATOMIC_MISSING, a.isConst(), a.isVolatile()),
+          type,
+          lengthExp);
 
     } else {
       throw parseContext.parseError("Unknown array modifier", am);
