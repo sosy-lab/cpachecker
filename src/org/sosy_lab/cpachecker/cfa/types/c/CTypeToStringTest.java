@@ -41,6 +41,13 @@ public class CTypeToStringTest {
   @SuppressWarnings("checkstyle:NoWhitespaceAfter") // nicely readable in this special case
   public static Object[][] types() {
     return new Object[][] {
+      {
+        "_Atomic const volatile int var",
+        CNumericTypes.INT.withQualifiersSetTo(CTypeQualifiers.ATOMIC_CONST_VOLATILE),
+      },
+      {
+        "_Atomic int *var", new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT.withAtomic()),
+      },
       { // declare var as pointer to int
         "int *var", new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT),
       },

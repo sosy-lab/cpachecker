@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
+import org.eclipse.cdt.core.dom.ast.IASTAttribute;
+import org.eclipse.cdt.core.dom.ast.IASTAttributeOwner;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
@@ -417,7 +419,21 @@ class ASTTypeConverter {
   }
 
   CTypeQualifiers convertCTypeQualifiers(final IASTDeclSpecifier d) {
-    return CTypeQualifiers.create(ATOMIC_MISSING, d.isConst(), d.isVolatile());
+    return CTypeQualifiers.create(hasCPAcheckerAttributeForAtomic(d), d.isConst(), d.isVolatile());
+  }
+
+  /**
+   * Check whether this AST node has an attribute that was added by the preprocessor as a
+   * replacement for _Atomic. Cf #1253
+   */
+  boolean hasCPAcheckerAttributeForAtomic(IASTAttributeOwner ao) {
+    for (IASTAttribute attr : ao.getAttributes()) {
+      String name = String.valueOf(attr.getName());
+      if (name.equals(EclipseCdtWrapper.ATOMIC_ATTRIBUTE)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
