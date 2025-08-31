@@ -141,7 +141,7 @@ public class MemoryModelBuilder {
 
     // exclude const CPAchecker_TMP, they do not have any effect in the input program
     if (!MemoryLocationUtil.isConstCpaCheckerTmp(pMemoryLocation)) {
-      // relevant locations are either explicitly global or implicitly (e.g. through pointers)
+      // relevant locations are either explicit or implicit (e.g. through pointers) global
       if (pMemoryLocation.isExplicitGlobal()
           || isImplicitGlobal(
               pMemoryLocation,
@@ -175,41 +175,23 @@ public class MemoryModelBuilder {
     }
     if (isPointedTo(pMemoryLocation, pPointerAssignments, pPointerParameterAssignments)) {
       // inexpensive shortcut: first check for direct assignments
-      for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
-        if (isExplicitGlobalOrStartRoutineArg(pointerDeclaration, pStartRoutineArgAssignments)) {
-          return true;
-        }
+      if (isImplicitGlobalByDirectPointerAssignments(
+          pPointerAssignments, pStartRoutineArgAssignments)) {
+        return true;
       }
       // then check if a global pointer deref is associated with the memory location
-      for (MemoryLocation pointerDereference : pPointerDereferences) {
-        if (pointerDereference.equals(pMemoryLocation)) {
-          ImmutableSet<MemoryLocation> memoryLocations =
-              MemoryLocationFinder.findMemoryLocationsByPointerDereference(
-                  pointerDereference,
-                  pPointerAssignments,
-                  pStartRoutineArgAssignments,
-                  pPointerParameterAssignments);
-          for (MemoryLocation memoryLocation : memoryLocations) {
-            if (isExplicitGlobalOrStartRoutineArg(memoryLocation, pStartRoutineArgAssignments)) {
-              return true;
-            }
-          }
-        }
+      if (isImplicitGlobalByPointerDereference(
+          pMemoryLocation,
+          pPointerAssignments,
+          pStartRoutineArgAssignments,
+          pPointerParameterAssignments,
+          pPointerDereferences)) {
+        return true;
       }
       // lastly perform most expensive check on transitive pointer assignments
-      for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
-        ImmutableSet<MemoryLocation> transitivePointerDeclarations =
-            MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
-                pointerDeclaration,
-                pPointerAssignments,
-                pStartRoutineArgAssignments,
-                pPointerParameterAssignments);
-        for (MemoryLocation otherPointerDeclaration : transitivePointerDeclarations) {
-          if (isExplicitGlobalOrStartRoutineArg(
-              otherPointerDeclaration, pStartRoutineArgAssignments)) {
-            return true;
-          }
-        }
+      if (isImplicitGlobalByTransitivePointerAssignment(
+          pPointerAssignments, pStartRoutineArgAssignments, pPointerParameterAssignments)) {
+        return true;
       }
     }
     return false;
@@ -237,6 +219,65 @@ public class MemoryModelBuilder {
     }
     if (pPointerParameterAssignments.containsValue(pMemoryLocation)) {
       return true;
+    }
+    return false;
+  }
+
+  private static boolean isImplicitGlobalByPointerDereference(
+      MemoryLocation pMemoryLocation,
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
+      ImmutableSet<MemoryLocation> pPointerDereferences) {
+
+    for (MemoryLocation pointerDereference : pPointerDereferences) {
+      if (pointerDereference.equals(pMemoryLocation)) {
+        ImmutableSet<MemoryLocation> memoryLocations =
+            MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+                pointerDereference,
+                pPointerAssignments,
+                pStartRoutineArgAssignments,
+                pPointerParameterAssignments);
+        for (MemoryLocation memoryLocation : memoryLocations) {
+          if (isExplicitGlobalOrStartRoutineArg(memoryLocation, pStartRoutineArgAssignments)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private static boolean isImplicitGlobalByDirectPointerAssignments(
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments) {
+
+    for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
+      if (isExplicitGlobalOrStartRoutineArg(pointerDeclaration, pStartRoutineArgAssignments)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean isImplicitGlobalByTransitivePointerAssignment(
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
+
+    for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
+      ImmutableSet<MemoryLocation> transitivePointerDeclarations =
+          MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
+              pointerDeclaration,
+              pPointerAssignments,
+              pStartRoutineArgAssignments,
+              pPointerParameterAssignments);
+      for (MemoryLocation transitivePointerDeclaration : transitivePointerDeclarations) {
+        if (isExplicitGlobalOrStartRoutineArg(
+            transitivePointerDeclaration, pStartRoutineArgAssignments)) {
+          return true;
+        }
+      }
     }
     return false;
   }

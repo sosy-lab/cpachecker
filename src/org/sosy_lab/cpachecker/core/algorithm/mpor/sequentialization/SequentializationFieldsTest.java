@@ -178,14 +178,13 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
     assertThat(fields.memoryModel.isPresent()).isTrue();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    // TODO
     // check that each member of queue struct is identified as relevant individually
     assertThat(memoryModel.getRelevantMemoryLocationAmount() == 5).isTrue();
     assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    // 4 in main, 3 in t1, 1 in t2
+    // 2 in main, 3 in t1, 1 in t2
     // (pthread_mutex_lock(&m) does not count as poitner parameter assignment)
-    assertThat(memoryModel.pointerParameterAssignments.size() == 8).isTrue();
-    assertThat(memoryModel.pointerDereferences.size() == 22).isTrue();
+    assertThat(memoryModel.pointerParameterAssignments.size() == 6).isTrue();
+    assertThat(memoryModel.pointerDereferences.size() == 17).isTrue();
     // both pthread_create calls take &queue as arguments
     assertThat(memoryModel.startRoutineArgAssignments.size() == 2).isTrue();
     // the main thread should always have id 0

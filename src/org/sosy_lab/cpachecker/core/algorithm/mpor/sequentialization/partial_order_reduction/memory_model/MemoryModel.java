@@ -64,7 +64,7 @@ public class MemoryModel {
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
-    checkArguments(pPointerAssignments);
+    checkArguments(pPointerAssignments, pPointerParameterAssignments);
     allMemoryLocations = pAllMemoryLocations;
     relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
     relevantMemoryLocations = pRelevantMemoryLocationIds;
@@ -76,8 +76,10 @@ public class MemoryModel {
   }
 
   private static void checkArguments(
-      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments) {
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
+    // check that all left hand sides in pointer assignments are CPointerType
     for (MemoryLocation memoryLocation : pPointerAssignments.keySet()) {
       if (memoryLocation.fieldMember.isPresent()) {
         // for field owner / members: only the member must be CPointerType
@@ -95,6 +97,10 @@ public class MemoryModel {
             "variableDeclaration must be CPointerType, got %s",
             simpleDeclaration.getType());
       }
+    }
+    // check that pointer assignments contains all pointer parameter assignments (i.e. subset)
+    for (var entry : pPointerParameterAssignments.entrySet()) {
+      checkArgument(pPointerAssignments.entries().contains(entry));
     }
   }
 
