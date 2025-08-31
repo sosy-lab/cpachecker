@@ -188,6 +188,9 @@ public class MemoryModelParameterTest {
   private final CParameterDeclaration PARAMETER_DECLARATION_Q =
       new CParameterDeclaration(FileLocation.DUMMY, INT_TYPE, "param_Q");
 
+  private final CParameterDeclaration PARAMETER_DECLARATION_POINTER_R =
+      new CParameterDeclaration(FileLocation.DUMMY, INT_POINTER_TYPE, "param_ptr_R");
+
   // Memory Locations (primitives)
 
   private final MemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
@@ -215,6 +218,12 @@ public class MemoryModelParameterTest {
           MPOROptions.defaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_Q);
+
+  private final MemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
+      MemoryLocation.of(
+          MPOROptions.defaultTestInstance(),
+          Optional.of(DUMMY_CALL_CONTEXT),
+          PARAMETER_DECLARATION_POINTER_R);
 
   @Test
   public void test_pointer_parameter_dereference() {
@@ -304,5 +313,34 @@ public class MemoryModelParameterTest {
                 parameterAssignments,
                 ImmutableSet.of()))
         .isTrue();
+  }
+
+  @Test
+  public void test_transitive_pointer_parameter_assignments() {
+    // param_ptr_R = &local_Z; and param_ptr_P = param_ptr_R;
+    // i.e. transitive pointer parameter assignments
+    ImmutableMap<MemoryLocation, MemoryLocation> parameterAssignments =
+        ImmutableMap.<MemoryLocation, MemoryLocation>builder()
+            .put(PARAMETER_POINTER_R_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
+            .put(PARAMETER_POINTER_P_MEMORY_LOCATION, PARAMETER_POINTER_R_MEMORY_LOCATION)
+            .buildOrThrow();
+    ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
+        MemoryModelBuilder.extractPointerParameters(parameterAssignments);
+
+    // all are not explicit global memory locations
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+    assertThat(LOCAL_Z_MEMORY_LOCATION.isExplicitGlobal()).isFalse();
+
+    // find the mem locations associated with deref of 'param_ptr_P' in the given call context
+    ImmutableSet<MemoryLocation> memoryLocations =
+        MemoryLocationFinder.findMemoryLocationsByPointerDereference(
+            PARAMETER_POINTER_P_MEMORY_LOCATION,
+            ImmutableSetMultimap.of(),
+            ImmutableMap.of(),
+            pointerParameterAssignments);
+
+    assertThat(memoryLocations.size() == 1).isTrue();
+    assertThat(memoryLocations.contains(LOCAL_Z_MEMORY_LOCATION)).isTrue();
   }
 }
