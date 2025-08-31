@@ -274,8 +274,7 @@ public class SequentializationFieldsTest {
     // unsigned int * stack = static unsigned int arr[SIZE]
     // counts as pointer parameter assignments
     assertThat(memoryModel.pointerParameterAssignments.size() == 2).isTrue();
-    // TODO
-    // stack[get_top()] should count as pointer dereferences
+    // stack[get_top()] count as pointer dereferences
     assertThat(memoryModel.pointerDereferences.size() == 2).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0

@@ -259,6 +259,30 @@ public class MPORSubstitution {
     }
   }
 
+  private void trackPointerDereferenceByArraySubscriptExpression(
+      CArraySubscriptExpression pArraySubscriptExpression,
+      boolean pIsWrite,
+      Optional<MPORSubstitutionTracker> pTracker) {
+
+    if (pTracker.isEmpty()) {
+      return;
+    }
+    // TODO if the subscript expression is an integer literal, track the exact index, not just the
+    //  entire array
+    CExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
+    if (arrayExpression instanceof CIdExpression idExpression) {
+      if (idExpression.getExpressionType() instanceof CPointerType) {
+        // do not consider CFunctionDeclarations
+        if (isSubstitutable(idExpression.getDeclaration())) {
+          if (pIsWrite) {
+            pTracker.orElseThrow().addWrittenPointerDereference(idExpression.getDeclaration());
+          }
+          pTracker.orElseThrow().addAccessedPointerDereference(idExpression.getDeclaration());
+        }
+      }
+    }
+  }
+
   private void trackPointerDereferenceByFieldReference(
       CFieldReference pFieldReference,
       boolean pIsWrite,
@@ -435,6 +459,7 @@ public class MPORSubstitution {
         }
       }
       case CArraySubscriptExpression arraySubscript -> {
+        trackPointerDereferenceByArraySubscriptExpression(arraySubscript, pIsWrite, pTracker);
         CExpression arrayExpression = arraySubscript.getArrayExpression();
         CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
         CExpression arraySubstitute =
