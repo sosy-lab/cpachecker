@@ -2219,8 +2219,7 @@ cpa.octagon.octagonLibrary = "INT"
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
-# Strategy for mapping heap allocations to symbolic heap locations: SINGLE,
-# PER_CALL, PER_LINE
+# Strategy for mapping heap allocations to symbolic heap locations
 cpa.pointer.heapAllocationStrategy = PER_CALL
   enum:     [SINGLE, PER_CALL, PER_LINE]
 
