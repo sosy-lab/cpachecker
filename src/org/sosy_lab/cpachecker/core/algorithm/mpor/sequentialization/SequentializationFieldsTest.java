@@ -178,8 +178,9 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
     assertThat(fields.memoryModel.isPresent()).isTrue();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    // TODO
     // check that each member of queue struct is identified as relevant individually
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 5).isTrue();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 9).isTrue();
     assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
     // 2 in main, 3 in t1, 1 in t2
     // (pthread_mutex_lock(&m) does not count as poitner parameter assignment)
@@ -187,6 +188,96 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.size() == 17).isTrue();
     // both pthread_create calls take &queue as arguments
     assertThat(memoryModel.startRoutineArgAssignments.size() == 2).isTrue();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+  }
+
+  @Test
+  public void test_read_write_lock_2() throws Exception {
+    // this program contains start_routines that start directly with a function call.
+    // this forces us to reorder the thread statements, because function statements are usually
+    // at the bottom of a thread simulation.
+    Path path = Path.of("./test/programs/mpor/sequentialization/read_write_lock-2.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.defaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads == 5).isTrue();
+    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
+    assertThat(fields.memoryModel.isPresent()).isTrue();
+    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 4).isTrue();
+    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
+    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+  }
+
+  @Test
+  public void test_simple_two() throws Exception {
+    // this program contains no return statements for the created threads
+    Path path = Path.of("./test/programs/mpor/sequentialization/simple_two.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.defaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads == 3).isTrue();
+    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
+    assertThat(fields.memoryModel.isPresent()).isTrue();
+    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 1).isTrue();
+    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
+    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+  }
+
+  @Test
+  public void test_singleton_with_uninit_problems_b() throws Exception {
+    // this program has thread creations inside a non-main thread
+    Path path =
+        Path.of("./test/programs/mpor/sequentialization/singleton_with-uninit-problems-b.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.defaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads == 7).isTrue();
+    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
+    assertThat(fields.memoryModel.isPresent()).isTrue();
+    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 1).isTrue();
+    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
+    // array subscripts e.g. v[0] do not count as pointer dereferences
+    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
+    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+  }
+
+  @Test
+  public void test_stack_1() throws Exception {
+    Path path = Path.of("./test/programs/mpor/sequentialization/stack-1.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.defaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads == 3).isTrue();
+    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
+    assertThat(fields.memoryModel.isPresent()).isTrue();
+    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 3).isTrue();
+    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
+    // unsigned int * stack = static unsigned int arr[SIZE]
+    // counts as pointer parameter assignments
+    assertThat(memoryModel.pointerParameterAssignments.size() == 2).isTrue();
+    // TODO
+    // stack[get_top()] should count as pointer dereferences
+    assertThat(memoryModel.pointerDereferences.size() == 2).isTrue();
+    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();

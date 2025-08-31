@@ -148,17 +148,16 @@ public class MemoryModel {
           pStartRoutineArgAssignments,
           pPointerParameterAssignments);
     }
-    ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
-    rMemoryLocations.addAll(pPointerAssignments.get(pMemoryLocation));
+    ImmutableSet.Builder<MemoryLocation> rRightHandSides = ImmutableSet.builder();
+    rRightHandSides.addAll(pPointerAssignments.get(pMemoryLocation));
     if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {
-      rMemoryLocations.add(
-          Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
+      rRightHandSides.add(Objects.requireNonNull(pStartRoutineArgAssignments.get(pMemoryLocation)));
     }
     if (pPointerParameterAssignments.containsKey(pMemoryLocation)) {
-      rMemoryLocations.add(
+      rRightHandSides.add(
           Objects.requireNonNull(pPointerParameterAssignments.get(pMemoryLocation)));
     }
-    return rMemoryLocations.build();
+    return rRightHandSides.build();
   }
 
   public int getRelevantMemoryLocationAmount() {

@@ -168,18 +168,13 @@ public class MemoryModelBuilder {
     if (pMemoryLocation.isExplicitGlobal()) {
       return false;
     }
-    // e.g. (void*) arg = &local_var -> local_var can be accessed by both threads
+    // e.g. (void*) arg = &local_var -> local_var can be accessed by creating and created threads
     if (pStartRoutineArgAssignments.containsValue(pMemoryLocation)) {
       return true;
     }
+    // if any pointer points to the memory location: check all pointer assignments and derefs
     if (isPointedTo(pMemoryLocation, pPointerAssignments, pPointerParameterAssignments)) {
-      // inexpensive shortcut: first check for direct assignments
-      if (isImplicitGlobalByDirectPointerAssignments(
-          pPointerAssignments, pStartRoutineArgAssignments)) {
-        return true;
-      }
-      // then check if a global pointer deref is associated with the memory location
-      if (isImplicitGlobalByPointerDereference(
+      if (isImplicitGlobalByPointerAssignmentsAndDereferences(
           pMemoryLocation,
           pPointerAssignments,
           pStartRoutineArgAssignments,
@@ -187,11 +182,35 @@ public class MemoryModelBuilder {
           pPointerDereferences)) {
         return true;
       }
-      // lastly perform most expensive check on transitive pointer assignments
-      if (isImplicitGlobalByTransitivePointerAssignment(
-          pPointerAssignments, pStartRoutineArgAssignments, pPointerParameterAssignments)) {
-        return true;
-      }
+    }
+    return false;
+  }
+
+  private static boolean isImplicitGlobalByPointerAssignmentsAndDereferences(
+      MemoryLocation pMemoryLocation,
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
+      ImmutableSet<MemoryLocation> pPointerDereferences) {
+
+    // inexpensive shortcut: first check for direct assignments
+    if (isImplicitGlobalByDirectPointerAssignments(
+        pPointerAssignments, pStartRoutineArgAssignments)) {
+      return true;
+    }
+    // then check if a global pointer deref is associated with the memory location
+    if (isImplicitGlobalByPointerDereference(
+        pMemoryLocation,
+        pPointerAssignments,
+        pStartRoutineArgAssignments,
+        pPointerParameterAssignments,
+        pPointerDereferences)) {
+      return true;
+    }
+    // lastly perform most expensive check on transitive pointer assignments
+    if (isImplicitGlobalByTransitivePointerAssignments(
+        pPointerAssignments, pStartRoutineArgAssignments, pPointerParameterAssignments)) {
+      return true;
     }
     return false;
   }
@@ -259,7 +278,7 @@ public class MemoryModelBuilder {
     return false;
   }
 
-  private static boolean isImplicitGlobalByTransitivePointerAssignment(
+  private static boolean isImplicitGlobalByTransitivePointerAssignments(
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {

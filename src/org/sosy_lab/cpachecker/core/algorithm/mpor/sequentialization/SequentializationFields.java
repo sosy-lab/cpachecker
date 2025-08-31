@@ -57,19 +57,20 @@ public class SequentializationFields {
 
   public final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
+  // TODO split into separate function so that unit tests create only what they test
   SequentializationFields(
       MPOROptions pOptions,
-      CFA pCFA,
+      CFA pCfa,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    threads = ThreadBuilder.createThreads(pOptions, pCFA);
+    threads = ThreadBuilder.createThreads(pOptions, pCfa);
     numThreads = threads.size();
     substitutions =
         MPORSubstitutionBuilder.buildSubstitutions(
             pOptions,
-            CFAUtils.getGlobalVariableDeclarations(pCFA),
+            CFAUtils.getGlobalVariableDeclarations(pCfa),
             threads,
             pBinaryExpressionBuilder,
             pLogger);
