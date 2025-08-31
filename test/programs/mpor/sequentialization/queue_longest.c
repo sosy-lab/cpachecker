@@ -32,16 +32,6 @@ int __VERIFIER_nondet_int();
 int stored_elements[SIZE];
 _Bool enqueue_flag, dequeue_flag;
 QType queue;
-typedef struct {} Empty;
-typedef struct {
-  int inner_member;
-} Inner;
-typedef struct {
-  Inner inner;
-  int outer_member;
-} Outer;
-Outer outer_A;
-Outer outer_B;
 
 void init(QType *q)
 {
@@ -162,46 +152,12 @@ void *t2(void *arg)
   *ultimate_question = 42;
   pthread_exit((void*)ultimate_question);
 }
-void field_member_parameter_test(int param) {
-  param++;
-}
-void field_member_parameter_test_ptr(int * param) {
-  *param++;
-}
-void field_owner_parameter_test_ptr(Inner * param_inner) {
-  param_inner->inner_member = 42;
-}
 int main(void) 
 {
   pthread_t id1, id2;
 
   enqueue_flag=TRUE;
   dequeue_flag=FALSE;
-
-  outer_A.inner.inner_member = 42;
-  outer_B.inner.inner_member = -42;
-  int local_1;
-  local_1 = outer_A.inner.inner_member;
-  int local_2;
-  local_2 = outer_B.outer_member;
-  Inner * inner_ptr;
-  inner_ptr = &outer_A.inner;
-  *inner_ptr = outer_B.inner;
-  int * outer_member_ptr;
-  outer_member_ptr = &outer_A.outer_member;
-  *outer_member_ptr = 42;
-  Outer * outer_ptr;
-  outer_ptr = &outer_A;
-
-  int * ptr;
-  int x;
-  x = 42;
-  ptr = ptr;
-  *ptr = 7;
-
-  field_member_parameter_test(outer_A.inner.inner_member);
-  field_member_parameter_test_ptr(&outer_A.inner.inner_member);
-  field_owner_parameter_test_ptr(&outer_A.inner);
 
   init(&queue);
 

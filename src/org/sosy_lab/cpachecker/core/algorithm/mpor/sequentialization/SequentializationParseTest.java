@@ -430,7 +430,7 @@ public class SequentializationParseTest {
   }
 
   private void testProgramParse(Path pInputFilePath, MPOROptions pOptions) throws Exception {
-    // create cfa for test program pFileName
+    // create cfa for test program pInputFilePath
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFACreator creatorWithPreProcessor =
