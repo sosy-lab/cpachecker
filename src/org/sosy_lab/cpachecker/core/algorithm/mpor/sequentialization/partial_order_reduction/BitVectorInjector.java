@@ -397,8 +397,9 @@ public class BitVectorInjector {
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
         // consider only 0 writes (at some point the memory location is not reachable anymore)
         if (!pOptions.pruneBitVectorWrite || !pReachableMemoryLocations.contains(entry.getKey())) {
+          boolean value = pReachableMemoryLocations.contains(entry.getKey());
           SparseBitVectorValueExpression sparseBitVectorExpression =
-              new SparseBitVectorValueExpression(false);
+              new SparseBitVectorValueExpression(value);
           rStatements.add(
               new SeqBitVectorAssignmentStatement(
                   accessVariables.get(pThread), sparseBitVectorExpression));
