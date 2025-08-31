@@ -61,12 +61,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // using optional for @Options is not allowed, unfortunately...
   private BitVectorEncoding bitVectorEncoding = BitVectorEncoding.NONE;
 
-  @Option(
-      secure = true,
-      description =
-          "prune and simplify bit vector evaluation expressions based on perfect knowledge?")
-  private boolean bitVectorEvaluationPrune = false;
-
   @Option(secure = true, description = "add ")
   // using optional for @Options is not allowed, unfortunately...
   private boolean bitVectorReduction = false;
@@ -207,6 +201,22 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "prune and simplify bit vector evaluation expressions based on perfect knowledge? e.g."
+              + " if it is known that the left hand side in an & expression is 0, then the entire"
+              + " evaluation can be pruned.")
+  private boolean pruneBitVectorEvaluation = false;
+
+  @Option(
+      secure = true,
+      description =
+          "only works for bitVectorEncoding SPARSE. bit vectors are initialized with 1"
+              + " and written to 0 if the corresponding memory location is not reachable anymore."
+              + " all unnecessary writes to 1 are thus pruned.")
+  private boolean pruneBitVectorWrite = false;
+
+  @Option(
+      secure = true,
+      description =
           "how to determine if two threads commute from a location. READ_AND_WRITE reduces the"
               + " state space more than ACCESS_ONLY, but introduces additional overhead (i.e."
               + " number of variables, assignments, and bit vector evaluations)")
@@ -306,7 +316,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     allowPointerWrites,
                     atomicBlockMerge,
                     bitVectorEncoding,
-                    bitVectorEvaluationPrune,
                     bitVectorReduction,
                     comments,
                     conflictReduction,
@@ -332,6 +341,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     outputPath,
                     overwriteFiles,
                     pruneEmptyStatements,
+                    pruneBitVectorEvaluation,
+                    pruneBitVectorWrite,
                     reductionMode,
                     scalarPc,
                     sequentializationErrors,

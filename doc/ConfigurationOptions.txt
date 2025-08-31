@@ -270,10 +270,6 @@ analysis.algorithm.MPOR.atomicBlockMerge = true
 analysis.algorithm.MPOR.bitVectorEncoding = NONE
   enum:     [NONE, BINARY, DECIMAL, HEXADECIMAL, SPARSE]
 
-# prune and simplify bit vector evaluation expressions based on perfect
-# knowledge?
-analysis.algorithm.MPOR.bitVectorEvaluationPrune = false
-
 # add 
 analysis.algorithm.MPOR.bitVectorReduction = false
 
@@ -366,6 +362,16 @@ analysis.algorithm.MPOR.outputPath = SeqWriter.DEFAULT_OUTPUT_PATH
 
 # overwrite files in the ./output directory when creating sequentializations?
 analysis.algorithm.MPOR.overwriteFiles = true
+
+# prune and simplify bit vector evaluation expressions based on perfect
+# knowledge? e.g. if it is known that the left hand side in an & expression
+# is 0, then the entire evaluation can be pruned.
+analysis.algorithm.MPOR.pruneBitVectorEvaluation = false
+
+# only works for bitVectorEncoding SPARSE. bit vectors are initialized with 1
+# and written to 0 if the corresponding memory location is not reachable
+# anymore. all unnecessary writes to 1 are thus pruned.
+analysis.algorithm.MPOR.pruneBitVectorWrite = false
 
 # prune empty statements (with only pc writes) from the sequentialization?
 analysis.algorithm.MPOR.pruneEmptyStatements = true

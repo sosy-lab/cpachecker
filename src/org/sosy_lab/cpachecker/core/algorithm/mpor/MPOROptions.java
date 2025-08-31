@@ -36,8 +36,6 @@ public class MPOROptions {
 
   public final BitVectorEncoding bitVectorEncoding;
 
-  public final boolean bitVectorEvaluationPrune;
-
   public final boolean bitVectorReduction;
 
   public final boolean comments;
@@ -88,6 +86,10 @@ public class MPOROptions {
 
   public final boolean pruneEmptyStatements;
 
+  public final boolean pruneBitVectorEvaluation;
+
+  public final boolean pruneBitVectorWrite;
+
   public final ReductionMode reductionMode;
 
   public final boolean scalarPc;
@@ -104,7 +106,6 @@ public class MPOROptions {
       boolean pAllowPointerWrites,
       boolean pAtomicBlockMerge,
       BitVectorEncoding pBitVectorEncoding,
-      boolean pBitVectorEvaluationPrune,
       boolean pBitVectorReduction,
       boolean pComments,
       boolean pConflictReduction,
@@ -130,6 +131,8 @@ public class MPOROptions {
       String pOutputPath,
       boolean pOverwriteFiles,
       boolean pPruneEmptyStatements,
+      boolean pPruneBitVectorEvaluation,
+      boolean pPruneBitVectorWrite,
       ReductionMode pReductionMode,
       boolean pScalarPc,
       boolean pSequentializationErrors,
@@ -148,7 +151,6 @@ public class MPOROptions {
     allowPointerWrites = pAllowPointerWrites;
     atomicBlockMerge = pAtomicBlockMerge;
     bitVectorEncoding = pBitVectorEncoding;
-    bitVectorEvaluationPrune = pBitVectorEvaluationPrune;
     bitVectorReduction = pBitVectorReduction;
     comments = pComments;
     conflictReduction = pConflictReduction;
@@ -174,6 +176,8 @@ public class MPOROptions {
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
     pruneEmptyStatements = pPruneEmptyStatements;
+    pruneBitVectorEvaluation = pPruneBitVectorEvaluation;
+    pruneBitVectorWrite = pPruneBitVectorWrite;
     reductionMode = pReductionMode;
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
@@ -187,7 +191,6 @@ public class MPOROptions {
         true,
         true,
         BitVectorEncoding.NONE,
-        false,
         false,
         false,
         false,
@@ -214,6 +217,8 @@ public class MPOROptions {
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,
         true,
+        false,
+        false,
         ReductionMode.NONE,
         false,
         false,
@@ -226,7 +231,6 @@ public class MPOROptions {
   public static MPOROptions testInstance(
       boolean pAllowPointerWrites,
       BitVectorEncoding pBitVectorEncoding,
-      boolean pBitVectorEvaluationPrune,
       boolean pBitVectorReduction,
       boolean pComments,
       boolean pConflictReduction,
@@ -244,6 +248,8 @@ public class MPOROptions {
       NondeterminismSource pNondeterminismSource,
       boolean pNoBackwardGoto,
       boolean pNoBackwardLoopGoto,
+      boolean pPruneBitVectorEvaluation,
+      boolean pPruneBitVectorWrite,
       ReductionMode pReductionMode,
       boolean pScalarPc,
       boolean pSequentializationErrors,
@@ -254,7 +260,6 @@ public class MPOROptions {
         // always merge atomic blocks because not doing so may add additional interleavings
         true,
         pBitVectorEncoding,
-        pBitVectorEvaluationPrune,
         pBitVectorReduction,
         pComments,
         pConflictReduction,
@@ -284,6 +289,8 @@ public class MPOROptions {
         false,
         // always prune empty, disabling is only for debugging, not for release
         true,
+        pPruneBitVectorEvaluation,
+        pPruneBitVectorWrite,
         pReductionMode,
         pScalarPc,
         pSequentializationErrors,
@@ -378,18 +385,36 @@ public class MPOROptions {
           "bitVectorEncoding is only considered with linkReduction"
               + " enabled. Either enable linkReduction or set bitVectorEncoding to NONE.");
     }
-    if (bitVectorEvaluationPrune && !areBitVectorsEnabled()) {
+    if (pruneBitVectorEvaluation && !areBitVectorsEnabled()) {
       pLogger.log(
           Level.WARNING,
           "pruneBitVectorEvaluation is only considered when bitVectorReduction /"
-              + " conflictReduction is enabled. . Either disable pruneBitVectorEvaluation or enable"
+              + " conflictReduction is enabled. Either disable pruneBitVectorEvaluation or enable"
               + " bitVectorReduction / conflictReduction.");
     }
-    if (bitVectorEvaluationPrune && !bitVectorEncoding.isEnabled()) {
+    if (pruneBitVectorEvaluation && !bitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.WARNING,
           "pruneBitVectorEvaluation is only considered when bitVectorEncoding is not"
               + " NONE. Either disable pruneBitVectorEvaluation or set bitVectorEncoding.");
+    }
+    if (pruneBitVectorWrite && !areBitVectorsEnabled()) {
+      pLogger.log(
+          Level.WARNING,
+          "pruneBitVectorWrite is only considered when bitVectorReduction /"
+              + " conflictReduction is enabled. Either disable pruneBitVectorWrite or enable"
+              + " bitVectorReduction / conflictReduction.");
+    }
+    if (pruneBitVectorWrite && !bitVectorEncoding.isEnabled()) {
+      pLogger.log(
+          Level.WARNING,
+          "pruneBitVectorWrite is only considered when bitVectorEncoding is not"
+              + " NONE. Either disable pruneBitVectorWrite or set bitVectorEncoding.");
+    }
+    if (pruneBitVectorWrite && !bitVectorEncoding.isSparse) {
+      pLogger.log(
+          Level.WARNING,
+          "pruneBitVectorWrite only has an effect when bitVectorEncoding is SPARSE.");
     }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
       if (!controlEncodingThread.equals(MultiControlStatementEncoding.NONE)) {

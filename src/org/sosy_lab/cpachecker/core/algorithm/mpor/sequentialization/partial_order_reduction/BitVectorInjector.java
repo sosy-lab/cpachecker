@@ -396,7 +396,7 @@ public class BitVectorInjector {
       for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
         // consider only 0 writes (at some point the memory location is not reachable anymore)
-        if (!pReachableMemoryLocations.contains(entry.getKey())) {
+        if (!pOptions.pruneBitVectorWrite || !pReachableMemoryLocations.contains(entry.getKey())) {
           SparseBitVectorValueExpression sparseBitVectorExpression =
               new SparseBitVectorValueExpression(false);
           rStatements.add(

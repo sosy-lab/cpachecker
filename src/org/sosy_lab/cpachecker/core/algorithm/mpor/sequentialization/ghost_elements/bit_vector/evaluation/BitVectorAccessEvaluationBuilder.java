@@ -60,7 +60,7 @@ class BitVectorAccessEvaluationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.bitVectorEvaluationPrune) {
+    if (pOptions.pruneBitVectorEvaluation) {
       return buildPrunedDenseEvaluation(
           pOtherBitVectors, pDirectMemoryLocations, pMemoryModel, pBinaryExpressionBuilder);
     } else {
@@ -75,7 +75,7 @@ class BitVectorAccessEvaluationBuilder {
       ImmutableSet<MemoryLocation> pDirectAccessMemoryLocations,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pOptions.bitVectorEvaluationPrune) {
+    if (pOptions.pruneBitVectorEvaluation) {
       return buildPrunedSparseEvaluation(
           pSparseBitVectorMap, pDirectAccessMemoryLocations, pBitVectorVariables);
     } else {

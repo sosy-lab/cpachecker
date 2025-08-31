@@ -67,7 +67,8 @@ public class SequentializationFieldsTest {
     // we want to identify int * p = (int *) arg; as a pointer assignment, even on declaration
     assertThat(memoryModel.pointerAssignments.size() == 1).isTrue();
     assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
+    // access(*p); is a deref of p
+    assertThat(memoryModel.pointerDereferences.size() == 1).isTrue();
     // check that we (only) identify the passing of &i to pthread_create as start_routine arg
     assertThat(memoryModel.startRoutineArgAssignments.size() == 1).isTrue();
     // the main thread should always have id 0
@@ -131,7 +132,8 @@ public class SequentializationFieldsTest {
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
     assertThat(fields.memoryModel.isPresent()).isTrue();
     MemoryModel memoryModel = fields.memoryModel.orElseThrow();
-    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 1).isTrue();
+    // mutex and data
+    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 2).isTrue();
     assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
     assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
@@ -180,8 +182,8 @@ public class SequentializationFieldsTest {
     // check that each member of queue struct is identified as relevant individually
     assertThat(memoryModel.getRelevantMemoryLocationAmount() == 5).isTrue();
     assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
-    // 4 in main, 3 in t1, 1 in t2 (pthread_mutex_lock(&m) does not count as pointer param
-    // assignment)
+    // 4 in main, 3 in t1, 1 in t2
+    // (pthread_mutex_lock(&m) does not count as poitner parameter assignment)
     assertThat(memoryModel.pointerParameterAssignments.size() == 8).isTrue();
     assertThat(memoryModel.pointerDereferences.size() == 22).isTrue();
     // both pthread_create calls take &queue as arguments
