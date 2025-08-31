@@ -310,9 +310,9 @@ public class MemoryModelBuilder {
         CExpression startRoutineArg =
             CFAUtils.getParameterAtIndex(
                 original, PthreadFunctionType.PTHREAD_CREATE.getStartRoutineArgIndex());
-        MemoryLocation rhsMemoryLocation =
+        Optional<MemoryLocation> rhsMemoryLocation =
             extractMemoryLocation(pOptions, callContext, startRoutineArg, pInitialMemoryLocations);
-        if (!rhsMemoryLocation.isEmpty()) {
+        if (rhsMemoryLocation.isPresent()) {
           // use the ID of the created thread for the parameter declaration
           CFunctionDeclaration functionDeclaration =
               PthreadUtil.extractStartRoutineDeclaration(original);
@@ -322,7 +322,7 @@ public class MemoryModelBuilder {
               functionDeclaration.getParameters().getFirst();
           rAssignments.put(
               MemoryLocation.of(pOptions, Optional.of(callContext), parameterDeclaration),
-              rhsMemoryLocation);
+              rhsMemoryLocation.orElseThrow());
         }
       }
     }
@@ -366,30 +366,32 @@ public class MemoryModelBuilder {
     for (int i = 0; i < arguments.size(); i++) {
       // we use both pointer and non-pointer parameters, e.g. 'global_ptr = &non_ptr_param;'
       CParameterDeclaration leftHandSide = parameterDeclarations.get(i);
-      MemoryLocation rhsMemoryLocation =
+      Optional<MemoryLocation> rhsMemoryLocation =
           extractMemoryLocation(pOptions, pCallContext, arguments.get(i), pInitialMemoryLocations);
-      if (!rhsMemoryLocation.isEmpty()) {
+      if (rhsMemoryLocation.isPresent()) {
         rAssignments.put(
             MemoryLocation.of(pOptions, Optional.of(pCallContext), leftHandSide),
-            rhsMemoryLocation);
+            rhsMemoryLocation.orElseThrow());
       }
     }
     return rAssignments.buildOrThrow();
   }
 
-  private static MemoryLocation extractMemoryLocation(
+  private static Optional<MemoryLocation> extractMemoryLocation(
       MPOROptions pOptions,
       ThreadEdge pCallContext,
       CExpression pRightHandSide,
       ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
     if (pRightHandSide instanceof CIdExpression idExpression) {
-      return getMemoryLocationByDeclaration(
-          pOptions, pCallContext, idExpression.getDeclaration(), pInitialMemoryLocations);
+      return Optional.of(
+          getMemoryLocationByDeclaration(
+              pOptions, pCallContext, idExpression.getDeclaration(), pInitialMemoryLocations));
 
     } else if (pRightHandSide instanceof CFieldReference fieldReference) {
-      return extractFieldReferenceMemoryLocation(
-          pOptions, pCallContext, fieldReference, pInitialMemoryLocations);
+      return Optional.of(
+          extractFieldReferenceMemoryLocation(
+              pOptions, pCallContext, fieldReference, pInitialMemoryLocations));
 
     } else if (pRightHandSide instanceof CUnaryExpression unaryExpression) {
       return extractMemoryLocation(
@@ -400,7 +402,7 @@ public class MemoryModelBuilder {
           pOptions, pCallContext, castExpression.getOperand(), pInitialMemoryLocations);
     }
     // can e.g. occur with 'param = 4' i.e. literal integer expressions
-    return MemoryLocation.empty();
+    return Optional.empty();
   }
 
   private static MemoryLocation extractFieldReferenceMemoryLocation(

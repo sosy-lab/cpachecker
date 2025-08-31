@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import java.util.Objects;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -38,7 +37,7 @@ public class MemoryLocation {
   private MemoryLocation(
       MPOROptions pOptions,
       Optional<ThreadEdge> pCallContext,
-      @Nullable CSimpleDeclaration pDeclaration,
+      CSimpleDeclaration pDeclaration,
       Optional<CCompositeTypeMemberDeclaration> pFieldMember) {
 
     options = pOptions;
@@ -65,11 +64,6 @@ public class MemoryLocation {
       CCompositeTypeMemberDeclaration pFieldMember) {
 
     return new MemoryLocation(pOptions, pCallContext, pFieldOwner, Optional.of(pFieldMember));
-  }
-
-  static MemoryLocation empty() {
-    return new MemoryLocation(
-        MPOROptions.defaultTestInstance(), Optional.empty(), null, Optional.empty());
   }
 
   public String getName() {
@@ -99,10 +93,6 @@ public class MemoryLocation {
     // use call context ID if possible, otherwise use 0 (only main() declarations have no context)
     int threadId = pCallContext.isPresent() ? pCallContext.orElseThrow().threadId : 0;
     return SeqNameUtil.buildThreadPrefix(pOptions, threadId);
-  }
-
-  public boolean isEmpty() {
-    return declaration == null && fieldMember.isEmpty();
   }
 
   public boolean isExplicitGlobal() {
@@ -145,7 +135,6 @@ public class MemoryLocation {
 
   @Override
   public String toString() {
-    assert !isEmpty() : "cannot build String, MemoryLocation is empty";
     if (fieldMember.isEmpty()) {
       return declaration.toASTString();
     }
