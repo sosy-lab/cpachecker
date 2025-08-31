@@ -417,7 +417,7 @@ public class MemoryModelStructParameterTest {
             ImmutableMap.of(),
             pointerParameterAssignments);
 
-    // asser that param_ptr_P1 is associated with local_l1 and param_ptr_P2 with global_G1
+    // assert that param_ptr_P1 is associated with local_l1 and param_ptr_P2 with global_G1
     assertThat(memoryLocationsP1.size() == 1).isTrue();
     assertThat(memoryLocationsP1.contains(LOCAL_L1_MEMORY_LOCATION)).isTrue();
     assertThat(memoryLocationsP2.size() == 1).isTrue();

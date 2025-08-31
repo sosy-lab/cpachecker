@@ -120,7 +120,7 @@ public class MemoryModel {
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
-    if (pMemoryLocation.fieldMember.isPresent()) {
+    if (pMemoryLocation.isFieldOwnerPointerType()) {
       return isLeftHandSideInPointerAssignment(
           pMemoryLocation.getFieldOwnerMemoryLocation(),
           pPointerAssignments,
@@ -135,14 +135,14 @@ public class MemoryModel {
   // getters =======================================================================================
 
   // TODO this can be optimized by using an ImmutableSetMultimap and saving it on creation
-  static ImmutableSet<MemoryLocation> getRightHandSideMemoryLocations(
+  static ImmutableSet<MemoryLocation> getPointerAssignmentRightHandSides(
       MemoryLocation pMemoryLocation,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
-    if (pMemoryLocation.fieldMember.isPresent()) {
-      return getRightHandSideMemoryLocations(
+    if (pMemoryLocation.isFieldOwnerPointerType()) {
+      return getPointerAssignmentRightHandSides(
           pMemoryLocation.getFieldOwnerMemoryLocation(),
           pPointerAssignments,
           pStartRoutineArgAssignments,

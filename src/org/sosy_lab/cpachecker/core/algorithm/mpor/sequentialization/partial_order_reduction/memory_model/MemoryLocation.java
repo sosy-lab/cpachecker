@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -101,6 +102,13 @@ public class MemoryLocation {
 
   public boolean isParameter() {
     return isParameter;
+  }
+
+  public boolean isFieldOwnerPointerType() {
+    if (fieldMember.isPresent()) {
+      return declaration.getType() instanceof CPointerType;
+    }
+    return false;
   }
 
   public MemoryLocation getFieldOwnerMemoryLocation() {

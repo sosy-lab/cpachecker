@@ -210,7 +210,7 @@ public class MemoryLocationFinder {
           pStartRoutineArgAssignments,
           pPointerParameterAssignments)) {
         ImmutableSet<MemoryLocation> rightHandSides =
-            MemoryModel.getRightHandSideMemoryLocations(
+            MemoryModel.getPointerAssignmentRightHandSides(
                 pCurrentMemoryLocation,
                 pPointerAssignments,
                 pStartRoutineArgAssignments,
