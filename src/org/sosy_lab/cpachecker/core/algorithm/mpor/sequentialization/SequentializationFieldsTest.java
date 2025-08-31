@@ -251,8 +251,8 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.getRelevantMemoryLocationAmount() == 1).isTrue();
     assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
     assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
-    // array subscripts e.g. v[0] do not count as pointer dereferences
-    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
+    // v[0] counts as pointer dereference, but only once (same declaration)
+    assertThat(memoryModel.pointerDereferences.size() == 1).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id == 0).isTrue();

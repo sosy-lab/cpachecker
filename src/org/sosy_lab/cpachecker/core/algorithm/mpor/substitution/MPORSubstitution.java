@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableTable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
@@ -33,8 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -47,16 +44,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -123,260 +112,6 @@ public class MPORSubstitution {
     logger = pLogger;
   }
 
-  // Tracker Functions =============================================================================
-
-  /**
-   * If applicable, adds the {@link CVariableDeclaration} of {@code pIdExpression} to the respective
-   * sets. {@code pIsWrite} is used to determine whether the expression to substitute is written,
-   * i.e. a LHS in an assignment.
-   */
-  private void trackDeclarationAccess(
-      CIdExpression pIdExpression,
-      boolean pIsWrite,
-      boolean pIsPointerDereference,
-      boolean pIsFieldReference,
-      Optional<MPORSubstitutionTracker> pTracker) {
-
-    // writing pointers (aliasing) may not be allowed -> reject program
-    InputRejection.checkPointerWrite(pIsWrite, options, pIdExpression, logger);
-
-    // exclude field references, we track field members separately. field owner is tracked via the
-    // CIdExpression, e.g. if we assign struct_a = struct_b without any field reference.
-    if (pTracker.isEmpty() || pIsFieldReference) {
-      return;
-    }
-    // exclude pointer dereferences, they are handled separately
-    if (!pIsPointerDereference) {
-      CSimpleDeclaration simpleDeclaration = pIdExpression.getDeclaration();
-      pTracker.orElseThrow().addAccessedDeclaration(simpleDeclaration);
-      CType type = simpleDeclaration.getType();
-      boolean isMutex = PthreadObjectType.PTHREAD_MUTEX_T.equalsType(type);
-      // treat pthread_mutex_t lock/unlock as writes, otherwise interleavings are lost
-      if (pIsWrite || isMutex) {
-        pTracker.orElseThrow().addWrittenDeclaration(simpleDeclaration);
-      }
-    }
-  }
-
-  private void trackContentFromLocalVariableDeclaration(
-      boolean pIsDeclaration,
-      LocalVariableDeclarationSubstitute pLocalVariableDeclarationSubstitute,
-      Optional<MPORSubstitutionTracker> pTracker) {
-
-    if (pTracker.isEmpty()) {
-      return;
-    }
-    // only track the global variables when actually substituting the declaration. otherwise when
-    // we use the local, non-pointer variable, the global variable is considered as accessed too
-    if (pIsDeclaration) {
-      if (pLocalVariableDeclarationSubstitute.isTrackerPresent()) {
-        MPORSubstitutionTrackerUtil.copyContents(
-            pLocalVariableDeclarationSubstitute.getTracker(), pTracker.orElseThrow());
-      }
-    }
-  }
-
-  private void trackMainFunctionArg(
-      CParameterDeclaration pMainFunctionArg, Optional<MPORSubstitutionTracker> pTracker) {
-
-    if (pTracker.isEmpty()) {
-      return;
-    }
-    pTracker.orElseThrow().addAccessedMainFunctionArg(pMainFunctionArg);
-  }
-
-  private void trackPointerAssignment(
-      CExpressionAssignmentStatement pAssignment, Optional<MPORSubstitutionTracker> pTracker) {
-
-    if (pTracker.isEmpty()) {
-      return;
-    }
-    CLeftHandSide leftHandSide = pAssignment.getLeftHandSide();
-    if (leftHandSide instanceof CIdExpression lhsId) {
-      CSimpleDeclaration lhsDeclaration = lhsId.getDeclaration();
-      if (lhsDeclaration.getType() instanceof CPointerType) {
-        CExpression rightHandSide = pAssignment.getRightHandSide();
-        Optional<CSimpleDeclaration> pointerDeclaration =
-            MPORUtil.tryGetPointerDeclaration(rightHandSide);
-        if (pointerDeclaration.isPresent()) {
-          pTracker
-              .orElseThrow()
-              .addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
-        } else {
-          Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>> fieldMemberPointer =
-              MPORUtil.tryGetFieldMemberPointer(rightHandSide);
-          if (fieldMemberPointer.isPresent()) {
-            pTracker
-                .orElseThrow()
-                .addPointerFieldMemberAssignment(
-                    lhsDeclaration,
-                    fieldMemberPointer.orElseThrow().getKey(),
-                    fieldMemberPointer.orElseThrow().getValue());
-          }
-        }
-      }
-    }
-  }
-
-  private void trackPointerAssignmentInVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration, Optional<MPORSubstitutionTracker> pTracker) {
-
-    if (pTracker.isEmpty()) {
-      return;
-    }
-    if (pVariableDeclaration.getType() instanceof CPointerType) {
-      CInitializer initializer = pVariableDeclaration.getInitializer();
-      if (initializer instanceof CInitializerExpression initializerExpression) {
-        Optional<CSimpleDeclaration> initializerDeclaration =
-            MPORUtil.tryGetPointerDeclaration(initializerExpression.getExpression());
-        if (initializerDeclaration.isPresent()) {
-          CSimpleDeclaration pointerDeclaration = initializerDeclaration.orElseThrow();
-          if (isSubstitutable(pointerDeclaration)) {
-            pTracker.orElseThrow().addPointerAssignment(pVariableDeclaration, pointerDeclaration);
-          }
-        }
-      }
-    }
-  }
-
-  // TODO also need CArraySubscriptExpression here
-  private void trackPointerDereferenceByPointerExpression(
-      CPointerExpression pPointerExpression,
-      boolean pIsWrite,
-      Optional<MPORSubstitutionTracker> pTracker) {
-
-    if (pTracker.isEmpty()) {
-      return;
-    }
-    if (pPointerExpression.getOperand() instanceof CIdExpression idExpression) {
-      // do not consider CFunctionDeclarations
-      if (isSubstitutable(idExpression.getDeclaration())) {
-        if (pIsWrite) {
-          pTracker.orElseThrow().addWrittenPointerDereference(idExpression.getDeclaration());
-        }
-        pTracker.orElseThrow().addAccessedPointerDereference(idExpression.getDeclaration());
-      }
-    }
-  }
-
-  private void trackPointerDereferenceByArraySubscriptExpression(
-      CArraySubscriptExpression pArraySubscriptExpression,
-      boolean pIsWrite,
-      Optional<MPORSubstitutionTracker> pTracker) {
-
-    if (pTracker.isEmpty()) {
-      return;
-    }
-    // TODO if the subscript expression is an integer literal, track the exact index, not just the
-    //  entire array
-    CExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
-    if (arrayExpression instanceof CIdExpression idExpression) {
-      if (idExpression.getExpressionType() instanceof CPointerType) {
-        // do not consider CFunctionDeclarations
-        if (isSubstitutable(idExpression.getDeclaration())) {
-          if (pIsWrite) {
-            pTracker.orElseThrow().addWrittenPointerDereference(idExpression.getDeclaration());
-          }
-          pTracker.orElseThrow().addAccessedPointerDereference(idExpression.getDeclaration());
-        }
-      }
-    }
-  }
-
-  private void trackPointerDereferenceByFieldReference(
-      CFieldReference pFieldReference,
-      boolean pIsWrite,
-      Optional<MPORSubstitutionTracker> pTracker) {
-
-    if (pTracker.isEmpty()) {
-      return;
-    }
-    if (pFieldReference.isPointerDereference()) {
-      assert pFieldReference.getFieldOwner().getExpressionType() instanceof CPointerType
-          : "if pFieldReference is a pointer dereference, its owner type must be CPointerType";
-      CPointerType pointerType = (CPointerType) pFieldReference.getFieldOwner().getExpressionType();
-      if (pointerType.getType() instanceof CTypedefType typedefType) {
-        CSimpleDeclaration fieldOwner =
-            MPORUtil.recursivelyFindFieldOwner(pFieldReference).getDeclaration();
-        CCompositeTypeMemberDeclaration fieldMember =
-            MPORUtil.getFieldMemberByName(pFieldReference, typedefType);
-        MPORSubstitutionTracker tracker = pTracker.orElseThrow();
-        if (pIsWrite) {
-          tracker.addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember);
-        }
-        tracker.addAccessedFieldReferencePointerDereference(fieldOwner, fieldMember);
-      }
-    }
-  }
-
-  private void trackFieldReference(
-      CFieldReference pFieldReference,
-      boolean pIsWrite,
-      Optional<MPORSubstitutionTracker> pTracker) {
-
-    if (pTracker.isEmpty()) {
-      return;
-    }
-    trackPointerDereferenceByFieldReference(pFieldReference, pIsWrite, pTracker);
-    // CIdExpression is e.g. 'queue' in 'queue->amount'
-    if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
-      // typedef is e.g. 'QType' or for pointers 'QType*'
-      if (idExpression.getExpressionType() instanceof CTypedefType typedefType) {
-        trackFieldReferenceByTypedefType(
-            pFieldReference, idExpression, typedefType, pIsWrite, pTracker.orElseThrow());
-
-      } else if (idExpression.getExpressionType() instanceof CPointerType pointerType) {
-        if (pointerType.getType() instanceof CTypedefType typedefType) {
-          trackFieldReferenceByTypedefType(
-              pFieldReference, idExpression, typedefType, pIsWrite, pTracker.orElseThrow());
-
-        } else if (pointerType.getType() instanceof CElaboratedType elaboratedType) {
-          trackFieldReferenceByElaboratedType(
-              pFieldReference, idExpression, elaboratedType, pIsWrite, pTracker.orElseThrow());
-        }
-      }
-
-    } else if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
-      // recursively handle inner structs until outer struct is found, e.g. outer.inner.member
-      trackFieldReference(fieldReference, pIsWrite, pTracker);
-    }
-  }
-
-  private void trackFieldReferenceByTypedefType(
-      CFieldReference pFieldReference,
-      CIdExpression pIdExpression,
-      CTypedefType pTypedefType,
-      boolean pIsWrite,
-      MPORSubstitutionTracker pTracker) {
-
-    // elaborated type is e.g. struct __anon_type_QType
-    if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-      trackFieldReferenceByElaboratedType(
-          pFieldReference, pIdExpression, elaboratedType, pIsWrite, pTracker);
-    }
-  }
-
-  private void trackFieldReferenceByElaboratedType(
-      CFieldReference pFieldReference,
-      CIdExpression pIdExpression,
-      CElaboratedType pElaboratedType,
-      boolean pIsWrite,
-      MPORSubstitutionTracker pTracker) {
-
-    // composite type contains the composite type members, e.g. 'amount'
-    if (pElaboratedType.getRealType() instanceof CCompositeType compositeType) {
-      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-          CSimpleDeclaration simpleDeclaration = pIdExpression.getDeclaration();
-          if (pIsWrite) {
-            pTracker.addWrittenFieldMember(simpleDeclaration, memberDeclaration);
-          }
-          pTracker.addAccessedFieldMember(simpleDeclaration, memberDeclaration);
-        }
-      }
-    }
-  }
-
   // Substitute Functions ==========================================================================
 
   /**
@@ -407,9 +142,15 @@ public class MPORSubstitution {
       }
       case CIdExpression idExpression -> {
         CSimpleDeclaration declaration = idExpression.getDeclaration();
-        if (isSubstitutable(declaration)) {
-          trackDeclarationAccess(
-              idExpression, pIsWrite, pIsPointerDereference, pIsFieldReference, pTracker);
+        if (SubstituteUtil.isSubstitutable(declaration)) {
+          MPORSubstitutionTrackerUtil.trackDeclarationAccess(
+              options,
+              idExpression,
+              pIsWrite,
+              pIsPointerDereference,
+              pIsFieldReference,
+              pTracker,
+              logger);
           return getVariableSubstitute(
               idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
         }
@@ -459,7 +200,8 @@ public class MPORSubstitution {
         }
       }
       case CArraySubscriptExpression arraySubscript -> {
-        trackPointerDereferenceByArraySubscriptExpression(arraySubscript, pIsWrite, pTracker);
+        MPORSubstitutionTrackerUtil.trackPointerDereferenceByArraySubscriptExpression(
+            arraySubscript, pIsWrite, pTracker);
         CExpression arrayExpression = arraySubscript.getArrayExpression();
         CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
         CExpression arraySubstitute =
@@ -490,7 +232,7 @@ public class MPORSubstitution {
         }
       }
       case CFieldReference fieldReference -> {
-        trackFieldReference(fieldReference, pIsWrite, pTracker);
+        MPORSubstitutionTrackerUtil.trackFieldReference(fieldReference, pIsWrite, pTracker);
         CExpression fieldOwnerSubstitute =
             substitute(
                 fieldReference.getFieldOwner(),
@@ -530,7 +272,8 @@ public class MPORSubstitution {
             unary.getOperator());
       }
       case CPointerExpression pointer -> {
-        trackPointerDereferenceByPointerExpression(pointer, pIsWrite, pTracker);
+        MPORSubstitutionTrackerUtil.trackPointerDereferenceByPointerExpression(
+            pointer, pIsWrite, pTracker);
         return new CPointerExpression(
             pointer.getFileLocation(),
             pointer.getExpressionType(),
@@ -618,7 +361,7 @@ public class MPORSubstitution {
 
       // e.g. int x = 42;
       case CExpressionAssignmentStatement assignment -> {
-        trackPointerAssignment(assignment, pTracker);
+        MPORSubstitutionTrackerUtil.trackPointerAssignment(assignment, pTracker);
         CLeftHandSide leftHandSide = assignment.getLeftHandSide();
         CExpression rightHandSide = assignment.getRightHandSide();
         CExpression substitute =
@@ -722,7 +465,8 @@ public class MPORSubstitution {
       if (localVariableSubstitutes.contains(pCallContext, variableDeclaration)) {
         LocalVariableDeclarationSubstitute localSubstitute =
             Objects.requireNonNull(localVariableSubstitutes.get(pCallContext, variableDeclaration));
-        trackContentFromLocalVariableDeclaration(pIsDeclaration, localSubstitute, pTracker);
+        MPORSubstitutionTrackerUtil.trackContentFromLocalVariableDeclaration(
+            pIsDeclaration, localSubstitute, pTracker);
         return localSubstitute.expression;
       } else {
         checkArgument(
@@ -735,7 +479,7 @@ public class MPORSubstitution {
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       if (pCallContext.isEmpty()) {
         // no call context -> main function argument
-        trackMainFunctionArg(parameterDeclaration, pTracker);
+        MPORSubstitutionTrackerUtil.trackMainFunctionArg(parameterDeclaration, pTracker);
         return mainFunctionArgSubstitutes.get(parameterDeclaration);
       }
       // normal function called within thread, including start_routines, always have call context
@@ -782,7 +526,8 @@ public class MPORSubstitution {
       Optional<ThreadEdge> pCallContext,
       Optional<MPORSubstitutionTracker> pTracker) {
 
-    trackPointerAssignmentInVariableDeclaration(pVariableDeclaration, pTracker);
+    MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
+        pVariableDeclaration, pTracker);
     CIdExpression idExpression =
         getVariableSubstitute(pVariableDeclaration, true, pCallContext, pTracker);
     return (CVariableDeclaration) idExpression.getDeclaration();
@@ -795,16 +540,6 @@ public class MPORSubstitution {
         "pSimpleDeclaration must be an instance of %s",
         pClass.getSimpleName());
     return pClass.cast(pSimpleDeclaration);
-  }
-
-  /**
-   * Whether {@code pSimpleDeclaration} is a {@link CVariableDeclaration} or {@link
-   * CParameterDeclaration}. Other declarations such as {@link CFunctionDeclaration}s are not
-   * substituted.
-   */
-  private boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
-    return pSimpleDeclaration instanceof CVariableDeclaration
-        || pSimpleDeclaration instanceof CParameterDeclaration;
   }
 
   // Declaration Extraction ========================================================================

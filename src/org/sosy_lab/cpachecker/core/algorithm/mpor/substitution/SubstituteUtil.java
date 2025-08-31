@@ -33,6 +33,16 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class SubstituteUtil {
 
+  /**
+   * Whether {@code pSimpleDeclaration} is a {@link CVariableDeclaration} or {@link
+   * CParameterDeclaration}. Other declarations such as {@link CFunctionDeclaration}s are not
+   * substituted.
+   */
+  public static boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
+    return pSimpleDeclaration instanceof CVariableDeclaration
+        || pSimpleDeclaration instanceof CParameterDeclaration;
+  }
+
   public static ImmutableList<MPORThread> extractThreads(
       ImmutableList<MPORSubstitution> pSubstitutions) {
 
