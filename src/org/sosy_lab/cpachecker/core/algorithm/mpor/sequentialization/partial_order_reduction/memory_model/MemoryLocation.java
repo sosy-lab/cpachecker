@@ -8,14 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.AbstractMap;
-import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -34,25 +31,20 @@ public class MemoryLocation {
 
   private final boolean isParameter;
 
-  public final Optional<CSimpleDeclaration> declaration;
+  public final CSimpleDeclaration declaration;
 
-  public final Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-      fieldMember;
+  public final Optional<CCompositeTypeMemberDeclaration> fieldMember;
 
   private MemoryLocation(
       MPOROptions pOptions,
       Optional<ThreadEdge> pCallContext,
-      Optional<CSimpleDeclaration> pDeclaration,
-      Optional<SimpleImmutableEntry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-          pFieldMember) {
+      @Nullable CSimpleDeclaration pDeclaration,
+      Optional<CCompositeTypeMemberDeclaration> pFieldMember) {
 
-    checkArgument(
-        pDeclaration.isEmpty() || pFieldMember.isEmpty(),
-        "either pDeclaration or pFieldMember must be empty");
     options = pOptions;
     callContext = pCallContext;
-    isExplicitGlobal = MemoryLocationUtil.isExplicitGlobal(pDeclaration, pFieldMember);
-    isParameter = MemoryLocationUtil.isParameter(pDeclaration, pFieldMember);
+    isExplicitGlobal = MemoryLocationUtil.isExplicitGlobal(pDeclaration);
+    isParameter = pDeclaration instanceof CParameterDeclaration;
     declaration = pDeclaration;
     fieldMember = pFieldMember;
     // checks after assignments
@@ -63,7 +55,7 @@ public class MemoryLocation {
   public static MemoryLocation of(
       MPOROptions pOptions, Optional<ThreadEdge> pCallContext, CSimpleDeclaration pDeclaration) {
 
-    return new MemoryLocation(pOptions, pCallContext, Optional.of(pDeclaration), Optional.empty());
+    return new MemoryLocation(pOptions, pCallContext, pDeclaration, Optional.empty());
   }
 
   public static MemoryLocation of(
@@ -72,39 +64,23 @@ public class MemoryLocation {
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
-    return new MemoryLocation(
-        pOptions,
-        pCallContext,
-        Optional.empty(),
-        Optional.of(new AbstractMap.SimpleImmutableEntry<>(pFieldOwner, pFieldMember)));
+    return new MemoryLocation(pOptions, pCallContext, pFieldOwner, Optional.of(pFieldMember));
   }
 
   static MemoryLocation empty() {
     return new MemoryLocation(
-        MPOROptions.defaultTestInstance(), Optional.empty(), Optional.empty(), Optional.empty());
-  }
-
-  public CSimpleDeclaration getSimpleDeclaration() {
-    if (declaration.isPresent()) {
-      return declaration.orElseThrow();
-    }
-    if (fieldMember.isPresent()) {
-      return fieldMember.orElseThrow().getKey();
-    }
-    throw new IllegalArgumentException(
-        "cannot get CSimpleDeclaration, both variable and fieldMember are empty");
+        MPOROptions.defaultTestInstance(), Optional.empty(), null, Optional.empty());
   }
 
   public String getName() {
-    String threadPrefix = buildThreadPrefix(options, callContext, getSimpleDeclaration());
-    if (declaration.isPresent()) {
-      return threadPrefix + declaration.orElseThrow().getName();
+    StringBuilder name = new StringBuilder();
+    name.append(buildThreadPrefix(options, callContext, declaration));
+    name.append(declaration.getName());
+    if (fieldMember.isPresent()) {
+      name.append(SeqSyntax.UNDERSCORE);
+      name.append(fieldMember.orElseThrow().getName());
     }
-    Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
-    return threadPrefix
-        + entry.getKey().getName()
-        + SeqSyntax.UNDERSCORE
-        + entry.getValue().getName();
+    return name.toString();
   }
 
   private static String buildThreadPrefix(
@@ -126,7 +102,7 @@ public class MemoryLocation {
   }
 
   public boolean isEmpty() {
-    return declaration.isEmpty() && fieldMember.isEmpty();
+    return declaration == null && fieldMember.isEmpty();
   }
 
   public boolean isExplicitGlobal() {
@@ -135,6 +111,11 @@ public class MemoryLocation {
 
   public boolean isParameter() {
     return isParameter;
+  }
+
+  public MemoryLocation getFieldOwnerMemoryLocation() {
+    assert fieldMember.isPresent() : "cannot get field owner MemoryLocation, field member is empty";
+    return MemoryLocation.of(options, callContext, declaration);
   }
 
   @Override
@@ -165,14 +146,9 @@ public class MemoryLocation {
   @Override
   public String toString() {
     assert !isEmpty() : "cannot build String, MemoryLocation is empty";
-    if (declaration.isPresent()) {
-      return declaration.orElseThrow().toASTString();
+    if (fieldMember.isEmpty()) {
+      return declaration.toASTString();
     }
-    if (fieldMember.isPresent()) {
-      Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> entry = fieldMember.orElseThrow();
-      return entry.getKey().toASTString() + " -> " + entry.getValue().toASTString();
-    }
-    throw new IllegalArgumentException(
-        "cannot get String, both variable and fieldMember are empty");
+    return declaration.toASTString() + " -> " + fieldMember.orElseThrow().toASTString();
   }
 }

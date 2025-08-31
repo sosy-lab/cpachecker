@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -431,10 +430,8 @@ public class MemoryModelBuilder {
       ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
 
     for (MemoryLocation memoryLocation : pInitialMemoryLocations) {
-      if (memoryLocation.declaration.isPresent()) {
-        if (memoryLocation.declaration.orElseThrow().equals(pDeclaration)) {
-          return memoryLocation;
-        }
+      if (memoryLocation.declaration.equals(pDeclaration)) {
+        return memoryLocation;
       }
     }
     return MemoryLocation.of(pOptions, Optional.of(pCallContext), pDeclaration);
@@ -449,12 +446,9 @@ public class MemoryModelBuilder {
 
     for (MemoryLocation memoryLocation : pAllMemoryLocations) {
       if (memoryLocation.fieldMember.isPresent()) {
-        Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldMember =
-            memoryLocation.fieldMember.orElseThrow();
-        if (fieldMember.getKey().equals(pFieldOwner)) {
-          if (fieldMember.getValue().equals(pFieldMember)) {
-            return memoryLocation;
-          }
+        CCompositeTypeMemberDeclaration fieldMember = memoryLocation.fieldMember.orElseThrow();
+        if (memoryLocation.declaration.equals(pFieldOwner) && fieldMember.equals(pFieldMember)) {
+          return memoryLocation;
         }
       }
     }
@@ -473,7 +467,7 @@ public class MemoryModelBuilder {
 
     ImmutableMap.Builder<MemoryLocation, MemoryLocation> rPointers = ImmutableMap.builder();
     for (var entry : pParameterAssignments.entrySet()) {
-      if (entry.getKey().getSimpleDeclaration().getType() instanceof CPointerType) {
+      if (entry.getKey().declaration.getType() instanceof CPointerType) {
         rPointers.put(entry);
       }
     }

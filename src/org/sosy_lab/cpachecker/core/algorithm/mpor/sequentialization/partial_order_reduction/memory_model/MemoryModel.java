@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 
@@ -64,7 +63,7 @@ public class MemoryModel {
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
       ImmutableSet<MemoryLocation> pPointerDereferences) {
 
-    checkArguments(pPointerAssignments, pPointerParameterAssignments);
+    checkArguments(pPointerAssignments, pParameterAssignments, pPointerParameterAssignments);
     allMemoryLocations = pAllMemoryLocations;
     relevantMemoryLocationAmount = pRelevantMemoryLocationIds.size();
     relevantMemoryLocations = pRelevantMemoryLocationIds;
@@ -77,6 +76,7 @@ public class MemoryModel {
 
   private static void checkArguments(
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
     // check that all left hand sides in pointer assignments are CPointerType
@@ -84,23 +84,27 @@ public class MemoryModel {
       if (memoryLocation.fieldMember.isPresent()) {
         // for field owner / members: only the member must be CPointerType
         CCompositeTypeMemberDeclaration memberDeclaration =
-            memoryLocation.fieldMember.orElseThrow().getValue();
+            memoryLocation.fieldMember.orElseThrow();
         checkArgument(
             memberDeclaration.getType() instanceof CPointerType,
             "memberDeclaration must be CPointerType, got %s",
             memberDeclaration.getType());
       } else {
         // for all else: the variable itself must be CPointerType
-        CSimpleDeclaration simpleDeclaration = memoryLocation.getSimpleDeclaration();
         checkArgument(
-            simpleDeclaration.getType() instanceof CPointerType,
+            memoryLocation.declaration.getType() instanceof CPointerType,
             "variableDeclaration must be CPointerType, got %s",
-            simpleDeclaration.getType());
+            memoryLocation.declaration.getType());
       }
     }
     // check that pointer assignments contains all pointer parameter assignments (i.e. subset)
     for (var entry : pPointerParameterAssignments.entrySet()) {
-      checkArgument(pPointerAssignments.entries().contains(entry));
+      checkArgument(
+          pParameterAssignments.containsKey(entry.getKey()),
+          "pParameterAssignments must contain all pPointerParameterAssignments");
+      checkArgument(
+          Objects.equals(pParameterAssignments.get(entry.getKey()), entry.getValue()),
+          "pParameterAssignments must contain all pPointerParameterAssignments");
     }
   }
 
@@ -110,12 +114,19 @@ public class MemoryModel {
    * Returns true if the pointer in {@code pMemoryLocation} is assigned a pointer {@code ptr}, or
    * the address of a non-pointer {@code &non_ptr}.
    */
-  public static boolean isAssignedPointer(
+  static boolean isLeftHandSideInPointerAssignment(
       MemoryLocation pMemoryLocation,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
+    if (pMemoryLocation.fieldMember.isPresent()) {
+      return isLeftHandSideInPointerAssignment(
+          pMemoryLocation.getFieldOwnerMemoryLocation(),
+          pPointerAssignments,
+          pStartRoutineArgAssignments,
+          pPointerParameterAssignments);
+    }
     return pPointerAssignments.containsKey(pMemoryLocation)
         || pStartRoutineArgAssignments.containsKey(pMemoryLocation)
         || pPointerParameterAssignments.containsKey(pMemoryLocation);
@@ -124,12 +135,19 @@ public class MemoryModel {
   // getters =======================================================================================
 
   // TODO this can be optimized by using an ImmutableSetMultimap and saving it on creation
-  public static ImmutableSet<MemoryLocation> getAssignedMemoryLocations(
+  static ImmutableSet<MemoryLocation> getRightHandSideMemoryLocations(
       MemoryLocation pMemoryLocation,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
 
+    if (pMemoryLocation.fieldMember.isPresent()) {
+      return getRightHandSideMemoryLocations(
+          pMemoryLocation.getFieldOwnerMemoryLocation(),
+          pPointerAssignments,
+          pStartRoutineArgAssignments,
+          pPointerParameterAssignments);
+    }
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     rMemoryLocations.addAll(pPointerAssignments.get(pMemoryLocation));
     if (pStartRoutineArgAssignments.containsKey(pMemoryLocation)) {

@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -95,10 +94,7 @@ public class SubstituteUtil {
     ImmutableSet.Builder<MemoryLocation> rPointerDereferences = ImmutableSet.builder();
     for (CSimpleDeclaration pointerDereference :
         pTracker.getPointerDereferencesByAccessType(pAccessType)) {
-      MemoryLocation memoryLocation =
-          MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-              pOptions, pCallContext, pointerDereference);
-      rPointerDereferences.add(memoryLocation);
+      rPointerDereferences.add(MemoryLocation.of(pOptions, pCallContext, pointerDereference));
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
         fieldReferencePointerDereferences =
@@ -106,10 +102,8 @@ public class SubstituteUtil {
     for (CSimpleDeclaration fieldOwner : fieldReferencePointerDereferences.keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember :
           fieldReferencePointerDereferences.get(fieldOwner)) {
-        MemoryLocation memoryLocation =
-            MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-                pOptions, pCallContext, fieldOwner, fieldMember);
-        rPointerDereferences.add(memoryLocation);
+        rPointerDereferences.add(
+            MemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
       }
     }
     return rPointerDereferences.build();
@@ -123,19 +117,13 @@ public class SubstituteUtil {
 
     ImmutableSet.Builder<MemoryLocation> rMemoryLocations = ImmutableSet.builder();
     for (CSimpleDeclaration declaration : pTracker.getDeclarationsByAccessType(pAccessType)) {
-      MemoryLocation memoryLocation =
-          MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-              pOptions, pCallContext, declaration);
-      rMemoryLocations.add(memoryLocation);
+      rMemoryLocations.add(MemoryLocation.of(pOptions, pCallContext, declaration));
     }
     ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration> fieldMembers =
         pTracker.getFieldMembersByAccessType(pAccessType);
     for (CSimpleDeclaration fieldOwner : fieldMembers.keySet()) {
       for (CCompositeTypeMemberDeclaration fieldMember : fieldMembers.get(fieldOwner)) {
-        MemoryLocation memoryLocation =
-            MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-                pOptions, pCallContext, fieldOwner, fieldMember);
-        rMemoryLocations.add(memoryLocation);
+        rMemoryLocations.add(MemoryLocation.of(pOptions, pCallContext, fieldOwner, fieldMember));
       }
     }
     return rMemoryLocations.build();
@@ -153,16 +141,13 @@ public class SubstituteUtil {
     ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     for (var entry : pTracker.getPointerAssignments().entrySet()) {
       MemoryLocation leftHandSide = MemoryLocation.of(pOptions, pCallContext, entry.getKey());
-      MemoryLocation rightHandSide =
-          MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-              pOptions, pCallContext, entry.getValue());
+      MemoryLocation rightHandSide = MemoryLocation.of(pOptions, pCallContext, entry.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     for (var cell : pTracker.getPointerFieldMemberAssignments().cellSet()) {
       MemoryLocation leftHandSide = MemoryLocation.of(pOptions, pCallContext, cell.getRowKey());
       MemoryLocation rightHandSide =
-          MemoryLocationUtil.buildMemoryLocationByDeclarationScope(
-              pOptions, pCallContext, cell.getColumnKey(), cell.getValue());
+          MemoryLocation.of(pOptions, pCallContext, cell.getColumnKey(), cell.getValue());
       rAssignments.put(leftHandSide, rightHandSide);
     }
     return rAssignments.buildOrThrow();

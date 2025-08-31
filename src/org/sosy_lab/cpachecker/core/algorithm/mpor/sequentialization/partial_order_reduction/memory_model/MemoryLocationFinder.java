@@ -148,7 +148,7 @@ public class MemoryLocationFinder {
       Set<MemoryLocation> pFound,
       Set<MemoryLocation> pVisited) {
 
-    if (MemoryModel.isAssignedPointer(
+    if (MemoryModel.isLeftHandSideInPointerAssignment(
         pCurrentMemoryLocation,
         pPointerAssignments,
         pStartRoutineArgAssignments,
@@ -204,22 +204,20 @@ public class MemoryLocationFinder {
 
     // prevent infinite loop, e.g. if a pointer is assigned itself: 'ptr = ptr;'
     if (pVisited.add(pCurrentMemoryLocation)) {
-      // it is possible that a pointer is not in the map, if it is e.g. initialized with malloc
-      // and then dereferenced -> the pointer is not associated with the address of a var
-      if (MemoryModel.isAssignedPointer(
+      if (MemoryModel.isLeftHandSideInPointerAssignment(
           pCurrentMemoryLocation,
           pPointerAssignments,
           pStartRoutineArgAssignments,
           pPointerParameterAssignments)) {
-        ImmutableSet<MemoryLocation> assignedMemoryLocations =
-            MemoryModel.getAssignedMemoryLocations(
+        ImmutableSet<MemoryLocation> rightHandSides =
+            MemoryModel.getRightHandSideMemoryLocations(
                 pCurrentMemoryLocation,
                 pPointerAssignments,
                 pStartRoutineArgAssignments,
                 pPointerParameterAssignments);
-        for (MemoryLocation assignedMemoryLocation : assignedMemoryLocations) {
+        for (MemoryLocation rightHandSide : rightHandSides) {
           recursivelyFindMemoryLocationsByPointerDereference(
-              assignedMemoryLocation,
+              rightHandSide,
               pPointerAssignments,
               pStartRoutineArgAssignments,
               pPointerParameterAssignments,
