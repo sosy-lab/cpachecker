@@ -35,7 +35,7 @@ public enum CVoidType implements CType {
           .collect(Maps.toImmutableEnumMap(t -> t.getQualifiers(), t -> t));
 
   public static CVoidType create(CTypeQualifiers qualifiers) {
-    return LOOKUP.get(qualifiers);
+    return checkNotNull(LOOKUP.get(qualifiers));
   }
 
   private final CTypeQualifiers qualifiers;
