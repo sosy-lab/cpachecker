@@ -121,6 +121,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -324,6 +326,18 @@ public class CFAUtils {
       return functionCallStatement.getFunctionCallExpression().getDeclaration();
     }
     throw new IllegalArgumentException("pStatementEdge has no function call statement");
+  }
+
+  public static ImmutableSet<CFunctionCallEdge> getFunctionCallEdgesByReturnStatementEdge(
+      CReturnStatementEdge pReturnStatementEdge) {
+
+    ImmutableSet.Builder<CFunctionCallEdge> rFunctionCallEdges = ImmutableSet.builder();
+    FunctionEntryNode functionEntryNode = pReturnStatementEdge.getSuccessor().getEntryNode();
+    for (FunctionCallEdge enteringEdge : enteringEdges(functionEntryNode)) {
+      assert enteringEdge instanceof CFunctionCallEdge;
+      rFunctionCallEdges.add((CFunctionCallEdge) enteringEdge);
+    }
+    return rFunctionCallEdges.build();
   }
 
   /**

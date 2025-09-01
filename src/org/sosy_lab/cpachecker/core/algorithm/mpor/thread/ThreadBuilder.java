@@ -207,7 +207,7 @@ public class ThreadBuilder {
         if (!(cfaEdge instanceof CFunctionReturnEdge)) {
           // update the calling context, if a function call is encountered
           if (cfaEdge instanceof CFunctionCallEdge) {
-            callContext = Optional.of(threadEdges.inverse().get(cfaEdge));
+            callContext = Optional.ofNullable(threadEdges.inverse().get(cfaEdge));
           }
           initThreadCfaVariables(
               pThreadId,

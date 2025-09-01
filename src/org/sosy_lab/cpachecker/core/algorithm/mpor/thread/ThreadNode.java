@@ -36,7 +36,7 @@ public class ThreadNode {
   public final int pc;
 
   /** Not all nodes have a calling context, e.g. {@code main()} function statements. */
-  protected final Optional<ThreadEdge> callContext;
+  public final Optional<ThreadEdge> callContext;
 
   /** The list of context-sensitive return leaving edges of this ThreadNode. */
   private final List<ThreadEdge> leavingEdges;

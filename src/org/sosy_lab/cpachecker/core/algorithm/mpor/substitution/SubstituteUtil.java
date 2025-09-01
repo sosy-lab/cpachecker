@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -32,6 +33,22 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class SubstituteUtil {
+
+  public static SubstituteEdge getSubstituteEdgeByCfaEdgeAndCallContext(
+      CFAEdge pCfaEdge,
+      Optional<ThreadEdge> pCallContext,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+
+    for (ThreadEdge threadEdge : pSubstituteEdges.keySet()) {
+      if (threadEdge.cfaEdge.equals(pCfaEdge)) {
+        if (threadEdge.callContext.equals(pCallContext)) {
+          return pSubstituteEdges.get(threadEdge);
+        }
+      }
+    }
+    throw new IllegalArgumentException(
+        "could not find pCfaEdge and pCallContext in pSubstituteEdges");
+  }
 
   /**
    * Whether {@code pSimpleDeclaration} is a {@link CVariableDeclaration} or {@link

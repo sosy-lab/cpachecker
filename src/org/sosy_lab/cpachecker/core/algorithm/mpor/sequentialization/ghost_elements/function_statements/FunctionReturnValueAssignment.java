@@ -22,7 +22,6 @@ public class FunctionReturnValueAssignment {
   public final CExpressionAssignmentStatement statement;
 
   public FunctionReturnValueAssignment(CLeftHandSide pLeftHandSide, CExpression pReturnExpression) {
-
     statement =
         SeqStatementBuilder.buildExpressionAssignmentStatement(pLeftHandSide, pReturnExpression);
   }

@@ -11,27 +11,29 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionStatementBuilder {
 
@@ -170,12 +172,19 @@ public class FunctionStatementBuilder {
     ImmutableMap.Builder<ThreadEdge, FunctionReturnValueAssignment> rReturnStatements =
         ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (pSubstituteEdges.containsKey(threadEdge)) {
-        SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
-        if (substituteEdgeA.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
+      assert pSubstituteEdges.containsKey(threadEdge)
+          : "pSubstituteEdges must contain all threadEdges";
+      SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+      if (substituteEdge.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
+        Optional<SubstituteEdge> functionSummaryEdge =
+            tryGetFunctionSummaryEdgeByReturnStatementEdge(
+                pThread,
+                pSubstituteEdges,
+                returnStatementEdge,
+                threadEdge.callContext.orElseThrow());
+        if (functionSummaryEdge.isPresent()) {
           Optional<FunctionReturnValueAssignment> assignment =
-              tryBuildReturnValueAssignmentFromReturnStatementEdge(
-                  pThread, pSubstituteEdges, returnStatementEdge);
+              tryBuildReturnValueAssignment(functionSummaryEdge.orElseThrow(), returnStatementEdge);
           if (assignment.isPresent()) {
             rReturnStatements.put(threadEdge, assignment.orElseThrow());
           }
@@ -185,33 +194,55 @@ public class FunctionStatementBuilder {
     return rReturnStatements.buildOrThrow();
   }
 
-  private static Optional<FunctionReturnValueAssignment>
-      tryBuildReturnValueAssignmentFromReturnStatementEdge(
-          MPORThread pThread,
-          ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-          CReturnStatementEdge pReturnStatementEdge) {
+  private static Optional<SubstituteEdge> tryGetFunctionSummaryEdgeByReturnStatementEdge(
+      MPORThread pThread,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      CReturnStatementEdge pReturnStatementEdge,
+      ThreadEdge pCallContext) {
 
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (pSubstituteEdges.containsKey(threadEdge)) {
-        SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
-        if (substituteEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
-          // if the summary edge is of the form value = func(); (i.e. an assignment)
-          if (functionSummary.getExpression()
-              instanceof CFunctionCallAssignmentStatement assignmentStatement) {
-            AFunctionDeclaration functionDeclarationA =
-                pReturnStatementEdge.getSuccessor().getFunction();
-            AFunctionType functionTypeA = functionDeclarationA.getType();
-            AFunctionType functionTypeB =
-                functionSummary.getFunctionEntry().getFunction().getType();
-            // TODO compare declarations here instead?
-            if (functionTypeA.equals(functionTypeB)) {
+      assert pSubstituteEdges.containsKey(threadEdge)
+          : "pSubstituteEdges must contain all threadEdges";
+      // consider only threadEdges with callContext, CReturnStatementEdges always have call contexts
+      if (threadEdge.callContext.isPresent()) {
+        ThreadEdge callContext = threadEdge.callContext.orElseThrow();
+        if (callContext.equals(pCallContext)) {
+          ImmutableSet<CFunctionCallEdge> functionCallEdges =
+              CFAUtils.getFunctionCallEdgesByReturnStatementEdge(pReturnStatementEdge);
+          for (CFunctionCallEdge functionCallEdge : functionCallEdges) {
+            if (callContext.cfaEdge.equals(functionCallEdge)) {
+              // use the call contexts predecessor, which is used by the functionSummaryEdge
+              Optional<ThreadEdge> predecessorCallContext =
+                  callContext.getPredecessor().callContext;
               return Optional.of(
-                  new FunctionReturnValueAssignment(
-                      assignmentStatement.getLeftHandSide(),
-                      pReturnStatementEdge.getExpression().orElseThrow()));
+                  SubstituteUtil.getSubstituteEdgeByCfaEdgeAndCallContext(
+                      functionCallEdge.getSummaryEdge(), predecessorCallContext, pSubstituteEdges));
             }
           }
         }
+      }
+    }
+    // happens e.g. for return 0; in the start_routine
+    return Optional.empty();
+  }
+
+  private static Optional<FunctionReturnValueAssignment> tryBuildReturnValueAssignment(
+      SubstituteEdge pFunctionSummaryEdge, CReturnStatementEdge pReturnStatementEdge) {
+
+    assert pFunctionSummaryEdge.cfaEdge instanceof CFunctionSummaryEdge;
+    CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) pFunctionSummaryEdge.cfaEdge;
+    // if the summary edge is of the form value = func(); (i.e. an assignment)
+    if (functionSummaryEdge.getExpression()
+        instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement) {
+      CFunctionDeclaration functionDeclarationA =
+          (CFunctionDeclaration) pReturnStatementEdge.getSuccessor().getFunction();
+      CFunctionDeclaration functionDeclarationB =
+          functionSummaryEdge.getExpression().getFunctionCallExpression().getDeclaration();
+      if (functionDeclarationA.equals(functionDeclarationB)) {
+        return Optional.of(
+            new FunctionReturnValueAssignment(
+                functionCallAssignmentStatement.getLeftHandSide(),
+                pReturnStatementEdge.getExpression().orElseThrow()));
       }
     }
     return Optional.empty();
