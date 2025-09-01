@@ -77,8 +77,6 @@ build:jdk-24:
 # For checks that only need the source code, not the binaries
 .source_check: &source_check
   stage: checks
-  dependencies:
-    - build-dependencies
   needs:
     - build-dependencies
   interruptible: true
@@ -118,9 +116,6 @@ checkstyle:
 javadoc:
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS javadoc"
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
   needs:
     - build-dependencies
     - build:jdk-11
@@ -133,9 +128,6 @@ spotbugs:
   script:
     - 'ant $ANT_PROPS_CHECKS spotbugs'
     - 'test \! -f SpotBugs.html'
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
   needs:
     - build-dependencies
     - build:jdk-11
@@ -158,9 +150,6 @@ spotbugs:
 
 unit-tests:jdk-11:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
   needs:
     - build-dependencies
     - build:jdk-11
@@ -168,9 +157,6 @@ unit-tests:jdk-11:
 
 unit-tests:jdk-17:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
   needs:
     - build-dependencies
     - build:jdk-17
@@ -178,9 +164,6 @@ unit-tests:jdk-17:
 
 unit-tests:jdk-21:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-21
   needs:
     - build-dependencies
     - build:jdk-21
@@ -188,9 +171,6 @@ unit-tests:jdk-21:
 
 unit-tests:jdk-24:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-24
   needs:
     - build-dependencies
     - build:jdk-24
@@ -220,10 +200,8 @@ refaster:
       - "error-prone.patch"
       - "rule.refaster"
     when: on_failure
-  except:
-    variables:
-      - $REFASTER_REPO_REVISION == null # required for job
-      - $REFASTER_VERSION == null # required for job
+  rules:
+    - if: $REFASTER_REPO_REVISION != null && $REFASTER_VERSION != null  # required for job
 
 
 # check license declarations etc.
@@ -241,20 +219,19 @@ reuse:
 deploy-gh-pages:
   stage: deploy
   script: "build/deploy-gh-pages.sh"
-  dependencies:
-    - build:jdk-11
-    - javadoc
   needs:
     - build:jdk-11
     - javadoc
   environment: deploy/gh-pages
-  only:
-    variables:
-      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # only on default branch
-      - $CI_PROJECT_PATH == $PROJECT_PATH # not on forks
-  except:
-    variables:
-      - $GH_TOKEN == null # required for job
+  rules:
+    # run only if:
+    # - on default branch
+    # - not on a fork,
+    # - GH_TOKEN is present (required for job)
+    - if: >
+        $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+        && $CI_PROJECT_PATH == $PROJECT_PATH
+        && $GH_TOKEN != null
 
 
 # Build container images
@@ -270,9 +247,9 @@ deploy-gh-pages:
     - mkdir -p /root/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE$IMAGE $EXTRA_ARGS
-  only:
-    - schedules
-    - web
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
 
 build-docker:test:jdk-11:
   extends: .build-docker
