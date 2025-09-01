@@ -144,6 +144,29 @@ public class SequentializationFieldsTest {
   }
 
   @Test
+  public void test_mix008_tso_oepc() throws Exception {
+    // this program was incorrect 'true' with last_thread order reduction
+    Path path = Path.of("./test/programs/mpor/sequentialization/mix008_tso.oepc.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.defaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads == 5).isTrue();
+    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
+    assertThat(fields.memoryModel.isPresent()).isTrue();
+    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    // 49 global variables, but 4 are never accessed -> not identified by tracker
+    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 45).isTrue();
+    assertThat(memoryModel.parameterAssignments.size() == 2).isTrue();
+    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
+    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+  }
+
+  @Test
   public void test_mix014_power_oepc_pso_oepc_rmo_oepc() throws Exception {
     // this program is ... very large
     Path path =
