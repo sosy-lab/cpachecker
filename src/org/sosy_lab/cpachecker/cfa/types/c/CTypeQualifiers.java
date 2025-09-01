@@ -87,13 +87,13 @@ public enum CTypeQualifiers {
   String toASTStringPrefix() {
     return switch (this) {
       case NONE -> "";
-      case ATOMIC -> "_Atomic";
+      case ATOMIC -> "_Atomic ";
       case CONST -> "const ";
       case VOLATILE -> "volatile ";
-      case ATOMIC_CONST -> "_Atomic const";
-      case ATOMIC_VOLATILE -> "_Atomic volatile";
+      case ATOMIC_CONST -> "_Atomic const ";
+      case ATOMIC_VOLATILE -> "_Atomic volatile ";
       case CONST_VOLATILE -> "const volatile ";
-      case ATOMIC_CONST_VOLATILE -> "_Atomic const volatile";
+      case ATOMIC_CONST_VOLATILE -> "_Atomic const volatile ";
     };
   }
 
