@@ -98,9 +98,9 @@ with considerably less effort!
   this description should be an explanation for users of CPAchecker
   and for example refer to the relevant papers.
 - Respect the grouping of files into the respective directories
-  (also cf. the `README.md` files in each directory)
+  (also cf. the linked `README.md` files in each directory)
   and the individual rules:
-  - `config/`: main configs for users of CPAchecker  
+  - [`config/`](../config/README.md): main configs for users of CPAchecker  
     These config files should be complete and usable.
     Except in special cases they should always include
     our default [resource limits](config/includes/resource-limits.properties)
@@ -115,24 +115,24 @@ with considerably less effort!
     can use a recommendation from us
     (for example, we could have `foo-Cegar.properties`, `foo-NoCegar.properties`,
     and `foo.properties` that just includes one of the other two files).
-  - `config/cex-checks/`: configs for analyses to be used as counterexample check  
+  - [`config/cex-checks/`](../config/cex-checks/README.md): configs for analyses to be used as counterexample check  
     These can rely on the state space being finite
     (and usually consisting of only a single path) due to an additional automaton.
     Files in this directory should not include a specification nor the default resource limits
     and thus not include files that are directly in `config/`.
-  - `config/components/`: configs for analyses that are components of a meta analysis
+  - [`config/components/`](../config/components/README.md): configs for analyses that are components of a meta analysis
     (e.g., in a strategy selection or portfolio)  
     These configs may contain options that are useful only in particular cases,
     like small time limits for parts of sequential combinations.
     Files in this directory should not include a specification nor the default resource limits
     and thus not include files that are directly in `config/`.
-  - `config/includes/`: partial configs that make sense only as building blocks included in other files  
+  - [`config/includes/`](../config/includes/README.md): partial configs that make sense only as building blocks included in other files  
     Typically the files here should not contain a specification
     nor the default resource limits in order to make them useful
     in main configs as well as component configs.
     Thus the files here should only include files that are also in `config/includes/`.
-  - `config/specification/`: no config files, but specification files
-  - `config/unmaintained/`: main configs for users of CPAchecker,
+  - [`config/specification/`](../config/specification/README.md): no config files, but specification files
+  - [`config/unmaintained/`](../config/unmaintained/README.md): main configs for users of CPAchecker,
     but unmaintained and potentially outdated  
     All files here should not be included or referenced
     from other config files outside of this directory.
