@@ -174,19 +174,21 @@ public class FunctionStatementBuilder {
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       assert pSubstituteEdges.containsKey(threadEdge)
           : "pSubstituteEdges must contain all threadEdges";
-      SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
-      if (substituteEdge.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
-        Optional<SubstituteEdge> functionSummaryEdge =
-            tryGetFunctionSummaryEdgeByReturnStatementEdge(
-                pThread,
-                pSubstituteEdges,
-                returnStatementEdge,
-                threadEdge.callContext.orElseThrow());
-        if (functionSummaryEdge.isPresent()) {
-          Optional<FunctionReturnValueAssignment> assignment =
-              tryBuildReturnValueAssignment(functionSummaryEdge.orElseThrow(), returnStatementEdge);
-          if (assignment.isPresent()) {
-            rReturnStatements.put(threadEdge, assignment.orElseThrow());
+      // consider only edges with call context, e.g. return 0; in main has no call context
+      if (threadEdge.callContext.isPresent()) {
+        SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+        if (substituteEdge.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
+          ThreadEdge callContext = threadEdge.callContext.orElseThrow();
+          Optional<SubstituteEdge> functionSummaryEdge =
+              tryGetFunctionSummaryEdgeByReturnStatementEdge(
+                  pThread, pSubstituteEdges, returnStatementEdge, callContext);
+          if (functionSummaryEdge.isPresent()) {
+            Optional<FunctionReturnValueAssignment> assignment =
+                tryBuildReturnValueAssignment(
+                    functionSummaryEdge.orElseThrow(), returnStatementEdge);
+            if (assignment.isPresent()) {
+              rReturnStatements.put(threadEdge, assignment.orElseThrow());
+            }
           }
         }
       }

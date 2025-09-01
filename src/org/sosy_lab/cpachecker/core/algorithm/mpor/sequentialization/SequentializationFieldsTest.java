@@ -13,14 +13,19 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -98,6 +103,36 @@ public class SequentializationFieldsTest {
     // the main thread should always have id 0
     assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+  }
+
+  @Test
+  public void test_chl_match_symm_wvr() throws Exception {
+    // this program contains multiple calls to the same function in a single thread
+    Path path = Path.of("./test/programs/mpor/sequentialization/chl-match-symm.wvr.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.defaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads == 3).isTrue();
+    assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
+    assertThat(fields.memoryModel.isPresent()).isTrue();
+    MemoryModel memoryModel = fields.memoryModel.orElseThrow();
+    assertThat(memoryModel.getRelevantMemoryLocationAmount() == 8).isTrue();
+    assertThat(memoryModel.pointerAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
+    assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
+    assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
+    // check that each __CPAchecker_TMP variable storing function return values is present once
+    Set<CLeftHandSide> visited = new HashSet<>();
+    for (FunctionStatements functionStatements :
+        fields.ghostElements.getFunctionStatements().values()) {
+      for (FunctionReturnValueAssignment returnValueAssignment :
+          functionStatements.returnValueAssignments.values()) {
+        assertThat(visited.add(returnValueAssignment.statement.getLeftHandSide())).isTrue();
+      }
+    }
   }
 
   @Test
