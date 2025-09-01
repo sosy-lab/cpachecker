@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseBuilder {
@@ -95,6 +96,7 @@ public class SeqThreadStatementClauseBuilder {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
         ImmutableListMultimap.builder();
+    ImmutableList<MPORThread> allThreads = SubstituteUtil.extractThreads(pSubstitutions);
     for (MPORSubstitution substitution : pSubstitutions) {
       MPORThread thread = substitution.thread;
       ImmutableList.Builder<SeqThreadStatementClause> clauses = ImmutableList.builder();
@@ -103,7 +105,8 @@ public class SeqThreadStatementClauseBuilder {
           initClauses(
               pOptions,
               thread,
-              SubstituteUtil.extractThreads(pSubstitutions),
+              tryGetNextThread(thread, allThreads),
+              allThreads,
               coveredNodes,
               pSubstituteEdges,
               pGhostElements));
@@ -151,6 +154,7 @@ public class SeqThreadStatementClauseBuilder {
   private static ImmutableList<SeqThreadStatementClause> initClauses(
       MPOROptions pOptions,
       MPORThread pThread,
+      Optional<MPORThread> pNextThread,
       ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
@@ -164,6 +168,7 @@ public class SeqThreadStatementClauseBuilder {
             buildClauseFromThreadNode(
                 pOptions,
                 pThread,
+                pNextThread,
                 pAllThreads,
                 pCoveredNodes,
                 threadNode,
@@ -185,6 +190,7 @@ public class SeqThreadStatementClauseBuilder {
   private static Optional<SeqThreadStatementClause> buildClauseFromThreadNode(
       MPOROptions pOptions,
       final MPORThread pThread,
+      final Optional<MPORThread> pNextThread,
       final ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
@@ -222,7 +228,7 @@ public class SeqThreadStatementClauseBuilder {
     SeqBlockLabelStatement blockLabelStatement =
         buildBlockLabelStatement(pOptions, pThread.id, labelPc);
     SeqThreadStatementBlock block =
-        new SeqThreadStatementBlock(pOptions, blockLabelStatement, statements.build());
+        new SeqThreadStatementBlock(pOptions, pNextThread, blockLabelStatement, statements.build());
     SeqThreadStatementClause clause = new SeqThreadStatementClause(block);
     return Optional.of(clause);
   }
@@ -234,5 +240,14 @@ public class SeqThreadStatementClauseBuilder {
 
     String threadPrefix = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId);
     return new SeqBlockLabelStatement(threadPrefix, pLabelNumber);
+  }
+
+  private static Optional<MPORThread> tryGetNextThread(
+      MPORThread pCurrentThread, ImmutableList<MPORThread> pAllThreads) {
+
+    if (pCurrentThread.id < pAllThreads.size() - 1) {
+      return Optional.of(ThreadUtil.getThreadById(pAllThreads, pCurrentThread.id + 1));
+    }
+    return Optional.empty();
   }
 }

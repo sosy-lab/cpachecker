@@ -19,8 +19,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ThreadUtil {
@@ -115,5 +117,19 @@ public class ThreadUtil {
       }
     }
     throw new IllegalArgumentException("no MPORThread with pId found in pThreads");
+  }
+
+  public static boolean isThreadLabelRequired(MPOROptions pOptions) {
+    // only needed if the loop is finite i.e. not 0, otherwise just use continue;
+    if (pOptions.loopIterations > 0) {
+      // only use with NUM_STATEMENTS nondeterminism, for NEXT_THREAD, just continue;
+      if (!pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+        // in switch case, just use break; instead of continue;
+        if (!pOptions.controlEncodingStatement.equals(MultiControlStatementEncoding.SWITCH_CASE)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

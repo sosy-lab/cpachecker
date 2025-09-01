@@ -30,13 +30,8 @@ public class SeqBlockLabelStatement implements SeqLabelStatement {
   }
 
   @Override
-  public String getLabelName() {
-    return threadPrefix + labelNumber;
-  }
-
-  @Override
   public String toASTStringWithoutColon() {
-    return getLabelName();
+    return threadPrefix + SeqSyntax.UNDERSCORE + labelNumber;
   }
 
   public SeqBlockLabelStatement cloneWithLabelNumber(int pLabelNumber) {

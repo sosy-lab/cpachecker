@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
 
 /**
  * An object for a thread containing an identifier (threadObject) and entry / exit Nodes of the
@@ -49,7 +50,9 @@ public class MPORThread {
   /**
    * The thread-specific nondeterministic {@code K{thread_id}} variable (statement round counter).
    */
-  private final Optional<CIdExpression> KVariable;
+  private final Optional<CIdExpression> kVariable;
+
+  private final Optional<SeqThreadLabelStatement> label;
 
   protected MPORThread(
       int pId,
@@ -59,7 +62,8 @@ public class MPORThread {
       Optional<CIdExpression> pStartRoutineExitVariable,
       ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
       ThreadCFA pCfa,
-      Optional<CIdExpression> pKVariable) {
+      Optional<CIdExpression> pKVariable,
+      Optional<SeqThreadLabelStatement> pLabel) {
 
     id = pId;
     threadObject = pThreadObject;
@@ -68,7 +72,8 @@ public class MPORThread {
     startRoutineExitVariable = pStartRoutineExitVariable;
     localVariables = pLocalVariables;
     cfa = pCfa;
-    KVariable = pKVariable;
+    kVariable = pKVariable;
+    label = pLabel;
   }
 
   public boolean isMain() {
@@ -76,6 +81,10 @@ public class MPORThread {
   }
 
   public Optional<CIdExpression> getKVariable() {
-    return KVariable;
+    return kVariable;
+  }
+
+  public Optional<SeqThreadLabelStatement> getLabel() {
+    return label;
   }
 }

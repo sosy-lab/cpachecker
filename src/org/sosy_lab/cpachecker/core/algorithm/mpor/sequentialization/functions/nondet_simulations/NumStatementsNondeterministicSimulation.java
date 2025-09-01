@@ -98,6 +98,11 @@ public class NumStatementsNondeterministicSimulation {
               SeqIntegerLiteralExpression.INT_0,
               BinaryOperator.GREATER_THAN);
 
+      // create T{thread_id}: label
+      if (thread.getLabel().isPresent()) {
+        rLines.add(LineOfCode.of(thread.getLabel().orElseThrow().toASTString()));
+      }
+
       // create "if (pc != 0 ...)" condition
       SeqExpression ifCondition =
           buildIfConditionExpression(

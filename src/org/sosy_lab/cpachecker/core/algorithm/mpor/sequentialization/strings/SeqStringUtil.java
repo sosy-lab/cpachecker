@@ -28,8 +28,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqCountUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqConflictOrderStatement;
@@ -38,6 +40,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStringUtil {
@@ -45,22 +49,41 @@ public class SeqStringUtil {
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
   private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
 
-  public static String buildSuffixByMultiControlStatementEncoding(MPOROptions pOptions) {
+  public static Optional<String> tryBuildSuffixByMultiControlStatementEncoding(
+      MPOROptions pOptions,
+      Optional<MPORThread> pNextThread,
+      ImmutableList<SeqThreadStatement> pStatements)
+      throws UnrecognizedCodeException {
+
+    if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
+      return Optional.empty();
+    }
+    if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
+      return Optional.empty();
+    }
+    return Optional.of(buildSuffixByMultiControlStatementEncoding(pOptions, pNextThread));
+  }
+
+  private static String buildSuffixByMultiControlStatementEncoding(
+      MPOROptions pOptions, Optional<MPORThread> pNextThread) throws UnrecognizedCodeException {
+
     // use control encoding of the statement since we append the suffix to the statement
     return switch (pOptions.controlEncodingStatement) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build suffix for control encoding " + pOptions.controlEncodingStatement);
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
-        if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
-          yield SeqToken._continue + SeqSyntax.SEMICOLON;
-        } else {
-          yield SeqSyntax.EMPTY_STRING;
+        if (ThreadUtil.isThreadLabelRequired(pOptions)) {
+          // if this is not the last thread, add goto T{next_thread_ID}, otherwise continue
+          if (pNextThread.isPresent()) {
+            SeqThreadLabelStatement nextLabel = pNextThread.orElseThrow().getLabel().orElseThrow();
+            SeqGotoStatement gotoStatement = new SeqGotoStatement(nextLabel);
+            yield gotoStatement.toASTString();
+          }
         }
+        yield SeqToken._continue + SeqSyntax.SEMICOLON;
       }
-      case SWITCH_CASE ->
-          // tests showed: using break in switch is more efficient than continue, despite the loop
-          SeqToken._break + SeqSyntax.SEMICOLON;
+      case SWITCH_CASE -> SeqToken._break + SeqSyntax.SEMICOLON;
     };
   }
 
