@@ -13,9 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -100,16 +98,17 @@ public class SubstituteUtil {
    * The initial memory locations do not factor in memory locations that are only used in pointer
    * parameter assignments.
    */
-  public static ImmutableSet<MemoryLocation> getInitialMemoryLocations(
+  public static ImmutableList<MemoryLocation> getInitialMemoryLocations(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    Set<MemoryLocation> rMemoryLocations = new HashSet<>();
+    ImmutableList.Builder<MemoryLocation> rMemoryLocations = ImmutableList.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rMemoryLocations.addAll(substituteEdge.accessedMemoryLocations);
       rMemoryLocations.addAll(substituteEdge.pointerAssignments.values());
       rMemoryLocations.addAll(substituteEdge.accessedPointerDereferences);
     }
-    return ImmutableSet.copyOf(rMemoryLocations);
+    // remove duplicates
+    return rMemoryLocations.build().stream().distinct().collect(ImmutableList.toImmutableList());
   }
 
   static ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(

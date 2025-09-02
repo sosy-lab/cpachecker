@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -43,7 +44,7 @@ public class MemoryModelBuilder {
 
   public static Optional<MemoryModel> tryBuildMemoryModel(
       MPOROptions pOptions,
-      ImmutableSet<MemoryLocation> pInitialMemoryLocations,
+      ImmutableList<MemoryLocation> pInitialMemoryLocations,
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     if (pOptions.linkReduction) {
@@ -53,18 +54,23 @@ public class MemoryModelBuilder {
           mapParameterAssignments(pOptions, pSubstituteEdges, pInitialMemoryLocations);
       ImmutableMap<MemoryLocation, MemoryLocation> pointerParameterAssignments =
           extractPointerParameters(parameterAssignments);
-      ImmutableCollection<MemoryLocation> newMemoryLocations =
-          ImmutableSet.<MemoryLocation>builder()
+      // TODO ensure order of values / keySets
+      ImmutableList<MemoryLocation> newMemoryLocations =
+          ImmutableList.<MemoryLocation>builder()
               .addAll(parameterAssignments.values())
               .addAll(startRoutineArgAssignments.keySet())
               .addAll(startRoutineArgAssignments.values())
               .build();
 
-      ImmutableSet<MemoryLocation> allMemoryLocations =
-          ImmutableSet.<MemoryLocation>builder()
+      // use distinct list so that sequentialization is deterministic
+      ImmutableList<MemoryLocation> allMemoryLocations =
+          ImmutableList.<MemoryLocation>builder()
               .addAll(pInitialMemoryLocations)
               .addAll(newMemoryLocations)
-              .build();
+              .build()
+              .stream()
+              .distinct()
+              .collect(ImmutableList.toImmutableList());
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
           mapPointerAssignments(pSubstituteEdges);
       ImmutableSet<MemoryLocation> pointerDereferences =
@@ -85,7 +91,7 @@ public class MemoryModelBuilder {
   }
 
   private static MemoryModel buildMemoryModel(
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
+      ImmutableList<MemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments,
@@ -112,7 +118,7 @@ public class MemoryModelBuilder {
   // Collection helpers ============================================================================
 
   private static ImmutableMap<MemoryLocation, Integer> getRelevantMemoryLocationsIds(
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
+      ImmutableList<MemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
@@ -369,7 +375,7 @@ public class MemoryModelBuilder {
   private static ImmutableMap<MemoryLocation, MemoryLocation> mapStartRoutineArgAssignments(
       MPOROptions pOptions,
       ImmutableCollection<SubstituteEdge> pSubstituteEdges,
-      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      ImmutableList<MemoryLocation> pInitialMemoryLocations) {
 
     ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
@@ -404,7 +410,7 @@ public class MemoryModelBuilder {
   private static ImmutableMap<MemoryLocation, MemoryLocation> mapParameterAssignments(
       MPOROptions pOptions,
       ImmutableCollection<SubstituteEdge> pSubstituteEdges,
-      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      ImmutableList<MemoryLocation> pInitialMemoryLocations) {
 
     ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
@@ -424,7 +430,7 @@ public class MemoryModelBuilder {
       MPOROptions pOptions,
       ThreadEdge pCallContext,
       CFunctionCallEdge pFunctionCallEdge,
-      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      ImmutableList<MemoryLocation> pInitialMemoryLocations) {
 
     ImmutableMap.Builder<MemoryLocation, MemoryLocation> rAssignments = ImmutableMap.builder();
     List<CExpression> arguments = pFunctionCallEdge.getArguments();
@@ -451,7 +457,7 @@ public class MemoryModelBuilder {
       MPOROptions pOptions,
       ThreadEdge pCallContext,
       CExpression pRightHandSide,
-      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      ImmutableList<MemoryLocation> pInitialMemoryLocations) {
 
     if (pRightHandSide instanceof CIdExpression idExpression) {
       return Optional.of(
@@ -479,7 +485,7 @@ public class MemoryModelBuilder {
       MPOROptions pOptions,
       ThreadEdge pCallContext,
       CFieldReference pFieldReference,
-      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      ImmutableList<MemoryLocation> pInitialMemoryLocations) {
 
     if (pFieldReference.getFieldOwner().getExpressionType() instanceof CTypedefType typedefType) {
       CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
@@ -499,7 +505,7 @@ public class MemoryModelBuilder {
       MPOROptions pOptions,
       ThreadEdge pCallContext,
       CSimpleDeclaration pDeclaration,
-      ImmutableSet<MemoryLocation> pInitialMemoryLocations) {
+      ImmutableList<MemoryLocation> pInitialMemoryLocations) {
 
     for (MemoryLocation memoryLocation : pInitialMemoryLocations) {
       if (memoryLocation.declaration.equals(pDeclaration)) {
@@ -514,7 +520,7 @@ public class MemoryModelBuilder {
       ThreadEdge pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember,
-      ImmutableSet<MemoryLocation> pAllMemoryLocations) {
+      ImmutableList<MemoryLocation> pAllMemoryLocations) {
 
     for (MemoryLocation memoryLocation : pAllMemoryLocations) {
       if (memoryLocation.fieldMember.isPresent()) {

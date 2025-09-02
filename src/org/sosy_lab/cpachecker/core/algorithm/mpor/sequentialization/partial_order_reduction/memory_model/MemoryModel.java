@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -23,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
  */
 public class MemoryModel {
 
-  private final ImmutableSet<MemoryLocation> allMemoryLocations;
+  private final ImmutableList<MemoryLocation> allMemoryLocations;
 
   private final int relevantMemoryLocationAmount;
 
@@ -55,7 +56,7 @@ public class MemoryModel {
   public final ImmutableSet<MemoryLocation> pointerDereferences;
 
   MemoryModel(
-      ImmutableSet<MemoryLocation> pAllMemoryLocations,
+      ImmutableList<MemoryLocation> pAllMemoryLocations,
       ImmutableMap<MemoryLocation, Integer> pRelevantMemoryLocationIds,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
@@ -164,7 +165,7 @@ public class MemoryModel {
     return relevantMemoryLocationAmount;
   }
 
-  public ImmutableSet<MemoryLocation> getAllMemoryLocations() {
+  public ImmutableList<MemoryLocation> getAllMemoryLocations() {
     return allMemoryLocations;
   }
 
