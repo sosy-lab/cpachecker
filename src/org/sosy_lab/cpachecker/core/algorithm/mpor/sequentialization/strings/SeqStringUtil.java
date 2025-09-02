@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
@@ -48,6 +49,8 @@ public class SeqStringUtil {
 
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
   private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
+
+  // Multi Control Statement Suffix ================================================================
 
   public static Optional<String> tryBuildSuffixByMultiControlStatementEncoding(
       MPOROptions pOptions,
@@ -87,10 +90,26 @@ public class SeqStringUtil {
     };
   }
 
+  // String from SeqASTNodes =======================================================================
+
+  public static String buildStringFromSeqASTNodes(ImmutableList<SeqASTNode> pSeqASTNodes)
+      throws UnrecognizedCodeException {
+
+    StringBuilder rString = new StringBuilder();
+    for (SeqASTNode seqASTNode : pSeqASTNodes) {
+      rString.append(seqASTNode.toASTString()).append(SeqSyntax.NEWLINE);
+    }
+    return rString.toString();
+  }
+
+  // Comments ======================================================================================
+
   /** Returns {@code /* pString * /} without the last whitespace (Javadoc doesn't allow it ...) */
   public static String wrapInBlockComment(String pString) {
     return SeqComment.COMMENT_BLOCK_BEGIN + pString + SeqComment.COMMENT_BLOCK_END;
   }
+
+  // Quotation Marks ===============================================================================
 
   /** Returns ""pString"" */
   public static String wrapInQuotationMarks(String pString) {
@@ -196,7 +215,6 @@ public class SeqStringUtil {
 
     // TODO add some restrictions here
 
-    // TODO we should add some newlines here...
     StringBuilder statements = new StringBuilder();
 
     if (pTargetPc.isPresent()) {

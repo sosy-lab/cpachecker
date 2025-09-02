@@ -8,7 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement;
 
+import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
@@ -16,6 +20,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStatement {
+
+  private final MPOROptions options;
 
   private final BitVectorEvaluationExpression evaluationExpression;
 
@@ -26,19 +32,29 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
    * ReductionMode#ACCESS_ONLY} and {@link ReductionMode#READ_AND_WRITE}.
    */
   public SeqBitVectorEvaluationStatement(
-      BitVectorEvaluationExpression pEvaluationExpression, SeqBlockLabelStatement pGotoLabel) {
+      MPOROptions pOptions,
+      BitVectorEvaluationExpression pEvaluationExpression,
+      SeqBlockLabelStatement pGotoLabel) {
 
+    // TODO handle empty evaluation expressions
+    options = pOptions;
     evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
     if (evaluationExpression.isEmpty()) {
-      // TODO still needed?
       // no evaluation due to no global accesses -> just goto
+      SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
       return gotoStatement.toASTString();
+
+    } else if (options.nondeterminismSource.equals(NondeterminismSource.NEXT_THREAD)) {
+      // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
+      SeqIfExpression ifExpression = new SeqIfExpression(evaluationExpression.negate());
+      SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
+      return ifExpression.toASTStringWithBlock(ImmutableList.of(gotoStatement));
+
     } else {
       return SeqAssumptionBuilder.buildAssumption(evaluationExpression.toASTString());
     }
@@ -46,7 +62,7 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
 
   public SeqBitVectorEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
     return new SeqBitVectorEvaluationStatement(
-        evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
+        options, evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
   }
 
   public BitVectorEvaluationExpression getEvaluationExpression() {

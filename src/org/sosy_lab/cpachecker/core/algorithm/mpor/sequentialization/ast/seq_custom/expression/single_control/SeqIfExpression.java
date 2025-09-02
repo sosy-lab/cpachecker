@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqIfExpression implements SeqSingleControlExpression {
@@ -34,6 +37,13 @@ public class SeqIfExpression implements SeqSingleControlExpression {
     String expression =
         SingleControlExpressionUtil.buildExpressionString(cExpression, seqExpression);
     return SingleControlExpressionUtil.buildStatementString(this, expression);
+  }
+
+  public String toASTStringWithBlock(ImmutableList<SeqASTNode> pBlockStatements)
+      throws UnrecognizedCodeException {
+
+    String block = SeqStringUtil.buildStringFromSeqASTNodes(pBlockStatements);
+    return toASTString() + SeqStringUtil.wrapInCurlyBracketsInwards(block);
   }
 
   @Override

@@ -275,7 +275,8 @@ public class BitVectorInjector {
             pBitVectorVariables,
             pMemoryModel,
             pBinaryExpressionBuilder);
-    return new SeqBitVectorEvaluationStatement(evaluationExpression, pTargetBlock.getLabel());
+    return new SeqBitVectorEvaluationStatement(
+        pOptions, evaluationExpression, pTargetBlock.getLabel());
   }
 
   // Bit Vector Assignments ========================================================================
