@@ -12,8 +12,10 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -82,7 +84,7 @@ public class MemoryModelBuilder {
     }
   }
 
-  public static MemoryModel buildMemoryModel(
+  private static MemoryModel buildMemoryModel(
       ImmutableSet<MemoryLocation> pAllMemoryLocations,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
@@ -158,7 +160,7 @@ public class MemoryModelBuilder {
    * Returns {@code true} if {@code pMemoryLocation} is implicitly global e.g. through {@code
    * global_ptr = &local_var;}. Returns {@code false} even if the memory location itself is global.
    */
-  public static boolean isImplicitGlobal(
+  static boolean isImplicitGlobal(
       MemoryLocation pMemoryLocation,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
@@ -285,7 +287,7 @@ public class MemoryModelBuilder {
 
     for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
       ImmutableSet<MemoryLocation> transitivePointerDeclarations =
-          MemoryLocationFinder.findPointerDeclarationsByPointerAssignments(
+          findPointerDeclarationsByPointerAssignments(
               pointerDeclaration,
               pPointerAssignments,
               pStartRoutineArgAssignments,
@@ -298,6 +300,55 @@ public class MemoryModelBuilder {
       }
     }
     return false;
+  }
+
+  // Extraction by Pointer Assignments (including Parameters) ======================================
+
+  private static ImmutableSet<MemoryLocation> findPointerDeclarationsByPointerAssignments(
+      MemoryLocation pPointerDeclaration,
+      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
+      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
+
+    Set<MemoryLocation> rFound = new HashSet<>();
+    recursivelyFindPointerDeclarationsByPointerAssignments(
+        pPointerDeclaration,
+        pPointerAssignments,
+        pStartRoutineArgAssignments,
+        pPointerParameterAssignments,
+        rFound,
+        new HashSet<>());
+    return ImmutableSet.copyOf(rFound);
+  }
+
+  private static void recursivelyFindPointerDeclarationsByPointerAssignments(
+      MemoryLocation pCurrentMemoryLocation,
+      final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
+      final ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
+      final ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
+      Set<MemoryLocation> pFound,
+      Set<MemoryLocation> pVisited) {
+
+    if (MemoryModel.isLeftHandSideInPointerAssignment(
+        pCurrentMemoryLocation,
+        pPointerAssignments,
+        pStartRoutineArgAssignments,
+        pPointerParameterAssignments)) {
+      for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
+        if (pVisited.add(pointerDeclaration)) {
+          for (MemoryLocation memoryLocation : pPointerAssignments.get(pointerDeclaration)) {
+            pFound.add(pointerDeclaration);
+            recursivelyFindPointerDeclarationsByPointerAssignments(
+                memoryLocation,
+                pPointerAssignments,
+                pStartRoutineArgAssignments,
+                pPointerParameterAssignments,
+                pFound,
+                pVisited);
+          }
+        }
+      }
+    }
   }
 
   // Pointer Assignments ===========================================================================
@@ -483,7 +534,7 @@ public class MemoryModelBuilder {
 
   // Pointer Parameter Assignments =================================================================
 
-  public static ImmutableMap<MemoryLocation, MemoryLocation> extractPointerParameters(
+  static ImmutableMap<MemoryLocation, MemoryLocation> extractPointerParameters(
       ImmutableMap<MemoryLocation, MemoryLocation> pParameterAssignments) {
 
     ImmutableMap.Builder<MemoryLocation, MemoryLocation> rPointers = ImmutableMap.builder();

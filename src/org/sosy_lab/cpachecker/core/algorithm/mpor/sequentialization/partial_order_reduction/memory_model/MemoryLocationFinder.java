@@ -112,67 +112,24 @@ public class MemoryLocationFinder {
         pSubstituteEdge.getPointerDereferencesByAccessType(pAccessType);
     for (MemoryLocation pointerDereference : pointerDereferences) {
       rMemLocations.addAll(
-          findMemoryLocationsByPointerDereference(
-              pointerDereference,
-              pMemoryModel.pointerAssignments,
-              pMemoryModel.startRoutineArgAssignments,
-              pMemoryModel.pointerParameterAssignments));
+          findMemoryLocationsByPointerDereference(pointerDereference, pMemoryModel));
     }
     return rMemLocations.build();
   }
 
-  // Extraction by Pointer Assignments (including Parameters) ======================================
-
-  public static ImmutableSet<MemoryLocation> findPointerDeclarationsByPointerAssignments(
-      MemoryLocation pPointerDeclaration,
-      ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments) {
-
-    Set<MemoryLocation> rFound = new HashSet<>();
-    recursivelyFindPointerDeclarationsByPointerAssignments(
-        pPointerDeclaration,
-        pPointerAssignments,
-        pStartRoutineArgAssignments,
-        pPointerParameterAssignments,
-        rFound,
-        new HashSet<>());
-    return ImmutableSet.copyOf(rFound);
-  }
-
-  private static void recursivelyFindPointerDeclarationsByPointerAssignments(
-      MemoryLocation pCurrentMemoryLocation,
-      final ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
-      final ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
-      final ImmutableMap<MemoryLocation, MemoryLocation> pPointerParameterAssignments,
-      Set<MemoryLocation> pFound,
-      Set<MemoryLocation> pVisited) {
-
-    if (MemoryModel.isLeftHandSideInPointerAssignment(
-        pCurrentMemoryLocation,
-        pPointerAssignments,
-        pStartRoutineArgAssignments,
-        pPointerParameterAssignments)) {
-      for (MemoryLocation pointerDeclaration : pPointerAssignments.keySet()) {
-        if (pVisited.add(pointerDeclaration)) {
-          for (MemoryLocation memoryLocation : pPointerAssignments.get(pointerDeclaration)) {
-            pFound.add(pointerDeclaration);
-            recursivelyFindPointerDeclarationsByPointerAssignments(
-                memoryLocation,
-                pPointerAssignments,
-                pStartRoutineArgAssignments,
-                pPointerParameterAssignments,
-                pFound,
-                pVisited);
-          }
-        }
-      }
-    }
-  }
-
   // Extraction by Pointer Dereference =============================================================
 
-  public static ImmutableSet<MemoryLocation> findMemoryLocationsByPointerDereference(
+  private static ImmutableSet<MemoryLocation> findMemoryLocationsByPointerDereference(
+      MemoryLocation pPointerDereference, MemoryModel pMemoryModel) {
+
+    return findMemoryLocationsByPointerDereference(
+        pPointerDereference,
+        pMemoryModel.pointerAssignments,
+        pMemoryModel.startRoutineArgAssignments,
+        pMemoryModel.pointerParameterAssignments);
+  }
+
+  static ImmutableSet<MemoryLocation> findMemoryLocationsByPointerDereference(
       MemoryLocation pPointerDereference,
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pPointerAssignments,
       ImmutableMap<MemoryLocation, MemoryLocation> pStartRoutineArgAssignments,
