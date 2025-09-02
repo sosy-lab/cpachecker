@@ -43,7 +43,9 @@ public class DssVisualizationWorker extends DssWorker {
     connection = pConnection;
     reportFiles = pOptions.getReportFiles();
     try {
-      pNode.export(pOptions.getBlockCFAFile());
+      if (pOptions.getBlockCFAFile() != null) {
+        pNode.export(pOptions.getBlockCFAFile());
+      }
     } catch (IOException e) {
       pLogger.logException(
           Level.WARNING,
@@ -55,9 +57,11 @@ public class DssVisualizationWorker extends DssWorker {
   }
 
   private void log(DssMessage pMessage) throws IOException {
-    JSON.writeJSONString(
-        pMessage.asJsonWithIdentifier(identifier),
-        reportFiles.resolve("M" + idGenerator.getFreshId() + ".json"));
+    if (reportFiles != null) {
+      JSON.writeJSONString(
+          pMessage.asJsonWithIdentifier(identifier),
+          reportFiles.resolve("M" + idGenerator.getFreshId() + ".json"));
+    }
   }
 
   @Override
