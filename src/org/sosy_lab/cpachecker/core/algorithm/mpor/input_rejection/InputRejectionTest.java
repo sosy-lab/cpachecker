@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.Nondeterminism
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -51,12 +52,13 @@ public class InputRejectionTest {
           false,
           0,
           false,
+          false,
+          false,
           NondeterminismSource.NUM_STATEMENTS,
           false,
           false,
-          false,
-          false,
           ReductionMode.NONE,
+          ReductionOrder.NONE,
           false,
           false,
           false);
@@ -187,9 +189,10 @@ public class InputRejectionTest {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pointer-write.c");
     MPOROptions customOptions =
         MPOROptions.testInstance(
-            // do not allow pointer writes, so that this program is rejected
+            // do not allow pointer writes
             false,
             BitVectorEncoding.DECIMAL,
+            // enable bit vectors -> program is rejected due to pointer write
             true,
             false,
             false,
@@ -204,12 +207,13 @@ public class InputRejectionTest {
             false,
             0,
             false,
+            false,
+            false,
             NondeterminismSource.NUM_STATEMENTS,
             false,
             false,
-            false,
-            false,
             ReductionMode.ACCESS_ONLY,
+            ReductionOrder.NONE,
             false,
             false,
             false);

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
@@ -30,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqConflictOrderStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqInjectedBitVectorStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqLastBitVectorUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -179,6 +180,7 @@ public class SeqThreadStatementUtil {
    * statements, if present.
    */
   static String buildInjectedStatements(
+      MPOROptions pOptions,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
@@ -199,7 +201,8 @@ public class SeqThreadStatementUtil {
         statements.append(pcWrite.toASTString()).append(SeqSyntax.SPACE);
       }
       // add all injected statements in the correct order
-      ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pruned);
+      ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pOptions, pruned);
+      assert ordered.size() == pruned.size() : "ordering of statements resulted in lost statements";
       for (int i = 0; i < ordered.size(); i++) {
         SeqInjectedStatement injectedStatement = ordered.get(i);
         statements.append(injectedStatement.toASTString());
@@ -246,35 +249,60 @@ public class SeqThreadStatementUtil {
   }
 
   private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+      MPOROptions pOptions, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
+    Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
     List<SeqInjectedStatement> leftOver = new ArrayList<>();
-    // TODO add an option that lets user decide if conflict, or bit vector reduction is first
-    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      if (injectedStatement instanceof SeqConflictOrderStatement conflictOrderStatement) {
-        // place conflict order after r < K, otherwise output is unsound
-        leftOver.add(conflictOrderStatement);
-      }
-    }
-    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      if (injectedStatement instanceof SeqInjectedBitVectorStatement bitVectorStatement) {
-        // place conflict order after r < K, otherwise output is unsound
-        leftOver.add(bitVectorStatement);
-      }
-    }
-    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      if (injectedStatement instanceof SeqLastBitVectorUpdateStatement lastUpdateStatement) {
-        // last updates are always last, i.e. placed where pc and bv updates are
-        leftOver.add(lastUpdateStatement);
-      }
-    }
+    // first order the reduction statements based on pOptions
+    leftOver.addAll(orderInjectedReductionStatements(pOptions, pInjectedStatements));
+    // bit vector updates are placed at the end, i.e. where pc etc. updates are
+    leftOver.addAll(
+        getInjectedStatementsByClass(pInjectedStatements, SeqBitVectorAssignmentStatement.class));
+    leftOver.addAll(
+        getInjectedStatementsByClass(pInjectedStatements, SeqLastBitVectorUpdateStatement.class));
     rOrdered.addAll(
         pInjectedStatements.stream()
-            .filter(stmt -> !leftOver.contains(stmt))
+            .filter(statement -> !leftOver.contains(statement))
             .collect(ImmutableList.toImmutableList()));
     rOrdered.addAll(leftOver);
     return rOrdered.build();
+  }
+
+  private static ImmutableList<SeqInjectedStatement> orderInjectedReductionStatements(
+      MPOROptions pOptions, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+
+    return switch (pOptions.reductionOrder) {
+      case NONE, BITVECTOR_THEN_CONFLICT ->
+          orderInjectedReductionStatements(
+              pInjectedStatements,
+              SeqBitVectorEvaluationStatement.class,
+              SeqConflictOrderStatement.class);
+      case CONFLICT_THEN_BITVECTOR ->
+          orderInjectedReductionStatements(
+              pInjectedStatements,
+              SeqConflictOrderStatement.class,
+              SeqBitVectorEvaluationStatement.class);
+    };
+  }
+
+  private static ImmutableList<SeqInjectedStatement> orderInjectedReductionStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
+      Class<? extends SeqInjectedStatement> pFirstClass,
+      Class<? extends SeqInjectedStatement> pSecondClass) {
+
+    return ImmutableList.<SeqInjectedStatement>builder()
+        .addAll(getInjectedStatementsByClass(pInjectedStatements, pFirstClass))
+        .addAll(getInjectedStatementsByClass(pInjectedStatements, pSecondClass))
+        .build();
+  }
+
+  private static ImmutableList<SeqInjectedStatement> getInjectedStatementsByClass(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
+      Class<? extends SeqInjectedStatement> pClass) {
+
+    return pInjectedStatements.stream()
+        .filter(statement -> pClass.isInstance(statement))
+        .collect(ImmutableList.toImmutableList());
   }
 
   // Helper ========================================================================================

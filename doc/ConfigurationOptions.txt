@@ -378,10 +378,15 @@ analysis.algorithm.MPOR.pruneEmptyStatements = true
 
 # how to determine if two threads commute from a location. READ_AND_WRITE
 # reduces the state space more than ACCESS_ONLY, but introduces additional
-# overhead (i.e. number of variables, assignments, and bit vector
+# overhead (i.e. number of variables, assignments, and expression
 # evaluations)
 analysis.algorithm.MPOR.reductionMode = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
+
+# if both bitVectorReduction and conflictReduction are enabled, define the
+# order in which their statements are placed in the output program.
+analysis.algorithm.MPOR.reductionOrder = NONE
+  enum:     [NONE, BITVECTOR_THEN_CONFLICT, CONFLICT_THEN_BITVECTOR]
 
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays?

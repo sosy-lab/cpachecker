@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
@@ -27,6 +28,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqParameterAssignmentStatements implements SeqThreadStatement {
 
+  private final MPOROptions options;
+
   private final ImmutableList<FunctionParameterAssignment> assignments;
 
   private final CLeftHandSide pcLeftHandSide;
@@ -40,11 +43,13 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqParameterAssignmentStatements(
+      MPOROptions pOptions,
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
+    options = pOptions;
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -54,6 +59,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   }
 
   private SeqParameterAssignmentStatements(
+      MPOROptions pOptions,
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -61,6 +67,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    options = pOptions;
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -79,7 +86,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
     }
     String injected =
         SeqThreadStatementUtil.buildInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     rString.append(injected);
     return rString.toString();
   }
@@ -107,6 +114,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   @Override
   public SeqParameterAssignmentStatements cloneWithTargetPc(int pTargetPc) {
     return new SeqParameterAssignmentStatements(
+        options,
         assignments,
         pcLeftHandSide,
         substituteEdges,
@@ -118,6 +126,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqParameterAssignmentStatements(
+        options,
         assignments,
         pcLeftHandSide,
         substituteEdges,
@@ -131,6 +140,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqParameterAssignmentStatements(
+        options,
         assignments,
         pcLeftHandSide,
         substituteEdges,
@@ -144,6 +154,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqParameterAssignmentStatements(
+        options,
         assignments,
         pcLeftHandSide,
         substituteEdges,

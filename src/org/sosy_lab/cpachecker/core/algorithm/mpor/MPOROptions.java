@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatStyle;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 
 /**
  * For better overview so that not all {@link Option}s passed to {@code analysis.algorithm.MPOR}
@@ -70,13 +71,13 @@ public class MPOROptions {
 
   public final int loopIterations;
 
-  public final boolean nondeterminismSigned;
-
-  public final NondeterminismSource nondeterminismSource;
-
   public final boolean noBackwardGoto;
 
   public final boolean noBackwardLoopGoto;
+
+  public final boolean nondeterminismSigned;
+
+  public final NondeterminismSource nondeterminismSource;
 
   public final boolean outputMetadata;
 
@@ -91,6 +92,8 @@ public class MPOROptions {
   public final boolean pruneBitVectorWrite;
 
   public final ReductionMode reductionMode;
+
+  public final ReductionOrder reductionOrder;
 
   public final boolean scalarPc;
 
@@ -123,10 +126,10 @@ public class MPOROptions {
       boolean pLinkReduction,
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
-      boolean pNondeterminismSigned,
-      NondeterminismSource pNondeterminismSource,
       boolean pNoBackwardGoto,
       boolean pNoBackwardLoopGoto,
+      boolean pNondeterminismSigned,
+      NondeterminismSource pNondeterminismSource,
       boolean pOutputMetadata,
       String pOutputPath,
       boolean pOverwriteFiles,
@@ -134,6 +137,7 @@ public class MPOROptions {
       boolean pPruneBitVectorEvaluation,
       boolean pPruneBitVectorWrite,
       ReductionMode pReductionMode,
+      ReductionOrder pReductionOrder,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariableNames,
@@ -168,10 +172,10 @@ public class MPOROptions {
     linkReduction = pLinkReduction;
     loopFiniteMainThreadEnd = pLoopFiniteMainThreadEnd;
     loopIterations = pLoopIterations;
-    nondeterminismSigned = pNondeterminismSigned;
-    nondeterminismSource = pNondeterminismSource;
     noBackwardGoto = pNoBackwardGoto;
     noBackwardLoopGoto = pNoBackwardLoopGoto;
+    nondeterminismSigned = pNondeterminismSigned;
+    nondeterminismSource = pNondeterminismSource;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
@@ -179,6 +183,7 @@ public class MPOROptions {
     pruneBitVectorEvaluation = pPruneBitVectorEvaluation;
     pruneBitVectorWrite = pPruneBitVectorWrite;
     reductionMode = pReductionMode;
+    reductionOrder = pReductionOrder;
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
     shortVariableNames = pShortVariableNames;
@@ -210,9 +215,9 @@ public class MPOROptions {
         false,
         0,
         false,
+        false,
+        false,
         NondeterminismSource.NUM_STATEMENTS,
-        false,
-        false,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,
@@ -220,6 +225,7 @@ public class MPOROptions {
         false,
         false,
         ReductionMode.NONE,
+        ReductionOrder.NONE,
         false,
         false,
         false,
@@ -244,13 +250,14 @@ public class MPOROptions {
       boolean pLinkReduction,
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
-      boolean pNondeterminismSigned,
-      NondeterminismSource pNondeterminismSource,
       boolean pNoBackwardGoto,
       boolean pNoBackwardLoopGoto,
+      boolean pNondeterminismSigned,
+      NondeterminismSource pNondeterminismSource,
       boolean pPruneBitVectorEvaluation,
       boolean pPruneBitVectorWrite,
       ReductionMode pReductionMode,
+      ReductionOrder pReductionOrder,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariableNames) {
@@ -280,10 +287,10 @@ public class MPOROptions {
         pLinkReduction,
         pLoopFiniteMainThreadEnd,
         pLoopIterations,
-        pNondeterminismSigned,
-        pNondeterminismSource,
         pNoBackwardGoto,
         pNoBackwardLoopGoto,
+        pNondeterminismSigned,
+        pNondeterminismSource,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,
@@ -292,6 +299,7 @@ public class MPOROptions {
         pPruneBitVectorEvaluation,
         pPruneBitVectorWrite,
         pReductionMode,
+        pReductionOrder,
         pScalarPc,
         pSequentializationErrors,
         pShortVariableNames,

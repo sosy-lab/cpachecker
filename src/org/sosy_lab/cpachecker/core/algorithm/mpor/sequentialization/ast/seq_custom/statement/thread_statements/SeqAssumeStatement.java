@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -22,6 +23,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
 public class SeqAssumeStatement implements SeqThreadStatement {
+
+  private final MPOROptions options;
 
   public final SeqSingleControlExpression controlStatement;
 
@@ -36,11 +39,13 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqAssumeStatement(
+      MPOROptions pOptions,
       SeqSingleControlExpression pControlStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
+    options = pOptions;
     controlStatement = pControlStatement;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -50,6 +55,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   private SeqAssumeStatement(
+      MPOROptions pOptions,
       SeqSingleControlExpression pControlStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -57,6 +63,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    options = pOptions;
     controlStatement = pControlStatement;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -69,7 +76,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return controlStatement.toASTString()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInCurlyBracketsInwards(injected);
@@ -98,6 +105,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   @Override
   public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(
+        options,
         controlStatement,
         pcLeftHandSide,
         substituteEdges,
@@ -109,6 +117,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
+        options,
         controlStatement,
         pcLeftHandSide,
         substituteEdges,
@@ -122,6 +131,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqAssumeStatement(
+        options,
         controlStatement,
         pcLeftHandSide,
         substituteEdges,
@@ -135,6 +145,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqAssumeStatement(
+        options,
         controlStatement,
         pcLeftHandSide,
         substituteEdges,

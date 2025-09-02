@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -24,6 +25,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqBlankStatement implements SeqThreadStatement {
 
+  private final MPOROptions options;
+
   private final CLeftHandSide pcLeftHandSide;
 
   private final Optional<Integer> targetPc;
@@ -31,17 +34,20 @@ public class SeqBlankStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   /** Use this if the target pc is an {@code int}. */
-  SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+  SeqBlankStatement(MPOROptions pOptions, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+    options = pOptions;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     injectedStatements = ImmutableList.of();
   }
 
   private SeqBlankStatement(
+      MPOROptions pOptions,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    options = pOptions;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
     injectedStatements = pInjectedStatements;
@@ -50,7 +56,7 @@ public class SeqBlankStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     return SeqThreadStatementUtil.buildInjectedStatements(
-        pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
+        options, pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
   }
 
   @Override
@@ -75,7 +81,8 @@ public class SeqBlankStatement implements SeqThreadStatement {
 
   @Override
   public SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqBlankStatement(pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
+    return new SeqBlankStatement(
+        options, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
   }
 
   @Override
@@ -89,7 +96,7 @@ public class SeqBlankStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
-    return new SeqBlankStatement(pcLeftHandSide, targetPc, pReplacingInjectedStatements);
+    return new SeqBlankStatement(options, pcLeftHandSide, targetPc, pReplacingInjectedStatements);
   }
 
   @Override
@@ -97,6 +104,7 @@ public class SeqBlankStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqBlankStatement(
+        options,
         pcLeftHandSide,
         targetPc,
         SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));

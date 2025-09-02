@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -28,6 +29,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * explicitly for the sequentialization.
  */
 public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqThreadStatement {
+
+  private final MPOROptions options;
 
   private final CVariableDeclaration variableDeclaration;
 
@@ -49,12 +52,14 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   SeqLocalVariableDeclarationWithInitializerStatement(
+      MPOROptions pOptions,
       CVariableDeclaration pVariableDeclaration,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     checkArguments(pVariableDeclaration);
+    options = pOptions;
     variableDeclaration = pVariableDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -64,6 +69,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   private SeqLocalVariableDeclarationWithInitializerStatement(
+      MPOROptions pOptions,
       CVariableDeclaration pVariableDeclaration,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -72,6 +78,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     checkArguments(pVariableDeclaration);
+    options = pOptions;
     variableDeclaration = pVariableDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -84,7 +91,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return variableDeclaration.toASTStringWithOnlyNameAndInitializer() + SeqSyntax.SPACE + injected;
   }
 
@@ -111,6 +118,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   @Override
   public SeqLocalVariableDeclarationWithInitializerStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqLocalVariableDeclarationWithInitializerStatement(
+        options,
         variableDeclaration,
         pcLeftHandSide,
         substituteEdges,
@@ -122,6 +130,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqLocalVariableDeclarationWithInitializerStatement(
+        options,
         variableDeclaration,
         pcLeftHandSide,
         substituteEdges,
@@ -135,6 +144,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
+        options,
         variableDeclaration,
         pcLeftHandSide,
         substituteEdges,
@@ -148,6 +158,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
+        options,
         variableDeclaration,
         pcLeftHandSide,
         substituteEdges,

@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
@@ -28,6 +29,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
 
+  private final MPOROptions options;
+
   private final FunctionParameterAssignment condAssignment;
 
   private final CLeftHandSide pcLeftHandSide;
@@ -41,6 +44,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqAssumeAbortIfNotStatement(
+      MPOROptions pOptions,
       ImmutableList<FunctionParameterAssignment> pCondAssignment,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -49,6 +53,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
     checkArgument(
         pCondAssignment.size() == 1, "assume_abort_if_not call must have exactly 1 parameter");
 
+    options = pOptions;
     condAssignment = pCondAssignment.getFirst();
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -58,6 +63,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
   }
 
   private SeqAssumeAbortIfNotStatement(
+      MPOROptions pOptions,
       FunctionParameterAssignment pCondAssignment,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -65,6 +71,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    options = pOptions;
     condAssignment = pCondAssignment;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -81,7 +88,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
         .append(SeqSyntax.SPACE);
     String injected =
         SeqThreadStatementUtil.buildInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     rString.append(injected);
     return rString.toString();
   }
@@ -109,6 +116,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
   @Override
   public SeqAssumeAbortIfNotStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeAbortIfNotStatement(
+        options,
         condAssignment,
         pcLeftHandSide,
         substituteEdges,
@@ -120,6 +128,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeAbortIfNotStatement(
+        options,
         condAssignment,
         pcLeftHandSide,
         substituteEdges,
@@ -133,6 +142,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqAssumeAbortIfNotStatement(
+        options,
         condAssignment,
         pcLeftHandSide,
         substituteEdges,
@@ -146,6 +156,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqAssumeAbortIfNotStatement(
+        options,
         condAssignment,
         pcLeftHandSide,
         substituteEdges,

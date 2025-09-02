@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -156,15 +157,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint()?")
-  private boolean nondeterminismSigned = false;
-
-  @Option(secure = true, description = "the source(s) of nondeterminism in the sequentialization.")
-  private NondeterminismSource nondeterminismSource = NondeterminismSource.NUM_STATEMENTS;
-
-  @Option(
-      secure = true,
-      description =
           "removes backward goto, i.e. jumping to a line higher up in the program, by reordering"
               + " statements. only works for if-else constructs, not loops. use noBackwardLoopGoto"
               + " to ensure that backward loop goto are removed.")
@@ -175,6 +167,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "removes backward goto from loops. this option is independent from noBackwardGoto.")
   private boolean noBackwardLoopGoto = false;
+
+  @Option(
+      secure = true,
+      description =
+          "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint()?")
+  private boolean nondeterminismSigned = false;
+
+  @Option(secure = true, description = "the source(s) of nondeterminism in the sequentialization.")
+  private NondeterminismSource nondeterminismSource = NondeterminismSource.NUM_STATEMENTS;
 
   @Option(
       secure = true,
@@ -219,8 +220,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "how to determine if two threads commute from a location. READ_AND_WRITE reduces the"
               + " state space more than ACCESS_ONLY, but introduces additional overhead (i.e."
-              + " number of variables, assignments, and bit vector evaluations)")
+              + " number of variables, assignments, and expression evaluations)")
   private ReductionMode reductionMode = ReductionMode.NONE;
+
+  @Option(
+      description =
+          "if both bitVectorReduction and conflictReduction are enabled, define the order"
+              + " in which their statements are placed in the output program.")
+  private ReductionOrder reductionOrder = ReductionOrder.NONE;
 
   // TODO also add option for scalar / array bit vectors
   @Option(
@@ -333,10 +340,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     linkReduction,
                     loopFiniteMainThreadEnd,
                     loopIterations,
-                    nondeterminismSigned,
-                    nondeterminismSource,
                     noBackwardGoto,
                     noBackwardLoopGoto,
+                    nondeterminismSigned,
+                    nondeterminismSource,
                     outputMetadata,
                     outputPath,
                     overwriteFiles,
@@ -344,6 +351,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     pruneBitVectorEvaluation,
                     pruneBitVectorWrite,
                     reductionMode,
+                    reductionOrder,
                     scalarPc,
                     sequentializationErrors,
                     shortVariableNames,

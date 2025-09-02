@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -21,6 +22,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAtomicEndStatement implements SeqThreadStatement {
+
+  private final MPOROptions options;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -33,8 +36,12 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqAtomicEndStatement(
-      CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
+      MPOROptions pOptions,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc) {
 
+    options = pOptions;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -43,12 +50,14 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   }
 
   private SeqAtomicEndStatement(
+      MPOROptions pOptions,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    options = pOptions;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -60,7 +69,7 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return SeqStringUtil.wrapInBlockComment(
             PthreadFunctionType.__VERIFIER_ATOMIC_END.name + SeqSyntax.SEMICOLON)
         + SeqSyntax.SPACE
@@ -90,6 +99,7 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAtomicEndStatement(
+        options,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -100,7 +110,12 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAtomicEndStatement(
-        pcLeftHandSide, substituteEdges, Optional.empty(), Optional.of(pLabel), injectedStatements);
+        options,
+        pcLeftHandSide,
+        substituteEdges,
+        Optional.empty(),
+        Optional.of(pLabel),
+        injectedStatements);
   }
 
   @Override
@@ -108,7 +123,12 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqAtomicEndStatement(
-        pcLeftHandSide, substituteEdges, targetPc, targetGoto, pReplacingInjectedStatements);
+        options,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        pReplacingInjectedStatements);
   }
 
   @Override
@@ -116,6 +136,7 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqAtomicEndStatement(
+        options,
         pcLeftHandSide,
         substituteEdges,
         targetPc,

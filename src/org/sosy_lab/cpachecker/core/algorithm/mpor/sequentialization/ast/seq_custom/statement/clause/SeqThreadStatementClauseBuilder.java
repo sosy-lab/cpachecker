@@ -212,11 +212,13 @@ public class SeqThreadStatementClauseBuilder {
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       int targetPc = pThreadNode.firstLeavingEdge().getSuccessor().pc;
-      statements.add(SeqThreadStatementBuilder.buildBlankStatement(pcLeftHandSide, targetPc));
+      statements.add(
+          SeqThreadStatementBuilder.buildBlankStatement(pOptions, pcLeftHandSide, targetPc));
 
     } else {
       statements.addAll(
           SeqThreadStatementBuilder.buildStatementsFromThreadNode(
+              pOptions,
               pThread,
               pAllThreads,
               pThreadNode,

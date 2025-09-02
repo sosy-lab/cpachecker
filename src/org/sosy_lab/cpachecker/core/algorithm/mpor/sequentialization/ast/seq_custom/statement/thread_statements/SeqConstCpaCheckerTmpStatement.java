@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -47,6 +48,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code q->head}.
  */
 public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
+
+  private final MPOROptions options;
 
   private final CVariableDeclaration constCpaCheckerTmpDeclaration;
 
@@ -118,6 +121,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   }
 
   SeqConstCpaCheckerTmpStatement(
+      MPOROptions pOptions,
       CVariableDeclaration pDeclaration,
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
@@ -126,6 +130,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
       int pTargetPc) {
 
     checkArguments(pDeclaration, pStatementA, pStatementB);
+    options = pOptions;
     statementA = pStatementA;
     statementB = pStatementB;
     constCpaCheckerTmpDeclaration = pDeclaration;
@@ -137,6 +142,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   }
 
   private SeqConstCpaCheckerTmpStatement(
+      MPOROptions pOptions,
       CVariableDeclaration pConstCpaCheckerTmpDeclaration,
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
@@ -147,6 +153,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     checkArguments(pConstCpaCheckerTmpDeclaration, pStatementA, pStatementB);
+    options = pOptions;
     statementA = pStatementA;
     statementB = pStatementB;
     constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
@@ -161,7 +168,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String targetStatements =
         SeqThreadStatementUtil.buildInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     // we only want name and initializer here, the declaration is done beforehand
     return constCpaCheckerTmpDeclaration.toASTString()
         + SeqSyntax.SPACE
@@ -195,6 +202,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   @Override
   public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqConstCpaCheckerTmpStatement(
+        options,
         constCpaCheckerTmpDeclaration,
         statementA,
         statementB,
@@ -208,6 +216,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqConstCpaCheckerTmpStatement(
+        options,
         constCpaCheckerTmpDeclaration,
         statementA,
         statementB,
@@ -223,6 +232,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqConstCpaCheckerTmpStatement(
+        options,
         constCpaCheckerTmpDeclaration,
         statementA,
         statementB,
@@ -238,6 +248,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqConstCpaCheckerTmpStatement(
+        options,
         constCpaCheckerTmpDeclaration,
         statementA,
         statementB,

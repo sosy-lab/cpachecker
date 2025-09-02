@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -28,6 +29,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqReachErrorStatement implements SeqThreadStatement {
 
+  private final MPOROptions options;
+
   private final CLeftHandSide pcLeftHandSide;
 
   private final ImmutableSet<SubstituteEdge> substituteEdges;
@@ -37,8 +40,12 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqReachErrorStatement(
-      CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
+      MPOROptions pOptions,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc) {
 
+    options = pOptions;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -46,11 +53,13 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   private SeqReachErrorStatement(
+      MPOROptions pOptions,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    options = pOptions;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -61,7 +70,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatements(
-            pcLeftHandSide, Optional.of(targetPc), Optional.empty(), injectedStatements);
+            options, pcLeftHandSide, Optional.of(targetPc), Optional.empty(), injectedStatements);
     return Sequentialization.inputReachErrorDummy + SeqSyntax.SPACE + injected;
   }
 
@@ -91,7 +100,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
         pTargetPc == Sequentialization.EXIT_PC,
         "reach_errors should only be cloned with exit pc %s",
         Sequentialization.EXIT_PC);
-    return new SeqReachErrorStatement(pcLeftHandSide, substituteEdges, pTargetPc);
+    return new SeqReachErrorStatement(options, pcLeftHandSide, substituteEdges, pTargetPc);
   }
 
   @Override
@@ -105,7 +114,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqReachErrorStatement(
-        pcLeftHandSide, substituteEdges, targetPc, pReplacingInjectedStatements);
+        options, pcLeftHandSide, substituteEdges, targetPc, pReplacingInjectedStatements);
   }
 
   @Override
@@ -113,6 +122,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqReachErrorStatement(
+        options,
         pcLeftHandSide,
         substituteEdges,
         targetPc,

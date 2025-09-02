@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -25,6 +26,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * specific handling and their (substituted) code is placed directly into the case block.
  */
 public class SeqDefaultStatement implements SeqThreadStatement {
+
+  private final MPOROptions options;
 
   private final CStatementEdge edge;
 
@@ -39,11 +42,13 @@ public class SeqDefaultStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqDefaultStatement(
+      MPOROptions pOptions,
       CStatementEdge pEdge,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
+    options = pOptions;
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -53,6 +58,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
   }
 
   private SeqDefaultStatement(
+      MPOROptions pOptions,
       CStatementEdge pEdge,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
@@ -60,6 +66,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    options = pOptions;
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -72,7 +79,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
         SeqThreadStatementUtil.buildInjectedStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+            options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return edge.getCode() + SeqSyntax.SPACE + injected;
   }
 
@@ -99,6 +106,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
   @Override
   public SeqDefaultStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqDefaultStatement(
+        options,
         edge,
         pcLeftHandSide,
         substituteEdges,
@@ -110,6 +118,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqDefaultStatement(
+        options,
         edge,
         pcLeftHandSide,
         substituteEdges,
@@ -123,7 +132,13 @@ public class SeqDefaultStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqDefaultStatement(
-        edge, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pReplacingInjectedStatements);
+        options,
+        edge,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        pReplacingInjectedStatements);
   }
 
   @Override
@@ -131,6 +146,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
 
     return new SeqDefaultStatement(
+        options,
         edge,
         pcLeftHandSide,
         substituteEdges,
