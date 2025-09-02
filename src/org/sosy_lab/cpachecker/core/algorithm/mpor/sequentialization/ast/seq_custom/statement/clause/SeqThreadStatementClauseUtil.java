@@ -261,6 +261,18 @@ public class SeqThreadStatementClauseUtil {
     return false;
   }
 
+  // Loops =========================================================================================
+
+  /**
+   * Returns {@code true} if {@code pClause} is a loop start that should be separated i.e. remain
+   * directly reachable via a {@code pc}, instead of only {@code goto}.
+   */
+  public static boolean isSeparateLoopStart(
+      MPOROptions pOptions, SeqThreadStatementClause pClause) {
+
+    return pClause.getFirstBlock().isLoopStart() && pOptions.noBackwardLoopGoto;
+  }
+
   // Path ==========================================================================================
 
   /** Returns {@code true} if the path from A to B has consecutive labels. */

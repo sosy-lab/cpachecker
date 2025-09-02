@@ -121,7 +121,7 @@ public class StatementLinker {
     SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
     return pStatement.isLinkable()
         // if the target is a loop start, then backward loop goto must be enabled for linking
-        && (!targetBlock.isLoopStart() || !pOptions.noBackwardLoopGoto)
+        && !SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, pTarget)
         // do not link atomic blocks, this is handled by AtomicBlockMerger
         && !(targetBlock.startsAtomicBlock() || targetBlock.startsInAtomicBlock())
         // thread synchronization statements must be directly reachable (via pc) -> no linking

@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
@@ -214,8 +213,8 @@ public class BitVectorInjector {
     // if valid target pc found, inject bit vector write and evaluation statements
     if (pCurrentStatement.getTargetPc().isPresent()) {
       ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
-      int intTargetPc = pCurrentStatement.getTargetPc().orElseThrow();
-      if (intTargetPc == Sequentialization.EXIT_PC) {
+      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
+      if (targetPc == Sequentialization.EXIT_PC) {
         // for the exit pc, reset the bit vector to just 0s
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorResets =
             buildBitVectorResetsByReduction(
@@ -224,35 +223,31 @@ public class BitVectorInjector {
         return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target block
-        SeqThreadStatementClause newTarget =
-            Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
-        // TODO this check is only necessary if only next_thread nondeterminism is active
-        if (!SeqThreadStatementUtil.anySynchronizesThreads(newTarget.getAllStatements())) {
-          if (pAddEvaluation) {
-            SeqBitVectorEvaluationStatement evaluationStatement =
-                buildBitVectorEvaluationStatement(
-                    pOptions,
-                    pOtherThreads,
-                    pLabelBlockMap,
-                    newTarget.getFirstBlock(),
-                    pBitVectorVariables,
-                    pMemoryModel,
-                    pBinaryExpressionBuilder);
-            newInjected.add(evaluationStatement);
-          }
-          // the assignment is injected after the evaluation, it is only needed when commute fails
-          ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-              buildBitVectorAssignmentsByReduction(
+        SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+        if (PartialOrderReducer.isReductionAllowed(pOptions, newTarget) && pAddEvaluation) {
+          SeqBitVectorEvaluationStatement evaluationStatement =
+              buildBitVectorEvaluationStatement(
                   pOptions,
-                  pActiveThread,
-                  newTarget.getFirstBlock(),
-                  pLabelClauseMap,
+                  pOtherThreads,
                   pLabelBlockMap,
+                  newTarget.getFirstBlock(),
                   pBitVectorVariables,
-                  pMemoryModel);
-          newInjected.addAll(bitVectorAssignments);
-          return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
+                  pMemoryModel,
+                  pBinaryExpressionBuilder);
+          newInjected.add(evaluationStatement);
         }
+        // the assignment is injected after the evaluation, it is only needed when commute fails
+        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
+            buildBitVectorAssignmentsByReduction(
+                pOptions,
+                pActiveThread,
+                newTarget.getFirstBlock(),
+                pLabelClauseMap,
+                pLabelBlockMap,
+                pBitVectorVariables,
+                pMemoryModel);
+        newInjected.addAll(bitVectorAssignments);
+        return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
       }
     }
     // no injection possible -> return statement as is
@@ -448,7 +443,6 @@ public class BitVectorInjector {
               pReachableWriteMemoryLocations,
               MemoryAccessType.WRITE));
     } else {
-      // dense bit vectors
       if (pOptions.kIgnoreZeroReduction) {
         rStatements.add(
             buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
@@ -457,15 +451,6 @@ public class BitVectorInjector {
                     MemoryAccessType.READ, pThread),
                 pMemoryModel,
                 pDirectReadMemoryLocations));
-      }
-      rStatements.add(
-          buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
-              pOptions,
-              pBitVectorVariables.getDenseReachableBitVectorByAccessType(
-                  MemoryAccessType.WRITE, pThread),
-              pMemoryModel,
-              pReachableWriteMemoryLocations));
-      if (pOptions.kIgnoreZeroReduction) {
         rStatements.add(
             buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
                 pOptions,
@@ -481,6 +466,13 @@ public class BitVectorInjector {
                   MemoryAccessType.ACCESS, pThread),
               pMemoryModel,
               pReachableAccessMemoryLocations));
+      rStatements.add(
+          buildDenseBitVectorReadWriteAssignmentStatementByAccessType(
+              pOptions,
+              pBitVectorVariables.getDenseReachableBitVectorByAccessType(
+                  MemoryAccessType.WRITE, pThread),
+              pMemoryModel,
+              pReachableWriteMemoryLocations));
     }
     return rStatements.build();
   }
@@ -505,6 +497,7 @@ public class BitVectorInjector {
           ImmutableSet<MemoryLocation> pReachableMemoryLocations,
           MemoryAccessType pAccessType) {
 
+    // use list so that the assignment order is deterministic
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> variables = entry.getValue().variables;

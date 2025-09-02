@@ -14,6 +14,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -91,5 +93,19 @@ public class PartialOrderReducer {
       }
     }
     return pClauses;
+  }
+
+  // boolean helpers ===============================================================================
+
+  /**
+   * Checks whether bit vector injections are allowed, i.e. if they do not result in interleaving
+   * loss.
+   */
+  static boolean isReductionAllowed(MPOROptions pOptions, SeqThreadStatementClause pTarget) {
+
+    // if the target starts with a thread synchronization (i.e. assume), do not inject
+    return !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
+        // check based on pOptions if the target is a loop head that must remain separate
+        && !SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, pTarget);
   }
 }

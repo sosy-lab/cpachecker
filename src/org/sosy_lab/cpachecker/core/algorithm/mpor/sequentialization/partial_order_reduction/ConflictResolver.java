@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastDenseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.LastSparseBitVector;
@@ -169,7 +168,7 @@ public class ConflictResolver {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause targetClause = pLabelClauseMap.get(targetPc);
       assert targetClause != null : "could not find targetPc in pLabelBlockMap";
-      if (!SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
+      if (PartialOrderReducer.isReductionAllowed(pOptions, targetClause)) {
         SeqThreadStatementBlock targetBlock = pLabelBlockMap.get(targetPc);
         // build conflict order statement (with bit vector evaluations based on targetBlock)
         BitVectorEvaluationExpression lastBitVectorEvaluation =

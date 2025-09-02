@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqRoundGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
@@ -158,8 +159,8 @@ public class NondeterministicSimulationUtil {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
         SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-        // if the target is a loop start, inject only if backward loop goto are allowed
-        if (!target.getFirstBlock().isLoopStart() || !pOptions.noBackwardLoopGoto) {
+        // check if the target is a separate loop
+        if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {
           return injectRoundGotoIntoStatementByTargetPc(
               targetPc, pRSmallerK, pRIncrement, pStatement, pLabelClauseMap);
         }
