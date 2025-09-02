@@ -359,14 +359,23 @@ public class MPOROptions {
       if (!reductionMode.isEnabled()) {
         pLogger.log(
             Level.SEVERE,
-            "conflictReduction or bitVectorReduction are enabled, but reductionMode is not set.");
+            "conflictReduction or bitVectorReduction is enabled, but reductionMode is not set.");
         throw new AssertionError();
       }
       if (!bitVectorEncoding.isEnabled()) {
         pLogger.log(
             Level.SEVERE,
-            "conflictReduction or bitVectorReduction are enabled, but bitVectorEncoding is not"
+            "conflictReduction or bitVectorReduction is enabled, but bitVectorEncoding is not"
                 + " set.");
+        throw new AssertionError();
+      }
+    }
+    if (bitVectorReduction && conflictReduction) {
+      if (!reductionOrder.isEnabled()) {
+        pLogger.log(
+            Level.SEVERE,
+            "both bitVectorReduction and conflictReduction are enabled, but no reductionOrder is"
+                + " specified.");
         throw new AssertionError();
       }
     }

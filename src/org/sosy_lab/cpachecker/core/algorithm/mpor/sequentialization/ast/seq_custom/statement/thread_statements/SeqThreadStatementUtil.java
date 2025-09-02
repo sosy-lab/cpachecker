@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -251,7 +250,7 @@ public class SeqThreadStatementUtil {
   private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(
       MPOROptions pOptions, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
+    ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
     List<SeqInjectedStatement> leftOver = new ArrayList<>();
     // first order the reduction statements based on pOptions
     leftOver.addAll(orderInjectedReductionStatements(pOptions, pInjectedStatements));
