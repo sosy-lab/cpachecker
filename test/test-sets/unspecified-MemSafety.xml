@@ -19,53 +19,53 @@
 
     <rundefinition name="SV-COMP25_valid-memsafety">
         <tasks name="MemSafety-Arrays">
-            <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
-            <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
-            <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
-            <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/Arrays.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/Heap-Termination.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
         <tasks name="MemSafety-Heap">
-            <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/Heap.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
         <tasks name="MemSafety-LinkedLists">
-            <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/LinkedLists.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
         <tasks name="MemSafety-Other">
-            <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
-            <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
-            <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
-            <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/Loops.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/ControlFlow.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/Recursive.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
         <tasks name="MemSafety-Juliet">
-            <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/Juliet.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
 
         <tasks name="SoftwareSystems-coreutils-MemSafety">
-            <includesfile>../sv-benchmarks/c/SoftwareSystems-coreutils.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-coreutils.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
         <tasks name="SoftwareSystems-DeviceDriversLinux64-MemSafety">
-            <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
         <tasks name="SoftwareSystems-Other-MemSafety">
-            <includesfile>../sv-benchmarks/c/SoftwareSystems-BusyBox.set</includesfile>
-            <includesfile>../sv-benchmarks/c/SoftwareSystems-OpenBSD.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-BusyBox.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-OpenBSD.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
         <tasks name="SoftwareSystems-uthash-MemSafety">
-            <includesfile>../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
 
         <tasks name="ConcurrencySafety-MemSafety">
-            <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
-            <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+            <includesfile>../../../sv-benchmarks/c/Concurrency.set</includesfile>
+            <propertyfile>../../../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
         </tasks>
     </rundefinition>
 
