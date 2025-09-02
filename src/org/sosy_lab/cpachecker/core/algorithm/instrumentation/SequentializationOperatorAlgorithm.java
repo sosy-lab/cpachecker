@@ -272,8 +272,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       } else {
         functionName = pTransition.getPattern().getFunctionName();
       }
-      if ((pTransition.getPattern().toString().equals("vars_bin_op") && pEdge.getPredecessor().isLoopStart())
-          || (pTransition.getPattern().toString().equals("vars_un_op") && pEdge.getPredecessor().isLoopStart())) {
+      if ((pTransition.getPattern().toString().equals("vars_bin_op")
+              && pEdge.getPredecessor().isLoopStart())
+          || (pTransition.getPattern().toString().equals("vars_un_op")
+              && pEdge.getPredecessor().isLoopStart())) {
         fileLocation = pEdge.getSuccessor().describeFileLocation().replaceFirst("before line ", "");
         location = Integer.parseInt(fileLocation) - 1;
       } else {

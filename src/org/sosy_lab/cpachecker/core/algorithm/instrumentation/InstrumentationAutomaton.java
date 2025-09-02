@@ -164,7 +164,7 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("vars_bin_op"),
             new InstrumentationOperation(
                 "__VERIFIER_atomic_begin();\\n"
-                + "read_INSTR_x_instr_1--; read_INSTR_x_instr_2--;\\n"
+                    + "read_INSTR_x_instr_1--; read_INSTR_x_instr_2--;\\n"
                     + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.AFTER,
             q2);
@@ -229,7 +229,7 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("vars_un_assign"),
             new InstrumentationOperation(
                 "__VERIFIER_atomic_begin();\\n"
-                + "write_INSTR_x_instr_1--;\\n"
+                    + "write_INSTR_x_instr_1--;\\n"
                     + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.AFTER,
             q2);
