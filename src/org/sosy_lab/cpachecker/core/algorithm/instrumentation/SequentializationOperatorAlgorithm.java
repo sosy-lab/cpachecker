@@ -272,13 +272,19 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       } else {
         functionName = pTransition.getPattern().getFunctionName();
       }
-      if (pTransition.getPattern().toString().equals("[!cond]")) {
-        fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
+      if ((pTransition.getPattern().toString().equals("vars_bin_op") && pEdge.getPredecessor().isLoopStart())
+          || (pTransition.getPattern().toString().equals("vars_un_op") && pEdge.getPredecessor().isLoopStart())) {
+        fileLocation = pEdge.getSuccessor().describeFileLocation().replaceFirst("before line ", "");
+        location = Integer.parseInt(fileLocation) - 1;
+      } else {
+        if (pTransition.getPattern().toString().equals("[!cond]")) {
+          fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
+        }
+        fileLocation = fileLocation.replaceFirst("line ", "");
+        fileLocation =
+            Iterables.get(Splitter.on('-').split(fileLocation), 0).replaceFirst("lines ", "");
+        location = Integer.parseInt(fileLocation);
       }
-      fileLocation = fileLocation.replaceFirst("line ", "");
-      fileLocation =
-          Iterables.get(Splitter.on('-').split(fileLocation), 0).replaceFirst("lines ", "");
-      location = Integer.parseInt(fileLocation);
       if (pTransition.getOrderAsString().equals("AFTER")) {
         location += 1;
       }

@@ -212,6 +212,9 @@ public class InstrumentationPattern {
   private ImmutableList<String> getTwoVariablesFromAssignment(CFAEdge pCFAEdge) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      if (pCFAEdge.getSuccessor().isLoopStart() && pCFAEdge.getFileLocation().toString().contains("lines")) {
+        return null;
+      }
 
       if (astNode instanceof CAssignment pAssignment) {
         CExpression operand1 = pAssignment.getLeftHandSide();
@@ -236,6 +239,9 @@ public class InstrumentationPattern {
   private ImmutableList<String> getOneVariableFromAssignment(CFAEdge pCFAEdge) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      if (pCFAEdge.getSuccessor().isLoopStart() && pCFAEdge.getFileLocation().toString().contains("lines")) {
+        return null;
+      }
 
       if (astNode instanceof CAssignment pAssignment) {
         CExpression operand1 = pAssignment.getLeftHandSide();
