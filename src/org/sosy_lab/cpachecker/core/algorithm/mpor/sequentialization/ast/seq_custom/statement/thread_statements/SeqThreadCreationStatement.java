@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -107,8 +106,8 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
         bitVectors.append(initialization.toASTString()).append(SeqSyntax.SPACE);
       }
     }
-    String targetStatements =
-        SeqStringUtil.buildTargetStatements(
+    String injected =
+        SeqThreadStatementUtil.buildInjectedStatements(
             pcVariables.getPcLeftHandSide(creatingThread.id),
             targetPc,
             targetGoto,
@@ -118,7 +117,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
         + bitVectors
         + createdPcWrite.toASTString()
         + SeqSyntax.SPACE
-        + targetStatements;
+        + injected;
   }
 
   @Override

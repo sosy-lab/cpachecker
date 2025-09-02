@@ -14,7 +14,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -50,7 +49,7 @@ public class SeqBlankStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    return SeqStringUtil.buildTargetStatements(
+    return SeqThreadStatementUtil.buildInjectedStatements(
         pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
   }
 

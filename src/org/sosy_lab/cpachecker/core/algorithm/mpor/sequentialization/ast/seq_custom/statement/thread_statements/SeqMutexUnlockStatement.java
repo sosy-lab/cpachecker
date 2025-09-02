@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -71,10 +70,10 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    String targetStatements =
-        SeqStringUtil.buildTargetStatements(
+    String injected =
+        SeqThreadStatementUtil.buildInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return lockedFalse.toASTString() + SeqSyntax.SPACE + targetStatements;
+    return lockedFalse.toASTString() + SeqSyntax.SPACE + injected;
   }
 
   @Override

@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -80,10 +79,10 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
     rString
         .append(condAssignment.toExpressionAssignmentStatement().toASTString())
         .append(SeqSyntax.SPACE);
-    String targetStatements =
-        SeqStringUtil.buildTargetStatements(
+    String injected =
+        SeqThreadStatementUtil.buildInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    rString.append(targetStatements);
+    rString.append(injected);
     return rString.toString();
   }
 

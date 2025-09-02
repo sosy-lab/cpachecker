@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -71,10 +70,10 @@ public class SeqDefaultStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    String targetStatements =
-        SeqStringUtil.buildTargetStatements(
+    String injected =
+        SeqThreadStatementUtil.buildInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return edge.getCode() + SeqSyntax.SPACE + targetStatements;
+    return edge.getCode() + SeqSyntax.SPACE + injected;
   }
 
   @Override

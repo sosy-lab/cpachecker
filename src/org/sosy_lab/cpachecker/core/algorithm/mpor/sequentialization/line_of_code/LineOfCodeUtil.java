@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -76,6 +77,8 @@ public class LineOfCodeUtil {
     return rOriginalDeclarations.build();
   }
 
+  // Empty Function Declarations ===================================================================
+
   public static ImmutableList<LineOfCode> buildEmptyInputFunctionDeclarations(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
@@ -84,14 +87,47 @@ public class LineOfCodeUtil {
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       for (CFunctionDeclaration functionDeclaration : substituteEdge.accessedFunctionPointers) {
         if (visited.add(functionDeclaration)) {
-          String emptyDefinition =
-              SeqStringUtil.buildEmptyFunctionDefinitionFromDeclaration(functionDeclaration);
-          rEmptyFunctionDeclarations.add(LineOfCode.of(emptyDefinition));
+          rEmptyFunctionDeclarations.add(
+              buildEmptyFunctionDefinitionFromDeclaration(functionDeclaration));
         }
       }
     }
     return rEmptyFunctionDeclarations.build();
   }
+
+  private static LineOfCode buildEmptyFunctionDefinitionFromDeclaration(
+      CFunctionDeclaration pDeclaration) {
+
+    StringBuilder rDeclaration = new StringBuilder();
+    rDeclaration.append(pDeclaration.getType().getReturnType().toASTString(""));
+    rDeclaration.append(SeqSyntax.SPACE);
+    rDeclaration.append(pDeclaration.getOrigName());
+    // add parameters either with original or generic name, if rDeclaration without names
+    rDeclaration.append(SeqSyntax.BRACKET_LEFT);
+    for (int i = 0; i < pDeclaration.getParameters().size(); i++) {
+      CParameterDeclaration parameter = pDeclaration.getParameters().get(i);
+      rDeclaration
+          .append(parameter.getType().getCanonicalType().toASTString(""))
+          .append(SeqSyntax.SPACE);
+      if (parameter.getName().isEmpty()) {
+        rDeclaration.append(
+            SeqNameUtil.buildParameterNameForEmptyFunctionDefinition(pDeclaration, i));
+      } else {
+        rDeclaration.append(parameter.getOrigName());
+      }
+      if (i != pDeclaration.getParameters().size() - 1) {
+        rDeclaration.append(SeqSyntax.COMMA).append(SeqSyntax.SPACE);
+      }
+    }
+    rDeclaration.append(SeqSyntax.BRACKET_RIGHT);
+    // no body, only {}. the parser still accepts it, even with e.g. int return type
+    rDeclaration.append(SeqSyntax.SPACE);
+    rDeclaration.append(SeqSyntax.CURLY_BRACKET_LEFT);
+    rDeclaration.append(SeqSyntax.CURLY_BRACKET_RIGHT);
+    return LineOfCode.of(rDeclaration.toString());
+  }
+
+  // Input Variable Declarations ===================================================================
 
   public static ImmutableList<LineOfCode> buildInputGlobalVariableDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
@@ -140,6 +176,8 @@ public class LineOfCodeUtil {
     }
     return rLocalDeclarations.build();
   }
+
+  // Input Parameter Declarations ==================================================================
 
   public static ImmutableList<LineOfCode> buildInputParameterDeclarations(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
@@ -215,6 +253,8 @@ public class LineOfCodeUtil {
     }
     return rStartRoutineExitDeclarations.build();
   }
+
+  // Function Declarations and Definitions =========================================================
 
   public static ImmutableList<LineOfCode> buildFunctionDeclarations(MPOROptions pOptions) {
     ImmutableList.Builder<LineOfCode> rFunctionDeclarations = ImmutableList.builder();

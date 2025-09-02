@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -86,8 +85,8 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
     CFunctionCallStatement assumeCall = SeqAssumptionBuilder.buildAssumption(joinedThreadNotActive);
     Optional<String> returnValueRead =
         buildReturnValueRead(joinedThreadExitVariable, substituteEdges);
-    String targetStatements =
-        SeqStringUtil.buildTargetStatements(
+    String injected =
+        SeqThreadStatementUtil.buildInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return assumeCall.toASTString()
@@ -95,7 +94,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
             ? SeqSyntax.SPACE + returnValueRead.orElseThrow()
             : SeqSyntax.EMPTY_STRING)
         + SeqSyntax.SPACE
-        + targetStatements;
+        + injected;
   }
 
   private static Optional<String> buildReturnValueRead(

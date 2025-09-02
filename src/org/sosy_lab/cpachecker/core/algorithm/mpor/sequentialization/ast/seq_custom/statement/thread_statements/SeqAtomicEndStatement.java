@@ -58,13 +58,13 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    String targetStatements =
-        SeqStringUtil.buildTargetStatements(
+    String injected =
+        SeqThreadStatementUtil.buildInjectedStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return SeqStringUtil.wrapInBlockComment(
             PthreadFunctionType.__VERIFIER_ATOMIC_END.name + SeqSyntax.SEMICOLON)
         + SeqSyntax.SPACE
-        + targetStatements;
+        + injected;
   }
 
   @Override
