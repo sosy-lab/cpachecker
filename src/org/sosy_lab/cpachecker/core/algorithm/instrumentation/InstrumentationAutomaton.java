@@ -154,9 +154,8 @@ public class InstrumentationAutomaton {
                 "__VERIFIER_atomic_begin();\\n"
                     + " if (x_instr_3) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
                     + " write_INSTR_x_instr_2 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
+                    + "read_INSTR_x_instr_1++; read_INSTR_x_instr_2++;\\n"
+                    + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t3 =
@@ -164,8 +163,9 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("vars_bin_op"),
             new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
+                "__VERIFIER_atomic_begin();\\n"
+                + "read_INSTR_x_instr_1--; read_INSTR_x_instr_2--;\\n"
+                    + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.AFTER,
             q2);
     InstrumentationTransition t4 =
@@ -175,9 +175,8 @@ public class InstrumentationAutomaton {
             new InstrumentationOperation(
                 "__VERIFIER_atomic_begin();\\n"
                     + " if (x_instr_2) { __VERIFIER_assert((write_INSTR_x_instr_1 <= 0)); }\\n"
-                    + "write_INSTR_x_instr_1++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
+                    + "read_INSTR_x_instr_1++;\\n"
+                    + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t5 =
@@ -185,7 +184,9 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("vars_un_op"),
             new InstrumentationOperation(
-                "write_INSTR_x_instr_1--;\\n" + "__VERIFIER_atomic_end();\\n"),
+                "__VERIFIER_atomic_begin();\\n"
+                    + "read_INSTR_x_instr_1--;\\n"
+                    + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.AFTER,
             q2);
     InstrumentationTransition t6 =
@@ -196,9 +197,8 @@ public class InstrumentationAutomaton {
                 "__VERIFIER_atomic_begin();\\n"
                     + "__VERIFIER_assert((write_INSTR_x_instr_1 <= 0 &&"
                     + "read_INSTR_x_instr_1 <= 0 && write_INSTR_x_instr_2 <= 0));\\n"
-                    + "write_INSTR_x_instr_1++; read_INSTR_x_instr_1++; write_INSTR_x_instr_2++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
+                    + "write_INSTR_x_instr_1++; read_INSTR_x_instr_2++;\\n"
+                    + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t7 =
@@ -206,8 +206,9 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("vars_bin_assign"),
             new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; read_INSTR_x_instr_1--; write_INSTR_x_instr_2--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
+                "__VERIFIER_atomic_begin();\\n"
+                    + "write_INSTR_x_instr_1--; read_INSTR_x_instr_2--;\\n"
+                    + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.AFTER,
             q2);
     InstrumentationTransition t8 =
@@ -218,9 +219,8 @@ public class InstrumentationAutomaton {
                 "__VERIFIER_atomic_begin();\\n"
                     + "__VERIFIER_assert((write_INSTR_x_instr_1 <= 0 && read_INSTR_x_instr_1 <="
                     + " 0));\\n"
-                    + "write_INSTR_x_instr_1++; read_INSTR_x_instr_1++;\\n"
-                    + "__VERIFIER_atomic_end();\\n"
-                    + "__VERIFIER_atomic_begin();"),
+                    + "write_INSTR_x_instr_1++;\\n"
+                    + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t9 =
@@ -228,8 +228,9 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("vars_un_assign"),
             new InstrumentationOperation(
-                "write_INSTR_x_instr_1--; read_INSTR_x_instr_1--;\\n"
-                    + "__VERIFIER_atomic_end();\\n"),
+                "__VERIFIER_atomic_begin();\\n"
+                + "write_INSTR_x_instr_1--;\\n"
+                    + "__VERIFIER_atomic_end();"),
             InstrumentationOrder.AFTER,
             q2);
 
