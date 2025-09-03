@@ -41,8 +41,8 @@ public class SeqStringUtil {
     return newlineSplitter.splitToList(pString).size();
   }
 
-  public static Iterable<String> splitOnNewline(String pString) {
-    return newlineSplitter.split(pString);
+  public static ImmutableList<String> splitOnNewline(String pString) {
+    return ImmutableList.copyOf(newlineSplitter.split(pString));
   }
 
   // Multi Control Statement Suffix ================================================================

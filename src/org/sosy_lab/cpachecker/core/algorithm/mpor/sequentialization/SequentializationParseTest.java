@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
@@ -27,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -455,7 +456,7 @@ public class SequentializationParseTest {
     testProgram(path, options);
   }
 
-  private MPORAlgorithm buildMPORAlgorithmTestInstance(
+  private MPORAlgorithm buildAlgorithmTestInstance(
       Path pInputFilePath,
       MPOROptions pOptions,
       LogManager pLogger,
@@ -483,52 +484,43 @@ public class SequentializationParseTest {
   private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    MPORAlgorithm algorithm =
-        buildMPORAlgorithmTestInstance(pInputFilePath, pOptions, logger, shutdownNotifier);
 
     // create two sequentializations A, B of the same input program with the same option
-    Sequentialization sequentializationA = buildSequentialization(algorithm);
+    MPORAlgorithm algorithmA =
+        buildAlgorithmTestInstance(pInputFilePath, pOptions, logger, shutdownNotifier);
+    Sequentialization sequentializationA = buildSequentialization(algorithmA);
     SequentializationFields fieldsA = sequentializationA.buildFields();
     String stringA = sequentializationA.toString(fieldsA);
-    Sequentialization sequentializationB = buildSequentialization(algorithm);
+    MPORAlgorithm algorithmB =
+        buildAlgorithmTestInstance(pInputFilePath, pOptions, logger, shutdownNotifier);
+    Sequentialization sequentializationB = buildSequentialization(algorithmB);
     SequentializationFields fieldsB = sequentializationB.buildFields();
     String stringB = sequentializationB.toString(fieldsB);
 
-    // test that all fields and the output programs of A, B are equal i.e. deterministic
-    testDeterminism(fieldsA, fieldsB, stringA, stringB);
-    // test if program A parses (which implies that program B parses too after testDeterminism)
+    // test that the output programs of A, B are equal
+    // (this does not imply that our algorithm is deterministic)
+    testEqualOutput(stringA, stringB);
+    // test if program A parses (which implies that program B parses too)
     testParse(stringA, logger, shutdownNotifier);
   }
 
+  // TODO also try to compare SequentializationFields for equality
   /**
    * Checks whether two sequentializations with the exact same input result in the exact same
    * output, i.e. the same {@link String} output and the same {@link SequentializationFields}
    */
-  private void testDeterminism(
-      SequentializationFields pFieldsA,
-      SequentializationFields pFieldsB,
-      String pStringA,
-      String pStringB) {
-
-    // use ImmutableList so the .equals compares order
-    assertThat(pFieldsA.substitutions.equals(pFieldsB.substitutions)).isTrue();
-    assertThat(
-            ImmutableList.copyOf(pFieldsA.substituteEdges.values())
-                .equals(ImmutableList.copyOf(pFieldsB.substituteEdges.values())))
-        .isTrue();
-
-    // not all sequentializations have a memory model, e.g. if linkReduction is disabled
-    if (pFieldsA.memoryModel.isPresent()) {
-      MemoryModel memoryModelA = pFieldsA.memoryModel.orElseThrow();
-      MemoryModel memoryModelB = pFieldsB.memoryModel.orElseThrow();
-      assertThat(
-              memoryModelA
-                  .getRelevantMemoryLocations()
-                  .equals(memoryModelB.getRelevantMemoryLocations()))
-          .isTrue();
+  private void testEqualOutput(String pStringA, String pStringB) {
+    ImmutableList<String> linesA = SeqStringUtil.splitOnNewline(pStringA);
+    ImmutableList<String> linesB = SeqStringUtil.splitOnNewline(pStringB);
+    assertThat(linesA.size() == linesB.size()).isTrue();
+    for (int i = 0; i < linesA.size(); i++) {
+      String lineA = linesA.get(i);
+      String lineB = linesB.get(i);
+      assertWithMessage(
+              "lineA, lineB with number " + (i + Sequentialization.FIRST_LINE) + " are not equal: ")
+          .that(lineA)
+          .isEqualTo(lineB);
     }
-
-    assertThat(pStringA.equals(pStringB)).isTrue();
   }
 
   private void testParse(

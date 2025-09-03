@@ -52,8 +52,16 @@ public class ThreadBuilder {
 
   private static int currentThreadId = Sequentialization.MAIN_THREAD_ID;
 
+  public static void resetThreadId() {
+    currentThreadId = Sequentialization.MAIN_THREAD_ID;
+  }
+
   /** Track the currentPc, static so that it is consistent across recursive function calls. */
   private static int currentPc = Sequentialization.INIT_PC;
+
+  public static void resetPc() {
+    currentPc = Sequentialization.INIT_PC;
+  }
 
   // TODO pthread_create calls in loops can be considered by loop unrolling
   /**
@@ -64,8 +72,6 @@ public class ThreadBuilder {
    * the calling context of each thread.
    */
   public static ImmutableList<MPORThread> createThreads(MPOROptions pOptions, CFA pCfa) {
-    // reset thread id (necessary only for unit tests)
-    currentThreadId = Sequentialization.MAIN_THREAD_ID;
     ImmutableList.Builder<MPORThread> rThreads = ImmutableList.builder();
     // add the main thread
     FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
@@ -117,7 +123,7 @@ public class ThreadBuilder {
     checkArgument(
         pEntryNode.getFunction().getType() instanceof CFunctionType,
         "pEntryNode function must be CFunctionType");
-    currentPc = Sequentialization.INIT_PC; // reset pc for every thread created
+    resetPc(); // reset pc for every thread created
     int newThreadId = currentThreadId++;
     ThreadCFA threadCfa = buildThreadCfa(newThreadId, pEntryNode, pStartRoutineCall);
     Optional<CIdExpression> startRoutineExitVariable =

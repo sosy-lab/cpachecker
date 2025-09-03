@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
@@ -512,6 +513,7 @@ public class CFACreator {
     Preconditions.checkArgument(
         !sourceFiles.isEmpty(), "At least one source file must be provided!");
 
+    ASTConverter.resetAnonTypeCounter();
     stats.totalTime.start();
     try {
       // FIRST, parse file(s) and create CFAs for each function

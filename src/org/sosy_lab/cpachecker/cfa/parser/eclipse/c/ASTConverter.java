@@ -170,7 +170,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 
-class ASTConverter {
+public class ASTConverter {
 
   /**
    * All GNU C function attributes that are known by CPAchecker. The keys of this map are the names
@@ -315,6 +315,10 @@ class ASTConverter {
   // more than one file (which get parsed with different AstConverters, although
   // they are in the same run) unique
   private static int anonTypeCounter = 0;
+
+  public static void resetAnonTypeCounter() {
+    anonTypeCounter = 0;
+  }
 
   private final Sideassignments sideAssignmentStack;
   private final String staticVariablePrefix;

@@ -88,7 +88,7 @@ public class Sequentialization {
 
   public static final int MAIN_THREAD_ID = 0;
 
-  private static final int FIRST_LINE = 1;
+  public static final int FIRST_LINE = 1;
 
   private final MPOROptions options;
 
@@ -127,8 +127,9 @@ public class Sequentialization {
     try {
       SequentializationFields fields = buildFields();
       return toString(fields);
-    } catch (UnrecognizedCodeException pE) {
-      throw new RuntimeException(pE);
+    } catch (UnrecognizedCodeException e) {
+      // we convert to RuntimeExceptions for unit tests
+      throw new RuntimeException(e);
     }
   }
 
