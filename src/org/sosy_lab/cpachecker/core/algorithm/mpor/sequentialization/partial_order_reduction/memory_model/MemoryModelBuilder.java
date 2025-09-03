@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -64,13 +65,7 @@ public class MemoryModelBuilder {
 
       // use distinct list so that sequentialization is deterministic
       ImmutableList<MemoryLocation> allMemoryLocations =
-          ImmutableList.<MemoryLocation>builder()
-              .addAll(pInitialMemoryLocations)
-              .addAll(newMemoryLocations)
-              .build()
-              .stream()
-              .distinct()
-              .collect(ImmutableList.toImmutableList());
+          getAllMemoryLocations(pInitialMemoryLocations, newMemoryLocations);
       ImmutableSetMultimap<MemoryLocation, MemoryLocation> pointerAssignments =
           mapPointerAssignments(pSubstituteEdges);
       ImmutableSet<MemoryLocation> pointerDereferences =
@@ -113,6 +108,17 @@ public class MemoryModelBuilder {
         pParameterAssignments,
         pPointerParameterAssignments,
         pPointerDereferences);
+  }
+
+  // All Memory Locations ==========================================================================
+
+  private static ImmutableList<MemoryLocation> getAllMemoryLocations(
+      ImmutableList<MemoryLocation> pInitialMemoryLocations,
+      ImmutableList<MemoryLocation> pNewMemoryLocations) {
+
+    List<MemoryLocation> rAllMemoryLocations = new ArrayList<>(pInitialMemoryLocations);
+    rAllMemoryLocations.addAll(pNewMemoryLocations);
+    return rAllMemoryLocations.stream().distinct().collect(ImmutableList.toImmutableList());
   }
 
   // Collection helpers ============================================================================

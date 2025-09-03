@@ -590,4 +590,33 @@ public class MPORSubstitution {
   public MPORThread getThread() {
     return thread;
   }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        isDummy,
+        options,
+        thread,
+        globalVariableSubstitutes,
+        localVariableSubstitutes,
+        parameterSubstitutes,
+        mainFunctionArgSubstitutes,
+        startRoutineArgSubstitutes);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof MPORSubstitution other
+        && isDummy == other.isDummy
+        && options.equals(other.options)
+        && thread.equals(other.thread)
+        && globalVariableSubstitutes.equals(other.globalVariableSubstitutes)
+        && localVariableSubstitutes.equals(other.localVariableSubstitutes)
+        && parameterSubstitutes.equals(other.parameterSubstitutes)
+        && mainFunctionArgSubstitutes.equals(other.mainFunctionArgSubstitutes)
+        && startRoutineArgSubstitutes.equals(other.startRoutineArgSubstitutes);
+  }
 }

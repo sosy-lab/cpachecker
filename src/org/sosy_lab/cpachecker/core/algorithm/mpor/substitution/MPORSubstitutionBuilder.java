@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,7 +47,7 @@ public class MPORSubstitutionBuilder {
 
   public static ImmutableList<MPORSubstitution> buildSubstitutions(
       MPOROptions pOptions,
-      ImmutableSet<CVariableDeclaration> pGlobalVariableDeclarations,
+      ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
       ImmutableList<MPORThread> pThreads,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger) {
@@ -102,7 +101,7 @@ public class MPORSubstitutionBuilder {
   private static ImmutableMap<CVariableDeclaration, CIdExpression> buildGlobalVariableSubstitutes(
       MPOROptions pOptions,
       MPORThread pThread,
-      ImmutableSet<CVariableDeclaration> pGlobalVariableDeclarations,
+      ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger) {
 
@@ -166,7 +165,7 @@ public class MPORSubstitutionBuilder {
   }
 
   private static ImmutableMap<CVariableDeclaration, CIdExpression> initGlobalSubstitutes(
-      MPOROptions pOptions, ImmutableSet<CVariableDeclaration> pGlobalVariableDeclarations) {
+      MPOROptions pOptions, ImmutableList<CVariableDeclaration> pGlobalVariableDeclarations) {
 
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> dummyGlobalSubstitutes =
         ImmutableMap.builder();

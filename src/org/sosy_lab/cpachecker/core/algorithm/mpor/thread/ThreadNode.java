@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class ThreadNode {
 
+  // TODO for unit testing, this should be outside of this class and not static
   private static int currentId = 0;
 
   private static int getNewId() {

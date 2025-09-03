@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -37,14 +38,14 @@ public class ThreadCFA {
   public final Optional<FunctionExitNode> exitNode;
 
   /** The (sub)set of CFANodes from the original input CFA that this thread can reach. */
-  public final ImmutableSet<ThreadNode> threadNodes;
+  public final ImmutableList<ThreadNode> threadNodes;
 
   public final ImmutableList<ThreadEdge> threadEdges;
 
   protected ThreadCFA(
       int pThreadId,
       FunctionEntryNode pEntryNode,
-      ImmutableSet<ThreadNode> pThreadNodes,
+      ImmutableList<ThreadNode> pThreadNodes,
       ImmutableList<ThreadEdge> pThreadEdges) {
 
     threadId = pThreadId;
@@ -94,7 +95,7 @@ public class ThreadCFA {
     }
   }
 
-  private static void initPredecessors(ImmutableSet<ThreadNode> pThreadNodes) {
+  private static void initPredecessors(ImmutableList<ThreadNode> pThreadNodes) {
     for (ThreadNode threadNode : pThreadNodes) {
       for (ThreadEdge threadEdge : threadNode.leavingEdges()) {
         threadEdge.setPredecessor(threadNode);
@@ -107,7 +108,7 @@ public class ThreadCFA {
    * handled in {@link ThreadCFA#handleFunctionReturnEdges()}.
    */
   private static void initSuccessors(
-      ImmutableList<ThreadEdge> pThreadEdges, ImmutableSet<ThreadNode> pThreadNodes) {
+      ImmutableList<ThreadEdge> pThreadEdges, ImmutableList<ThreadNode> pThreadNodes) {
 
     outerLoop:
     for (ThreadEdge threadEdge : pThreadEdges) {
@@ -180,5 +181,23 @@ public class ThreadCFA {
       }
     }
     return Optional.empty();
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(threadId, entryNode, exitNode, threadNodes, threadEdges);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof ThreadCFA other
+        && threadId == other.threadId
+        && entryNode.equals(other.entryNode)
+        && exitNode.equals(other.exitNode)
+        && threadNodes.equals(other.threadNodes)
+        && threadEdges.equals(other.threadEdges);
   }
 }

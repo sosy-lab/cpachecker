@@ -125,7 +125,16 @@ public class Sequentialization {
   @Override
   public String toString() {
     try {
-      ImmutableList<LineOfCode> initProgram = initProgram();
+      SequentializationFields fields = buildFields();
+      return toString(fields);
+    } catch (UnrecognizedCodeException pE) {
+      throw new RuntimeException(pE);
+    }
+  }
+
+  public String toString(SequentializationFields pFields) {
+    try {
+      ImmutableList<LineOfCode> initProgram = initProgram(pFields);
       ImmutableList<LineOfCode> finalProgram = finalProgram(initProgram);
       String program = LineOfCodeUtil.buildString(finalProgram);
       return options.validateParse && options.inputTypeDeclarations
@@ -147,33 +156,33 @@ public class Sequentialization {
   }
 
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
-  private ImmutableList<LineOfCode> initProgram() throws UnrecognizedCodeException {
+  private ImmutableList<LineOfCode> initProgram(SequentializationFields pFields)
+      throws UnrecognizedCodeException {
+
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
 
-    SequentializationFields fields = buildFields();
-
     // add bit vector type (before, otherwise parse error) and all input program type declarations
-    rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, fields.threads));
+    rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, pFields.threads));
     rProgram.addAll(LineOfCodeUtil.buildBitVectorTypeDeclarations());
     // add input function declarations without definition when their function pointers are used
     rProgram.addAll(
-        LineOfCodeUtil.buildEmptyInputFunctionDeclarations(fields.substituteEdges.values()));
+        LineOfCodeUtil.buildEmptyInputFunctionDeclarations(pFields.substituteEdges.values()));
     // add struct and variable declarations
     rProgram.addAll(
-        LineOfCodeUtil.buildInputGlobalVariableDeclarations(options, fields.mainSubstitution));
+        LineOfCodeUtil.buildInputGlobalVariableDeclarations(options, pFields.mainSubstitution));
     rProgram.addAll(
-        LineOfCodeUtil.buildInputLocalVariableDeclarations(options, fields.substitutions));
-    rProgram.addAll(LineOfCodeUtil.buildInputParameterDeclarations(options, fields.substitutions));
+        LineOfCodeUtil.buildInputLocalVariableDeclarations(options, pFields.substitutions));
+    rProgram.addAll(LineOfCodeUtil.buildInputParameterDeclarations(options, pFields.substitutions));
     rProgram.addAll(
-        LineOfCodeUtil.buildMainFunctionArgDeclarations(options, fields.mainSubstitution));
+        LineOfCodeUtil.buildMainFunctionArgDeclarations(options, pFields.mainSubstitution));
     rProgram.addAll(
-        LineOfCodeUtil.buildStartRoutineArgDeclarations(options, fields.mainSubstitution));
-    rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, fields.threads));
+        LineOfCodeUtil.buildStartRoutineArgDeclarations(options, pFields.mainSubstitution));
+    rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, pFields.threads));
 
     // add custom function declarations and definitions
     rProgram.addAll(LineOfCodeUtil.buildFunctionDeclarations(options));
     rProgram.addAll(
-        LineOfCodeUtil.buildFunctionDefinitions(options, fields, binaryExpressionBuilder, logger));
+        LineOfCodeUtil.buildFunctionDefinitions(options, pFields, binaryExpressionBuilder, logger));
 
     return rProgram.build();
   }

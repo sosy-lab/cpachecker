@@ -737,8 +737,8 @@ public class CFAUtils {
   }
 
   /** Extracts all {@link CVariableDeclaration} from {@code pCfa} that are global. */
-  public static ImmutableSet<CVariableDeclaration> getGlobalVariableDeclarations(CFA pCfa) {
-    ImmutableSet.Builder<CVariableDeclaration> rGlobalVars = ImmutableSet.builder();
+  public static ImmutableList<CVariableDeclaration> getGlobalVariableDeclarations(CFA pCfa) {
+    ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
     GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
     for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
       if (edge instanceof CDeclarationEdge declarationEdge) {
@@ -747,12 +747,12 @@ public class CFAUtils {
           AAstNode aAstNode = declarationEdge.getRawAST().orElseThrow();
           // exclude CFunctionDeclaration and CTypeDeclaration (e.g. for structs)
           if (aAstNode instanceof CVariableDeclaration cVariableDeclaration) {
-            rGlobalVars.add(cVariableDeclaration);
+            rGlobalVariables.add(cVariableDeclaration);
           }
         }
       }
     }
-    return rGlobalVars.build();
+    return rGlobalVariables.build();
   }
 
   /**

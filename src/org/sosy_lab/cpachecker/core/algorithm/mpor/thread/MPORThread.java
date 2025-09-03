@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -42,11 +43,12 @@ public class MPORThread {
   public final Optional<CIdExpression> startRoutineExitVariable;
 
   /** The set of context-sensitive local variable declarations of this thread. */
-  public final ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVariables;
+  public final ImmutableListMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVariables;
 
   /** The subset of the original CFA executed by the thread. */
   public final ThreadCFA cfa;
 
+  // TODO move both into GhostElements
   /**
    * The thread-specific nondeterministic {@code K{thread_id}} variable (statement round counter).
    */
@@ -60,7 +62,7 @@ public class MPORThread {
       CFunctionDeclaration pStartRoutine,
       Optional<ThreadEdge> pStartRoutineCall,
       Optional<CIdExpression> pStartRoutineExitVariable,
-      ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
+      ImmutableListMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
       ThreadCFA pCfa,
       Optional<CIdExpression> pKVariable,
       Optional<SeqThreadLabelStatement> pLabel) {
@@ -86,5 +88,32 @@ public class MPORThread {
 
   public Optional<SeqThreadLabelStatement> getLabel() {
     return label;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        id,
+        threadObject,
+        startRoutine,
+        startRoutineCall,
+        startRoutineExitVariable,
+        localVariables,
+        cfa);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof MPORThread other
+        && id == other.id
+        && threadObject.equals(other.threadObject)
+        && startRoutine.equals(other.startRoutine)
+        && startRoutineCall.equals(other.startRoutineCall)
+        && startRoutineExitVariable.equals(other.startRoutineExitVariable)
+        && localVariables.equals(other.localVariables)
+        && cfa.equals(other.cfa);
   }
 }

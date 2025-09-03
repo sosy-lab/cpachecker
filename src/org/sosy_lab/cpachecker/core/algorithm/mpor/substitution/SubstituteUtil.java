@@ -13,6 +13,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -101,14 +103,14 @@ public class SubstituteUtil {
   public static ImmutableList<MemoryLocation> getInitialMemoryLocations(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
-    ImmutableList.Builder<MemoryLocation> rMemoryLocations = ImmutableList.builder();
+    List<MemoryLocation> rMemoryLocations = new ArrayList<>();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       rMemoryLocations.addAll(substituteEdge.accessedMemoryLocations);
       rMemoryLocations.addAll(substituteEdge.pointerAssignments.values());
       rMemoryLocations.addAll(substituteEdge.accessedPointerDereferences);
     }
     // remove duplicates
-    return rMemoryLocations.build().stream().distinct().collect(ImmutableList.toImmutableList());
+    return rMemoryLocations.stream().distinct().collect(ImmutableList.toImmutableList());
   }
 
   static ImmutableSet<MemoryLocation> getPointerDereferencesByAccessType(

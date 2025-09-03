@@ -17,7 +17,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.List;
@@ -142,7 +141,7 @@ public class ThreadBuilder {
 
     // check if node is present already in a specific calling context
     Multimap<CFANode, Optional<ThreadEdge>> visitedNodes = ArrayListMultimap.create();
-    ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
+    ImmutableList.Builder<ThreadNode> threadNodes = ImmutableList.builder();
     // we use an immutable map to preserve ordering (important when declaring types)
     ImmutableMap.Builder<ThreadEdge, CFAEdge> threadEdges = ImmutableMap.builder();
 
@@ -169,7 +168,7 @@ public class ThreadBuilder {
   private static void initThreadCfaVariables(
       final int pThreadId,
       Multimap<CFANode, Optional<ThreadEdge>> pVisitedCfaNodes,
-      ImmutableSet.Builder<ThreadNode> pThreadNodes,
+      ImmutableList.Builder<ThreadNode> pThreadNodes,
       ImmutableMap.Builder<ThreadEdge, CFAEdge> pThreadEdges,
       final CFANode pCurrentNode,
       boolean pIsInAtomicBlock,

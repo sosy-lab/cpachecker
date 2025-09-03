@@ -21,6 +21,7 @@ import com.google.common.collect.Table;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -301,5 +302,44 @@ public class MPORSubstitutionTracker {
 
   public ImmutableSet<CFunctionDeclaration> getAccessedFunctionPointers() {
     return ImmutableSet.copyOf(accessedFunctionPointers);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        accessedMainFunctionArgs,
+        pointerAssignments,
+        pointerFieldMemberAssignments,
+        accessedPointerDereferences,
+        writtenPointerDereferences,
+        accessedFieldReferencePointerDereferences,
+        writtenFieldReferencePointerDereferences,
+        accessedDeclarations,
+        writtenDeclarations,
+        accessedFieldMembers,
+        writtenFieldMembers,
+        accessedFunctionPointers);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof MPORSubstitutionTracker other
+        && accessedMainFunctionArgs.equals(other.accessedMainFunctionArgs)
+        && pointerAssignments.equals(other.pointerAssignments)
+        && pointerFieldMemberAssignments.equals(other.pointerFieldMemberAssignments)
+        && accessedPointerDereferences.equals(other.accessedPointerDereferences)
+        && writtenPointerDereferences.equals(other.writtenPointerDereferences)
+        && accessedFieldReferencePointerDereferences.equals(
+            other.accessedFieldReferencePointerDereferences)
+        && writtenFieldReferencePointerDereferences.equals(
+            other.writtenFieldReferencePointerDereferences)
+        && accessedDeclarations.equals(other.accessedDeclarations)
+        && writtenDeclarations.equals(other.writtenDeclarations)
+        && accessedFieldMembers.equals(other.accessedFieldMembers)
+        && writtenFieldMembers.equals(other.writtenFieldMembers)
+        && accessedFunctionPointers.equals(other.accessedFunctionPointers);
   }
 }

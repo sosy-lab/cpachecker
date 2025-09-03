@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -26,7 +27,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Tests if programs with different characteristics and options parse correctly. The programs are in
@@ -83,7 +86,7 @@ public class SequentializationParseTest {
             true,
             true,
             false);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -120,7 +123,7 @@ public class SequentializationParseTest {
             true,
             false,
             false);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -158,7 +161,7 @@ public class SequentializationParseTest {
             false,
             false,
             false);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -195,7 +198,7 @@ public class SequentializationParseTest {
             true,
             true,
             true);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -230,7 +233,7 @@ public class SequentializationParseTest {
             false,
             true,
             true);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -267,7 +270,7 @@ public class SequentializationParseTest {
             false,
             true,
             false);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -303,7 +306,7 @@ public class SequentializationParseTest {
             true,
             true,
             false);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -341,7 +344,7 @@ public class SequentializationParseTest {
             true,
             false,
             false);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -377,7 +380,7 @@ public class SequentializationParseTest {
             false,
             true,
             false);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -414,7 +417,7 @@ public class SequentializationParseTest {
             true,
             false,
             true);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
   @Test
@@ -449,36 +452,100 @@ public class SequentializationParseTest {
             false,
             true,
             true);
-    testProgramParse(path, options);
+    testProgram(path, options);
   }
 
-  private void testProgramParse(Path pInputFilePath, MPOROptions pOptions) throws Exception {
-    // create cfa for test program pInputFilePath
-    LogManager logger = LogManager.createTestLogManager();
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
+  private MPORAlgorithm buildMPORAlgorithmTestInstance(
+      Path pInputFilePath,
+      MPOROptions pOptions,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
+      throws Exception {
+
+    // create cfa for test program pInputFilePath. always use preprocessor, we work with .c files
     CFACreator creatorWithPreProcessor =
         new CFACreator(
             Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
-            logger,
-            shutdownNotifier);
+            pLogger,
+            pShutdownNotifier);
     CFA inputCfa =
         creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
     // create mpor algorithm and generate seq
-    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa, pOptions);
+    return MPORAlgorithm.testInstance(pLogger, inputCfa, pOptions);
+  }
+
+  private Sequentialization buildSequentialization(MPORAlgorithm pAlgorithm) {
     String inputFileName = "test.i";
-    String sequentialization =
-        algorithm
-            .buildSequentialization(inputFileName, SeqToken.__MPOR_SEQ__ + inputFileName)
-            .toString();
+    return pAlgorithm.buildSequentialization(inputFileName, SeqToken.__MPOR_SEQ__ + inputFileName);
+  }
+
+  private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {
+    LogManager logger = LogManager.createTestLogManager();
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
+    MPORAlgorithm algorithm =
+        buildMPORAlgorithmTestInstance(pInputFilePath, pOptions, logger, shutdownNotifier);
+
+    // create two sequentializations A, B of the same input program with the same option
+    Sequentialization sequentializationA = buildSequentialization(algorithm);
+    SequentializationFields fieldsA = sequentializationA.buildFields();
+    String stringA = sequentializationA.toString(fieldsA);
+    Sequentialization sequentializationB = buildSequentialization(algorithm);
+    SequentializationFields fieldsB = sequentializationB.buildFields();
+    String stringB = sequentializationB.toString(fieldsB);
+
+    // test that all fields and the output programs of A, B are equal i.e. deterministic
+    testDeterminism(fieldsA, fieldsB, stringA, stringB);
+    // test if program A parses (which implies that program B parses too after testDeterminism)
+    testParse(stringA, logger, shutdownNotifier);
+  }
+
+  /**
+   * Checks whether two sequentializations with the exact same input result in the exact same
+   * output, i.e. the same {@link String} output and the same {@link SequentializationFields}
+   */
+  private void testDeterminism(
+      SequentializationFields pFieldsA,
+      SequentializationFields pFieldsB,
+      String pStringA,
+      String pStringB) {
+
+    // use ImmutableList so the .equals compares order
+    assertThat(pFieldsA.substitutions.equals(pFieldsB.substitutions)).isTrue();
+    assertThat(
+            ImmutableList.copyOf(pFieldsA.substituteEdges.values())
+                .equals(ImmutableList.copyOf(pFieldsB.substituteEdges.values())))
+        .isTrue();
+
+    // not all sequentializations have a memory model, e.g. if linkReduction is disabled
+    if (pFieldsA.memoryModel.isPresent()) {
+      MemoryModel memoryModelA = pFieldsA.memoryModel.orElseThrow();
+      MemoryModel memoryModelB = pFieldsB.memoryModel.orElseThrow();
+      assertThat(
+              memoryModelA
+                  .getRelevantMemoryLocations()
+                  .equals(memoryModelB.getRelevantMemoryLocations()))
+          .isTrue();
+    }
+
+    assertThat(pStringA.equals(pStringB)).isTrue();
+  }
+
+  private void testParse(
+      String pSequentialization, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, ParserException, InterruptedException {
+
+    assertThat(pSequentialization.isEmpty()).isFalse();
 
     // test that seq can be parsed and cfa created -> code compiles
-    CFACreator creator = new CFACreator(Configuration.builder().build(), logger, shutdownNotifier);
-    CFA seqCfa = creator.parseSourceAndCreateCFA(sequentialization);
+    CFACreator creator =
+        new CFACreator(Configuration.builder().build(), pLogger, pShutdownNotifier);
+    CFA seqCfa = creator.parseSourceAndCreateCFA(pSequentialization);
     assertThat(seqCfa != null).isTrue();
 
     // "anti" test: just remove the last 100 chars from the seq, it probably won't compile
-    String faultySeq = sequentialization.substring(0, sequentialization.length() - 100);
+    String faultySeq = pSequentialization.substring(0, pSequentialization.length() - 100);
+    assertThat(faultySeq.isEmpty()).isFalse();
 
     // test that we get an exception while parsing the new "faulty" program
     boolean fail = false;
