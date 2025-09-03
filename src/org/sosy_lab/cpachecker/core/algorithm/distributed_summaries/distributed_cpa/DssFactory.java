@@ -26,12 +26,14 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.symbolic.DistributedSymbolicExecutionCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -105,6 +107,11 @@ public class DssFactory {
     if (pCPA instanceof LocationCPA locationCPA) {
       return distribute(locationCPA, pBlockNode, integerToNodeMap);
     }
+
+    if (pCPA instanceof ConstraintsCPA constraintsCPA) {
+      return distribute(constraintsCPA, pBlockNode);
+    }
+
     return null;
   }
 
@@ -116,6 +123,11 @@ public class DssFactory {
   private static DistributedConfigurableProgramAnalysis distribute(
       LocationCPA pLocationCPA, BlockNode pNode, Map<Integer, CFANode> pNodeMap) {
     return new DistributedLocationCPA(pLocationCPA, pNode, pNodeMap);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
+    return new DistributedSymbolicExecutionCPA(pConstraintsCPA, pBlockNode);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
