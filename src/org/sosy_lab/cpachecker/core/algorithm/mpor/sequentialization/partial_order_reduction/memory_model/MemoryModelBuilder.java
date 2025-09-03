@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -493,18 +492,12 @@ public class MemoryModelBuilder {
       CFieldReference pFieldReference,
       ImmutableList<MemoryLocation> pInitialMemoryLocations) {
 
-    if (pFieldReference.getFieldOwner().getExpressionType() instanceof CTypedefType typedefType) {
-      CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
-      CCompositeTypeMemberDeclaration fieldMember =
-          MPORUtil.getFieldMemberByName(pFieldReference, typedefType);
-      return getMemoryLocationByFieldReference(
-          pOptions,
-          pCallContext,
-          fieldOwner.getDeclaration(),
-          fieldMember,
-          pInitialMemoryLocations);
-    }
-    throw new IllegalArgumentException("pFieldReference owner type must be CTypedefType");
+    CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
+    CCompositeTypeMemberDeclaration fieldMember =
+        MPORUtil.getFieldMemberByFieldReference(
+            pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
+    return getMemoryLocationByFieldReference(
+        pOptions, pCallContext, fieldOwner.getDeclaration(), fieldMember, pInitialMemoryLocations);
   }
 
   private static MemoryLocation getMemoryLocationByDeclaration(

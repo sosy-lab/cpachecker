@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -346,7 +347,8 @@ public final class MPORUtil {
     CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
     CTypedefType typedefType = getTypedefTypeByIdExpression(idExpression);
     return new AbstractMap.SimpleEntry<>(
-        idExpression.getDeclaration(), getFieldMemberByName(pFieldReference, typedefType));
+        idExpression.getDeclaration(),
+        getFieldMemberByFieldReference(pFieldReference, typedefType));
   }
 
   /**
@@ -375,23 +377,30 @@ public final class MPORUtil {
     throw new IllegalArgumentException("could not extract CTypedefType from pIdExpression");
   }
 
-  // TODO remove typedefType param and extract from fieldOwner.type instead
-  public static CCompositeTypeMemberDeclaration getFieldMemberByName(
-      CFieldReference pFieldReference, CTypedefType pTypedefType) {
+  /**
+   * Extracts the {@link CCompositeTypeMemberDeclaration} of the field member accessed in {@code
+   * pFieldReference}, e.g. {@code member} in {@code owner->member}.
+   */
+  public static CCompositeTypeMemberDeclaration getFieldMemberByFieldReference(
+      CFieldReference pFieldReference, CType pType) {
 
-    // elaborated type is e.g. struct __anon_type_QType
-    if (pTypedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-      // composite type contains the composite type members, e.g. 'amount'
-      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
-        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-            return memberDeclaration;
+    if (pType instanceof CTypedefType typedefType) {
+      // elaborated type is e.g. struct __anon_type_QType
+      if (typedefType.getRealType() instanceof CElaboratedType elaboratedType) {
+        // composite type contains the composite type members, e.g. 'amount'
+        if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
+          for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+            if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
+              return memberDeclaration;
+            }
           }
         }
       }
+      if (typedefType.getRealType() instanceof CTypedefType innerTypedefType) {
+        return getFieldMemberByFieldReference(pFieldReference, innerTypedefType);
+      }
     }
-    throw new IllegalArgumentException(
-        "could not extract CCompositeTypeMemberDeclaration from pFieldReference");
+    throw new IllegalArgumentException("field owner type must be CTypedefType");
   }
 
   // Collections ===================================================================================

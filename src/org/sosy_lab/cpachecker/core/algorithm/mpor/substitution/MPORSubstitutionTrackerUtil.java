@@ -175,20 +175,17 @@ public class MPORSubstitutionTrackerUtil {
         CExpression rightHandSide = pAssignment.getRightHandSide();
         Optional<CSimpleDeclaration> pointerDeclaration =
             MPORUtil.tryGetPointerDeclaration(rightHandSide);
+        MPORSubstitutionTracker tracker = pTracker.orElseThrow();
         if (pointerDeclaration.isPresent()) {
-          pTracker
-              .orElseThrow()
-              .addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
+          tracker.addPointerAssignment(lhsDeclaration, pointerDeclaration.orElseThrow());
         } else {
           Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>> fieldMemberPointer =
               MPORUtil.tryGetFieldMemberPointer(rightHandSide);
           if (fieldMemberPointer.isPresent()) {
-            pTracker
-                .orElseThrow()
-                .addPointerFieldMemberAssignment(
-                    lhsDeclaration,
-                    fieldMemberPointer.orElseThrow().getKey(),
-                    fieldMemberPointer.orElseThrow().getValue());
+            tracker.addPointerFieldMemberAssignment(
+                lhsDeclaration,
+                fieldMemberPointer.orElseThrow().getKey(),
+                fieldMemberPointer.orElseThrow().getValue());
           }
         }
       }
@@ -271,17 +268,14 @@ public class MPORSubstitutionTrackerUtil {
       assert pFieldReference.getFieldOwner().getExpressionType() instanceof CPointerType
           : "if pFieldReference is a pointer dereference, its owner type must be CPointerType";
       CPointerType pointerType = (CPointerType) pFieldReference.getFieldOwner().getExpressionType();
-      if (pointerType.getType() instanceof CTypedefType typedefType) {
-        CSimpleDeclaration fieldOwner =
-            MPORUtil.recursivelyFindFieldOwner(pFieldReference).getDeclaration();
-        CCompositeTypeMemberDeclaration fieldMember =
-            MPORUtil.getFieldMemberByName(pFieldReference, typedefType);
-        MPORSubstitutionTracker tracker = pTracker.orElseThrow();
-        if (pIsWrite) {
-          tracker.addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember);
-        }
-        tracker.addAccessedFieldReferencePointerDereference(fieldOwner, fieldMember);
+      CSimpleDeclaration fieldOwner =
+          MPORUtil.recursivelyFindFieldOwner(pFieldReference).getDeclaration();
+      CCompositeTypeMemberDeclaration fieldMember =
+          MPORUtil.getFieldMemberByFieldReference(pFieldReference, pointerType.getType());
+      if (pIsWrite) {
+        pTracker.orElseThrow().addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember);
       }
+      pTracker.orElseThrow().addAccessedFieldReferencePointerDereference(fieldOwner, fieldMember);
     }
   }
 
