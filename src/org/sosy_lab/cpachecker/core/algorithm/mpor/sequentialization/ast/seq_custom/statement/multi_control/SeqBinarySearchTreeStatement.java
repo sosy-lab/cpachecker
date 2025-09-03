@@ -23,8 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -54,12 +52,12 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<LineOfCode> tree = ImmutableList.builder();
-    tree.addAll(LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
+    ImmutableList.Builder<String> tree = ImmutableList.builder();
+    tree.addAll(SeqStringUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
     ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     recursivelyBuildTree(statementList, statementList, expression, tree);
-    return LineOfCodeUtil.buildString(tree.build());
+    return SeqStringUtil.joinWithNewlines(tree.build());
   }
 
   @Override
@@ -76,7 +74,7 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
       final ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> pAllStatements,
       List<Map.Entry<CExpression, ? extends SeqStatement>> pCurrentStatements,
       CLeftHandSide pPc,
-      ImmutableList.Builder<LineOfCode> pTree)
+      ImmutableList.Builder<String> pTree)
       throws UnrecognizedCodeException {
 
     int size = pCurrentStatements.size();
@@ -84,7 +82,7 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
     // TODO actually use the CExpression keys
     if (size == 1) {
       // single element -> just place statement without any control flow
-      pTree.add(LineOfCode.of(pCurrentStatements.getFirst().getValue().toASTString()));
+      pTree.add(pCurrentStatements.getFirst().getValue().toASTString());
 
     } else if (size == 2) {
       // only two elements -> create if and else leafs with ==
@@ -104,11 +102,11 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
       recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(0, mid), pPc, pTree);
       pTree.add(buildElseSubtree());
       recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(mid, size), pPc, pTree);
-      pTree.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
+      pTree.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     }
   }
 
-  private LineOfCode buildIfSmallerSubtree(int pMid, CLeftHandSide pPc)
+  private String buildIfSmallerSubtree(int pMid, CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
     SeqIfExpression ifSubtree =
@@ -117,15 +115,15 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
                 pPc,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
                 BinaryOperator.LESS_THAN));
-    return LineOfCode.of(ifSubtree.toASTString() + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT);
+    return ifSubtree.toASTString() + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
   }
 
-  private LineOfCode buildElseSubtree() throws UnrecognizedCodeException {
+  private String buildElseSubtree() throws UnrecognizedCodeException {
     SeqElseExpression elseSubtree = new SeqElseExpression();
-    return LineOfCode.of(SeqStringUtil.wrapInCurlyBracketsOutwards(elseSubtree.toASTString()));
+    return SeqStringUtil.wrapInCurlyBracketsOutwards(elseSubtree.toASTString());
   }
 
-  private LineOfCode buildIfEqualsLeaf(SeqStatement pStatement, int pLow, CLeftHandSide pPc)
+  private String buildIfEqualsLeaf(SeqStatement pStatement, int pLow, CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
     // if statement is a clause, use its label number as the equals check
@@ -139,19 +137,19 @@ public class SeqBinarySearchTreeStatement implements SeqMultiControlStatement {
     return buildLeaf(ifLeaf, pStatement);
   }
 
-  private LineOfCode buildElseLeaf(SeqStatement pHighStatement) throws UnrecognizedCodeException {
+  private String buildElseLeaf(SeqStatement pHighStatement) throws UnrecognizedCodeException {
 
     SeqElseExpression elseLeaf = new SeqElseExpression();
     return buildLeaf(elseLeaf, pHighStatement);
   }
 
-  private LineOfCode buildLeaf(
+  private String buildLeaf(
       SeqSingleControlExpression pSingleControlStatement, SeqStatement pStatement)
       throws UnrecognizedCodeException {
 
     String prefix = pSingleControlStatement.toASTString() + SeqSyntax.SPACE;
     String code = SeqStringUtil.wrapInCurlyBracketsInwards(pStatement.toASTString());
-    return LineOfCode.of(prefix + code);
+    return prefix + code;
   }
 
   // Helpers =======================================================================================

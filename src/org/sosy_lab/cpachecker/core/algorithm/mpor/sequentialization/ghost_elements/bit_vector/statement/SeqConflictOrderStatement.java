@@ -20,8 +20,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -49,7 +47,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<LineOfCode> lines = ImmutableList.builder();
+    ImmutableList.Builder<String> lines = ImmutableList.builder();
     // last_thread < n
     CBinaryExpression lastThreadLessThanThreadId =
         binaryExpressionBuilder.buildBinaryExpression(
@@ -61,9 +59,9 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
     // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
     String assumeCall = SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.toASTString());
     // add all LOC
-    lines.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
-    lines.add(LineOfCode.of(assumeCall));
-    lines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
-    return LineOfCodeUtil.buildString(lines.build());
+    lines.add(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString()));
+    lines.add(assumeCall);
+    lines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+    return SeqStringUtil.joinWithNewlines(lines.build());
   }
 }

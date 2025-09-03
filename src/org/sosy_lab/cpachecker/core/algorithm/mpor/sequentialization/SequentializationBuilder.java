@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -30,14 +29,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -46,23 +43,23 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class LineOfCodeUtil {
+public class SequentializationBuilder {
 
-  public static ImmutableList<LineOfCode> buildBitVectorTypeDeclarations() {
-    ImmutableList.Builder<LineOfCode> rBitVectorTypeDeclarations = ImmutableList.builder();
+  public static ImmutableList<String> buildBitVectorTypeDeclarations() {
+    ImmutableList.Builder<String> rBitVectorTypeDeclarations = ImmutableList.builder();
     for (BitVectorDataType bitVectorType : BitVectorDataType.values()) {
       CTypeDeclaration bitVectorTypeDeclaration = bitVectorType.buildDeclaration();
-      rBitVectorTypeDeclarations.add(LineOfCode.of(bitVectorTypeDeclaration.toASTString()));
+      rBitVectorTypeDeclarations.add(bitVectorTypeDeclaration.toASTString());
     }
     return rBitVectorTypeDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildOriginalDeclarations(
+  public static ImmutableList<String> buildOriginalDeclarations(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
-    ImmutableList.Builder<LineOfCode> rOriginalDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<String> rOriginalDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rOriginalDeclarations.add(LineOfCode.of(SeqComment.UNCHANGED_DECLARATIONS));
+      rOriginalDeclarations.add(SeqComment.UNCHANGED_DECLARATIONS);
     }
     // add all original program declarations that are not substituted
     for (MPORThread thread : pThreads) {
@@ -72,7 +69,7 @@ public class LineOfCodeUtil {
         // add function and type declaration only if enabled in options
         if (!(declaration instanceof CFunctionDeclaration) || pOptions.inputFunctionDeclarations) {
           if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations) {
-            rOriginalDeclarations.add(LineOfCode.of(declaration.toASTString()));
+            rOriginalDeclarations.add(declaration.toASTString());
           }
         }
       }
@@ -82,11 +79,11 @@ public class LineOfCodeUtil {
 
   // Empty Function Declarations ===================================================================
 
-  public static ImmutableList<LineOfCode> buildEmptyInputFunctionDeclarations(
+  public static ImmutableList<String> buildEmptyInputFunctionDeclarations(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     Set<CFunctionDeclaration> visited = new HashSet<>();
-    ImmutableList.Builder<LineOfCode> rEmptyFunctionDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<String> rEmptyFunctionDeclarations = ImmutableList.builder();
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       for (CFunctionDeclaration functionDeclaration : substituteEdge.accessedFunctionPointers) {
         if (visited.add(functionDeclaration)) {
@@ -98,7 +95,7 @@ public class LineOfCodeUtil {
     return rEmptyFunctionDeclarations.build();
   }
 
-  private static LineOfCode buildEmptyFunctionDefinitionFromDeclaration(
+  private static String buildEmptyFunctionDefinitionFromDeclaration(
       CFunctionDeclaration pDeclaration) {
 
     StringBuilder rDeclaration = new StringBuilder();
@@ -127,48 +124,48 @@ public class LineOfCodeUtil {
     rDeclaration.append(SeqSyntax.SPACE);
     rDeclaration.append(SeqSyntax.CURLY_BRACKET_LEFT);
     rDeclaration.append(SeqSyntax.CURLY_BRACKET_RIGHT);
-    return LineOfCode.of(rDeclaration.toString());
+    return rDeclaration.toString();
   }
 
   // Input Variable Declarations ===================================================================
 
-  public static ImmutableList<LineOfCode> buildInputGlobalVariableDeclarations(
+  public static ImmutableList<String> buildInputGlobalVariableDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
-    ImmutableList.Builder<LineOfCode> rGlobalDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<String> rGlobalDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rGlobalDeclarations.add(LineOfCode.of(SeqComment.GLOBAL_VAR_DECLARATIONS));
+      rGlobalDeclarations.add(SeqComment.GLOBAL_VAR_DECLARATIONS);
     }
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalDeclarations();
     for (CVariableDeclaration globalDeclaration : globalDeclarations) {
       if (!PthreadUtil.isPthreadObjectType(globalDeclaration.getType())) {
-        rGlobalDeclarations.add(LineOfCodeUtil.buildLineOfCode(globalDeclaration));
+        rGlobalDeclarations.add(globalDeclaration.toASTString());
       }
     }
     return rGlobalDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildInputLocalVariableDeclarations(
+  public static ImmutableList<String> buildInputLocalVariableDeclarations(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
-    ImmutableList.Builder<LineOfCode> rLocalDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<String> rLocalDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rLocalDeclarations.add(LineOfCode.of(SeqComment.LOCAL_VAR_DECLARATIONS));
+      rLocalDeclarations.add(SeqComment.LOCAL_VAR_DECLARATIONS);
     }
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        Optional<LineOfCode> lineOfCode = tryBuildInputLocalVariableDeclaration(localDeclaration);
-        if (lineOfCode.isPresent()) {
-          rLocalDeclarations.add(lineOfCode.orElseThrow());
+        Optional<String> line = tryBuildInputLocalVariableDeclaration(localDeclaration);
+        if (line.isPresent()) {
+          rLocalDeclarations.add(line.orElseThrow());
         }
       }
     }
     return rLocalDeclarations.build();
   }
 
-  private static Optional<LineOfCode> tryBuildInputLocalVariableDeclaration(
+  private static Optional<String> tryBuildInputLocalVariableDeclaration(
       CVariableDeclaration pLocalVariableDeclaration) {
 
     checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
@@ -181,23 +178,22 @@ public class LineOfCodeUtil {
       CInitializer initializer = pLocalVariableDeclaration.getInitializer();
       if (initializer == null) {
         // no initializer -> add declaration as is
-        return Optional.of(LineOfCode.of(pLocalVariableDeclaration.toASTString()));
+        return Optional.of(pLocalVariableDeclaration.toASTString());
 
       } else if (MPORUtil.isFunctionPointer(pLocalVariableDeclaration.getInitializer())) {
         // function pointer initializer -> add declaration as is
-        return Optional.of(LineOfCode.of(pLocalVariableDeclaration.toASTString()));
+        return Optional.of(pLocalVariableDeclaration.toASTString());
 
       } else if (!MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
         // const CPAchecker_TMP variables are declared and initialized directly in the case.
         // everything else: add declaration without initializer (and assign later in cases)
-        return Optional.of(
-            LineOfCode.of(pLocalVariableDeclaration.toASTStringWithoutInitializer()));
+        return Optional.of(pLocalVariableDeclaration.toASTStringWithoutInitializer());
       }
     }
     return Optional.empty();
   }
 
-  private static Optional<LineOfCode> tryBuildInputConstLocalVariableDeclaration(
+  private static Optional<String> tryBuildInputConstLocalVariableDeclaration(
       CVariableDeclaration pLocalVariableDeclaration) {
 
     checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
@@ -227,12 +223,12 @@ public class LineOfCodeUtil {
 
   // Input Parameter Declarations ==================================================================
 
-  public static ImmutableList<LineOfCode> buildInputParameterDeclarations(
+  public static ImmutableList<String> buildInputParameterDeclarations(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
-    ImmutableList.Builder<LineOfCode> rParameterDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<String> rParameterDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rParameterDeclarations.add(LineOfCode.of(SeqComment.PARAMETER_VAR_SUBSTITUTES));
+      rParameterDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES);
     }
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CParameterDeclaration> parameterDeclarations =
@@ -240,8 +236,7 @@ public class LineOfCodeUtil {
       for (CParameterDeclaration parameterDeclaration : parameterDeclarations) {
         if (!PthreadUtil.isPthreadObjectType(parameterDeclaration.getType())) {
           // CParameterDeclarations require addition semicolon
-          rParameterDeclarations.add(
-              LineOfCode.of(parameterDeclaration.toASTString() + SeqSyntax.SEMICOLON));
+          rParameterDeclarations.add(parameterDeclaration.toASTString() + SeqSyntax.SEMICOLON);
         }
       }
     }
@@ -252,25 +247,25 @@ public class LineOfCodeUtil {
    * Adds the declarations of main function arguments, e.g. {@code int arg;} that are
    * non-deterministically initialized in {@code main()} later in the sequentialization.
    */
-  public static ImmutableList<LineOfCode> buildMainFunctionArgDeclarations(
+  public static ImmutableList<String> buildMainFunctionArgDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
-    ImmutableList.Builder<LineOfCode> rArgDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<String> rArgDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rArgDeclarations.add(LineOfCode.of(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES));
+      rArgDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES);
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
-      rArgDeclarations.add(LineOfCodeUtil.buildLineOfCode(mainArg.getDeclaration()));
+      rArgDeclarations.add(mainArg.getDeclaration().toASTString());
     }
     return rArgDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildStartRoutineArgDeclarations(
+  public static ImmutableList<String> buildStartRoutineArgDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
-    ImmutableList.Builder<LineOfCode> rStartRoutineArgDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<String> rStartRoutineArgDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rStartRoutineArgDeclarations.add(LineOfCode.of(SeqComment.START_ROUTINE_ARG_SUBSTITUTES));
+      rStartRoutineArgDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES);
     }
     ImmutableList<CParameterDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getSubstituteStartRoutineArgDeclarations();
@@ -279,24 +274,24 @@ public class LineOfCodeUtil {
       if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {
         // add trailing ; as CParameterDeclaration is without semicolons
         rStartRoutineArgDeclarations.add(
-            LineOfCode.of(startRoutineArgDeclaration.toASTString() + SeqSyntax.SEMICOLON));
+            startRoutineArgDeclaration.toASTString() + SeqSyntax.SEMICOLON);
       }
     }
     return rStartRoutineArgDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildStartRoutineExitDeclarations(
+  public static ImmutableList<String> buildStartRoutineExitDeclarations(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
-    ImmutableList.Builder<LineOfCode> rStartRoutineExitDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<String> rStartRoutineExitDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rStartRoutineExitDeclarations.add(LineOfCode.of(SeqComment.START_ROUTINE_EXIT_VARIABLES));
+      rStartRoutineExitDeclarations.add(SeqComment.START_ROUTINE_EXIT_VARIABLES);
     }
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable;
       if (exitVariable.isPresent()) {
         rStartRoutineExitDeclarations.add(
-            LineOfCode.of(exitVariable.orElseThrow().getDeclaration().toASTString()));
+            exitVariable.orElseThrow().getDeclaration().toASTString());
       }
     }
     return rStartRoutineExitDeclarations.build();
@@ -304,38 +299,38 @@ public class LineOfCodeUtil {
 
   // Function Declarations and Definitions =========================================================
 
-  public static ImmutableList<LineOfCode> buildFunctionDeclarations(MPOROptions pOptions) {
-    ImmutableList.Builder<LineOfCode> rFunctionDeclarations = ImmutableList.builder();
+  public static ImmutableList<String> buildFunctionDeclarations(MPOROptions pOptions) {
+    ImmutableList.Builder<String> rFunctionDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rFunctionDeclarations.add(LineOfCode.of(SeqComment.CUSTOM_FUNCTION_DECLARATIONS));
+      rFunctionDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS);
     }
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
-    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
+    rFunctionDeclarations.add(SeqFunctionDeclaration.ASSERT_FAIL.toASTString());
     if (pOptions.nondeterminismSigned) {
       rFunctionDeclarations.add(
-          LineOfCode.of(VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString()));
+          VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString());
     } else {
       rFunctionDeclarations.add(
-          LineOfCode.of(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString()));
+          VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
     }
-    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.ABORT.toASTString()));
-    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.REACH_ERROR.toASTString()));
-    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.ASSUME.toASTString()));
+    rFunctionDeclarations.add(SeqFunctionDeclaration.ABORT.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclaration.REACH_ERROR.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclaration.ASSUME.toASTString());
     // main should always be duplicate
-    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.MAIN.toASTString()));
+    rFunctionDeclarations.add(SeqFunctionDeclaration.MAIN.toASTString());
     return rFunctionDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildFunctionDefinitions(
+  public static ImmutableList<String> buildFunctionDefinitions(
       MPOROptions pOptions,
       SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rFunctionDefinitions = ImmutableList.builder();
+    ImmutableList.Builder<String> rFunctionDefinitions = ImmutableList.builder();
     if (pOptions.comments) {
-      rFunctionDefinitions.add(LineOfCode.of(SeqComment.CUSTOM_FUNCTION_DEFINITIONS));
+      rFunctionDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS);
     }
     // custom function definitions: reach_error(), assume(), main()
     SeqReachErrorFunction reachError = new SeqReachErrorFunction();
@@ -347,41 +342,5 @@ public class LineOfCodeUtil {
         new SeqMainFunction(pOptions, pFields, pBinaryExpressionBuilder, pLogger);
     rFunctionDefinitions.addAll(mainFunction.buildDefinition());
     return rFunctionDefinitions.build();
-  }
-
-  // Helpers =======================================================================================
-
-  /** Create and return the {@link String} for {@code pLinesOfCode}. */
-  public static String buildString(ImmutableList<LineOfCode> pLinesOfCode) {
-    StringBuilder rString = new StringBuilder();
-    for (LineOfCode lineOfCode : pLinesOfCode) {
-      rString.append(lineOfCode.toString());
-    }
-    return rString.toString();
-  }
-
-  /** Create and return the {@link ImmutableList} for {@code pString} that is split on newlines. */
-  public static ImmutableList<LineOfCode> buildLinesOfCodeFromCAstNodes(String pString) {
-    ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
-    for (String line : SeqStringUtil.splitOnNewline(pString)) {
-      rLinesOfCode.add(LineOfCode.of(line.trim()));
-    }
-    return rLinesOfCode.build();
-  }
-
-  /** Return the list of {@link LineOfCode} for {@code pAstNodes}. */
-  public static ImmutableList<LineOfCode> buildLinesOfCodeFromCAstNodes(
-      ImmutableList<? extends CAstNode> pAstNodes) {
-
-    ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
-    for (CAstNode astNode : pAstNodes) {
-      rLinesOfCode.add(buildLineOfCode(astNode));
-    }
-    return rLinesOfCode.build();
-  }
-
-  /** Return the single {@link LineOfCode} for pAstNode. */
-  public static <T extends CAstNode> LineOfCode buildLineOfCode(T pAstNode) {
-    return LineOfCode.of(pAstNode.toASTString());
   }
 }

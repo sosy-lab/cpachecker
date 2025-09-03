@@ -21,8 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -58,18 +56,18 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<LineOfCode> lines = ImmutableList.builder();
-    lines.add(LineOfCode.of(label.toASTString() + SeqSyntax.SPACE));
+    ImmutableList.Builder<String> lines = ImmutableList.builder();
+    lines.add(label.toASTString() + SeqSyntax.SPACE);
     for (SeqThreadStatement statement : statements) {
-      lines.add(LineOfCode.of(statement.toASTString() + SeqSyntax.SPACE));
+      lines.add(statement.toASTString() + SeqSyntax.SPACE);
     }
     Optional<String> suffix =
         SeqStringUtil.tryBuildSuffixByMultiControlStatementEncoding(
             options, nextThread, statements);
     if (suffix.isPresent()) {
-      lines.add(LineOfCode.of(suffix.orElseThrow()));
+      lines.add(suffix.orElseThrow());
     }
-    return LineOfCodeUtil.buildString(lines.build());
+    return SeqStringUtil.joinWithNewlines(lines.build());
   }
 
   public SeqBlockLabelStatement getLabel() {

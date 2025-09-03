@@ -24,15 +24,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class NextThreadNondeterministicSimulation {
 
   /** Creates the control flow statements for all threads based on {@code pClauses}. */
-  static ImmutableList<LineOfCode> buildThreadSimulations(
+  static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
       ProgramCounterVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
@@ -45,7 +44,7 @@ public class NextThreadNondeterministicSimulation {
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
             pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
-    return LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(outerMultiControlStatement.toASTString());
+    return SeqStringUtil.splitOnNewline(outerMultiControlStatement.toASTString());
   }
 
   private static ImmutableMap<CExpression, SeqMultiControlStatement>

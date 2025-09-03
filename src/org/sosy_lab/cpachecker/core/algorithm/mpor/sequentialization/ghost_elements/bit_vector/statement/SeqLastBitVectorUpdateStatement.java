@@ -11,8 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqLastBitVectorUpdateStatement implements SeqInjectedStatement {
@@ -31,11 +30,11 @@ public class SeqLastBitVectorUpdateStatement implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
-    rLines.add(LineOfCode.of(lastThreadUpdate.toASTString()));
+    ImmutableList.Builder<String> rLines = ImmutableList.builder();
+    rLines.add(lastThreadUpdate.toASTString());
     for (CExpressionAssignmentStatement lastBitVectorUpdate : lastBitVectorUpdates) {
-      rLines.add(LineOfCode.of(lastBitVectorUpdate.toASTString()));
+      rLines.add(lastBitVectorUpdate.toASTString());
     }
-    return LineOfCodeUtil.buildString(rLines.build());
+    return SeqStringUtil.joinWithNewlines(rLines.build());
   }
 }

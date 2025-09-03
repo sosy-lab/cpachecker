@@ -13,14 +13,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public abstract class SeqFunction {
 
-  abstract ImmutableList<LineOfCode> buildBody() throws UnrecognizedCodeException;
+  abstract ImmutableList<String> buildBody() throws UnrecognizedCodeException;
 
   abstract CType getReturnType();
 
@@ -50,11 +49,11 @@ public abstract class SeqFunction {
         + SeqSyntax.BRACKET_RIGHT;
   }
 
-  public final ImmutableList<LineOfCode> buildDefinition() throws UnrecognizedCodeException {
-    ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
-    rDefinition.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(buildSignature())));
+  public final ImmutableList<String> buildDefinition() throws UnrecognizedCodeException {
+    ImmutableList.Builder<String> rDefinition = ImmutableList.builder();
+    rDefinition.add(SeqStringUtil.appendCurlyBracketRight(buildSignature()));
     rDefinition.addAll(buildBody());
-    rDefinition.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
+    rDefinition.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return rDefinition.build();
   }
 }

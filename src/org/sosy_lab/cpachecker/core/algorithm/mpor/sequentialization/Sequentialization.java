@@ -21,8 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
@@ -35,34 +34,30 @@ public class Sequentialization {
 
   private static final String license = "Apache-2.0";
 
-  private final ImmutableList<LineOfCode> licenseHeader =
+  private final ImmutableList<String> licenseHeader =
       ImmutableList.of(
-          LineOfCode.of("// This file is part of CPAchecker,"),
-          LineOfCode.of("// a tool for configurable software verification:"),
-          LineOfCode.of("// https://cpachecker.sosy-lab.org"),
-          LineOfCode.of("//"),
-          LineOfCode.of(
-              "// SPDX-"
-                  + "FileCopyrightText: "
-                  + Year.now(ZoneId.systemDefault()).getValue()
-                  + " Dirk Beyer <https://www.sosy-lab.org>"),
-          LineOfCode.of("//"),
+          "// This file is part of CPAchecker,",
+          "// a tool for configurable software verification:",
+          "// https://cpachecker.sosy-lab.org",
+          "//",
+          "// SPDX-"
+              + "FileCopyrightText: "
+              + Year.now(ZoneId.systemDefault()).getValue()
+              + " Dirk Beyer <https://www.sosy-lab.org>",
+          "//",
           // splitting this with + so that 'reuse lint' accepts it
-          LineOfCode.of("// SPDX-" + "License-" + "Identifier: " + license));
+          "// SPDX-" + "License-" + "Identifier: " + license);
 
-  private static final ImmutableList<LineOfCode> mporHeader =
+  private static final ImmutableList<String> mporHeader =
       ImmutableList.of(
-          LineOfCode.of(
-              "// This sequentialization (transformation of a concurrent program into an"
-                  + " equivalent"),
-          LineOfCode.of(
-              "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker."),
-          LineOfCode.of("//"),
-          LineOfCode.of(
-              "// Assertion fails from the function "
-                  + SeqToken.__SEQUENTIALIZATION_ERROR__
-                  + " mark faulty sequentializations."),
-          LineOfCode.of("// All other assertion fails are induced by faulty input programs."));
+          "// This sequentialization (transformation of a concurrent program into an"
+              + " equivalent",
+          "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker.",
+          "//",
+          "// Assertion fails from the function "
+              + SeqToken.__SEQUENTIALIZATION_ERROR__
+              + " mark faulty sequentializations.",
+          "// All other assertion fails are induced by faulty input programs.");
 
   public static final String inputReachErrorDummy =
       SeqExpressionBuilder.buildReachError(
@@ -135,9 +130,9 @@ public class Sequentialization {
 
   public String toString(SequentializationFields pFields) {
     try {
-      ImmutableList<LineOfCode> initProgram = initProgram(pFields);
-      ImmutableList<LineOfCode> finalProgram = finalProgram(initProgram);
-      String program = LineOfCodeUtil.buildString(finalProgram);
+      ImmutableList<String> initProgram = initProgram(pFields);
+      ImmutableList<String> finalProgram = finalProgram(initProgram);
+      String program = SeqStringUtil.joinWithNewlines(finalProgram);
       return options.validateParse && options.inputTypeDeclarations
           ? SeqValidator.validateProgramParsing(program, options, shutdownNotifier, logger)
           : program;
@@ -157,33 +152,41 @@ public class Sequentialization {
   }
 
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
-  private ImmutableList<LineOfCode> initProgram(SequentializationFields pFields)
+  private ImmutableList<String> initProgram(SequentializationFields pFields)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
+    ImmutableList.Builder<String> rProgram = ImmutableList.builder();
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
-    rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, pFields.threads));
-    rProgram.addAll(LineOfCodeUtil.buildBitVectorTypeDeclarations());
+    rProgram.addAll(SequentializationBuilder.buildOriginalDeclarations(options, pFields.threads));
+    rProgram.addAll(SequentializationBuilder.buildBitVectorTypeDeclarations());
     // add input function declarations without definition when their function pointers are used
     rProgram.addAll(
-        LineOfCodeUtil.buildEmptyInputFunctionDeclarations(pFields.substituteEdges.values()));
+        SequentializationBuilder.buildEmptyInputFunctionDeclarations(
+            pFields.substituteEdges.values()));
     // add struct and variable declarations
     rProgram.addAll(
-        LineOfCodeUtil.buildInputGlobalVariableDeclarations(options, pFields.mainSubstitution));
+        SequentializationBuilder.buildInputGlobalVariableDeclarations(
+            options, pFields.mainSubstitution));
     rProgram.addAll(
-        LineOfCodeUtil.buildInputLocalVariableDeclarations(options, pFields.substitutions));
-    rProgram.addAll(LineOfCodeUtil.buildInputParameterDeclarations(options, pFields.substitutions));
+        SequentializationBuilder.buildInputLocalVariableDeclarations(
+            options, pFields.substitutions));
     rProgram.addAll(
-        LineOfCodeUtil.buildMainFunctionArgDeclarations(options, pFields.mainSubstitution));
+        SequentializationBuilder.buildInputParameterDeclarations(options, pFields.substitutions));
     rProgram.addAll(
-        LineOfCodeUtil.buildStartRoutineArgDeclarations(options, pFields.mainSubstitution));
-    rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, pFields.threads));
+        SequentializationBuilder.buildMainFunctionArgDeclarations(
+            options, pFields.mainSubstitution));
+    rProgram.addAll(
+        SequentializationBuilder.buildStartRoutineArgDeclarations(
+            options, pFields.mainSubstitution));
+    rProgram.addAll(
+        SequentializationBuilder.buildStartRoutineExitDeclarations(options, pFields.threads));
 
     // add custom function declarations and definitions
-    rProgram.addAll(LineOfCodeUtil.buildFunctionDeclarations(options));
+    rProgram.addAll(SequentializationBuilder.buildFunctionDeclarations(options));
     rProgram.addAll(
-        LineOfCodeUtil.buildFunctionDefinitions(options, pFields, binaryExpressionBuilder, logger));
+        SequentializationBuilder.buildFunctionDefinitions(
+            options, pFields, binaryExpressionBuilder, logger));
 
     return rProgram.build();
   }
@@ -193,18 +196,18 @@ public class Sequentialization {
    * file name and line in {@code reach_error("__FILE_NAME_PLACEHOLDER__", -1,
    * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
    */
-  private ImmutableList<LineOfCode> finalProgram(ImmutableList<LineOfCode> pInitProgram) {
+  private ImmutableList<String> finalProgram(ImmutableList<String> pInitProgram) {
     // consider license and seq comment header for line numbers
     int currentLine =
         options.comments ? licenseHeader.size() + mporHeader.size() + FIRST_LINE : FIRST_LINE;
-    ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
+    ImmutableList.Builder<String> rProgram = ImmutableList.builder();
     if (options.license) {
       rProgram.addAll(licenseHeader);
     }
     if (options.comments) {
       rProgram.addAll(mporHeader);
     }
-    for (LineOfCode lineOfCode : pInitProgram) {
+    for (String lineOfCode : pInitProgram) {
       // replace dummy line numbers (-1) with actual line numbers in the seq
       rProgram.add(replaceReachErrorDummies(lineOfCode, currentLine));
       currentLine++;
@@ -216,28 +219,24 @@ public class Sequentialization {
    * Replaces dummy calls to {@code reach_error}, or returns {@code pLineOfCode} as is if there is
    * none.
    */
-  private LineOfCode replaceReachErrorDummies(LineOfCode pLineOfCode, int pLineNumber) {
-    String code = pLineOfCode.code;
-
-    if (code.contains(inputReachErrorDummy)) {
+  private String replaceReachErrorDummies(String pLineOfCode, int pLineNumber) {
+    if (pLineOfCode.contains(inputReachErrorDummy)) {
       // reach_error calls from the input program
       CFunctionCallExpression reachErrorCall =
           SeqExpressionBuilder.buildReachError(
               inputFileName, pLineNumber, SeqToken.__PRETTY_FUNCTION__);
-      String replacement =
-          code.replace(inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
-      return pLineOfCode.cloneWithCode(replacement);
+      return pLineOfCode.replace(
+          inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
 
-    } else if (code.contains(outputReachErrorDummy)) {
+    } else if (pLineOfCode.contains(outputReachErrorDummy)) {
       // reach_error calls injected by the sequentialization
       CFunctionCallExpression reachErrorCall =
           SeqExpressionBuilder.buildReachError(
               outputFileName + FileExtension.I.suffix,
               pLineNumber,
               SeqToken.__SEQUENTIALIZATION_ERROR__);
-      String replacement =
-          code.replace(outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
-      return pLineOfCode.cloneWithCode(replacement);
+      return pLineOfCode.replace(
+          outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
     }
     return pLineOfCode;
   }

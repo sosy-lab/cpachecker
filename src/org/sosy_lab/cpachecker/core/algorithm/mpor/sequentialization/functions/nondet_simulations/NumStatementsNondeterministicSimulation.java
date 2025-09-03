@@ -52,8 +52,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -61,7 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class NumStatementsNondeterministicSimulation {
 
-  static ImmutableList<LineOfCode> buildThreadSimulations(
+  static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
@@ -73,7 +71,7 @@ public class NumStatementsNondeterministicSimulation {
         pOptions, pGhostElements, pClauses, rReset, pBinaryExpressionBuilder);
   }
 
-  private static ImmutableList<LineOfCode> buildThreadSimulations(
+  private static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
       GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
@@ -81,7 +79,7 @@ public class NumStatementsNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
+    ImmutableList.Builder<String> rLines = ImmutableList.builder();
     if (!pOptions.kAssignLazy) {
       rLines.addAll(buildKAssignments(pOptions, pClauses, pBinaryExpressionBuilder));
       rLines.add(buildKSumAssumption(pClauses.keySet(), pBinaryExpressionBuilder));
@@ -100,7 +98,7 @@ public class NumStatementsNondeterministicSimulation {
 
       // create T{thread_id}: label
       if (thread.getLabel().isPresent()) {
-        rLines.add(LineOfCode.of(thread.getLabel().orElseThrow().toASTString()));
+        rLines.add(thread.getLabel().orElseThrow().toASTString());
       }
 
       // create "if (pc != 0 ...)" condition
@@ -113,7 +111,7 @@ public class NumStatementsNondeterministicSimulation {
               pGhostElements,
               pBinaryExpressionBuilder);
       SeqIfExpression ifExpression = new SeqIfExpression(ifCondition);
-      rLines.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
+      rLines.add(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString()));
 
       if (pOptions.kAssignLazy) {
         // add the K = nondet assignment for this thread
@@ -135,23 +133,19 @@ public class NumStatementsNondeterministicSimulation {
                 pBinaryExpressionBuilder.buildBinaryExpression(
                     SeqIdExpression.I, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
             SeqIfExpression iEqualsZeroExpression = new SeqIfExpression(iEqualsZeroCondition);
-            rLines.add(
-                LineOfCode.of(
-                    SeqStringUtil.appendCurlyBracketRight(iEqualsZeroExpression.toASTString())));
-            rLines.add(
-                LineOfCode.of(SeqAssumptionBuilder.buildAssumption(kGreaterZero).toASTString()));
-            rLines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
+            rLines.add(SeqStringUtil.appendCurlyBracketRight(iEqualsZeroExpression.toASTString()));
+            rLines.add(SeqAssumptionBuilder.buildAssumption(kGreaterZero).toASTString());
+            rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
           }
         }
 
         // if (K > 0) ...
         SeqIfExpression lazyIfExpression = new SeqIfExpression(lazyIfCondition);
-        rLines.add(
-            LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(lazyIfExpression.toASTString())));
+        rLines.add(SeqStringUtil.appendCurlyBracketRight(lazyIfExpression.toASTString()));
       }
 
       // reset iteration only when needed i.e. after if (...) for performance
-      rLines.add(LineOfCode.of(pRReset.toASTString()));
+      rLines.add(pRReset.toASTString());
 
       // add the thread loop statements (assumptions and switch)
       rLines.addAll(
@@ -164,20 +158,20 @@ public class NumStatementsNondeterministicSimulation {
 
       // add additional closing bracket, if needed
       if (pOptions.kAssignLazy) {
-        rLines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
+        rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
       }
-      rLines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
+      rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     }
     return rLines.build();
   }
 
-  private static ImmutableList<LineOfCode> buildKAssignments(
+  private static ImmutableList<String> buildKAssignments(
       MPOROptions pOptions,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rAssignments = ImmutableList.builder();
+    ImmutableList.Builder<String> rAssignments = ImmutableList.builder();
     for (MPORThread thread : pClauses.keySet()) {
       CIdExpression kVariable = thread.getKVariable().orElseThrow();
       rAssignments.addAll(
@@ -187,18 +181,18 @@ public class NumStatementsNondeterministicSimulation {
     return rAssignments.build();
   }
 
-  private static ImmutableList<LineOfCode> buildSingleKAssignment(
+  private static ImmutableList<String> buildSingleKAssignment(
       MPOROptions pOptions,
       CIdExpression pKVariable,
       int pNumStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rAssignment = ImmutableList.builder();
+    ImmutableList.Builder<String> rAssignment = ImmutableList.builder();
     // k = nondet() ...
     CFunctionCallAssignmentStatement assignment =
         NondeterministicSimulationUtil.buildKNondetAssignment(pOptions, pKVariable);
-    rAssignment.add(LineOfCode.of(assignment.toASTString()));
+    rAssignment.add(assignment.toASTString());
     // place k bound after nondet assignment
     if (pOptions.kBound) {
       CIntegerLiteralExpression numStatementsExpression =
@@ -208,12 +202,12 @@ public class NumStatementsNondeterministicSimulation {
               pKVariable, numStatementsExpression, BinaryOperator.LESS_EQUAL);
       CFunctionCallStatement kBoundAssumption =
           SeqAssumptionBuilder.buildAssumption(kBoundExpression);
-      rAssignment.add(LineOfCode.of(kBoundAssumption.toASTString()));
+      rAssignment.add(kBoundAssumption.toASTString());
     }
     return rAssignment.build();
   }
 
-  private static LineOfCode buildKSumAssumption(
+  private static String buildKSumAssumption(
       ImmutableSet<MPORThread> pThreads, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -231,7 +225,7 @@ public class NumStatementsNondeterministicSimulation {
         pBinaryExpressionBuilder.buildBinaryExpression(
             KSum, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
     CFunctionCallStatement assumption = SeqAssumptionBuilder.buildAssumption(KSumGreaterZero);
-    return LineOfCode.of(assumption.toASTString());
+    return assumption.toASTString();
   }
 
   private static SeqExpression buildIfConditionExpression(
@@ -313,7 +307,7 @@ public class NumStatementsNondeterministicSimulation {
     }
   }
 
-  private static ImmutableList<LineOfCode> buildSingleThreadClausesWithCount(
+  private static ImmutableList<String> buildSingleThreadClausesWithCount(
       MPOROptions pOptions,
       ProgramCounterVariables pPcVariables,
       MPORThread pThread,
@@ -321,7 +315,7 @@ public class NumStatementsNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
+    ImmutableList.Builder<String> rLines = ImmutableList.builder();
     ImmutableList<SeqThreadStatementClause> clauses =
         buildSingleThreadClausesWithCount(pOptions, pThread, pClauses, pBinaryExpressionBuilder);
     CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.id);
@@ -346,8 +340,7 @@ public class NumStatementsNondeterministicSimulation {
             expressionClauseMap,
             pBinaryExpressionBuilder);
 
-    rLines.addAll(
-        LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(multiControlStatement.toASTString()));
+    rLines.addAll(SeqStringUtil.splitOnNewline(multiControlStatement.toASTString()));
     return rLines.build();
   }
 

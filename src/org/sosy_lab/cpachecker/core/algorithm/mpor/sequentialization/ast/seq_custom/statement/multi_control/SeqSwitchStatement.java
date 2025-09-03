@@ -18,8 +18,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSwitchExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -60,13 +58,12 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList.Builder<LineOfCode> switchCase = ImmutableList.builder();
-    switchCase.addAll(LineOfCodeUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
-    switchCase.add(
-        LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(switchExpression.toASTString())));
+    ImmutableList.Builder<String> switchCase = ImmutableList.builder();
+    switchCase.addAll(SeqStringUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
+    switchCase.add(SeqStringUtil.appendCurlyBracketRight(switchExpression.toASTString()));
     switchCase.addAll(buildCases(options, statements));
-    switchCase.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
-    return LineOfCodeUtil.buildString(switchCase.build());
+    switchCase.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+    return SeqStringUtil.joinWithNewlines(switchCase.build());
   }
 
   @Override
@@ -74,29 +71,23 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
     return MultiControlStatementEncoding.SWITCH_CASE;
   }
 
-  private static ImmutableList<LineOfCode> buildCases(
+  private static ImmutableList<String> buildCases(
       MPOROptions pOptions, ImmutableMap<CExpression, ? extends SeqStatement> pStatements)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rCases = ImmutableList.builder();
+    ImmutableList.Builder<String> rCases = ImmutableList.builder();
     int index = 0;
     for (var entry : pStatements.entrySet()) {
       boolean isLast = index == pStatements.size() - 1;
       SeqStatement statement = entry.getValue();
       String casePrefix = buildCasePrefix(entry.getKey());
       String breakSuffix = buildBreakSuffix(statement);
-      rCases.add(buildSingleCase(casePrefix, statement, breakSuffix));
+      rCases.add(casePrefix + statement + breakSuffix);
       if (isLast && pOptions.sequentializationErrors) {
-        rCases.add(LineOfCode.of(Sequentialization.defaultCaseClauseError));
+        rCases.add(Sequentialization.defaultCaseClauseError);
       }
     }
     return rCases.build();
-  }
-
-  private static LineOfCode buildSingleCase(String pPrefix, SeqStatement pStatement, String pSuffix)
-      throws UnrecognizedCodeException {
-
-    return LineOfCode.of(pPrefix + pStatement.toASTString() + pSuffix);
   }
 
   private static String buildCasePrefix(CExpression pExpression) {

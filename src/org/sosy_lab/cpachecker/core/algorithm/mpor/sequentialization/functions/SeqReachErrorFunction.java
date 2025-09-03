@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqStringLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqReachErrorFunction extends SeqFunction {
@@ -41,9 +40,9 @@ public class SeqReachErrorFunction extends SeqFunction {
   }
 
   @Override
-  public ImmutableList<LineOfCode> buildBody() {
-    ImmutableList.Builder<LineOfCode> rBody = ImmutableList.builder();
-    rBody.add(LineOfCode.of(assertFailCall.toASTString() + SeqSyntax.SEMICOLON));
+  public ImmutableList<String> buildBody() {
+    ImmutableList.Builder<String> rBody = ImmutableList.builder();
+    rBody.add(assertFailCall.toASTString() + SeqSyntax.SEMICOLON);
     return rBody.build();
   }
 
