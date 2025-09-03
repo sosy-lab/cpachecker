@@ -58,7 +58,9 @@ int fib() {
   return prev;
 }
 
+const int global_const = 0;
 int main(int argc, char **argv) {
+  const int local_const = 7;
   pthread_t id1, id2;
 
   // atomic_init(&i, 1);

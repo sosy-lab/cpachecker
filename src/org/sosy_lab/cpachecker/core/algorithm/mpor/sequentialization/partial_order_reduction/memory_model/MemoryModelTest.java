@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
 public class MemoryModelTest {
@@ -32,9 +33,10 @@ public class MemoryModelTest {
   // Simple Types
 
   private final CSimpleType INT_TYPE =
-      new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+      new CSimpleType(
+          CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
 
-  private final CPointerType INT_POINTER_TYPE = new CPointerType(false, false, INT_TYPE);
+  private final CPointerType INT_POINTER_TYPE = new CPointerType(CTypeQualifiers.NONE, INT_TYPE);
 
   // Expressions
 

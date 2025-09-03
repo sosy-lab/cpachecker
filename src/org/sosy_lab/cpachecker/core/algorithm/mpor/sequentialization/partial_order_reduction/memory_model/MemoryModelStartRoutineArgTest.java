@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
@@ -34,11 +35,12 @@ public class MemoryModelStartRoutineArgTest {
   // Simple Types
 
   private final CSimpleType INT_TYPE =
-      new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+      new CSimpleType(
+          CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
 
   private final CVoidType VOID_TYPE = CVoidType.VOID;
 
-  private final CPointerType VOID_POINTER_TYPE = new CPointerType(false, false, VOID_TYPE);
+  private final CPointerType VOID_POINTER_TYPE = new CPointerType(CTypeQualifiers.NONE, VOID_TYPE);
 
   // Expressions
 

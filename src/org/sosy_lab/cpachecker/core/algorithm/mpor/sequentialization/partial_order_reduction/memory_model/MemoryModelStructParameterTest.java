@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -52,9 +53,10 @@ public class MemoryModelStructParameterTest {
   // Simple Types
 
   private final CSimpleType INT_TYPE =
-      new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+      new CSimpleType(
+          CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
 
-  private final CPointerType INT_POINTER_TYPE = new CPointerType(false, false, INT_TYPE);
+  private final CPointerType INT_POINTER_TYPE = new CPointerType(CTypeQualifiers.NONE, INT_TYPE);
 
   // Expressions
 
@@ -81,8 +83,7 @@ public class MemoryModelStructParameterTest {
 
   private final CComplexType INNER_STRUCT_COMPLEX_TYPE =
       new CCompositeType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           ComplexTypeKind.STRUCT,
           ImmutableList.of(
               INNER_STRUCT_MEMBER_DECLARATION, INNER_STRUCT_POINTER_MEMBER_DECLARATION),
@@ -91,15 +92,14 @@ public class MemoryModelStructParameterTest {
 
   private final CElaboratedType INNER_STRUCT_ELABORATED_TYPE =
       new CElaboratedType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           ComplexTypeKind.STRUCT,
           "inner_struct_elaborated",
           "inner_struct_elaborated",
           INNER_STRUCT_COMPLEX_TYPE);
 
   private final CTypedefType INNER_STRUCT_TYPE =
-      new CTypedefType(false, false, "Inner", INNER_STRUCT_ELABORATED_TYPE);
+      new CTypedefType(CTypeQualifiers.NONE, "Inner", INNER_STRUCT_ELABORATED_TYPE);
 
   // Composite Type Member Declarations (outer struct)
 
@@ -116,8 +116,7 @@ public class MemoryModelStructParameterTest {
 
   private final CComplexType OUTER_STRUCT_COMPLEX_TYPE =
       new CCompositeType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           ComplexTypeKind.STRUCT,
           ImmutableList.of(
               OUTER_STRUCT_MEMBER_DECLARATION,
@@ -128,20 +127,19 @@ public class MemoryModelStructParameterTest {
 
   private final CElaboratedType OUTER_STRUCT_ELABORATED_TYPE =
       new CElaboratedType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           ComplexTypeKind.STRUCT,
           "outer_struct_elaborated",
           "outer_struct_elaborated",
           OUTER_STRUCT_COMPLEX_TYPE);
 
   private final CTypedefType OUTER_STRUCT_TYPE =
-      new CTypedefType(false, false, "Outer", OUTER_STRUCT_ELABORATED_TYPE);
+      new CTypedefType(CTypeQualifiers.NONE, "Outer", OUTER_STRUCT_ELABORATED_TYPE);
 
   // Pointer Types to Complex Types
 
   private final CPointerType OUTER_STRUCT_POINTER_TYPE =
-      new CPointerType(false, false, OUTER_STRUCT_COMPLEX_TYPE);
+      new CPointerType(CTypeQualifiers.NONE, OUTER_STRUCT_COMPLEX_TYPE);
 
   // CFunctionType
 

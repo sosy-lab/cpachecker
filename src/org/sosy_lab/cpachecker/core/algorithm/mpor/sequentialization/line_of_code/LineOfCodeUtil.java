@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
@@ -23,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
@@ -156,25 +159,70 @@ public class LineOfCodeUtil {
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        if (!PthreadUtil.isPthreadObjectType(localDeclaration.getType())) {
-          CInitializer initializer = localDeclaration.getInitializer();
-          if (initializer == null) {
-            // no initializer -> add declaration as is
-            rLocalDeclarations.add(LineOfCode.of(localDeclaration.toASTString()));
-
-          } else if (MPORUtil.isFunctionPointer(localDeclaration.getInitializer())) {
-            // function pointer initializer -> add declaration as is
-            rLocalDeclarations.add(LineOfCode.of(localDeclaration.toASTString()));
-
-          } else if (!MPORUtil.isConstCpaCheckerTmp(localDeclaration)) {
-            // const CPAchecker_TMP variables are declared and initialized directly in the case.
-            // everything else: add declaration without initializer (and assign later in cases)
-            rLocalDeclarations.add(LineOfCode.of(localDeclaration.toASTStringWithoutInitializer()));
-          }
+        Optional<LineOfCode> lineOfCode = tryBuildInputLocalVariableDeclaration(localDeclaration);
+        if (lineOfCode.isPresent()) {
+          rLocalDeclarations.add(lineOfCode.orElseThrow());
         }
       }
     }
     return rLocalDeclarations.build();
+  }
+
+  private static Optional<LineOfCode> tryBuildInputLocalVariableDeclaration(
+      CVariableDeclaration pLocalVariableDeclaration) {
+
+    checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
+    // try remove const qualifier from variable
+    if (pLocalVariableDeclaration.getType().getQualifiers().containsConst()) {
+      return tryBuildInputConstLocalVariableDeclaration(pLocalVariableDeclaration);
+    }
+    // otherwise, for non-const variables
+    if (!PthreadUtil.isPthreadObjectType(pLocalVariableDeclaration.getType())) {
+      CInitializer initializer = pLocalVariableDeclaration.getInitializer();
+      if (initializer == null) {
+        // no initializer -> add declaration as is
+        return Optional.of(LineOfCode.of(pLocalVariableDeclaration.toASTString()));
+
+      } else if (MPORUtil.isFunctionPointer(pLocalVariableDeclaration.getInitializer())) {
+        // function pointer initializer -> add declaration as is
+        return Optional.of(LineOfCode.of(pLocalVariableDeclaration.toASTString()));
+
+      } else if (!MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
+        // const CPAchecker_TMP variables are declared and initialized directly in the case.
+        // everything else: add declaration without initializer (and assign later in cases)
+        return Optional.of(
+            LineOfCode.of(pLocalVariableDeclaration.toASTStringWithoutInitializer()));
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static Optional<LineOfCode> tryBuildInputConstLocalVariableDeclaration(
+      CVariableDeclaration pLocalVariableDeclaration) {
+
+    checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
+    checkArgument(
+        pLocalVariableDeclaration.getType() instanceof CSimpleType,
+        "pLocalVariableDeclaration type must be CSimpleType");
+    checkArgument(
+        pLocalVariableDeclaration.getType().getQualifiers().containsConst(),
+        "pLocalVariableDeclaration must be const");
+
+    // create an identical copy of pLocalVariableDeclaration, but remove const qualifier
+    CSimpleType simpleType = (CSimpleType) pLocalVariableDeclaration.getType();
+    CSimpleType simpleTypeWithoutConst =
+        simpleType.withQualifiersSetTo(simpleType.getQualifiers().withoutConst());
+    CVariableDeclaration variableDeclarationWithoutConst =
+        new CVariableDeclaration(
+            pLocalVariableDeclaration.getFileLocation(),
+            pLocalVariableDeclaration.isGlobal(),
+            pLocalVariableDeclaration.getCStorageClass(),
+            simpleTypeWithoutConst,
+            pLocalVariableDeclaration.getName(),
+            pLocalVariableDeclaration.getOrigName(),
+            pLocalVariableDeclaration.getQualifiedName(),
+            pLocalVariableDeclaration.getInitializer());
+    return tryBuildInputLocalVariableDeclaration(variableDeclarationWithoutConst);
   }
 
   // Input Parameter Declarations ==================================================================

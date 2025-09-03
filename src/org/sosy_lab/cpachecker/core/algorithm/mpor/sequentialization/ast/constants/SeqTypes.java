@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqParameterDeclaration;
 
@@ -26,56 +27,56 @@ public class SeqTypes {
 
     public static final CSimpleType INT =
         new CSimpleType(
-            false, false, CBasicType.INT, false, false, false, false, false, false, false);
+            CTypeQualifiers.NONE, CBasicType.INT, false, false, false, false, false, false, false);
 
     public static final CSimpleType CONST_INT =
         new CSimpleType(
-            true, false, CBasicType.INT, false, false, false, false, false, false, false);
+            CTypeQualifiers.CONST, CBasicType.INT, false, false, false, false, false, false, false);
 
     public static final CSimpleType UNSIGNED_INT =
         new CSimpleType(
-            false, false, CBasicType.INT, false, false, false, true, false, false, false);
+            CTypeQualifiers.NONE, CBasicType.INT, false, false, false, true, false, false, false);
 
     public static final CSimpleType UNSIGNED_SHORT_INT =
         new CSimpleType(
-            false, false, CBasicType.INT, false, true, false, true, false, false, false);
+            CTypeQualifiers.NONE, CBasicType.INT, false, true, false, true, false, false, false);
 
     public static final CSimpleType UNSIGNED_LONG_INT =
         new CSimpleType(
-            false, false, CBasicType.INT, true, false, false, true, false, false, false);
+            CTypeQualifiers.NONE, CBasicType.INT, true, false, false, true, false, false, false);
 
     public static final CSimpleType CHAR =
         new CSimpleType(
-            false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
+            CTypeQualifiers.NONE, CBasicType.CHAR, false, false, false, false, false, false, false);
 
     public static final CSimpleType CONST_CHAR =
         new CSimpleType(
-            true, false, CBasicType.CHAR, false, false, false, false, false, false, false);
+            CTypeQualifiers.NONE, CBasicType.CHAR, false, false, false, false, false, false, false);
 
     public static final CSimpleType UNSIGNED_CHAR =
         new CSimpleType(
-            false, false, CBasicType.CHAR, false, false, false, true, false, false, false);
+            CTypeQualifiers.NONE, CBasicType.CHAR, false, false, false, true, false, false, false);
   }
 
   public static class SeqArrayType {
 
     public static final CArrayType UNSIGNED_INT_ARRAY =
-        new CArrayType(false, false, SeqSimpleType.UNSIGNED_INT);
+        new CArrayType(CTypeQualifiers.NONE, SeqSimpleType.UNSIGNED_INT);
   }
 
   public static class SeqPointerType {
 
     public static final CPointerType CHAR_POINTER =
-        new CPointerType(false, false, SeqSimpleType.CHAR);
+        new CPointerType(CTypeQualifiers.NONE, SeqSimpleType.CHAR);
 
     public static final CPointerType CHAR_POINTER_POINTER =
-        new CPointerType(false, false, SeqPointerType.CHAR_POINTER);
+        new CPointerType(CTypeQualifiers.NONE, SeqPointerType.CHAR_POINTER);
 
     public static final CPointerType CONST_CHAR_POINTER =
-        new CPointerType(false, false, SeqSimpleType.CONST_CHAR);
+        new CPointerType(CTypeQualifiers.NONE, SeqSimpleType.CONST_CHAR);
 
     public static final CPointerType VOID_POINTER =
-        new CPointerType(false, false, SeqVoidType.VOID);
+        new CPointerType(CTypeQualifiers.NONE, SeqVoidType.VOID);
   }
 
   public static class SeqVoidType {
