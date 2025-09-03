@@ -82,7 +82,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
       SeqStatement statement = entry.getValue();
       String casePrefix = buildCasePrefix(entry.getKey());
       String breakSuffix = buildBreakSuffix(statement);
-      rCases.add(casePrefix + statement + breakSuffix);
+      rCases.add(casePrefix + statement.toASTString() + breakSuffix);
       if (isLast && pOptions.sequentializationErrors) {
         rCases.add(Sequentialization.defaultCaseClauseError);
       }

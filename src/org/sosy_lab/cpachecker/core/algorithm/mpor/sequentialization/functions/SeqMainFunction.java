@@ -241,7 +241,7 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   /**
-   * Returns {@link LineOfCode} for thread simulation variable declarations. These are local to the
+   * Returns the {@link String} for thread simulation variable declarations. These are local to the
    * {@code main} function. Variables that are used in other functions are declared beforehand as
    * global variables.
    */

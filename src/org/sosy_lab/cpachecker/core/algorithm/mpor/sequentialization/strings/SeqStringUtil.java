@@ -52,7 +52,7 @@ public class SeqStringUtil {
 
   // From CAstNodes ================================================================================
 
-  /** Return the list of {@link LineOfCode} for {@code pAstNodes}. */
+  /** Return the list of {@link String} for {@code pAstNodes}. */
   public static ImmutableList<String> buildLinesOfCodeFromCAstNodes(
       ImmutableList<? extends CAstNode> pAstNodes) {
 

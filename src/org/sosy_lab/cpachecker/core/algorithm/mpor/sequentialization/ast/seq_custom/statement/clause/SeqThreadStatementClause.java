@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqThreadStatementClause implements SeqStatement {
 
-  // TODO this is not used?
   private static int currentId = 0;
 
   /** This method is required, otherwise some checks fail. */
@@ -32,6 +31,7 @@ public class SeqThreadStatementClause implements SeqStatement {
     return currentId++;
   }
 
+  /** The ID of a clause, used to find out which statements were linked already. */
   public final int id;
 
   public final int labelNumber;
