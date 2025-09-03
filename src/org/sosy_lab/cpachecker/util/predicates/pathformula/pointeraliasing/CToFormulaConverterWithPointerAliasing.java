@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -424,7 +425,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     CType type = typeHandler.getSimplifiedType(declaration);
     CType decayedType = typeHandler.getSimplifiedType(originalDeclaration);
     if (originalDeclaration instanceof CParameterDeclaration && decayedType instanceof CArrayType) {
-      decayedType = new CPointerType(false, false, ((CArrayType) decayedType).getType());
+      decayedType = new CPointerType(CTypeQualifiers.NONE, ((CArrayType) decayedType).getType());
     }
     Formula size;
     if (decayedType.isIncomplete()) {
@@ -562,7 +563,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         } else if (lhsType instanceof CPointerType cPointerType) {
           // TODO someone has to check if length must be fixed to string size here if yes replace
           // with stringExp.tranformTypeToArrayType
-          lhsArrayType = new CArrayType(false, false, cPointerType.getType());
+          lhsArrayType = new CArrayType(CTypeQualifiers.NONE, cPointerType.getType());
         } else {
           throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }
@@ -830,9 +831,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       forcePointerAssignment = true;
       // note that it is necessary to make the new pointer lhsType here because of the possible rhs
       // cast to lhsType immediately after
-      lhsType =
-          new CPointerType(
-              lhsType.isConst(), lhsType.isVolatile(), ((CArrayType) lhsType).getType());
+      lhsType = new CPointerType(lhsType.getQualifiers(), ((CArrayType) lhsType).getType());
     }
 
     if (rhs instanceof CExpression) {
@@ -976,8 +975,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       if (actualLength != null) {
         declarationType =
             new CArrayType(
-                declarationType.isConst(),
-                declarationType.isVolatile(),
+                declarationType.getQualifiers(),
                 arrayType.getType(),
                 new CIntegerLiteralExpression(
                     declaration.getFileLocation(),

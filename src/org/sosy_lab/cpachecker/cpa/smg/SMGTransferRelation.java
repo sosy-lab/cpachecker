@@ -488,8 +488,7 @@ public class SMGTransferRelation
       // if function declaration is in form 'int foo(char b[32])' then omit array length
       if (cParamType instanceof CArrayType) {
         cParamType =
-            new CPointerType(
-                cParamType.isConst(), cParamType.isVolatile(), ((CArrayType) cParamType).getType());
+            new CPointerType(cParamType.getQualifiers(), ((CArrayType) cParamType).getType());
       }
 
       SMGRegion newObject = values.get(i).getFirst();

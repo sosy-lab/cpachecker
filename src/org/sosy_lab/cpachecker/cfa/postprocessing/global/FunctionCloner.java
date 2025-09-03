@@ -563,8 +563,7 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CArrayType type) {
-      return new CArrayType(
-          type.isConst(), type.isVolatile(), type.getType().accept(this), type.getLength());
+      return new CArrayType(type.getQualifiers(), type.getType().accept(this), type.getLength());
     }
 
     @Override
@@ -573,11 +572,7 @@ class FunctionCloner implements CFAVisitor {
       // solution: cache the empty compositeType and fill it later.
       CCompositeType comp =
           new CCompositeType(
-              type.isConst(),
-              type.isVolatile(),
-              type.getKind(),
-              type.getName(),
-              type.getOrigName());
+              type.getQualifiers(), type.getKind(), type.getName(), type.getOrigName());
       typeCache.put(type, comp);
 
       // convert members and set them
@@ -593,8 +588,7 @@ class FunctionCloner implements CFAVisitor {
     @Override
     public CType visit(CElaboratedType type) {
       return new CElaboratedType(
-          type.isConst(),
-          type.isVolatile(),
+          type.getQualifiers(),
           type.getKind(),
           type.getName(),
           type.getOrigName(),
@@ -614,8 +608,7 @@ class FunctionCloner implements CFAVisitor {
       }
       CEnumType enumType =
           new CEnumType(
-              type.isConst(),
-              type.isVolatile(),
+              type.getQualifiers(),
               type.getCompatibleType(),
               l,
               type.getName(),
@@ -649,13 +642,13 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CPointerType type) {
-      return new CPointerType(type.isConst(), type.isVolatile(), type.getType().accept(this));
+      return new CPointerType(type.getQualifiers(), type.getType().accept(this));
     }
 
     @Override
     public CType visit(CTypedefType type) {
       return new CTypedefType(
-          type.isConst(), type.isVolatile(), type.getName(), type.getRealType().accept(this));
+          type.getQualifiers(), type.getName(), type.getRealType().accept(this));
     }
 
     @Override

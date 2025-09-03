@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
@@ -155,204 +153,6 @@ public final class CTypes {
   }
 
   /**
-   * Return a copy of a given type that has the "const" flag not set. If the given type is already a
-   * non-const type, it is returned unchanged.
-   *
-   * <p>This method only eliminates the outermost const flag, if it is present, i.e., it does not
-   * change a non-const pointer to a const int.
-   */
-  public static <T extends CType> T withoutConst(T type) {
-    return withConstSetTo(type, false);
-  }
-
-  /**
-   * Return a copy of a given type that has the "const" flag set. If the given type is already a
-   * const type, it is returned unchanged.
-   *
-   * <p>This method only adds the outermost const flag, if it is not present, i.e., it does not
-   * change a const pointer to a non-const int.
-   */
-  public static <T extends CType> T withConst(T type) {
-    return withConstSetTo(type, true);
-  }
-
-  /**
-   * Return a copy of a given type that has the "const" flag set to the given value.
-   *
-   * <p>This method only changes the outermost const flag.
-   *
-   * <p>If you want to set the const flag to a constant, prefer {@link #withoutConst(CType)} and
-   * {@link #withConst(CType)}.
-   */
-  @SuppressWarnings("unchecked") // method always creates instances of exact same class
-  public static <T extends CType> T withConstSetTo(T type, boolean newConstValue) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-
-    if (type.isConst() == newConstValue) {
-      return type;
-    }
-
-    return (T)
-        switch (type) {
-          case CArrayType t ->
-              new CArrayType(newConstValue, t.isVolatile(), t.getType(), t.getLength());
-          case CCompositeType t ->
-              new CCompositeType(
-                  newConstValue,
-                  t.isVolatile(),
-                  t.getKind(),
-                  t.getMembers(),
-                  t.getName(),
-                  t.getOrigName());
-
-          case CElaboratedType t ->
-              new CElaboratedType(
-                  newConstValue,
-                  t.isVolatile(),
-                  t.getKind(),
-                  t.getName(),
-                  t.getOrigName(),
-                  t.getRealType());
-          case CEnumType t ->
-              new CEnumType(
-                  newConstValue,
-                  t.isVolatile(),
-                  t.getCompatibleType(),
-                  t.getEnumerators(),
-                  t.getName(),
-                  t.getOrigName());
-          case CFunctionType t -> {
-            checkArgument(!newConstValue, "Cannot create const function type, this is undefined");
-            yield t;
-          }
-          case CPointerType t -> new CPointerType(newConstValue, t.isVolatile(), t.getType());
-
-          case CProblemType t -> throw new AssertionError(); // handled above
-
-          case CSimpleType t ->
-              new CSimpleType(
-                  newConstValue,
-                  t.isVolatile(),
-                  t.getType(),
-                  t.hasLongSpecifier(),
-                  t.hasShortSpecifier(),
-                  t.hasSignedSpecifier(),
-                  t.hasUnsignedSpecifier(),
-                  t.hasComplexSpecifier(),
-                  t.hasImaginarySpecifier(),
-                  t.hasLongLongSpecifier());
-
-          case CTypedefType t ->
-              new CTypedefType(newConstValue, t.isVolatile(), t.getName(), t.getRealType());
-
-          case CVoidType t -> CVoidType.create(newConstValue, t.isVolatile());
-
-          case CBitFieldType pCBitFieldType ->
-              new CBitFieldType(
-                  withConstSetTo(pCBitFieldType.getType(), newConstValue),
-                  pCBitFieldType.getBitFieldSize());
-        };
-  }
-
-  /**
-   * Return a copy of a given type that has the "volatile" flag not set. If the given type is
-   * already a non-volatile type, it is returned unchanged.
-   *
-   * <p>This method only eliminates the outermost volatile flag, if it is present, i.e., it does not
-   * change a non-volatile pointer to a volatile int.
-   */
-  public static <T extends CType> T withoutVolatile(T type) {
-    return withVolatileSetTo(type, false);
-  }
-
-  /**
-   * Return a copy of a given type that has the "volatile" flag set. If the given type is already a
-   * volatile type, it is returned unchanged.
-   *
-   * <p>This method only adds the outermost volatile flag, if it is not present, i.e., it does not
-   * change a volatile pointer to a non-volatile int.
-   */
-  public static <T extends CType> T withVolatile(T type) {
-    return withVolatileSetTo(type, true);
-  }
-
-  /**
-   * Return a copy of a given type that has the "volatile" flag set to the given value.
-   *
-   * <p>This method only changes the outermost volatile flag.
-   *
-   * <p>If you want to set the volatile flag to a constant, prefer {@link #withoutVolatile(CType)}
-   * and {@link #withVolatile(CType)}.
-   */
-  @SuppressWarnings("unchecked") // method always creates instances of exact same class
-  public static <T extends CType> T withVolatileSetTo(T type, boolean newVolatileValue) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-
-    if (type.isVolatile() == newVolatileValue) {
-      return type;
-    }
-    return (T)
-        switch (type) {
-          case CArrayType t ->
-              new CArrayType(t.isConst(), newVolatileValue, t.getType(), t.getLength());
-          case CCompositeType t ->
-              new CCompositeType(
-                  t.isConst(),
-                  newVolatileValue,
-                  t.getKind(),
-                  t.getMembers(),
-                  t.getName(),
-                  t.getOrigName());
-          case CElaboratedType t ->
-              new CElaboratedType(
-                  t.isConst(),
-                  newVolatileValue,
-                  t.getKind(),
-                  t.getName(),
-                  t.getOrigName(),
-                  t.getRealType());
-          case CEnumType t ->
-              new CEnumType(
-                  t.isConst(),
-                  newVolatileValue,
-                  t.getCompatibleType(),
-                  t.getEnumerators(),
-                  t.getName(),
-                  t.getOrigName());
-          case CFunctionType t -> {
-            checkArgument(
-                !newVolatileValue, "Cannot create const function type, this is undefined");
-            yield t;
-          }
-          case CPointerType t -> new CPointerType(t.isConst(), newVolatileValue, t.getType());
-          case CProblemType t -> throw new AssertionError(); // handled above
-          case CSimpleType t ->
-              new CSimpleType(
-                  t.isConst(),
-                  newVolatileValue,
-                  t.getType(),
-                  t.hasLongSpecifier(),
-                  t.hasShortSpecifier(),
-                  t.hasSignedSpecifier(),
-                  t.hasUnsignedSpecifier(),
-                  t.hasComplexSpecifier(),
-                  t.hasImaginarySpecifier(),
-                  t.hasLongLongSpecifier());
-          case CTypedefType t ->
-              new CTypedefType(t.isConst(), newVolatileValue, t.getName(), t.getRealType());
-          case CVoidType t -> CVoidType.create(t.isConst(), newVolatileValue);
-          case CBitFieldType pCBitFieldType ->
-              new CBitFieldType(
-                  withVolatileSetTo(pCBitFieldType.getType(), newVolatileValue),
-                  pCBitFieldType.getBitFieldSize());
-        };
-  }
-
-  /**
    * Implements a compatibility check for {@link CType}s according to C-Standard §6.2.7. This
    * definition is symmetric, therefore the order of the parameters doesn't matter. This definition
    * is especially stricter than assignment compatibility (cf. {@link
@@ -392,7 +192,7 @@ public final class CTypes {
       return true;
     }
 
-    if (!(pTypeA.isConst() == pTypeB.isConst() && pTypeA.isVolatile() == pTypeB.isVolatile())) {
+    if (!pTypeA.getQualifiers().equals(pTypeB.getQualifiers())) {
       // Cf. C-Standard §6.7.3 (10), two qualified types have to be
       // an identically qualified version of compatible types to be compatible.
       return false;
@@ -403,14 +203,16 @@ public final class CTypes {
       return areTypesCompatible(pointerA.getType(), pointerB.getType());
     }
 
-    CType basicSignedInt =
-        CNumericTypes.INT.getCanonicalType(pTypeA.isConst(), pTypeA.isVolatile());
+    CType basicSignedInt = CNumericTypes.INT.withQualifiersSetTo(pTypeA.getQualifiers());
 
     // Cf. C-Standard §6.7.2.2 (4), enumerated types shall be compatible with
     // char, a signed integer type, or an unsigned integer type, dependent on
     // implementation.
     // We chose the implementation with compatibility to 'signed int', that GCC
     // seemingly uses.
+    // TODO: This needs to be updated in accordance with #348, cf.
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/348#note_2709463414
+    // Afterwards also enable the test in CTypeCompatibilityTest.
     if (pTypeA instanceof CEnumType && pTypeB instanceof CSimpleType) {
       return pTypeB.getCanonicalType().equals(basicSignedInt.getCanonicalType());
     } else if (pTypeA instanceof CSimpleType && pTypeB instanceof CEnumType) {
@@ -474,8 +276,8 @@ public final class CTypes {
         // C-Standard §6.7.6.3 (15, last sentence in parentheses):
         // "... each parameter declared with qualified type is taken
         // as having the unqualified version of its declared type."
-        paramOfA = copyDequalified(paramOfA);
-        paramOfB = copyDequalified(paramOfB);
+        paramOfA = paramOfA.withoutQualifiers();
+        paramOfB = paramOfB.withoutQualifiers();
 
         if (!areTypesCompatible(paramOfA, paramOfB)) {
           return false;
@@ -508,31 +310,20 @@ public final class CTypes {
       CExpression sizeExpression = ((CArrayType) pType).getLength();
 
       if (sizeExpression == null) {
-        pType = new CPointerType(false, false, innerType);
+        pType = new CPointerType(CTypeQualifiers.NONE, innerType);
       } else {
         // Adjusting an array type to a pointer of its stored
         // type discards the qualifiers of the array type and
         // instead qualifies the pointer with the qualifiers
         // used inside the size specifier brackets.
+        // TODO: wrong, cf. #1375
+        // Can probably delegate to CArrayType.asPointerType()
         CType sizeType = sizeExpression.getExpressionType();
-        pType = new CPointerType(sizeType.isConst(), sizeType.isVolatile(), innerType);
+        pType = new CPointerType(sizeType.getQualifiers(), innerType);
       }
     } else if (pType instanceof CFunctionType) {
-      pType = new CPointerType(pType.isConst(), pType.isVolatile(), pType);
+      pType = new CPointerType(CTypeQualifiers.NONE, pType);
     }
-    return pType;
-  }
-
-  /**
-   * Creates an instance of {@link CType} that is an exact copy of <code>pType</code>, but is
-   * guaranteed to not be qualified as either <code>const</code> or <code>volatile</code>.
-   *
-   * @param pType the {@link CType} to copy without qualifiers
-   * @return a copy of <code>pType</code> without qualifiers
-   */
-  public static <T extends CType> T copyDequalified(T pType) {
-    pType = withoutConst(pType);
-    pType = withoutVolatile(pType);
     return pType;
   }
 

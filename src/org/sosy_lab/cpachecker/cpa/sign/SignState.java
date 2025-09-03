@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -33,7 +32,7 @@ public class SignState
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
-  private PersistentMap<String, Sign> signMap;
+  private final PersistentMap<String, Sign> signMap;
 
   public static final SignState TOP = new SignState();
   private static final SerialProxySign proxy = new SerialProxySign();
@@ -259,7 +258,7 @@ public class SignState
     return false;
   }
 
-  public Map<String, Sign> getSignMapView() {
-    return Collections.unmodifiableMap(signMap);
+  public PersistentMap<String, Sign> getSignMapView() {
+    return signMap;
   }
 }

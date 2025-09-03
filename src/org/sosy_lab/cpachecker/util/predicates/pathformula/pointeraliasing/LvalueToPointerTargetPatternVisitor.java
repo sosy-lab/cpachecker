@@ -175,11 +175,7 @@ class LvalueToPointerTargetPatternVisitor
       final CType elementType;
       if (containerType instanceof CPointerType) {
         elementType = ((CPointerType) containerType).getType();
-        containerType =
-            new CArrayType(
-                containerType.isConst(), // TODO: Set array size
-                containerType.isVolatile(),
-                elementType);
+        containerType = new CArrayType(containerType.getQualifiers(), elementType);
       } else {
         elementType = ((CArrayType) containerType).getType();
       }

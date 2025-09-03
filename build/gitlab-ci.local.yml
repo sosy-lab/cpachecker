@@ -336,27 +336,35 @@ refaster:
 
 # Disable Java 11 jobs
 build-docker:test:jdk-11:
-  only: []
+  rules:
+    - when: never
 
 build:jdk-11:
-  only: []
+  rules:
+    - when: never
 
 unit-tests:jdk-11:
-  only: []
+  rules:
+    - when: never
 
 # Disable Java 17 jobs
 build-docker:test:jdk-17:
-  only: []
+  rules:
+    - when: never
 
 build:jdk-17:
-  only: []
+  rules:
+    - when: never
 
 build-project-ecj:jdk-17:
-  only: []
+  rules:
+    - when: never
 
 unit-tests:jdk-17:
-  only: []
+  rules:
+    - when: never
 
 # Disable some checks because they are not used for CPAchecker
 javadoc:
-  only: []
+  rules:
+    - when: never
