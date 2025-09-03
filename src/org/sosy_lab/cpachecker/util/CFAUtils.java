@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -126,7 +127,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -739,15 +739,17 @@ public class CFAUtils {
   /** Extracts all {@link CVariableDeclaration} from {@code pCfa} that are global. */
   public static ImmutableList<CVariableDeclaration> getGlobalVariableDeclarations(CFA pCfa) {
     ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
-    GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
+    Set<CVariableDeclaration> visited = new HashSet<>();
     for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
       if (edge instanceof CDeclarationEdge declarationEdge) {
-        if (globalAccessChecker.hasGlobalAccess(edge)
-            && declarationEdge.getDeclaration().isGlobal()) {
-          AAstNode aAstNode = declarationEdge.getRawAST().orElseThrow();
+        CDeclaration declaration = declarationEdge.getDeclaration();
+        if (declaration.isGlobal()) {
           // exclude CFunctionDeclaration and CTypeDeclaration (e.g. for structs)
-          if (aAstNode instanceof CVariableDeclaration cVariableDeclaration) {
-            rGlobalVariables.add(cVariableDeclaration);
+          if (declaration instanceof CVariableDeclaration variableDeclaration) {
+            // the same variable declaration may be present twice, e.g.: 'int z;' and 'int z = 0;'
+            if (visited.add(variableDeclaration)) {
+              rGlobalVariables.add(variableDeclaration);
+            }
           }
         }
       }
