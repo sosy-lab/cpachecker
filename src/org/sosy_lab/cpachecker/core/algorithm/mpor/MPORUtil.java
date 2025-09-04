@@ -384,17 +384,20 @@ public final class MPORUtil {
   public static CCompositeTypeMemberDeclaration getFieldMemberByFieldReference(
       CFieldReference pFieldReference, CType pType) {
 
+    if (pType instanceof CElaboratedType elaboratedType) {
+      // composite type contains the composite type members, e.g. 'amount'
+      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
+        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
+            return memberDeclaration;
+          }
+        }
+      }
+    }
     if (pType instanceof CTypedefType typedefType) {
       // elaborated type is e.g. struct __anon_type_QType
       if (typedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-        // composite type contains the composite type members, e.g. 'amount'
-        if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
-          for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-            if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-              return memberDeclaration;
-            }
-          }
-        }
+        return getFieldMemberByFieldReference(pFieldReference, elaboratedType);
       }
       if (typedefType.getRealType() instanceof CTypedefType innerTypedefType) {
         return getFieldMemberByFieldReference(pFieldReference, innerTypedefType);

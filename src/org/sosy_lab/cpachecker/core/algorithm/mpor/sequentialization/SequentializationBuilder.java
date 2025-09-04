@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
@@ -198,22 +198,18 @@ public class SequentializationBuilder {
 
     checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
     checkArgument(
-        pLocalVariableDeclaration.getType() instanceof CSimpleType,
-        "pLocalVariableDeclaration type must be CSimpleType");
-    checkArgument(
         pLocalVariableDeclaration.getType().getQualifiers().containsConst(),
         "pLocalVariableDeclaration must be const");
 
     // create an identical copy of pLocalVariableDeclaration, but remove const qualifier
-    CSimpleType simpleType = (CSimpleType) pLocalVariableDeclaration.getType();
-    CSimpleType simpleTypeWithoutConst =
-        simpleType.withQualifiersSetTo(simpleType.getQualifiers().withoutConst());
+    CType type = pLocalVariableDeclaration.getType();
+    CType typeWithoutConst = type.withQualifiersSetTo(type.getQualifiers().withoutConst());
     CVariableDeclaration variableDeclarationWithoutConst =
         new CVariableDeclaration(
             pLocalVariableDeclaration.getFileLocation(),
             pLocalVariableDeclaration.isGlobal(),
             pLocalVariableDeclaration.getCStorageClass(),
-            simpleTypeWithoutConst,
+            typeWithoutConst,
             pLocalVariableDeclaration.getName(),
             pLocalVariableDeclaration.getOrigName(),
             pLocalVariableDeclaration.getQualifiedName(),
