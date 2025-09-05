@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.ForOverride;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -699,7 +700,7 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if the conditions were adjusted, {@code false} if no further adjustment is
    *     possible.
    */
-  protected boolean adjustConditions() {
+  protected final boolean adjustConditions() {
     FluentIterable<AdjustableConditionCPA> conditionCPAs =
         CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
     boolean adjusted = conditionCPAs.anyMatch(AdjustableConditionCPA::adjustPrecision);
@@ -715,6 +716,7 @@ abstract class AbstractBMCAlgorithm
     return adjusted;
   }
 
+  @ForOverride
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver,
@@ -883,7 +885,7 @@ abstract class AbstractBMCAlgorithm
    * the solver for a satisfying assignment.
    */
   @SuppressWarnings("resource")
-  protected Optional<CounterexampleInfo> analyzeCounterexample0(
+  protected final Optional<CounterexampleInfo> analyzeCounterexample0(
       final BooleanFormula pCounterexampleFormula,
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver)
@@ -1064,6 +1066,7 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
+  @ForOverride
   protected KInductionProver createInductionProver() {
     assert induction;
     return new KInductionProver(
@@ -1084,7 +1087,7 @@ abstract class AbstractBMCAlgorithm
    *
    * @return the potential target locations.
    */
-  protected Collection<CFANode> getTargetLocations() {
+  protected final Collection<CFANode> getTargetLocations() {
     return targetLocationProvider.tryGetAutomatonTargetLocations(
         cfa.getMainFunction(), specification);
   }
@@ -1094,7 +1097,7 @@ abstract class AbstractBMCAlgorithm
    *
    * @return the loop heads.
    */
-  protected Set<CFANode> getLoopHeads() {
+  private Set<CFANode> getLoopHeads() {
     return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 
@@ -1196,7 +1199,8 @@ abstract class AbstractBMCAlgorithm
         throws InvalidConfigurationException, CPAException, InterruptedException;
   }
 
-  protected FluentIterable<CandidateInvariant> getConfirmedCandidates(final CFANode pLocation) {
+  protected final FluentIterable<CandidateInvariant> getConfirmedCandidates(
+      final CFANode pLocation) {
     return from(confirmedCandidates)
         .filter(pConfirmedCandidate -> pConfirmedCandidate.appliesTo(pLocation));
   }
