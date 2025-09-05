@@ -304,11 +304,15 @@ public class ValueAnalysisTransferRelation
   public Collection<ValueAnalysisState> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    stats.transferTime.start();
+    if (stats != null) {
+      stats.transferTime.start();
+    }
     try {
       return super.getAbstractSuccessorsForEdge(abstractState, abstractPrecision, cfaEdge);
     } finally {
-      stats.transferTime.stop();
+      if (stats != null) {
+        stats.transferTime.stop();
+      }
     }
   }
 
