@@ -136,7 +136,7 @@ public class RangedAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
 
   @Override
   public MergeOperator getMergeOperator() {
-    return new MergeSepOperator();
+    return MergeSepOperator.getInstance();
   }
 
   @Override
