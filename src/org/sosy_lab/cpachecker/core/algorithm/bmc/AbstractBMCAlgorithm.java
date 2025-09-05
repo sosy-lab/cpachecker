@@ -449,11 +449,11 @@ abstract class AbstractBMCAlgorithm
         shutdownNotifier.shutdownIfNecessary();
 
         logger.log(Level.INFO, "Creating formula for program");
-        stats.bmcPreparation.start();
+        stats.bmcUnrolling.start();
         try {
           status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
         } finally {
-          stats.bmcPreparation.stop();
+          stats.bmcUnrolling.stop();
         }
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it

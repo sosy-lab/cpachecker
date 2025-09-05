@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 public class BMCStatistics implements Statistics {
 
   // General BMC operations
-  final Timer bmcPreparation = new Timer();
+  final Timer bmcUnrolling = new Timer();
   final Timer satCheck = new Timer();
   final Timer errorPathCreation = new Timer();
   final Timer errorPathProcessing = new Timer();
@@ -48,8 +48,8 @@ public class BMCStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-    if (bmcPreparation.getNumberOfIntervals() > 0) {
-      out.println("Time for BMC formula creation:                   " + bmcPreparation);
+    if (bmcUnrolling.getNumberOfIntervals() > 0) {
+      out.println("Time for BMC formula creation:                   " + bmcUnrolling);
     }
     if (satCheck.getNumberOfIntervals() > 0) {
       out.println("Time for final sat check:                        " + satCheck);
