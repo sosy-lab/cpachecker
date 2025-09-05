@@ -58,6 +58,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -416,30 +417,38 @@ abstract class AbstractBMCAlgorithm
 
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, SolverException, InterruptedException {
-    CFANode initialLocation = extractLocation(reachedSet.getFirstState());
-    invariantGenerator.start(initialLocation);
-
-    // The set of candidate invariants that still need to be checked.
-    // Successfully proven invariants are removed from the set.
-    final CandidateGenerator candidateGenerator = getCandidateInvariants();
-    Set<Obligation> ctiBlockingClauses = new TreeSet<>();
-    Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
-
-    if (!candidateGenerator.produceMoreCandidates()) {
-      reachedSet.clearWaitlist();
-      return AlgorithmStatus.SOUND_AND_PRECISE;
-    }
-
+    final CandidateGenerator candidateGenerator;
     AlgorithmStatus status;
+    final Set<Obligation> ctiBlockingClauses;
+    final Map<SymbolicCandiateInvariant, BmcResult> checkedClauses;
 
-    // suggest candidates from predicate precision file
-    if (!predicatePrecisionCandidates.isEmpty()) {
-      candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
-    }
+    stats.bmcPreparation.start();
+    try {
+      CFANode initialLocation = extractLocation(reachedSet.getFirstState());
+      invariantGenerator.start(initialLocation);
 
-    // suggest candidates from Witness 2.0 file
-    if (!candidateInvariantsFromWitness.isEmpty()) {
-      candidateGenerator.suggestCandidates(candidateInvariantsFromWitness);
+      // The set of candidate invariants that still need to be checked.
+      // Successfully proven invariants are removed from the set.
+      candidateGenerator = getCandidateInvariants();
+      ctiBlockingClauses = new TreeSet<>();
+      checkedClauses = new HashMap<>();
+
+      if (!candidateGenerator.produceMoreCandidates()) {
+        reachedSet.clearWaitlist();
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+
+      // suggest candidates from predicate precision file
+      if (!predicatePrecisionCandidates.isEmpty()) {
+        candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
+      }
+
+      // suggest candidates from Witness 2.0 file
+      if (!candidateInvariantsFromWitness.isEmpty()) {
+        candidateGenerator.suggestCandidates(candidateInvariantsFromWitness);
+      }
+    } finally {
+      stats.bmcPreparation.stop();
     }
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
@@ -1518,6 +1527,7 @@ abstract class AbstractBMCAlgorithm
 
     private static final class HeadStartWithLatch implements InvariantGeneratorHeadStart {
 
+      private final Timer waitTimer;
       private final CountDownLatch latch;
 
       @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
@@ -1532,12 +1542,18 @@ abstract class AbstractBMCAlgorithm
 
       HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
         latch = Objects.requireNonNull(pLatch);
+        waitTimer = pBmcAlgorithm.stats.bmcWaitForInvariantHeadStart;
         pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
       }
 
       @Override
       public void waitForInvariantGenerator() throws InterruptedException {
-        latch.await();
+        waitTimer.start();
+        try {
+          latch.await();
+        } finally {
+          waitTimer.stop();
+        }
       }
     }
 
