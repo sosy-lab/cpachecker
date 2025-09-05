@@ -154,8 +154,8 @@ public class InputGenerationWithRandomWalkAlgorithm implements Algorithm {
                 AbstractStates.extractStateByType(path.getLastState(), RandomWalkState.class),
                 path);
         utils.printFileToPutput(inputs, testcaseName.getPath(i));
-      } catch (SolverException | IOException | InterruptedException pE) {
-        throw new CPAException(Throwables.getStackTraceAsString(pE));
+      } catch (SolverException | IOException | InterruptedException e) {
+        throw new CPAException(Throwables.getStackTraceAsString(e));
       }
     }
   }

@@ -71,10 +71,11 @@ public class SequenceGenUtils {
           linesWithIfOrLoop.add(i + 1);
         }
       }
-    } catch (IOException pE) {
-      throw new CPAException(String.format(
-          "Failed to read the original program file due to '%s'. Hence, we cannot determine the lines with branches and loops, thus aborting!",
-          pE));
+    } catch (IOException e) {
+      throw new CPAException(
+          String.format(
+              "Failed to read the original program file due to '%s'. Hence, we cannot determine the lines with branches and loops, thus aborting!",
+              e));
     }
     logger.log(Level.INFO, String.format("Lines with branch or loop are %s",
         linesWithIfOrLoop.stream().sorted().collect(
@@ -162,12 +163,13 @@ public class SequenceGenUtils {
     } else if (linesWithIfOrLoop.contains(edge.getLineNumber())) {
       if (lastEntry.isPresent()) {
         PathElement entry = lastEntry.orElseThrow();
-        if (entry.edge.getLineNumber() == edge.getLineNumber() &&
-            entry.edge.getRawStatement().equals(edge.getRawStatement())
-            // we need to compare the raw statements, as we might have multiple assume-edges for the same line number but for different parts of the condition (happens if we have a && or ||)
+        if (entry.edge.getLineNumber() == edge.getLineNumber()
+            && entry.edge.getRawStatement().equals(edge.getRawStatement())
+            // we need to compare the raw statements, as we might have multiple assume-edges for the
+            // same line number but for different parts of the condition (happens if we have a && or
+            // ||)
             && sameCallingContext(entry.prevARGState, pAbstractState)
-            && noLoopHeadInBetween(
-            entry.prevARGState, pAbstractState, pARGPath)) {
+            && noLoopHeadInBetween(entry.prevARGState, pAbstractState, pARGPath)) {
           logger.log(Level.INFO, String.format(
               "Overwriting decision for edge %s (that was %s), with %s and decision '%s' ",
               entry.edge, entry.decision, edge, decision));

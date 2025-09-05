@@ -156,8 +156,8 @@ public class InputGenerationWithRandomWalkAlgorithmSequence implements Algorithm
         }
         utils.printFileToOutput(inputs, testcaseName.getPath(i));
         return true;
-      } catch (IOException pE) {
-        throw new CPAException(Throwables.getStackTraceAsString(pE));
+      } catch (IOException e) {
+        throw new CPAException(Throwables.getStackTraceAsString(e));
       }
     }
     return false;

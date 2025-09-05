@@ -344,7 +344,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       reached = coreComponents.createReachedSet(cpa);
     } catch (CPAException e) {
       singleLogger.logfUserException(Level.WARNING, e, "Failed to initialize analysis");
-      return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
+      return () -> ParallelAnalysisResult.absent(singleConfigFileName);
     }
 
     AtomicBoolean terminated = new AtomicBoolean(false);

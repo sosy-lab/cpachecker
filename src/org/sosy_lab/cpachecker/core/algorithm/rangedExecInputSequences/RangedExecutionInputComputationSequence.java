@@ -141,8 +141,8 @@ public class RangedExecutionInputComputationSequence implements Algorithm {
       }
       utils.printFileToOutput(inputs, testcaseName);
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
-    } catch (IOException pE) {
-      throw new CPAException(Throwables.getStackTraceAsString(pE));
+    } catch (IOException e) {
+      throw new CPAException(Throwables.getStackTraceAsString(e));
     }
     //    }
   }

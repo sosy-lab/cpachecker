@@ -49,7 +49,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -1276,7 +1275,6 @@ public class ARGUtils {
     return getArgPaths(pTarget, root);
   }
 
-  @Nonnull
   private static ImmutableSet<ARGPath> getArgPaths(ARGState pTarget, ARGState root) {
     List<ARGState> states = new ArrayList<>();
     ImmutableSet.Builder<ARGPath> results = ImmutableSet.builder();

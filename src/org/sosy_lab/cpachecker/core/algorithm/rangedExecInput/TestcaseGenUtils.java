@@ -95,9 +95,8 @@ public class TestcaseGenUtils {
           prover.addConstraint(formula);
           boolean unsat = prover.isUnsat();
           if (unsat) {
-            logger.log(
-                Level.INFO,
-                String.format("The formul'%s' is unsat, continuing with a shorter one", formula));
+            logger.logf(
+                Level.INFO, "The formul'%s' is unsat, continuing with a shorter one", formula);
             if (pState.getLastBranchingPoint() != null) {
               return computeInputForRandomWalkPathNonIterative(
                   pState.getLastBranchingPoint(), path);
@@ -145,10 +144,10 @@ public class TestcaseGenUtils {
             if (unsat) {
 
               while (unsat) {
-                logger.log(
+                logger.logf(
                     Level.INFO,
-                    String.format(
-                        "The formul'%s' is unsat, continuing with a shorter one", pf.getFormula()));
+                    "The formul'%s' is unsat, continuing with a shorter one",
+                    pf.getFormula());
                 prover.pop();
                 unsat = prover.isUnsat();
               }
@@ -189,10 +188,11 @@ public class TestcaseGenUtils {
         if (predState != null && predState.isAbstractionState()) {
           statesOnSatPath.add(state);
           final PathFormula blockFormula = predState.getAbstractionFormula().getBlockFormula();
-          logger.log(
+          logger.logf(
               Level.FINE,
-              String.format(
-                  "Block Formula for State with id %d is %s", state.getStateId(), blockFormula));
+              "Block Formula for State with id %d is %s",
+              state.getStateId(),
+              blockFormula);
           pf = pfManager.makeConjunction(Lists.newArrayList(pf, blockFormula));
           logger.log(Level.FINE, blockFormula.getFormula());
           try {
@@ -201,12 +201,12 @@ public class TestcaseGenUtils {
             if (unsat) {
 
               while (unsat) {
-                logger.log(
+                logger.logf(
                     Level.INFO,
-                    String.format(
-                        "The formul'%s' is unsat, continuing with a shorter one", pf.getFormula()));
+                    "The formul'%s' is unsat, continuing with a shorter one",
+                    pf.getFormula());
                 prover.pop();
-                statesOnSatPath.remove(statesOnSatPath.size() - 1);
+                statesOnSatPath.removeLast();
                 unsat = prover.isUnsat();
               }
               break;
@@ -225,9 +225,7 @@ public class TestcaseGenUtils {
 
       List<Pair<Boolean, Integer>> inputs =
           sequenceGenUtils.computeSequenceForLoopbound(
-              pARGPath,
-              blacklist,
-              Optional.ofNullable(statesOnSatPath.get(statesOnSatPath.size() - 1)));
+              pARGPath, blacklist, Optional.ofNullable(statesOnSatPath.getLast()));
       logger.log(Level.INFO, inputs);
       return inputs;
     }
@@ -327,7 +325,7 @@ public class TestcaseGenUtils {
           String.format("Unable to compute the variable at LHS for the expression %s", edge));
     }
 
-    Formula varAsFormula = varMap.entrySet().stream().findFirst().get().getValue();
+    Formula varAsFormula = varMap.entrySet().stream().findFirst().orElseThrow().getValue();
     Object evalRes = pM.evaluate(varAsFormula);
     if (evalRes instanceof Number) {
       return Optional.of(((Number) evalRes).longValue());

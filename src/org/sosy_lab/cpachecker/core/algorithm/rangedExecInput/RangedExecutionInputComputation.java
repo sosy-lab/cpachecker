@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.rangedExecInput;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -167,7 +167,7 @@ public class RangedExecutionInputComputation implements Algorithm {
         ARGUtils.getAllPathsFromTo(
             AbstractStates.extractStateByType(first, ARGState.class),
             AbstractStates.extractStateByType(last, ARGState.class));
-    logger.log(Level.INFO, Lists.newArrayList(paths).get(0));
+    logger.log(Level.INFO, new ArrayList<>(paths).get(0));
     if (paths.size() != 1) {
       throw new CPAException(
           "There are more than one path present. We cannot compute a testcase for this!");
@@ -175,7 +175,7 @@ public class RangedExecutionInputComputation implements Algorithm {
     if (generateSequences) {
       try {
         List<Pair<Boolean, Integer>> inputs =
-            utils.computeSequenceForLoopbound(paths.stream().findFirst().get(), blacklist);
+            utils.computeSequenceForLoopbound(paths.stream().findFirst().orElseThrow(), blacklist);
         if (inputs.isEmpty()) {
           throw new CPAException("We failed to generate a sequence, aborting!");
         }
@@ -185,20 +185,20 @@ public class RangedExecutionInputComputation implements Algorithm {
         }
         sequenceUtils.printFileToOutput(inputs, testcaseName);
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
-      } catch (SolverException | IOException pE) {
-        throw new CPAException(Throwables.getStackTraceAsString(pE));
+      } catch (SolverException | IOException e) {
+        throw new CPAException(Throwables.getStackTraceAsString(e));
       }
     } else {
       try {
         List<Pair<CIdExpression, Long>> inputs =
-            utils.computeInputForLoopbound(paths.stream().findFirst().get());
+            utils.computeInputForLoopbound(paths.stream().findFirst().orElseThrow());
         if (inputs.isEmpty()) {
           throw new CPAException("We failed to generate a sequence, aborting!");
         }
         utils.printFileToPutput(inputs, testcaseName);
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
-      } catch (SolverException | IOException pE) {
-        throw new CPAException(Throwables.getStackTraceAsString(pE));
+      } catch (SolverException | IOException e) {
+        throw new CPAException(Throwables.getStackTraceAsString(e));
       }
     }
   }
@@ -228,6 +228,6 @@ public class RangedExecutionInputComputation implements Algorithm {
 
   private boolean hasLoop() {
     return this.cfa.getLoopStructure().isPresent()
-        && this.cfa.getLoopStructure().get().getCount() > 0;
+        && this.cfa.getLoopStructure().orElseThrow().getCount() > 0;
   }
 }

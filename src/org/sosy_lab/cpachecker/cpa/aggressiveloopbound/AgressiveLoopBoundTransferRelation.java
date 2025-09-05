@@ -14,7 +14,6 @@ import static com.google.common.base.Predicates.instanceOf;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
@@ -110,9 +109,9 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
 
     logger.logf(Level.INFO, "Computing the loopbound for value of %d", this.maxLoopIterations);
 
-    Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
-    Builder<CFAEdge, Loop> stayInLoopEdges = ImmutableMap.builder();
-    Builder<CFAEdge, Loop> exitEdges = ImmutableMap.builder();
+    ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
+    ImmutableMap.Builder<CFAEdge, Loop> stayInLoopEdges = ImmutableMap.builder();
+    ImmutableMap.Builder<CFAEdge, Loop> exitEdges = ImmutableMap.builder();
     ImmutableListMultimap.Builder<CFANode, Loop> heads = ImmutableListMultimap.builder();
 
     for (Loop l : pCFA.getLoopStructure().orElseThrow().getAllLoops()) {
@@ -235,7 +234,7 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
               automatonTransferRelation.getAbstractSuccessorsForEdge(
                   other, AlwaysTopPrecision.INSTANCE, pSuccessorEdge);
           return potentialTargetState.stream().anyMatch(s -> s.isTarget()) || potentialTargetState.isEmpty();
-        } catch (CPATransferException pE) {
+        } catch (CPATransferException e1) {
           return false;
         }
       }
@@ -341,8 +340,8 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
   }
 
   private boolean nextIsReturnEdgeFromMain(CFAEdge pCfaEdge, Iterable<AbstractState> pOtherStates) {
-    if (pCfaEdge.getSuccessor().getNumLeavingEdges() != 1 ||
-        !(pCfaEdge.getSuccessor().getLeavingEdge(0) instanceof CReturnStatementEdge)) {
+    if (pCfaEdge.getSuccessor().getNumLeavingEdges() != 1
+        || !(pCfaEdge.getSuccessor().getLeavingEdge(0) instanceof CReturnStatementEdge)) {
       return false;
     }
     for (AbstractState state : pOtherStates) {
@@ -364,8 +363,8 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
           //We ignore the edge leading to abort within the assume_abort_ifNot function
           CFAEdge succesorEdge = pCfaEdge.getSuccessor().getLeavingEdge(0);
           if (succesorEdge instanceof CStatementEdge
-              && ((CStatementEdge) succesorEdge).getStatement() instanceof CFunctionCallStatement &&
-              succesorEdge.getRawStatement().equals(ABORT_STATEMENT)) {
+              && ((CStatementEdge) succesorEdge).getStatement() instanceof CFunctionCallStatement
+              && succesorEdge.getRawStatement().equals(ABORT_STATEMENT)) {
             logger.log(currentLogLevel, String.format(
                 "Stopping at edge %s, as it is configured to ignore the abort path in assume_abort_if_not",
                 pCfaEdge));

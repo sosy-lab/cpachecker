@@ -143,7 +143,9 @@ public class RandomWalkState
   public RandomWalkState join(RandomWalkState other) throws CPAException, InterruptedException {
     if (other.isLessOrEqual(this)) {
       return this;
-    } else return other;
+    } else {
+      return other;
+    }
   }
 
   @Override

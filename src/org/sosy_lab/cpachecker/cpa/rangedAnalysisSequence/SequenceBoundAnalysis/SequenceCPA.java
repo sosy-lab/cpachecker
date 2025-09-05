@@ -72,9 +72,9 @@ public class SequenceCPA extends AbstractCPA implements ProofCheckerCPA {
               "Excepting lines to be pair of line number and decision");
         }
       }
-    } catch (IOException pE) {
+    } catch (IOException e) {
       throw new InvalidConfigurationException(
-          "Could not read decision nodes from file " + pPath2Bound, pE);
+          "Could not read decision nodes from file " + pPath2Bound, e);
     }
     return result;
   }

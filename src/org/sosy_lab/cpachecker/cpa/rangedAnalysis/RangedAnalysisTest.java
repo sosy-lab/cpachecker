@@ -65,8 +65,8 @@ public class RangedAnalysisTest {
   static {
     try {
       logger = BasicLogManager.create(Configuration.defaultConfiguration());
-    } catch (InvalidConfigurationException pE) {
-      logger.log(Level.INFO, Throwables.getStackTraceAsString(pE));
+    } catch (InvalidConfigurationException e1) {
+      logger.log(Level.INFO, Throwables.getStackTraceAsString(e1));
     }
   }
 

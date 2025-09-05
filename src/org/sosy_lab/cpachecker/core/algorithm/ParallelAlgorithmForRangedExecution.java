@@ -58,7 +58,7 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
   }
 
   public void computeAnalyses(List<Path> pPath2LoopBound, List<Path> pConfigFiles)
-      throws InvalidConfigurationException, IOException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, IOException, InterruptedException {
     List<Callable<ParallelAnalysisResult>> newAnanlyses = new ArrayList<>();
     for (int i = 0; i < pConfigFiles.size(); i++) {
       ConfigurationBuilder builder = Configuration.builder();

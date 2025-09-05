@@ -191,7 +191,7 @@ public class RangeExecution extends NestingAlgorithm {
       } catch (IOException e) {
         String message =
             "Skipping one analysis because the configuration file "
-                + configForTestcase.toString()
+                + configForTestcase
                 + " could not be read";
         if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
           logger.log(Level.WARNING, message);
@@ -200,12 +200,12 @@ public class RangeExecution extends NestingAlgorithm {
         }
         return new ArrayList<>();
       } catch (CPAException | InterruptedException pE) {
-        logger.logUserException(
+        logger.logfUserException(
             Level.WARNING,
             pE,
-            String.format(
-                "An error occured during execution of ranged analysis: %s at iteration %d",
-                this.configForTestcase, i));
+            "An error occured during execution of ranged analysis: %s at iteration %d",
+            this.configForTestcase,
+            i);
         return new ArrayList<>();
       }
 
@@ -219,12 +219,12 @@ public class RangeExecution extends NestingAlgorithm {
           return new ArrayList<>();
         }
       } catch (CPAException | InterruptedException pE) {
-        logger.logUserException(
+        logger.logfUserException(
             Level.WARNING,
             pE,
-            String.format(
-                "An error occured during execution of ranged analysis: %s at iteration %d",
-                this.configForTestcase, i));
+            "An error occured during execution of ranged analysis: %s at iteration %d",
+            this.configForTestcase,
+            i);
         return new ArrayList<>();
       }
     }

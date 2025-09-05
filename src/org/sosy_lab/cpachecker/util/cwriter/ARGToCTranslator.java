@@ -845,7 +845,7 @@ public class ARGToCTranslator {
       if (formalParam.getType().isConst()){
         actualParamAssignStatements.add(new SimpleStatement(pCFAEdge, tempVariableType +" = " + actualParamSignature + ";"));
         formalParamAssignStatements.add(new SimpleStatement(pCFAEdge, formalParamSignature + " = " + tempVariableName + ";"));
-      }else{
+      } else {
         actualParamAssignStatements.add(new SimpleStatement(pCFAEdge, tempVariableType + ";"));
         actualParamAssignStatements.add(
             new SimpleStatement(pCFAEdge, tempVariableName + " = " + actualParamSignature + ";"));
