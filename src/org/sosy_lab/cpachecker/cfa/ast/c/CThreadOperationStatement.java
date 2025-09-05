@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -16,11 +17,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 // CFunctionCallStatement is not symmetric
 public sealed class CThreadOperationStatement extends CFunctionCallStatement {
 
-  private static final long serialVersionUID = -7543988390816591658L;
+  @Serial private static final long serialVersionUID = -7543988390816591658L;
 
   public static final class CThreadCreateStatement extends CThreadOperationStatement {
 
-    private static final long serialVersionUID = -1211707394397959801L;
+    @Serial private static final long serialVersionUID = -1211707394397959801L;
 
     public CThreadCreateStatement(
         FileLocation pFileLocation,
@@ -33,7 +34,7 @@ public sealed class CThreadOperationStatement extends CFunctionCallStatement {
 
   public static final class CThreadJoinStatement extends CThreadOperationStatement {
 
-    private static final long serialVersionUID = -2328781305617198230L;
+    @Serial private static final long serialVersionUID = -2328781305617198230L;
 
     public CThreadJoinStatement(
         FileLocation pFileLocation,

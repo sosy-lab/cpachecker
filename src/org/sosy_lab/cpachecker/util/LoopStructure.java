@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,12 +31,14 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -64,9 +65,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** Class collecting and containing information about all loops in a CFA. */
-public final class LoopStructure implements Serializable {
-
-  private static final long serialVersionUID = 1L;
+public final class LoopStructure {
 
   /**
    * Class representing one loop in a CFA. A loop is a subset of CFA nodes which are strongly
@@ -93,9 +92,7 @@ public final class LoopStructure implements Serializable {
    * the inner loop directly leaving both loops). In such cases, both loops are considered only one
    * loop (which is legal according to the definition above).
    */
-  public static class Loop implements Serializable, Comparable<Loop> {
-
-    private static final long serialVersionUID = 1L;
+  public static class Loop implements Comparable<Loop> {
 
     private static final Comparator<Iterable<CFANode>> NODES_COMPARATOR =
         Comparators.lexicographical(Comparator.<CFANode>naturalOrder());
@@ -115,9 +112,17 @@ public final class LoopStructure implements Serializable {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
 
+    private Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      loopHeads = ImmutableSet.copyOf(pLoopHeads);
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).addAll(pLoopHeads).build();
+    }
+
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
-      loopHeads = ImmutableSet.of(loopHead);
-      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(loopHead).build();
+      this(ImmutableSet.of(loopHead), pNodes);
+    }
+
+    public static Loop fromLoopHeadsAndNodes(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      return new Loop(pLoopHeads, pNodes);
     }
 
     private void computeSets() {
@@ -127,8 +132,8 @@ public final class LoopStructure implements Serializable {
         return;
       }
 
-      Set<CFAEdge> newIncomingEdges = new HashSet<>();
-      Set<CFAEdge> newOutgoingEdges = new HashSet<>();
+      SequencedSet<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
+      SequencedSet<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
 
       for (CFANode n : nodes) {
         CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
@@ -285,11 +290,11 @@ public final class LoopStructure implements Serializable {
 
   private final ImmutableListMultimap<String, Loop> loops;
 
-  private transient @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
+  private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
 
   // computed lazily
-  private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
-  private transient @Nullable ImmutableSet<String> loopIncDecVariables;
+  private @Nullable ImmutableSet<String> loopExitConditionVariables;
+  private @Nullable ImmutableSet<String> loopIncDecVariables;
 
   private LoopStructure(ImmutableListMultimap<String, Loop> pLoops) {
     loops = pLoops;
@@ -381,8 +386,7 @@ public final class LoopStructure implements Serializable {
   @Nullable
   private static String obtainIncDecVariable(CFAEdge e) {
     if ((e instanceof CStatementEdge stmtEdge)
-        && (stmtEdge.getStatement() instanceof CAssignment)) {
-      CAssignment assign = (CAssignment) stmtEdge.getStatement();
+        && (stmtEdge.getStatement() instanceof CAssignment assign)) {
 
       if (assign.getLeftHandSide() instanceof CIdExpression assignementToId) {
         String assignToVar = assignementToId.getDeclaration().getQualifiedName();
@@ -396,11 +400,11 @@ public final class LoopStructure implements Serializable {
                 || binExpr.getOperand2() instanceof CLiteralExpression) {
               CIdExpression operandId = null;
 
-              if (binExpr.getOperand1() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand1();
+              if (binExpr.getOperand1() instanceof CIdExpression cIdExpression) {
+                operandId = cIdExpression;
               }
-              if (binExpr.getOperand2() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand2();
+              if (binExpr.getOperand2() instanceof CIdExpression cIdExpression) {
+                operandId = cIdExpression;
               }
 
               if (operandId != null) {
@@ -435,8 +439,8 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
-   * Build loop-structure information for a CFA. Do not call this method outside of the frontend,
-   * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
+   * Build loop-structure information for a CFA. Do not call this method outside the frontend, use
+   * {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
    *
    * @throws ParserException If the structure of the CFA is too complex for determining loops.
    */
@@ -450,9 +454,13 @@ public final class LoopStructure implements Serializable {
     return new LoopStructure(loops.build());
   }
 
+  public static LoopStructure of(ImmutableListMultimap<String, Loop> pLoops) {
+    return new LoopStructure(pLoops);
+  }
+
   /**
    * Find all loops inside a given set of CFA nodes. The nodes in the given set may not be connected
-   * with any nodes outside of this set. This method tries to differentiate nested loops.
+   * with any nodes outside this set. This method tries to differentiate nested loops.
    *
    * @param pNodes the set of nodes to look for loops in
    * @param language The source language.
@@ -470,9 +478,9 @@ public final class LoopStructure implements Serializable {
     List<CFANode> initialChain = new ArrayList<>();
     @Nullable CFANode nodeAfterInitialChain = null;
     {
-      CFANode functionExitNode = pNodes.first(); // The function exit node is always the first
-      if (functionExitNode instanceof FunctionExitNode) {
-        CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
+      // The function exit node is always the first
+      if (pNodes.getFirst() instanceof FunctionExitNode functionExitNode) {
+        CFANode startNode = functionExitNode.getEntryNode();
         while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
           initialChain.add(startNode);
           startNode = startNode.getLeavingEdge(0).getSuccessor();
@@ -483,7 +491,7 @@ public final class LoopStructure implements Serializable {
         // of loop head nodes that does not contain what most users would consider
         // the most important loop head node of a function.
         if (!initialChain.isEmpty()) {
-          nodeAfterInitialChain = initialChain.remove(initialChain.size() - 1);
+          nodeAfterInitialChain = initialChain.removeLast();
         }
 
         if (!hasBackWardsEdges(startNode)) {
@@ -498,7 +506,7 @@ public final class LoopStructure implements Serializable {
 
     // We need to store some information per pair of CFANodes.
     // We could use Map<Pair<CFANode, CFANode>> but it would be very memory
-    // inefficient. Instead we use some arrays.
+    // inefficient. Instead, we use some arrays.
     // We use the reverse post-order id of each node as the array index for that node,
     // because this id is unique, without gaps, and its minimum is 0.
     // (Note that all removed nodes from initialChain
@@ -590,7 +598,7 @@ public final class LoopStructure implements Serializable {
         // We just pick a node randomly and merge it into others.
         // This is imprecise, but not wrong.
 
-        CFANode currentNode = nodes.last();
+        CFANode currentNode = nodes.getLast();
         final int current = arrayIndexForNode.apply(currentNode);
 
         // Mark this node as a loop head
@@ -610,12 +618,13 @@ public final class LoopStructure implements Serializable {
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
       switch (language) {
-        case C:
-          throw new CParserException("Code structure is too complex, could not detect all loops!");
-        case JAVA:
-          throw new JParserException("Code structure is too complex, could not detect all loops!");
-        default:
-          throw new AssertionError("unknown language");
+        case C ->
+            throw new CParserException(
+                "Code structure is too complex, could not detect all loops!");
+        case JAVA ->
+            throw new JParserException(
+                "Code structure is too complex, could not detect all loops!");
+        default -> throw new AssertionError("unknown language");
       }
     }
 
@@ -801,7 +810,7 @@ public final class LoopStructure implements Serializable {
     }
   }
 
-  /** Copy all outgoing edges of "from" to "to", and delete them from "from" afterwards. */
+  /** Copy all outgoing edges of "from" to "to", and delete them from "from" afterward. */
   private static void moveOutgoingEdges(
       final CFANode fromNode, final int from, final int to, final Edge[][] edges) {
     Edge edgeToFrom = edges[to][from];

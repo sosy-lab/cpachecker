@@ -10,11 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
 
-  private static final long serialVersionUID = 7623251138394648617L;
+  @Serial private static final long serialVersionUID = 7623251138394648617L;
 
   private final Type type;
 
@@ -29,12 +30,12 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    if (pQualified) {
-      return getType().toASTString(getQualifiedName().replace("::", "__"));
-    } else {
-      return getType().toASTString(getName());
-    }
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return switch (pAAstNodeRepresentation) {
+      case DEFAULT -> getType().toASTString(getName());
+      case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
+      case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
+    };
   }
 
   @Override

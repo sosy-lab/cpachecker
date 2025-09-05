@@ -6,6 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+int func();
+
 int main() {
     int x = func();
 }

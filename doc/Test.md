@@ -11,13 +11,13 @@ SPDX-License-Identifier: Apache-2.0
 Integration Tests
 -----------------
 
-Integration tests that are executed automatically by the [BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall)
-are defined by the files `../test/test-sets/integration-*.xml`.
+Integration tests that are executed automatically by the [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
+for the main branch are defined by the files `../test/test-sets/integration-*.xml`.
 You can also execute these tests directly with BenchExec.
 All major projects and configurations within CPAchecker should be part of this test suite.
 To add tests for your project or configuration,
 please contact the maintainers on the developer mailing list.
-Be aware that the integration tests expect that the folder `c`
+Be aware that the integration tests expect that the directory `c`
 of the [sv-benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks)
 is linked/copied to `../test/programs/benchmarks`.
 
@@ -28,13 +28,12 @@ Run `ant tests` from the project root directory.
 An HTML report with the results will be generated as `JUnit.html`.
 Of course the unit tests can also be executed from within your IDE.
 
-These tests are also executed by [BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall) (only for trunk)
-and by [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/pipelines) (for all branches).
+These tests are also executed by [GitLab CI](https://gitlab.com/sosy-lab/software/cpachecker/pipelines).
 
 Structure of Tests
 ------------------
 
-- The folder `test` in the main directory should be used to store (external) regression tests.
+- The directory `test` in the main directory should be used to store (external) regression tests.
   (In old terminology, these would be called integration/system tests.)
   The regression testing script in that directory should execute all system and all unit tests.
 

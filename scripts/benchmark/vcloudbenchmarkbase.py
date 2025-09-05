@@ -91,6 +91,14 @@ class VcloudBenchmarkBase(benchexec.benchexec.BenchExec):
             type=str,
             help="Specify files or paths that shall also be transferred and be made available to the run in the cloud.",
         )
+        vcloud_args.add_argument(
+            self.get_param_name("cloudContainerImage"),
+            dest="containerImage",
+            metavar="IMAGE",
+            action="store",
+            type=str,
+            help="Use the specified container image for the execution of the benchmark.",
+        )
 
     def get_param_name(self, pname):
         return "--v" + pname

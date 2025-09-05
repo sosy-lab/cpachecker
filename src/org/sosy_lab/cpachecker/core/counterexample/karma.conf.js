@@ -12,7 +12,7 @@
 // Karma configuration
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
 const fs = require("fs");
-const isDocker = require("is-docker")();
+const isContainer = require("is-docker")() || require("is-podman")();
 const webpackConfig = require("./webpack.config");
 
 // Replace scripts tag from HTML file and generate testReport.html for testing:
@@ -84,11 +84,11 @@ module.exports = (config) => {
       // Start Chromium and Chrome with the custom launcher instead and remove all browsers except for Chromium, Chrome and Firefox
       postDetection: (availableBrowsers) => {
         const newBrowsers = availableBrowsers;
-        if (isDocker && newBrowsers.includes("ChromiumHeadless")) {
+        if (isContainer && newBrowsers.includes("ChromiumHeadless")) {
           newBrowsers[newBrowsers.indexOf("ChromiumHeadless")] =
             "ChromiumHeadlessNoSandbox";
         }
-        if (isDocker && newBrowsers.includes("ChromeHeadless")) {
+        if (isContainer && newBrowsers.includes("ChromeHeadless")) {
           newBrowsers[newBrowsers.indexOf("ChromeHeadless")] =
             "ChromeHeadlessNoSandbox";
         }

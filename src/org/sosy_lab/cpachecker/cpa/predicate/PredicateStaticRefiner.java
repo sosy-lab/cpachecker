@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -86,7 +87,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "staticRefiner")
-public class PredicateStaticRefiner extends StaticRefiner
+final class PredicateStaticRefiner extends StaticRefiner
     implements ARGBasedRefiner, StatisticsProvider {
 
   @Option(
@@ -96,7 +97,7 @@ public class PredicateStaticRefiner extends StaticRefiner
               + " precision.")
   private boolean applyScoped = true;
 
-  @Option(secure = true, description = "Add all assumptions along a error trace to the precision.")
+  @Option(secure = true, description = "Add all assumptions along an error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
   @Option(
@@ -140,7 +141,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   private boolean usedStaticRefinement = false;
 
-  public PredicateStaticRefiner(
+  PredicateStaticRefiner(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -183,23 +184,33 @@ public class PredicateStaticRefiner extends StaticRefiner
       return delegate.performRefinementForPath(pReached, allStatesTrace);
     }
 
+    // create path with all abstraction location elements (excluding the initial element)
+    // the last element is the element corresponding to the error location
+    final List<ARGState> abstractionStatesTrace =
+        PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
+    if (abstractionStatesTrace.size() == 1) {
+      // For single-block paths, static refinement is useless,
+      // there are no meaningful predicates to discover. So we use regular refinement and maybe
+      // later on perform the static refinement (if we find another path that has more blocks).
+      logger.log(Level.FINEST, "Skipping heuristics-based refinement for single-block error path.");
+      return delegate.performRefinementForPath(pReached, allStatesTrace);
+    }
+
     totalTime.start();
     try {
-      return performStaticRefinementForPath(pReached, allStatesTrace);
+      return performStaticRefinementForPath(pReached, allStatesTrace, abstractionStatesTrace);
     } finally {
       totalTime.stop();
     }
   }
 
   private CounterexampleInfo performStaticRefinementForPath(
-      final ARGReachedSet pReached, final ARGPath allStatesTrace)
+      final ARGReachedSet pReached,
+      final ARGPath allStatesTrace,
+      List<ARGState> abstractionStatesTrace)
       throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting heuristics-based refinement.");
 
-    // create path with all abstraction location elements (excluding the initial element)
-    // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace =
-        PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
     BlockFormulas formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
@@ -221,7 +232,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       ARGState root = (ARGState) reached.getFirstState();
-      ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size() - 1);
+      ARGState targetState = abstractionStatesTrace.getLast();
 
       PredicatePrecision heuristicPrecision;
       predicateExtractionTime.start();
@@ -281,12 +292,10 @@ public class PredicateStaticRefiner extends StaticRefiner
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();
         if ((e instanceof CStatementEdge stmtEdge)
-            && (stmtEdge.getStatement() instanceof CAssignment)) {
-          CAssignment assign = (CAssignment) stmtEdge.getStatement();
+            && (stmtEdge.getStatement() instanceof CAssignment assign)) {
 
-          if (assign.getLeftHandSide() instanceof CIdExpression) {
-            String variable =
-                ((CIdExpression) assign.getLeftHandSide()).getDeclaration().getQualifiedName();
+          if (assign.getLeftHandSide() instanceof CIdExpression cIdExpression) {
+            String variable = cIdExpression.getDeclaration().getQualifiedName();
             directlyAffectingStatements.put(variable, stmtEdge);
           }
         }
@@ -415,7 +424,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     Iterable<CFANode> targetLocations = AbstractStates.extractLocations(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
-    Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    SequencedSet<AssumeEdge> assumeEdges = new LinkedHashSet<>();
 
     Multimap<String, AStatementEdge> directlyAffectingStatements =
         buildDirectlyAffectingStatements();
@@ -444,8 +453,8 @@ public class PredicateStaticRefiner extends StaticRefiner
         for (CIdExpression idExpr :
             CFAUtils.getIdExpressionsOfExpression((CExpression) assume.getExpression())) {
           CSimpleDeclaration decl = idExpr.getDeclaration();
-          if (decl instanceof CVariableDeclaration) {
-            if (!((CVariableDeclaration) decl).isGlobal()) {
+          if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+            if (!cVariableDeclaration.isGlobal()) {
               applyGlobal = false;
             }
           } else if (decl instanceof CParameterDeclaration) {
@@ -498,8 +507,8 @@ public class PredicateStaticRefiner extends StaticRefiner
   private void dumpAssumePredicate(Path target) {
     try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
       for (CFAEdge e : cfa.edges()) {
-        if (e instanceof AssumeEdge) {
-          Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, (AssumeEdge) e);
+        if (e instanceof AssumeEdge assumeEdge) {
+          Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, assumeEdge);
           for (AbstractionPredicate p : preds) {
             w.append(p.getSymbolicAtom().toString());
             w.append("\n");
@@ -522,8 +531,8 @@ public class PredicateStaticRefiner extends StaticRefiner
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
-    if (delegate instanceof StatisticsProvider) {
-      ((StatisticsProvider) delegate).collectStatistics(pStatsCollection);
+    if (delegate instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 

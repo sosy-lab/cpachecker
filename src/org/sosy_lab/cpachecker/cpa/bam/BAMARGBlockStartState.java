@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class BAMARGBlockStartState extends ARGState {
 
-  private static final long serialVersionUID = -5143941913753150639L;
+  @Serial private static final long serialVersionUID = -5143941913753150639L;
 
   private ARGState analyzedBlock = null;
 

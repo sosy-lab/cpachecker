@@ -15,15 +15,17 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGInformation;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -44,7 +46,9 @@ public class SMGEdgeInterpolator
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
-      final LogManager pLogger)
+      final LogManagerWithoutDuplicates pLogger,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
     super(
@@ -55,8 +59,16 @@ public class SMGEdgeInterpolator
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
-            pFeasibilityChecker.isRefineMemorySafety()),
-        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig), pCfa),
+            pFeasibilityChecker.isRefineMemorySafety(),
+            pEvaluator,
+            pStatistics),
+        SMGState.of(
+            pCfa.getMachineModel(),
+            pLogger,
+            new SMGOptions(pConfig),
+            pCfa,
+            pEvaluator,
+            pStatistics),
         ValueAnalysisCPA.class,
         pConfig,
         pShutdownNotifier,
@@ -90,7 +102,7 @@ public class SMGEdgeInterpolator
     SMGState stateFromOldInterpolant = pInputInterpolant.reconstructState();
 
     // TODO callstack-management depends on a forward-iteration on a single path.
-    // TODO Thus interpolants have to be computed from front to end. Can we assure this?
+    // TODO Thus, interpolants have to be computed from front to end. Can we assure this?
     final Optional<SMGState> maybeSuccessor;
     if (pCurrentEdge == null) {
       PathIterator it = pOffset.fullPathIterator();
@@ -171,7 +183,7 @@ public class SMGEdgeInterpolator
       // We catch this exception and add the just removed variable back
       // If the exception is not caused by this variable, the analysis will run into the exception
       // in the next run anyway, stopping the analysis
-      // As far as i understand CPAchecker this is not solvable any other way, i might be wrong
+      // As far as i understand CPAchecker, this is not solvable any other way, i might be wrong
       // though, please comment and mark @baierd if you know how this can be done better
       try {
         if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
@@ -193,8 +205,8 @@ public class SMGEdgeInterpolator
 
       FeasibilityChecker<SMGState> checker = getFeasibilityChecker();
       SMGFeasibilityChecker smgFeasibilityChecker;
-      if (checker instanceof SMGFeasibilityChecker) {
-        smgFeasibilityChecker = (SMGFeasibilityChecker) checker;
+      if (checker instanceof SMGFeasibilityChecker sMGFeasibilityChecker) {
+        smgFeasibilityChecker = sMGFeasibilityChecker;
       } else {
         break;
       }
@@ -230,7 +242,7 @@ public class SMGEdgeInterpolator
    * stack to work properly! (not the values, just the definition to create the stack)
    *
    * @param errorPath the error path to check.
-   * @return true, if the given error path is contradicting in itself, else false
+   * @return whether the given error path is contradicting in itself
    */
   private boolean isSuffixContradicting(ARGPath errorPath, SMGState stateForFrameInfo)
       throws CPAException, InterruptedException {

@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentMultimap;
 
 /** Utility class for representation comparisons of SMGValues */
 public final class SMGPredicateRelation {
@@ -94,14 +94,11 @@ public final class SMGPredicateRelation {
       SMGType pSMGTypeTwo,
       BinaryOperator pOperator) {
     if (!pOne.isUnknown() && !pTwo.isUnknown()) {
-      if (pOne instanceof SMGExplicitValue) {
+      if (pOne instanceof SMGExplicitValue sMGExplicitValue) {
         addExplicitRelation(
-            pTwo,
-            pSMGTypeTwo,
-            (SMGExplicitValue) pOne,
-            pOperator.getSwitchOperandsSidesLogicalOperator());
-      } else if (pTwo instanceof SMGExplicitValue) {
-        addExplicitRelation(pOne, pSMGTypeOne, (SMGExplicitValue) pTwo, pOperator);
+            pTwo, pSMGTypeTwo, sMGExplicitValue, pOperator.getSwitchOperandsSidesLogicalOperator());
+      } else if (pTwo instanceof SMGExplicitValue sMGExplicitValue) {
+        addExplicitRelation(pOne, pSMGTypeOne, sMGExplicitValue, pOperator);
       } else if (!pOne.isZero() && !pTwo.isZero()) {
         addSymbolicRelation(pOne, pSMGTypeOne, pTwo, pSMGTypeTwo, pOperator);
       } else if (pOne.isZero() && !pTwo.isZero()) {

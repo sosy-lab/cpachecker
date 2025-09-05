@@ -132,8 +132,8 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       ARightHandSide pExpression)
       throws UnrecognizedCodeException {
 
-    if (pVarType instanceof JType) {
-      addSymbolicTracking(pState, pVarLocation, (JType) pVarType);
+    if (pVarType instanceof JType jType) {
+      addSymbolicTracking(pState, pVarLocation, jType);
 
     } else {
       assert pVarType instanceof CType : "Unhandled type " + pVarType;
@@ -163,13 +163,12 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
 
     final CType canonicalType = pVarType.getCanonicalType();
 
-    if (canonicalType instanceof CCompositeType) {
-      fillStructWithSymbolicIdentifiers(
-          pState, pVarLocation, (CCompositeType) canonicalType, pValueVisitor);
+    if (canonicalType instanceof CCompositeType cCompositeType) {
+      fillStructWithSymbolicIdentifiers(pState, pVarLocation, cCompositeType, pValueVisitor);
 
-    } else if (canonicalType instanceof CArrayType) {
+    } else if (canonicalType instanceof CArrayType cArrayType) {
       fillArrayWithSymbolicIdentifiers(
-          pState, pVarLocation, (CArrayType) canonicalType, pValueVisitor, pExpression);
+          pState, pVarLocation, cArrayType, pValueVisitor, pExpression);
 
     } else if (canonicalType instanceof CElaboratedType) {
       // undefined enum, struct or union
@@ -213,9 +212,8 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       }
       CType memberType = d.getType().getCanonicalType();
 
-      if (memberType instanceof CCompositeType) {
-        fillStructWithSymbolicIdentifiers(
-            pState, memberLocation, (CCompositeType) memberType, pValueVisitor);
+      if (memberType instanceof CCompositeType cCompositeType) {
+        fillStructWithSymbolicIdentifiers(pState, memberLocation, cCompositeType, pValueVisitor);
 
       } else {
         assignSymbolicIdentifier(pState, memberLocation, memberType);
@@ -263,8 +261,8 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   }
 
   private boolean isEligibleForSymbolicValue(Type pDeclarationType) {
-    if (pDeclarationType instanceof CType) {
-      CType canonicalType = ((CType) pDeclarationType).getCanonicalType();
+    if (pDeclarationType instanceof CType cType) {
+      CType canonicalType = cType.getCanonicalType();
 
       if (canonicalType instanceof CComplexType) {
         return handleStructs;

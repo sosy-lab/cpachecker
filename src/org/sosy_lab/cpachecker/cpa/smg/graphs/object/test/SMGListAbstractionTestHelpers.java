@@ -79,10 +79,10 @@ public final class SMGListAbstractionTestHelpers {
     for (int i = 0; i < pCount; i++) {
       SMGObject list =
           switch (pLinkage) {
-            case SINGLE_LINKED -> new SMGSingleLinkedList(
-                pSize, pHfo, pNfo, pMinLengths[i], pLevel);
-            case DOUBLY_LINKED -> new SMGDoublyLinkedList(
-                pSize, pHfo, pNfo, pPfo, pMinLengths[i], pLevel);
+            case SINGLE_LINKED ->
+                new SMGSingleLinkedList(pSize, pHfo, pNfo, pMinLengths[i], pLevel);
+            case DOUBLY_LINKED ->
+                new SMGDoublyLinkedList(pSize, pHfo, pNfo, pPfo, pMinLengths[i], pLevel);
           };
       pSmg.addHeapObject(list);
       lists[i] = list;
@@ -158,7 +158,7 @@ public final class SMGListAbstractionTestHelpers {
       int pPfo,
       SMGListCircularity pCircularity,
       SMGListLinkage pLinkage) {
-    checkArgument(pSmg != null, "The smg was null.");
+    checkArgument(pSmg != null, "The SMG was null.");
     checkArgument(
         pAddresses != null && pAddresses.length >= 1,
         "The provided array must not be null or empty.");

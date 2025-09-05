@@ -251,7 +251,7 @@ class ComputeCoverage:
     def compute_lines_to_cover(instance, logger):
         create_temp_dir(temp_dir)
         command = [
-            os.path.join(cpachecker_root, "scripts", "cpa.sh"),
+            os.path.join(cpachecker_root, "bin", "cpachecker"),
             # Using this configuration because it seems lightweight
             "-detectRecursion",
             "-outputpath",
@@ -296,7 +296,7 @@ class ComputeCoverage:
 
         return (  # noqa: ECE001
             [
-                os.path.join(cpachecker_root, "scripts", "cpa.sh"),
+                os.path.join(cpachecker_root, "bin", "cpachecker"),
                 "-config",
                 conf,
                 "-outputpath",
@@ -326,7 +326,7 @@ class ComputeCoverage:
         )
 
     def generate_executions(self):
-        raise NotImplementedError("Instantiate one of the sub-classes.")
+        raise NotImplementedError("Instantiate one of the subclasses.")
 
     def get_coverage(self, cex_spec_file, instance, aa_file, heap_size, logger):
         cex_prefix_coverage_file = os.path.splitext(cex_spec_file)[0] + cov_extension

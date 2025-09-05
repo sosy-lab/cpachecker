@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -26,7 +27,7 @@ public abstract sealed class UnarySymbolicExpression extends SymbolicExpression
         NegationExpression,
         PointerExpression {
 
-  private static final long serialVersionUID = -2727356523115713518L;
+  @Serial private static final long serialVersionUID = -2727356523115713518L;
 
   private final SymbolicExpression operand;
   private final Type type;
@@ -81,12 +82,11 @@ public abstract sealed class UnarySymbolicExpression extends SymbolicExpression
 
     if (hasAbstractState()
         && that.hasAbstractState()
-        && getAbstractState() instanceof SMGState
-        && that.getAbstractState() instanceof SMGState) {
+        && getAbstractState() instanceof SMGState thisState
+        && that.getAbstractState() instanceof SMGState thatState) {
       // SMG values do not really care about the type, as the SMG knows their types and checks
       // that as well
-      return SMGState.areValuesEqual(
-          (SMGState) getAbstractState(), operand, (SMGState) that.getAbstractState(), that.operand);
+      return SMGState.areValuesEqual(thisState, operand, thatState, that.operand);
     }
 
     return super.equals(that) && operand.equals(that.operand) && type.equals(that.type);

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import java.io.Serial;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -19,7 +20,7 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 public abstract class AbstractUsageStorage
     extends TreeMap<SingleIdentifier, NavigableSet<UsageInfo>> {
 
-  private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
   private final Set<SingleIdentifier> deeplyCloned = new TreeSet<>();
 
   protected AbstractUsageStorage(AbstractUsageStorage previous) {

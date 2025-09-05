@@ -127,8 +127,8 @@ class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
 
   @Override
   public CompoundInterval singleton(Number pValue) {
-    if (pValue instanceof BigInteger) {
-      return singleton((BigInteger) pValue);
+    if (pValue instanceof BigInteger bigInteger) {
+      return singleton(bigInteger);
     }
     if (pValue instanceof Long
         || pValue instanceof Integer
@@ -273,9 +273,9 @@ class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
     checkArgument(
         (pInfo instanceof BitVectorInfo),
         "Unsupported target type: Not a compound bit vector interval.");
-    if (pToCast instanceof CompoundBitVectorInterval) {
-      return ((CompoundBitVectorInterval) pToCast)
-          .cast((BitVectorInfo) pInfo, allowSignedWrapAround, OverflowEventHandler.EMPTY);
+    if (pToCast instanceof CompoundBitVectorInterval compoundBitVectorInterval) {
+      return compoundBitVectorInterval.cast(
+          (BitVectorInfo) pInfo, allowSignedWrapAround, OverflowEventHandler.EMPTY);
     }
     // TODO be more precise
     return allPossibleValues();

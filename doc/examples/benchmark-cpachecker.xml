@@ -34,14 +34,14 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="DeviceDrivers64">
     <includesfile>../../test/programs/benchmarks/DeviceDrivers64.set</includesfile>
-    <!-- Do not forget to specify the -64 option for 64bit files. -->
-    <option name="-64"/>
+    <!-- Do not forget to specify the option for 64bit files. -->
+    <option name="--64"/>
   </tasks>
 
   <!-- Global options for all run definitions. -->
   <!-- Set the Java heap size to some value lower than the memlimit.
        Note that Java does not use SI units, but IEC units (factor 1024). -->
-  <option name="-heap">7000M</option>
+  <option name="--heap">7000M</option>
 
   <!--
     Always use property files as specification
@@ -50,29 +50,24 @@ SPDX-License-Identifier: Apache-2.0
   -->
   <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
 
-
-  <!-- For final benchmarks for performance measurement,
-       enable benchmark mode (better performance due to disabled assertions).
-  -->
-  <!-- <option name="-benchmark"/> -->
-
   <!--
-    Do not use the shortcut configurations such as -predicateAnalysis
-    or -explicitAnalysis, instead use the long names
+    Do not use the shortcut configurations such as predicateAnalysis
+    or valueAnalysis, instead use the long names
     to have more meaningful names in the result tables.
   -->
-  <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
+  <option name="--predicateAnalysis-PredAbsRefiner-ABEl"/>
 
 
-  <rundefinition name="noout">
-    <!-- Recommended option "-noout", as the CPAchecker output files
-         are normally not interesting for benchmarks. -->
-    <option name="-noout"/>
+  <rundefinition name="benchmark">
+    <!-- Recommended option "benchmark" for performance measurements,
+      as this improves performance and disables output files,
+      which are normally not interesting for benchmarks. -->
+    <option name="--benchmark"/>
   </rundefinition>
 
   <rundefinition name="with-output-files">
     <!-- Variables can appear in option values, too. -->
-    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output/${inputfile_name}/</option>
+    <option name="--option">output.path=test/results/${benchmark_name}.${benchmark_date}.output/${inputfile_name}/</option>
   </rundefinition>
 
 

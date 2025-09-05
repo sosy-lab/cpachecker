@@ -67,8 +67,8 @@ public class SMGMapTargetAddress extends SMGAbstractJoin {
       value = matchingAddressOptional.orElseThrow().getKey();
     } else {
       // Step 5
-      value = SMGValue.of(0); // TODO nesting level zero???
-      destSMG = destSMG.copyAndAddValue(value);
+      value = SMGValue.of(); // TODO nesting level zero???
+      destSMG = destSMG.copyAndAddValue(value, 0);
       SMGPointsToEdge newEdge = new SMGPointsToEdge(resSmgObject, ptoEdge1.getOffset(), tg);
       destSMG = destSMG.copyAndAddPTEdge(newEdge, value);
       // Step 6

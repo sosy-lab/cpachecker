@@ -77,55 +77,48 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
       switch (pEdge.getEdgeType()) {
-        case StatementEdge:
-          {
-            final AStatementEdge edge = (AStatementEdge) pEdge;
-            if (edge.getStatement() instanceof AFunctionCall) {
-              final AFunctionCall call = (AFunctionCall) edge.getStatement();
-              final AExpression exp = call.getFunctionCallExpression().getFunctionNameExpression();
-              if (exp instanceof AIdExpression id) {
-                functionNames.add(id.getName());
-              }
+        case StatementEdge -> {
+          final AStatementEdge edge = (AStatementEdge) pEdge;
+          if (edge.getStatement() instanceof AFunctionCall call) {
+
+            final AExpression exp = call.getFunctionCallExpression().getFunctionNameExpression();
+            if (exp instanceof AIdExpression id) {
+              functionNames.add(id.getName());
             }
-            break;
           }
-        case DeclarationEdge:
-          {
-            final ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-            ADeclaration declaration = declarationEdge.getDeclaration();
-            Type declType = declaration.getType();
-            Queue<Type> types = new ArrayDeque<>();
-            Set<Type> visitedTypes = new HashSet<>();
-            types.add(declType);
-            while (!types.isEmpty()) {
-              Type type = types.poll();
-              if (type instanceof CType) {
-                type = ((CType) type).getCanonicalType();
-              }
-              if (visitedTypes.add(type)) {
-                if (type instanceof CCompositeType compositeType) {
-                  for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
-                    types.offer(member.getType());
-                  }
+        }
+        case DeclarationEdge -> {
+          final ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+          ADeclaration declaration = declarationEdge.getDeclaration();
+          Type declType = declaration.getType();
+          Queue<Type> types = new ArrayDeque<>();
+          Set<Type> visitedTypes = new HashSet<>();
+          types.add(declType);
+          while (!types.isEmpty()) {
+            Type type = types.poll();
+            if (type instanceof CType) {
+              type = ((CType) type).getCanonicalType();
+            }
+            if (visitedTypes.add(type)) {
+              if (type instanceof CCompositeType compositeType) {
+                for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
+                  types.offer(member.getType());
                 }
-                if (type instanceof CArrayType || type instanceof JArrayType) {
-                  arrayVariables.add(declaration.getQualifiedName());
-                } else if (type instanceof CSimpleType simpleType) {
-                  if (simpleType.getType().isFloatingPointType()) {
-                    floatVariables.add(declaration.getQualifiedName());
-                  }
-                } else if ((type instanceof JSimpleType simpleType)
-                    && simpleType.getType().isFloatingPointType()) {
+              }
+              if (type instanceof CArrayType || type instanceof JArrayType) {
+                arrayVariables.add(declaration.getQualifiedName());
+              } else if (type instanceof CSimpleType simpleType) {
+                if (simpleType.getType().isFloatingPointType()) {
                   floatVariables.add(declaration.getQualifiedName());
                 }
+              } else if ((type instanceof JSimpleType simpleType)
+                  && simpleType.isFloatingPointType()) {
+                floatVariables.add(declaration.getQualifiedName());
               }
             }
-            break;
           }
-        case FunctionCallEdge:
-        case FunctionReturnEdge:
-        case CallToReturnEdge:
-        default:
+        }
+        default -> {}
       }
       return TraversalProcess.CONTINUE;
     }
@@ -205,6 +198,13 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @Option(secure = true, description = "Configuration for preliminary algorithm.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path preAnalysisAlgorithmConfig = null;
+
+  @Option(
+      secure = true,
+      description =
+          "If true, the strategy-selection algorithm does not run the selected config, but only"
+              + " produces the statistics that show what config it would run.")
+  private boolean dryRun = false;
 
   @Option(secure = true, description = "Configuration for programs containing recursion.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -326,7 +326,11 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
     final Path chosenConfig = chooseConfig();
 
-    return run0(pReachedSet, chosenConfig);
+    if (dryRun) {
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    } else {
+      return run0(pReachedSet, chosenConfig);
+    }
   }
 
   /** analyze the CFA and extract useful statistics. */

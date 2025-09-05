@@ -26,10 +26,10 @@ SPDX-License-Identifier: Apache-2.0
     <column title="#blocks">Number of blocks</column>
   </columns>
 
-  <option name="-noout"/>
-  <option name="-heap">1500M</option>
+  <option name="--no-output-files"/>
+  <option name="--heap">1500M</option>
   <!-- SV-Comp files assume that malloc always succeeds -->
-  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <rundefinition/> <!-- BuildBot does not like names! -->
 
@@ -41,17 +41,17 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/recursive-simple/f*.yml</include>
     <exclude>../programs/benchmarks/recursive-simple/fibo_25-1.yml</exclude>
     <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_15-2.yml</exclude>
-    <option name="-valueAnalysis-bam-rec"/>
+    <option name="--valueAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="interval">
     <include>../programs/benchmarks/recursive-simple/i*.yml</include>
-    <option name="-intervalAnalysis-bam-rec"/>
+    <option name="--intervalAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="valuePredicate">
     <include>../programs/benchmarks/recursive-simple/s*.yml</include>
-    <option name="-valueAnalysis-predicateAnalysis-bam-rec"/>
+    <option name="--valueAnalysis-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree">
@@ -59,40 +59,40 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/recursive/*01*.yml</exclude>
     <exclude>../programs/benchmarks/recursive/*02*.yml</exclude>
     <exclude>../programs/benchmarks/recursive/*03*.yml</exclude>
-    <option name="-predicateAnalysis-bam-rec"/>
+    <option name="--predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_nested">
     <include>../programs/benchmarks/recursive/*03*.yml</include>
-    <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
-    <option name="-setprop">solver.solver=mathsat5</option>
-    <option name="-predicateAnalysis-bam-rec"/>
+    <option name="--option">cpa.predicate.refinement.strategy=tree_nested</option>
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_cpachecker">
     <include>../programs/benchmarks/recursive/*02*.yml</include>
-    <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
-    <option name="-setprop">solver.solver=mathsat5</option>
-    <option name="-predicateAnalysis-bam-rec"/>
+    <option name="--option">cpa.predicate.refinement.strategy=tree_cpachecker</option>
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_wellscoped">
     <include>../programs/benchmarks/recursive/*01*.yml</include>
-    <option name="-setprop">cpa.predicate.refinement.strategy=tree_wellscoped</option>
-    <option name="-setprop">solver.solver=mathsat5</option>
-    <option name="-predicateAnalysis-bam-rec"/>
+    <option name="--option">cpa.predicate.refinement.strategy=tree_wellscoped</option>
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--predicateAnalysis-bam-rec"/>
   </tasks>
 
 
   <!-- parallel BAM -->
   <tasks name="VA-parallelBam-noCegar">
-    <option name="-valueAnalysis-parallelBam"/>
-    <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
+    <option name="--valueAnalysis-parallelBam"/>
+    <option name="--option">algorithm.parallelBam.numberOfThreads=8</option>
     <include>../programs/benchmarks/eca-rers2012/Problem03*.yml</include>
   </tasks>
   <tasks name="VA-parallelBam-Cegar">
-    <option name="-valueAnalysis-parallelBam-Cegar"/>
-    <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
+    <option name="--valueAnalysis-parallelBam-Cegar"/>
+    <option name="--option">algorithm.parallelBam.numberOfThreads=8</option>
     <include>../programs/benchmarks/eca-rers2012/Problem02*.yml</include>
   </tasks>
 
@@ -103,25 +103,25 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- BAM with predicate analysis -->
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
-    <option name="-setprop">analysis.checkCounterexamples=true</option>
-    <option name="-setprop">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <option name="--predicateAnalysis-bam"/>
+    <option name="--option">analysis.checkCounterexamples=true</option>
+    <option name="--option">counterexample.checker=CBMC</option>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <exclude reason="timeout">../programs/benchmarks/openssl/s3_srvr.blast.1*</exclude>
     <exclude reason="partial set only">../programs/benchmarks/ntdrivers/*</exclude>
     <exclude reason="partial set only">../programs/benchmarks/openssl/*</exclude>
@@ -131,17 +131,19 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
-    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <option name="--predicateAnalysis-bam"/>
+    <includesfile>../programs/benchmarks/Heap.set</includesfile>
+    <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <!-- exclude tasks from Forester set -->
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
-    <option name="-setprop">analysis.checkCounterexamples=true</option>
-    <option name="-setprop">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <option name="--predicateAnalysis-bam"/>
+    <option name="--option">analysis.checkCounterexamples=true</option>
+    <option name="--option">counterexample.checker=CBMC</option>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/loop-new/*</exclude> <!-- mostly timeout -->
@@ -151,8 +153,8 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <option name="--predicateAnalysis-bam"/>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced//pals_floodmax.4.4.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
@@ -169,12 +171,12 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <option name="-predicateAnalysis-bam"/>
+    <option name="--predicateAnalysis-bam"/>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <option name="-skipRecursion"/>
-    <option name="-setprop">analysis.checkCounterexamples=true</option>
-    <option name="-setprop">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <option name="--skip-recursion"/>
+    <option name="--option">analysis.checkCounterexamples=true</option>
+    <option name="--option">counterexample.checker=CBMC</option>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>

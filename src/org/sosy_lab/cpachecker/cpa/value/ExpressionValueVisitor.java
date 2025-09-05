@@ -201,7 +201,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   private boolean isFloatingPointType(CType pType) {
-    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
+    return pType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType();
   }
 
   @Override
@@ -310,9 +310,12 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      long typeSize = evv.getMachineModel().getSizeof(elementType).longValueExact();
-
-      long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
+      Value typeSize = evv.sizeof(elementType);
+      if (!typeSize.isExplicitlyKnown() || !typeSize.isNumericValue()) {
+        return null;
+      }
+      long subscriptOffset =
+          subscriptValue.asNumericValue().longValue() * typeSize.asNumericValue().longValue();
 
       return arrayLoc.withAddedOffset(subscriptOffset);
     }
@@ -356,11 +359,10 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName)
         throws UnrecognizedCodeException {
 
-      if (ownerType instanceof CElaboratedType) {
-        return getFieldOffsetInBits(((CElaboratedType) ownerType).getRealType(), fieldName);
-      } else if (ownerType instanceof CCompositeType) {
-        return bitsToByte(
-            evv.getMachineModel().getFieldOffsetInBits((CCompositeType) ownerType, fieldName));
+      if (ownerType instanceof CElaboratedType cElaboratedType) {
+        return getFieldOffsetInBits(cElaboratedType.getRealType(), fieldName);
+      } else if (ownerType instanceof CCompositeType cCompositeType) {
+        return bitsToByte(evv.getMachineModel().getFieldOffsetInBits(cCompositeType, fieldName));
       } else if (ownerType instanceof CPointerType) {
         evv.missingPointer = true;
         return OptionalLong.empty();

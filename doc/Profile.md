@@ -12,13 +12,13 @@ Profiling
 =========
 
 In order to profile CPAchecker in a meaningful way,
-it is recommended to disable internal (costly) assertions with `-disable-java-assertions`
+it is recommended to disable internal (costly) assertions with `--disable-java-assertions`
 or even additionally disable optional features
-like for [benchmarking](Benchmark.md) with `-benchmark`.
+like for [benchmarking](Benchmark.md) with `--benchmark`.
 
 There exist many tools that allow to monitor Java processes, e.g. VisualVM.
 Most of these connect to the JVM via a special file in `/tmp/hsperfdata_*`.
-CPAchecker when started with `scripts/cpa.sh`
+CPAchecker when started with `bin/cpachecker`
 disables this file by default for performance reasons
 (cf. [http://www.evanjones.ca/jvm-mmap-pause.html](http://www.evanjones.ca/jvm-mmap-pause.html)),
 so these tools won't see the CPAchecker process.
@@ -47,9 +47,9 @@ or directly in IntelliJ IDEA.
 ### Example run
 
 ```
-> JAVA_VM_ARGUMENTS="-XX:StartFlightRecording=filename=recording.jfr,dumponexit=true" scripts/cpa.sh -predicateAnalysis doc/examples/example_bug.c
-Running CPAchecker with default heap size (1200M). Specify a larger value with -heap if you have more RAM.
-Running CPAchecker with default stack size (1024k). Specify a larger value with -stack if needed.
+> JAVA_VM_ARGUMENTS="-XX:StartFlightRecording=filename=recording.jfr,dumponexit=true" bin/cpachecker --predicateAnalysis doc/examples/example_bug.c
+Running CPAchecker with default heap size (1200M). Specify a larger value with --heap if you have more RAM.
+Running CPAchecker with default stack size (1024k). Specify a larger value with --stack if needed.
 Running CPAchecker with the following extra VM options: -XX:StartFlightRecording=filename=recording.jfr,dumponexit=true
 [0.494s][info][jfr,startup] Started recording 1. No limit specified, using maxsize=250MB as default.
 [0.494s][info][jfr,startup] 
@@ -67,7 +67,7 @@ Time profiling
 --------------
 
 CPAchecker has internal time statistics, which are dumped into the output file `Statistics.txt`.
-With the command-line argument `-stats` or the configuration option `statistics.print=true`
+With the command-line argument `--stats` or the configuration option `statistics.print=true`
 they are printed to the console, too.
 
 VisualVM can profile CPU usage, but only with sampling.

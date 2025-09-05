@@ -39,7 +39,7 @@ public abstract class Address {
    * method may only be called if the address is concrete.
    *
    * @param pOffset the value that is added on the address. May be negative. If the value is no
-   *     integer, a unknown address will be returned.
+   *     integer, an unknown address will be returned.
    * @return returns the resulting address when adding this address with the given offset or an
    *     unknown address, when the given offset is not an integer.
    */
@@ -54,25 +54,25 @@ public abstract class Address {
   @Override
   public abstract boolean equals(Object obj);
 
-  /** Returns returns true if the address is unknown, else false. */
+  /** Returns whether the address is unknown. */
   public abstract boolean isUnknown();
 
-  /** Returns returns true if the address is symbolic, else false. */
+  /** Returns whether the address is symbolic. */
   public abstract boolean isSymbolic();
 
-  /** Returns returns true if the address is concrete, else false. */
+  /** Returns whether the address is concrete. */
   public abstract boolean isConcrete();
 
   /**
    * Returns the concrete value of the address. May only be called on concrete addresses.
    *
-   * @return Returns the concrete value of the address.
+   * @return the concrete value of the address.
    */
   public abstract BigInteger getAddressValue();
 
   /**
    * Returns a string representation of the address to be used as comment for the User. May NOT
-   * return a integer value.
+   * return an integer value.
    *
    * @return a string representation of the address.
    */
@@ -80,72 +80,58 @@ public abstract class Address {
 
   /**
    * Returns an address for the given address representation. If the representation can be exactly
-   * converted to an {@link BigInteger} integer, then an concrete address with the given value will
+   * converted to an {@link BigInteger} integer, then a concrete address with the given value will
    * be returned.
    *
-   * <p>In all other cases an symbolic address will be returned with the given object as symbol.
+   * <p>In all other cases a symbolic address will be returned with the given object as symbol.
    *
-   * @param pAddress the representation of the address, either a concrete value like an BigInteger
-   *     or a symbol like a String.
-   * @return Returns an address for the given address representation
+   * @param pAddress the representation of the address, either a concrete value like a BigInteger or
+   *     a symbol like a String.
+   * @return an address for the given address representation
    */
   public static Address valueOf(Object pAddress) {
+    return switch (pAddress) {
+      case Address address -> address;
 
-    if (pAddress instanceof Address) {
-      return (Address) pAddress;
-    } else if (pAddress instanceof BigInteger) {
-      return new ConcreteAddress((BigInteger) pAddress);
-    } else if (pAddress instanceof Rational rational) {
-      if (rational.isIntegral()) {
-        return new ConcreteAddress(rational.getNum());
-      }
-    } else if (pAddress instanceof ExtendedRational eRat) {
-      if (eRat.isRational()) {
-        Rational rat = eRat.getRational();
-        if (rat.isIntegral()) {
-          return new ConcreteAddress(rat.getNum());
+      case BigInteger bigInteger -> new ConcreteAddress(bigInteger);
+
+      case Rational rational when rational.isIntegral() -> new ConcreteAddress(rational.getNum());
+
+      case ExtendedRational eRat when eRat.isRational() && eRat.getRational().isIntegral() ->
+          new ConcreteAddress(eRat.getRational().getNum());
+
+      case Byte b -> new ConcreteAddress(BigInteger.valueOf(b.longValue()));
+
+      case Integer i -> new ConcreteAddress(BigInteger.valueOf(i.longValue()));
+
+      case Long l -> new ConcreteAddress(BigInteger.valueOf(l));
+
+      case Short s -> new ConcreteAddress(BigInteger.valueOf(s.longValue()));
+
+      case Double value when DoubleMath.isMathematicalInteger(value) ->
+          new ConcreteAddress(BigInteger.valueOf(value.longValue()));
+
+      case Float value when DoubleMath.isMathematicalInteger(value) ->
+          new ConcreteAddress(BigInteger.valueOf(value.longValue()));
+
+      case BigDecimal bdVal -> {
+        try {
+          BigInteger bigIntValue = bdVal.toBigIntegerExact();
+          yield new ConcreteAddress(bigIntValue);
+        } catch (ArithmeticException e) {
+          // This double cannot be represented as integer,
+          // represent it as symbolic Address instead
+          yield new SymbolicAddress(pAddress);
         }
       }
-    } else if (pAddress instanceof Byte) {
-      long value = ((Byte) pAddress).longValue();
-      return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Integer) {
-      long value = ((Integer) pAddress).longValue();
-      return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Long) {
-      long value = ((Long) pAddress);
-      return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Short) {
-      long value = ((Short) pAddress).longValue();
-      return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Double value) {
-      if (DoubleMath.isMathematicalInteger(value)) {
-        long dValue = value.longValue();
-        return new ConcreteAddress(BigInteger.valueOf(dValue));
-      }
-    } else if (pAddress instanceof Float value) {
-      if (DoubleMath.isMathematicalInteger(value)) {
-        long dValue = value.longValue();
-        return new ConcreteAddress(BigInteger.valueOf(dValue));
-      }
-    } else if (pAddress instanceof BigDecimal bdVal) {
-      try {
-        BigInteger bigIntValue = bdVal.toBigIntegerExact();
-        return new ConcreteAddress(bigIntValue);
-      } catch (ArithmeticException e) {
-        // This double cannot be represented as integer,
-        // represent it as symbolic Address instead
-        return new SymbolicAddress(pAddress);
-      }
-    }
-
-    return new SymbolicAddress(pAddress);
+      case null /*TODO check if null is necessary*/, default -> new SymbolicAddress(pAddress);
+    };
   }
 
   /**
-   * Returns a instance that represents an unknown address.
+   * Returns an instance that represents an unknown address.
    *
-   * @return Returns a instance that represents an unknown address.
+   * @return an instance that represents an unknown address.
    */
   public static Address getUnknownAddress() {
     return UnknownAddress.getInstance();
@@ -191,8 +177,7 @@ public abstract class Address {
 
     @Override
     public boolean equals(Object pObj) {
-      return pObj instanceof ConcreteAddress
-          && addressValue.equals(((ConcreteAddress) pObj).addressValue);
+      return pObj instanceof ConcreteAddress other && addressValue.equals(other.addressValue);
     }
 
     @Override
@@ -313,8 +298,7 @@ public abstract class Address {
 
     @Override
     public boolean equals(Object pObj) {
-      return pObj instanceof SymbolicAddress
-          && symbolicAddress.equals(((SymbolicAddress) pObj).symbolicAddress);
+      return pObj instanceof SymbolicAddress other && symbolicAddress.equals(other.symbolicAddress);
     }
 
     @Override

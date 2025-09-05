@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -117,17 +116,10 @@ public class ConstraintFactory {
   }
 
   private boolean isConstraint(CBinaryExpression pExpression) {
-    switch (pExpression.getOperator()) {
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_EQUAL:
-      case GREATER_THAN:
-      case LESS_EQUAL:
-      case LESS_THAN:
-        return true;
-      default:
-        return false;
-    }
+    return switch (pExpression.getOperator()) {
+      case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> true;
+      default -> false;
+    };
   }
 
   public Constraint createPositiveConstraint(JUnaryExpression pExpression)
@@ -146,18 +138,10 @@ public class ConstraintFactory {
   }
 
   private boolean isConstraint(JBinaryExpression pExpression) {
-    switch (pExpression.getOperator()) {
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-      case NOT_EQUALS:
-      case EQUALS:
-        return true;
-
-      default:
-        return false;
-    }
+    return switch (pExpression.getOperator()) {
+      case GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL, NOT_EQUALS, EQUALS -> true;
+      default -> false;
+    };
   }
 
   public Constraint createPositiveConstraint(AIdExpression pExpression) {
@@ -166,8 +150,8 @@ public class ConstraintFactory {
 
     if (symbolicExpression == null) {
       return null;
-    } else if (symbolicExpression instanceof Constraint) {
-      return (Constraint) symbolicExpression;
+    } else if (symbolicExpression instanceof Constraint constraint) {
+      return constraint;
 
     } else {
       return transformValueToConstraint(symbolicExpression, pExpression.getExpressionType());
@@ -203,31 +187,28 @@ public class ConstraintFactory {
   }
 
   private boolean isNumeric(Type pType) {
-    if (pType instanceof CType) {
-      CType canonicalType = ((CType) pType).getCanonicalType();
-      if (canonicalType instanceof CSimpleType) {
-        switch (((CSimpleType) canonicalType).getType()) {
-          case FLOAT:
-          case INT:
+    if (pType instanceof CType cType) {
+      CType canonicalType = cType.getCanonicalType();
+      if (canonicalType instanceof CSimpleType cSimpleType) {
+        switch (cSimpleType.getType()) {
+          case FLOAT, INT -> {
             return true;
-          default:
+          }
+          default -> {
             // DO NOTHING, false is returned below
+          }
         }
       }
 
       return false;
-    } else if (pType instanceof JSimpleType) {
-      switch (((JSimpleType) pType).getType()) {
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
+    } else if (pType instanceof JSimpleType jSimpleType) {
+      switch (jSimpleType) {
+        case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> {
           return true;
-        default:
+        }
+        default -> {
           // DO NOTHING, false is returned below
+        }
       }
 
       return false;
@@ -237,15 +218,15 @@ public class ConstraintFactory {
   }
 
   private boolean isBoolean(Type pType) {
-    if (pType instanceof CType) {
-      CType canonicalType = ((CType) pType).getCanonicalType();
+    if (pType instanceof CType cType) {
+      CType canonicalType = cType.getCanonicalType();
 
-      return canonicalType instanceof CSimpleType
-          && ((CSimpleType) canonicalType).getType() == CBasicType.BOOL;
+      return canonicalType instanceof CSimpleType cSimpleType
+          && cSimpleType.getType() == CBasicType.BOOL;
     }
 
     if (pType instanceof JSimpleType) {
-      return ((JSimpleType) pType).getType() == JBasicType.BOOLEAN;
+      return pType == JSimpleType.BOOLEAN;
     } else {
       throw new AssertionError("Unexpected type " + pType);
     }
@@ -256,7 +237,7 @@ public class ConstraintFactory {
   }
 
   private SymbolicExpression getTrueValueConstant() {
-    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.getBoolean());
+    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.BOOLEAN);
   }
 
   private Constraint createNot(Constraint pConstraint) {

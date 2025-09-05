@@ -86,6 +86,23 @@ public final class StackFrame {
     variableArguments = Optional.ofNullable(pVariableArguments);
   }
 
+  private StackFrame() {
+    stackVariables = PathCopyingPersistentTreeMap.of();
+    stackFunction = null;
+    // use a plain int as return type for void functions
+    returnValueObject = Optional.empty();
+    variableArguments = Optional.empty();
+  }
+
+  /**
+   * For tests only!
+   *
+   * @return a dummy stackframe with no return value and no variable args.
+   */
+  static StackFrame ofDummyStackframe() {
+    return new StackFrame();
+  }
+
   /**
    * Adds an SMG object pObj to a stack frame, representing variable pVariableName
    *
@@ -190,6 +207,9 @@ public final class StackFrame {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
+    if (stackFunction != null) {
+      builder.append(stackFunction + ": ");
+    }
     for (Entry<String, SMGObject> entry : stackVariables.entrySet()) {
       builder.append(entry.getKey() + " -> " + entry.getValue() + "  ");
     }

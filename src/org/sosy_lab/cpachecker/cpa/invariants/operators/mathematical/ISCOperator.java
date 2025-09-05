@@ -68,6 +68,9 @@ public enum ISCOperator
       }
       BigInteger largestPossibleValue = pValue.subtract(BigInteger.ONE);
       CompoundMathematicalInterval result = CompoundMathematicalInterval.bottom();
+      if (pFirstOperand.containsZero()) {
+        result = result.unionWith(SimpleInterval.singleton(BigInteger.ZERO));
+      }
       if (pFirstOperand.containsNegative()) {
         CompoundMathematicalInterval negRange =
             CompoundMathematicalInterval.of(

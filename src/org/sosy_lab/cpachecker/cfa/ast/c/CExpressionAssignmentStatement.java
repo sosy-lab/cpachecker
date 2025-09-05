@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -15,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class CExpressionAssignmentStatement extends AExpressionAssignmentStatement
     implements CAssignment, CStatement {
 
-  private static final long serialVersionUID = -5024636179305930137L;
+  @Serial private static final long serialVersionUID = -5024636179305930137L;
 
   public CExpressionAssignmentStatement(
       FileLocation pFileLocation, CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {

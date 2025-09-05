@@ -99,7 +99,9 @@ public class ConstraintsCPA
     CtoFormulaConverter converter =
         initializeCToFormulaConverter(
             formulaManager, pLogger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
-    constraintsSolver = new ConstraintsSolver(pConfig, solver, formulaManager, converter, stats);
+    constraintsSolver =
+        new ConstraintsSolver(
+            pConfig, pCfa.getMachineModel(), solver, formulaManager, converter, stats);
 
     abstractDomain = initializeAbstractDomain();
     mergeOperator = initializeMergeOperator();
@@ -138,14 +140,10 @@ public class ConstraintsCPA
   }
 
   private MergeOperator initializeMergeOperator() {
-    switch (mergeType) {
-      case SEP:
-        return MergeSepOperator.getInstance();
-      case JOIN_FITTING_CONSTRAINT:
-        return new ConstraintsMergeOperator(stats);
-      default:
-        throw new AssertionError("Unhandled merge type " + mergeType);
-    }
+    return switch (mergeType) {
+      case SEP -> MergeSepOperator.getInstance();
+      case JOIN_FITTING_CONSTRAINT -> new ConstraintsMergeOperator(stats);
+    };
   }
 
   private StopOperator initializeStopOperator() {
@@ -156,8 +154,6 @@ public class ConstraintsCPA
     abstractDomain =
         switch (lessOrEqualType) {
           case SUBSET -> SubsetLessOrEqualOperator.getInstance();
-          default -> throw new AssertionError(
-              "Unhandled type for less-or-equal operator: " + lessOrEqualType);
         };
 
     return abstractDomain;

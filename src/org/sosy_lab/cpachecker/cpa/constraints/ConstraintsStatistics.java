@@ -41,25 +41,27 @@ public class ConstraintsStatistics implements Statistics {
   public final StatTimer timeForSatCheck = new StatTimer(StatKind.SUM, "Time for SMT check");
   public final StatCounter modelReuseSuccesses = new StatCounter("Successful model re-uses");
 
-  public StatCounter cacheLookups = new StatCounter("Cache lookups");
-  public StatTimer directCacheLookupTime = new StatTimer(StatKind.SUM, "Direct cache lookup time");
-  public StatCounter directCacheHits = new StatCounter("Direct cache hits");
-  public StatTimer subsetLookupTime = new StatTimer(StatKind.SUM, "Subset cache lookup time");
-  public StatCounter subsetCacheHits = new StatCounter("Subset cache hits");
-  public StatTimer supersetLookupTime = new StatTimer(StatKind.SUM, "Superset cache lookup time");
-  public StatCounter supersetCacheHits = new StatCounter("Superset cache hits");
+  public final StatCounter cacheLookups = new StatCounter("Cache lookups");
+  public final StatTimer directCacheLookupTime =
+      new StatTimer(StatKind.SUM, "Direct cache lookup time");
+  public final StatCounter directCacheHits = new StatCounter("Direct cache hits");
+  public final StatTimer subsetLookupTime = new StatTimer(StatKind.SUM, "Subset cache lookup time");
+  public final StatCounter subsetCacheHits = new StatCounter("Subset cache hits");
+  public final StatTimer supersetLookupTime =
+      new StatTimer(StatKind.SUM, "Superset cache lookup time");
+  public final StatCounter supersetCacheHits = new StatCounter("Superset cache hits");
 
-  public StatInt constraintNumberBeforeAdj =
+  public final StatInt constraintNumberBeforeAdj =
       new StatInt(StatKind.SUM, "Constraints before refinement in state");
-  public StatInt constraintNumberAfterAdj =
+  public final StatInt constraintNumberAfterAdj =
       new StatInt(StatKind.SUM, "Constraints after refinement in state");
   public final StatTimer adjustmentTime =
       new StatTimer(StatKind.SUM, "Time for constraints adjustment");
 
-  public StatCounter constraintsRemovedInMerge =
+  public final StatCounter constraintsRemovedInMerge =
       new StatCounter("Number of constraints removed in merge");
 
-  private String name;
+  private final String name;
 
   /**
    * Creates a new <code>ConstraintsStatistics</code> object with a default name. This name is used

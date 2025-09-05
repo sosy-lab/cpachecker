@@ -48,14 +48,15 @@ as supported by the `reuse` tool.
   BDD package for multi-core CPUs  
   Manual for building in `native/source/libsylvan.md`
 
-- `jpl.jar` and `libjpl.so`: [SWI-PL](http://www.swi-prolog.org/)
-
-- `chc_lib`: CHC/CLP Generalization Operators Library  
-  It requires a working SWI-Prolog installation.
-
 - `ltl3ba`: [LTL3BA](https://sourceforge.net/projects/ltl3ba/)  
   Translator of LTL formulae to Büchi automata based on LTL2BA
   (command-line binary, includes [BuDDy](https://sourceforge.net/projects/buddy/))
 
 - `z3`: [SMT Solver Z3](https://github.com/Z3Prover/z3)
   The command-line binary is necessary because Ultimate LassoRanker calls it.
+
+- `mpfr_java.jar`
+  and `libmpfr_java.so`: [mpfr-java](https://github.com/runtimeverification/mpfr-java/)  
+  Java bindings for [MPFR](https://www.mpfr.org/), a C library for multiple-precision
+  floating-point computations with correct rounding.  
+  Build instructions can be found in `native/source/mpfr-java/README.md`

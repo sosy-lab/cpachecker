@@ -38,10 +38,12 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -60,8 +62,8 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
@@ -102,12 +104,13 @@ public class CEXExporter {
       ImmutableList.of(PathEqualityCounterexampleFilter::new);
 
   private final CounterexampleFilter cexFilter;
+  private final CFA cfa;
 
   private final CEXExportOptions options;
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
+  private final CounterexampleToWitness cexToWitness;
   private final ExtendedWitnessExporter extendedWitnessExporter;
-  private final InvariantWitnessWriter invariantWitnessWriter;
   private final HarnessExporter harnessExporter;
   private final FaultLocalizationInfoExporter faultExporter;
   private TestCaseExporter testExporter;
@@ -116,30 +119,36 @@ public class CEXExporter {
       Configuration config,
       CEXExportOptions pOptions,
       LogManager pLogger,
-      CFA cfa,
+      Specification pSpecification,
+      CFA pCFA,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
-      ExtendedWitnessExporter pExtendedWitnessExporter,
-      @Nullable InvariantWitnessWriter pInvariantWitnessWriter)
+      ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
     config.inject(this);
     options = pOptions;
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
-    invariantWitnessWriter = pInvariantWitnessWriter;
+    cfa = pCFA;
 
     if (!options.disabledCompletely()) {
       cexFilter =
           CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
-      harnessExporter = new HarnessExporter(config, pLogger, cfa);
-      testExporter = new TestCaseExporter(cfa, logger, config);
+      harnessExporter = new HarnessExporter(config, pLogger, pCFA);
+      testExporter = new TestCaseExporter(pCFA, logger, config);
       faultExporter = new FaultLocalizationInfoExporter(config);
+      if (options.getYamlWitnessPathTemplate() != null) {
+        cexToWitness = new CounterexampleToWitness(config, pCFA, pSpecification, pLogger);
+      } else {
+        cexToWitness = null;
+      }
     } else {
       cexFilter = null;
       harnessExporter = null;
       testExporter = null;
       faultExporter = null;
+      cexToWitness = null;
     }
   }
 
@@ -166,7 +175,7 @@ public class CEXExporter {
    * @param targetState state of an ARG, used as fallback, if pCounterexampleInfo contains no
    *     targetPath.
    * @param counterexample contains further information and the (optional) targetPath. If the
-   *     targetPath is available, it will be used for the output. Otherwise we use backwards
+   *     targetPath is available, it will be used for the output. Otherwise, we use backwards
    *     reachable states from pTargetState.
    */
   public void exportCounterexample(
@@ -178,12 +187,13 @@ public class CEXExporter {
       return;
     }
 
-    if (exportFaults && counterexample instanceof FaultLocalizationInfo && faultExporter != null) {
+    if (exportFaults
+        && counterexample instanceof FaultLocalizationInfo faultLocalizationInfo
+        && faultExporter != null) {
       try {
         CFAPathWithAssumptions errorPath = counterexample.getCFAPathWithAssignments();
         faultExporter.export(
-            ((FaultLocalizationInfo) counterexample).getRankedList(),
-            errorPath.get(errorPath.size() - 1).getCFAEdge());
+            faultLocalizationInfo.getRankedList(), errorPath.getLast().getCFAEdge());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not export faults as JSON.");
       }
@@ -241,8 +251,9 @@ public class CEXExporter {
       if (options.getSourceFile() != null) {
         pathProgram =
             switch (codeStyle) {
-              case CONCRETE_EXECUTION -> PathToConcreteProgramTranslator.translateSinglePath(
-                  targetPath, counterexample.getCFAPathWithAssignments());
+              case CONCRETE_EXECUTION ->
+                  PathToConcreteProgramTranslator.translateSinglePath(
+                      targetPath, counterexample.getCFAPathWithAssignments());
               case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
             };
       }
@@ -256,21 +267,18 @@ public class CEXExporter {
 
       if (options.getSourceFile() != null) {
         switch (codeStyle) {
-          case CONCRETE_EXECUTION:
-            logger.log(
-                Level.WARNING,
-                "Cannot export imprecise counterexample to C code for concrete execution.");
-            break;
-          case CBMC:
+          case CONCRETE_EXECUTION ->
+              logger.log(
+                  Level.WARNING,
+                  "Cannot export imprecise counterexample to C code for concrete execution.");
+          case CBMC -> {
             // "translatePaths" does not work if the ARG branches without assume edge
             if (ARGUtils.hasAmbiguousBranching(rootState, pathElements)) {
               pathProgram = PathToCTranslator.translateSinglePath(targetPath);
             } else {
               pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
             }
-            break;
-          default:
-            throw new AssertionError("Unhandled case statement: " + codeStyle);
+          }
         }
       }
     }
@@ -307,7 +315,7 @@ public class CEXExporter {
 
     if (options.getWitnessFile() != null
         || options.getWitnessDotFile() != null
-        || options.getYamlWitnessFile() != null) {
+        || options.getYamlWitnessPathTemplate() != null) {
       try {
         final Witness witness =
             witnessExporter.generateErrorWitness(
@@ -324,17 +332,21 @@ public class CEXExporter {
             uniqueId,
             (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
-
-        if (invariantWitnessWriter != null) {
-          writeErrorPathFile(
-              options.getYamlWitnessFile(),
-              uniqueId,
-              (Appender)
-                  pApp -> {
-                    invariantWitnessWriter.exportErrorWitnessAsYamlWitness(witness, pApp);
-                  },
-              compressWitness);
+        if (cfa.getMetadata().getInputLanguage() == Language.C) {
+          if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
+            try {
+              cexToWitness.export(counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
+            } catch (IOException e) {
+              logger.logUserException(
+                  Level.WARNING, e, "Could not generate YAML violation witness.");
+            }
+          }
+        } else {
+          logger.log(
+              Level.WARNING,
+              "Cannot export violation witness to YAML format for languages other than C.");
         }
+
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
       }
@@ -356,17 +368,13 @@ public class CEXExporter {
       }
     }
 
-    writeErrorPathFile(
-        options.getTestHarnessFile(),
-        uniqueId,
-        (Appender)
-            pAppendable ->
-                harnessExporter.writeHarness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample));
+    if (options.getTestHarnessFile() != null) {
+      Optional<String> harness =
+          harnessExporter.writeHarness(
+              rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+      harness.ifPresent(
+          content -> writeErrorPathFile(options.getTestHarnessFile(), uniqueId, content));
+    }
 
     if (options.exportToTest() && testExporter != null) {
       testExporter.writeTestCaseFiles(counterexample, Optional.empty());

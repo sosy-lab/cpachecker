@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
  * This Visitor implements evaluation of simply typed expressions. An expression is defined as
  * simply typed iff it is not an array type ({@link
  * org.sosy_lab.cpachecker.cfa.types.c.CArrayType}), a struct or union type ({@link
- * org.sosy_lab.cpachecker.cfa.types.c.CComplexType}), a imaginary type ({@link
+ * org.sosy_lab.cpachecker.cfa.types.c.CComplexType}), an imaginary type ({@link
  * CImaginaryLiteralExpression}), or a pointer type ({@link
  * org.sosy_lab.cpachecker.cfa.types.c.CPointerType}). The key distinction between these types and
  * simply typed types is, that a value of simply typed types can be represented as a numerical value
@@ -129,49 +129,34 @@ public class BDDVectorCExpressionVisitor
       rVal = castCValue(rVal, rType, calculationType, bvmgr, machineModel);
     }
 
-    Region[] result;
-    switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case MODULO:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
-        result =
-            castCValue(
-                result, calculationType, binaryExpr.getExpressionType(), bvmgr, machineModel);
-
-        break;
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
+    return switch (binaryOperator) {
+      case PLUS,
+          MINUS,
+          DIVIDE,
+          MODULO,
+          MULTIPLY,
+          SHIFT_LEFT,
+          SHIFT_RIGHT,
+          BINARY_AND,
+          BINARY_OR,
+          BINARY_XOR -> {
+        Region[] result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
+        yield castCValue(
+            result, calculationType, binaryExpr.getExpressionType(), bvmgr, machineModel);
+      }
+      case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         final Region tmp = booleanOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
         // return 1 if expression holds, 0 otherwise
 
         int size = 32;
-        if (calculationType instanceof CSimpleType) {
-          size = machineModel.getSizeofInBits((CSimpleType) calculationType);
+        if (calculationType instanceof CSimpleType cSimpleType) {
+          size = machineModel.getSizeofInBits(cSimpleType);
         }
 
-        result = bvmgr.wrapLast(tmp, size);
+        yield bvmgr.wrapLast(tmp, size);
         // we do not cast here, because 0 and 1 should be small enough for every type.
-
-        break;
-
-      default:
-        throw new AssertionError("unhandled binary operator");
-    }
-
-    return result;
+      }
+    };
   }
 
   private static Region[] arithmeticOperation(
@@ -182,41 +167,29 @@ public class BDDVectorCExpressionVisitor
       final CType calculationType) {
 
     boolean signed = true;
-    if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
+    if (calculationType instanceof CSimpleType cSimpleType) {
+      signed = !cSimpleType.hasUnsignedSpecifier();
     }
 
-    switch (op) {
-      case PLUS:
-        return bvmgr.makeAdd(l, r);
-      case MINUS:
-        return bvmgr.makeSub(l, r);
-      case DIVIDE:
-        // this would be working for constant numbers (2/3, x/3),
-        // however timeout for variables (a/b -> exponential bdd-size).
-        return bvmgr.makeDiv(l, r, signed);
-      case MODULO:
-        // this would be working for constant numbers (2%3, x%3),
-        // however timeout for variables (a%b -> exponential bdd-size).
-        return bvmgr.makeMod(l, r, signed);
-      case MULTIPLY:
-        // this should be working for constant numbers (2*3, x*3),
-        // however timeout for variables (a*b -> exponential bdd-size).
-        return bvmgr.makeMult(l, r);
-      case SHIFT_LEFT:
-        return bvmgr.makeShiftLeft(l, r);
-      case SHIFT_RIGHT:
-        return bvmgr.makeShiftRight(l, r, signed);
-      case BINARY_AND:
-        return bvmgr.makeBinaryAnd(l, r);
-      case BINARY_OR:
-        return bvmgr.makeBinaryOr(l, r);
-      case BINARY_XOR:
-        return bvmgr.makeXor(l, r);
-
-      default:
-        throw new AssertionError("unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case PLUS -> bvmgr.makeAdd(l, r);
+      case MINUS -> bvmgr.makeSub(l, r);
+      case DIVIDE -> // this would be working for constant numbers (2/3, x/3),
+          // however timeout for variables (a/b -> exponential bdd-size).
+          bvmgr.makeDiv(l, r, signed);
+      case MODULO -> // this would be working for constant numbers (2%3, x%3),
+          // however timeout for variables (a%b -> exponential bdd-size).
+          bvmgr.makeMod(l, r, signed);
+      case MULTIPLY -> // this should be working for constant numbers (2*3, x*3),
+          // however timeout for variables (a*b -> exponential bdd-size).
+          bvmgr.makeMult(l, r);
+      case SHIFT_LEFT -> bvmgr.makeShiftLeft(l, r);
+      case SHIFT_RIGHT -> bvmgr.makeShiftRight(l, r, signed);
+      case BINARY_AND -> bvmgr.makeBinaryAnd(l, r);
+      case BINARY_OR -> bvmgr.makeBinaryOr(l, r);
+      case BINARY_XOR -> bvmgr.makeXor(l, r);
+      default -> throw new AssertionError("unknown binary operation: " + op);
+    };
   }
 
   protected static Region booleanOperation(
@@ -227,27 +200,21 @@ public class BDDVectorCExpressionVisitor
       final CType calculationType) {
 
     boolean signed = true;
-    if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
+    if (calculationType instanceof CSimpleType cSimpleType) {
+      signed = !cSimpleType.hasUnsignedSpecifier();
     }
 
-    switch (op) {
-      case EQUALS:
-        return bvmgr.makeLogicalEqual(l, r);
-      case NOT_EQUALS:
-        return bvmgr.makeNot(bvmgr.makeLogicalEqual(l, r));
-      case GREATER_THAN: // A>B <--> B<A
-        return bvmgr.makeLess(r, l, signed);
-      case GREATER_EQUAL: // A>=B <--> B<=A
-        return bvmgr.makeLessOrEqual(r, l, signed);
-      case LESS_THAN:
-        return bvmgr.makeLess(l, r, signed);
-      case LESS_EQUAL:
-        return bvmgr.makeLessOrEqual(l, r, signed);
-
-      default:
-        throw new AssertionError("unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case EQUALS -> bvmgr.makeLogicalEqual(l, r);
+      case NOT_EQUALS -> bvmgr.makeNot(bvmgr.makeLogicalEqual(l, r));
+      case GREATER_THAN -> // A>B <--> B<A
+          bvmgr.makeLess(r, l, signed);
+      case GREATER_EQUAL -> // A>=B <--> B<=A
+          bvmgr.makeLessOrEqual(r, l, signed);
+      case LESS_THAN -> bvmgr.makeLess(l, r, signed);
+      case LESS_EQUAL -> bvmgr.makeLessOrEqual(l, r, signed);
+      default -> throw new AssertionError("unknown binary operation: " + op);
+    };
   }
 
   @Override
@@ -296,13 +263,11 @@ public class BDDVectorCExpressionVisitor
     final TypeIdOperator idOperator = pE.getOperator();
     final CType innerType = pE.getType();
 
-    switch (idOperator) {
-      case SIZEOF:
-        return getSizeof(innerType);
-
-      default: // TODO support more operators
-        return null;
-    }
+    return switch (idOperator) {
+      case SIZEOF -> getSizeof(innerType);
+      default -> // TODO support more operators
+          null;
+    };
   }
 
   @Override
@@ -334,22 +299,18 @@ public class BDDVectorCExpressionVisitor
       return null;
     }
 
-    switch (unaryOperator) {
-      case MINUS: // -X == (0-X)
-        return bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
-
-      case SIZEOF:
-        throw new AssertionError("SIZEOF should be handled before!");
-
-      case AMPER: // valid expression, but it's a pointer value
-        // TODO Not precise enough
-        return getSizeof(unaryOperand.getExpressionType());
-      case TILDE: // ~X == (X===0)
-        return bvmgr.makeBinaryEqual(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
-      default:
-        // TODO handle unimplemented operators
-        return null;
-    }
+    return switch (unaryOperator) {
+      case MINUS -> // -X == (0-X)
+          bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
+      case SIZEOF -> throw new AssertionError("SIZEOF should be handled before!");
+      case AMPER -> // valid expression, but it's a pointer value
+          // TODO Not precise enough
+          getSizeof(unaryOperand.getExpressionType());
+      case TILDE -> // ~X == (X===0)
+          bvmgr.makeBinaryEqual(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
+      default -> // TODO handle unimplemented operators
+          null;
+    };
   }
 
   private Region[] getSizeof(CType pType) {
@@ -377,7 +338,7 @@ public class BDDVectorCExpressionVisitor
   /**
    * This method returns the input-value, casted to match the type. If the value matches the type,
    * it is returned unchanged. This method handles overflows and print warnings for the user.
-   * Example: This method is called, when an value of type 'integer' is assigned to a variable of
+   * Example: This method is called, when a value of type 'integer' is assigned to a variable of
    * type 'char'.
    *
    * @param value will be casted. If value is null, null is returned.
@@ -402,7 +363,7 @@ public class BDDVectorCExpressionVisitor
           machineModel.isSigned((CSimpleType) sourceType),
           value);
     }
-    // currently we do not handle floats, doubles or voids, pointers, so lets ignore this case.
+    // currently, we do not handle floats, doubles or voids, pointers, so let's ignore this case.
     return value;
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -16,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public final class JCharLiteralExpression extends ACharLiteralExpression
     implements JLiteralExpression {
 
-  private static final long serialVersionUID = -5126249764688975449L;
+  @Serial private static final long serialVersionUID = -5126249764688975449L;
 
   public JCharLiteralExpression(FileLocation pFileLocation, JType pType, char pCharacter) {
     super(pFileLocation, pType, pCharacter);

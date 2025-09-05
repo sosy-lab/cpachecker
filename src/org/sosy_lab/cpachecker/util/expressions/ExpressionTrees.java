@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.expressions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -20,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,8 +32,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
@@ -42,7 +43,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /** This is a utility class for common operations on {@link ExpressionTree}s */
 public final class ExpressionTrees {
 
-  private static final String FUNCTION_DELIMITER = "::";
+  public static final String FUNCTION_DELIMITER = "::";
 
   @SuppressWarnings("unchecked")
   public static <LeafType> ExpressionTree<LeafType> getTrue() {
@@ -447,7 +448,8 @@ public final class ExpressionTrees {
 
   public static <S, T> ExpressionTree<T> convert(
       ExpressionTree<S> pSource, final Function<? super S, ? extends T> pLeafConverter) {
-    final Function<ExpressionTree<S>, ExpressionTree<T>> convert =
+    // Type checking fails if this is a java util Function due to being used in a FluentIterable
+    final com.google.common.base.Function<ExpressionTree<S>, ExpressionTree<T>> convert =
         pTree -> convert(pTree, pLeafConverter);
     ExpressionTreeVisitor<S, ExpressionTree<T>, NoException> converter =
         new CachingVisitor<>() {
@@ -494,42 +496,73 @@ public final class ExpressionTrees {
 
   /**
    * Builds an expression tree for the given {@link BooleanFormula}. If the formula is invalid, i.e.
-   * a literal/variable from another method is present (not in scope), the expression tree
-   * representing true is returned.
+   * a literal/variable from another method is present (not in scope) an exception is thrown.
    *
    * <p>Hint: This method can be used to get a C-like assumptions from a boolean formula, obtained
-   * using the toStrng() method of the expression tree
+   * using the toString() method of the expression tree
    *
    * @param formula the formula to transform
    * @param fMgr the formula manger having the formula "in scope"
-   * @param location to determine the current method for checking the scope.
+   * @param location a node in which the function the formula is in scope is located
+   * @param variableNameReplacer a function to replace variable names.
    * @return the expression tree representing the formula.
    */
   public static ExpressionTree<Object> fromFormula(
-      BooleanFormula formula, FormulaManagerView fMgr, CFANode location)
-      throws InterruptedException {
+      BooleanFormula formula,
+      FormulaManagerView fMgr,
+      CFANode location,
+      Function<String, String> variableNameReplacer)
+      throws InterruptedException, TranslationToExpressionTreeFailedException {
+    return fromFormula(
+        formula,
+        fMgr,
+        name ->
+            !name.contains(FUNCTION_DELIMITER)
+                || name.startsWith(location.getFunctionName() + FUNCTION_DELIMITER),
+        variableNameReplacer);
+  }
+
+  /**
+   * Builds an expression tree for the given {@link BooleanFormula}. If the formula contains
+   * variables which do not match the filter pIncludeVariablesFilter the expression tree
+   * representing true is returned.
+   *
+   * <p>Hint: This method can be used to get a C-like assumptions from a boolean formula, obtained
+   * using the toString() method of the expression tree
+   *
+   * @param formula the formula to transform
+   * @param fMgr the formula manger having the formula "in scope"
+   * @param pIncludeVariablesFilter a filter for variable names, which should be considered.
+   * @param variableNameReplacer a function to replace variable names.
+   * @return the expression tree representing the formula.
+   */
+  public static ExpressionTree<Object> fromFormula(
+      BooleanFormula formula,
+      FormulaManagerView fMgr,
+      Function<String, Boolean> pIncludeVariablesFilter,
+      Function<String, String> variableNameReplacer)
+      throws InterruptedException, TranslationToExpressionTreeFailedException {
 
     BooleanFormula inv = formula;
-    String prefix = location.getFunctionName() + FUNCTION_DELIMITER;
 
     inv =
         fMgr.filterLiterals(
             inv,
             e -> {
               for (String name : fMgr.extractVariableNames(e)) {
-                if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
+                if (!pIncludeVariablesFilter.apply(name)) {
                   return false;
                 }
               }
               return true;
             });
 
-    FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
+    FormulaToCVisitor v = new FormulaToCVisitor(fMgr, variableNameReplacer);
     boolean isValid = fMgr.visit(inv, v);
-    if (isValid) {
-      return LeafExpression.of(v.getString());
+    if (!isValid) {
+      throw new TranslationToExpressionTreeFailedException("Could not translate formula to C");
     }
-    return ExpressionTrees.getTrue();
+    return LeafExpression.of(v.getString());
   }
 
   /**
@@ -558,7 +591,7 @@ public final class ExpressionTrees {
   private static class ExpressionTreeComparator<LeafType>
       implements Comparator<ExpressionTree<LeafType>>, Serializable {
 
-    private static final long serialVersionUID = -8004131077972723263L;
+    @Serial private static final long serialVersionUID = -8004131077972723263L;
 
     private final Comparator<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
         Comparators.lexicographical(this);
@@ -892,27 +925,4 @@ public final class ExpressionTrees {
           return 4;
         }
       };
-
-  public static ExpressionTree<Object> removeCPAcheckerInternals(ExpressionTree<Object> pExprTree) {
-    ContainsCPAcheckerInternalVisitor cpacheckerInternalsVisitor =
-        new ContainsCPAcheckerInternalVisitor();
-    Function<Object, Boolean> removalFunction =
-        x -> {
-          try {
-            return ((CExpression) x).accept(cpacheckerInternalsVisitor);
-          } catch (Exception e1) {
-            return false;
-          }
-        };
-
-    RemovingStructuresVisitor<Object, Exception> visitor =
-        new RemovingStructuresVisitor<>(removalFunction);
-    ExpressionTree<Object> result;
-    try {
-      result = pExprTree.accept(visitor);
-    } catch (Exception e) {
-      return pExprTree;
-    }
-    return result;
-  }
 }

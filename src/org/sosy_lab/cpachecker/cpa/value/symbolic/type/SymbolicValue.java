@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * <p>Each class implementing this interface should provide an <code>equals(Object)</code> method
  * that allows checks for equality of symbolic values.
  */
-@SuppressWarnings("serial") // we cannot set a UID for an interface
 public interface SymbolicValue extends Value, Serializable {
 
   <T> T accept(SymbolicValueVisitor<T> pVisitor);

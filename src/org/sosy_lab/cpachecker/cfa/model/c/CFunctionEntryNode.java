@@ -20,8 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public final class CFunctionEntryNode extends FunctionEntryNode {
 
-  private static final long serialVersionUID = -730687961628864953L;
-
   public CFunctionEntryNode(
       final FileLocation pFileLocation,
       final CFunctionDeclaration pFunctionDefinition,

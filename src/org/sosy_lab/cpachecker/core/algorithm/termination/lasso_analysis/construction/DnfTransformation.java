@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -122,7 +123,7 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
   private static class DnfTransformationException extends RuntimeException {
 
-    private static final long serialVersionUID = 8329172743374361993L;
+    @Serial private static final long serialVersionUID = 8329172743374361993L;
 
     DnfTransformationException(String pMsg, Throwable pCause) {
       super(checkNotNull(pMsg), checkNotNull(pCause));

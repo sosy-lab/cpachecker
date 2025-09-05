@@ -14,8 +14,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 /** A CFANode that marks the end of a path. */
 public final class CFATerminationNode extends CFANode {
 
-  private static final long serialVersionUID = -8328879108494506389L;
-
   public CFATerminationNode(AFunctionDeclaration pFunction) {
     super(pFunction);
   }

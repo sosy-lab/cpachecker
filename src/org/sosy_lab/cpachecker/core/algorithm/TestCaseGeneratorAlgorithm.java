@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -124,8 +125,33 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     if (pSpec.getProperties().size() == 1) {
       specProp = pSpec.getProperties().iterator().next();
       Preconditions.checkArgument(
-          specProp.isCoverage(), "Property %s not supported for test generation", specProp);
+          specProp.isCoverage(), "Property %s not supported for test-case generation", specProp);
+      Preconditions.checkArgument(
+          pSpec.getFiles().isEmpty(), "Specification files not supported for test-case generation");
+      Preconditions.checkArgument(
+          pSpec.getPathToSpecificationAutomata().isEmpty(),
+          "Specification automata not supported n test-case generation");
+      Preconditions.checkArgument(
+          pSpec.getSpecificationAutomata().isEmpty(),
+          "Specification automata not supported n test-case generation");
     } else {
+      if (pSpec.getProperties().size() > 1) {
+        logger.log(
+            Level.INFO,
+            "Multiple properties are not supported by test-case generation and will be ignored.");
+      }
+      if (!pSpec.getFiles().isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "Specification files are not supported by test-case generation and will be ignored.");
+      }
+      if (!pSpec.getPathToSpecificationAutomata().isEmpty()
+          || !pSpec.getSpecificationAutomata().isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "Specification automata are not supported by test-case generation and will be"
+                + " ignored.");
+      }
       specProp = null;
     }
   }
@@ -283,7 +309,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     Preconditions.checkState(shouldReportCoveredErrorCallAsError());
     pReached.add(
         new DummyErrorState(pReached.getLastState()) {
-          private static final long serialVersionUID = 5522643115974481914L;
+          @Serial private static final long serialVersionUID = 5522643115974481914L;
 
           @Override
           public Set<TargetInformation> getTargetInformation() {
@@ -299,21 +325,18 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(TestTargetProvider.getTestTargetStatisitics(printTestTargetInfoInStats));
   }
 
   @Override
   public double getProgress() {
-    switch (progressType) {
-      case ABSOLUTE:
-        return progress;
-      case RELATIVE_TOTAL:
-        return progress / Math.max(1, TestTargetProvider.getTotalNumberOfTestTargets());
-      default:
-        throw new AssertionError("Unhandled progress computation type: " + progressType);
-    }
+    return switch (progressType) {
+      case ABSOLUTE -> progress;
+      case RELATIVE_TOTAL ->
+          progress / Math.max(1, TestTargetProvider.getTotalNumberOfTestTargets());
+    };
   }
 }

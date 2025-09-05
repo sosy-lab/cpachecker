@@ -6,17 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains utility classes for program slicing.
- *
- * @see org.sosy_lab.cpachecker.util.dependencegraph
- */
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -24,11 +20,12 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 /** Class implementing joinSPC algorithm10 from FIT-TR-2013-4 (Appendix C.7) */
@@ -54,6 +51,10 @@ public class SMGJoinSPC extends SMGAbstractJoin {
     inputSPC2 = pSpc2;
     // assert that both variable region mappings contain the same variables
     checkVariableRanges();
+    // assert that both atExit stacks must be the same
+    // FIXME: Actually join the stacks
+    Preconditions.checkArgument(pSpc1.getAtExitStack().equals(pSpc2.getAtExitStack()));
+    PersistentStack<Value> resultAtExitStack = pSpc1.getAtExitStack();
 
     // step 2 and 3 loop over all variables and apply joinSubSMGS on
     // global heap mapping
@@ -112,13 +113,15 @@ public class SMGJoinSPC extends SMGAbstractJoin {
         SymbolicProgramConfiguration.of(
             destSMG,
             PathCopyingPersistentTreeMap.copyOf(resultGolbalMapping),
+            resultAtExitStack,
             resultStackMapping,
             PersistentSet.of(),
             PathCopyingPersistentTreeMap.of(),
             ImmutableBiMap.of(),
             PathCopyingPersistentTreeMap.of(),
             PathCopyingPersistentTreeMap.of(),
-            PathCopyingPersistentTreeMap.of());
+            PathCopyingPersistentTreeMap.of(),
+            ImmutableSet.of());
   }
 
   /** Apply joinSubSMG on the two input SMG and the SMGObjects connected to a certain variable. */

@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
@@ -76,16 +74,16 @@ public final class CInitializers {
 
     CLeftHandSide lhs = new CIdExpression(decl.getFileLocation(), decl);
 
-    if (init instanceof CInitializerExpression) {
-      CExpression initExp = ((CInitializerExpression) init).getExpression();
+    if (init instanceof CInitializerExpression cInitializerExpression) {
+      CExpression initExp = cInitializerExpression.getExpression();
       // Create a regular assignment
       CExpressionAssignmentStatement assignment =
           new CExpressionAssignmentStatement(decl.getFileLocation(), lhs, initExp);
       return ImmutableList.of(assignment);
 
-    } else if (init instanceof CInitializerList) {
+    } else if (init instanceof CInitializerList cInitializerList) {
 
-      return handleInitializerList(lhs, (CInitializerList) init, decl.getFileLocation(), edge);
+      return handleInitializerList(lhs, cInitializerList, decl.getFileLocation(), edge);
 
     } else {
       throw new UnrecognizedCodeException("Unknown initializer type", edge, init);
@@ -133,30 +131,23 @@ public final class CInitializers {
       CType currentType = currentObject.getExpressionType().getCanonicalType();
       boolean successful;
 
-      if (currentType instanceof CCompositeType
-          && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
+      if (currentType instanceof CCompositeType cCompositeType
+          && cCompositeType.getKind() != ComplexTypeKind.ENUM) {
         successful =
             handleInitializerForCompositeType(
                 currentObject,
                 Optional.empty(),
-                (CCompositeType) currentType,
+                cCompositeType,
                 currentSubobjects,
                 nextSubobjects,
                 loc,
                 edge,
                 null);
 
-      } else if (currentType instanceof CArrayType) {
+      } else if (currentType instanceof CArrayType cArrayType) {
         successful =
             handleInitializerForArray(
-                currentObject,
-                0L,
-                (CArrayType) currentType,
-                currentSubobjects,
-                nextSubobjects,
-                loc,
-                edge,
-                null);
+                currentObject, 0L, cArrayType, currentSubobjects, nextSubobjects, loc, edge, null);
       } else if (currentType instanceof CElaboratedType) {
         throw new UnrecognizedCodeException(
             "Unexpected initializer for " + currentType + " that is not fully defined",
@@ -285,88 +276,46 @@ public final class CInitializers {
       final CType currentType = currentSubobject.getExpressionType().getCanonicalType();
       boolean successful;
 
-      if (designator instanceof CFieldDesignator) {
-        String fieldName = ((CFieldDesignator) designator).getFieldName();
-        if (!(currentType instanceof CCompositeType)
-            || ((CCompositeType) currentType).getKind() == ComplexTypeKind.ENUM) {
-          throw new UnrecognizedCodeException(
-              "Designated field initializer for non-struct type " + currentType, edge, designator);
-        }
-
-        successful =
-            handleInitializerForCompositeType(
-                currentSubobject,
-                Optional.of(fieldName),
-                (CCompositeType) currentType,
-                currentSubobjects,
-                nextSubobjects,
-                loc,
+      switch (designator) {
+        case CFieldDesignator cFieldDesignator -> {
+          String fieldName = cFieldDesignator.getFieldName();
+          if (!(currentType instanceof CCompositeType cCompositeType)
+              || cCompositeType.getKind() == ComplexTypeKind.ENUM) {
+            throw new UnrecognizedCodeException(
+                "Designated field initializer for non-struct type " + currentType,
                 edge,
                 designator);
-
-      } else if (designator instanceof CArrayDesignator) {
-        if (!(currentType instanceof CArrayType)) {
-          throw new UnrecognizedCodeException(
-              "Designated array initializer for non-array type " + currentType, edge, designator);
+          }
+          successful =
+              handleInitializerForCompositeType(
+                  currentSubobject,
+                  Optional.of(fieldName),
+                  cCompositeType,
+                  currentSubobjects,
+                  nextSubobjects,
+                  loc,
+                  edge,
+                  designator);
         }
-
-        CArrayType arrayType = (CArrayType) currentType;
-        CExpression indexExp = ((CArrayDesignator) designator).getSubscriptExpression();
-
-        if (!(indexExp instanceof CIntegerLiteralExpression)) {
-          throw new UnrecognizedCodeException(
-              "Cannot evaluate expression as array designator", edge, designator);
-        }
-
-        BigInteger index = ((CIntegerLiteralExpression) indexExp).getValue();
-        if (!BigInteger.valueOf(index.longValue()).equals(index)) {
-          throw new UnrecognizedCodeException(
-              "Array designator is too large to initialize explicitly", edge, designator);
-        }
-
-        successful =
-            handleInitializerForArray(
-                currentSubobject,
-                index.longValue(),
-                arrayType,
-                currentSubobjects,
-                nextSubobjects,
-                loc,
-                edge,
-                designator);
-
-      } else if (designator instanceof CArrayRangeDesignator) {
-        if (!(currentType instanceof CArrayType)) {
-          throw new UnrecognizedCodeException(
-              "Designated array initializer for non-array type " + currentType, edge, designator);
-        }
-
-        CArrayType arrayType = (CArrayType) currentType;
-        CExpression floorExp = ((CArrayRangeDesignator) designator).getFloorExpression();
-        CExpression ceilExp = ((CArrayRangeDesignator) designator).getCeilExpression();
-
-        if (!(floorExp instanceof CIntegerLiteralExpression)
-            || !(ceilExp instanceof CIntegerLiteralExpression)) {
-          throw new UnrecognizedCodeException(
-              "Cannot evaluate expression as array range designator", edge, designator);
-        }
-
-        BigInteger indexBottom = ((CIntegerLiteralExpression) floorExp).getValue();
-        BigInteger indexTop = ((CIntegerLiteralExpression) ceilExp).getValue();
-        if (!BigInteger.valueOf(indexBottom.longValue()).equals(indexBottom)
-            || !BigInteger.valueOf(indexTop.longValue()).equals(indexTop)) {
-          throw new UnrecognizedCodeException(
-              "Array range designator is too large to initialize explicitly", edge, designator);
-        }
-
-        successful = true;
-        for (long index = indexBottom.longValue();
-            index < indexTop.longValue() && successful;
-            index++) {
+        case CArrayDesignator cArrayDesignator -> {
+          if (!(currentType instanceof CArrayType arrayType)) {
+            throw new UnrecognizedCodeException(
+                "Designated array initializer for non-array type " + currentType, edge, designator);
+          }
+          CExpression indexExp = cArrayDesignator.getSubscriptExpression();
+          if (!(indexExp instanceof CIntegerLiteralExpression cIntegerLiteralExpression)) {
+            throw new UnrecognizedCodeException(
+                "Cannot evaluate expression as array designator", edge, designator);
+          }
+          BigInteger index = cIntegerLiteralExpression.getValue();
+          if (!BigInteger.valueOf(index.longValue()).equals(index)) {
+            throw new UnrecognizedCodeException(
+                "Array designator is too large to initialize explicitly", edge, designator);
+          }
           successful =
               handleInitializerForArray(
                   currentSubobject,
-                  index,
+                  index.longValue(),
                   arrayType,
                   currentSubobjects,
                   nextSubobjects,
@@ -374,10 +323,44 @@ public final class CInitializers {
                   edge,
                   designator);
         }
-
-      } else {
-        throw new UnrecognizedCodeException(
-            "Unrecognized initializer designator", edge, designator);
+        case CArrayRangeDesignator cArrayRangeDesignator -> {
+          if (!(currentType instanceof CArrayType arrayType)) {
+            throw new UnrecognizedCodeException(
+                "Designated array initializer for non-array type " + currentType, edge, designator);
+          }
+          CExpression floorExp = cArrayRangeDesignator.getFloorExpression();
+          CExpression ceilExp = cArrayRangeDesignator.getCeilExpression();
+          if (!(floorExp instanceof CIntegerLiteralExpression floorLitExp)
+              || !(ceilExp instanceof CIntegerLiteralExpression ceilLitExp)) {
+            throw new UnrecognizedCodeException(
+                "Cannot evaluate expression as array range designator", edge, designator);
+          }
+          BigInteger indexBottom = floorLitExp.getValue();
+          BigInteger indexTop = ceilLitExp.getValue();
+          if (!BigInteger.valueOf(indexBottom.longValue()).equals(indexBottom)
+              || !BigInteger.valueOf(indexTop.longValue()).equals(indexTop)) {
+            throw new UnrecognizedCodeException(
+                "Array range designator is too large to initialize explicitly", edge, designator);
+          }
+          successful = true;
+          for (long index = indexBottom.longValue();
+              index < indexTop.longValue() && successful;
+              index++) {
+            successful =
+                handleInitializerForArray(
+                    currentSubobject,
+                    index,
+                    arrayType,
+                    currentSubobjects,
+                    nextSubobjects,
+                    loc,
+                    edge,
+                    designator);
+          }
+        }
+        default ->
+            throw new UnrecognizedCodeException(
+                "Unrecognized initializer designator", edge, designator);
       }
 
       if (!successful) {
@@ -428,8 +411,8 @@ public final class CInitializers {
       final CType currentType = currentSubobject.getExpressionType().getCanonicalType();
 
       // Ignore modifiers const and volatile for equality checks.
-      CType currentTypeWithoutModifier = withoutConst(withoutVolatile(currentType));
-      CType targetTypeWithoutModifier = withoutConst(withoutVolatile(targetType));
+      CType currentTypeWithoutModifier = currentType.withoutQualifiers();
+      CType targetTypeWithoutModifier = targetType.withoutQualifiers();
       if (targetTypeWithoutModifier.equals(currentTypeWithoutModifier)) {
         break;
       }
@@ -440,25 +423,25 @@ public final class CInitializers {
       }
       boolean successful;
 
-      if (currentType instanceof CCompositeType
-          && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
+      if (currentType instanceof CCompositeType cCompositeType
+          && cCompositeType.getKind() != ComplexTypeKind.ENUM) {
         successful =
             handleInitializerForCompositeType(
                 currentSubobject,
                 Optional.empty(),
-                (CCompositeType) currentType,
+                cCompositeType,
                 currentSubobjects,
                 nextSubobjects,
                 loc,
                 edge,
                 null);
 
-      } else if (currentType instanceof CArrayType) {
+      } else if (currentType instanceof CArrayType cArrayType) {
         successful =
             handleInitializerForArray(
                 currentSubobject,
                 0L,
-                (CArrayType) currentType,
+                cArrayType,
                 currentSubobjects,
                 nextSubobjects,
                 loc,
@@ -550,15 +533,11 @@ public final class CInitializers {
     currentSubobjects.push(designatedField);
 
     switch (structType.getKind()) {
-      case STRUCT:
-        nextSubobjects.push(CInitializers.safeCast(fields));
-        break;
-      case UNION:
-        // unions only have their first field initialized, ignore the rest
-        nextSubobjects.push(Collections.emptyIterator());
-        break;
-      default:
-        throw new AssertionError();
+      case STRUCT -> nextSubobjects.push(CInitializers.safeCast(fields));
+      case UNION ->
+          // unions only have their first field initialized, ignore the rest
+          nextSubobjects.push(Collections.emptyIterator());
+      default -> throw new AssertionError();
     }
 
     return true;
@@ -594,9 +573,9 @@ public final class CInitializers {
       throws UnrecognizedCodeException {
 
     Range<Long> arrayIndices;
-    if (arrayType.getLength() instanceof CIntegerLiteralExpression) {
+    if (arrayType.getLength() instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
       // fixed-size array
-      BigInteger size = ((CIntegerLiteralExpression) arrayType.getLength()).getValue();
+      BigInteger size = cIntegerLiteralExpression.getValue();
       if (!BigInteger.valueOf(size.longValue()).equals(size)) {
         throw new UnrecognizedCodeException(
             "Size of type " + arrayType + " is too large to initialize explicitly",

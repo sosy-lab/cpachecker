@@ -56,8 +56,8 @@ public class UnsafeDetector {
   public Pair<UsageInfo, UsageInfo> getUnsafePair(AbstractUsagePointSet set) {
     assert isUnsafe(set);
 
-    if (set instanceof RefinedUsagePointSet) {
-      return ((RefinedUsagePointSet) set).getUnsafePair();
+    if (set instanceof RefinedUsagePointSet refinedUsagePointSet) {
+      return refinedUsagePointSet.getUnsafePair();
     } else {
       UnrefinedUsagePointSet unrefinedSet = (UnrefinedUsagePointSet) set;
       Pair<UsagePoint, UsagePoint> result = getUnsafePair(unrefinedSet.getTopUsages());
@@ -114,19 +114,11 @@ public class UnsafeDetector {
 
   public boolean isUnsafePair(UsagePoint point1, UsagePoint point2) {
     if (point1.isCompatible(point2)) {
-      switch (config.getUnsafeMode()) {
-        case RACE:
-          return isRace(point1, point2);
-
-        case DEADLOCKDISPATCH:
-          return isDeadlockDispatch(point1, point2);
-
-        case DEADLOCKCIRCULAR:
-          return isDeadlockCircular(point1, point2);
-
-        default:
-          throw new AssertionError("Unknown mode: " + config.getUnsafeMode());
-      }
+      return switch (config.getUnsafeMode()) {
+        case RACE -> isRace(point1, point2);
+        case DEADLOCKDISPATCH -> isDeadlockDispatch(point1, point2);
+        case DEADLOCKCIRCULAR -> isDeadlockCircular(point1, point2);
+      };
     }
     return false;
   }

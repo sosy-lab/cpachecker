@@ -39,9 +39,8 @@ public class UsageReducer implements Reducer {
       throws InterruptedException {
     UsageState funRootState = (UsageState) pRootElement;
     UsageState funReducedState = (UsageState) pReducedElement;
-    AbstractState exp;
     // if (!funReducedState.isExitState()) {
-    exp =
+    AbstractState exp =
         wrappedReducer.getVariableExpandedState(
             funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState());
     /*} else {

@@ -197,7 +197,6 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       ioHelper.readMetadata(pIn, true);
     } finally {
       SerializationInfoStorage.clear();
-      SerializationInfoStorage.clear();
     }
     // read partitions in parallel
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);

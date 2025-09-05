@@ -191,7 +191,7 @@ public class TestCaseExporter {
         List<Path> testCaseFiles = getTestCaseFiles(testXMLFile, numPaths);
         if (isFirstTest()) {
           List<Path> metadataFile = new ArrayList<>();
-          metadataFile.add(testCaseFiles.get(0).resolveSibling("metadata.xml"));
+          metadataFile.add(testCaseFiles.getFirst().resolveSibling("metadata.xml"));
           writeTestCase(metadataFile, targetPath, pCex, FormatType.METADATA, pSpec);
         }
         writeTestCase(testCaseFiles, targetPath, pCex, FormatType.XML, pSpec);
@@ -242,7 +242,7 @@ public class TestCaseExporter {
         Preconditions.checkArgument(!pTestCaseFiles.isEmpty());
         if (zipTestCases) {
           try (FileSystem zipFS = openZipFS()) {
-            Path fileName = pTestCaseFiles.get(0).getFileName();
+            Path fileName = pTestCaseFiles.getFirst().getFileName();
             Path testFile =
                 zipFS.getPath(
                     fileName != null ? fileName.toString() : id.getFreshId() + "test.txt");
@@ -255,26 +255,31 @@ public class TestCaseExporter {
                     Charset.defaultCharset())) {
 
               switch (type) {
-                case HARNESS:
-                  harnessExporter.writeHarness(
-                      writer, rootState, relevantStates, relevantEdges, pCexInfo);
-                  break;
-                default:
-                  throw new AssertionError("Unknown test case format.");
+                case HARNESS -> {
+                  Optional<String> harness =
+                      harnessExporter.writeHarness(
+                          rootState, relevantStates, relevantEdges, pCexInfo);
+                  if (harness.isPresent()) {
+                    writer.write(harness.orElseThrow());
+                  }
+                }
+                default -> throw new AssertionError("Unknown test case format.");
               }
             }
           }
         } else {
           Object content =
               switch (type) {
-                case HARNESS -> (Appender)
-                    appendable ->
-                        harnessExporter.writeHarness(
-                            appendable, rootState, relevantStates, relevantEdges, pCexInfo);
+                case HARNESS ->
+                    harnessExporter
+                        .writeHarness(rootState, relevantStates, relevantEdges, pCexInfo)
+                        .orElse(null);
                 default -> throw new AssertionError("Unknown test case format.");
               };
 
-          IO.writeFile(pTestCaseFiles.get(0), Charset.defaultCharset(), content);
+          if (content != null) {
+            IO.writeFile(pTestCaseFiles.getFirst(), Charset.defaultCharset(), content);
+          }
         }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write test case to file");
@@ -326,20 +331,17 @@ public class TestCaseExporter {
                     Charset.defaultCharset())) {
 
               switch (pType) {
-                case PLAIN:
-                  writer.write(
-                      inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated));
-                  break;
-                case METADATA:
-                  XMLTestCaseExport.writeXMLMetadata(
-                      writer, cfa, pSpec.orElse(null), producerString);
-                  break;
-                case XML:
-                  writer.write(
-                      inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE));
-                  break;
-                default:
-                  throw new AssertionError("Unknown test case format.");
+                case PLAIN ->
+                    writer.write(
+                        inputListToFormattedString(
+                            nextInputs, TestCaseExporter::printLineSeparated));
+                case METADATA ->
+                    XMLTestCaseExport.writeXMLMetadata(
+                        writer, cfa, pSpec.orElse(null), producerString);
+                case XML ->
+                    writer.write(
+                        inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE));
+                default -> throw new AssertionError("Unknown test case format.");
               }
             }
             nextInputs = mutateInputValues(pOrigInputs);
@@ -354,10 +356,11 @@ public class TestCaseExporter {
                       inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
                   yield (Appender) appendable -> appendable.append(plainOutput);
                 }
-                case METADATA -> (Appender)
-                    appendable ->
-                        XMLTestCaseExport.writeXMLMetadata(
-                            appendable, cfa, pSpec.orElse(null), producerString);
+                case METADATA ->
+                    (Appender)
+                        appendable ->
+                            XMLTestCaseExport.writeXMLMetadata(
+                                appendable, cfa, pSpec.orElse(null), producerString);
                 case XML -> {
                   String xmlOutput =
                       inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE);
@@ -398,11 +401,11 @@ public class TestCaseExporter {
   }
 
   private String unpack(final AAstNode pInputValue) {
-    if (pInputValue instanceof CCastExpression) {
-      return unpack(((CCastExpression) pInputValue).getOperand());
+    if (pInputValue instanceof CCastExpression cCastExpression) {
+      return unpack(cCastExpression.getOperand());
     } else {
-      if (plainLiteralValue && pInputValue instanceof ALiteralExpression) {
-        return String.valueOf(((ALiteralExpression) pInputValue).getValue());
+      if (plainLiteralValue && pInputValue instanceof ALiteralExpression aLiteralExpression) {
+        return String.valueOf(aLiteralExpression.getValue());
       }
       return pInputValue.toASTString();
     }
@@ -452,8 +455,8 @@ public class TestCaseExporter {
           continue;
         }
         newInput.set(i, String.valueOf(val));
-      } catch (NumberFormatException e) {
-        continue;
+      } catch (NumberFormatException ignored) {
+        // ignore
       }
     }
     return newInput;

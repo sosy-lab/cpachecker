@@ -15,14 +15,24 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetReductionUtils.CFAEdgeNode;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
+
+/*
+ * Based on papers
+ * Antonia Bertolino, Martina Marré: Automatic Generation of Path Covers Based on the
+ * Control Flow Analysis of Computer Programs. IEEE TSE. 20(12): 885-899 (1994)
+ *
+ * ... TODO paper minimum kernel
+ */
 
 public class TestTargetReductionMinimumKernel_UnconstraintEdges {
 
@@ -33,9 +43,10 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
 
     Map<CFAEdge, CFAEdgeNode> targetToGoalGraphNode =
         Maps.newHashMapWithExpectedSize(pTargets.size());
-    Pair<CFAEdgeNode, CFAEdgeNode> entryExit =
+    Pair<Pair<CFAEdgeNode, CFAEdgeNode>, ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>>> result =
         TestTargetReductionUtils.buildNodeBasedTestGoalGraph(
             pTargets, pCfa.getMainFunction(), targetToGoalGraphNode);
+    Pair<CFAEdgeNode, CFAEdgeNode> entryExit = result.getFirst();
 
     DomTree<CFAEdgeNode> domTree =
         DomTree.forGraph(
@@ -44,9 +55,14 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
         DomTree.forGraph(
             CFAEdgeNode::allSuccessorsOf, CFAEdgeNode::allPredecessorsOf, entryExit.getSecond());
 
-    Set<CFAEdgeNode> domLeaves = TestTargetReductionUtils.getLeavesOfDomintorTree(domTree);
+    Set<CFAEdgeNode> domLeaves =
+        new HashSet<>(
+            getLeavesOfDomintorTree(
+                domTree, false, targetToGoalGraphNode.values(), result.getSecond()));
     Set<CFAEdgeNode> postDomLeaves =
-        TestTargetReductionUtils.getLeavesOfDomintorTree(inverseDomTree);
+        new HashSet<>(
+            getLeavesOfDomintorTree(
+                inverseDomTree, true, targetToGoalGraphNode.values(), result.getSecond()));
 
     // remove start and end node from graph, ensure that predecessor is considered
     // if it is not the root node of the tree
@@ -57,7 +73,7 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
     domLeaves.remove(entryExit.getFirst());
 
     postDomLeaves.remove(entryExit.getFirst());
-    parent = inverseDomTree.getParent(entryExit.getSecond()).orElse(entryExit.getSecond());
+    parent = inverseDomTree.getParent(entryExit.getFirst()).orElse(entryExit.getSecond());
     postDomLeaves.add(parent);
     postDomLeaves.remove(entryExit.getSecond());
 
@@ -68,9 +84,9 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
 
     if (computeMinimumKernel) {
       if (domLeaves.size() < postDomLeaves.size()) {
-        return findAndSubstractLD(domLeaves, inverseDomTree);
+        return findAndSubstractLD(domLeaves, inverseDomTree, Optional.of(result.getSecond()));
       } else {
-        return findAndSubstractLD(postDomLeaves, domTree);
+        return findAndSubstractLD(postDomLeaves, domTree, Optional.empty());
       }
     } else {
       // Paper unconstraint edges (unconstraint arcs):
@@ -81,13 +97,54 @@ public class TestTargetReductionMinimumKernel_UnconstraintEdges {
     }
   }
 
+  private ImmutableSet<CFAEdgeNode> getLeavesOfDomintorTree(
+      final DomTree<CFAEdgeNode> pDomTree,
+      final boolean isPostDomTree,
+      final Collection<CFAEdgeNode> pAllTargets,
+      final ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>> pPathsWithInputs) {
+    Set<CFAEdgeNode> nonLeaves = Sets.newHashSetWithExpectedSize(pDomTree.getNodeCount());
+    for (CFAEdgeNode domTreeEntry : pDomTree) {
+      pDomTree
+          .getParent(domTreeEntry)
+          .ifPresent(
+              parent -> {
+                if (!isPostDomTree || !pPathsWithInputs.contains(Pair.of(domTreeEntry, parent))) {
+                  nonLeaves.add(parent);
+                }
+              });
+    }
+
+    // targets not reachable from entry/exit not part of the dominator tree
+    // but must be considered as leave nodes as well
+    return FluentIterable.from(pDomTree)
+        .append(pAllTargets)
+        .filter(node -> !nonLeaves.contains(node))
+        .toSet();
+  }
+
   private Set<CFAEdge> findAndSubstractLD(
-      Set<CFAEdgeNode> pLeaves, DomTree<CFAEdgeNode> pReverseDomTree) {
+      final Set<CFAEdgeNode> pLeaves,
+      final DomTree<CFAEdgeNode> pReverseDomTree,
+      final Optional<ImmutableSet<Pair<CFAEdgeNode, CFAEdgeNode>>> pPathsWithInputs) {
     Set<CFAEdgeNode> ldSet = Sets.newHashSetWithExpectedSize(pLeaves.size());
     for (CFAEdgeNode domTreeEntry : pReverseDomTree) {
-      ldSet.addAll(Sets.intersection(pReverseDomTree.getAncestors(domTreeEntry), pLeaves));
+      if (pPathsWithInputs.isPresent()) {
+        ldSet.addAll(
+            Sets.intersection(
+                FluentIterable.from(pReverseDomTree.getAncestors(domTreeEntry))
+                    .filter(
+                        ancestor ->
+                            !pPathsWithInputs
+                                .orElseThrow()
+                                .contains(Pair.of(domTreeEntry, ancestor)))
+                    .toSet(),
+                pLeaves));
+
+      } else {
+        ldSet.addAll(Sets.intersection(pReverseDomTree.getAncestors(domTreeEntry), pLeaves));
+      }
     }
-    // return pLeaves/ldSet
+    // return pLeaves\ldSet
     return new HashSet<>(
         FluentIterable.from(pLeaves)
             .filter(node -> !ldSet.contains(node))

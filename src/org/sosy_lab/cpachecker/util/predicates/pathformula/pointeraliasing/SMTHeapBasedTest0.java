@@ -34,8 +34,9 @@ public abstract class SMTHeapBasedTest0 extends SolverViewBasedTest0 {
         switch (heapToUse()) {
           case UF -> new SMTHeapWithUninterpretedFunctionCalls(mgrv);
           case ARRAYS -> new SMTHeapWithArrays(mgrv, pointerType);
-          case SINGLE_BYTE_ARRAY -> new SMTHeapWithByteArray(
-              mgrv, pointerType, modelToUse(), new SMTHeapWithArrays(mgrv, pointerType));
+          case SINGLE_BYTE_ARRAY ->
+              new SMTHeapWithByteArray(
+                  mgrv, pointerType, modelToUse(), new SMTHeapWithArrays(mgrv, pointerType));
         };
   }
 

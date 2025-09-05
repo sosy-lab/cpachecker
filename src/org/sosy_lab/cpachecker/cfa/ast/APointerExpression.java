@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class APointerExpression extends AbstractLeftHandSide {
 
-  private static final long serialVersionUID = -1287666395056820570L;
+  @Serial private static final long serialVersionUID = -1287666395056820570L;
   private final AExpression operand;
 
   protected APointerExpression(FileLocation pFileLocation, Type pType, final AExpression pOperand) {
@@ -26,8 +27,8 @@ public abstract class APointerExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return "*" + operand.toParenthesizedASTString(pQualified);
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return "*" + operand.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
   @Override

@@ -80,8 +80,8 @@ public class OctagonState implements AbstractState {
   }
 
   // the octagon representation
-  private Octagon octagon;
-  private OctagonManager octagonManager;
+  private final Octagon octagon;
+  private final OctagonManager octagonManager;
 
   // the OADL compiled with floats is only able to handle smaller / greater equals constraints,
   // thus we create a delta value in order to simulate a smaller / greater equal by adding /
@@ -90,11 +90,11 @@ public class OctagonState implements AbstractState {
   private final OctagonDoubleValue ASSUMPTION_DELTA = new OctagonDoubleValue(0.000000000000001);
 
   // mapping from variable name to its identifier
-  private BiMap<MemoryLocation, Integer> variableToIndexMap;
-  private Map<MemoryLocation, Type> variableToTypeMap;
+  private final BiMap<MemoryLocation, Integer> variableToIndexMap;
+  private final Map<MemoryLocation, Type> variableToTypeMap;
   private final boolean isLoopHead;
 
-  private LogManager logger;
+  private final LogManager logger;
 
   // also top element
   public OctagonState(LogManager log, OctagonManager manager) {
@@ -322,10 +322,10 @@ public class OctagonState implements AbstractState {
     if (getVariableIndexFor(pTempVarName) == -1) {
       return this;
     }
-    if (oct instanceof OctagonSimpleCoefficients) {
-      return makeAssignment(pTempVarName, (OctagonSimpleCoefficients) oct);
-    } else if (oct instanceof OctagonIntervalCoefficients) {
-      return makeAssignment(pTempVarName, (OctagonIntervalCoefficients) oct);
+    if (oct instanceof OctagonSimpleCoefficients octagonSimpleCoefficients) {
+      return makeAssignment(pTempVarName, octagonSimpleCoefficients);
+    } else if (oct instanceof OctagonIntervalCoefficients octagonIntervalCoefficients) {
+      return makeAssignment(pTempVarName, octagonIntervalCoefficients);
     } else if (oct instanceof OctagonUniversalCoefficients) {
       return forget(pTempVarName);
     }

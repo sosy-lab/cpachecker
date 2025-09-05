@@ -1,7 +1,9 @@
+// Copyright (C) 2001-2003 Andreas Gruenbacher <agruen@suse.de>
+// Copyright (c) 2004 James Morris <jmorris@redhat.com>, Red Hat Inc.
+//
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * linux/fs/ext2/xattr.c
- *
- * Copyright (C) 2001-2003 Andreas Gruenbacher <agruen@suse.de>
  *
  * Fix by Harrison Xing <harrison@mountainviewdata.com>.
  * Extended attributes for symlinks and special files added per

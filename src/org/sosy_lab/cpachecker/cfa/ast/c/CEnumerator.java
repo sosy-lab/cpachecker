@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import java.io.Serial;
+import java.math.BigInteger;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
@@ -20,9 +22,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public final class CEnumerator extends AbstractSimpleDeclaration implements CSimpleDeclaration {
 
-  private static final long serialVersionUID = -2526725372840523651L;
+  @Serial private static final long serialVersionUID = -2526725372840523651L;
 
-  private final long value;
+  private final BigInteger value;
   private @Nullable CEnumType enumType;
   private final String qualifiedName;
 
@@ -30,7 +32,7 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
       final FileLocation pFileLocation,
       final String pName,
       final String pQualifiedName,
-      final long pValue) {
+      final BigInteger pValue) {
     super(pFileLocation, pName);
 
     checkNotNull(pName);
@@ -81,7 +83,7 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
     return enumType.getCompatibleType();
   }
 
-  public long getValue() {
+  public BigInteger getValue() {
     return value;
   }
 

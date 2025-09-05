@@ -118,12 +118,12 @@ class MemoryManipulationFunctionHandler {
   CExpression handleMemoryAssignmentFunction(
       final String functionName, final CFunctionCallExpression functionCall)
       throws UnrecognizedCodeException, InterruptedException {
-    // all of the functions have exactly three arguments
+    // all the functions have exactly three arguments
     // the first and third argument is the same for all functions
     final List<CExpression> arguments = functionCall.getParameterExpressions();
     verify(arguments.size() == 3);
 
-    CExpression destination = arguments.get(0);
+    CExpression destination = arguments.getFirst();
     final CExpression secondArgument = arguments.get(1);
     final CExpression sizeInBytes = arguments.get(2);
 
@@ -188,8 +188,9 @@ class MemoryManipulationFunctionHandler {
     CPointerType adjustedSourceType = (CPointerType) CTypes.adjustFunctionOrArrayType(sourceType);
 
     final long underlyingDestinationBitSize =
-        typeHandler.getBitSizeof(adjustedDestinationType.getType());
-    final long underlyingSourceBitSize = typeHandler.getBitSizeof(adjustedSourceType.getType());
+        typeHandler.getExactBitSizeof(adjustedDestinationType.getType());
+    final long underlyingSourceBitSize =
+        typeHandler.getExactBitSizeof(adjustedSourceType.getType());
 
     if (underlyingDestinationBitSize != underlyingSourceBitSize) {
       throw new UnrecognizedCodeException(
@@ -331,15 +332,14 @@ class MemoryManipulationFunctionHandler {
     // we need to know the element size, ensure we have a pointer first
 
     final CType adjustedPointerLikeType = CTypes.adjustFunctionOrArrayType(pointerLikeType);
-    if (!(adjustedPointerLikeType instanceof CPointerType)) {
+    if (!(adjustedPointerLikeType instanceof CPointerType pointerType)) {
       throw new UnrecognizedCodeException(
           "Expected type to be pointer-like in byte-size to element-size conversion", edge);
     }
-    final CPointerType pointerType = (CPointerType) adjustedPointerLikeType;
 
     // take the byte size of the underlying type
     final CType underlyingType = pointerType.getType().getCanonicalType();
-    final long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
+    final long elementSizeInBytes = typeHandler.getExactSizeof(underlyingType);
 
     // we handle the possibility of having the last element partially copied
     // by treating it as being fully copied, as this situation can arise
@@ -449,9 +449,7 @@ class MemoryManipulationFunctionHandler {
       return new CCastExpression(
           FileLocation.DUMMY,
           new CPointerType(
-              argument.getExpressionType().isConst(),
-              argument.getExpressionType().isVolatile(),
-              CNumericTypes.UNSIGNED_CHAR),
+              argument.getExpressionType().getQualifiers(), CNumericTypes.UNSIGNED_CHAR),
           argument);
     }
 
@@ -529,8 +527,7 @@ class MemoryManipulationFunctionHandler {
       // fuse the last two dimensions together
       idType =
           new CArrayType(
-              lastDimensionType.isConst(),
-              lastDimensionType.isVolatile(),
+              lastDimensionType.getQualifiers(),
               secondLastDimensionType.getType(),
               multipliedLength);
     }

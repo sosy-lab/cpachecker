@@ -26,13 +26,13 @@ public class PartitioningRefinerFactory {
   public static PartitioningRefiner createRefiner(
       final Configuration pConfig, final LogManager pLogger, final RefinementHeuristics pHeuristic)
       throws InvalidConfigurationException {
-    switch (pHeuristic) {
-      case FM_EDGECUT:
-        return new FiducciaMattheysesKWayBalancedGraphPartitioner(
-            pConfig, pLogger, OptimizationCriteria.EDGECUT);
-      default: // FM_K_WAY (NODE_CUT)
-        return new FiducciaMattheysesKWayBalancedGraphPartitioner(
-            pConfig, pLogger, OptimizationCriteria.NODECUT);
-    }
+    return switch (pHeuristic) {
+      case FM_EDGECUT ->
+          new FiducciaMattheysesKWayBalancedGraphPartitioner(
+              pConfig, pLogger, OptimizationCriteria.EDGECUT);
+      default -> // FM_K_WAY (NODE_CUT)
+          new FiducciaMattheysesKWayBalancedGraphPartitioner(
+              pConfig, pLogger, OptimizationCriteria.NODECUT);
+    };
   }
 }

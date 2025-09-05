@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.Serial;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -32,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 public abstract sealed class JClassOrInterfaceType implements JReferenceType
     permits JClassType, JInterfaceType {
 
-  private static final long serialVersionUID = -9116725120756000396L;
+  @Serial private static final long serialVersionUID = -9116725120756000396L;
 
   private final VisibilityModifier visibility;
   private final String name;
@@ -188,28 +189,28 @@ public abstract sealed class JClassOrInterfaceType implements JReferenceType
    *     of the described class
    */
   public Set<? extends JClassOrInterfaceType> getAllSuperTypesOfType() {
-    if (this instanceof JClassType) {
-      return ((JClassType) this).getAllSuperTypesOfClass();
-    } else if (this instanceof JInterfaceType) {
-      return ((JInterfaceType) this).getAllSuperInterfaces();
+    if (this instanceof JClassType jClassType) {
+      return jClassType.getAllSuperTypesOfClass();
+    } else if (this instanceof JInterfaceType jInterfaceType) {
+      return jInterfaceType.getAllSuperInterfaces();
     }
     return ImmutableSet.of();
   }
 
   /**
-   * Returns a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each sub type
+   * Returns a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each subtype
    * that extends the described class or interface.
    *
-   * <p>This includes direct and indirect sub types.
+   * <p>This includes direct and indirect subtypes.
    *
-   * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each sub type
+   * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each subtype
    *     that extends the described class
    */
   public Set<? extends JClassOrInterfaceType> getAllSubTypesOfType() {
-    if (this instanceof JClassType) {
-      return ((JClassType) this).getAllSubTypesOfClass();
-    } else if (this instanceof JInterfaceType) {
-      return ((JInterfaceType) this).getAllSuperInterfaces();
+    if (this instanceof JClassType jClassType) {
+      return jClassType.getAllSubTypesOfClass();
+    } else if (this instanceof JInterfaceType jInterfaceType) {
+      return jInterfaceType.getAllSuperInterfaces();
     }
     return ImmutableSet.of();
   }

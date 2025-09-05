@@ -433,13 +433,13 @@ final class TransformableLoop {
     ImmutableSet.Builder<CSimpleDeclaration> builder = ImmutableSet.builder();
 
     for (CFAEdge innerLoopEdge : getInnerLoopEdges()) {
-      if (innerLoopEdge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) innerLoopEdge).getDeclaration();
+      if (innerLoopEdge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
         if (declaration instanceof CVariableDeclaration) {
           builder.add(declaration);
         }
-      } else if (innerLoopEdge instanceof CFunctionCallEdge) {
-        CFunctionEntryNode functionEntryNode = ((CFunctionCallEdge) innerLoopEdge).getSuccessor();
+      } else if (innerLoopEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
+        CFunctionEntryNode functionEntryNode = cFunctionCallEdge.getSuccessor();
         builder.addAll(functionEntryNode.getFunctionDefinition().getParameters());
       }
     }

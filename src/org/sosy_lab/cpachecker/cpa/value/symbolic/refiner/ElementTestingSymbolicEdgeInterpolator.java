@@ -103,8 +103,8 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
 
     stateReducers =
         switch (strategy) {
-          case ALTERNATING -> ImmutableList.of(
-              new ConstraintsFirstReducer(), new ValuesFirstReducer());
+          case ALTERNATING ->
+              ImmutableList.of(new ConstraintsFirstReducer(), new ValuesFirstReducer());
           case CONSTRAINTS_FIRST -> ImmutableList.of(new ConstraintsFirstReducer());
           case VALUES_FIRST -> ImmutableList.of(new ValuesFirstReducer());
           case VALUES_ONLY -> ImmutableList.of(new ValuesOnlyReducer());

@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /** Stores an enum constant that can be tracked by the ValueAnalysisCPA. */
 public record EnumConstantValue(String fullyQualifiedName) implements Value {
 
-  private static final long serialVersionUID = 2745087444102463717L;
+  @Serial private static final long serialVersionUID = 2745087444102463717L;
 
   /**
    * Returns the fully qualified name of the stored enum constant.

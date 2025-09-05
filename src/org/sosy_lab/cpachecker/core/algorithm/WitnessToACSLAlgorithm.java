@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
@@ -109,6 +110,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     } catch (InvalidConfigurationException e) {
       throw new CPAException(
           "Invalid Configuration while analyzing witness:\n" + e.getMessage(), e);
+    } catch (InvalidWitnessException e) {
+      throw new CPAException("Invalid Witness: " + e.getMessage(), e);
     }
 
     for (ExpressionTreeLocationInvariant c : invariants) {
@@ -207,7 +210,6 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         writeToFile(file, output);
       } catch (IOException e) {
         logger.logfUserException(Level.WARNING, e, "Could not write annotations for file %s", file);
-        continue;
       }
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
@@ -217,7 +219,10 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     String newFileName = makeNameForAnnotatedFile(pathToOriginalFile.getFileName().toString());
     Path outFile = outDir.resolve(newFileName);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      writer.write(String.join("\n", newContent) + "\n");
+      for (String line : newContent) {
+        writer.write(line);
+        writer.write("\n");
+      }
     }
   }
 

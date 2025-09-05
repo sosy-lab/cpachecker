@@ -183,11 +183,11 @@ public class CompoundIntervalFormulaManager {
    *
    * @param pInformationBaseFormulas the information base as formulas.
    * @param pFormula the formula that is checked for being implied by the information base.
-   * @param pExtend whether or not the information base should be further extended by splitting the
+   * @param pExtend whether the information base should be further extended by splitting the
    *     formulas into their conjunctive parts.
    * @param pInformationBaseEnvironment the information base as an environment.
-   * @param pEnvironmentComplete whether or not the environment already contains all information
-   *     that can be gained from the formulas information base.
+   * @param pEnvironmentComplete whether the environment already contains all information that can
+   *     be gained from the formulas information base.
    * @return {@code true} if the information base definitely implies the given formula.
    */
   private boolean definitelyImplies(

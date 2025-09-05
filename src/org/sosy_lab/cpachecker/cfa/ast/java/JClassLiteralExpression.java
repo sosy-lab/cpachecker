@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -32,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public final class JClassLiteralExpression extends ALiteralExpression
     implements JLiteralExpression {
 
-  private static final long serialVersionUID = -5629884765912549873L;
+  @Serial private static final long serialVersionUID = -5629884765912549873L;
 
   private final JType type;
 

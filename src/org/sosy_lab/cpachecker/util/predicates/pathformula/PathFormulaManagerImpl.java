@@ -12,9 +12,9 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
+import java.io.Serial;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -223,8 +223,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     pfbFactory =
         switch (pathFormulaBuilderVariant) {
           case DEFAULT -> new DefaultPathFormulaBuilder.Factory();
-          case SYMBOLICLOCATIONS -> new SymbolicLocationPathFormulaBuilder.Factory(
-              new CBinaryExpressionBuilder(pMachineModel, pLogger));
+          case SYMBOLICLOCATIONS ->
+              new SymbolicLocationPathFormulaBuilder.Factory(
+                  new CBinaryExpressionBuilder(pMachineModel, pLogger));
         };
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
@@ -242,7 +243,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private PathFormula makeAnd(
       PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     PathFormula pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
 
     if (useNondetFlags) {
@@ -307,7 +308,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
     BooleanFormula conjunction = bfmgr.and(Lists.transform(pPathFormulas, PathFormula::getFormula));
     int lengthSum = pPathFormulas.stream().mapToInt(PathFormula::getLength).sum();
-    PathFormula last = Iterables.getLast(pPathFormulas);
+    PathFormula last = pPathFormulas.getLast();
     return new PathFormula(conjunction, last.getSsa(), last.getPointerTargetSet(), lengthSum);
   }
 
@@ -435,7 +436,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       throws CPATransferException, InterruptedException {
 
     final class WrappingException extends RuntimeException {
-      private static final long serialVersionUID = 7106377117314217226L;
+      @Serial private static final long serialVersionUID = 7106377117314217226L;
 
       WrappingException(Throwable cause) {
         super(cause);

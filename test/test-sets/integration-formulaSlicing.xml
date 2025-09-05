@@ -13,14 +13,15 @@ SPDX-License-Identifier: Apache-2.0
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="100 s" hardtimelimit="120 s" memlimit="2 GB" cpuCores="1">
-    <option name="-noout" />
+    <option name="--no-output-files" />
 
-    <option name="-formula-slicing"/>
-    <option name="-setprop">cpa.reportFalseAsUnknown=true</option>
+    <option name="--formula-slicing"/>
+    <option name="--option">cpa.reportFalseAsUnknown=true</option>
 
     <rundefinition>
         <tasks>
-            <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+            <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
             <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
             <exclude>../programs/benchmarks/nla-digbench-scaling/freire1_valuebound100.yml</exclude> <!-- flapping timeout -->
             <exclude>../programs/benchmarks/nla-digbench-scaling/freire2_valuebound10.yml</exclude> <!-- flapping timeout -->

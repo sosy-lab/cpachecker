@@ -156,7 +156,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
-    statistics = new ValueAnalysisCPAStatistics(this, config);
+    statistics = new ValueAnalysisCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
     errorPathAllocator =
         new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
@@ -171,16 +171,11 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private MemoryLocationValueHandler createUnknownValueHandler()
       throws InvalidConfigurationException {
-    switch (unknownValueStrategy) {
-      case FROM_INPUT_FOR_VERIFIER_NONDET:
-        return new PredefinedValueAssinger(config, logger);
-      case DISCARD:
-        return new UnknownValueAssigner();
-      case INTRODUCE_SYMBOLIC:
-        return new SymbolicValueAssigner(config);
-      default:
-        throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
-    }
+    return switch (unknownValueStrategy) {
+      case FROM_INPUT_FOR_VERIFIER_NONDET -> new PredefinedValueAssinger(config, logger);
+      case DISCARD -> new UnknownValueAssigner();
+      case INTRODUCE_SYMBOLIC -> new SymbolicValueAssigner(config);
+    };
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
@@ -231,17 +226,14 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
-      if (currentLine.trim().isEmpty()) {
-        continue;
-
-      } else if (currentLine.endsWith(":")) {
+      if (currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
         Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
 
-      } else {
+      } else if (!currentLine.trim().isEmpty()) {
         mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
       }
     }

@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 // TODO should be sealed but cannot permit subclasses in other packages until we use modules
 public abstract non-sealed class FunctionEntryNode extends CFANode {
 
-  private static final long serialVersionUID = 1837494813423960670L;
   private final FileLocation location;
   private final AFunctionDeclaration functionDefinition;
   private final @Nullable AVariableDeclaration returnVariable;

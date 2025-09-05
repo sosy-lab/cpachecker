@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -69,12 +68,12 @@ public class MemoryAccessExtractor {
     ImmutableSet.Builder<MemoryAccess> newAccessBuilder = ImmutableSet.builder();
 
     switch (edge.getEdgeType()) {
-      case AssumeEdge:
+      case AssumeEdge -> {
         AssumeEdge assumeEdge = (AssumeEdge) edge;
         readLocationBuilder.addAll(
             getInvolvedVariableTypes(assumeEdge.getExpression(), assumeEdge));
-        break;
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         ADeclarationEdge declarationEdge = (ADeclarationEdge) edge;
         ADeclaration declaration = declarationEdge.getDeclaration();
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
@@ -96,16 +95,16 @@ public class MemoryAccessExtractor {
             readLocationBuilder.addAll(getInvolvedVariableTypes(initializer, declarationEdge));
           }
         }
-        break;
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
         String functionName = getFunctionName(functionCallEdge.getFunctionCall());
         if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
           throw new CPATransferException("DataRaceCPA does not support function " + functionName);
         }
-        if (functionCallEdge.getFunctionCall() instanceof AFunctionCallAssignmentStatement) {
-          AFunctionCallAssignmentStatement functionCallAssignmentStatement =
-              (AFunctionCallAssignmentStatement) functionCallEdge.getFunctionCall();
+        if (functionCallEdge.getFunctionCall()
+            instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
+
           readLocationBuilder.addAll(
               getInvolvedVariableTypes(
                   functionCallAssignmentStatement.getLeftHandSide(), functionCallEdge));
@@ -120,60 +119,59 @@ public class MemoryAccessExtractor {
             readLocationBuilder.addAll(getInvolvedVariableTypes(argument, functionCallEdge));
           }
         }
-        break;
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
         if (returnStatementEdge.getExpression().isPresent()) {
           AExpression returnExpression = returnStatementEdge.getExpression().get();
           readLocationBuilder.addAll(
               getInvolvedVariableTypes(returnExpression, returnStatementEdge));
         }
-        break;
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         AStatementEdge statementEdge = (AStatementEdge) edge;
-        AStatement statement = statementEdge.getStatement();
-        if (statement instanceof AExpressionAssignmentStatement expressionAssignmentStatement) {
-          writeLocationBuilder.addAll(
-              getInvolvedVariableTypes(
-                  expressionAssignmentStatement.getLeftHandSide(), statementEdge));
-          readLocationBuilder.addAll(
-              getInvolvedVariableTypes(
-                  expressionAssignmentStatement.getRightHandSide(), statementEdge));
-        } else if (statement instanceof AExpressionStatement) {
-          readLocationBuilder.addAll(
-              getInvolvedVariableTypes(
-                  ((AExpressionStatement) statement).getExpression(), statementEdge));
-        } else if (statement
-            instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
-          functionName = getFunctionName(functionCallAssignmentStatement);
-          if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-            throw new CPATransferException("DataRaceCPA does not support function " + functionName);
+        switch (statementEdge.getStatement()) {
+          case AExpressionAssignmentStatement expressionAssignmentStatement -> {
+            writeLocationBuilder.addAll(
+                getInvolvedVariableTypes(
+                    expressionAssignmentStatement.getLeftHandSide(), statementEdge));
+            readLocationBuilder.addAll(
+                getInvolvedVariableTypes(
+                    expressionAssignmentStatement.getRightHandSide(), statementEdge));
           }
-          writeLocationBuilder.addAll(
-              getInvolvedVariableTypes(
-                  functionCallAssignmentStatement.getLeftHandSide(), statementEdge));
-          AFunctionCallExpression functionCallExpression =
-              functionCallAssignmentStatement.getFunctionCallExpression();
-          for (AExpression expression : functionCallExpression.getParameterExpressions()) {
-            readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
+          case AExpressionStatement aExpressionStatement ->
+              readLocationBuilder.addAll(
+                  getInvolvedVariableTypes(aExpressionStatement.getExpression(), statementEdge));
+          case AFunctionCallAssignmentStatement functionCallAssignmentStatement -> {
+            String functionName = getFunctionName(functionCallAssignmentStatement);
+            if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
+              throw new CPATransferException(
+                  "DataRaceCPA does not support function " + functionName);
+            }
+            writeLocationBuilder.addAll(
+                getInvolvedVariableTypes(
+                    functionCallAssignmentStatement.getLeftHandSide(), statementEdge));
+            AFunctionCallExpression functionCallExpression =
+                functionCallAssignmentStatement.getFunctionCallExpression();
+            for (AExpression expression : functionCallExpression.getParameterExpressions()) {
+              readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
+            }
           }
-        } else if (statement instanceof AFunctionCallStatement functionCallStatement) {
-          functionName = getFunctionName(functionCallStatement);
-          if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-            throw new CPATransferException("DataRaceCPA does not support function " + functionName);
+          case AFunctionCallStatement functionCallStatement -> {
+            String functionName = getFunctionName(functionCallStatement);
+            if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
+              throw new CPATransferException(
+                  "DataRaceCPA does not support function " + functionName);
+            }
+            for (AExpression expression :
+                functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+              readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
+            }
           }
-          for (AExpression expression :
-              functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-            readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
-          }
+          default -> {}
         }
-        break;
-      case FunctionReturnEdge:
-      case BlankEdge:
-      case CallToReturnEdge:
-        break;
-      default:
-        throw new AssertionError("Unhandled edge type: " + edge.getEdgeType());
+      }
+      case FunctionReturnEdge, BlankEdge, CallToReturnEdge -> {}
     }
 
     for (OverapproximatingMemoryLocation possibleLocations : readLocationBuilder) {
@@ -196,13 +194,13 @@ public class MemoryAccessExtractor {
    */
   private Set<OverapproximatingMemoryLocation> getInvolvedVariableTypes(
       AExpression pExpression, CFAEdge pEdge) {
-    if (!(pExpression instanceof CExpression)) {
+    if (!(pExpression instanceof CExpression expression)) {
       return ImmutableSet.of();
     }
     if (isAddressAccess(pExpression)) {
       return ImmutableSet.of();
     }
-    CExpression expression = (CExpression) pExpression;
+
     MemoryLocationExtractingVisitor visitor =
         new MemoryLocationExtractingVisitor(pEdge.getSuccessor().getFunctionName());
     return expression.accept(visitor);
@@ -210,21 +208,23 @@ public class MemoryAccessExtractor {
 
   private Set<OverapproximatingMemoryLocation> getInvolvedVariableTypes(
       CInitializer pCInitializer, CFAEdge pCfaEdge) {
-    if (pCInitializer instanceof CDesignatedInitializer) {
-      return getInvolvedVariableTypes(
-          ((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
-    } else if (pCInitializer instanceof CInitializerExpression) {
-      return getInvolvedVariableTypes(
-          ((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
-    } else if (pCInitializer instanceof CInitializerList) {
-      ImmutableSet.Builder<OverapproximatingMemoryLocation> resultBuilder = ImmutableSet.builder();
-      for (CInitializer initializer : ((CInitializerList) pCInitializer).getInitializers()) {
-        resultBuilder.addAll(getInvolvedVariableTypes(initializer, pCfaEdge));
+    return switch (pCInitializer) {
+      case CDesignatedInitializer cDesignatedInitializer ->
+          getInvolvedVariableTypes(cDesignatedInitializer.getRightHandSide(), pCfaEdge);
+
+      case CInitializerExpression cInitializerExpression ->
+          getInvolvedVariableTypes(cInitializerExpression.getExpression(), pCfaEdge);
+
+      case CInitializerList cInitializerList -> {
+        ImmutableSet.Builder<OverapproximatingMemoryLocation> resultBuilder =
+            ImmutableSet.builder();
+        for (CInitializer initializer : cInitializerList.getInitializers()) {
+          resultBuilder.addAll(getInvolvedVariableTypes(initializer, pCfaEdge));
+        }
+        yield resultBuilder.build();
       }
-      return resultBuilder.build();
-    } else {
-      throw new AssertionError("Unhandled C initializer:" + pCInitializer);
-    }
+      default -> throw new AssertionError("Unhandled C initializer:" + pCInitializer);
+    };
   }
 
   /**
@@ -232,8 +232,8 @@ public class MemoryAccessExtractor {
    * accessing only the address of a memory location is not considered a read access.
    */
   private boolean isAddressAccess(AExpression pExpression) {
-    if (pExpression instanceof AUnaryExpression
-        && ((AUnaryExpression) pExpression).getOperator().equals(UnaryOperator.AMPER)) {
+    if (pExpression instanceof AUnaryExpression aUnaryExpression
+        && aUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
       return true;
     }
     if (pExpression instanceof AIdExpression
@@ -256,15 +256,15 @@ public class MemoryAccessExtractor {
       return functionCallExpression.getDeclaration().getName();
     } else {
       AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
-      if (functionNameExpression instanceof AIdExpression) {
-        return ((AIdExpression) functionNameExpression).getName();
+      if (functionNameExpression instanceof AIdExpression aIdExpression) {
+        return aIdExpression.getName();
       } else if (functionNameExpression instanceof AUnaryExpression unaryFunctionNameExpression) {
-        if (unaryFunctionNameExpression.getOperand() instanceof AIdExpression) {
-          return ((AIdExpression) unaryFunctionNameExpression.getOperand()).getName();
+        if (unaryFunctionNameExpression.getOperand() instanceof AIdExpression aIdExpression) {
+          return aIdExpression.getName();
         }
       } else if ((functionNameExpression instanceof APointerExpression pointerExpression)
-          && (pointerExpression.getOperand() instanceof AIdExpression)) {
-        return ((AIdExpression) pointerExpression.getOperand()).getName();
+          && (pointerExpression.getOperand() instanceof AIdExpression aIdExpression)) {
+        return aIdExpression.getName();
       }
     }
     throw new AssertionError("Unable to determine function name.");

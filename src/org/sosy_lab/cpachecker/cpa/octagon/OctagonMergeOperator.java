@@ -41,16 +41,12 @@ public class OctagonMergeOperator {
       throws InvalidConfigurationException {
     OctagonMergeOperator mergeOp = new OctagonMergeOperator(domain, config);
 
-    switch (mergeOp.type) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-      case "JOIN":
-        return mergeOp.new OctagonMergeJoinOperator(domain, config);
-      case "WIDENING":
-        return mergeOp.new OctagonMergeWideningOperator(domain, config);
-      default:
-        throw new InvalidConfigurationException("Unknown type for merge operator");
-    }
+    return switch (mergeOp.type) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "JOIN" -> mergeOp.new OctagonMergeJoinOperator(domain, config);
+      case "WIDENING" -> mergeOp.new OctagonMergeWideningOperator(domain, config);
+      default -> throw new InvalidConfigurationException("Unknown type for merge operator");
+    };
   }
 
   private OctagonMergeOperator(OctagonDomain domain, Configuration config)

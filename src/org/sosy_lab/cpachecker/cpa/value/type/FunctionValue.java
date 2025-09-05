@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public record FunctionValue(String name) implements Value {
 
-  private static final long serialVersionUID = -3829943575180448170L;
+  @Serial private static final long serialVersionUID = -3829943575180448170L;
 
   public String getName() {
     return name;

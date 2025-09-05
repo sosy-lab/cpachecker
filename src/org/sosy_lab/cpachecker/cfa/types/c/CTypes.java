@@ -8,15 +8,18 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.base.Equivalence;
+import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.concurrent.LazyInit;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /** Helper methods for CType instances. */
@@ -84,6 +87,18 @@ public final class CTypes {
   }
 
   /**
+   * Check whether a given type is a bool type. Also returns true for all qualified versions of bool
+   * types.
+   */
+  public static boolean isBoolType(CType type) {
+    type = type.getCanonicalType();
+    if (type instanceof CBitFieldType bitFieldType) {
+      type = bitFieldType.getType();
+    }
+    return type instanceof CSimpleType simpleType && simpleType.getType() == CBasicType.BOOL;
+  }
+
+  /**
    * Check whether a given type is a scalar type according to the C standard § 6.2.5 (21). Also
    * returns true for all qualified versions of aggregate types.
    */
@@ -138,86 +153,6 @@ public final class CTypes {
   }
 
   /**
-   * Return a copy of a given type that has the "const" flag not set. If the given type is already a
-   * non-const type, it is returned unchanged.
-   *
-   * <p>This method only eliminates the outer-most const flag, if it is present, i.e., it does not
-   * change a non-const pointer to a const int.
-   */
-  public static <T extends CType> T withoutConst(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-
-    if (!type.isConst()) {
-      return type;
-    }
-    @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T) type.accept(ForceConstVisitor.FALSE);
-    return result;
-  }
-
-  /**
-   * Return a copy of a given type that has the "const" flag set. If the given type is already a
-   * const type, it is returned unchanged.
-   *
-   * <p>This method only adds the outer-most const flag, if it is not present, i.e., it does not
-   * change a const pointer to a non-const int.
-   */
-  public static <T extends CType> T withConst(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-
-    if (type.isConst()) {
-      return type;
-    }
-    @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T) type.accept(ForceConstVisitor.TRUE);
-    return result;
-  }
-
-  /**
-   * Return a copy of a given type that has the "volatile" flag not set. If the given type is
-   * already a non-volatile type, it is returned unchanged.
-   *
-   * <p>This method only eliminates the outer-most volatile flag, if it is present, i.e., it does
-   * not change a non-volatile pointer to a volatile int.
-   */
-  public static <T extends CType> T withoutVolatile(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-
-    if (!type.isVolatile()) {
-      return type;
-    }
-    @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T) type.accept(ForceVolatileVisitor.FALSE);
-    return result;
-  }
-
-  /**
-   * Return a copy of a given type that has the "volatile" flag set. If the given type is already a
-   * volatile type, it is returned unchanged.
-   *
-   * <p>This method only adds the outer-most volatile flag, if it is not present, i.e., it does not
-   * change a volatile pointer to a non-volatile int.
-   */
-  public static <T extends CType> T withVolatile(T type) {
-    if (type instanceof CProblemType) {
-      return type;
-    }
-
-    if (type.isVolatile()) {
-      return type;
-    }
-    @SuppressWarnings("unchecked") // Visitor always creates instances of exact same class
-    T result = (T) type.accept(ForceVolatileVisitor.TRUE);
-    return result;
-  }
-
-  /**
    * Implements a compatibility check for {@link CType}s according to C-Standard §6.2.7. This
    * definition is symmetric, therefore the order of the parameters doesn't matter. This definition
    * is especially stricter than assignment compatibility (cf. {@link
@@ -257,7 +192,7 @@ public final class CTypes {
       return true;
     }
 
-    if (!(pTypeA.isConst() == pTypeB.isConst() && pTypeA.isVolatile() == pTypeB.isVolatile())) {
+    if (!pTypeA.getQualifiers().equals(pTypeB.getQualifiers())) {
       // Cf. C-Standard §6.7.3 (10), two qualified types have to be
       // an identically qualified version of compatible types to be compatible.
       return false;
@@ -268,14 +203,16 @@ public final class CTypes {
       return areTypesCompatible(pointerA.getType(), pointerB.getType());
     }
 
-    CType basicSignedInt =
-        CNumericTypes.INT.getCanonicalType(pTypeA.isConst(), pTypeA.isVolatile());
+    CType basicSignedInt = CNumericTypes.INT.withQualifiersSetTo(pTypeA.getQualifiers());
 
     // Cf. C-Standard §6.7.2.2 (4), enumerated types shall be compatible with
     // char, a signed integer type, or an unsigned integer type, dependent on
     // implementation.
     // We chose the implementation with compatibility to 'signed int', that GCC
     // seemingly uses.
+    // TODO: This needs to be updated in accordance with #348, cf.
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/348#note_2709463414
+    // Afterwards also enable the test in CTypeCompatibilityTest.
     if (pTypeA instanceof CEnumType && pTypeB instanceof CSimpleType) {
       return pTypeB.getCanonicalType().equals(basicSignedInt.getCanonicalType());
     } else if (pTypeA instanceof CSimpleType && pTypeB instanceof CEnumType) {
@@ -339,8 +276,8 @@ public final class CTypes {
         // C-Standard §6.7.6.3 (15, last sentence in parentheses):
         // "... each parameter declared with qualified type is taken
         // as having the unqualified version of its declared type."
-        paramOfA = copyDequalified(paramOfA);
-        paramOfB = copyDequalified(paramOfB);
+        paramOfA = paramOfA.withoutQualifiers();
+        paramOfB = paramOfB.withoutQualifiers();
 
         if (!areTypesCompatible(paramOfA, paramOfB)) {
           return false;
@@ -373,207 +310,118 @@ public final class CTypes {
       CExpression sizeExpression = ((CArrayType) pType).getLength();
 
       if (sizeExpression == null) {
-        pType = new CPointerType(false, false, innerType);
+        pType = new CPointerType(CTypeQualifiers.NONE, innerType);
       } else {
         // Adjusting an array type to a pointer of its stored
         // type discards the qualifiers of the array type and
         // instead qualifies the pointer with the qualifiers
         // used inside the size specifier brackets.
+        // TODO: wrong, cf. #1375
+        // Can probably delegate to CArrayType.asPointerType()
         CType sizeType = sizeExpression.getExpressionType();
-        pType = new CPointerType(sizeType.isConst(), sizeType.isVolatile(), innerType);
+        pType = new CPointerType(sizeType.getQualifiers(), innerType);
       }
     } else if (pType instanceof CFunctionType) {
-      pType = new CPointerType(pType.isConst(), pType.isVolatile(), pType);
+      pType = new CPointerType(CTypeQualifiers.NONE, pType);
     }
     return pType;
   }
 
   /**
-   * Creates an instance of {@link CType} that is an exact copy of <code>pType</code>, but is
-   * guaranteed to not be qualified as either <code>const</code> or <code>volatile</code>.
-   *
-   * @param pType the {@link CType} to copy without qualifiers
-   * @return a copy of <code>pType</code> without qualifiers
+   * Return all expressions representing array lengths within the given type, even deeply nested and
+   * hidden inside typedefs. (No other expressions can occur in types, so this also returns all
+   * expressions referenced in this type.)
    */
-  public static CType copyDequalified(CType pType) {
-    pType = withoutConst(pType);
-    pType = withoutVolatile(pType);
-    return pType;
+  public static ImmutableSet<CExpression> getArrayLengthExpressions(CType type) {
+    return type.accept(new CollectArrayLengthsVisitor());
   }
 
-  private enum ForceConstVisitor implements CTypeVisitor<CType, NoException> {
-    FALSE(false),
-    TRUE(true);
+  private static class CollectArrayLengthsVisitor
+      implements CTypeVisitor<ImmutableSet<CExpression>, NoException> {
 
-    private final boolean constValue;
-
-    ForceConstVisitor(boolean pConstValue) {
-      constValue = pConstValue;
-    }
-
-    // Make sure to always return instances of exactly the same classes!
+    @LazyInit // Visitor might be used very often for trivial types, do not allocate set eagerly.
+    private Set<CType> seen;
 
     @Override
-    public CArrayType visit(CArrayType t) {
-      return new CArrayType(constValue, t.isVolatile(), t.getType(), t.getLength());
-    }
+    public ImmutableSet<CExpression> visit(CArrayType pArrayType) {
+      if (pArrayType.getLength() == null) {
+        return pArrayType.getType().accept(this);
+      }
 
-    @Override
-    public CCompositeType visit(CCompositeType t) {
-      return new CCompositeType(
-          constValue, t.isVolatile(), t.getKind(), t.getMembers(), t.getName(), t.getOrigName());
+      return ImmutableSet.<CExpression>builder()
+          .add(pArrayType.getLength())
+          .addAll(pArrayType.getType().accept(this))
+          .build();
     }
 
     @Override
-    public CElaboratedType visit(CElaboratedType t) {
-      return new CElaboratedType(
-          constValue, t.isVolatile(), t.getKind(), t.getName(), t.getOrigName(), t.getRealType());
+    public ImmutableSet<CExpression> visit(CCompositeType pCompositeType) {
+      // need to prevent infinite recursion for members that have pointer to this type as type
+      if (seen == null) {
+        seen = new HashSet<>();
+        seen.add(pCompositeType);
+      } else if (!seen.add(pCompositeType)) {
+        return ImmutableSet.of();
+      }
+
+      ImmutableSet.Builder<CExpression> expressions = ImmutableSet.builder();
+      for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
+        expressions.addAll(member.getType().accept(this));
+      }
+      return expressions.build();
     }
 
     @Override
-    public CEnumType visit(CEnumType t) {
-      return new CEnumType(
-          constValue,
-          t.isVolatile(),
-          t.getCompatibleType(),
-          t.getEnumerators(),
-          t.getName(),
-          t.getOrigName());
+    public ImmutableSet<CExpression> visit(CElaboratedType pElaboratedType) {
+      if (pElaboratedType.getRealType() == null) {
+        return ImmutableSet.of();
+      }
+      return pElaboratedType.getRealType().accept(this);
     }
 
     @Override
-    public CFunctionType visit(CFunctionType t) {
-      checkArgument(!constValue, "Cannot create const function type, this is undefined");
-      return t;
+    public ImmutableSet<CExpression> visit(CEnumType pEnumType) {
+      return ImmutableSet.of();
     }
 
     @Override
-    public CPointerType visit(CPointerType t) {
-      return new CPointerType(constValue, t.isVolatile(), t.getType());
+    public ImmutableSet<CExpression> visit(CFunctionType pFunctionType) {
+      ImmutableSet.Builder<CExpression> expressions = ImmutableSet.builder();
+      expressions.addAll(pFunctionType.getReturnType().accept(this));
+      for (CType parameterType : pFunctionType.getParameters()) {
+        expressions.addAll(parameterType.accept(this));
+      }
+      return expressions.build();
     }
 
     @Override
-    public CProblemType visit(CProblemType t) {
-      return t;
+    public ImmutableSet<CExpression> visit(CPointerType pPointerType) {
+      return pPointerType.getType().accept(this);
     }
 
     @Override
-    public CSimpleType visit(CSimpleType t) {
-      return new CSimpleType(
-          constValue,
-          t.isVolatile(),
-          t.getType(),
-          t.hasLongSpecifier(),
-          t.hasShortSpecifier(),
-          t.hasSignedSpecifier(),
-          t.hasUnsignedSpecifier(),
-          t.hasComplexSpecifier(),
-          t.hasImaginarySpecifier(),
-          t.hasLongLongSpecifier());
+    public ImmutableSet<CExpression> visit(CProblemType pProblemType) {
+      return ImmutableSet.of();
     }
 
     @Override
-    public CTypedefType visit(CTypedefType t) {
-      return new CTypedefType(constValue, t.isVolatile(), t.getName(), t.getRealType());
+    public ImmutableSet<CExpression> visit(CSimpleType pSimpleType) {
+      return ImmutableSet.of();
     }
 
     @Override
-    public CType visit(CVoidType t) {
-      return CVoidType.create(constValue, t.isVolatile());
+    public ImmutableSet<CExpression> visit(CTypedefType pTypedefType) {
+      return pTypedefType.getRealType().accept(this);
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) {
-      return new CBitFieldType(
-          pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
-    }
-  }
-
-  private enum ForceVolatileVisitor implements CTypeVisitor<CType, NoException> {
-    FALSE(false),
-    TRUE(true);
-
-    private final boolean volatileValue;
-
-    ForceVolatileVisitor(boolean pVolatileValue) {
-      volatileValue = pVolatileValue;
-    }
-
-    // Make sure to always return instances of exactly the same classes!
-
-    @Override
-    public CArrayType visit(CArrayType t) {
-      return new CArrayType(t.isConst(), volatileValue, t.getType(), t.getLength());
+    public ImmutableSet<CExpression> visit(CVoidType pVoidType) {
+      return ImmutableSet.of();
     }
 
     @Override
-    public CCompositeType visit(CCompositeType t) {
-      return new CCompositeType(
-          t.isConst(), volatileValue, t.getKind(), t.getMembers(), t.getName(), t.getOrigName());
-    }
-
-    @Override
-    public CElaboratedType visit(CElaboratedType t) {
-      return new CElaboratedType(
-          t.isConst(), volatileValue, t.getKind(), t.getName(), t.getOrigName(), t.getRealType());
-    }
-
-    @Override
-    public CEnumType visit(CEnumType t) {
-      return new CEnumType(
-          t.isConst(),
-          volatileValue,
-          t.getCompatibleType(),
-          t.getEnumerators(),
-          t.getName(),
-          t.getOrigName());
-    }
-
-    @Override
-    public CFunctionType visit(CFunctionType t) {
-      checkArgument(!volatileValue, "Cannot create const function type, this is undefined");
-      return t;
-    }
-
-    @Override
-    public CPointerType visit(CPointerType t) {
-      return new CPointerType(t.isConst(), volatileValue, t.getType());
-    }
-
-    @Override
-    public CProblemType visit(CProblemType t) {
-      return t;
-    }
-
-    @Override
-    public CSimpleType visit(CSimpleType t) {
-      return new CSimpleType(
-          t.isConst(),
-          volatileValue,
-          t.getType(),
-          t.hasLongSpecifier(),
-          t.hasShortSpecifier(),
-          t.hasSignedSpecifier(),
-          t.hasUnsignedSpecifier(),
-          t.hasComplexSpecifier(),
-          t.hasImaginarySpecifier(),
-          t.hasLongLongSpecifier());
-    }
-
-    @Override
-    public CTypedefType visit(CTypedefType t) {
-      return new CTypedefType(t.isConst(), volatileValue, t.getName(), t.getRealType());
-    }
-
-    @Override
-    public CType visit(CVoidType t) {
-      return CVoidType.create(t.isConst(), volatileValue);
-    }
-
-    @Override
-    public CType visit(CBitFieldType pCBitFieldType) {
-      return new CBitFieldType(
-          pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
+    public ImmutableSet<CExpression> visit(CBitFieldType pCBitFieldType) {
+      return ImmutableSet.of();
     }
   }
 }

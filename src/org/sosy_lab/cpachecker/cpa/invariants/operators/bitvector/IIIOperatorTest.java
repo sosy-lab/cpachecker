@@ -48,6 +48,7 @@ public class IIIOperatorTest {
   public void testModulo() {
     BigInteger scalarFour = BigInteger.valueOf(4);
     BigInteger scalarFive = BigInteger.valueOf(5);
+    BitVectorInterval zero = BitVectorInterval.singleton(INT, BigInteger.ZERO);
     BitVectorInterval five = BitVectorInterval.singleton(INT, scalarFive);
     BitVectorInterval negFourToFour = BitVectorInterval.of(INT, scalarFour.negate(), scalarFour);
     BitVectorInterval zeroToFour = BitVectorInterval.of(INT, BigInteger.ZERO, scalarFour);
@@ -62,6 +63,7 @@ public class IIIOperatorTest {
     BitVectorInterval zeroToTwo = BitVectorInterval.of(INT, BigInteger.ZERO, BigInteger.valueOf(2));
     BitVectorInterval eightToTen = BitVectorInterval.of(INT, BigInteger.valueOf(8), BigInteger.TEN);
 
+    assertThat(MODULO.apply(zero, tenToEleven)).isEqualTo(zero);
     assertThat(MODULO.apply(INT.getRange(), five)).isEqualTo(negFourToFour);
     assertThat(MODULO.apply(zeroToMax, five)).isEqualTo(zeroToFour);
     assertThat(MODULO.apply(zeroToMax, five.negate(true, OverflowEventHandler.EMPTY)))

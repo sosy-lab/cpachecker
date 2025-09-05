@@ -57,11 +57,11 @@ final class WitnessAssumptionFilter {
    * of constants to pointers are not relevant.
    */
   private static boolean isRelevantExpression(final AExpression assumption) {
-    if (!(assumption instanceof CBinaryExpression)) {
+    if (!(assumption instanceof CBinaryExpression binExpAssumption)) {
       return true;
 
     } else {
-      CBinaryExpression binExpAssumption = (CBinaryExpression) assumption;
+
       CExpression leftSide = binExpAssumption.getOperand1();
       CExpression rightSide = binExpAssumption.getOperand2();
 
@@ -114,15 +114,11 @@ final class WitnessAssumptionFilter {
 
           @Override
           public Boolean visit(CUnaryExpression pIastUnaryExpression) {
-            switch (pIastUnaryExpression.getOperator()) {
-              case MINUS:
-              case TILDE:
-                return pIastUnaryExpression.getOperand().accept(this);
-              case AMPER:
-                return true;
-              default:
-                return visitDefault(pIastUnaryExpression);
-            }
+            return switch (pIastUnaryExpression.getOperator()) {
+              case MINUS, TILDE -> pIastUnaryExpression.getOperand().accept(this);
+              case AMPER -> true;
+              default -> visitDefault(pIastUnaryExpression);
+            };
           }
 
           @Override

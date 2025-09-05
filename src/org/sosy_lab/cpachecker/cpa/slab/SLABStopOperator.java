@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.slab;
 
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -17,11 +16,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class SLABStopOperator implements StopOperator {
+class SLABStopOperator implements StopOperator {
 
   private final AbstractDomain domain;
 
-  public SLABStopOperator(AbstractDomain pDomain) {
+  SLABStopOperator(AbstractDomain pDomain) {
     domain = pDomain;
   }
 
@@ -32,7 +31,7 @@ public class SLABStopOperator implements StopOperator {
     // Check if the argElement has only one parent and remember it for later:
     ARGState parent = null;
     if (((ARGState) pState).getParents().size() == 1) {
-      parent = Iterables.get(((ARGState) pState).getParents(), 0);
+      parent = ((ARGState) pState).getParents().getFirst();
     }
 
     for (AbstractState reachedState : pReached) {

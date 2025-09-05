@@ -16,12 +16,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -33,8 +34,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -58,11 +61,11 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
   private boolean performEdgeBasedInterpolation = true;
 
   /**
-   * whether or not to do lazy-abstraction, i.e., when true, the re-starting node for the
-   * re-exploration of the ARG will be the node closest to the root where new information is made
-   * available through the current refinement
+   * whether to do lazy-abstraction, i.e., when true, the re-starting node for the re-exploration of
+   * the ARG will be the node closest to the root where new information is made available through
+   * the current refinement
    */
-  @Option(secure = true, description = "whether or not to do lazy-abstraction")
+  @Option(secure = true, description = "whether to do lazy-abstraction")
   private boolean doLazyAbstraction = true;
 
   /**
@@ -76,21 +79,34 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
   private final SMGInterpolantManager interpolantManager;
 
   private final Configuration config;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
+
+  private final SMGCPAExpressionEvaluator evaluator;
+
+  private final SMGCPAStatistics statistics;
 
   public SMGPathInterpolator(
       final FeasibilityChecker<SMGState> pFeasibilityChecker,
       final StrongestPostOperator<SMGState> pStrongestPostOperator,
       final GenericPrefixProvider<SMGState> pPrefixProvider,
       final Configuration pConfig,
-      final LogManager pLogger,
+      final LogManagerWithoutDuplicates pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa)
+      final CFA pCfa,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
     super(
         new SMGEdgeInterpolator(
-            pFeasibilityChecker, pStrongestPostOperator, pConfig, pShutdownNotifier, pCfa, pLogger),
+            pFeasibilityChecker,
+            pStrongestPostOperator,
+            pConfig,
+            pShutdownNotifier,
+            pCfa,
+            pLogger,
+            pEvaluator,
+            pStatistics),
         pFeasibilityChecker,
         pPrefixProvider,
         SMGInterpolantManager.getInstance(
@@ -98,7 +114,9 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
-            pFeasibilityChecker.isRefineMemorySafety()),
+            pFeasibilityChecker.isRefineMemorySafety(),
+            pEvaluator,
+            pStatistics),
         pConfig,
         pLogger,
         pShutdownNotifier,
@@ -112,9 +130,13 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
-            pFeasibilityChecker.isRefineMemorySafety());
+            pFeasibilityChecker.isRefineMemorySafety(),
+            pEvaluator,
+            pStatistics);
     config = pConfig;
     logger = pLogger;
+    evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   @Override
@@ -160,7 +182,14 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
     Map<ARGState, SMGInterpolant> interpolants =
         new SMGUseDefBasedInterpolator(
-                errorPathPrefix, useDefRelation, cfa.getMachineModel(), config, logger, cfa)
+                errorPathPrefix,
+                useDefRelation,
+                cfa.getMachineModel(),
+                config,
+                logger,
+                cfa,
+                evaluator,
+                statistics)
             .obtainInterpolantsAsMap();
 
     totalInterpolationQueries.setNextValue(1);
@@ -276,7 +305,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
     // The original call edge, importance in relation to slicing, position in abstractEdges
     record FunctionCallInfo(FunctionCallEdge edge, boolean isImportant, int index) {}
     ArrayDeque<FunctionCallInfo> functionCalls = new ArrayDeque<>();
-    List<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
+    List<@Nullable CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
 
     PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {

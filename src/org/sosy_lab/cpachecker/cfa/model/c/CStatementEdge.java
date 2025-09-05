@@ -16,8 +16,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public sealed class CStatementEdge extends AStatementEdge implements CCfaEdge
     permits CFunctionSummaryStatementEdge {
 
-  private static final long serialVersionUID = -2606975234598958304L;
-
   public CStatementEdge(
       String pRawStatement,
       CStatement pStatement,

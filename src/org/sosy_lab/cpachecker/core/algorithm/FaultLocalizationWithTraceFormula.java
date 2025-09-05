@@ -312,16 +312,16 @@ public class FaultLocalizationWithTraceFormula
 
   private FaultScoring getScoring(TraceFormula pTraceFormula) {
     return switch (algorithmType) {
-        // fall-through
-      case MAXORG, MAXSAT -> FaultRankingUtils.concatHeuristics(
-          new VariableCountScoring(),
-          new SetSizeScoring(),
-          new MinimalLineDistanceScoring(
-              pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
-        // fall-through
-      case ERRINV, UNSAT -> FaultRankingUtils.concatHeuristics(
-          new EdgeTypeScoring(), new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
-      default -> throw new AssertionError("The specified algorithm type does not exist");
+      case MAXORG, MAXSAT ->
+          FaultRankingUtils.concatHeuristics(
+              new VariableCountScoring(),
+              new SetSizeScoring(),
+              new MinimalLineDistanceScoring(
+                  pTraceFormula.getPostCondition().getEdgesForPostCondition().getFirst()));
+      case ERRINV, UNSAT ->
+          FaultRankingUtils.concatHeuristics(
+              new EdgeTypeScoring(),
+              new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
     };
   }
 
@@ -413,38 +413,36 @@ public class FaultLocalizationWithTraceFormula
   private PostConditionComposer getPostConditionExtractor() {
     return switch (postConditionType) {
       case LAST_ASSUME_EDGE -> new FinalAssumeEdgePostConditionComposer(context);
-      case LAST_ASSUME_EDGES_ON_SAME_LINE -> new FinalAssumeEdgesOnSameLinePostConditionComposer(
-          context);
+      case LAST_ASSUME_EDGES_ON_SAME_LINE ->
+          new FinalAssumeEdgesOnSameLinePostConditionComposer(context);
       case LAST_ASSUME_EDGE_CLUSTER -> new FinalAssumeClusterPostConditionComposer(context);
-      default -> throw new AssertionError("Unknown post-condition type");
     };
   }
 
   private PreConditionComposer getPreConditionExtractor() {
     return switch (preconditionType) {
-      case NONDETERMINISTIC_VARIABLES_ONLY -> new VariableAssignmentPreConditionComposer(
-          context, options, false, includeDeclared);
-      case INITIAL_ASSIGNMENT -> new VariableAssignmentPreConditionComposer(
-          context, options, true, includeDeclared);
+      case NONDETERMINISTIC_VARIABLES_ONLY ->
+          new VariableAssignmentPreConditionComposer(context, options, false, includeDeclared);
+      case INITIAL_ASSIGNMENT ->
+          new VariableAssignmentPreConditionComposer(context, options, true, includeDeclared);
       case ALWAYS_TRUE -> new TruePreConditionComposer(context);
-      default -> throw new AssertionError("Unknown precondition type: " + preconditionType);
     };
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
-    if (algorithm instanceof Statistics) {
-      statsCollection.add((Statistics) algorithm);
+    if (algorithm instanceof Statistics statistics) {
+      statsCollection.add(statistics);
     }
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(statsCollection);
     }
-    if (faultAlgorithm instanceof Statistics) {
-      statsCollection.add((Statistics) faultAlgorithm);
+    if (faultAlgorithm instanceof Statistics statistics) {
+      statsCollection.add(statistics);
     }
-    if (faultAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) faultAlgorithm).collectStatistics(statsCollection);
+    if (faultAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(statsCollection);
     }
   }
 

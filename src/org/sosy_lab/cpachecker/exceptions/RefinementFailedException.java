@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.exceptions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
+import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -45,7 +46,7 @@ public class RefinementFailedException extends CPAException {
     }
   }
 
-  private static final long serialVersionUID = 2353178323706458175L;
+  @Serial private static final long serialVersionUID = 2353178323706458175L;
 
   @SuppressWarnings("checkstyle:MutableException")
   private @Nullable ARGPath path;

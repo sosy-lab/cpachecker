@@ -129,42 +129,40 @@ final class FormulaWrappingHandler {
     }
 
     if (type.isIntegerType()) {
-      switch (encodeIntegerAs) {
-        case BITVECTOR:
-          return FormulaType.getBitvectorTypeWithSize(intOptions.getBitsize());
-        case INTEGER:
-          return FormulaType.IntegerType;
-        case RATIONAL:
-          return FormulaType.RationalType;
-        default:
-          throw new AssertionError("unexpected encoding for integers: " + type);
-      }
+      return switch (encodeIntegerAs) {
+        case BITVECTOR -> FormulaType.getBitvectorTypeWithSize(intOptions.getBitsize());
+        case INTEGER -> FormulaType.IntegerType;
+        case RATIONAL -> FormulaType.RationalType;
+        case UNSUPPORTED ->
+            throw new AssertionError(
+                "encodeIntegerAs set to UNSUPPORTED, but integers were attempted to be used");
+        default -> throw new AssertionError("unexpected encoding for integers: " + encodeIntegerAs);
+      };
     }
 
     if (type.isBitvectorType()) {
-      switch (encodeBitvectorAs) {
-        case BITVECTOR:
-          return type;
-        case INTEGER:
-          return FormulaType.IntegerType;
-        case RATIONAL:
-          return FormulaType.RationalType;
-        default:
-          throw new AssertionError("unexpected encoding for bitvectors: " + type);
-      }
+      return switch (encodeBitvectorAs) {
+        case BITVECTOR -> type;
+        case INTEGER -> FormulaType.IntegerType;
+        case RATIONAL -> FormulaType.RationalType;
+        case UNSUPPORTED ->
+            throw new AssertionError(
+                "encodeBitvectorAs set to UNSUPPORTED, but bitvectors were attempted to be used");
+        default ->
+            throw new AssertionError("unexpected encoding for bitvectors: " + encodeBitvectorAs);
+      };
     }
 
     if (type.isFloatingPointType()) {
-      switch (encodeFloatAs) {
-        case FLOAT:
-          return type;
-        case INTEGER:
-          return FormulaType.IntegerType;
-        case RATIONAL:
-          return FormulaType.RationalType;
-        default:
-          throw new AssertionError("unexpected encoding for floats: " + type);
-      }
+      return switch (encodeFloatAs) {
+        case FLOAT -> type;
+        case INTEGER -> FormulaType.IntegerType;
+        case RATIONAL -> FormulaType.RationalType;
+        case UNSUPPORTED ->
+            throw new AssertionError(
+                "encodeFloatAs set to UNSUPPORTED, but floats  were attempted to be used");
+        default -> throw new AssertionError("unexpected encoding for floats: " + encodeFloatAs);
+      };
     }
 
     return type;

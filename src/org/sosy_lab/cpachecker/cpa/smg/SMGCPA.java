@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 @Options(prefix = "cpa.smg")
@@ -96,7 +97,7 @@ public class SMGCPA
 
   private SMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     config = pConfig;
@@ -149,28 +150,21 @@ public class SMGCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    switch (mergeType) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-      case "JOIN":
-        return new MergeJoinOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("unknown mergetype for SMGCPA");
-    }
+    return switch (mergeType) {
+      case "SEP" -> MergeSepOperator.getInstance();
+      case "JOIN" -> new MergeJoinOperator(getAbstractDomain());
+      default -> throw new AssertionError("unknown mergetype for SMGCPA");
+    };
   }
 
   @Override
   public StopOperator getStopOperator() {
-    switch (stopType) {
-      case "END_BLOCK":
-        return new SMGStopOperator(getAbstractDomain());
-      case "NEVER":
-        return StopNeverOperator.getInstance();
-      case "SEP":
-        return new StopSepOperator(getAbstractDomain());
-      default:
-        throw new AssertionError("unknown stoptype for SMGCPA");
-    }
+    return switch (stopType) {
+      case "END_BLOCK" -> new SMGStopOperator(getAbstractDomain());
+      case "NEVER" -> StopNeverOperator.getInstance();
+      case "SEP" -> new StopSepOperator(getAbstractDomain());
+      default -> throw new AssertionError("unknown stoptype for SMGCPA");
+    };
   }
 
   @Override

@@ -19,8 +19,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public final class CReturnStatementEdge extends AReturnStatementEdge implements CCfaEdge {
 
-  private static final long serialVersionUID = 8753970625917047772L;
-
   public CReturnStatementEdge(
       String pRawStatement,
       CReturnStatement pReturnStatement,

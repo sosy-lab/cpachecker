@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -111,11 +112,11 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, specification);
     ReachedSet reached = createInitialReachedSet(cpa, initialNode, coreComponents, singleLogger);
 
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) cpa).collectStatistics(stats);
+    if (cpa instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(stats);
     }
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(stats);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(stats);
     }
 
     return new NestedAnalysis(algorithm, cpa, reached);
@@ -206,11 +207,11 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
 
   /** get an iterable data structure from configuration options. Sadly there is no nicer way. */
   private static Map<String, String> configToMap(Configuration config) {
-    Map<String, String> mp = new LinkedHashMap<>();
+    SequencedMap<String, String> mp = new LinkedHashMap<>();
     for (String option : Splitter.on("\n").omitEmptyStrings().split(config.asPropertiesString())) {
       List<String> split = Splitter.on(" = ").splitToList(option);
       checkArgument(split.size() == 2, "unexpected option format: %s", option);
-      mp.put(split.get(0), split.get(1));
+      mp.put(split.getFirst(), split.get(1));
     }
     return mp;
   }

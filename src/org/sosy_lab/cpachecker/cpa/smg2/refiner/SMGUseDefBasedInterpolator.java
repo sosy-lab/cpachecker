@@ -10,17 +10,17 @@ package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -45,8 +45,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -66,11 +68,15 @@ public class SMGUseDefBasedInterpolator {
   /** the machine model in use */
   private final MachineModel machineModel;
 
-  /** The cfa of this analysis */
+  /** The CFA of this analysis */
   private final CFA cfa;
 
   private final SMGOptions options;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
+
+  private final SMGCPAExpressionEvaluator evaluator;
+
+  private final SMGCPAStatistics statistics;
 
   /**
    * This class allows the creation of (fake) interpolants by using the use-def-relation. This
@@ -82,8 +88,10 @@ public class SMGUseDefBasedInterpolator {
       final UseDefRelation pUseDefRelation,
       final MachineModel pMachineModel,
       final Configuration pConfig,
-      final LogManager pLogger,
-      CFA pCfa) {
+      final LogManagerWithoutDuplicates pLogger,
+      CFA pCfa,
+      final SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     slicedPrefix = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
     machineModel = pMachineModel;
@@ -95,6 +103,8 @@ public class SMGUseDefBasedInterpolator {
     }
     logger = pLogger;
     cfa = pCfa;
+    evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   /**
@@ -112,7 +122,8 @@ public class SMGUseDefBasedInterpolator {
             options,
             machineModel,
             logger,
-            (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition());
+            (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
+            statistics);
 
     // reverse order!
     List<Pair<ARGState, SMGInterpolant>> interpolants = new ArrayList<>();
@@ -135,11 +146,16 @@ public class SMGUseDefBasedInterpolator {
       if (interpolant != trivialItp) {
         trivialItp =
             SMGInterpolant.createTRUE(
-                options, machineModel, logger, (CFunctionEntryNode) cfa.getMainFunction());
+                options,
+                machineModel,
+                logger,
+                (CFunctionEntryNode) cfa.getMainFunction(),
+                evaluator,
+                statistics);
       }
     }
 
-    return Lists.reverse(interpolants);
+    return interpolants.reversed();
   }
 
   /**
@@ -151,7 +167,7 @@ public class SMGUseDefBasedInterpolator {
    */
   public Map<ARGState, SMGInterpolant> obtainInterpolantsAsMap() {
 
-    Map<ARGState, SMGInterpolant> interpolants = new LinkedHashMap<>();
+    SequencedMap<ARGState, SMGInterpolant> interpolants = new LinkedHashMap<>();
     for (Pair<ARGState, SMGInterpolant> itp : obtainInterpolants()) {
       interpolants.put(itp.getFirst(), itp.getSecond());
     }
@@ -195,7 +211,9 @@ public class SMGUseDefBasedInterpolator {
         null,
         (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
         ImmutableSet.of(),
-        ImmutableList.of());
+        ImmutableList.of(),
+        evaluator,
+        statistics);
   }
 
   /**
@@ -240,8 +258,8 @@ public class SMGUseDefBasedInterpolator {
 
       CExpression arrayLength = pArrayType.getLength();
 
-      if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+      if (arrayLength instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        int length = cIntegerLiteralExpression.getValue().intValue();
 
         return createMemoryLocationsForArray(length, pArrayType.getType());
       }
@@ -254,15 +272,13 @@ public class SMGUseDefBasedInterpolator {
     public ImmutableList<MemoryLocation> visit(final CCompositeType pCompositeType) {
       withinComplexType = true;
 
-      switch (pCompositeType.getKind()) {
-        case STRUCT:
-          return createMemoryLocationsForStructure(pCompositeType);
-        case UNION:
-          return createMemoryLocationsForUnion(pCompositeType);
-        case ENUM: // there is no such kind of CompositeType
-        default:
-          throw new AssertionError();
-      }
+      return switch (pCompositeType.getKind()) {
+        case STRUCT -> createMemoryLocationsForStructure(pCompositeType);
+        case UNION -> createMemoryLocationsForUnion(pCompositeType);
+        case ENUM ->
+            // there is no such kind of CompositeType
+            throw new AssertionError();
+      };
     }
 
     @Override
@@ -274,13 +290,8 @@ public class SMGUseDefBasedInterpolator {
         return definition.accept(this);
       }
 
-      switch (pElaboratedType.getKind()) {
-        case ENUM:
-        case STRUCT: // TODO: UNDEFINED
-        case UNION: // TODO: UNDEFINED
-        default:
-          return createSingleMemoryLocation(model.getSizeofInt());
-      }
+      // TODO handle ENUM/STRUCT/UNION specifically
+      return createSingleMemoryLocation(model.getSizeofInt());
     }
 
     @Override

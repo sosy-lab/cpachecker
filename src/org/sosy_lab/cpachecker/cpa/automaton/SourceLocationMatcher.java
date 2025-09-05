@@ -55,7 +55,7 @@ class SourceLocationMatcher {
       return originFileName.isPresent() ? "FILE " + originFileName : "TRUE";
     }
 
-    protected Optional<String> getOriginFileName() {
+    Optional<String> getOriginFileName() {
       return originFileName;
     }
   }

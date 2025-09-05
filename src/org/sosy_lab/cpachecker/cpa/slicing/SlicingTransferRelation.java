@@ -73,14 +73,10 @@ public class SlicingTransferRelation extends SingleEdgeTransferRelation {
         || pCfaEdge instanceof CFunctionSummaryStatementEdge) {
       return true;
     } else {
-      switch (pCfaEdge.getEdgeType()) {
-        case FunctionCallEdge:
-        case FunctionReturnEdge:
-        case CallToReturnEdge:
-          return true;
-        default:
-          return false;
-      }
+      return switch (pCfaEdge.getEdgeType()) {
+        case FunctionCallEdge, FunctionReturnEdge, CallToReturnEdge -> true;
+        default -> false;
+      };
     }
   }
 

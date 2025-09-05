@@ -114,7 +114,7 @@ public class CFASecondPassBuilder {
     for (final AStatementEdge functionCall : visitor.getFunctionCalls()) {
       // it could be that the current function call was already removed
       // due to being unreachable (endless loop in front)
-      // therefore we have to check that a predecessor exists before
+      // Therefore, we have to check that a predecessor exists before
       // inserting the new call edges
       if (functionCall.getPredecessor().getNumEnteringEdges() != 0) {
         insertCallEdges(functionCall);
@@ -190,30 +190,27 @@ public class CFASecondPassBuilder {
       int actualParameters = functionCallExpression.getParameterExpressions().size();
 
       switch (language) {
-        case JAVA:
-          throw new JParserException(
-              "Function "
-                  + functionName
-                  + " takes "
-                  + declaredParameters
-                  + " parameter(s) but is called with "
-                  + actualParameters
-                  + " parameter(s)",
-              edge);
-
-        case C:
-          throw new CParserException(
-              "Method "
-                  + functionName
-                  + " takes "
-                  + declaredParameters
-                  + " parameter(s) but is called with "
-                  + actualParameters
-                  + " parameter(s)",
-              edge);
-
-        default:
-          throw new AssertionError("Unhandled language " + language);
+        case JAVA ->
+            throw new JParserException(
+                "Function "
+                    + functionName
+                    + " takes "
+                    + declaredParameters
+                    + " parameter(s) but is called with "
+                    + actualParameters
+                    + " parameter(s)",
+                edge);
+        case C ->
+            throw new CParserException(
+                "Method "
+                    + functionName
+                    + " takes "
+                    + declaredParameters
+                    + " parameter(s) but is called with "
+                    + actualParameters
+                    + " parameter(s)",
+                edge);
+        default -> throw new AssertionError("Unhandled language " + language);
       }
     }
 
@@ -226,7 +223,7 @@ public class CFASecondPassBuilder {
     // create new edges
 
     switch (language) {
-      case C:
+      case C -> {
         if (summaryEdges) {
           CFunctionSummaryStatementEdge summaryStatementEdge =
               new CFunctionSummaryStatementEdge(
@@ -259,9 +256,8 @@ public class CFASecondPassBuilder {
                 (CFunctionEntryNode) fDefNode,
                 (CFunctionCall) functionCall,
                 (CFunctionSummaryEdge) calltoReturnEdge);
-        break;
-
-      case JAVA:
+      }
+      case JAVA -> {
         calltoReturnEdge =
             new JMethodSummaryEdge(
                 edge.getRawStatement(),
@@ -279,10 +275,8 @@ public class CFASecondPassBuilder {
                 (JMethodEntryNode) fDefNode,
                 (JMethodOrConstructorInvocation) functionCall,
                 (JMethodSummaryEdge) calltoReturnEdge);
-        break;
-
-      default:
-        throw new AssertionError();
+      }
+      default -> throw new AssertionError();
     }
 
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);
@@ -306,22 +300,16 @@ public class CFASecondPassBuilder {
     } else {
 
       FunctionExitNode exitNode = fExitNode.orElseThrow();
-      FunctionReturnEdge returnEdge;
-
-      switch (language) {
-        case C:
-          returnEdge =
-              new CFunctionReturnEdge(
-                  fileLocation, exitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
-          break;
-        case JAVA:
-          returnEdge =
-              new JMethodReturnEdge(
-                  fileLocation, exitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
-          break;
-        default:
-          throw new AssertionError();
-      }
+      FunctionReturnEdge returnEdge =
+          switch (language) {
+            case C ->
+                new CFunctionReturnEdge(
+                    fileLocation, exitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
+            case JAVA ->
+                new JMethodReturnEdge(
+                    fileLocation, exitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
+            default -> throw new AssertionError();
+          };
 
       exitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
@@ -406,10 +394,9 @@ public class CFASecondPassBuilder {
   }
 
   private void applyAttributes(AStatementEdge edge, AFunctionCall call) {
-    if (!(edge instanceof CStatementEdge)) {
+    if (!(edge instanceof CStatementEdge cEdge)) {
       return;
     }
-    CStatementEdge cEdge = (CStatementEdge) edge;
 
     AFunctionCallExpression f = call.getFunctionCallExpression();
     AFunctionDeclaration decl = f.getDeclaration();
@@ -448,7 +435,7 @@ public class CFASecondPassBuilder {
   }
 
   private boolean isAbortingFunction(AFunctionDeclaration pDecl) {
-    return (pDecl instanceof CFunctionDeclaration
-        && ((CFunctionDeclaration) pDecl).doesNotReturn());
+    return (pDecl instanceof CFunctionDeclaration cFunctionDeclaration
+        && cFunctionDeclaration.doesNotReturn());
   }
 }

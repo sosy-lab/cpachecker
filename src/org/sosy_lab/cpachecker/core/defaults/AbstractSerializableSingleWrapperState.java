@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -31,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 public abstract class AbstractSerializableSingleWrapperState
     implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable, Serializable {
 
-  private static final long serialVersionUID = 627183978717358384L;
+  @Serial private static final long serialVersionUID = 627183978717358384L;
 
   private final @Nullable AbstractState wrappedState;
 
@@ -48,7 +49,7 @@ public abstract class AbstractSerializableSingleWrapperState
 
   @Override
   public boolean isTarget() {
-    return wrappedState instanceof Targetable && ((Targetable) wrappedState).isTarget();
+    return wrappedState instanceof Targetable targetable && targetable.isTarget();
   }
 
   @Override
@@ -59,8 +60,8 @@ public abstract class AbstractSerializableSingleWrapperState
 
   @Override
   public @Nullable Object getPartitionKey() {
-    if (wrappedState instanceof Partitionable) {
-      return ((Partitionable) wrappedState).getPartitionKey();
+    if (wrappedState instanceof Partitionable partitionable) {
+      return partitionable.getPartitionKey();
     } else {
       return null;
     }
@@ -68,8 +69,8 @@ public abstract class AbstractSerializableSingleWrapperState
 
   @Override
   public @Nullable Comparable<?> getPseudoPartitionKey() {
-    if (wrappedState instanceof PseudoPartitionable) {
-      return ((PseudoPartitionable) wrappedState).getPseudoPartitionKey();
+    if (wrappedState instanceof PseudoPartitionable pseudoPartitionable) {
+      return pseudoPartitionable.getPseudoPartitionKey();
     } else {
       return null;
     }
@@ -77,8 +78,8 @@ public abstract class AbstractSerializableSingleWrapperState
 
   @Override
   public @Nullable Object getPseudoHashCode() {
-    if (wrappedState instanceof PseudoPartitionable) {
-      return ((PseudoPartitionable) wrappedState).getPseudoHashCode();
+    if (wrappedState instanceof PseudoPartitionable pseudoPartitionable) {
+      return pseudoPartitionable.getPseudoHashCode();
     } else {
       return null;
     }

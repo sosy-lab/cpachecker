@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,6 +32,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,6 +47,9 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
+
+  private static final ImmutableSet<Class<? extends CType>> PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST =
+      ImmutableSet.of(CSimpleType.class, CBitFieldType.class, CEnumType.class);
 
   /**
    * This flag might be set by external CPAs (e.g. BAM) to indicate a recursive context that might
@@ -56,10 +67,13 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
+  public CallstackTransferRelationBackwards copyBackwards() {
+    return new CallstackTransferRelationBackwards(options, logger);
+  }
+
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pEdge) throws CPATransferException {
-
     final CallstackState e = (CallstackState) pElement;
     final CFANode pred = pEdge.getPredecessor();
     final CFANode succ = pEdge.getSuccessor();
@@ -67,104 +81,94 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     final String succFunction = succ.getFunctionName();
 
     switch (pEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          AStatementEdge edge = (AStatementEdge) pEdge;
-          if (edge.getStatement() instanceof AFunctionCall) {
-            AExpression functionNameExp =
-                ((AFunctionCall) edge.getStatement())
-                    .getFunctionCallExpression()
-                    .getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              String functionName = ((AIdExpression) functionNameExp).getName();
-              if (options.getUnsupportedFunctions().contains(functionName)) {
-                throw new UnsupportedCodeException(functionName, edge, edge.getStatement());
-              }
+      case StatementEdge -> {
+        AStatementEdge edge = (AStatementEdge) pEdge;
+        if (edge.getStatement() instanceof AFunctionCall aFunctionCall) {
+          AExpression functionNameExp =
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            String functionName = aIdExpression.getName();
+            if (options.getUnsupportedFunctions().contains(functionName)) {
+              throw new UnsupportedCodeException(functionName, edge, edge.getStatement());
             }
           }
-
-          if (pEdge instanceof CFunctionSummaryStatementEdge) {
-            if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
-              // should go by function call and skip the current edge
-              return ImmutableSet.of();
-            }
-            // otherwise use this edge just like a normal edge
-          }
-          break;
         }
 
-      case FunctionCallEdge:
-        {
-          final String calledFunction = succ.getFunctionName();
-          final CFANode callerNode = pred;
+        if (pEdge instanceof CFunctionSummaryStatementEdge cFunctionSummaryStatementEdge) {
+          if (!shouldGoByFunctionSummaryStatement(e, cFunctionSummaryStatementEdge)) {
+            // should go by function call and skip the current edge
+            return ImmutableSet.of();
+          }
+          // otherwise use this edge just like a normal edge
+        }
+      }
+      case FunctionCallEdge -> {
+        final String calledFunction = succ.getFunctionName();
+        final CFANode callerNode = pred;
 
-          if (hasRecursion(e, calledFunction)) {
-            if (skipRecursiveFunctionCall(e, (FunctionCallEdge) pEdge)) {
-              // skip recursion, don't enter function
-              logger.logOnce(
-                  Level.WARNING,
-                  "Skipping recursive function call from",
-                  pred.getFunctionName(),
-                  "to",
-                  calledFunction);
-              return ImmutableSet.of();
-            } else {
-              // recursion is unsupported
-              logger.log(
-                  Level.INFO,
-                  "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the"
-                      + " command line.");
-              throw new UnsupportedCodeException("recursion", pEdge);
-            }
+        if (hasRecursion(e, calledFunction)) {
+          if (skipRecursiveFunctionCall(e, (FunctionCallEdge) pEdge)) {
+            // skip recursion, don't enter function
+            logger.logOnce(
+                Level.WARNING,
+                "Skipping recursive function call from",
+                pred.getFunctionName(),
+                "to",
+                calledFunction);
+            return ImmutableSet.of();
           } else {
-            // regular function call:
-            //    add the called function to the current stack
-
-            return ImmutableSet.of(new CallstackState(e, calledFunction, callerNode));
+            // recursion is unsupported
+            logger.log(
+                Level.INFO,
+                "Recursion detected, aborting. To ignore recursion, add --skip-recursion to the"
+                    + " command line.");
+            throw new UnsupportedCodeException("recursion", pEdge);
           }
+        } else {
+          // regular function call:
+          //    add the called function to the current stack
+
+          return ImmutableSet.of(new CallstackState(e, calledFunction, callerNode));
         }
+      }
+      case FunctionReturnEdge -> {
+        final String calledFunction = predFunction;
+        final String callerFunction = succFunction;
+        final CFANode callNode = ((FunctionReturnEdge) pEdge).getCallNode();
+        final CallstackState returnElement;
 
-      case FunctionReturnEdge:
-        {
-          final String calledFunction = predFunction;
-          final String callerFunction = succFunction;
-          final CFANode callNode = ((FunctionReturnEdge) pEdge).getCallNode();
-          final CallstackState returnElement;
+        assert calledFunction.equals(e.getCurrentFunction())
+                || isWildcardState(e, AnalysisDirection.FORWARD)
+            : String.format(
+                "not in scope of called function \"%s\" when leaving function \"%s\" in state"
+                    + " \"%s\"",
+                calledFunction, e.getCurrentFunction(), e);
 
-          assert calledFunction.equals(e.getCurrentFunction())
-                  || isWildcardState(e, AnalysisDirection.FORWARD)
+        if (isWildcardState(e, AnalysisDirection.FORWARD)) {
+          returnElement = new CallstackState(null, callerFunction, e.getCallNode());
+
+        } else {
+          if (!callNode.equals(e.getCallNode())) {
+            // this is not the right return edge
+            return ImmutableSet.of();
+          }
+
+          // we are in a function return:
+          //    remove the current function from the stack;
+          //    the new abstract state is the predecessor state in the stack
+          returnElement = e.getPreviousState();
+
+          assert callerFunction.equals(returnElement.getCurrentFunction())
+                  || isWildcardState(returnElement, AnalysisDirection.FORWARD)
               : String.format(
-                  "not in scope of called function \"%s\" when leaving function \"%s\" in state"
-                      + " \"%s\"",
-                  calledFunction, e.getCurrentFunction(), e);
-
-          if (isWildcardState(e, AnalysisDirection.FORWARD)) {
-            returnElement = new CallstackState(null, callerFunction, e.getCallNode());
-
-          } else {
-            if (!callNode.equals(e.getCallNode())) {
-              // this is not the right return edge
-              return ImmutableSet.of();
-            }
-
-            // we are in a function return:
-            //    remove the current function from the stack;
-            //    the new abstract state is the predecessor state in the stack
-            returnElement = e.getPreviousState();
-
-            assert callerFunction.equals(returnElement.getCurrentFunction())
-                    || isWildcardState(returnElement, AnalysisDirection.FORWARD)
-                : String.format(
-                    "calling function \"%s\" not available after function return into function"
-                        + " scope \"%s\" in state \"%s\"",
-                    callerFunction, returnElement.getCurrentFunction(), returnElement);
-          }
-
-          return Collections.singleton(returnElement);
+                  "calling function \"%s\" not available after function return into function"
+                      + " scope \"%s\" in state \"%s\"",
+                  callerFunction, returnElement.getCurrentFunction(), returnElement);
         }
 
-      default:
-        break;
+        return Collections.singleton(returnElement);
+      }
+      default -> {}
     }
 
     return Collections.singleton(pElement);
@@ -198,7 +202,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Not a function call node -> wildcard state
-    // Info: a backward-analysis causes an callstack-state with a non-function-call-node,
+    // Info: a backward-analysis causes a callstack-state with a non-function-call-node,
     // build from the target state on getInitialState.
     return direction == AnalysisDirection.FORWARD;
   }
@@ -279,6 +283,17 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   protected boolean hasVoidRecursion(
       final CallstackState element, final FunctionCallEdge pCallEdge) {
+
+    // Determine if any function parameters could contain pointers
+    // TODO: in principle, this could also be done for other front-ends like Java
+    if (!FluentIterable.from(pCallEdge.getFunctionCallExpression().getParameterExpressions())
+        .filter(CExpression.class)
+        .transform(CExpression::getExpressionType)
+        .allMatch(CallstackTransferRelation::isSafePassByValue)) {
+      // Treat this call as not being a void recursion, as there might still be side effects
+      return false;
+    }
+
     if (pCallEdge.getFunctionCall() instanceof AFunctionCallStatement) {
       return true;
     }
@@ -305,6 +320,23 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       e = e.getPreviousState();
     }
     throw new AssertionError();
+  }
+
+  private static boolean isSafePassByValue(CType type) {
+    type = type.getCanonicalType();
+    if (PASS_BY_SIMPLE_VALUE_TYPE_ALLOWLIST.contains(type.getClass())) {
+      return true;
+
+    } else if (type instanceof CCompositeType composite) {
+      for (CCompositeTypeMemberDeclaration member : composite.getMembers()) {
+        if (!isSafePassByValue(member.getType())) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    return false;
   }
 
   protected boolean shouldGoByFunctionSummaryStatement(

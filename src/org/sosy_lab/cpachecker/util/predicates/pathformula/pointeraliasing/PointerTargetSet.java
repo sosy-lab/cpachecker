@@ -14,6 +14,7 @@ import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -214,8 +215,9 @@ public final class PointerTargetSet implements Serializable {
 
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
 
-  private static final long serialVersionUID = 2102505458322248624L;
+  @Serial private static final long serialVersionUID = 2102505458322248624L;
 
+  @Serial
   private Object writeReplace() {
     return new SerializationProxy(this);
   }
@@ -226,13 +228,14 @@ public final class PointerTargetSet implements Serializable {
    * @param in the input stream
    */
   @SuppressWarnings("UnusedVariable") // parameter is required by API
+  @Serial
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 
   private static class SerializationProxy implements Serializable {
 
-    private static final long serialVersionUID = 8022025017590667769L;
+    @Serial private static final long serialVersionUID = 8022025017590667769L;
     private final PersistentSortedMap<String, CType> bases;
     private final PersistentSortedMap<CompositeField, Boolean> fields;
     private final List<Pair<String, DeferredAllocation>> deferredAllocations;
@@ -256,6 +259,7 @@ public final class PointerTargetSet implements Serializable {
       allocationCount = pts.allocationCount;
     }
 
+    @Serial
     private Object readResolve() {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();

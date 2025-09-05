@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
@@ -29,7 +28,7 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}, and if this
- * fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * fails, optionally delegates also to another refiner.
  */
 public abstract class OctagonDelegatingRefiner implements Refiner {
 

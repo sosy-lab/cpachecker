@@ -216,7 +216,9 @@ class AssignmentQuantifierHandler {
     errorConditions = pErrorConditions;
     regionMgr = pRegionMgr;
 
-    addressHandler = new AddressHandler(pConv, pSsa, pConstraints, pErrorConditions, pRegionMgr);
+    addressHandler =
+        new AddressHandler(
+            pConv, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions, pRegionMgr);
 
     assignmentOptions = pAssignmentOptions;
     resolvedLhsBases = pResolvedLhsBases;
@@ -339,14 +341,12 @@ class AssignmentQuantifierHandler {
 
         CExpression baseUnderlying = base.getOperand();
 
-        if (!(baseUnderlying instanceof CIntegerLiteralExpression)) {
+        if (!(baseUnderlying instanceof CIntegerLiteralExpression setValueLiteral)) {
           throw new UnrecognizedCodeException(
               "Non-literal byte repeat value not supported for bitfields", edge);
         }
 
         // determine the value of literal
-        final CIntegerLiteralExpression setValueLiteral =
-            (CIntegerLiteralExpression) baseUnderlying;
 
         // make sure it is either all-zeros or all-ones
         int unsignedCharAllOnes =
@@ -391,7 +391,7 @@ class AssignmentQuantifierHandler {
     }
 
     // not all variables have been quantified, get the variable to quantify
-    final SliceVariable variableToQuantify = variablesToQuantify.get(0);
+    final SliceVariable variableToQuantify = variablesToQuantify.getFirst();
 
     // make a sublist without the variable to quantify
     final ImmutableList<SliceVariable> nextVariablesToQuantify =
@@ -450,7 +450,7 @@ class AssignmentQuantifierHandler {
    * calls {@link #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula, boolean)}
    * recursively.
    *
-   * @param assignment The the simple partial slice assignment to quantify.
+   * @param assignment the simple partial slice assignment to quantify.
    * @param nextVariablesToQuantify Remaining variables that need to be quantified, without the one
    *     to currently encode. Each variable which still needs to be quantified, except the one to
    *     currently encode, must appear in this list exactly once.
@@ -523,9 +523,7 @@ class AssignmentQuantifierHandler {
 
     // the unrolled index should be of pointerAsUnsignedIntType
     final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(pointerAsUnsignedIntType);
-
-    // limit the unrolling size to a reasonable number by default
-    long unrollingSize = options.defaultArrayLength();
+    final long unrollingSize;
     final Optional<Formula> sliceSizeFormula;
 
     // if the expression is a literal, we can get the exact slice size
@@ -551,6 +549,7 @@ class AssignmentQuantifierHandler {
     } else {
       // non-literal slice size expression, always potentially unsound
       // warn just once for all non-literal unrollings to avoid polluting the output
+      unrollingSize = options.defaultArrayLength();
       conv.logger.logfOnce(
           Level.WARNING,
           "Limiting unrolling of non-literal-length slice assignment to %s, soundness may be lost",
@@ -649,7 +648,8 @@ class AssignmentQuantifierHandler {
 
     // construct a formula handler
     final AssignmentFormulaHandler assignmentFormulaHandler =
-        new AssignmentFormulaHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+        new AssignmentFormulaHandler(
+            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
 
     final SliceExpression lhsSlice = assignment.lhs.actual();
     final CType targetType = assignment.lhs.targetType();
@@ -710,7 +710,8 @@ class AssignmentQuantifierHandler {
    * @throws IllegalStateException If there are any unresolved modifiers.
    */
   private ResolvedSlice applySliceModifiersToResolvedBase(
-      final ResolvedSlice resolvedBase, final SliceExpression slice) {
+      final ResolvedSlice resolvedBase, final SliceExpression slice)
+      throws UnrecognizedCodeException {
     checkNotNull(resolvedBase);
     checkNotNull(slice);
 
@@ -792,7 +793,8 @@ class AssignmentQuantifierHandler {
    * @return Resolved slice with applied subscript modifier.
    */
   private ResolvedSlice applySubscriptModifier(
-      ResolvedSlice resolved, SliceIndexModifier modifier, boolean resolvedIsFunctionParameter) {
+      ResolvedSlice resolved, SliceIndexModifier modifier, boolean resolvedIsFunctionParameter)
+      throws UnrecognizedCodeException {
 
     // all subscript modifiers must be already resolved here
     SliceFormulaIndexModifier resolvedModifier = (SliceFormulaIndexModifier) modifier;

@@ -43,8 +43,8 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
 
   @Test
   public void joinValuesIdenticalTest() {
-    smg1 = smg1.copyAndAddValue(value1);
-    smg2 = smg2.copyAndAddValue(value1);
+    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
+    smg2 = smg2.copyAndAddValueWithNestingLevelZero(value1);
 
     SMGJoinValues jv =
         new SMGJoinValues(
@@ -58,9 +58,9 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
 
   @Test
   public void joinValuesAlreadyJoinedTest() {
-    smg1 = smg1.copyAndAddValue(value1);
-    smg2 = smg2.copyAndAddValue(value2);
-    smgDest = smgDest.copyAndAddValue(value3);
+    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
+    smg2 = smg2.copyAndAddValueWithNestingLevelZero(value2);
+    smgDest = smgDest.copyAndAddValueWithNestingLevelZero(value3);
 
     mapping1.addMapping(value1, value3);
     mapping2.addMapping(value2, value3);
@@ -80,9 +80,9 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
 
   @Test
   public void joinValuesNonPointers() {
-    smg1 = smg1.copyAndAddValue(value1);
-    smg2 = smg2.copyAndAddValue(value2);
-    smgDest = smgDest.copyAndAddValue(value3);
+    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
+    smg2 = smg2.copyAndAddValueWithNestingLevelZero(value2);
+    smgDest = smgDest.copyAndAddValueWithNestingLevelZero(value3);
 
     mapping1.addMapping(value1, value3);
     SMGJoinValues jv =
@@ -117,9 +117,9 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
 
   @Test
   public void joinValuesSinglePointer() {
-    smg1 = smg1.copyAndAddValue(value1);
-    smg2 = smg2.copyAndAddValue(value2);
-    smgDest = smgDest.copyAndAddValue(value3);
+    smg1 = smg1.copyAndAddValueWithNestingLevelZero(value1);
+    smg2 = smg2.copyAndAddValueWithNestingLevelZero(value2);
+    smgDest = smgDest.copyAndAddValueWithNestingLevelZero(value3);
 
     SMGObject obj1 = createRegion(64);
     SMGPointsToEdge pt = createPTRegionEdge(0, obj1);
