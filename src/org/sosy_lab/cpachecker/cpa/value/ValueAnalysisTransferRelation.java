@@ -301,6 +301,18 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
+  public Collection<ValueAnalysisState> getAbstractSuccessorsForEdge(
+      final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    stats.transferTime.start();
+    try {
+      return super.getAbstractSuccessorsForEdge(abstractState, abstractPrecision, cfaEdge);
+    } finally {
+      stats.transferTime.stop();
+    }
+  }
+
+  @Override
   protected Collection<ValueAnalysisState> postProcessing(
       ValueAnalysisState successor, CFAEdge edge) {
     // always return a new state (requirement for strengthening states with interpolants)
