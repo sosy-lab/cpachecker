@@ -39,7 +39,7 @@ public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsP
       toUppercase = true,
       values = {"SEP", "JOIN"},
       description = "which merge operator to use for UnseqBehaviorAnalysisCPA ")
-  private String mergeType = "SEP";
+  private String mergeType = "JOIN";
 
   @Option(
       secure = true,
@@ -47,7 +47,7 @@ public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsP
       toUppercase = true,
       values = {"SEP", "JOIN", "NEVER"},
       description = "which stop operator to use for UnseqBehaviorAnalysisCPA")
-  private String stopType = "SEP";
+  private String stopType = "JOIN";
 
   private final StateToFormulaWriter writer;
   private final LogManager logger;
