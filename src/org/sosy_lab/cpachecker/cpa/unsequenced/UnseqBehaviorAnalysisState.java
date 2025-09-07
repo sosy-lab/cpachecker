@@ -132,27 +132,7 @@ public class UnseqBehaviorAnalysisState
 
     int index = 1;
     for (ConflictPair conflict : detectedConflicts) {
-      String location = conflict.location().getFileLocation().toString();
-
-      String exprA = UnseqUtils.replaceTmpInExpression(conflict.exprA(), this);
-      String exprB = UnseqUtils.replaceTmpInExpression(conflict.exprB(), this);
-
-      String varName = conflict.accessA().memoryLocation().toString();
-      sb.append(index)
-          .append(". ")
-          .append(location)
-          .append(": (")
-          .append(exprA)
-          .append(") ⊕ (")
-          .append(exprB)
-          .append(") on '")
-          .append(varName)
-          .append("' (access: ")
-          .append(conflict.accessA())
-          .append(" / ")
-          .append(conflict.accessB())
-          .append(")");
-
+      sb.append(conflict.toString());
       if (index < detectedConflicts.size()) {
         sb.append(", ");
       }
@@ -193,7 +173,18 @@ public class UnseqBehaviorAnalysisState
           entry.getKey(),
           new HashSet<>(entry.getValue()),
           (a, b) -> {
-            a.addAll(b);
+            for (SideEffectInfo se : b) {
+              boolean exists =
+                  a.stream()
+                      .anyMatch(
+                          x ->
+                              Objects.equals(x.cfaEdge(), se.cfaEdge())
+                                  && x.sideEffectKind() == se.sideEffectKind()
+                                  && Objects.equals(x.memoryLocation(), se.memoryLocation()));
+              if (!exists) {
+                a.add(se);
+              }
+            }
             return a;
           });
     }
@@ -236,8 +227,21 @@ public class UnseqBehaviorAnalysisState
       Set<SideEffectInfo> thisEffects = entry.getValue();
       Set<SideEffectInfo> reachedStateEffects = reachedState.sideEffectsInFun.get(functionName);
 
-      if (reachedStateEffects == null || !reachedStateEffects.containsAll(thisEffects)) {
+      if (reachedStateEffects == null) {
         return false;
+      }
+
+      for (SideEffectInfo se : thisEffects) {
+        boolean covered =
+            reachedStateEffects.stream()
+                .anyMatch(
+                    x ->
+                        Objects.equals(x.cfaEdge(), se.cfaEdge())
+                            && x.sideEffectKind() == se.sideEffectKind()
+                            && Objects.equals(x.memoryLocation(), se.memoryLocation()));
+        if (!covered) {
+          return false;
+        }
       }
     }
 
