@@ -178,8 +178,7 @@ public class UnseqBehaviorAnalysisState
                   a.stream()
                       .anyMatch(
                           x ->
-                              Objects.equals(
-                                      x.cfaEdge().getLineNumber(), se.cfaEdge().getLineNumber())
+                              x.cfaEdge().getLineNumber() == se.cfaEdge().getLineNumber()
                                   && x.sideEffectKind() == se.sideEffectKind()
                                   && Objects.equals(x.memoryLocation(), se.memoryLocation()));
               if (!exists) {
@@ -221,7 +220,7 @@ public class UnseqBehaviorAnalysisState
             reachedStateEffects.stream()
                 .anyMatch(
                     x ->
-                        Objects.equals(x.cfaEdge().getLineNumber(), se.cfaEdge().getLineNumber())
+                        x.cfaEdge().getLineNumber() == se.cfaEdge().getLineNumber()
                             && x.sideEffectKind() == se.sideEffectKind()
                             && Objects.equals(x.memoryLocation(), se.memoryLocation()));
         if (!covered) {
