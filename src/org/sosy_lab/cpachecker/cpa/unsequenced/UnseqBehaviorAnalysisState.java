@@ -178,7 +178,8 @@ public class UnseqBehaviorAnalysisState
                   a.stream()
                       .anyMatch(
                           x ->
-                              Objects.equals(x.cfaEdge(), se.cfaEdge())
+                              Objects.equals(
+                                      x.cfaEdge().getLineNumber(), se.cfaEdge().getLineNumber())
                                   && x.sideEffectKind() == se.sideEffectKind()
                                   && Objects.equals(x.memoryLocation(), se.memoryLocation()));
               if (!exists) {
@@ -191,27 +192,11 @@ public class UnseqBehaviorAnalysisState
     ImmutableMap<String, ImmutableSet<SideEffectInfo>> mergedSideEffects =
         UnseqUtils.toImmutableSideEffectsMap(mutableSideEffects);
 
-    Map<String, CRightHandSide> mutableTmpMap = new HashMap<>(this.tmpToOriginalExprMap);
-    for (Map.Entry<String, CRightHandSide> entry : other.tmpToOriginalExprMap.entrySet()) {
-      if (mutableTmpMap.containsKey(entry.getKey())
-          && !Objects.equals(mutableTmpMap.get(entry.getKey()), entry.getValue())) {
-        throw new IllegalStateException(
-            "Conflicting tmp mappings during join: "
-                + mutableTmpMap.get(entry.getKey())
-                + " vs "
-                + entry.getValue());
-      }
-      mutableTmpMap.put(entry.getKey(), entry.getValue());
-    }
-
-    Set<ConflictPair> mutableConflicts = new HashSet<>(this.detectedConflicts);
-    mutableConflicts.addAll(other.detectedConflicts);
-
     return new UnseqBehaviorAnalysisState(
         mergedSideEffects,
         this.calledFunctionStack,
-        ImmutableSet.copyOf(mutableConflicts),
-        ImmutableMap.copyOf(mutableTmpMap),
+        this.detectedConflicts,
+        this.tmpToOriginalExprMap,
         this.logger);
   }
 
@@ -236,24 +221,13 @@ public class UnseqBehaviorAnalysisState
             reachedStateEffects.stream()
                 .anyMatch(
                     x ->
-                        Objects.equals(x.cfaEdge(), se.cfaEdge())
+                        Objects.equals(x.cfaEdge().getLineNumber(), se.cfaEdge().getLineNumber())
                             && x.sideEffectKind() == se.sideEffectKind()
                             && Objects.equals(x.memoryLocation(), se.memoryLocation()));
         if (!covered) {
           return false;
         }
       }
-    }
-
-    if (!reachedState
-        .tmpToOriginalExprMap
-        .entrySet()
-        .containsAll(this.tmpToOriginalExprMap.entrySet())) {
-      return false;
-    }
-
-    if (!reachedState.detectedConflicts.containsAll(this.detectedConflicts)) {
-      return false;
     }
 
     return true;

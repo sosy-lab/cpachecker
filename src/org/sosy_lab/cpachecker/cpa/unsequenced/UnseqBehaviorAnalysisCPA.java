@@ -55,7 +55,7 @@ public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsP
   private UnseqBehaviorAnalysisCPA(
       Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
       throws InvalidConfigurationException {
-    super("sep", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
+    super("join", "join", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
     config.inject(this);
     writer = new StateToFormulaWriter(config, pLogger, shutdownNotifier, cfa);
     logger = pLogger;
