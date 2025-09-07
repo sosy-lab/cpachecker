@@ -20,7 +20,6 @@
     <rundefinition name="unseq">
         <tasks name="SmallTestCase">
             <includesfile>../../../sv-benchmarks/c/Unspecified-Behavior.set</includesfile>
-            <propertyfile>../../config/properties/valid-memsafety.prp</propertyfile>
         </tasks>
     </rundefinition>
 
