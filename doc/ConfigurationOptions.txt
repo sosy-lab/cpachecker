@@ -3659,11 +3659,11 @@ cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
 # which merge operator to use for UnseqBehaviorAnalysisCPA 
-cpa.unseqbehavior.merge = "JOIN"
+cpa.unseqbehavior.merge = "SEP"
   allowed values: [SEP, JOIN]
 
 # which stop operator to use for UnseqBehaviorAnalysisCPA
-cpa.unseqbehavior.stop = "JOIN"
+cpa.unseqbehavior.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
 # functions, which stops analysis

@@ -39,7 +39,7 @@ public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsP
       toUppercase = true,
       values = {"SEP", "JOIN"},
       description = "which merge operator to use for UnseqBehaviorAnalysisCPA ")
-  private String mergeType = "JOIN";
+  private String mergeType = "SEP";
 
   @Option(
       secure = true,
@@ -47,7 +47,7 @@ public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsP
       toUppercase = true,
       values = {"SEP", "JOIN", "NEVER"},
       description = "which stop operator to use for UnseqBehaviorAnalysisCPA")
-  private String stopType = "JOIN";
+  private String stopType = "SEP";
 
   private final StateToFormulaWriter writer;
   private final LogManager logger;
@@ -55,7 +55,7 @@ public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsP
   private UnseqBehaviorAnalysisCPA(
       Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
       throws InvalidConfigurationException {
-    super("join", "join", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
+    super("sep", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
     config.inject(this);
     writer = new StateToFormulaWriter(config, pLogger, shutdownNotifier, cfa);
     logger = pLogger;
