@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
@@ -88,11 +87,6 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Collect all the information about the new edges for the instrumented CFA
     Set<String> newEdges = new HashSet<>();
-    // Initialize the search
-    List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
-    Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
-    Map<CFANode, String> mapDecomposedOperationsCondition = new HashMap<>();
-    waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
     // For some properties we construct more automata to more effectively track variables within
     // the scope. This map is used to map the automata to concrete line numbers in the code.
@@ -129,42 +123,18 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         index += 1;
       }
     } else {
-      if (instrumentationProperty == InstrumentationProperty.DATA_RACE) {
-        ImmutableMap.Builder<String, String> builder = new ImmutableMap.Builder<>();
-        for (String variable :
-            cfa.getMetadata().getLiveVariables().get().getAllLiveVariables().stream()
-                .map(e -> e.getName())
-                .toList()) {
-          if (cProgramScope.variableNameInUse(variable)) {
-            try {
-              builder.put(variable, cProgramScope.lookupVariable(variable).getType().toString());
-            } catch (Exception e) {
-              logger.log(Level.WARNING, "There is a skipped variable without known type.");
-            }
-          }
-        }
-        ImmutableMap<String, String> varsWithTypes = builder.build();
-        mapAutomataToLocations.put(
-            0,
-            new InstrumentationAutomaton(instrumentationProperty, varsWithTypes, varsWithTypes, 0));
-        ImmutableMap.Builder<CFANode, Integer> builder1 = new ImmutableMap.Builder<>();
-        // This is needed because many functions are called by reference from pthread functions
-        for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {
-          builder1.put(functionEntryNode, 0);
-          if (!functionEntryNode.getFunction().getQualifiedName().equals("main")) {
-            waitlist.add(Pair.of(functionEntryNode, new InstrumentationState()));
-          }
-        }
-        mapNodesToLineNumbers = builder1.build();
-      } else {
-        mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
-        mapAutomataToLocations.put(
-            0,
-            new InstrumentationAutomaton(
-                instrumentationProperty, ImmutableMap.of(), ImmutableMap.of(), 0));
-      }
+      mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
+      mapAutomataToLocations.put(
+          0,
+          new InstrumentationAutomaton(
+              instrumentationProperty, ImmutableMap.of(), ImmutableMap.of(), 0));
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
+    // Initialize the search
+    List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
+    Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
+    Map<CFANode, String> mapDecomposedOperationsCondition = new HashMap<>();
+    waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
     while (!waitlist.isEmpty()) {
       Pair<CFANode, InstrumentationState> currentPair = waitlist.remove(waitlist.size() - 1);
@@ -272,21 +242,13 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       } else {
         functionName = pTransition.getPattern().getFunctionName();
       }
-      if ((pTransition.getPattern().toString().equals("vars_bin_op")
-              && pEdge.getPredecessor().isLoopStart())
-          || (pTransition.getPattern().toString().equals("vars_un_op")
-              && pEdge.getPredecessor().isLoopStart())) {
-        fileLocation = pEdge.getSuccessor().describeFileLocation().replaceFirst("before line ", "");
-        location = Integer.parseInt(fileLocation) - 1;
-      } else {
-        if (pTransition.getPattern().toString().equals("[!cond]")) {
-          fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
-        }
-        fileLocation = fileLocation.replaceFirst("line ", "");
-        fileLocation =
-            Iterables.get(Splitter.on('-').split(fileLocation), 0).replaceFirst("lines ", "");
-        location = Integer.parseInt(fileLocation);
+      if (pTransition.getPattern().toString().equals("[!cond]")) {
+        fileLocation = pEdge.getSuccessor().getLeavingEdge(0).getFileLocation().toString();
       }
+      fileLocation = fileLocation.replaceFirst("line ", "");
+      fileLocation =
+          Iterables.get(Splitter.on('-').split(fileLocation), 0).replaceFirst("lines ", "");
+      location = Integer.parseInt(fileLocation);
       if (pTransition.getOrderAsString().equals("AFTER")) {
         location += 1;
       }
@@ -321,10 +283,6 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       ImmutableList<String> pMatchedVariables) {
     if (!pTransition.getPattern().toString().equals("ptr_deref")
         && !pTransition.getPattern().toString().equals("ptr_declar")
-        && !pTransition.getPattern().toString().equals("vars_bin_op")
-        && !pTransition.getPattern().toString().equals("vars_un_op")
-        && !pTransition.getPattern().toString().equals("vars_bin_assign")
-        && !pTransition.getPattern().toString().equals("vars_un_assign")
         && !pTransition.getPattern().toString().equals("ADD")
         && !pTransition.getPattern().toString().equals("SUB")
         && !pTransition.getPattern().toString().equals("MUL")

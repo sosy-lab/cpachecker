@@ -16,7 +16,7 @@ import com.google.common.collect.Iterables;
  * Class for operations defined on the transitions of instrumentation automaton. Should not be used
  * outside the Sequentialization operator ! The operation can be any valid C expression. It is
  * possible to insert the variables matched from the pattern by special variables x1, x2, ..., xn.
- * All these variables are after match replaced by first, second, third, ..., n-th matched variable
+ * All these variables are after match replaced by first, second, third, ..., n-th mathced variable
  * from InstrumentationPattern.
  */
 public class InstrumentationOperation {
