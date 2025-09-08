@@ -382,7 +382,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       CExpressionAssignmentStatement pAssignmentStatement) {
     String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
     CExpression leftSide = pAssignmentStatement.getLeftHandSide();
-    CExpression rightSide = pAssignmentStatement.getLeftHandSide();
+    CExpression rightSide = pAssignmentStatement.getRightHandSide();
     CFANode leftNode = CFANode.newDummyCFANode();
     CFANode rightNode = CFANode.newDummyCFANode();
 
