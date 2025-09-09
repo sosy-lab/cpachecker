@@ -434,6 +434,9 @@ analysis.reachedSet = PARTITIONED
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
 
+# enable tracking of changes for the reachedSet
+analysis.reachedSet.withTracking = false
+
 # Use if you are going to change function with function pionter parameter
 analysis.replaceFunctionWithParameterPointer = false
 
@@ -4336,6 +4339,10 @@ faultLocalization.import.importFile = no default value
 
 # which scoring functions to use
 faultLocalization.import.scorings = []
+
+# If true, the PredicateStaticRefiner will always be chosen for the first
+# refinement.
+heuristic.staticRefiner.useStaticRefinerFirst = false
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.

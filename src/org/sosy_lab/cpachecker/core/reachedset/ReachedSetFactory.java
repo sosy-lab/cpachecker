@@ -178,6 +178,12 @@ public class ReachedSetFactory {
       description = "track more statistics about the reachedset")
   private boolean withStatistics = false;
 
+  @Option(
+      secure = true,
+      name = "reachedSet.withTracking",
+      description = "enable tracking of changes for the reachedSet")
+  private boolean withTracking = false;
+
   private @Nullable BlockConfiguration blockConfig;
   private @Nullable UsageConfiguration usageConfig;
   private WeightedRandomWaitlist.@Nullable WaitlistOptions weightedWaitlistOptions;
@@ -275,6 +281,9 @@ public class ReachedSetFactory {
         };
     if (withStatistics) {
       reached = new StatisticsReachedSet(reached);
+    }
+    if (withTracking) {
+      reached = new TrackingForwardingReachedSet(reached, withTracking);
     }
 
     return reached;
