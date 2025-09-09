@@ -14,8 +14,7 @@
     <resultfiles>**/witness.*</resultfiles>
 
     <option name="--unseqBehaviorAnalysis" />
-    <option name="--heap" />
-    <option name="10000M" />
+    <option name="--heap">4096M</option>
     <option name="--benchmark" />
 
     <rundefinition name="unseq">
