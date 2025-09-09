@@ -249,6 +249,10 @@ public class DssBlockAnalysis {
   public DssMessageProcessing storePrecondition(DssPreconditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
     logger.log(Level.INFO, "Running forward analysis with new precondition");
+    if (!pReceived.isReachable()) {
+      preconditions.removeAll(pReceived.getSenderId());
+      return DssMessageProcessing.stop();
+    }
     List<StateAndPrecision> deserializedStates = dcpa.deserialize(pReceived);
     DssMessageProcessing processing = DssMessageProcessing.proceed();
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
