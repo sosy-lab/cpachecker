@@ -265,28 +265,34 @@ public class DssBlockAnalysis {
     }
     ImmutableList.Builder<StateAndPrecision> discard = ImmutableList.builder();
     if (preconditions.containsKey(pReceived.getSenderId())) {
-      // whether a fixpoint was reached
-      Collection<StateAndPrecision> previousStates = preconditions.get(pReceived.getSenderId());
-      int covered = 0;
-      for (StateAndPrecision deserialized : deserializedStates) {
-        for (StateAndPrecision previous : previousStates) {
-          if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
-            discard.add(previous);
-            continue;
-          }
-          if (dcpa.getCoverageOperator().isSubsumed(previous.state(), deserialized.state())) {
-            covered++;
-            discard.add(deserialized);
-            break;
-          }
-          if (dcpa.getCoverageOperator().isSubsumed(deserialized.state(), previous.state())) {
-            discard.add(previous);
+      if (block.getLoopPredecessorIds().isEmpty()) {
+        // replace if not in loop (every summary is either overapproximating
+        // or a loop condition will cause future computations.
+        discard.addAll(preconditions.get(pReceived.getSenderId()));
+      } else {
+        // whether a fixpoint was reached
+        Collection<StateAndPrecision> previousStates = preconditions.get(pReceived.getSenderId());
+        int covered = 0;
+        for (StateAndPrecision deserialized : deserializedStates) {
+          for (StateAndPrecision previous : previousStates) {
+            if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
+              discard.add(previous);
+              continue;
+            }
+            if (dcpa.getCoverageOperator().isSubsumed(previous.state(), deserialized.state())) {
+              covered++;
+              discard.add(deserialized);
+              break;
+            }
+            if (dcpa.getCoverageOperator().isSubsumed(deserialized.state(), previous.state())) {
+              discard.add(previous);
+            }
           }
         }
-      }
-      if (covered == deserializedStates.size()) {
-        // we already have a precondition implying the new one
-        return DssMessageProcessing.stop();
+        if (covered == deserializedStates.size()) {
+          // we already have a precondition implying the new one
+          return DssMessageProcessing.stop();
+        }
       }
     }
     ImmutableList<StateAndPrecision> discarded = discard.build();
