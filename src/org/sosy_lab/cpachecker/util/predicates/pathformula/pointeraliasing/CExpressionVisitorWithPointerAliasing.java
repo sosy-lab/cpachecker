@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
@@ -370,7 +369,7 @@ class CExpressionVisitorWithPointerAliasing
       return Value.ofValue(
           conv.makeCast(
               operandType, resultType, asValueFormula(result, operandType), constraints, edge));
-    } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
+    } else if (resultType.withoutConst().equals(operandType.withoutConst())) {
       // Special case: conversion of non-scalar type to itself is allowed (and ignored)
       // Change of const modifier is ignored, too.
       return result;

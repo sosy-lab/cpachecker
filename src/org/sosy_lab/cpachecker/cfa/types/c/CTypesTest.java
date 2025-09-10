@@ -34,11 +34,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 @RunWith(Parameterized.class)
 public class CTypesTest {
 
+  static final CType CONST_VOLATILE_INT = CNumericTypes.INT.withConst().withVolatile();
+
   private static final MachineModel TEST_MACHINE_MODEL = MachineModel.LINUX32;
-  public static final CIntegerLiteralExpression TWO =
+  static final CIntegerLiteralExpression TWO =
       CIntegerLiteralExpression.createDummyLiteral(2L, CNumericTypes.INT);
 
-  private static final CIdExpression VAR_N =
+  static final CIdExpression VAR_N =
       new CIdExpression(
           FileLocation.DUMMY,
           CNumericTypes.INT,
@@ -52,43 +54,48 @@ public class CTypesTest {
               "n",
               "n",
               null));
-  private static final CIdExpression VAR_CONST =
+  static final CIdExpression VAR_CONST =
       new CIdExpression(
           FileLocation.DUMMY,
-          CTypes.withConst(CNumericTypes.INT),
+          CNumericTypes.INT.withConst(),
           "c",
           new CVariableDeclaration(
               FileLocation.DUMMY,
               true,
               CStorageClass.AUTO,
-              CTypes.withConst(CNumericTypes.INT),
+              CNumericTypes.INT.withConst(),
               "c",
               "c",
               "c",
               new CInitializerExpression(FileLocation.DUMMY, TWO)));
 
-  private static final CArrayType CONSTANT_ARRAY =
-      new CArrayType(false, false, CNumericTypes.INT, TWO);
-  private static final CArrayType VARIABLE_ARRAY =
-      new CArrayType(false, false, CNumericTypes.INT, VAR_N);
-  private static final CArrayType UNKNOWN_ARRAY = new CArrayType(false, false, CNumericTypes.INT);
+  static final CArrayType CONSTANT_ARRAY =
+      new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, TWO);
+  static final CArrayType VARIABLE_ARRAY =
+      new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, VAR_N);
+  static final CArrayType UNKNOWN_ARRAY = new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT);
 
   @Parameters(name = "{0}")
   public static List<Object[]> parameters() {
 
     CCompositeType simpleStruct =
-        new CCompositeType(false, false, ComplexTypeKind.STRUCT, "simpleStruct", "simpleStruct");
+        new CCompositeType(
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "simpleStruct", "simpleStruct");
     simpleStruct.setMembers(
         ImmutableList.of(new CCompositeTypeMemberDeclaration(CNumericTypes.INT, "i")));
 
     CCompositeType arrayStruct =
-        new CCompositeType(false, false, ComplexTypeKind.STRUCT, "arrayStruct", "arrayStruct");
+        new CCompositeType(
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "arrayStruct", "arrayStruct");
     arrayStruct.setMembers(
         ImmutableList.of(new CCompositeTypeMemberDeclaration(CONSTANT_ARRAY, "a")));
 
     CCompositeType flexibleArrayStruct =
         new CCompositeType(
-            false, false, ComplexTypeKind.STRUCT, "flexibleArrayStruct", "flexibleArrayStruct");
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            "flexibleArrayStruct",
+            "flexibleArrayStruct");
     flexibleArrayStruct.setMembers(
         ImmutableList.of(
             new CCompositeTypeMemberDeclaration(CNumericTypes.INT, "i"),
@@ -96,7 +103,10 @@ public class CTypesTest {
 
     CCompositeType variableArrayStruct =
         new CCompositeType(
-            false, false, ComplexTypeKind.STRUCT, "variableArrayStruct", "variableArrayStruct");
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            "variableArrayStruct",
+            "variableArrayStruct");
     variableArrayStruct.setMembers(
         ImmutableList.of(
             new CCompositeTypeMemberDeclaration(CNumericTypes.INT, "i"),
@@ -106,16 +116,29 @@ public class CTypesTest {
         new Object[] {CONSTANT_ARRAY, true, true, 8},
         new Object[] {UNKNOWN_ARRAY, false, false, -1},
         new Object[] {VARIABLE_ARRAY, true, false, -1},
-        new Object[] {new CArrayType(false, false, CNumericTypes.INT, VAR_CONST), true, false, -1},
-        new Object[] {new CArrayType(false, false, CONSTANT_ARRAY, TWO), true, true, 2 * 8},
-        new Object[] {new CArrayType(false, false, CONSTANT_ARRAY), false, false, -1},
-        new Object[] {new CArrayType(false, false, CONSTANT_ARRAY, VAR_N), true, false, -1},
-        new Object[] {new CArrayType(false, false, VARIABLE_ARRAY, TWO), true, false, -1},
         new Object[] {
-          new CElaboratedType(false, false, ComplexTypeKind.ENUM, "e", "e", null), true, true, 4,
+          new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, VAR_CONST), true, false, -1,
         },
         new Object[] {
-          new CElaboratedType(false, false, ComplexTypeKind.STRUCT, "s", "s", null),
+          new CArrayType(CTypeQualifiers.NONE, CONSTANT_ARRAY, TWO), true, true, 2 * 8,
+        },
+        new Object[] {
+          new CArrayType(CTypeQualifiers.NONE, CONSTANT_ARRAY), false, false, -1,
+        },
+        new Object[] {
+          new CArrayType(CTypeQualifiers.NONE, CONSTANT_ARRAY, VAR_N), true, false, -1,
+        },
+        new Object[] {
+          new CArrayType(CTypeQualifiers.NONE, VARIABLE_ARRAY, TWO), true, false, -1,
+        },
+        new Object[] {
+          new CElaboratedType(CTypeQualifiers.NONE, ComplexTypeKind.ENUM, "e", "e", null),
+          true,
+          true,
+          4,
+        },
+        new Object[] {
+          new CElaboratedType(CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "s", "s", null),
           false,
           false,
           -1,

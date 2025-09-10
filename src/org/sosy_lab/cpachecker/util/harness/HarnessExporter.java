@@ -107,6 +107,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -770,7 +771,7 @@ public class HarnessExporter {
 
   private ExpressionTestValue handleComposite(CType pType, CExpression pSize, boolean pIsGlobal) {
     Preconditions.checkArgument(getCanonicalType(pType) instanceof CCompositeType);
-    CPointerType pointerType = new CPointerType(false, false, pType);
+    CPointerType pointerType = new CPointerType(CTypeQualifiers.NONE, pType);
 
     TestValue pointerValue = handlePointer(pointerType, pSize, pIsGlobal);
     CExpression pointerExpression = (CExpression) pointerValue.getValue();
@@ -803,7 +804,7 @@ public class HarnessExporter {
             FileLocation.DUMMY,
             false,
             CStorageClass.AUTO,
-            new CPointerType(false, false, pTargetType),
+            new CPointerType(CTypeQualifiers.NONE, pTargetType),
             variableName,
             variableName,
             variableName,

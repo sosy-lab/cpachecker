@@ -16,7 +16,6 @@ import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -91,7 +90,7 @@ public final class ValueAnalysisInterpolant
 
   @Override
   public Set<MemoryLocation> getMemoryLocations() {
-    return isFalse() ? ImmutableSet.of() : Collections.unmodifiableSet(assignment.keySet());
+    return isFalse() ? ImmutableSet.of() : assignment.keySet();
   }
 
   /**

@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
@@ -632,7 +633,9 @@ public class AssumptionToEdgeAllocator {
     }
     inner =
         new CCastExpression(
-            pDereference.getFileLocation(), new CPointerType(false, false, pTargetType), inner);
+            pDereference.getFileLocation(),
+            new CPointerType(CTypeQualifiers.NONE, pTargetType),
+            inner);
     return new CPointerExpression(pDereference.getFileLocation(), pTargetType, inner);
   }
 
@@ -650,7 +653,7 @@ public class AssumptionToEdgeAllocator {
       CUnaryExpression unaryExpression =
           new CUnaryExpression(
               pLValue.getFileLocation(),
-              new CPointerType(false, false, type),
+              new CPointerType(CTypeQualifiers.NONE, type),
               pLValue,
               CUnaryExpression.UnaryOperator.AMPER);
       return unaryExpression;
@@ -1572,8 +1575,7 @@ public class AssumptionToEdgeAllocator {
     private CSimpleType nextLargerIntegerTypeIfPossible(CSimpleType pType) {
       if (pType.hasSignedSpecifier()) {
         return new CSimpleType(
-            pType.isConst(),
-            pType.isVolatile(),
+            pType.getQualifiers(),
             pType.getType(),
             pType.hasLongSpecifier(),
             pType.hasShortSpecifier(),
