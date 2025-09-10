@@ -156,10 +156,7 @@ public class UseDefBasedInterpolator {
       }
     }
 
-    // TODO: replace with assertion once tested, as size() can be expensive in
-    // PathCopyingPersistentTreeMap.
-    //  Reason: i don't know if elements are unique above.
-    checkState(useDefInterpolant.size() == itpSize);
+    assert useDefInterpolant.size() == itpSize;
     return new ValueAnalysisInterpolant(useDefInterpolant, itpSize, globals, 0);
   }
 
