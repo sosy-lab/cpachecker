@@ -391,12 +391,6 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.configurableComponents",
-      description = "Distribute predicate analysis to multiple workers")
-  private boolean useConfigurableComponents = false;
-
-  @Option(
-      secure = true,
       name = "algorithm.distributedSummarySynthesis",
       description =
           "Use distributed summary synthesis. This decomposes the input program into smaller units"
