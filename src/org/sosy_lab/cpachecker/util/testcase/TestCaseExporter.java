@@ -121,10 +121,17 @@ public class TestCaseExporter {
   private final CFA cfa;
   private final HarnessExporter harnessExporter;
   private final String producerString;
+  private final boolean parallelMode;
 
   private final LogManager logger;
 
   public TestCaseExporter(CFA pCfa, LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
+    this(pCfa, pLogger, pConfig, false);
+  }
+
+  public TestCaseExporter(
+      CFA pCfa, LogManager pLogger, Configuration pConfig, boolean pRunInParallel)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     Preconditions.checkState(
@@ -136,6 +143,7 @@ public class TestCaseExporter {
     harnessExporter = new HarnessExporter(pConfig, logger, pCfa);
     producerString = CPAchecker.getVersion(pConfig);
     randomGen = new Random(mutationSeed);
+    parallelMode = pRunInParallel;
   }
 
   private static String printLineSeparated(List<String> pValues) {
@@ -148,6 +156,7 @@ public class TestCaseExporter {
       if (testHarnessFile != null) {
         // TODO writeTestCase(getTestCaseFiles(testHarnessFile, 1), targetPath, pCex,
         // FormatType.HARNESS, pSpec);
+        // if not use the writeTestCase method increasing written tests need increase here
       }
 
       if (testValueFile != null) {
@@ -156,13 +165,8 @@ public class TestCaseExporter {
 
       if (testXMLFile != null) {
         Path testCaseFile = testXMLFile.getPath(id.getFreshId());
-        if (isFirstTest()) {
-          writeTestCase(
-              testCaseFile.resolveSibling("metadata.xml"), pInputs, FormatType.METADATA, pSpec);
-        }
         writeTestCase(testCaseFile, pInputs, FormatType.XML, pSpec);
       }
-      increaseTestsWritten();
     }
   }
 
@@ -172,7 +176,6 @@ public class TestCaseExporter {
 
   public void writeTestCaseFilesAndMutations(
       final CounterexampleInfo pCex, final Optional<Property> pSpec, final int numMutations) {
-    // TODO check if this and openZipFS(), closeZipFS() are thread-safe
     if (areTestsEnabled()) {
       ARGPath targetPath = pCex.getTargetPath();
       final int numPaths = Math.max(1, numMutations + 1);
@@ -180,23 +183,24 @@ public class TestCaseExporter {
       if (testHarnessFile != null) {
         writeTestCase(
             getTestCaseFiles(testHarnessFile, 1), targetPath, pCex, FormatType.HARNESS, pSpec);
+        increaseTestsWritten(parallelMode);
       }
 
       if (testValueFile != null) {
         writeTestCase(
             getTestCaseFiles(testValueFile, numPaths), targetPath, pCex, FormatType.PLAIN, pSpec);
+        increaseTestsWritten(parallelMode);
       }
 
       if (testXMLFile != null) {
         List<Path> testCaseFiles = getTestCaseFiles(testXMLFile, numPaths);
-        if (isFirstTest()) {
+        writeTestCase(testCaseFiles, targetPath, pCex, FormatType.XML, pSpec);
+        if (getAndIncreaseTestsWritten(parallelMode) == 0 && testXMLFile != null) {
           List<Path> metadataFile = new ArrayList<>();
           metadataFile.add(testCaseFiles.getFirst().resolveSibling("metadata.xml"));
           writeTestCase(metadataFile, targetPath, pCex, FormatType.METADATA, pSpec);
-        }
-        writeTestCase(testCaseFiles, targetPath, pCex, FormatType.XML, pSpec);
       }
-      increaseTestsWritten();
+      }
     }
   }
 
@@ -209,12 +213,28 @@ public class TestCaseExporter {
     return testCaseFiles;
   }
 
-  private static void increaseTestsWritten() {
-    testsWritten++;
+  private static void increaseTestsWritten(final boolean pInParallelMode) {
+    if (pInParallelMode) {
+      synchronized (TestCaseExporter.class) {
+        testsWritten++;
+      }
+    } else {
+      testsWritten++;
+    }
   }
 
-  private static boolean isFirstTest() {
-    return testsWritten == 0;
+  private static int getAndIncreaseTestsWritten(final boolean pInParallelMode) {
+    int retVal;
+    if (pInParallelMode) {
+      synchronized (TestCaseExporter.class) {
+        retVal = testsWritten;
+        increaseTestsWritten(pInParallelMode);
+      }
+    } else {
+      retVal = testsWritten;
+      increaseTestsWritten(pInParallelMode);
+    }
+    return retVal;
   }
 
   private void writeTestCase(
@@ -241,6 +261,7 @@ public class TestCaseExporter {
         Preconditions.checkNotNull(pTestCaseFiles);
         Preconditions.checkArgument(!pTestCaseFiles.isEmpty());
         if (zipTestCases) {
+          Preconditions.checkState(!parallelMode);
           try (FileSystem zipFS = openZipFS()) {
             Path fileName = pTestCaseFiles.getFirst().getFileName();
             Path testFile =
@@ -292,15 +313,14 @@ public class TestCaseExporter {
       final List<String> pInputs,
       final FormatType pType,
       final Optional<Property> pSpec) {
-    if (isFirstTest() && pType.equals(FormatType.XML)) {
+    List<Path> testCaseList = new ArrayList<>();
+    testCaseList.add(testCase);
+    writeTestCase(testCaseList, pInputs, pType, pSpec);
+    if (getAndIncreaseTestsWritten(parallelMode) == 0 && pType.equals(FormatType.XML)) {
       List<Path> metadataFile = new ArrayList<>();
       metadataFile.add(testCase.resolveSibling("metadata.xml"));
       writeTestCase(metadataFile, new ArrayList<>(), FormatType.METADATA, pSpec);
     }
-    List<Path> testCaseList = new ArrayList<>();
-    testCaseList.add(testCase);
-    writeTestCase(testCaseList, pInputs, pType, pSpec);
-    increaseTestsWritten();
   }
 
   private void writeTestCase(
@@ -316,6 +336,7 @@ public class TestCaseExporter {
       List<String> nextInputs = pOrigInputs;
 
       if (zipTestCases) {
+        Preconditions.checkState(!parallelMode);
         try (FileSystem zipFS = openZipFS()) {
           for (Path pFile : pTestCaseFiles) {
             Path fileName = pFile.getFileName();

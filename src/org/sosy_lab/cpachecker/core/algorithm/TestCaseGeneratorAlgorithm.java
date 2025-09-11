@@ -118,7 +118,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
 
-    exporter = new TestCaseExporter(pCfa, logger, pConfig);
+    exporter = new TestCaseExporter(pCfa, logger, pConfig, testTargetCpa.isRunInParallel());
 
     numMutations = Math.max(numMutations, 0);
 
