@@ -177,7 +177,8 @@ class DynamicMemoryHandler {
                     multiplication,
                     conv.machineModel,
                     conv.logger)
-                .asLong(multiplication.getExpressionType());
+                .asLong(multiplication.getExpressionType())
+                .orElseThrow();
 
         CExpression newParam =
             new CIntegerLiteralExpression(
