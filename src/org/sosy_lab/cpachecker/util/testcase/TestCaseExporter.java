@@ -199,7 +199,7 @@ public class TestCaseExporter {
           List<Path> metadataFile = new ArrayList<>();
           metadataFile.add(testCaseFiles.getFirst().resolveSibling("metadata.xml"));
           writeTestCase(metadataFile, targetPath, pCex, FormatType.METADATA, pSpec);
-      }
+        }
       }
     }
   }
