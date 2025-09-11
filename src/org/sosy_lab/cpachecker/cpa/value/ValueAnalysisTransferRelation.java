@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -135,6 +136,7 @@ public class ValueAnalysisTransferRelation
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
+  private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
   private static final Level LEVELWARN = Level.WARNING;
 
   @Options(prefix = "cpa.value")
@@ -164,6 +166,15 @@ public class ValueAnalysisTransferRelation
 
     @Option(secure = true, description = "Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
+
+    @Option(
+        secure = true,
+        description =
+            "If 'ignoreFunctionValue' is set to true, this option allows to provide a fixed set of"
+                + " values in the TestComp format. It is used for function-calls to calls of"
+                + " VERIFIER_nondet_*. The file is provided via the option"
+                + " functionValuesForRandom ")
+    private boolean ignoreFunctionValueExceptRandom = false;
 
     @Option(
         secure = true,
@@ -211,6 +222,10 @@ public class ValueAnalysisTransferRelation
 
     boolean isIgnoreFunctionValue() {
       return ignoreFunctionValue;
+    }
+
+    public boolean isIgnoreFunctionValueExceptRandom() {
+      return ignoreFunctionValueExceptRandom;
     }
 
     public Path getFunctionValuesForRandom() {
@@ -288,6 +303,12 @@ public class ValueAnalysisTransferRelation
 
     unknownValueHandler = pUnknownValueHandler;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
+
+    if (options.isIgnoreFunctionValueExceptRandom()
+        && options.isIgnoreFunctionValue()
+        && options.getFunctionValuesForRandom() != null) {
+      setupFunctionValuesForRandom();
+    }
   }
 
   @Override
@@ -1787,7 +1808,17 @@ public class ValueAnalysisTransferRelation
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
-    if (options.isIgnoreFunctionValue()) {
+    if (options.isIgnoreFunctionValueExceptRandom()
+        && options.isIgnoreFunctionValue()
+        && options.getFunctionValuesForRandom() != null) {
+      return new ExpressionValueVisitorWithPredefinedValues(
+          pState,
+          pFunctionName,
+          ValueAnalysisTransferRelation.indexForNextRandomValue,
+          machineModel,
+          logger,
+          valuesFromFile);
+    } else if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
