@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -23,13 +23,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * * This class provides a delegating refiner implementation for predicate analysis. It decides
- * which refiner to use in the next refinement iteration, baes on a set of core heuristics.
+ * which refiner to use in the next refinement iteration, based on a set of core heuristics.
  */
-public class DelegatingRefiner implements ARGBasedRefiner {
+public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
   private final Map<DelegatingRefinerHeuristics, ARGBasedRefiner> pRefiners;
 
-  public DelegatingRefiner(Map<DelegatingRefinerHeuristics, ARGBasedRefiner> pRefinerMap) {
+  public PredicateDelegatingRefiner(Map<DelegatingRefinerHeuristics, ARGBasedRefiner> pRefinerMap) {
     this.pRefiners = pRefinerMap;
   }
 
@@ -42,9 +42,9 @@ public class DelegatingRefiner implements ARGBasedRefiner {
     List<ReachedSetDelta> deltaSet;
     if (reachedSet instanceof TrackingForwardingReachedSet trackingForwardingReachedSet) {
       ReachedSetDelta delta = trackingForwardingReachedSet.getDelta();
-      deltaSet = Collections.singletonList(delta);
+      deltaSet = ImmutableList.of(delta);
     } else {
-      deltaSet = Collections.emptyList();
+      deltaSet = ImmutableList.of();
     }
 
     for (Map.Entry<DelegatingRefinerHeuristics, ARGBasedRefiner> mapEntry : pRefiners.entrySet()) {

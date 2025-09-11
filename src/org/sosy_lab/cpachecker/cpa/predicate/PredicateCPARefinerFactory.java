@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.Map;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -24,6 +25,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristics;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -54,6 +57,12 @@ public final class PredicateCPARefinerFactory {
       description =
           "use heuristic to extract predicates from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
+
+  @Option(
+      secure = true,
+      description =
+          "use DelegatingRefiner to switch between refiners bases on a set of heuristics.")
+  private boolean usePredicateDelegatingRefiner = false;
 
   private final PredicateCPA predicateCpa;
 
@@ -161,7 +170,10 @@ public final class PredicateCPARefinerFactory {
       }
     }
 
-    ARGBasedRefiner refiner =
+    // To add both refiners to the DelegatingRefiner, they temporarily need different identifiers
+    // in the create method.
+
+    ARGBasedRefiner defaultRefiner =
         new PredicateCPARefiner(
             config,
             logger,
@@ -176,8 +188,9 @@ public final class PredicateCPARefinerFactory {
             invariantsManager,
             pRefinementStrategy);
 
+    ARGBasedRefiner staticRefiner = defaultRefiner;
     if (performInitialStaticRefinement) {
-      refiner =
+      staticRefiner =
           new PredicateStaticRefiner(
               config,
               logger,
@@ -189,7 +202,22 @@ public final class PredicateCPARefinerFactory {
               interpolationManager,
               pathChecker,
               cfa,
-              refiner);
+              defaultRefiner);
+    }
+
+    ARGBasedRefiner refiner = staticRefiner;
+
+    if (usePredicateDelegatingRefiner) {
+      DelegatingRefinerHeuristicStaticRefinement useStaticRefinerFirst =
+          new DelegatingRefinerHeuristicStaticRefinement();
+
+      Map<DelegatingRefinerHeuristics, ARGBasedRefiner> refinerMap =
+          Map.of(
+              useStaticRefinerFirst,
+              staticRefiner,
+              DelegatingRefinerHeuristics.DEFAULT,
+              defaultRefiner);
+      refiner = new PredicateDelegatingRefiner(refinerMap);
     }
 
     return refiner;

@@ -2869,6 +2869,10 @@ cpa.predicate.refinement.useNewtonRefinement = false
 # the other invariants)
 cpa.predicate.refinement.usePathInvariants = false
 
+# use DelegatingRefiner to switch between refiners bases on a set of
+# heuristics.
+cpa.predicate.refinement.usePredicateDelegatingRefiner = false
+
 # use UCB predicates for the CPA-Refinement, experimental feature!
 cpa.predicate.refinement.useUCBRefinement = false
 
@@ -4339,10 +4343,6 @@ faultLocalization.import.importFile = no default value
 
 # which scoring functions to use
 faultLocalization.import.scorings = []
-
-# If true, the PredicateStaticRefiner will always be chosen for the first
-# refinement.
-heuristic.staticRefiner.useStaticRefinerFirst = false
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
