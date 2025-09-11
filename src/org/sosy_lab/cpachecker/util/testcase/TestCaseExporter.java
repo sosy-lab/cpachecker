@@ -16,6 +16,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -213,6 +214,10 @@ public class TestCaseExporter {
     return testCaseFiles;
   }
 
+  @SuppressFBWarnings(
+      value = "AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE",
+      justification =
+          "for efficiency, only synchronize if may execute in parallel (i.e., input flag true)")
   private static void increaseTestsWritten(final boolean pInParallelMode) {
     if (pInParallelMode) {
       synchronized (TestCaseExporter.class) {
