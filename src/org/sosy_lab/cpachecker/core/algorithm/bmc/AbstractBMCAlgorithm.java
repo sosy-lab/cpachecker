@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.ForOverride;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -58,6 +59,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -416,30 +418,38 @@ abstract class AbstractBMCAlgorithm
 
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, SolverException, InterruptedException {
-    CFANode initialLocation = extractLocation(reachedSet.getFirstState());
-    invariantGenerator.start(initialLocation);
-
-    // The set of candidate invariants that still need to be checked.
-    // Successfully proven invariants are removed from the set.
-    final CandidateGenerator candidateGenerator = getCandidateInvariants();
-    Set<Obligation> ctiBlockingClauses = new TreeSet<>();
-    Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
-
-    if (!candidateGenerator.produceMoreCandidates()) {
-      reachedSet.clearWaitlist();
-      return AlgorithmStatus.SOUND_AND_PRECISE;
-    }
-
+    final CandidateGenerator candidateGenerator;
     AlgorithmStatus status;
+    final Set<Obligation> ctiBlockingClauses;
+    final Map<SymbolicCandiateInvariant, BmcResult> checkedClauses;
 
-    // suggest candidates from predicate precision file
-    if (!predicatePrecisionCandidates.isEmpty()) {
-      candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
-    }
+    stats.bmcPreparation.start();
+    try {
+      CFANode initialLocation = extractLocation(reachedSet.getFirstState());
+      invariantGenerator.start(initialLocation);
 
-    // suggest candidates from Witness 2.0 file
-    if (!candidateInvariantsFromWitness.isEmpty()) {
-      candidateGenerator.suggestCandidates(candidateInvariantsFromWitness);
+      // The set of candidate invariants that still need to be checked.
+      // Successfully proven invariants are removed from the set.
+      candidateGenerator = getCandidateInvariants();
+      ctiBlockingClauses = new TreeSet<>();
+      checkedClauses = new HashMap<>();
+
+      if (!candidateGenerator.produceMoreCandidates()) {
+        reachedSet.clearWaitlist();
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+
+      // suggest candidates from predicate precision file
+      if (!predicatePrecisionCandidates.isEmpty()) {
+        candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
+      }
+
+      // suggest candidates from Witness 2.0 file
+      if (!candidateInvariantsFromWitness.isEmpty()) {
+        candidateGenerator.suggestCandidates(candidateInvariantsFromWitness);
+      }
+    } finally {
+      stats.bmcPreparation.stop();
     }
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
@@ -449,11 +459,11 @@ abstract class AbstractBMCAlgorithm
         shutdownNotifier.shutdownIfNecessary();
 
         logger.log(Level.INFO, "Creating formula for program");
-        stats.bmcPreparation.start();
+        stats.bmcUnrolling.start();
         try {
           status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
         } finally {
-          stats.bmcPreparation.stop();
+          stats.bmcUnrolling.stop();
         }
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
@@ -690,7 +700,7 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if the conditions were adjusted, {@code false} if no further adjustment is
    *     possible.
    */
-  protected boolean adjustConditions() {
+  protected final boolean adjustConditions() {
     FluentIterable<AdjustableConditionCPA> conditionCPAs =
         CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
     boolean adjusted = conditionCPAs.anyMatch(AdjustableConditionCPA::adjustPrecision);
@@ -706,6 +716,7 @@ abstract class AbstractBMCAlgorithm
     return adjusted;
   }
 
+  @ForOverride
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver,
@@ -874,7 +885,7 @@ abstract class AbstractBMCAlgorithm
    * the solver for a satisfying assignment.
    */
   @SuppressWarnings("resource")
-  protected Optional<CounterexampleInfo> analyzeCounterexample0(
+  protected final Optional<CounterexampleInfo> analyzeCounterexample0(
       final BooleanFormula pCounterexampleFormula,
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver)
@@ -1055,6 +1066,7 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
+  @ForOverride
   protected KInductionProver createInductionProver() {
     assert induction;
     return new KInductionProver(
@@ -1075,7 +1087,7 @@ abstract class AbstractBMCAlgorithm
    *
    * @return the potential target locations.
    */
-  protected Collection<CFANode> getTargetLocations() {
+  protected final Collection<CFANode> getTargetLocations() {
     return targetLocationProvider.tryGetAutomatonTargetLocations(
         cfa.getMainFunction(), specification);
   }
@@ -1085,7 +1097,7 @@ abstract class AbstractBMCAlgorithm
    *
    * @return the loop heads.
    */
-  protected Set<CFANode> getLoopHeads() {
+  private Set<CFANode> getLoopHeads() {
     return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 
@@ -1187,7 +1199,8 @@ abstract class AbstractBMCAlgorithm
         throws InvalidConfigurationException, CPAException, InterruptedException;
   }
 
-  protected FluentIterable<CandidateInvariant> getConfirmedCandidates(final CFANode pLocation) {
+  protected final FluentIterable<CandidateInvariant> getConfirmedCandidates(
+      final CFANode pLocation) {
     return from(confirmedCandidates)
         .filter(pConfirmedCandidate -> pConfirmedCandidate.appliesTo(pLocation));
   }
@@ -1518,6 +1531,7 @@ abstract class AbstractBMCAlgorithm
 
     private static final class HeadStartWithLatch implements InvariantGeneratorHeadStart {
 
+      private final Timer waitTimer;
       private final CountDownLatch latch;
 
       @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
@@ -1532,12 +1546,18 @@ abstract class AbstractBMCAlgorithm
 
       HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
         latch = Objects.requireNonNull(pLatch);
+        waitTimer = pBmcAlgorithm.stats.bmcWaitForInvariantHeadStart;
         pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
       }
 
       @Override
       public void waitForInvariantGenerator() throws InterruptedException {
-        latch.await();
+        waitTimer.start();
+        try {
+          latch.await();
+        } finally {
+          waitTimer.stop();
+        }
       }
     }
 

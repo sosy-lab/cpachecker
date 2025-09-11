@@ -179,3 +179,6 @@ of options in the included file, and vice versa.
 All relative paths specified in a configuration file
 (e.g., for `#include` or for values of options like `specification`)
 are interpreted as relative to the directory of the respective configuration file.
+
+When writing config files that should be checked in into CPAchecker,
+please follow the [respective part of the style guide](StyleGuide.md#configuration-files).

@@ -1277,7 +1277,7 @@ public class SMGCPAExpressionEvaluator {
         // So to evade more expensive SAT checks, we just check the constraint on its own.
         currentState = currentState.updateLastCheckedMemoryBounds(constraint);
         SolverResult satResAndModel =
-            solver.checkUnsat(
+            solver.checkUnsatWithFreshSolver(
                 currentState.getConstraints().copyWithNew(constraint), stackFrameFunctionName);
         if (satResAndModel.isSAT()) {
           return SatisfiabilityAndSMGState.of(
@@ -1423,8 +1423,9 @@ public class SMGCPAExpressionEvaluator {
     try {
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
+      // TODO: think about reusing the solver
       SolverResult satResAndModel =
-          solver.checkUnsat(
+          solver.checkUnsatWithFreshSolver(
               currentState.getConstraints().copyWithNew(newConstraints), stackFrameFunctionName);
       if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
         for (Constraint newConstraint : newConstraints) {
@@ -1446,11 +1447,13 @@ public class SMGCPAExpressionEvaluator {
     return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
   }
 
+  // Used for finding value assignments
   public SatisfiabilityAndSMGState checkIsUnsatWithCurrentConstraints(SMGState currentState)
       throws SMGSolverException {
     try {
+      // TODO: think about reusing the solver
       SolverResult satResAndModel =
-          solver.checkUnsat(
+          solver.checkUnsatWithFreshSolver(
               currentState.getConstraints(), currentState.getStackFrameTopFunctionName());
       if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
         return SatisfiabilityAndSMGState.of(

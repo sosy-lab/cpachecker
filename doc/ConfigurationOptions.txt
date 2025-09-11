@@ -1910,7 +1910,8 @@ cpa.constraints.lessOrEqualType = SUBSET
 cpa.constraints.mergeType = SEP
   enum:     [SEP, JOIN_FITTING_CONSTRAINT]
 
-# Whether to perform SAT checks only for the last added constraint
+# Whether to perform SAT checks only for the last added constraint, as well
+# as all constraints dependent on it. Might improve solver performance.
 cpa.constraints.minimalSatCheck = true
 
 # enable if variables from value precision should be considered in variable's
@@ -1939,8 +1940,16 @@ cpa.constraints.removeOutdated = true
 # simplification
 cpa.constraints.removeTrivial = false
 
-# Resolve definite assignments
-cpa.constraints.resolveDefinites = true
+# Resolve definite assignments, i.e. use the solver to find out whether there
+# is only a single satisfiable value for variables and assign it. Might
+# result in inefficient SMT solver usage with reuseSolver = true.
+cpa.constraints.resolveDefinites = false
+
+# Whether to create a new, fresh solver instance for each SAT check with an
+# SMT solver (=false), or try to reuse the solver and its previous
+# constraints and results as far as possible (may be helpful/faster when
+# formulas are built on top of each other often).
+cpa.constraints.reuseSolver = true
 
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
