@@ -128,10 +128,18 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private AlgorithmStatus interpretResult(StatusAndResult statusAndResult, ReachedSet reachedSet) {
     Result result = statusAndResult.result();
     if (result == Result.FALSE) {
-      ARGState state = (ARGState) reachedSet.getFirstState();
-      assert state != null;
-      CompositeState cState = (CompositeState) state.getWrappedState();
-      Precision initialPrecision = reachedSet.getPrecision(state);
+      CompositeState cState;
+      Precision initialPrecision;
+      if (reachedSet.getFirstState() instanceof CompositeState cS) {
+        cState = cS;
+        initialPrecision = reachedSet.getPrecision(cS);
+      }
+      else {
+        ARGState state = (ARGState) reachedSet.getFirstState();
+        assert state != null;
+        cState = (CompositeState) state.getWrappedState();
+        initialPrecision = reachedSet.getPrecision(state);
+      }
       assert cState != null;
       List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
       states.add(DummyTargetState.withoutTargetInformation());
