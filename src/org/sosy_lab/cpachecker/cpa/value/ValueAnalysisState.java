@@ -545,6 +545,10 @@ public final class ValueAnalysisState
 
         // forward both iterators
         otherEntry = null;
+
+      } else if (!otherMapIter.hasNext()) {
+        // The other map does not have the entry we are searching for
+        return false;
       }
     }
 
