@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -60,10 +61,14 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -1003,6 +1008,27 @@ public final class ValueAnalysisState
 
     return result;
   }
+
+  public static Set<Constraint> compareInConstraint(ValueAnalysisState pState1, ValueAnalysisState pState2) {
+    HashSet<Constraint> constraints = new HashSet<Constraint>();
+    for (Map.Entry<MemoryLocation, ValueAndType> entry : pState1.constantsMap.entrySet()) {
+      MemoryLocation mL = entry.getKey();
+      if (!pState2.constantsMap.containsKey(mL))
+        continue;
+      ValueAndType value2 = pState2.constantsMap.get(mL);
+        if (value2.getType() == entry.getValue().getType()) {
+          ConstantSymbolicExpression expr1 =
+              new ConstantSymbolicExpression(entry.getValue().getValue(),
+                  entry.getValue().getType());
+          ConstantSymbolicExpression expr2 =
+              new ConstantSymbolicExpression(value2.getValue(), value2.getType());
+          constraints.add(SymbolicValueFactory.getInstance()
+              .equal(expr1, expr2, value2.getType(), value2.getType()));
+        }
+    }
+    return constraints;
+  }
+
 
   public static class ValueAndType implements Serializable {
     @Serial private static final long serialVersionUID = 1L;
