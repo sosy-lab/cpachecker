@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -28,11 +30,11 @@ public final class ReachedSetDelta {
   }
 
   void storeAddedStates(AbstractState pState) {
-    addedStates.add(pState);
+    addedStates.add(checkNotNull(pState));
   }
 
   void storeRemovedState(AbstractState pState) {
-    removedStates.add(pState);
+    removedStates.add(checkNotNull(pState));
   }
 
   public ImmutableSet<AbstractState> getAddedStates() {
