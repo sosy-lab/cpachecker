@@ -18,13 +18,10 @@ import org.sosy_lab.cpachecker.util.Pair;
  */
 public class TrackingForwardingReachedSet extends ForwardingReachedSet {
 
-  private boolean trackingEnabled = false;
-
   private final ReachedSetDelta delta = new ReachedSetDelta();
 
-  public TrackingForwardingReachedSet(ReachedSet pDelegate, boolean pTrackingEnabled) {
+  public TrackingForwardingReachedSet(ReachedSet pDelegate) {
     super(pDelegate);
-    this.trackingEnabled = pTrackingEnabled;
   }
 
   public void resetTracking() {
@@ -37,20 +34,16 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
 
   @Override
   public void add(AbstractState pState, Precision pPrecision) {
-    if (trackingEnabled) {
-      delta.storeAddedStates(pState);
-    }
+    delta.storeAddedStates(pState);
     super.add(pState, pPrecision);
   }
 
   @Override
   public void addAll(Iterable<Pair<AbstractState, Precision>> pToAdd) {
-    if (trackingEnabled) {
-      for (Pair<AbstractState, Precision> pair : pToAdd) {
-        AbstractState pState = pair.getFirst();
-        if (pState != null) {
-          delta.storeAddedStates(pState);
-        }
+    for (Pair<AbstractState, Precision> pair : pToAdd) {
+      AbstractState pState = pair.getFirst();
+      if (pState != null) {
+        delta.storeAddedStates(pState);
       }
     }
     super.addAll(pToAdd);
@@ -58,27 +51,21 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
 
   @Override
   public void remove(AbstractState pState) {
-    if (trackingEnabled) {
-      delta.storeRemovedState(pState);
-    }
+    delta.storeRemovedState(pState);
     super.remove(pState);
   }
 
   @Override
   public void removeAll(Iterable<? extends AbstractState> pToRemove) {
-    if (trackingEnabled) {
-      for (AbstractState pState : pToRemove) {
-        delta.storeRemovedState(pState);
-      }
+    for (AbstractState pState : pToRemove) {
+      delta.storeRemovedState(pState);
     }
     super.removeAll(pToRemove);
   }
 
   @Override
   public void clear() {
-    if (trackingEnabled) {
-      resetTracking();
-    }
+    resetTracking();
     super.clear();
   }
 }

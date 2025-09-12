@@ -283,7 +283,7 @@ public class ReachedSetFactory {
       reached = new StatisticsReachedSet(reached);
     }
     if (withTracking) {
-      reached = new TrackingForwardingReachedSet(reached, withTracking);
+      reached = new TrackingForwardingReachedSet(reached);
     }
 
     return reached;
