@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
+import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 
@@ -19,7 +20,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
  * <p>Possible examples would be relations like <code>{@code '5 < 10'}</code>, <code>'n == 10'
  * </code> or <code>'not true'</code>
  */
-public interface Constraint extends SymbolicValue {
+public interface Constraint extends SymbolicValue, Serializable {
 
   /** Returns the expression type of the constraint */
   Type getType();
