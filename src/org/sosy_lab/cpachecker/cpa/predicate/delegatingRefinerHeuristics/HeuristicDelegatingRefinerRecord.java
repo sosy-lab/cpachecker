@@ -11,8 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 
 /**
- * Each heuristic for the {@link org.sosy_lab.cpachecker.cpa.predicate.PredicateDelegatingRefiner is
- * stored as a fixed together with a suitable refiner}
+ * Each heuristic for the DelegatingRefiner is stored as a fixed together with a suitable refiner.}
  */
 public record HeuristicDelegatingRefinerRecord(
     DelegatingRefinerHeuristic pHeuristic, ARGBasedRefiner pRefiner) {}

@@ -13,9 +13,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
- * A heuristic which lets the {@link org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner} do a
- * fixed number of iterations so that enough data is collected in order to judge refinement progress
- * with other heuristics.
+ * A heuristic which lets the default refiner do a fixed number of iterations so that enough data is
+ * collected in order to judge refinement progress with other heuristics.
  */
 public class DelegatingRefinerHeuristicRunDefaultNTimes implements DelegatingRefinerHeuristic {
 

@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -214,8 +214,8 @@ public final class PredicateCPARefinerFactory {
       DelegatingRefinerHeuristicRunDefaultNTimes useDefaultRefinerNTimes =
           new DelegatingRefinerHeuristicRunDefaultNTimes(10);
 
-      List<HeuristicDelegatingRefinerRecord> pRefiners =
-          List.of(
+      ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners =
+          ImmutableList.of(
               new HeuristicDelegatingRefinerRecord(useStaticRefinerFirst, staticRefiner),
               new HeuristicDelegatingRefinerRecord(useDefaultRefinerNTimes, defaultRefiner));
 

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet;
@@ -29,11 +28,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
-  private final List<HeuristicDelegatingRefinerRecord> pRefiners;
+  private final ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners;
 
   public PredicateDelegatingRefiner(
-      List<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords) {
-    this.pRefiners = List.copyOf(pHeuristicRefinerRecords);
+      ImmutableList<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords) {
+    this.pRefiners = ImmutableList.copyOf(pHeuristicRefinerRecords);
   }
 
   @Override
@@ -56,7 +55,8 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
     TrackingForwardingReachedSet trackingForwardingReachedSet =
         (TrackingForwardingReachedSet) reachedSet;
 
-    List<ReachedSetDelta> deltaSet = ImmutableList.of(trackingForwardingReachedSet.getDelta());
+    ImmutableList<ReachedSetDelta> deltaSet =
+        ImmutableList.of(trackingForwardingReachedSet.getDelta());
 
     for (HeuristicDelegatingRefinerRecord pRecord : pRefiners) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();

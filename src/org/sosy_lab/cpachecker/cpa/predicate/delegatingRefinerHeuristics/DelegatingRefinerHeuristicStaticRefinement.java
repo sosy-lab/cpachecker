@@ -12,10 +12,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-/**
- * A simple heuristic that always chooses the {@link
- * org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner} in the first iteration.
- */
+/** A simple heuristic that always chooses a static refinement strategy in the first iteration. */
 public class DelegatingRefinerHeuristicStaticRefinement implements DelegatingRefinerHeuristic {
 
   private boolean staticRefinerUsed = false;
