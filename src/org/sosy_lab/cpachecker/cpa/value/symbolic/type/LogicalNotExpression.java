@@ -19,7 +19,7 @@ public final class LogicalNotExpression extends UnarySymbolicExpression implemen
 
   @Serial private static final long serialVersionUID = 1538819641715577876L;
 
-  LogicalNotExpression(SymbolicExpression pOperand, Type pType) {
+  public LogicalNotExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
   }
 
