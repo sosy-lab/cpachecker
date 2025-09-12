@@ -210,7 +210,11 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
       AbstractState wrappedState = pState.getWrappedStates().get(i);
       ConfigurableProgramAnalysis cpa = pCpas.get(i);
       if (cpa instanceof DistributedConfigurableProgramAnalysis dcpa) {
-        Preconditions.checkState(dcpa.doesOperateOn(wrappedState.getClass()));
+        Preconditions.checkState(
+            dcpa.doesOperateOn(wrappedState.getClass()),
+            "CPA %s does not operate on state of class %s",
+            cpa.getClass().getName(),
+            wrappedState.getClass().getName());
         cpasAndStates.add(new CpaAndState(cpa, wrappedState));
       } else {
         cpasAndStates.add(new CpaAndState(cpa, wrappedState));

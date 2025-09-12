@@ -86,7 +86,7 @@ public class DssAnalysisWorker extends DssWorker {
         Configuration.builder()
             .loadFromFile(pOptions.getForwardConfiguration())
             .setOption(
-                "alwaysAtGivenLocations",
+                "cpa.predicate.blk.alwaysAtGivenNodes",
                 Integer.toString(pBlock.getFinalLocation().getNodeNumber()))
             .build();
 
