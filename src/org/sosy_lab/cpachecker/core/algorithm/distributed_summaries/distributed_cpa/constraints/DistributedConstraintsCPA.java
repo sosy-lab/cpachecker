@@ -6,13 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.symbolic;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -25,72 +27,77 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 
-public class DistributedSymbolicExecutionCPA implements
+public class DistributedConstraintsCPA implements
                                              ForwardingDistributedConfigurableProgramAnalysis
 
 
 {
   private final ConstraintsCPA constraintsCPA;
   private final BlockNode blockNode;
-  //private final DeserializeSymbolicStateOperator deserialize;
-  //private final SerializeSymbolicStateOperator serialize;
-  //private final SymbolicViolationConditionOperator violationConditionOperator;
+  private final DeserializeConstraintsStateOperator deserializeOperator;
+  private final SerializeConstraintsStateOperator serializeOperator;
+  private final ConstraintsViolationConditionOperator violationConditionOperator;
+  private final SerializeConstraintsPrecisionOperator serializePrecisionOperator;
+  private final DeserializeConstraintsPrecisionOperator deserializePrecisionOperator;
+  private final ProceedConstraintsStateOperator proceedOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
+  private final ConstraintsStateCoverageOperator coverageOperator;
 
 
-  CFA pCFA;
 
-
-  public DistributedSymbolicExecutionCPA(
+  public DistributedConstraintsCPA(
       ConstraintsCPA pConstraintsCPA,
-      BlockNode pBlockNode)
-/*      DeserializeSymbolicStateOperator pDeserialize,
-      SerializeSymbolicStateOperator pSerialize,
-      SymbolicViolationConditionOperator pViolationConditionOperator)*/ {
+      BlockNode pBlockNode) {
     constraintsCPA = pConstraintsCPA;
     blockNode = pBlockNode;
-    //deserialize = pDeserialize;
-    //serialize = pSerialize;
-    //violationConditionOperator = pViolationConditionOperator;
+    serializeOperator = new SerializeConstraintsStateOperator();
+    deserializeOperator = new DeserializeConstraintsStateOperator();
+    violationConditionOperator = new ConstraintsViolationConditionOperator();
+    serializePrecisionOperator = new SerializeConstraintsPrecisionOperator();
+    deserializePrecisionOperator = new DeserializeConstraintsPrecisionOperator();
+    proceedOperator = new ProceedConstraintsStateOperator();
+    combinePrecisionOperator = new CombineConstraintsPrecisionOperator();
+    coverageOperator = new ConstraintsStateCoverageOperator(constraintsCPA, pBlockNode.getInitialLocation());
   }
 
   @Override
   public SerializeOperator getSerializeOperator() {
-    return null;//serialize;
+    return serializeOperator;
   }
 
   @Override
   public DeserializeOperator getDeserializeOperator() {
-    return null;//deserialize;
+    return deserializeOperator;
   }
 
   @Override
   public SerializePrecisionOperator getSerializePrecisionOperator() {
-    return null;
+    return serializePrecisionOperator;
   }
 
   @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
-    return null;
+    return deserializePrecisionOperator;
   }
 
   @Override
   public CombinePrecisionOperator getCombinePrecisionOperator() {
-    return null;
+    return combinePrecisionOperator;
   }
 
   @Override
   public ProceedOperator getProceedOperator() {
-    return null;
+    return proceedOperator;
   }
 
   @Override
   public ViolationConditionOperator getViolationConditionOperator() {
-    return null;//violationConditionOperator;
+    return violationConditionOperator;
   }
 
   @Override
   public CoverageOperator getCoverageOperator() {
-    return null;
+    return coverageOperator;
   }
 
   @Override
@@ -114,11 +121,11 @@ public class DistributedSymbolicExecutionCPA implements
     // What if we have "assume x == x"? 
     // create new "true" state, ask is it is subsumed?
     return constraintsState.getDefiniteAssignment().isEmpty() &&
-        constraintsState.getLastAddedConstraint().isEmpty();
+        constraintsState.getConstraints().isEmpty();
   }
 
   @Override
   public AbstractState reset(AbstractState pAbstractState) {
-    return null;
+    return pAbstractState;
   }
 }

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.symbolic;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
@@ -14,22 +14,26 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class SymbolicViolationConditionOperator implements ViolationConditionOperator {
+public class ConstraintsViolationConditionOperator implements ViolationConditionOperator {
   @Override
   public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath,
-      Optional<ARGState> pPreviousCondition)
-      throws InterruptedException, CPATransferException, SolverException {
+      Optional<ARGState> pPreviousCondition) {
     ImmutableList<ARGState> states = pARGPath.asStatesList();
     assert !states.isEmpty();
 
-    AbstractState entry = (AbstractState) states.getFirst();
-
-
-    return Optional.empty();
+    AbstractState violation = states.getLast().getWrappedState();
+    if (!(violation instanceof CompositeState cS))
+      return Optional.of(new ConstraintsState());
+    for (AbstractState state : cS.getWrappedStates()) {
+      if (state instanceof ConstraintsState)
+        return Optional.of(state);
+    }
+    return Optional.of(new ConstraintsState());
   }
 }
