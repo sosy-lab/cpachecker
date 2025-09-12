@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Optional;
@@ -33,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
-public class VariableClassification {
+public class VariableClassification implements Serializable {
 
   private final boolean hasRelevantNonIntAddVars;
 
