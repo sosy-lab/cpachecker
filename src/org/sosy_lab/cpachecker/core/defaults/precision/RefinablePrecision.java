@@ -36,7 +36,7 @@ public abstract class RefinablePrecision extends VariableTrackingPrecision {
     return baseline.isTracking(pVariable, pType, pLocation);
   }
 
-  protected VariableTrackingPrecision getBaseline() {
+  public VariableTrackingPrecision getBaseline() {
     return baseline;
   }
 
