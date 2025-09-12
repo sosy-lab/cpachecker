@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
