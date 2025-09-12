@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
@@ -105,6 +106,9 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -133,6 +137,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.xml.sax.SAXException;
 
 public class ValueAnalysisTransferRelation
@@ -1458,6 +1463,25 @@ public class ValueAnalysisTransferRelation
           }
           toStrengthen.clear();
           toStrengthen.addAll(result);
+        }
+        case BlockState blockState -> {
+          if (!blockState.isTarget()) continue;
+
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            for (AbstractState wrappedState : blockState.getViolationConditions()) {
+              if (!(wrappedState instanceof ARGState argState)
+                  || !(argState.getWrappedState() instanceof CompositeState cS)) continue;
+
+              Collection<? extends AbstractState> ret =
+                  strengthen(stateToStrengthen, cS.getWrappedStates(), pCfaEdge, pPrecision);
+              Preconditions.checkArgument(
+                  ret.stream().allMatch(ValueAnalysisState.class::isInstance));
+
+              toStrengthen.clear();
+              toStrengthen.addAll(result);
+            }
+          }
         }
         default -> {}
       }
