@@ -13,18 +13,23 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
- * A simple heuristic that always chooses the {@link
- * org.sosy_lab.cpachecker.cpa.predicate.PredicateStaticRefiner} in the first iteration.
+ * A heuristic which lets the {@link org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner} do a
+ * fixed number of iterations so that enough data is collected in order to judge refinement progress
+ * with other heuristics.
  */
-public class DelegatingRefinerHeuristicStaticRefinement implements DelegatingRefinerHeuristic {
+public class DelegatingRefinerHeuristicRunDefaultNTimes implements DelegatingRefinerHeuristic {
 
-  private boolean staticRefinerUsed = false;
+  private final int fixedRuns;
+  private int currentRuns = 0;
+
+  public DelegatingRefinerHeuristicRunDefaultNTimes(int pFixedRuns) {
+    this.fixedRuns = pFixedRuns;
+  }
 
   @Override
   public boolean fulfilled(UnmodifiableReachedSet pReached, List<ReachedSetDelta> pDeltas) {
-
-    if (!staticRefinerUsed) {
-      staticRefinerUsed = true;
+    if (currentRuns < fixedRuns) {
+      currentRuns++;
       return true;
     }
     return false;

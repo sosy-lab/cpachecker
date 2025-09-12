@@ -8,17 +8,19 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Map;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristics;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristic;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -27,10 +29,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
-  private final Map<DelegatingRefinerHeuristics, ARGBasedRefiner> pRefiners;
+  private final List<HeuristicDelegatingRefinerRecord> pRefiners;
 
-  public PredicateDelegatingRefiner(Map<DelegatingRefinerHeuristics, ARGBasedRefiner> pRefinerMap) {
-    this.pRefiners = pRefinerMap;
+  public PredicateDelegatingRefiner(
+      List<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords) {
+    this.pRefiners = List.copyOf(pHeuristicRefinerRecords);
   }
 
   @Override
@@ -38,18 +41,27 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
       throws CPAException, InterruptedException {
 
     UnmodifiableReachedSet reachedSet = pReached.asReachedSet();
-
-    List<ReachedSetDelta> deltaSet;
-    if (reachedSet instanceof TrackingForwardingReachedSet trackingForwardingReachedSet) {
-      ReachedSetDelta delta = trackingForwardingReachedSet.getDelta();
-      deltaSet = ImmutableList.of(delta);
-    } else {
-      deltaSet = ImmutableList.of();
+    // The reachedSet comes as a UnmodifiableReachedSetWrapper and needs to be unwrapped to expose
+    // the delegate class in order for Verify to recognize the TrackingForwardingReachedSet
+    while (reachedSet instanceof UnmodifiableReachedSetWrapper) {
+      reachedSet = ((UnmodifiableReachedSetWrapper) reachedSet).getDelegate();
     }
 
-    for (Map.Entry<DelegatingRefinerHeuristics, ARGBasedRefiner> mapEntry : pRefiners.entrySet()) {
-      if (mapEntry.getKey().fulfilled(reachedSet, deltaSet)) {
-        return mapEntry.getValue().performRefinementForPath(pReached, pPath);
+    // PredicateDelegatingRefiner only works with a TrackingForwardingReachedSet
+    Verify.verify(
+        reachedSet instanceof TrackingForwardingReachedSet,
+        "To use the Delegating Refiner, you need to enable tracking via"
+            + " 'analysis.reachedSet.withTracking=true'");
+
+    TrackingForwardingReachedSet trackingForwardingReachedSet =
+        (TrackingForwardingReachedSet) reachedSet;
+
+    List<ReachedSetDelta> deltaSet = ImmutableList.of(trackingForwardingReachedSet.getDelta());
+
+    for (HeuristicDelegatingRefinerRecord pRecord : pRefiners) {
+      DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
+      if (pHeuristic.fulfilled(reachedSet, deltaSet)) {
+        return pRecord.pRefiner().performRefinementForPath(pReached, pPath);
       }
     }
 

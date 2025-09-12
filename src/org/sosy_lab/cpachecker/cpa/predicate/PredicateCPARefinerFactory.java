@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -25,8 +25,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunDefaultNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristics;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -210,14 +211,15 @@ public final class PredicateCPARefinerFactory {
     if (usePredicateDelegatingRefiner) {
       DelegatingRefinerHeuristicStaticRefinement useStaticRefinerFirst =
           new DelegatingRefinerHeuristicStaticRefinement();
+      DelegatingRefinerHeuristicRunDefaultNTimes useDefaultRefinerNTimes =
+          new DelegatingRefinerHeuristicRunDefaultNTimes(10);
 
-      Map<DelegatingRefinerHeuristics, ARGBasedRefiner> refinerMap =
-          Map.of(
-              useStaticRefinerFirst,
-              staticRefiner,
-              DelegatingRefinerHeuristics.DEFAULT,
-              defaultRefiner);
-      refiner = new PredicateDelegatingRefiner(refinerMap);
+      List<HeuristicDelegatingRefinerRecord> pRefiners =
+          List.of(
+              new HeuristicDelegatingRefinerRecord(useStaticRefinerFirst, staticRefiner),
+              new HeuristicDelegatingRefinerRecord(useDefaultRefinerNTimes, defaultRefiner));
+
+      refiner = new PredicateDelegatingRefiner(pRefiners);
     }
 
     return refiner;

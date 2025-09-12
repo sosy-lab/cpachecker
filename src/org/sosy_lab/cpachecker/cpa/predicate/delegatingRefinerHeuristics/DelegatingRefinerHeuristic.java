@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
  * Interface for the heuristics in the delegating refiner. The delegating refiner uses them to
  * decide which refiner to apply.
  */
-public interface DelegatingRefinerHeuristics {
+public interface DelegatingRefinerHeuristic {
   /**
    * Function to check if the current ReachedSet satisfies a heuristic.
    *
@@ -27,5 +27,5 @@ public interface DelegatingRefinerHeuristics {
   boolean fulfilled(UnmodifiableReachedSet pReached, List<ReachedSetDelta> pDeltas);
 
   /** Default setting when none of the heuristics match. Use only as a safety net. */
-  DelegatingRefinerHeuristics DEFAULT = (pReached, pDeltas) -> true;
+  DelegatingRefinerHeuristic DEFAULT = (pReached, pDeltas) -> true;
 }
