@@ -121,6 +121,10 @@ public class ConstraintsSolver {
 
   private final MachineModel machineModel;
 
+  public FormulaManagerView getFormulaManager() {
+    return formulaManager;
+  }
+
   public ConstraintsSolver(
       final Configuration pConfig,
       final MachineModel pMachineModel,
