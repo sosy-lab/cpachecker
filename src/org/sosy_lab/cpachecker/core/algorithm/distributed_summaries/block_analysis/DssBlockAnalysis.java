@@ -283,10 +283,10 @@ public class DssBlockAnalysis {
     status = status.update(result.getStatus());
 
     if (result.getViolations().isEmpty()) {
-      if (result.getSummaries().isEmpty()) {
+      if (result.getFinalLocationStates().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
-      return reportBlockPostConditions(result.getSummaries(), true);
+      return reportBlockPostConditions(result.getFinalLocationStates(), true);
     }
 
     return reportFirstViolationConditions(result.getViolations());
@@ -420,12 +420,18 @@ public class DssBlockAnalysis {
     status = status.update(result.getStatus());
 
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    if (!result.getSummaries().isEmpty()) {
-      messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
+    if (block.isAbstractionPossible()) {
+      if (!result.getSummaries().isEmpty()) {
+        messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
+      }
+    } else {
+      messages.addAll(
+          reportViolationConditions(result.getSummaries(), ((ARGState) violation.state()), false));
     }
     if (!result.getViolations().isEmpty()) {
       messages.addAll(
-          reportViolationConditions(result.getViolations(), ((ARGState) violation.state()), false));
+          reportViolationConditions(
+              result.getViolations(), ((ARGState) violation.state()), false));
     }
     return messages.build();
   }

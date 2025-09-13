@@ -105,6 +105,7 @@ public class DssBlockAnalyses {
   static class DssBlockAnalysisResult {
 
     private final ImmutableSet<ARGState> summaries;
+    private final ImmutableSet<ARGState> finalLocationStates;
     private final ImmutableSet<ARGState> violations;
     private final AlgorithmStatus status;
 
@@ -113,12 +114,16 @@ public class DssBlockAnalyses {
       status = pStatus;
       ImmutableSet.Builder<ARGState> summariesBuilder = ImmutableSet.builder();
       ImmutableSet.Builder<ARGState> violationsBuilder = ImmutableSet.builder();
+      ImmutableSet.Builder<ARGState> finalLocationBuilder = ImmutableSet.builder();
       for (AbstractState abstractState : pReachedSet) {
         ARGState argState = (ARGState) abstractState;
         BlockState blockState =
             Objects.requireNonNull(AbstractStates.extractStateByType(argState, BlockState.class));
         if (blockState.getType() == BlockStateType.INITIAL) {
           continue;
+        }
+        if (blockState.getType() == BlockStateType.FINAL) {
+          finalLocationBuilder.add(argState);
         }
         if (argState.isTarget()) {
           // if we find a target state, it is either a real violation
@@ -132,6 +137,7 @@ public class DssBlockAnalyses {
       }
       violations = violationsBuilder.build();
       summaries = summariesBuilder.build();
+      finalLocationStates = finalLocationBuilder.build();
     }
 
     public AlgorithmStatus getStatus() {
@@ -144,6 +150,10 @@ public class DssBlockAnalyses {
 
     public ImmutableSet<ARGState> getViolations() {
       return violations;
+    }
+
+    public ImmutableSet<ARGState> getFinalLocationStates() {
+      return finalLocationStates;
     }
 
     @Override
