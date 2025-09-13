@@ -125,7 +125,8 @@ public class DssBlockAnalyses {
           // or the ghost edge was reached (violation condition cannot be refuted)
           violationsBuilder.add(argState);
         } else if (blockState.getLocationNode().equals(pBlockNode.getFinalLocation())
-            && blockState.getType() == BlockStateType.FINAL) {
+            && blockState.getType() == BlockStateType.FINAL
+            && argState.getChildren().isEmpty()) {
           summariesBuilder.add(argState);
         }
       }
