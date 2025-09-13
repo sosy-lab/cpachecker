@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class K3VariableDeclaration extends AVariableDeclaration implements K3Declaration {
   @Serial private static final long serialVersionUID = 3038552857008234831L;
+  private final boolean isDummyVariable;
 
   public K3VariableDeclaration(
       FileLocation pFileLocation,
@@ -30,10 +31,40 @@ public final class K3VariableDeclaration extends AVariableDeclaration implements
         pOrigName,
         pQualifiedName,
         null /* There are no initializers in K3 */);
+    isDummyVariable = false;
+  }
+
+  private K3VariableDeclaration(
+      FileLocation pFileLocation,
+      boolean pIsGlobal,
+      K3Type pType,
+      String pName,
+      String pOrigName,
+      String pQualifiedName,
+      boolean pIsDummyVariable) {
+    super(
+        pFileLocation,
+        pIsGlobal,
+        pType,
+        pName,
+        pOrigName,
+        pQualifiedName,
+        null /* There are no initializers in K3 */);
+
+    isDummyVariable = pIsDummyVariable;
+  }
+
+  public static K3VariableDeclaration dummyVariableForName(String pName) {
+    return new K3VariableDeclaration(
+        FileLocation.DUMMY, false, K3CustomType.InternalAnyType, pName, pName, pName, true);
   }
 
   @Override
   public <R, X extends Exception> R accept(K3AstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
+  }
+
+  public boolean isDummyVariable() {
+    return isDummyVariable;
   }
 }

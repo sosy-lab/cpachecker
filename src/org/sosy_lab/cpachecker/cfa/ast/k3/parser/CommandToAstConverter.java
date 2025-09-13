@@ -14,12 +14,15 @@ import com.google.common.collect.ImmutableList.Builder;
 import java.nio.file.Path;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetCounterexampleCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
@@ -28,13 +31,16 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.VerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AnnotateTagContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AssertCommandContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareConstCommandContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DeclareVarContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.DefineProcContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.GetCounterexampleContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.GetProofContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.ProcDeclarationArgumentsContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SetLogicCommandContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SortContext;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.VariableContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.SymbolContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.VerifyCallContext;
 
 class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
@@ -49,19 +55,19 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
     super(pScope, pFilePath);
     statementConverter = new StatementToAstConverter(pScope, pFilePath);
     termConverter = new TermToAstConverter(pScope, pFilePath);
-    tagToAstConverter = new TagToAstConverter(pScope, pFilePath);
+    tagToAstConverter = new TagToAstConverter(new K3UninterpretedScope(), pFilePath);
   }
 
   public CommandToAstConverter(K3Scope pScope) {
     super(pScope);
     statementConverter = new StatementToAstConverter(pScope);
     termConverter = new TermToAstConverter(pScope);
-    tagToAstConverter = new TagToAstConverter(pScope);
+    tagToAstConverter = new TagToAstConverter(new K3UninterpretedScope());
   }
 
   @Override
   public K3Command visitDeclareVar(DeclareVarContext ctx) {
-    String variableName = ctx.variable().getText();
+    String variableName = ctx.symbol().getText();
     K3Type variableType = K3Type.getTypeForString(ctx.sort().getText());
     K3VariableDeclaration variableDeclaration =
         new K3VariableDeclaration(
@@ -77,12 +83,30 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
     return new K3VariableDeclarationCommand(variableDeclaration, fileLocationFromContext(ctx));
   }
 
+  @Override
+  public K3Command visitDeclareConstCommand(DeclareConstCommandContext ctx) {
+    String variableName = ctx.cmd_declareConst().symbol().getText();
+    K3Type variableType = K3Type.getTypeForString(ctx.cmd_declareConst().sort().getText());
+    K3VariableDeclaration variableDeclaration =
+        new K3VariableDeclaration(
+            fileLocationFromContext(ctx),
+            true,
+            variableType,
+            variableName,
+            variableName,
+            variableName);
+
+    scope.addVariable(variableDeclaration);
+
+    return new K3DeclareConstCommand(variableDeclaration, fileLocationFromContext(ctx));
+  }
+
   private List<K3ParameterDeclaration> createParameterDeclarations(
       ProcDeclarationArgumentsContext pContext) {
     Builder<K3ParameterDeclaration> parameters = ImmutableList.builder();
-    for (int i = 0; i < pContext.variable().size(); i++) {
+    for (int i = 0; i < pContext.symbol().size(); i++) {
 
-      VariableContext parameter = pContext.variable(i);
+      SymbolContext parameter = pContext.symbol(i);
       SortContext sort = pContext.sort(i);
       parameters.add(
           new K3ParameterDeclaration(
@@ -96,7 +120,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
   @Override
   public K3Command visitDefineProc(DefineProcContext ctx) {
-    String procedureName = ctx.procedureName().getText();
+    String procedureName = ctx.symbol().getText();
     List<K3ParameterDeclaration> inputParameter =
         createParameterDeclarations(ctx.procDeclarationArguments(0));
     List<K3ParameterDeclaration> localVariables =
@@ -111,7 +135,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
             localVariables,
             outputParameter);
 
-    scope.enterFunctionProcedure(
+    scope.enterProcedure(
         FluentIterable.from(inputParameter)
             .append(localVariables)
             .append(outputParameter)
@@ -119,7 +143,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
     K3Statement body = statementConverter.visit(ctx.statement());
 
-    scope.exitFunctionProcedure();
+    scope.leaveProcedure();
 
     scope.addProcedureDeclaration(procedureDeclaration);
 
@@ -130,7 +154,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
   @Override
   public K3Command visitVerifyCall(VerifyCallContext pContext) {
     K3ProcedureDeclaration procedureDeclaration =
-        scope.getFunctionDeclaration(pContext.procedureName().getText());
+        scope.getProcedureDeclaration(pContext.symbol().getText());
     List<K3Term> terms =
         FluentIterable.from(pContext.term()).transform(termConverter::visit).toList();
 
@@ -143,7 +167,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
         FluentIterable.from(pContext.attribute())
             .transform(attribute -> tagToAstConverter.visit(attribute))
             .toList();
-    String tagName = pContext.tagName().getText();
+    String tagName = pContext.symbol().getText();
     return new K3AnnotateTagCommand(tagName, tags, fileLocationFromContext(pContext));
   }
 
@@ -155,5 +179,17 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
   @Override
   public K3Command visitGetCounterexample(GetCounterexampleContext pContext) {
     return new K3GetCounterexampleCommand(fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public K3Command visitSetLogicCommand(SetLogicCommandContext pContext) {
+    return new K3SetLogicCommand(
+        pContext.cmd_setLogic().symbol().getText(), fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public K3Command visitAssertCommand(AssertCommandContext pContext) {
+    K3Term term = termConverter.visit(pContext.cmd_assert().term());
+    return new K3AssertCommand(term, fileLocationFromContext(pContext));
   }
 }

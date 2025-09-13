@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public sealed interface K3Type extends Type permits K3CustomType, K3ProductType, K3ProcedureType {
+public sealed interface K3Type extends Type
+    permits K3ConstantType, K3CustomType, K3ProcedureType, K3ProductType {
 
   static K3Type getTypeForString(String pType) {
     return switch (pType) {

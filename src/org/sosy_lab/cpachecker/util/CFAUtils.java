@@ -115,6 +115,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3IdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3IfStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3InvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3LabelStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3NumeralConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3OldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureCallStatement;
@@ -1202,6 +1203,12 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> accept(K3IdTerm pK3IdTerm) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> accept(K3NumeralConstantTerm pK3NumeralConstantTerm)
+        throws NoException {
       return ImmutableList.of();
     }
 

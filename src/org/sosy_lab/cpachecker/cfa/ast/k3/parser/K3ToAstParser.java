@@ -57,9 +57,9 @@ public class K3ToAstParser {
     ParseTree tree = generateParseTree(inputFixedComments, pParser -> pParser.script());
     ScriptToAstConverter converter;
     if (pFilePath.isEmpty()) {
-      converter = new ScriptToAstConverter(new K3Scope());
+      converter = new ScriptToAstConverter(new K3CurrentScope());
     } else {
-      converter = new ScriptToAstConverter(new K3Scope(), pFilePath.orElseThrow());
+      converter = new ScriptToAstConverter(new K3CurrentScope(), pFilePath.orElseThrow());
     }
 
     K3Script script = converter.visit(tree);

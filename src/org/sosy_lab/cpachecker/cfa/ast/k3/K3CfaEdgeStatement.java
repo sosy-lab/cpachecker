@@ -32,7 +32,7 @@ public abstract sealed class K3CfaEdgeStatement extends K3Statement implements A
       return true;
     }
 
-    return pO instanceof K3ControlFlowStatement && super.equals(pO);
+    return pO instanceof K3CfaEdgeStatement && super.equals(pO);
   }
 
   @Override

@@ -38,7 +38,8 @@ class TagToAstConverter extends AbstractAntlrToAstConverter<K3TagAttribute> {
 
   @Override
   public K3TagAttribute visitTagAttribute(TagAttributeContext pContext) {
-    return new K3TagReference(pContext.tagName().getText(), fileLocationFromContext(pContext));
+    return new K3TagReference(
+        pContext.symbol().getText(), fileLocationFromContext(pContext), scope.copy());
   }
 
   @Override

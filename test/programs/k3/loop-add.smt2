@@ -30,9 +30,11 @@
     :requires (<= 0 y0)
     :ensures  (= x (+ x0 y0)))
 
-(declare-const x0 Int)
-(declare-const y0 Int)
+(declare-const w0 Int)
+(declare-const z0 Int)
+
+(assert (<= 0 w0))
 
 (verify-call
-    add (x0 y0))
+    add (w0 z0))
 (get-proof)

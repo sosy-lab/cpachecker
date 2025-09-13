@@ -13,6 +13,8 @@ import java.util.Objects;
 
 public final class K3CustomType implements K3Type {
 
+  public static final K3CustomType InternalAnyType = new K3CustomType("#any");
+
   @Serial private static final long serialVersionUID = -1560683119379278009L;
   private final String type;
 

@@ -8,20 +8,28 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
-import java.io.Serial;
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.k3.parser.K3Scope;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class K3TagReference implements K3TagAttribute {
-  @Serial private static final long serialVersionUID = 7437989844963398076L;
-  private final String tagName;
+public final class K3NumeralConstantTerm implements K3ConstantTerm {
+
+  private final BigInteger value;
   private final FileLocation fileLocation;
-  private final K3Scope scope;
 
-  public K3TagReference(String pTagName, FileLocation pFileLocation, K3Scope pScope) {
-    tagName = pTagName;
+  public K3NumeralConstantTerm(BigInteger pValue, FileLocation pFileLocation) {
+    value = pValue;
     fileLocation = pFileLocation;
-    scope = pScope;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(K3TermVisitor<R, X> v) throws X {
+    return v.accept(this);
+  }
+
+  @Override
+  public Type getExpressionType() {
+    return K3ConstantType.NUMERAL_CONSTANT;
   }
 
   @Override
@@ -36,16 +44,22 @@ public final class K3TagReference implements K3TagAttribute {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":tag " + tagName;
+    return value.toString();
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":tag " + tagName;
+    return value.toString();
   }
 
-  public String getTagName() {
-    return tagName;
+  @Override
+  public BigInteger getValue() {
+    return value;
+  }
+
+  @Override
+  public int hashCode() {
+    return value.hashCode();
   }
 
   @Override
@@ -53,15 +67,7 @@ public final class K3TagReference implements K3TagAttribute {
     if (this == pO) {
       return true;
     }
-    return pO instanceof K3TagReference other && tagName.equals(other.tagName);
-  }
 
-  @Override
-  public int hashCode() {
-    return tagName.hashCode();
-  }
-
-  public K3Scope getScope() {
-    return scope;
+    return pO instanceof K3NumeralConstantTerm other && value.equals(other.value);
   }
 }

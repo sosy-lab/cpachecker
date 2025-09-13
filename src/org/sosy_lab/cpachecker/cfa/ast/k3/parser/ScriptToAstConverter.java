@@ -31,7 +31,7 @@ class ScriptToAstConverter extends AbstractAntlrToAstConverter<K3Script> {
   @Override
   public K3Script visitScript(ScriptContext ctx) {
     ImmutableList.Builder<K3Command> commands = ImmutableList.builder();
-    for (var commandCtx : ctx.command()) {
+    for (var commandCtx : ctx.commandk3()) {
       K3Command command = commandToAstConverter.visit(commandCtx);
       commands.add(command);
     }

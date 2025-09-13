@@ -779,14 +779,14 @@ match_case
     ;
 
 term
-    : spec_constant
-    | qual_identifer
-    | ParOpen qual_identifer term+ ParClose
-    | ParOpen GRW_Let ParOpen var_binding+ ParClose term ParClose
-    | ParOpen GRW_Forall ParOpen sorted_var+ ParClose term ParClose
-    | ParOpen GRW_Exists ParOpen sorted_var+ ParClose term ParClose
-    | ParOpen GRW_Match term ParOpen match_case+ ParClose ParClose
-    | ParOpen GRW_Exclamation term attribute+ ParClose
+    : spec_constant                                                      # SpecConstantTerm
+    | qual_identifer                                                     # QualIdentifierTerm
+    | ParOpen qual_identifer term+ ParClose                              # ApplicationTerm
+    | ParOpen GRW_Let ParOpen var_binding+ ParClose term ParClose        # LetTerm
+    | ParOpen GRW_Forall ParOpen sorted_var+ ParClose term ParClose      # ForallTerm
+    | ParOpen GRW_Exists ParOpen sorted_var+ ParClose term ParClose      # ExistsTerm
+    | ParOpen GRW_Match term ParOpen match_case+ ParClose ParClose       # MatchTerm
+    | ParOpen GRW_Exclamation term attribute+ ParClose                   # AnnotatedTerm
     ;
 
 // Theory Declarations
@@ -1001,36 +1001,36 @@ cmd_setOption
     ;
 
 command
-    : ParOpen cmd_assert ParClose
-    | ParOpen cmd_checkSat ParClose
-    | ParOpen cmd_checkSatAssuming ParClose
-    | ParOpen cmd_declareConst ParClose
-    | ParOpen cmd_declareDatatype ParClose
-    | ParOpen cmd_declareDatatypes ParClose
-    | ParOpen cmd_declareFun ParClose
-    | ParOpen cmd_declareSort ParClose
-    | ParOpen cmd_defineFun ParClose
-    | ParOpen cmd_defineFunRec ParClose
-    | ParOpen cmd_defineFunsRec ParClose
-    | ParOpen cmd_defineSort ParClose
-    | ParOpen cmd_echo ParClose
-    | ParOpen cmd_exit ParClose
-    | ParOpen cmd_getAssertions ParClose
-    | ParOpen cmd_getAssignment ParClose
-    | ParOpen cmd_getInfo ParClose
-    | ParOpen cmd_getModel ParClose
-    | ParOpen cmd_getOption ParClose
-    | ParOpen cmd_getProof ParClose
-    | ParOpen cmd_getUnsatAssumptions ParClose
-    | ParOpen cmd_getUnsatCore ParClose
-    | ParOpen cmd_getValue ParClose
-    | ParOpen cmd_pop ParClose
-    | ParOpen cmd_push ParClose
-    | ParOpen cmd_reset ParClose
-    | ParOpen cmd_resetAssertions ParClose
-    | ParOpen cmd_setInfo ParClose
-    | ParOpen cmd_setLogic ParClose
-    | ParOpen cmd_setOption ParClose
+    : ParOpen cmd_assert ParClose                               # AssertCommand
+    | ParOpen cmd_checkSat ParClose                             # CheckSatCommand
+    | ParOpen cmd_checkSatAssuming ParClose                     # CheckSatAssumingCommand
+    | ParOpen cmd_declareConst ParClose                         # DeclareConstCommand
+    | ParOpen cmd_declareDatatype ParClose                      # DeclareDatatypeCommand
+    | ParOpen cmd_declareDatatypes ParClose                     # DeclareDatatypesCommand
+    | ParOpen cmd_declareFun ParClose                           # DeclareFunCommand
+    | ParOpen cmd_declareSort ParClose                          # DeclareSortCommand
+    | ParOpen cmd_defineFun ParClose                            # DefineFunCommand
+    | ParOpen cmd_defineFunRec ParClose                         # DefineFunRecCommand
+    | ParOpen cmd_defineFunsRec ParClose                        # DefineFunsRecCommand
+    | ParOpen cmd_defineSort ParClose                           # DefineSortCommand
+    | ParOpen cmd_echo ParClose                                 # EchoCommand
+    | ParOpen cmd_exit ParClose                                 # ExitCommand
+    | ParOpen cmd_getAssertions ParClose                        # GetAssertionsCommand
+    | ParOpen cmd_getAssignment ParClose                        # GetAssignmentCommand
+    | ParOpen cmd_getInfo ParClose                              # GetInfoCommand
+    | ParOpen cmd_getModel ParClose                             # GetModelCommand
+    | ParOpen cmd_getOption ParClose                            # GetOptionCommand
+    | ParOpen cmd_getProof ParClose                             # GetProofCommand
+    | ParOpen cmd_getUnsatAssumptions ParClose                  # GetUnsatAssumptionsCommand
+    | ParOpen cmd_getUnsatCore ParClose                         # GetUnsatCoreCommand
+    | ParOpen cmd_getValue ParClose                             # GetValueCommand
+    | ParOpen cmd_pop ParClose                                  # PopCommand
+    | ParOpen cmd_push ParClose                                 # PushCommand
+    | ParOpen cmd_reset ParClose                                # ResetCommand
+    | ParOpen cmd_resetAssertions ParClose                      # ResetAssertionsCommand
+    | ParOpen cmd_setInfo ParClose                              # SetInfoCommand
+    | ParOpen cmd_setLogic ParClose                             # SetLogicCommand
+    | ParOpen cmd_setOption ParClose                            # SetOptionCommand
     ;
 
 b_value

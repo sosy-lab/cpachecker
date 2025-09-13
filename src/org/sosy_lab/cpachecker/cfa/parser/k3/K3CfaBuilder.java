@@ -30,11 +30,13 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssertCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Command;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3DeclareConstCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetCounterexampleCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GetProofCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3GotoStatement;
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3ProcedureDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Script;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3SequenceStatement;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3SetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Statement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3VariableDeclarationCommand;
@@ -490,6 +493,10 @@ class K3CfaBuilder {
               Level.WARNING,
               "Ignoring get-proof command, since there was no verify call command before.");
         }
+        // TODO: handle these commands properly
+        case K3SetLogicCommand pK3SetLogicCommand -> {}
+        case K3AssertCommand pK3AssertCommand -> {}
+        case K3DeclareConstCommand pK3DeclareConstCommand -> {}
       }
     }
 

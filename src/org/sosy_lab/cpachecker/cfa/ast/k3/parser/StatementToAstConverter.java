@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AssumeStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3BreakStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3ContinueStatement;
@@ -32,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.k3.K3TagReference;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3Term;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3WhileStatement;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AnnotatedStatementContext;
+import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AssignStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AssumeStatementContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.AttributeContext;
 import org.sosy_lab.cpachecker.cfa.ast.k3.parser.generated.K3Parser.BreakStatementContext;
@@ -96,6 +99,8 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
   public K3Statement visitSequenceStatement(SequenceStatementContext ctx) {
     // Could be simplified by using a FluentIterable, but this is easier
     // for debugging.
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
     ImmutableList.Builder<K3Statement> statementsBuilder = ImmutableList.builder();
     for (StatementContext statementContext : ctx.statement()) {
       K3Statement statement = visit(statementContext);
@@ -103,7 +108,7 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
     }
     List<K3Statement> statements = statementsBuilder.build();
     FileLocation location = fileLocationFromContext(ctx);
-    return new K3SequenceStatement(statements, location, getTagAttributes(), getTagReferences());
+    return new K3SequenceStatement(statements, location, properties, references);
   }
 
   @Override
@@ -114,9 +119,11 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
 
   @Override
   public K3Statement visitAssumeStatement(AssumeStatementContext ctx) {
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
     FileLocation location = fileLocationFromContext(ctx);
     K3Term term = termToAstConverter.visit(ctx.term());
-    return new K3AssumeStatement(location, term, getTagAttributes(), getTagReferences());
+    return new K3AssumeStatement(location, term, properties, references);
   }
 
   @Override
@@ -127,22 +134,25 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
 
   @Override
   public K3Statement visitIfStatement(IfStatementContext ctx) {
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
+
     K3Term controllingExpression = termToAstConverter.visit(ctx.term());
     K3Statement thenStatement = visit(ctx.statement(0));
     if (ctx.statement().size() == 2) {
       K3Statement elseStatement = visit(ctx.statement(1));
       return new K3IfStatement(
           fileLocationFromContext(ctx),
-          getTagAttributes(),
-          getTagReferences(),
+          properties,
+          references,
           controllingExpression,
           thenStatement,
           elseStatement);
     } else {
       return new K3IfStatement(
           fileLocationFromContext(ctx),
-          getTagAttributes(),
-          getTagReferences(),
+          properties,
+          references,
           controllingExpression,
           thenStatement);
     }
@@ -150,49 +160,75 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
 
   @Override
   public K3Statement visitWhileStatement(WhileStatementContext ctx) {
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
+
     K3Term controllingExpression = termToAstConverter.visit(ctx.term());
     K3Statement body = visit(ctx.statement());
     return new K3WhileStatement(
-        fileLocationFromContext(ctx),
-        getTagAttributes(),
-        getTagReferences(),
-        controllingExpression,
-        body);
+        controllingExpression, body, properties, references, fileLocationFromContext(ctx));
   }
 
   @Override
   public K3Statement visitBreakStatement(BreakStatementContext ctx) {
-    return new K3BreakStatement(
-        fileLocationFromContext(ctx), getTagAttributes(), getTagReferences());
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
+    return new K3BreakStatement(fileLocationFromContext(ctx), properties, references);
   }
 
   @Override
   public K3Statement visitContinueStatement(ContinueStatementContext ctx) {
-    return new K3ContinueStatement(
-        fileLocationFromContext(ctx), getTagAttributes(), getTagReferences());
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
+    return new K3ContinueStatement(fileLocationFromContext(ctx), properties, references);
   }
 
   @Override
   public K3Statement visitHavocStatement(HavocStatementContext ctx) {
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
+
     List<K3SimpleDeclaration> variables =
-        FluentIterable.from(ctx.variable())
+        FluentIterable.from(ctx.symbol())
             .transform(x -> scope.getVariable(Objects.requireNonNull(x).getText()))
             .toList();
     FileLocation location = fileLocationFromContext(ctx);
-    return new K3HavocStatement(location, getTagAttributes(), getTagReferences(), variables);
+    return new K3HavocStatement(location, properties, references, variables);
   }
 
   @Override
   public K3Statement visitGotoStatement(GotoStatementContext ctx) {
-    String label = ctx.label().getText();
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
+
+    String label = ctx.symbol().getText();
     FileLocation location = fileLocationFromContext(ctx);
-    return new K3GotoStatement(location, getTagAttributes(), getTagReferences(), label);
+    return new K3GotoStatement(location, properties, references, label);
   }
 
   @Override
   public K3Statement visitLabelStatement(LabelStatementContext ctx) {
-    String label = ctx.label().getText();
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
+
+    String label = ctx.symbol().getText();
     FileLocation location = fileLocationFromContext(ctx);
-    return new K3LabelStatement(location, getTagAttributes(), getTagReferences(), label);
+    return new K3LabelStatement(location, properties, references, label);
+  }
+
+  @Override
+  public K3Statement visitAssignStatement(AssignStatementContext ctx) {
+    List<K3TagProperty> properties = getTagAttributes();
+    List<K3TagReference> references = getTagReferences();
+
+    ImmutableMap.Builder<K3SimpleDeclaration, K3Term> assignments = ImmutableMap.builder();
+    for (int i = 0; i < ctx.symbol().size(); i++) {
+      K3SimpleDeclaration leftHandSide =
+          scope.getVariable(Objects.requireNonNull(ctx.symbol(i)).getText());
+      K3Term rightHandSide = termToAstConverter.visit(Objects.requireNonNull(ctx.term(i)));
+      assignments.put(leftHandSide, rightHandSide);
+    }
+    FileLocation location = fileLocationFromContext(ctx);
+    return new K3AssignmentStatement(assignments.build(), location, properties, references);
   }
 }

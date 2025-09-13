@@ -19,11 +19,11 @@ public final class K3WhileStatement extends K3ControlFlowStatement {
   private final K3Statement body;
 
   public K3WhileStatement(
-      FileLocation pFileLocation,
+      K3Term pCondition,
+      K3Statement pBody,
       List<K3TagProperty> pTagAttributes,
       List<K3TagReference> pTagReferences,
-      K3Term pCondition,
-      K3Statement pBody) {
+      FileLocation pFileLocation) {
     super(pFileLocation, pTagAttributes, pTagReferences);
     condition = pCondition;
     body = pBody;

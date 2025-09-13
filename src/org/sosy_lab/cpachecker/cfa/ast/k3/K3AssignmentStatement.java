@@ -19,10 +19,10 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class K3AssignmentStatement extends K3CfaEdgeStatement {
   @Serial private static final long serialVersionUID = 5878865332404007544L;
-  private final Map<K3VariableDeclaration, K3Term> assignments;
+  private final Map<K3SimpleDeclaration, K3Term> assignments;
 
   public K3AssignmentStatement(
-      Map<K3VariableDeclaration, K3Term> pAssignments,
+      Map<K3SimpleDeclaration, K3Term> pAssignments,
       FileLocation pFileLocation,
       List<K3TagProperty> pTagAttributes,
       List<K3TagReference> pTagReferences) {
@@ -58,7 +58,7 @@ public final class K3AssignmentStatement extends K3CfaEdgeStatement {
     return toASTString(pAAstNodeRepresentation);
   }
 
-  public Map<K3VariableDeclaration, K3Term> getAssignments() {
+  public Map<K3SimpleDeclaration, K3Term> getAssignments() {
     return assignments;
   }
 

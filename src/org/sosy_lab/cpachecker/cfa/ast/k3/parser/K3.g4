@@ -32,7 +32,6 @@ commandk3
       ParClose                                                        # VerifyCall
     | ParOpen 'get-proof' ParClose                                    # GetProof
     | ParOpen 'get-counterexample' ParClose                           # GetCounterexample
-    | Comment                                                         # Comment
     | command                                                         # SMTLIBv2Command
     ;
 
@@ -100,7 +99,3 @@ relationalTerm
 procDeclarationArguments
     : (ParOpen symbol sort ParClose)*
     ;
-
-// Parser rules end
-
-WS: [ \t\r\n]+ -> skip ;
