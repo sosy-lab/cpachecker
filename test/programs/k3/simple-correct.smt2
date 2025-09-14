@@ -6,6 +6,8 @@
 ;
 ; SPDX-License-Identifier: Apache-2.0
 
+(set-logic LIA)
+
 (declare-var w Int)
 (declare-var z Int)
 (define-proc f1 ((x Int) (y Int)) () () (sequence (assume (= x y)) (! (assume (= x y)) :assert (= x y))))

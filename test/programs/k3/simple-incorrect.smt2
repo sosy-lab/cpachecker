@@ -6,6 +6,7 @@
 ;
 ; SPDX-License-Identifier: Apache-2.0
 
+(set-logic LIA)
 
 (declare-var w Int)
 (declare-var z Int)
