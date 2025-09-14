@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+
+<!--
+E4 实验：来自其他分析（如 predicate、k-induction）见证转初始精度的对比
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+  <option name="--benchmark"/>
+  <option name="--heap">10000M</option>
+  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+  <!-- 基准：空精度 Value Analysis -->
+  <rundefinition name="baseline-empty-precision">
+    <option name="--valueAnalysis"/>
+  </rundefinition>
+
+  <!-- 生成不同类型的witness -->
+  <rundefinition name="generate-predicate-witness">
+    <option name="--predicateAnalysis"/>
+  </rundefinition>
+
+  <rundefinition name="generate-kinduction-witness">
+    <option name="--kInduction"/>
+  </rundefinition>
+
+  <rundefinition name="generate-value-witness">
+    <option name="--valueAnalysis"/>
+    <!-- 生成value analysis的witness -->
+  </rundefinition>
+
+  <!-- 从不同witness生成精度 -->
+  <rundefinition name="predicate-witness-to-precision">
+    <option name="--config">config/valueAnalysis.properties</option>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=witness-predicate.yml</option>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-predicate.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <rundefinition name="kinduction-witness-to-precision">
+    <option name="--config">config/valueAnalysis.properties</option>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=witness-kinduction.yml</option>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-kinduction.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <rundefinition name="value-witness-to-precision">
+    <option name="--config">config/valueAnalysis.properties</option>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=witness-value.yml</option>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-value.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- 使用不同来源精度进行Value Analysis -->
+  <rundefinition name="use-predicate-derived-precision">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-predicate.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <rundefinition name="use-kinduction-derived-precision">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-kinduction.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <rundefinition name="use-value-derived-precision">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-value.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- 测试程序 - 复用E1和E2的结果 -->
+  <tasks name="Multi-Analysis-Test">
+    <include>../programs/simple/loop1.yml</include>
+    <include>../programs/simple/branching.yml</include>
+    <include>../programs/simple/functionCall.yml</include>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+
+  <columns>
+    <column title="reached">Size of reached set</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="time_analysis">Time for Analysis</column>
+    <column title="witness_source">Witness source analysis</column>
+    <column title="precision_quality">Precision quality metric</column>
+  </columns>
+
+</benchmark>

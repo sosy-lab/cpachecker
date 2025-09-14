@@ -15,6 +15,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,6 +35,12 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -249,10 +257,14 @@ public class WitnessToValuePrecisionConverter implements Statistics {
         Multimap<CFANode, MemoryLocation> precision = HashMultimap.create();
         
         try {
+            logger.log(Level.INFO, "=== WitnessToValuePrecisionConverter: Starting conversion ===");
             logger.log(Level.INFO, "Converting witness to value precision from file: " + witnessFile);
             
-            // 1. Parse the witness file and extract the initial variables
-            WitnessYamlParser parser = new WitnessYamlParser(logger);
+            // 1. Create variable scope resolver using CFA information
+            VariableScopeResolver scopeResolver = new VariableScopeResolver(cfa, logger);
+            
+            // 2. Parse the witness file and extract the initial variables
+            WitnessYamlParser parser = new WitnessYamlParser(logger, scopeResolver);
             WitnessEntry witness = parser.parseWitnessFile(witnessFile);
             
             Set<MemoryLocation> initialVariables = extractInitialVariables(witness, parser);
@@ -274,7 +286,11 @@ public class WitnessToValuePrecisionConverter implements Statistics {
                 "Variables after initial precision build (" + allVariablesAfterInitial.size() + "): " + allVariablesAfterInitial);
             
             // 3. If you enable the adaptive extension
+            logger.log(Level.INFO, "Checking expansion conditions: enableAdaptation=" + enableAdaptation + 
+                      ", initialVariables.isEmpty()=" + initialVariables.isEmpty());
+            
             if (enableAdaptation && !initialVariables.isEmpty()) {
+                logger.log(Level.INFO, "Calling expandPrecisionWithAnalysis");
                 expandPrecisionWithAnalysis(precision, initialVariables);
                 
                 // Print variables after expansion
@@ -284,6 +300,8 @@ public class WitnessToValuePrecisionConverter implements Statistics {
                 }
                 logger.log(Level.INFO, 
                     "Variables after precision expansion (" + allVariablesAfterExpansion.size() + "): " + allVariablesAfterExpansion);
+            } else {
+                logger.log(Level.INFO, "Skipping expandPrecisionWithAnalysis due to conditions not met");
             }
             
             numVariablesExtracted = precision.size();
@@ -452,6 +470,19 @@ public class WitnessToValuePrecisionConverter implements Statistics {
             
             Deque<MemoryLocation> toProcess = new ArrayDeque<>(initialVariables);
             Set<MemoryLocation> processedVars = new HashSet<>(initialVariables);
+            
+            // Add systematic scanning for missing assertion-related variables when boolean switches are enabled
+            logger.log(Level.INFO, "Boolean switches status: dataDep=" + includeDataDependencies + 
+                      ", controlDep=" + includeControlDependencies + 
+                      ", ineq=" + includeInequalityVariables + 
+                      ", knownDefs=" + includeKnownDefinitions);
+            
+            if (includeDataDependencies || includeControlDependencies || includeKnownDefinitions || includeInequalityVariables) {
+                logger.log(Level.INFO, "Boolean switches condition met, calling addMissingAssertionVariables");
+                addMissingAssertionVariables(depGraph, toProcess, processedVars, precision);
+            } else {
+                logger.log(Level.INFO, "Boolean switches condition NOT met, skipping addMissingAssertionVariables");
+            }
             
             while (!toProcess.isEmpty()) {
                 shutdownNotifier.shutdownIfNecessary();
@@ -636,6 +667,93 @@ public class WitnessToValuePrecisionConverter implements Statistics {
         return knownVars;
     }
 
+    /**
+     * Add missing assertion-related variables to ensure consistent behavior regardless of initial variable set
+     */
+    private void addMissingAssertionVariables(
+            CSystemDependenceGraph depGraph,
+            Deque<MemoryLocation> toProcess,
+            Set<MemoryLocation> processedVars,
+            Multimap<CFANode, MemoryLocation> precision) {
+        
+        logger.log(Level.INFO, "Scanning for missing assertion-related variables to ensure boolean switch consistency");
+        
+        int assertionFunctionsFound = 0;
+        int variablesAdded = 0;
+        
+        // Scan the CFA for assertion function calls and statement edges
+        for (CFAEdge edge : CFAUtils.allEdges(cfa)) {
+            
+            // Check for function call edges (external assertions)
+            if (edge instanceof CFunctionCallEdge funcCallEdge) {
+                String functionName = funcCallEdge.getFunctionCallExpression().getFunctionNameExpression().toString();
+                
+                if (functionName.contains("__VERIFIER_assert") || 
+                    functionName.contains("__assert") || 
+                    functionName.contains("assert")) {
+                    
+                    assertionFunctionsFound++;
+                    logger.log(Level.INFO, "Found assertion function call: " + functionName + " at " + edge);
+                    
+                    // Add function parameters to tracking
+                    if (funcCallEdge.getFunctionCallExpression().getParameterExpressions() != null) {
+                        for (var param : funcCallEdge.getFunctionCallExpression().getParameterExpressions()) {
+                            Set<MemoryLocation> paramVars = extractVariables(param);
+                            for (MemoryLocation paramVar : paramVars) {
+                                if (registerNewVariable(paramVar, processedVars, toProcess)) {
+                                    precision.put(edge.getPredecessor(), paramVar);
+                                    precision.put(edge.getSuccessor(), paramVar);
+                                    variablesAdded++;
+                                    logger.log(Level.INFO, "Added missing assertion parameter variable: " + paramVar.getExtendedQualifiedName());
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Add the assertion function itself to precision
+                    try {
+                        MemoryLocation funcMemLoc = MemoryLocation.forIdentifier(functionName);
+                        if (registerNewVariable(funcMemLoc, processedVars, toProcess)) {
+                            precision.put(edge.getPredecessor(), funcMemLoc);
+                            precision.put(edge.getSuccessor(), funcMemLoc);
+                            variablesAdded++;
+                            logger.log(Level.INFO, "Added missing assertion function: " + functionName);
+                        }
+                    } catch (Exception e) {
+                        logger.logException(Level.WARNING, e, "Failed to create MemoryLocation for function: " + functionName);
+                    }
+                }
+            }
+            
+            // Check for statement edges containing assertion calls (inline assertions)
+            else if (edge instanceof CStatementEdge stmtEdge) {
+                String stmtString = stmtEdge.getStatement().toString();
+                if (stmtString.contains("__VERIFIER_assert") ||
+                    stmtString.contains("__assert") ||
+                    stmtString.contains("assert")) {
+                    
+                    assertionFunctionsFound++;
+                    logger.log(Level.INFO, "Found assertion statement: " + stmtString + " at " + edge);
+                    
+                    // Extract variables from the statement
+                    if (stmtEdge.getStatement() instanceof CExpressionStatement exprStmt) {
+                        Set<MemoryLocation> stmtVars = extractVariables(exprStmt.getExpression());
+                        for (MemoryLocation stmtVar : stmtVars) {
+                            if (registerNewVariable(stmtVar, processedVars, toProcess)) {
+                                precision.put(edge.getPredecessor(), stmtVar);
+                                precision.put(edge.getSuccessor(), stmtVar);
+                                variablesAdded++;
+                                logger.log(Level.INFO, "Added missing assertion statement variable: " + stmtVar.getExtendedQualifiedName());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        logger.log(Level.INFO, "Completed scanning: found " + assertionFunctionsFound + " assertion function(s), added " + variablesAdded + " variable(s)");
+    }
+
     // Utility methods
     private boolean registerNewVariable(
             MemoryLocation var,
@@ -681,12 +799,120 @@ public class WitnessToValuePrecisionConverter implements Statistics {
     }
 
     // Helper classes
+    
+    /**
+     * Variable scope resolver that uses CFA information to determine whether a variable
+     * is global or local to a specific function.
+     */
+    private static class VariableScopeResolver {
+        
+        private final Map<String, Set<String>> localVariablesByFunction;
+        private final Set<String> globalVariables;
+        private final LogManager logger;
+        
+        VariableScopeResolver(CFA cfa, LogManager pLogger) {
+            logger = pLogger;
+            localVariablesByFunction = new HashMap<>();
+            globalVariables = new HashSet<>();
+            
+            extractVariableDeclarationsFromCFA(cfa);
+        }
+        
+        /**
+         * Extract all variable declarations from CFA and classify them by scope
+         */
+        private void extractVariableDeclarationsFromCFA(CFA cfa) {
+            for (CFAEdge edge : CFAUtils.allEdges(cfa)) {
+                if (edge instanceof CDeclarationEdge declarationEdge) {
+                    if (declarationEdge.getDeclaration() instanceof AVariableDeclaration varDecl) {
+                        String varName = varDecl.getName();
+                        
+                        if (varDecl.isGlobal()) {
+                            globalVariables.add(varName);
+                            logger.log(Level.FINE, "Found global variable: " + varName);
+                        } else {
+                            String functionName = edge.getPredecessor().getFunctionName();
+                            localVariablesByFunction.computeIfAbsent(functionName, k -> new HashSet<>())
+                                .add(varName);
+                            logger.log(Level.FINE, "Found local variable: " + varName + " in function: " + functionName);
+                        }
+                    }
+                } else if (edge instanceof CFunctionCallEdge callEdge) {
+                    // Handle function parameters
+                    String functionName = callEdge.getSuccessor().getFunctionName();
+                    for (AParameterDeclaration param : callEdge.getFunctionCallExpression().getDeclaration().getParameters()) {
+                        String paramName = param.getName();
+                        localVariablesByFunction.computeIfAbsent(functionName, k -> new HashSet<>())
+                            .add(paramName);
+                        logger.log(Level.FINE, "Found parameter: " + paramName + " in function: " + functionName);
+                    }
+                }
+            }
+            
+            // Also check function entry nodes for parameters
+            for (FunctionEntryNode entryNode : cfa.entryNodes()) {
+                String functionName = entryNode.getFunctionName();
+                List<? extends AParameterDeclaration> params = entryNode.getFunctionParameters();
+                for (AParameterDeclaration param : params) {
+                    String paramName = param.getName();
+                    localVariablesByFunction.computeIfAbsent(functionName, k -> new HashSet<>())
+                        .add(paramName);
+                    logger.log(Level.FINE, "Found function parameter: " + paramName + " in function: " + functionName);
+                }
+            }
+            
+            logger.log(Level.INFO, "Variable scope analysis complete:");
+            logger.log(Level.INFO, "  Global variables: " + globalVariables.size() + " - " + globalVariables);
+            logger.log(Level.INFO, "  Functions with local variables: " + localVariablesByFunction.size());
+            for (Map.Entry<String, Set<String>> entry : localVariablesByFunction.entrySet()) {
+                logger.log(Level.INFO, "    " + entry.getKey() + ": " + entry.getValue().size() + " local variables - " + entry.getValue());
+            }
+        }
+        
+        /**
+         * Resolve a variable name to the correct MemoryLocation based on function context
+         */
+        public MemoryLocation resolveVariable(String varName, @Nullable String functionContext) {
+            // If we have function context and the variable is declared locally in that function
+            if (functionContext != null && 
+                localVariablesByFunction.containsKey(functionContext) &&
+                localVariablesByFunction.get(functionContext).contains(varName)) {
+                
+                logger.log(Level.FINE, "Resolved variable '" + varName + "' as LOCAL in function '" + functionContext + "'");
+                return MemoryLocation.forLocalVariable(functionContext, varName);
+            } else {
+                // Either no function context or variable is not local to that function
+                // Treat as global variable
+                logger.log(Level.FINE, "Resolved variable '" + varName + "' as GLOBAL" + 
+                    (functionContext != null ? " (not found locally in function '" + functionContext + "')" : ""));
+                return MemoryLocation.forIdentifier(varName);
+            }
+        }
+        
+        /**
+         * Check if a variable is declared globally
+         */
+        public boolean isGlobalVariable(String varName) {
+            return globalVariables.contains(varName);
+        }
+        
+        /**
+         * Check if a variable is declared locally in a specific function
+         */
+        public boolean isLocalVariable(String varName, String functionName) {
+            return localVariablesByFunction.containsKey(functionName) &&
+                   localVariablesByFunction.get(functionName).contains(varName);
+        }
+    }
+    
     private static class WitnessYamlParser {
         
         private final LogManager logger;
+        private final VariableScopeResolver scopeResolver;
         
-        WitnessYamlParser(LogManager pLogger) {
+        WitnessYamlParser(LogManager pLogger, VariableScopeResolver pScopeResolver) {
             logger = pLogger;
+            scopeResolver = pScopeResolver;
         }
         
         public WitnessEntry parseWitnessFile(Path witnessFile) {
@@ -770,7 +996,17 @@ public class WitnessToValuePrecisionConverter implements Statistics {
             if ("c_expression".equals(invariant.getFormat())) {
                 try {
                     String expression = invariant.getValue();
-                    variables.addAll(parseVariablesFromString(expression));
+                    
+                    // Extract function context from witness location
+                    String functionContext = null;
+                    if (invariant.getLocation() != null) {
+                        functionContext = invariant.getLocation().getFunction();
+                    }
+                    
+                    logger.log(Level.FINE, "Extracting variables from invariant in function: " + 
+                              (functionContext != null ? functionContext : "global"));
+                    
+                    variables.addAll(parseVariablesFromString(expression, functionContext));
                 } catch (Exception e) {
                     logger.logException(Level.WARNING, e, 
                         "Failed to parse variables from invariant: " + invariant.getValue());
@@ -780,18 +1016,28 @@ public class WitnessToValuePrecisionConverter implements Statistics {
             return variables;
         }
         
-        private Set<MemoryLocation> parseVariablesFromString(String expression) {
+        private Set<MemoryLocation> parseVariablesFromString(String expression, @Nullable String functionContext) {
             Set<MemoryLocation> variables = new HashSet<>();
             String[] tokens = expression.split("[^a-zA-Z_0-9]+");
+            
+            logger.log(Level.FINE, "Parsing variables from expression: '" + expression + 
+                      "' in function context: " + (functionContext != null ? functionContext : "global"));
+            
             for (String token : tokens) {
                 if (token.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
                     try {
-                        variables.add(MemoryLocation.parseExtendedQualifiedName(token));
+                        // Use scope resolver instead of parseExtendedQualifiedName
+                        MemoryLocation memLoc = scopeResolver.resolveVariable(token, functionContext);
+                        variables.add(memLoc);
+                        
+                        logger.log(Level.FINE, "Added variable: " + token + " -> " + memLoc.getExtendedQualifiedName());
                     } catch (Exception e) {
-                        // Ignore the case of parsing failed identifiers
+                        logger.logException(Level.WARNING, e, "Failed to resolve variable: " + token);
                     }
                 }
             }
+            
+            logger.log(Level.FINE, "Parsed " + variables.size() + " variables from expression");
             return variables;
         }
     }
@@ -903,7 +1149,7 @@ public class WitnessToValuePrecisionConverter implements Statistics {
                        op.equals(BinaryOperator.LESS_THAN) ||
                        op.equals(BinaryOperator.LESS_EQUAL))) {
                 shouldInclude = true;
-                numInequalityVarsAdded++;
+                // Note: Counter incrementation is handled in expandWithInequalityVariables method
             }
             
             if (shouldInclude) {

@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+
+<!--
+实验一：witness-based 初始精度 vs 空精度对比测试
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
+  <option name="--heap">2000M</option>
+
+  <!-- E1 完整流程：witness-based 初始精度 vs 空精度对比 -->
+  
+  <!-- 步骤1：生成 witness 文件 -->
+  <rundefinition name="step1-witness-generation">
+    <option name="--predicateAnalysis"/>
+    <option name="--option">witness.export.file=witness-step1.yml</option>
+  </rundefinition>
+
+  <!-- 步骤2：空精度 Value Analysis -->
+  <rundefinition name="step2-empty-precision">
+    <option name="--valueAnalysis"/>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- 步骤3：使用 witness 生成精度文件 -->
+  <rundefinition name="step3-witness-to-precision">
+    <option name="--config">config/valueAnalysis.properties</option>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=witness-step1.yml</option>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-witness.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- 步骤4：使用 witness 精度进行 Value Analysis -->
+  <rundefinition name="step4-witness-precision-analysis">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-witness.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- 选择适合测试精度效果的程序 -->
+  <tasks name="E1-Loop-Test">
+    <include>../programs/simple/loop1.yml</include>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+
+  <!-- 统计列 -->
+  <columns>
+    <column title="reached">Size of reached set</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="precision_variables">Variables in precision</column>
+  </columns>
+
+</benchmark>

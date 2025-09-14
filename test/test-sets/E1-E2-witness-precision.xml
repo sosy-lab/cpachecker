@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+
+<!--
+E1 & E2 组合实验：
+E1: witness-based 初始精度 vs 空精度
+E2: witness-based vs 由一次 Value Analysis 学到的初始精度
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+  <option name="--benchmark"/>
+  <option name="--heap">10000M</option>
+  <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+  <!-- 步骤1：使用 Predicate Analysis 生成 witness（与手动实验一致） -->
+  <rundefinition name="step1-witness-generation">
+    <option name="--predicateAnalysis"/>
+    <!-- 生成 witness-2.0.yml 用于后续实验 -->
+  </rundefinition>
+
+  <!-- 步骤2：空精度 Value Analysis baseline -->
+  <rundefinition name="empty-precision-baseline">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.ValueAnalysisCPAStatistics.precisionFile=valPrec-empty.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- E1-1a: 使用基础witness精度进行Value Analysis -->
+  <rundefinition name="witness-based-precision-basic">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-witness-basic.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- E1-1b: 使用完整布尔开关witness精度进行Value Analysis -->
+  <rundefinition name="witness-based-precision-full">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-witness-full.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- E1-1c: 使用adapt启用的witness精度进行Value Analysis -->
+  <rundefinition name="witness-based-precision-adapt">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-witness-adapt.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- E2: 使用从上一轮Value Analysis学到的精度 -->
+  <rundefinition name="learned-precision">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-empty.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- 辅助配置：从witness生成精度文件（基础版本） -->
+  <rundefinition name="witness-to-precision-basic">
+    <option name="--config">config/valueAnalysis.properties</option>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=witness-2.0.yml</option>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-witness-basic.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- 辅助配置：从witness生成精度文件（完整布尔开关版本） -->
+  <rundefinition name="witness-to-precision-full">
+    <option name="--config">config/valueAnalysis.properties</option>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=witness-2.0.yml</option>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-witness-full.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+    <!-- 布尔开关配置 -->
+    <option name="--option">cpa.value.witness.precision.adapt=false</option>
+    <option name="--option">cpa.value.witness.precision.dataDep=true</option>
+    <option name="--option">cpa.value.witness.precision.controlDep=true</option>
+    <option name="--option">cpa.value.witness.precision.ineq=true</option>
+    <option name="--option">cpa.value.witness.precision.knownDefs=true</option>
+  </rundefinition>
+
+  <!-- 辅助配置：从witness生成精度文件（adapt启用版本） -->
+  <rundefinition name="witness-to-precision-adapt">
+    <option name="--config">config/valueAnalysis.properties</option>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=witness-2.0.yml</option>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-witness-adapt.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+    <!-- 启用适应性功能 -->
+    <option name="--option">cpa.value.witness.precision.adapt=true</option>
+    <option name="--option">cpa.value.witness.precision.dataDep=true</option>
+    <option name="--option">cpa.value.witness.precision.controlDep=true</option>
+    <option name="--option">cpa.value.witness.precision.ineq=true</option>
+    <option name="--option">cpa.value.witness.precision.knownDefs=true</option>
+  </rundefinition>
+
+  <!-- E4预备：Predicate Analysis生成witness（可选，用于E4） -->
+  <rundefinition name="predicate-for-witness">
+    <option name="--predicateAnalysis"/>
+    <option name="--option">witness.export.file=witness-predicate.yml</option>
+  </rundefinition>
+
+  <!-- E4预备：K-Induction生成witness（可选，用于E4） -->
+  <rundefinition name="kinduction-for-witness">
+    <option name="--kInduction"/>
+    <option name="--option">witness.export.file=witness-kinduction.yml</option>
+  </rundefinition>
+
+  <!-- 测试程序集合 -->
+  <tasks name="Simple-Loop-Test">
+    <include>../programs/simple/loop1.yml</include>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+
+  <tasks name="Simple-Branching-Test">
+    <include>../programs/simple/branching.yml</include>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+
+  <tasks name="Simple-Function-Test">
+    <include>../programs/simple/functionCall.yml</include>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+
+  <!-- 性能统计列 -->
+  <columns>
+    <column title="reached">Size of reached set</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="time_analysis">Time for Analysis</column>
+    <column title="precision_variables">Variables in precision</column>
+  </columns>
+
+</benchmark>

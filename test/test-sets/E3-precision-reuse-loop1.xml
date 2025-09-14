@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+
+<!--
+E3 实验：程序小改后重验证——复用旧 witness-based 精度与旧 value-based 精度
+专门针对 loop1.c 及其变体的精度复用测试
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+  <option name="--benchmark"/>
+  <option name="--heap">10000M</option>
+  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+  <!-- 原始程序：空精度baseline -->
+  <rundefinition name="original-empty-precision">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.ValueAnalysisCPAStatistics.precisionFile=valPrec-original.txt</option>
+  </rundefinition>
+
+  <!-- 修改后程序：复用原始witness精度 -->
+  <rundefinition name="modified-reuse-witness-precision">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-from-witness-original.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- 修改后程序：复用原始value-based精度 -->
+  <rundefinition name="modified-reuse-value-precision">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.precisionFile=valPrec-original.txt</option>
+    <option name="--option">witness.export.enabled=false</option>
+  </rundefinition>
+
+  <!-- 修改后程序：新的空精度baseline（对比用） -->
+  <rundefinition name="modified-empty-precision">
+    <option name="--valueAnalysis"/>
+  </rundefinition>
+
+  <!-- 原始程序任务 -->
+  <tasks name="Original-Program">
+    <include>../programs/simple/loop1.yml</include>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+
+  <!-- 修改后程序任务 -->
+  <!-- 注意：这里需要创建 loop1 的变体文件 -->
+  <tasks name="Modified-Program">
+    <include>../programs/simple/loop1-modified.yml</include>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+
+  <columns>
+    <column title="reached">Size of reached set</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="time_analysis">Time for Analysis</column>
+    <column title="precision_reuse_effective">Precision reuse effectiveness</column>
+  </columns>
+
+</benchmark>
