@@ -17,7 +17,6 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -31,14 +30,14 @@ public class SSAMapMerger {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final ShutdownNotifier shutdownNotifier;
-  private final CtoFormulaConverter converter;
+  private final LanguagetoSmtConverter converter;
   private final boolean useNondetFlags;
   private final FormulaType<?> nondetFormulaType;
 
   SSAMapMerger(
       boolean pUseNondetFlags,
       FormulaManagerView pFmgr,
-      CtoFormulaConverter pConverter,
+      LanguagetoSmtConverter pConverter,
       ShutdownNotifier pShutdownNotifier,
       FormulaType<?> pNondetFormulaType) {
     useNondetFlags = pUseNondetFlags;

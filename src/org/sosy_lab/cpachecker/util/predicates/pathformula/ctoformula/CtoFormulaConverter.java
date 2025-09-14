@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.FormatMethod;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -90,6 +92,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguagetoSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -113,7 +116,7 @@ import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /** Class containing all the code that converts C code into a formula. */
-public class CtoFormulaConverter {
+public class CtoFormulaConverter implements LanguagetoSmtConverter {
 
   // list of functions that are pure (no side effects from the perspective of this analysis)
   static final ImmutableSet<String> PURE_EXTERNAL_FUNCTIONS =
@@ -192,15 +195,15 @@ public class CtoFormulaConverter {
 
   public CtoFormulaConverter(
       FormulaEncodingOptions pOptions,
-      FormulaManagerView fmgr,
+      FormulaManagerView pFmgr,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification,
-      LogManager logger,
+      LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CtoFormulaTypeHandler pTypeHandler,
       AnalysisDirection pDirection) {
 
-    this.fmgr = fmgr;
+    fmgr = pFmgr;
     options = pOptions;
     machineModel = pMachineModel;
     variableClassification = pVariableClassification;
@@ -209,7 +212,7 @@ public class CtoFormulaConverter {
     bfmgr = fmgr.getBooleanFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
-    this.logger = new LogManagerWithoutDuplicates(logger);
+    logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
 
     direction = pDirection;
@@ -297,6 +300,14 @@ public class CtoFormulaConverter {
   }
 
   public final FormulaType<?> getFormulaTypeFromCType(CType type) {
+    return getFormulaTypeFromType(type);
+  }
+
+  @Override
+  public final FormulaType<?> getFormulaTypeFromType(Type pType) {
+    Verify.verify(pType instanceof CType);
+    CType type = (CType) pType;
+
     type = type.getCanonicalType();
     if (type instanceof CSimpleType simpleType) {
       switch (simpleType.getType()) {
