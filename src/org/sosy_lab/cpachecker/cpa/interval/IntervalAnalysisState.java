@@ -266,9 +266,11 @@ public final class IntervalAnalysisState
     PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> newReferences = referenceCounts;
 
-    for (String variableName : reachedState.intervals.keySet()) {
+    // TODO: reduce runtime complexity by using 2 iterators over the interval maps (see MR !304)
+    for (Entry<String, Interval> otherEntry : reachedState.intervals.entrySet()) {
+      String variableName = otherEntry.getKey();
       Integer otherRefCount = reachedState.getReferenceCount(variableName);
-      Interval otherInterval = reachedState.getInterval(variableName);
+      Interval otherInterval = otherEntry.getValue();
       if (intervals.containsKey(variableName)) {
         // update the interval
         Interval mergedInterval = getInterval(variableName).union(otherInterval);
