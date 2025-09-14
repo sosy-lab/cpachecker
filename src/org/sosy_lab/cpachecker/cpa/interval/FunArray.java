@@ -16,12 +16,15 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -372,6 +375,52 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   public record UnifyResult(FunArray resultThis, FunArray resultOther) {}
 
   private static final int UNIFY_LOOP_HARD_LIMIT = 10000;
+
+  private Set<NormalFormExpression> getExpressionsInIncorrectOrder(FunArray other) {
+
+    Map<NormalFormExpression, Integer> expressionIndicesThis =
+        IntStream.range(0, this.bounds.size())
+            .boxed()
+            .flatMap(i ->
+                this.bounds.get(i).expressions().stream()
+                    .map(e -> Map.entry(e, i))
+            ).collect(
+                Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)
+            );
+
+    Map<NormalFormExpression, Integer> expressionIndicesOther =
+        IntStream.range(0, other.bounds.size())
+            .boxed()
+            .flatMap(i ->
+                other.bounds.get(i).expressions().stream()
+                    .map(e -> Map.entry(e, i))
+            ).collect(
+                Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)
+            );
+
+    //This assumes that this and other only contain the same expressions (albeit in different orders)
+    Set<NormalFormExpression> expressions = this.bounds.stream()
+        .flatMap(b -> b.expressions().stream())
+        .collect(Collectors.toSet());
+
+    List<NormalFormExpression> sortedExpressions = expressions.stream().sorted(
+        Comparator.comparingInt(expressionIndicesThis::get)
+            .thenComparingInt(expressionIndicesOther::get)
+    ).toList();
+
+    Set<NormalFormExpression> notInOrder = IntStream.range(0, sortedExpressions.size() - 1)
+        .boxed()
+        .flatMap(i -> {
+          NormalFormExpression expression = sortedExpressions.get(i);
+          NormalFormExpression nextExpression = sortedExpressions.get(i + 1);
+          if (expressionIndicesOther.get(expression) > expressionIndicesOther.get(nextExpression)) {
+            return Stream.of(expression, nextExpression);
+          }
+          return Stream.of();
+        }).collect(Collectors.toSet());
+
+    return notInOrder;
+  }
 
   /**
    * Unifies this FunArray with another one, so their segment bounds coincide.
