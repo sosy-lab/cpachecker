@@ -227,7 +227,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         }
       }
       case K3 -> {
-        converter = new K3ToFormulaConverter();
+        converter =
+            new K3ToFormulaConverter(
+                new FormulaEncodingOptions(config),
+                fmgr,
+                pVariableClassification,
+                logger,
+                shutdownNotifier);
         wpConverter = null;
       }
       default ->

@@ -67,4 +67,9 @@ public final class K3VariableDeclaration extends AVariableDeclaration implements
   public boolean isDummyVariable() {
     return isDummyVariable;
   }
+
+  @Override
+  public K3Type getType() {
+    return (K3Type) super.getType();
+  }
 }

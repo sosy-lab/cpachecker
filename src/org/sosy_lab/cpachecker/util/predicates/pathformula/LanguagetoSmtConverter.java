@@ -22,6 +22,14 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface LanguagetoSmtConverter {
+
+  // Index that is used to read from variables that were not assigned yet
+  int VARIABLE_UNINITIALIZED = 1;
+
+  // Index to be used for first assignment to a variable (must be higher than
+  // VARIABLE_UNINITIALIZED!)
+  int VARIABLE_FIRST_ASSIGNMENT = 2;
+
   FormulaType<?> getFormulaTypeFromType(Type type);
 
   PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge, ErrorConditions pErrorConditions)

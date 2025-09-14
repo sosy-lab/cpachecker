@@ -184,13 +184,6 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
 
   protected final AnalysisDirection direction;
 
-  // Index that is used to read from variables that were not assigned yet
-  private static final int VARIABLE_UNINITIALIZED = 1;
-
-  // Index to be used for first assignment to a variable (must be higher than
-  // VARIABLE_UNINITIALIZED!)
-  private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
-
   protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
   public CtoFormulaConverter(
