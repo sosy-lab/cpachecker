@@ -56,7 +56,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
 
   @Override
   public String getCode() {
-    return functionCall.getFunctionCallExpression().toASTString();
+    return functionCall.toASTString();
   }
 
   @Override

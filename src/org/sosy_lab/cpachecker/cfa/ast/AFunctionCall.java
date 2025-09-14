@@ -8,7 +8,21 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.util.List;
+
 public interface AFunctionCall extends AStatement {
 
   AFunctionCallExpression getFunctionCallExpression();
+
+  default AFunctionDeclaration getFunctionDeclaration() {
+    return getFunctionCallExpression().getDeclaration();
+  }
+
+  default List<? extends AExpression> getParameterExpressions() {
+    return getFunctionCallExpression().getParameterExpressions();
+  }
+
+  default String toASTString() {
+    return getFunctionCallExpression().toASTString();
+  }
 }

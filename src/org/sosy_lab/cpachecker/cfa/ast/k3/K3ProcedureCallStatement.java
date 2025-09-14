@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+import com.google.common.base.Joiner;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -74,14 +75,6 @@ public final class K3ProcedureCallStatement extends K3CfaEdgeStatement implement
     return "";
   }
 
-  public K3ProcedureDeclaration getProcedureDeclaration() {
-    return procedureDeclaration;
-  }
-
-  public List<K3Term> getArguments() {
-    return arguments;
-  }
-
   public List<K3VariableDeclaration> getReturnVariables() {
     return returnVariables;
   }
@@ -91,5 +84,23 @@ public final class K3ProcedureCallStatement extends K3CfaEdgeStatement implement
     throw new RuntimeException(
         "K3ProcedureCallStatement does not have a function call expression. "
             + "This is due to design choices in the language, where function calls are only statements and not expressions.");
+  }
+
+  @Override
+  public K3ProcedureDeclaration getFunctionDeclaration() {
+    return procedureDeclaration;
+  }
+
+  @Override
+  public List<K3Term> getParameterExpressions() {
+    return arguments;
+  }
+
+  @Override
+  public String toASTString() {
+    return procedureDeclaration.getName()
+        + "("
+        + Joiner.on(" ").join(getParameterExpressions())
+        + ")";
   }
 }

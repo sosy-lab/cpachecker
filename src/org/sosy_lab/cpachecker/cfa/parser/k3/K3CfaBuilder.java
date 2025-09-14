@@ -172,7 +172,14 @@ class K3CfaBuilder {
           builder.addAll(lastNodeWithAllNodes.getSecondNotNull());
           predecessorNode = lastNodeWithAllNodes.getFirstNotNull();
         }
-        currentSuccessorNode = predecessorNode;
+        CFAEdge edge =
+            new BlankEdge(
+                "end of sequence statement",
+                FileLocation.DUMMY,
+                predecessorNode,
+                currentSuccessorNode,
+                "end of sequence statement");
+        CFACreationUtils.addEdgeToCFA(edge, logger);
       }
       case K3ProcedureCallStatement pK3ProcedureCallStatement -> {
         // We do not need to split the assumption into multiple edges, since there is no
@@ -419,7 +426,19 @@ class K3CfaBuilder {
             node -> cfaNodes.put(mainFunctionName, node));
 
     FunctionExitNode mainFunctionExitNode = mainFunctionNodes.getSecondNotNull();
-    CFANode currentMainFunctionNode = mainFunctionNodes.getFirstNotNull();
+    CFANode currentMainFunctionNode =
+        newNodeAddedToBuilder(
+            mainFunctionDeclaration, node -> cfaNodes.put(mainFunctionName, node));
+
+    // Add blank edge for all global declarations
+    CFACreationUtils.addEdgeToCFA(
+        new BlankEdge(
+            "Start of Global Declarations",
+            FileLocation.DUMMY,
+            mainFunctionNodes.getFirstNotNull(),
+            currentMainFunctionNode,
+            "Start of Global Declarations"),
+        logger);
 
     // Go through all the commands in the script and parse them.
     List<K3Command> commands = script.getCommands();

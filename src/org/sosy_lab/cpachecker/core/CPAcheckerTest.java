@@ -32,6 +32,7 @@ public class CPAcheckerTest {
   /** The configuration file to use for running CPAchecker. */
   private static final String CONFIGURATION_FILE_C = "config/valueAnalysis-NoCegar.properties";
 
+  private static final String CONFIGURATION_FILE_K3 = "config/predicateAnalysis-k3.properties";
   private static final String CONFIGURATION_FILE_LLVM = "config/valueAnalysis-NoCegar.properties";
   private static final String CONFIGURATION_FILE_JAVA =
       "config/valueAnalysis-java-NoCegar.properties";
@@ -43,6 +44,8 @@ public class CPAcheckerTest {
 
   private static final String SAFE_PROGRAM_C = "doc/examples/example.c";
   private static final String UNSAFE_PROGRAM_C = "doc/examples/example_bug.c";
+
+  private static final String SAFE_PROGRAM_K3 = "test/programs/k3/simple-correct.smt2";
 
   private static final String SAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall.ll";
   private static final String UNSAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall2.ll";
@@ -66,6 +69,16 @@ public class CPAcheckerTest {
     // that are included in the test through indirection, as long as the tests stay as simple
     // as they currently are
     TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_C);
+    result.getCheckerResult().printStatistics(statisticsStream);
+    result.getCheckerResult().writeOutputFiles();
+
+    result.assertIsSafe();
+  }
+
+  @Test
+  public void testRunForSafeK3Program() throws Exception {
+    Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, "");
+    TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_K3);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
 

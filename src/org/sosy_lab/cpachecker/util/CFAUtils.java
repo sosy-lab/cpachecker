@@ -1274,8 +1274,8 @@ public class CFAUtils {
         throws NoException {
       ImmutableList.Builder<K3AstNode> builder = ImmutableList.builder();
       return builder
-          .add(pK3ProcedureCallStatement.getProcedureDeclaration())
-          .addAll(pK3ProcedureCallStatement.getArguments())
+          .add(pK3ProcedureCallStatement.getFunctionDeclaration())
+          .addAll(pK3ProcedureCallStatement.getParameterExpressions())
           .addAll(pK3ProcedureCallStatement.getReturnVariables())
           .build();
     }
