@@ -378,6 +378,13 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
   private Set<NormalFormExpression> getExpressionsInIncorrectOrder(FunArray other) {
 
+    Set<NormalFormExpression> expressions = this.bounds.stream()
+        .flatMap(b -> b.expressions().stream())
+        .filter(
+            e -> other.bounds.stream()
+                .anyMatch(b -> b.contains(e))
+        ).collect(Collectors.toSet());
+
     Map<NormalFormExpression, Integer> expressionIndicesThis =
         IntStream.range(0, this.bounds.size())
             .boxed()
@@ -397,11 +404,6 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
             ).collect(
                 Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)
             );
-
-    //This assumes that this and other only contain the same expressions (albeit in different orders)
-    Set<NormalFormExpression> expressions = this.bounds.stream()
-        .flatMap(b -> b.expressions().stream())
-        .collect(Collectors.toSet());
 
     List<NormalFormExpression> sortedExpressions = expressions.stream().sorted(
         Comparator.comparingInt(expressionIndicesThis::get)
@@ -438,6 +440,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
     var commonExpressions = new HashSet<>(thisExpressions);
     commonExpressions.retainAll(otherExpressions);
+
+    var expressionsInIncorrectOrder = getExpressionsInIncorrectOrder(other);
+    commonExpressions.removeAll(expressionsInIncorrectOrder);
 
     var thisReduced = this.restrictExpressionOccurrences(commonExpressions);
     var otherReduced = other.restrictExpressionOccurrences(commonExpressions);
