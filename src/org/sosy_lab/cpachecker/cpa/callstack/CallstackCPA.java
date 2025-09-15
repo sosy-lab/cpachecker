@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import java.util.Collection;
 import java.util.Set;
+import javax.naming.ConfigurationException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -111,8 +112,13 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public CallstackTransferRelation getTransferRelation() {
+    if (options.ignoreTransfer() && options.traverseBackwards()) {
+      throw new AssertionError("Ignore and backwards options are mutually exclusive.");
+    }
     if (options.traverseBackwards()) {
       return new CallstackTransferRelationBackwards(options, logger);
+    } else if (options.ignoreTransfer()) {
+      return new IgnoreCallstackTransferRelation(options, logger);
     } else {
       return new CallstackTransferRelation(options, logger);
     }

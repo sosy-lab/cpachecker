@@ -1745,6 +1745,9 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
+# ignore the callstack and do not track it this heavily over-approximates.
+cpa.callstack.ignoreTransfer = false
+
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
