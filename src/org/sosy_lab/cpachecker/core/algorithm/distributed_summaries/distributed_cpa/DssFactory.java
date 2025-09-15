@@ -71,9 +71,9 @@ public class DssFactory {
               pLogManager,
               pShutdownNotifier,
               integerToNodeMap);
-      case CallstackCPA callstackCPA -> distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
-      case FunctionPointerCPA functionPointerCPA ->
-          distribute(functionPointerCPA, pBlockNode);
+      case CallstackCPA callstackCPA ->
+          distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
+      case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode);
       case ARGCPA argCPA ->
           distribute(
@@ -95,10 +95,8 @@ public class DssFactory {
               pMessageFactory,
               pLogManager,
               pShutdownNotifier);
-      case LocationCPA locationCPA ->
-          distribute(locationCPA, pBlockNode, integerToNodeMap);
-      case null /*TODO check if null is necessary*/, default ->
-          null;
+      case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, integerToNodeMap);
+      case null /*TODO check if null is necessary*/, default -> null;
     };
   }
 

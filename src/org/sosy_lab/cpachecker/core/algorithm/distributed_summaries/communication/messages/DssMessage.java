@@ -205,11 +205,11 @@ public abstract class DssMessage {
       content = ImmutableMap.copyOf(pContent);
     }
 
-    public ImmutableMap<String, String> getHeader() {
+    private ImmutableMap<String, String> getHeader() {
       return header;
     }
 
-    public ImmutableMap<String, String> getContent() {
+    private ImmutableMap<String, String> getContent() {
       return content;
     }
   }

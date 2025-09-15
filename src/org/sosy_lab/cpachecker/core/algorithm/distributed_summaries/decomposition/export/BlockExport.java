@@ -71,8 +71,8 @@ public class BlockExport {
           }
         }
         containedLeavingEdges++;
-        if (leavingEdge instanceof AssumeEdge) {
-          follow = Optional.of(((AssumeEdge) leavingEdge).getTruthAssumption());
+        if (leavingEdge instanceof AssumeEdge pAssumeEdge) {
+          follow = Optional.of(pAssumeEdge.getTruthAssumption());
         }
       }
     }
