@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
@@ -220,7 +219,7 @@ public class DssAnalysisWorker extends DssWorker {
   }
 
   private ImmutableMap<StatisticsKey, String> getStats() {
-    Builder<StatisticsKey, String> stats = ImmutableMap.builder();
+    ImmutableMap.Builder<StatisticsKey, String> stats = ImmutableMap.builder();
 
     if (dssBlockAnalysis.getDcpa() instanceof DistributedARGCPA arg
         && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
