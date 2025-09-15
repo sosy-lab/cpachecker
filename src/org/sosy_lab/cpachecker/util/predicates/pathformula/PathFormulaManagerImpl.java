@@ -225,6 +225,16 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers"
                   + " exist.");
         }
+
+        pfbFactory =
+            switch (pathFormulaBuilderVariant) {
+              case DEFAULT -> new DefaultPathFormulaBuilder.Factory();
+              case SYMBOLICLOCATIONS ->
+                  new SymbolicLocationPathFormulaBuilder.Factory(
+                      new CBinaryExpressionBuilder(pMachineModel, pLogger));
+            };
+
+        NONDET_FORMULA_TYPE = converter.getFormulaTypeFromType(NONDET_TYPE);
       }
       case K3 -> {
         converter =
@@ -235,21 +245,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                 logger,
                 shutdownNotifier);
         wpConverter = null;
+        pfbFactory = null;
+        NONDET_FORMULA_TYPE = null;
       }
       default ->
           throw new InvalidConfigurationException(
               "Language not supported for creating path formulas: " + pLanguage);
     }
-
-    pfbFactory =
-        switch (pathFormulaBuilderVariant) {
-          case DEFAULT -> new DefaultPathFormulaBuilder.Factory();
-          case SYMBOLICLOCATIONS ->
-              new SymbolicLocationPathFormulaBuilder.Factory(
-                  new CBinaryExpressionBuilder(pMachineModel, pLogger));
-        };
-
-    NONDET_FORMULA_TYPE = converter.getFormulaTypeFromType(NONDET_TYPE);
   }
 
   @Override

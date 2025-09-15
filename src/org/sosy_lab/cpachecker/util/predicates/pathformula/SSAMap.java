@@ -159,7 +159,7 @@ public final class SSAMap implements Serializable {
 
     @SuppressWarnings("CheckReturnValue")
     @CanIgnoreReturnValue
-    private SSAMapBuilder setCTypeIndex(String name, CType type, int idx) {
+    private SSAMapBuilder setTypeIndex(String name, Type type, int idx) {
       Preconditions.checkArgument(
           idx > 0, "Non-positive index %s for variable %s with type %s", idx, name, type);
       int oldIdx = getIndex(name);
@@ -171,14 +171,7 @@ public final class SSAMap implements Serializable {
           oldIdx,
           idx);
 
-      type = type.getCanonicalType();
-      assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
-      if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
-        // Type needs to be overwritten
-        type = CNumericTypes.CHAR;
-      }
-
-      CType oldType = (CType) varTypes.get(name);
+      Type oldType = varTypes.get(name);
       if (oldType != null) {
         TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);
       } else {
@@ -200,9 +193,18 @@ public final class SSAMap implements Serializable {
     @CanIgnoreReturnValue
     public SSAMapBuilder setIndex(String name, Type type, int idx) {
       if (type instanceof CType pCType) {
-        return setCTypeIndex(name, pCType, idx);
-      } else if (type instanceof K3Type) {
-        throw new IllegalArgumentException("Not implemented.");
+        // First obtain the true type which is being handled
+        pCType = pCType.getCanonicalType();
+        assert !(pCType instanceof CFunctionType)
+            : "Variable " + name + " has function type " + type;
+        if (TypeHandlerWithPointerAliasing.isByteArrayAccessName(name)) {
+          // Type needs to be overwritten
+          pCType = CNumericTypes.CHAR;
+        }
+        // Then set the index for that type
+        return setTypeIndex(name, pCType, idx);
+      } else if (type instanceof K3Type pK3Type) {
+        return setTypeIndex(name, pK3Type, idx);
       }
 
       throw new IllegalArgumentException("Unsupported type " + type + " for variable " + name);

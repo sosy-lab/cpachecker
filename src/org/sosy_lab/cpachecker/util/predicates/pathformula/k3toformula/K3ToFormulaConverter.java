@@ -133,23 +133,34 @@ public class K3ToFormulaConverter implements LanguagetoSmtConverter {
     SSAMapBuilder ssa = pOldFormula.getSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
 
-    return switch (pEdge) {
-      case BlankEdge ignored -> pOldFormula;
-      case K3DeclarationEdge declarationEdge -> {
-        BooleanFormula formula =
-            makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
+    BooleanFormula edgeFormula =
+        switch (pEdge) {
+          case BlankEdge ignored -> bfmgr.makeTrue();
+          case K3DeclarationEdge declarationEdge ->
+              makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
+          default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
+        };
 
-        @SuppressWarnings("deprecation")
-        PathFormula result =
-            PathFormula.createManually(
-                bfmgr.and(pOldFormula.getFormula(), formula),
-                pOldFormula.getSsa(),
-                pOldFormula.getPointerTargetSet(),
-                pOldFormula.getLength() + 1);
-        yield result;
-      }
-      default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
-    };
+    edgeFormula = bfmgr.and(edgeFormula, constraints.get());
+    SSAMap newSsa = ssa.build();
+
+    // There are no pointers in K3, so the pointer target set remains unchanged, and can therefore
+    // be ignored.
+    if (bfmgr.isTrue(edgeFormula) && (newSsa == pOldFormula.getSsa())) {
+      // formula is just "true" and rest is equal
+      // i.e. no writes to SSAMap, no branching and length should stay the same
+      return pOldFormula;
+    }
+
+    BooleanFormula newFormula = bfmgr.and(pOldFormula.getFormula(), edgeFormula);
+    int newLength = pOldFormula.getLength() + 1;
+
+    @SuppressWarnings("deprecation")
+    // This is an intended use, K3ToFormulaConverter just does not have access to the constructor
+    PathFormula result =
+        PathFormula.createManually(
+            newFormula, newSsa, pOldFormula.getPointerTargetSet(), newLength);
+    return result;
   }
 
   private BooleanFormula makeDeclaration(
@@ -179,7 +190,11 @@ public class K3ToFormulaConverter implements LanguagetoSmtConverter {
 
     makeFreshIndex(varName, decl.getType(), ssa);
 
-    return null;
+    BooleanFormula result = bfmgr.makeTrue();
+
+    // We do not need to handle initializers in K3, since they do not exist.
+
+    return result;
   }
 
   @Override
