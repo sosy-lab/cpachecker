@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -59,7 +60,9 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     blockCpa = pBlockCpa;
     node = pNode;
     blockStateSupplier =
-        location -> new BlockState(location, pNode, BlockStateType.INITIAL, Optional.empty());
+        location ->
+            new BlockState(
+                location, pNode, BlockStateType.INITIAL, Optional.empty(), ImmutableList.of());
 
     serializeOperator = new SerializeBlockStateOperator();
     deserializeOperator = new DeserializeBlockStateOperator(pNode);

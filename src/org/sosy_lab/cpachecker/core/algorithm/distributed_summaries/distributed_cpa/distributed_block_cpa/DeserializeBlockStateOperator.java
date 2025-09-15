@@ -9,6 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -27,7 +30,10 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
-    String serializedBlockState = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
+    String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
+    List<String> idAndHistory = Splitter.on(", ").limit(2).splitToList(content);
+    String serializedBlockState = idAndHistory.getFirst();
+    List<String> history = idAndHistory.size() == 2 ? Splitter.on(", ").splitToList(idAndHistory.get(1)) : ImmutableList.of();
     Preconditions.checkNotNull(serializedBlockState);
     Preconditions.checkArgument(
         blockNode.getPredecessorIds().contains(serializedBlockState)
@@ -36,6 +42,6 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,
         BlockStateType.INITIAL,
-        Optional.empty());
+        Optional.empty(), history);
   }
 }
