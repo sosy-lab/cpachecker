@@ -57,7 +57,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
               Splitter.on(",").splitToList(nodeNumberAndLocationInstance);
           LocationInstance locationInstance =
               new LocationInstance(
-                  nodeMapping.apply(Integer.parseInt(splitNodeNumberAndLocationInstance.get(0))),
+                  nodeMapping.apply(Integer.parseInt(splitNodeNumberAndLocationInstance.getFirst())),
                   Integer.parseInt(splitNodeNumberAndLocationInstance.get(1)));
           for (String precision : Splitter.on(" , ").split(serializedPredicates)) {
             locationInstances.put(

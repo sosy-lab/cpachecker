@@ -54,7 +54,7 @@ public class ContentBuilder {
   @CanIgnoreReturnValue
   public ContentBuilder popLevel() {
     if (!levels.isEmpty()) {
-      levels.remove(levels.size() - 1);
+      levels.removeLast();
     }
     return this;
   }

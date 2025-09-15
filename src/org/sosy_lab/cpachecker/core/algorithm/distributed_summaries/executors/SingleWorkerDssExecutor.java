@@ -137,7 +137,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
         if (isFirstPostcondition) {
           // Do postconditions first, so that information is known before error conditions are
           // checked
-          toBeConsideredNew.add(0, message);
+          toBeConsideredNew.addFirst(message);
           isFirstPostcondition = false;
         } else {
           toBeConsideredOld.add(message);
