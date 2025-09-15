@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -169,11 +168,15 @@ public class DssBlockAnalysis {
   public Collection<DssMessage> reportUnreachableBlockEnd() {
     return ImmutableSet.of(
         messageFactory.createDssPreconditionMessage(
-            block.getId(), false, status, ImmutableMap.of()));
+            block.getId(),
+            false,
+            status,
+            ImmutableList.copyOf(block.getSuccessorIds()),
+            ImmutableMap.of()));
   }
 
   private Collection<DssMessage> reportBlockPostConditions(
-      Set<@NonNull ARGState> blockEnds, boolean allowTop) {
+      Set<@NonNull ARGState> blockEnds, boolean allowTop, Set<String> pEligibleSuccessors) {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     for (ARGState abstraction : blockEnds) {
       if (dcpa.isMostGeneralBlockEntryState(abstraction) && !allowTop) {
@@ -185,7 +188,8 @@ public class DssBlockAnalysis {
             transformedImmutableListCopy(
                 blockEnds, a -> new StateAndPrecision(a, reachedSet.getPrecision(a))));
     messages.add(
-        messageFactory.createDssPreconditionMessage(block.getId(), true, status, serialized));
+        messageFactory.createDssPreconditionMessage(
+            block.getId(), true, status, ImmutableList.copyOf(pEligibleSuccessors), serialized));
     return messages.build();
   }
 
@@ -287,7 +291,8 @@ public class DssBlockAnalysis {
       if (result.getFinalLocationStates().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
-      return reportBlockPostConditions(result.getFinalLocationStates(), true);
+      return reportBlockPostConditions(
+          result.getFinalLocationStates(), true, block.getSuccessorIds());
     }
 
     return reportFirstViolationConditions(result.getViolations());
@@ -370,8 +375,10 @@ public class DssBlockAnalysis {
   public Collection<DssMessage> analyzePrecondition()
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (StateAndPrecision stateAndPrecision : violationConditions.values()) {
-      messages.addAll(analyzeViolationCondition(stateAndPrecision));
+    for (Entry<String, StateAndPrecision> idToStateAndPrecision : violationConditions.entrySet()) {
+      messages.addAll(
+          analyzeViolationCondition(
+              idToStateAndPrecision.getValue(), idToStateAndPrecision.getKey()));
     }
     return messages.build();
   }
@@ -391,7 +398,7 @@ public class DssBlockAnalysis {
       throw new IllegalArgumentException(
           "No violation condition found for sender ID: " + pSenderId);
     }
-    return analyzeViolationCondition(violation);
+    return analyzeViolationCondition(violation, pSenderId);
   }
 
   /**
@@ -405,7 +412,8 @@ public class DssBlockAnalysis {
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
-  public Collection<DssMessage> analyzeViolationCondition(StateAndPrecision violation)
+  public Collection<DssMessage> analyzeViolationCondition(
+      StateAndPrecision violation, String pSuccessor)
       throws CPAException, InterruptedException, SolverException {
     prepareReachedSet();
     // debugPrecondition();
@@ -423,7 +431,11 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     if (block.isAbstractionPossible()) {
       if (!result.getSummaries().isEmpty()) {
-        messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
+        Set<String> eligible =
+            block.getLoopPredecessorIds().isEmpty()
+                ? block.getSuccessorIds()
+                : ImmutableSet.of(pSuccessor);
+        messages.addAll(reportBlockPostConditions(result.getSummaries(), false, eligible));
       }
     } else {
       messages.addAll(

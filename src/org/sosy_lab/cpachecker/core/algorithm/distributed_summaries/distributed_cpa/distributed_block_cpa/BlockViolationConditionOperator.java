@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -23,12 +22,22 @@ import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockViolationConditionOperator implements ViolationConditionOperator {
+
+  private final boolean trackHistory;
+
+  BlockViolationConditionOperator(boolean pTrackHistory) {
+    trackHistory = pTrackHistory;
+  }
+
   @Override
   public Optional<AbstractState> computeViolationCondition(
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition) {
     BlockState topMost =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pARGPath.getFirstState(), BlockState.class));
+    if (!trackHistory) {
+      return Optional.of(topMost);
+    }
     List<String> previousHistory =
         pPreviousCondition
             .map(
@@ -44,7 +53,6 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             topMost.getType(),
             topMost.getErrorCondition(),
             listAndElement(previousHistory, topMost.getBlockNode().getId()));
-    System.out.println(withHistory.getHistory());
     return Optional.of(withHistory);
   }
 }

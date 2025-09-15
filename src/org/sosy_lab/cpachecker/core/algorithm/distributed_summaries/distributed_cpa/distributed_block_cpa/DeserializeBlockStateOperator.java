@@ -33,7 +33,10 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
     List<String> idAndHistory = Splitter.on(", ").limit(2).splitToList(content);
     String serializedBlockState = idAndHistory.getFirst();
-    List<String> history = idAndHistory.size() == 2 ? Splitter.on(", ").splitToList(idAndHistory.get(1)) : ImmutableList.of();
+    List<String> history =
+        idAndHistory.size() == 2
+            ? Splitter.on(", ").splitToList(idAndHistory.get(1))
+            : ImmutableList.of();
     Preconditions.checkNotNull(serializedBlockState);
     Preconditions.checkArgument(
         blockNode.getPredecessorIds().contains(serializedBlockState)
@@ -42,6 +45,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,
         BlockStateType.INITIAL,
-        Optional.empty(), history);
+        Optional.empty(),
+        history);
   }
 }

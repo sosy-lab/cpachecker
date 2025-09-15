@@ -74,7 +74,7 @@ public class DssFactory {
       case CallstackCPA callstackCPA ->
           distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
-      case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode);
+      case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
       case ARGCPA argCPA ->
           distribute(
               argCPA,
@@ -101,8 +101,8 @@ public class DssFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      BlockCPA pBlockCPA, BlockNode pBlockNode) {
-    return new DistributedBlockCPA(pBlockCPA, pBlockNode);
+      BlockCPA pBlockCPA, BlockNode pBlockNode, DssAnalysisOptions pOptions) {
+    return new DistributedBlockCPA(pBlockCPA, pBlockNode, pOptions);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
