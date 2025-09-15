@@ -42,6 +42,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
+@SuppressWarnings("unused")
 public class K3ToFormulaConverter implements LanguagetoSmtConverter {
 
   private final FormulaManagerView fmgr;
@@ -86,13 +87,13 @@ public class K3ToFormulaConverter implements LanguagetoSmtConverter {
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
   private int makeFreshIndex(String name, K3Type type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
-    ssa.setCTypeIndex(name, type, idx);
+    ssa.setIndex(name, type, idx);
     return idx;
   }
 
   /**
    * Produces a fresh new SSA index for an assignment, but does _not_ update the SSA map. Usually
-   * you should use {@link #makeFreshIndex(String, CType, SSAMapBuilder)} instead, because using
+   * you should use {@link #makeFreshIndex(String, K3Type, SSAMapBuilder)} instead, because using
    * variables with indices that are not stored in the SSAMap is not a good idea (c.f. the comment
    * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
    * correctly.
@@ -109,11 +110,13 @@ public class K3ToFormulaConverter implements LanguagetoSmtConverter {
 
   private boolean isRelevantVariable(K3VariableDeclaration pDecl) {
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
-      return variableClassification.orElseThrow().getRelevantVariables().contains(pDecl);
+      return variableClassification
+          .orElseThrow()
+          .getRelevantVariables()
+          .contains(pDecl.getOrigName());
     }
     return true;
   }
-
 
   @Override
   public FormulaType<?> getFormulaTypeFromType(Type type) {
@@ -133,10 +136,20 @@ public class K3ToFormulaConverter implements LanguagetoSmtConverter {
     return switch (pEdge) {
       case BlankEdge ignored -> pOldFormula;
       case K3DeclarationEdge declarationEdge -> {
-        BooleanFormula formula = makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
+        BooleanFormula formula =
+            makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
+
+        @SuppressWarnings("deprecation")
+        PathFormula result =
+            PathFormula.createManually(
+                bfmgr.and(pOldFormula.getFormula(), formula),
+                pOldFormula.getSsa(),
+                pOldFormula.getPointerTargetSet(),
+                pOldFormula.getLength() + 1);
+        yield result;
       }
       default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
-    }
+    };
   }
 
   private BooleanFormula makeDeclaration(
@@ -144,7 +157,8 @@ public class K3ToFormulaConverter implements LanguagetoSmtConverter {
       final String function,
       final SSAMapBuilder ssa,
       final Constraints constraints,
-      final ErrorConditions errorConditions) throws UnrecognizedCodeException, InterruptedException {
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
 
     if (!(edge.getDeclaration() instanceof K3VariableDeclaration decl)) {
       // struct prototype, function declaration, typedef etc.
@@ -165,6 +179,7 @@ public class K3ToFormulaConverter implements LanguagetoSmtConverter {
 
     makeFreshIndex(varName, decl.getType(), ssa);
 
+    return null;
   }
 
   @Override
@@ -176,7 +191,7 @@ public class K3ToFormulaConverter implements LanguagetoSmtConverter {
 
   @Override
   public BooleanFormula makeSsaUpdateTerm(
-      String pSymbolName, CType pSymbolType, int pOldIndex, int pNewIndex, PointerTargetSet pOldPts)
+      String pSymbolName, Type pSymbolType, int pOldIndex, int pNewIndex, PointerTargetSet pOldPts)
       throws InterruptedException {
     throw new RuntimeException("Not implemented yet");
   }
