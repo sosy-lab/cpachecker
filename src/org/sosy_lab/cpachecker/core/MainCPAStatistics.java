@@ -377,8 +377,8 @@ public final class MainCPAStatistics implements Statistics {
     StringBuilder buf = new StringBuilder();
     buf.append(node.getNodeNumber()).append("\n");
     for (AbstractState state : locationMapping.get(node)) {
-      if (state instanceof Graphable) {
-        buf.append(((Graphable) state).toDOTLabel());
+      if (state instanceof Graphable graphable) {
+        buf.append(graphable.toDOTLabel());
       }
     }
     return buf.toString();

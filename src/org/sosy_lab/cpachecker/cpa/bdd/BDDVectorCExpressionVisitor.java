@@ -149,8 +149,8 @@ public class BDDVectorCExpressionVisitor
         // return 1 if expression holds, 0 otherwise
 
         int size = 32;
-        if (calculationType instanceof CSimpleType) {
-          size = machineModel.getSizeofInBits((CSimpleType) calculationType);
+        if (calculationType instanceof CSimpleType cSimpleType) {
+          size = machineModel.getSizeofInBits(cSimpleType);
         }
 
         yield bvmgr.wrapLast(tmp, size);
@@ -167,8 +167,8 @@ public class BDDVectorCExpressionVisitor
       final CType calculationType) {
 
     boolean signed = true;
-    if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
+    if (calculationType instanceof CSimpleType cSimpleType) {
+      signed = !cSimpleType.hasUnsignedSpecifier();
     }
 
     return switch (op) {
@@ -200,8 +200,8 @@ public class BDDVectorCExpressionVisitor
       final CType calculationType) {
 
     boolean signed = true;
-    if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
+    if (calculationType instanceof CSimpleType cSimpleType) {
+      signed = !cSimpleType.hasUnsignedSpecifier();
     }
 
     return switch (op) {

@@ -803,7 +803,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         FloatValue expPart =
             new FloatValue(
                 precision, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
-        return this.withPrecision(precision).multiply(expPart).withPrecision(format);
+        return withPrecision(precision).multiply(expPart).withPrecision(format);
       }
     } else {
       // Exponent within range
@@ -1463,7 +1463,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   private FloatValue squared() {
-    return this.multiply(this);
+    return multiply(this);
   }
 
   /**
@@ -1487,11 +1487,11 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   private FloatValue powFast(BigInteger x) {
     if (x.compareTo(BigInteger.ZERO) < 0) {
       // If x is negative we calculate 1/a^-x
-      return one(format).divide(this.powFast(x.abs()));
+      return one(format).divide(powFast(x.abs()));
     }
     FloatValue r = one(format);
     for (int s = x.bitLength() - 1; s >= 0; s--) {
-      r = x.testBit(s) ? this.multiply(r.squared()) : r.squared();
+      r = x.testBit(s) ? multiply(r.squared()) : r.squared();
     }
     return r;
   }
@@ -1500,7 +1500,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public FloatValue divide(FloatValue pDivisor) {
     checkMatchingPrecision(pDivisor);
     Format precision = format.intermediatePrecision();
-    FloatValue arg1 = this.withPrecision(precision);
+    FloatValue arg1 = withPrecision(precision);
     FloatValue arg2 = pDivisor.withPrecision(precision);
 
     return arg1.divideSlow(arg2).withPrecision(format);
@@ -1752,7 +1752,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     // Fix the sign if x was negative
-    if (this.isNegative()) {
+    if (isNegative()) {
       result = result.negate();
     }
     return result.withPrecision(format);
@@ -2320,7 +2320,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   /** Handle cases in pow where a^x is a floating point number or a breakpoint. */
   private FloatValue powExact(FloatValue exp) {
     Format precision = format.withUnlimitedExponent();
-    FloatValue arg1 = this.withPrecision(precision);
+    FloatValue arg1 = withPrecision(precision);
     FloatValue arg2 = exp.withPrecision(precision);
 
     FloatValue r = nan(format);
@@ -2349,7 +2349,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       // a^x = exp(x * ln a)
       Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
 
-      FloatValue a = this.withPrecision(p);
+      FloatValue a = withPrecision(p);
       FloatValue x = pExponent.withPrecision(p);
 
       // The next call calculates ln with the current precision.
@@ -2402,7 +2402,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return this;
     } else if (isNan()) {
       // For -NaN we drop the sign to make the implementation in line with MPFR
-      return this.abs();
+      return abs();
     } else if (exponent > format.sigBits) {
       // If the exponent is large enough we already have an integer and can return immediately
       return this;
@@ -2968,14 +2968,19 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public static FloatValue fromString(Format pFormat, String pInput) {
     Preconditions.checkArgument(!pInput.isEmpty());
 
-    if (pInput.equals("inf")) {
-      return infinity(pFormat);
-    } else if (pInput.equals("-inf")) {
-      return negativeInfinity(pFormat);
-    } else if (pInput.equals("nan")) {
-      return nan(pFormat);
-    } else if (pInput.equals("-nan")) {
-      return nan(pFormat).negate();
+    switch (pInput) {
+      case "inf" -> {
+        return infinity(pFormat);
+      }
+      case "-inf" -> {
+        return negativeInfinity(pFormat);
+      }
+      case "nan" -> {
+        return nan(pFormat);
+      }
+      case "-nan" -> {
+        return nan(pFormat).negate();
+      }
     }
     pInput = Ascii.toLowerCase(pInput);
 

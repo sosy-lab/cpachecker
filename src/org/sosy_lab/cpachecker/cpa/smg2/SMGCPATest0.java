@@ -247,7 +247,7 @@ public class SMGCPATest0 {
       Value ptrToFirstNotAbstr = ptrToFirstNotAbstrAndState.getValue();
       currentState =
           currentState.writeValueWithChecks(
-              derefedFirstAbstrListElem.get(0).getSMGObject(),
+              derefedFirstAbstrListElem.getFirst().getSMGObject(),
               new NumericValue(pfo),
               numericPointerSizeInBits,
               ptrToFirstNotAbstr,
@@ -288,13 +288,13 @@ public class SMGCPATest0 {
     List<SMGStateAndOptionalSMGObjectAndOffset> derefedLastAbstrListElem =
         currentState.dereferencePointer(listPtrs[listLength - 3]);
     assertThat(derefedLastAbstrListElem).hasSize(1);
-    assertThat(derefedLastAbstrListElem.get(0).hasSMGObjectAndOffset()).isTrue();
+    assertThat(derefedLastAbstrListElem.getFirst().hasSMGObjectAndOffset()).isTrue();
     ValueAndSMGState ptrToLastAndState =
         currentState.searchOrCreateAddress(listSegmentBack, otherPtrOffset);
     currentState = ptrToLastAndState.getState();
     currentState =
         currentState.writeValueWithChecks(
-            derefedLastAbstrListElem.get(0).getSMGObject(),
+            derefedLastAbstrListElem.getFirst().getSMGObject(),
             new NumericValue(nfo),
             numericPointerSizeInBits,
             ptrToLastAndState.getValue(),
@@ -404,10 +404,10 @@ public class SMGCPATest0 {
                   null,
                   dummyCFAEdge);
         } catch (CPATransferException e) {
-          if (e instanceof SMGException) {
-            throw (SMGException) e;
-          } else if (e instanceof SMGSolverException) {
-            throw (SMGSolverException) e;
+          if (e instanceof SMGException sMGException) {
+            throw sMGException;
+          } else if (e instanceof SMGSolverException sMGSolverException) {
+            throw sMGSolverException;
           }
           // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException
@@ -431,10 +431,10 @@ public class SMGCPATest0 {
                   null,
                   dummyCFAEdge);
         } catch (CPATransferException e) {
-          if (e instanceof SMGException) {
-            throw (SMGException) e;
-          } else if (e instanceof SMGSolverException) {
-            throw (SMGSolverException) e;
+          if (e instanceof SMGException sMGException) {
+            throw sMGException;
+          } else if (e instanceof SMGSolverException sMGSolverException) {
+            throw sMGSolverException;
           }
           // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException

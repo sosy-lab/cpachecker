@@ -309,7 +309,6 @@ abstract class CFloat implements Comparable<CFloat> {
       case SINGLE -> 1L << FLOAT32_EXP_BITS;
       case DOUBLE -> 1L << FLOAT64_EXP_BITS;
       case LONG_DOUBLE -> 1L << FLOAT_EXTENDED_EXP_BITS;
-      default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
     };
   }
 
@@ -323,7 +322,6 @@ abstract class CFloat implements Comparable<CFloat> {
       case DOUBLE -> (1L << FLOAT64_SIG_BITS) - 1;
       case LONG_DOUBLE ->
           0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-      default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
     };
   }
 
@@ -333,7 +331,6 @@ abstract class CFloat implements Comparable<CFloat> {
       case LONG_DOUBLE ->
           // We need to inlcude the leading bit as "Extended precision" stores the hidden bit there
           0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-      default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
     };
   }
 }

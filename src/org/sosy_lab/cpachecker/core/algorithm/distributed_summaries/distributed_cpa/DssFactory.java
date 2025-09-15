@@ -60,52 +60,46 @@ public class DssFactory {
       throws InvalidConfigurationException {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
-    if (pCPA instanceof PredicateCPA predicateCPA) {
-      return distribute(
-          predicateCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pOptions,
-          pLogManager,
-          pShutdownNotifier,
-          integerToNodeMap);
-    }
-    if (pCPA instanceof CallstackCPA callstackCPA) {
-      return distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
-    }
-    if (pCPA instanceof FunctionPointerCPA functionPointerCPA) {
-      return distribute(functionPointerCPA, pBlockNode);
-    }
-    if (pCPA instanceof BlockCPA blockCPA) {
-      return distribute(blockCPA, pBlockNode);
-    }
-    if (pCPA instanceof ARGCPA argCPA) {
-      return distribute(
-          argCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pOptions,
-          pMessageFactory,
-          pLogManager,
-          pShutdownNotifier);
-    }
-    if (pCPA instanceof CompositeCPA compositeCPA) {
-      return distribute(
-          compositeCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pOptions,
-          pMessageFactory,
-          pLogManager,
-          pShutdownNotifier);
-    }
-    if (pCPA instanceof LocationCPA locationCPA) {
-      return distribute(locationCPA, pBlockNode, integerToNodeMap);
-    }
-    return null;
+    return switch (pCPA) {
+      case PredicateCPA predicateCPA ->
+          distribute(
+              predicateCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pLogManager,
+              pShutdownNotifier,
+              integerToNodeMap);
+      case CallstackCPA callstackCPA -> distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
+      case FunctionPointerCPA functionPointerCPA ->
+          distribute(functionPointerCPA, pBlockNode);
+      case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode);
+      case ARGCPA argCPA ->
+          distribute(
+              argCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier);
+      case CompositeCPA compositeCPA ->
+          distribute(
+              compositeCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier);
+      case LocationCPA locationCPA ->
+          distribute(locationCPA, pBlockNode, integerToNodeMap);
+      case null /*TODO check if null is necessary*/, default ->
+          null;
+    };
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

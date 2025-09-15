@@ -476,7 +476,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     logger.log(Level.ALL, "rebuilding state with expanded state", expandedState);
 
     final CFANode location = extractLocation(expandedState);
-    if (!(location instanceof FunctionExitNode)) {
+    if (!(location instanceof FunctionExitNode functionExitNode)) {
       logger.log(Level.ALL, "rebuilding skipped because of non-function-exit-location");
       assert isTargetState(expandedState) : "only target states are returned without rebuild";
       return expandedState;
@@ -484,7 +484,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
     final AbstractState rebuildState =
         wrappedReducer.rebuildStateAfterFunctionCall(
-            rootState, entryState, expandedState, (FunctionExitNode) location);
+            rootState, entryState, expandedState, functionExitNode);
     logger.log(Level.ALL, "rebuilding finished with state", rebuildState);
 
     // in the ARG of the outer block we have now the connection "rootState <-> expandedState"

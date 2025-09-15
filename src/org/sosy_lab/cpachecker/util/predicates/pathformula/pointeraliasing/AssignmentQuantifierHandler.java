@@ -341,14 +341,12 @@ class AssignmentQuantifierHandler {
 
         CExpression baseUnderlying = base.getOperand();
 
-        if (!(baseUnderlying instanceof CIntegerLiteralExpression)) {
+        if (!(baseUnderlying instanceof CIntegerLiteralExpression setValueLiteral)) {
           throw new UnrecognizedCodeException(
               "Non-literal byte repeat value not supported for bitfields", edge);
         }
 
         // determine the value of literal
-        final CIntegerLiteralExpression setValueLiteral =
-            (CIntegerLiteralExpression) baseUnderlying;
 
         // make sure it is either all-zeros or all-ones
         int unsignedCharAllOnes =
@@ -393,7 +391,7 @@ class AssignmentQuantifierHandler {
     }
 
     // not all variables have been quantified, get the variable to quantify
-    final SliceVariable variableToQuantify = variablesToQuantify.get(0);
+    final SliceVariable variableToQuantify = variablesToQuantify.getFirst();
 
     // make a sublist without the variable to quantify
     final ImmutableList<SliceVariable> nextVariablesToQuantify =

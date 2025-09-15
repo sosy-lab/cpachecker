@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import com.google.common.collect.Lists;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -56,7 +55,7 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
         result = counterexampleState.getPathFormula();
       }
     }
-    for (CFAEdge cfaEdge : Lists.reverse(pARGPath.getFullPath())) {
+    for (CFAEdge cfaEdge : pARGPath.getFullPath().reverse()) {
       result = backwardManager.makeAnd(result, cfaEdge);
     }
     if (hasRootAsPredecessor) {

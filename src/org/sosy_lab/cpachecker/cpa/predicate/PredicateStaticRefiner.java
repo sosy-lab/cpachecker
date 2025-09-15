@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -231,7 +232,7 @@ final class PredicateStaticRefiner extends StaticRefiner
 
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       ARGState root = (ARGState) reached.getFirstState();
-      ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size() - 1);
+      ARGState targetState = abstractionStatesTrace.getLast();
 
       PredicatePrecision heuristicPrecision;
       predicateExtractionTime.start();
@@ -291,12 +292,10 @@ final class PredicateStaticRefiner extends StaticRefiner
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();
         if ((e instanceof CStatementEdge stmtEdge)
-            && (stmtEdge.getStatement() instanceof CAssignment)) {
-          CAssignment assign = (CAssignment) stmtEdge.getStatement();
+            && (stmtEdge.getStatement() instanceof CAssignment assign)) {
 
-          if (assign.getLeftHandSide() instanceof CIdExpression) {
-            String variable =
-                ((CIdExpression) assign.getLeftHandSide()).getDeclaration().getQualifiedName();
+          if (assign.getLeftHandSide() instanceof CIdExpression cIdExpression) {
+            String variable = cIdExpression.getDeclaration().getQualifiedName();
             directlyAffectingStatements.put(variable, stmtEdge);
           }
         }
@@ -425,7 +424,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     Iterable<CFANode> targetLocations = AbstractStates.extractLocations(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
-    Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
+    SequencedSet<AssumeEdge> assumeEdges = new LinkedHashSet<>();
 
     Multimap<String, AStatementEdge> directlyAffectingStatements =
         buildDirectlyAffectingStatements();
@@ -454,8 +453,8 @@ final class PredicateStaticRefiner extends StaticRefiner
         for (CIdExpression idExpr :
             CFAUtils.getIdExpressionsOfExpression((CExpression) assume.getExpression())) {
           CSimpleDeclaration decl = idExpr.getDeclaration();
-          if (decl instanceof CVariableDeclaration) {
-            if (!((CVariableDeclaration) decl).isGlobal()) {
+          if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+            if (!cVariableDeclaration.isGlobal()) {
               applyGlobal = false;
             }
           } else if (decl instanceof CParameterDeclaration) {
@@ -508,8 +507,8 @@ final class PredicateStaticRefiner extends StaticRefiner
   private void dumpAssumePredicate(Path target) {
     try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
       for (CFAEdge e : cfa.edges()) {
-        if (e instanceof AssumeEdge) {
-          Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, (AssumeEdge) e);
+        if (e instanceof AssumeEdge assumeEdge) {
+          Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, assumeEdge);
           for (AbstractionPredicate p : preds) {
             w.append(p.getSymbolicAtom().toString());
             w.append("\n");
@@ -532,8 +531,8 @@ final class PredicateStaticRefiner extends StaticRefiner
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
-    if (delegate instanceof StatisticsProvider) {
-      ((StatisticsProvider) delegate).collectStatistics(pStatsCollection);
+    if (delegate instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 

@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -131,8 +132,8 @@ public final class LoopStructure {
         return;
       }
 
-      Set<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
-      Set<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
+      SequencedSet<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
+      SequencedSet<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
 
       for (CFANode n : nodes) {
         CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
@@ -385,8 +386,7 @@ public final class LoopStructure {
   @Nullable
   private static String obtainIncDecVariable(CFAEdge e) {
     if ((e instanceof CStatementEdge stmtEdge)
-        && (stmtEdge.getStatement() instanceof CAssignment)) {
-      CAssignment assign = (CAssignment) stmtEdge.getStatement();
+        && (stmtEdge.getStatement() instanceof CAssignment assign)) {
 
       if (assign.getLeftHandSide() instanceof CIdExpression assignementToId) {
         String assignToVar = assignementToId.getDeclaration().getQualifiedName();
@@ -400,11 +400,11 @@ public final class LoopStructure {
                 || binExpr.getOperand2() instanceof CLiteralExpression) {
               CIdExpression operandId = null;
 
-              if (binExpr.getOperand1() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand1();
+              if (binExpr.getOperand1() instanceof CIdExpression cIdExpression) {
+                operandId = cIdExpression;
               }
-              if (binExpr.getOperand2() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand2();
+              if (binExpr.getOperand2() instanceof CIdExpression cIdExpression) {
+                operandId = cIdExpression;
               }
 
               if (operandId != null) {
@@ -478,9 +478,9 @@ public final class LoopStructure {
     List<CFANode> initialChain = new ArrayList<>();
     @Nullable CFANode nodeAfterInitialChain = null;
     {
-      CFANode functionExitNode = pNodes.first(); // The function exit node is always the first
-      if (functionExitNode instanceof FunctionExitNode) {
-        CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
+      // The function exit node is always the first
+      if (pNodes.getFirst() instanceof FunctionExitNode functionExitNode) {
+        CFANode startNode = functionExitNode.getEntryNode();
         while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
           initialChain.add(startNode);
           startNode = startNode.getLeavingEdge(0).getSuccessor();
@@ -491,7 +491,7 @@ public final class LoopStructure {
         // of loop head nodes that does not contain what most users would consider
         // the most important loop head node of a function.
         if (!initialChain.isEmpty()) {
-          nodeAfterInitialChain = initialChain.remove(initialChain.size() - 1);
+          nodeAfterInitialChain = initialChain.removeLast();
         }
 
         if (!hasBackWardsEdges(startNode)) {
@@ -598,7 +598,7 @@ public final class LoopStructure {
         // We just pick a node randomly and merge it into others.
         // This is imprecise, but not wrong.
 
-        CFANode currentNode = nodes.last();
+        CFANode currentNode = nodes.getLast();
         final int current = arrayIndexForNode.apply(currentNode);
 
         // Mark this node as a loop head

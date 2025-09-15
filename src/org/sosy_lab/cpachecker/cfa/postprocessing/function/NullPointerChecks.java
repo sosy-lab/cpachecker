@@ -13,7 +13,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -146,39 +145,46 @@ public class NullPointerChecks {
       CFAEdge edge, MutableCFA cfa, Supplier<CFANode> targetNode, CBinaryExpressionBuilder builder)
       throws CParserException {
     ContainsPointerVisitor visitor = new ContainsPointerVisitor();
-    if (edge instanceof CReturnStatementEdge) {
-      Optional<CExpression> returnExp = ((CReturnStatementEdge) edge).getExpression();
-      if (returnExp.isPresent()) {
-        returnExp.orElseThrow().accept(visitor);
-      }
-    } else if (edge instanceof CStatementEdge) {
-      CStatement stmt = ((CStatementEdge) edge).getStatement();
-      if (stmt instanceof CFunctionCallStatement) {
-        ((CFunctionCallStatement) stmt).getFunctionCallExpression().accept(visitor);
-      } else if (stmt instanceof CExpressionStatement) {
-        ((CExpressionStatement) stmt).getExpression().accept(visitor);
-      } else if (stmt instanceof CAssignment) {
-        ((CAssignment) stmt).getRightHandSide().accept(visitor);
-        ((CAssignment) stmt).getLeftHandSide().accept(visitor);
-      }
-    } else if (edge instanceof CDeclarationEdge) {
-      CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-      if (!decl.isGlobal() && decl instanceof CVariableDeclaration) {
-        try {
-          for (CAssignment assignment :
-              CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
-            // left-hand side can be ignored (it is the currently declared variable
-            assignment.getRightHandSide().accept(visitor);
-          }
-        } catch (UnrecognizedCodeException e) {
-          throw new CParserException(e);
+    switch (edge) {
+      case CReturnStatementEdge returnEdge -> {
+        Optional<CExpression> returnExp = returnEdge.getExpression();
+        if (returnExp.isPresent()) {
+          returnExp.orElseThrow().accept(visitor);
         }
       }
-    } else if (edge instanceof CAssumeEdge) {
-      ((CAssumeEdge) edge).getExpression().accept(visitor);
+      case CStatementEdge stmtEdge -> {
+        CStatement stmt = stmtEdge.getStatement();
+        switch (stmt) {
+          case CFunctionCallStatement cFunctionCallStatement ->
+              cFunctionCallStatement.getFunctionCallExpression().accept(visitor);
+          case CExpressionStatement cExpressionStatement ->
+              cExpressionStatement.getExpression().accept(visitor);
+          case CAssignment cAssignment -> {
+            cAssignment.getRightHandSide().accept(visitor);
+            cAssignment.getLeftHandSide().accept(visitor);
+          }
+          default -> {}
+        }
+      }
+      case CDeclarationEdge declEdge -> {
+        CDeclaration decl = declEdge.getDeclaration();
+        if (!decl.isGlobal() && decl instanceof CVariableDeclaration cVariableDeclaration) {
+          try {
+            for (CAssignment assignment :
+                CInitializers.convertToAssignments(cVariableDeclaration, edge)) {
+              // left-hand side can be ignored (it is the currently declared variable
+              assignment.getRightHandSide().accept(visitor);
+            }
+          } catch (UnrecognizedCodeException e) {
+            throw new CParserException(e);
+          }
+        }
+      }
+      case CAssumeEdge assumeEdge -> assumeEdge.getExpression().accept(visitor);
+      default -> {}
     }
 
-    for (CExpression exp : Lists.reverse(visitor.dereferencedExpressions)) {
+    for (CExpression exp : visitor.dereferencedExpressions.reversed()) {
       edge = insertNullPointerCheck(edge, exp, cfa, targetNode, builder);
     }
   }
@@ -322,11 +328,11 @@ public class NullPointerChecks {
         return null;
       }
       if (e.getOperator() == UnaryOperator.AMPER) {
-        if (e.getOperand() instanceof CFieldReference
-            && ((CFieldReference) e.getOperand()).isPointerDereference()) {
+        if (e.getOperand() instanceof CFieldReference cFieldReference
+            && cFieldReference.isPointerDereference()) {
           // &(s->f)
           // ignore this dereference and visit "s"
-          return ((CFieldReference) e.getOperand()).getFieldOwner().accept(this);
+          return cFieldReference.getFieldOwner().accept(this);
         }
       }
       return e.getOperand().accept(this);

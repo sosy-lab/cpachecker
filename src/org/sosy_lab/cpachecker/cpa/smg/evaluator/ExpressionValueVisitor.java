@@ -196,9 +196,9 @@ class ExpressionValueVisitor
 
     CSimpleDeclaration decl = idExpression.getDeclaration();
 
-    if (decl instanceof CEnumerator) {
+    if (decl instanceof CEnumerator cEnumerator) {
 
-      BigInteger enumValue = ((CEnumerator) decl).getValue();
+      BigInteger enumValue = cEnumerator.getValue();
 
       SMGSymbolicValue val =
           enumValue.equals(BigInteger.ZERO) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
@@ -294,19 +294,17 @@ class ExpressionValueVisitor
     TypeIdOperator typeOperator = typeIdExp.getOperator();
     CType type = typeIdExp.getType();
 
-    switch (typeOperator) {
+    return switch (typeOperator) {
       case SIZEOF -> {
         SMGSymbolicValue val =
             smgExpressionEvaluator.getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0
                 ? SMGZeroValue.INSTANCE
                 : SMGUnknownValue.INSTANCE;
-        return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
+        yield singletonList(SMGValueAndState.of(getInitialSmgState(), val));
       }
-      default -> {
-        return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
-        // TODO Investigate the other Operators.
-      }
-    }
+      // TODO Investigate the other Operators.
+      default -> singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
+    };
   }
 
   @Override
@@ -371,9 +369,9 @@ class ExpressionValueVisitor
           if (lValAddress.getObject().equals(rValAddress.getObject())) {
             CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
             final CType type;
-            if (lVarType instanceof CPointerType) {
+            if (lVarType instanceof CPointerType cPointerType) {
               // normal pointer type
-              type = ((CPointerType) lVarType).getType();
+              type = cPointerType.getType();
             } else if (lVarType instanceof CSimpleType) {
               // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
               // Let's assume, that invalid combinations like "int" for 64bit do not appear.

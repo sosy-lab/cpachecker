@@ -168,7 +168,7 @@ class EclipseCParser implements CParser {
     return parseSomething(
         ImmutableList.of(new FileContentToParse(pFileName, pCode)),
         sourceOriginMapping,
-        pScope instanceof CProgramScope ? ((CProgramScope) pScope) : CProgramScope.empty(),
+        pScope instanceof CProgramScope cProgramScope ? cProgramScope : CProgramScope.empty(),
         (fileName, content) -> {
           Preconditions.checkArgument(content instanceof FileContentToParse);
           return wrapCode(fileName, ((FileContentToParse) content).getFileContent());
@@ -184,13 +184,12 @@ class EclipseCParser implements CParser {
     IASTDeclaration[] declarations = ast.getDeclarations();
     if (declarations == null
         || declarations.length != 1
-        || !(declarations[0] instanceof IASTFunctionDefinition)) {
+        || !(declarations[0] instanceof IASTFunctionDefinition func)) {
       throw new CParserException("Not a single function: " + ast.getRawSignature());
     }
 
-    IASTFunctionDefinition func = (IASTFunctionDefinition) declarations[0];
     IASTStatement body = func.getBody();
-    if (!(body instanceof IASTCompoundStatement)) {
+    if (!(body instanceof IASTCompoundStatement iASTCompoundStatement)) {
       throw new CParserException(
           "Function has an unexpected "
               + body.getClass().getSimpleName()
@@ -198,7 +197,7 @@ class EclipseCParser implements CParser {
               + func.getRawSignature());
     }
 
-    return ((IASTCompoundStatement) body).getStatements();
+    return iASTCompoundStatement.getStatements();
   }
 
   private ASTConverter prepareTemporaryConverter(Scope scope) {
@@ -325,7 +324,7 @@ class EclipseCParser implements CParser {
 
       // we don't need any file prefix if we only have one file
       if (asts.size() == 1) {
-        builder.analyzeTranslationUnit(asts.get(0), "", pScope);
+        builder.analyzeTranslationUnit(asts.getFirst(), "", pScope);
 
         // in case of several files we need to add a file prefix to global variables
         // as there could be several equally named files in different directories

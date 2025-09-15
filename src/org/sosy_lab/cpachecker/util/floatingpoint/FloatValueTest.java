@@ -24,6 +24,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -33,6 +34,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,6 +101,12 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 @SuppressFBWarnings(value = "DMI_RANDOM_USED_ONLY_ONCE")
 @RunWith(Parameterized.class)
 public class FloatValueTest {
+
+  @BeforeClass
+  public static void configureLocale() {
+    Locale.setDefault(Locale.US);
+  }
+
   /** Supported reference implementations */
   public enum ReferenceImpl {
     MPFR,
@@ -181,50 +189,48 @@ public class FloatValueTest {
    * <p>This is used in the tests to convert the result of the operation back to a BigFloat value.
    */
   private BigFloat toBigFloat(CFloat pValue) {
-    if (pValue instanceof MpfrFloat floatValue) {
-      return floatValue.toBigFloat();
-    } else if (pValue instanceof CFloatImpl floatValue) {
-      return toBigFloat(floatValue.getValue());
-    } else if (pValue instanceof JFloat floatValue) {
-      return new BigFloat(floatValue.toFloat(), BinaryMathContext.BINARY32);
-    } else if (pValue instanceof JDouble floatValue) {
-      return new BigFloat(floatValue.toDouble(), BinaryMathContext.BINARY64);
-    } else if (pValue instanceof CFloatNative val) {
-      CFloatWrapper wrapper = val.getWrapper();
-      return switch (pValue.getType()) {
-        case SINGLE -> {
-          long exponent = wrapper.getExponent() << Format.Float32.sigBits();
-          long mantissa = wrapper.getMantissa();
-          yield new BigFloat(
-              Float.intBitsToFloat((int) (exponent + mantissa)), BinaryMathContext.BINARY32);
-        }
-        case DOUBLE -> {
-          long exponent = wrapper.getExponent() << Format.Float64.sigBits();
-          long mantissa = wrapper.getMantissa();
-          yield new BigFloat(
-              Double.longBitsToDouble(exponent + mantissa), BinaryMathContext.BINARY64);
-        }
-        case LONG_DOUBLE -> {
-          BinaryMathContext context = new BinaryMathContext(64, 15);
-          if (val.isNan()) {
-            yield val.isNegative()
-                ? BigFloat.NaN(context.precision).negate()
-                : BigFloat.NaN(context.precision);
-          } else if (val.isInfinity()) {
-            yield val.isNegative()
-                ? BigFloat.negativeInfinity(context.precision)
-                : BigFloat.positiveInfinity(context.precision);
-          } else {
-            long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Float80.bias();
-            BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
-            yield new BigFloat(val.isNegative(), significand, exponent, context);
+    return switch (pValue) {
+      case MpfrFloat floatValue -> floatValue.toBigFloat();
+      case CFloatImpl floatValue -> toBigFloat(floatValue.getValue());
+      case JFloat floatValue -> new BigFloat(floatValue.toFloat(), BinaryMathContext.BINARY32);
+      case JDouble floatValue -> new BigFloat(floatValue.toDouble(), BinaryMathContext.BINARY64);
+      case CFloatNative val -> {
+        CFloatWrapper wrapper = val.getWrapper();
+        yield switch (pValue.getType()) {
+          case SINGLE -> {
+            long exponent = wrapper.getExponent() << Format.Float32.sigBits();
+            long mantissa = wrapper.getMantissa();
+            yield new BigFloat(
+                Float.intBitsToFloat((int) (exponent + mantissa)), BinaryMathContext.BINARY32);
           }
-        }
-      };
-    } else {
-      throw new UnsupportedOperationException(
-          String.format("Unsupported CFloat class \"%s\"", pValue.getClass().getSimpleName()));
-    }
+          case DOUBLE -> {
+            long exponent = wrapper.getExponent() << Format.Float64.sigBits();
+            long mantissa = wrapper.getMantissa();
+            yield new BigFloat(
+                Double.longBitsToDouble(exponent + mantissa), BinaryMathContext.BINARY64);
+          }
+          case LONG_DOUBLE -> {
+            BinaryMathContext context = new BinaryMathContext(64, 15);
+            if (val.isNan()) {
+              yield val.isNegative()
+                  ? BigFloat.NaN(context.precision).negate()
+                  : BigFloat.NaN(context.precision);
+            } else if (val.isInfinity()) {
+              yield val.isNegative()
+                  ? BigFloat.negativeInfinity(context.precision)
+                  : BigFloat.positiveInfinity(context.precision);
+            } else {
+              long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Float80.bias();
+              BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
+              yield new BigFloat(val.isNegative(), significand, exponent, context);
+            }
+          }
+        };
+      }
+      default ->
+          throw new UnsupportedOperationException(
+              String.format("Unsupported CFloat class \"%s\"", pValue.getClass().getSimpleName()));
+    };
   }
 
   /**
@@ -282,7 +288,7 @@ public class FloatValueTest {
     if (value.isPositiveZero()) {
       return "0.0";
     }
-    return value.toString().replaceAll(",", ".");
+    return value.toString().replace(',', '.');
   }
 
   /** Convert floating point value to its decimal representation. */
@@ -770,17 +776,13 @@ public class FloatValueTest {
   }
 
   private BigFloat parseBigFloat(BinaryMathContext context, String repr) {
-    if ("nan".equals(repr)) {
-      return BigFloat.NaN(context.precision);
-    } else if ("-nan".equals(repr)) {
-      return BigFloat.NaN(context.precision).negate();
-    } else if ("-inf".equals(repr)) {
-      return BigFloat.negativeInfinity(context.precision);
-    } else if ("inf".equals(repr)) {
-      return BigFloat.positiveInfinity(context.precision);
-    } else {
-      return new BigFloat(repr, context);
-    }
+    return switch (repr) {
+      case "nan" -> BigFloat.NaN(context.precision);
+      case "-nan" -> BigFloat.NaN(context.precision).negate();
+      case "-inf" -> BigFloat.negativeInfinity(context.precision);
+      case "inf" -> BigFloat.positiveInfinity(context.precision);
+      default -> new BigFloat(repr, context);
+    };
   }
 
   /** Create a test value for the reference implementation by parsing a String. */
@@ -895,7 +897,7 @@ public class FloatValueTest {
   // Print statistics about the required bit width in ln, exp and pow
   @SuppressWarnings("unused")
   private static String printStatistics(Multiset<Integer> stats) {
-    int total = stats.entrySet().stream().mapToInt(e -> e.getCount()).sum();
+    int total = stats.entrySet().stream().mapToInt(Multiset.Entry::getCount).sum();
 
     ImmutableMap.Builder<Integer, Float> accum = ImmutableMap.builder();
     int sum = 0;
@@ -919,7 +921,8 @@ public class FloatValueTest {
     testOperator(
         "ln",
         ulpError(),
-        (CFloat a) -> (a instanceof CFloatImpl) ? ((CFloatImpl) a).lnWithStats(lnStats) : a.ln());
+        (CFloat a) ->
+            (a instanceof CFloatImpl cFloatImpl) ? cFloatImpl.lnWithStats(lnStats) : a.ln());
     // println(printStatistics(lnStats));
   }
 
@@ -930,7 +933,7 @@ public class FloatValueTest {
         "exp",
         ulpError(),
         (CFloat a) ->
-            (a instanceof CFloatImpl) ? ((CFloatImpl) a).expWithStats(expStats) : a.exp());
+            (a instanceof CFloatImpl cFloatImpl) ? cFloatImpl.expWithStats(expStats) : a.exp());
     // println(printStatistics(expStats));
   }
 
@@ -941,7 +944,9 @@ public class FloatValueTest {
         "powTo",
         ulpError(),
         (CFloat a, CFloat b) ->
-            (a instanceof CFloatImpl) ? ((CFloatImpl) a).powToWithStats(b, powStats) : a.powTo(b));
+            (a instanceof CFloatImpl cFloatImpl)
+                ? cFloatImpl.powToWithStats(b, powStats)
+                : a.powTo(b));
     // println(printStatistics(powStats));
   }
 

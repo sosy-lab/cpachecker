@@ -48,17 +48,13 @@ class JFloat extends CFloat {
   }
 
   private float parseFloat(String repr) {
-    if ("-nan".equals(repr)) {
-      return Float.intBitsToFloat(0xFFC00000);
-    } else if ("nan".equals(repr)) {
-      return Float.NaN;
-    } else if ("-inf".equals(repr)) {
-      return Float.NEGATIVE_INFINITY;
-    } else if ("inf".equals(repr)) {
-      return Float.POSITIVE_INFINITY;
-    } else {
-      return Float.parseFloat(repr);
-    }
+    return switch (repr) {
+      case "-nan" -> Float.intBitsToFloat(0xFFC00000);
+      case "nan" -> Float.NaN;
+      case "-inf" -> Float.NEGATIVE_INFINITY;
+      case "inf" -> Float.POSITIVE_INFINITY;
+      default -> Float.parseFloat(repr);
+    };
   }
 
   @Override
@@ -200,7 +196,6 @@ class JFloat extends CFloat {
       case SINGLE -> this;
       case DOUBLE -> new JDouble(value);
       case LONG_DOUBLE -> throw new UnsupportedOperationException();
-      default -> throw new IllegalArgumentException();
     };
   }
 

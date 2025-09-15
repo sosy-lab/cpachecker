@@ -10,10 +10,17 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.Locale;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 
 public class CFloatNativeTest {
+
+  @BeforeClass
+  public static void configureLocale() {
+    Locale.setDefault(Locale.US);
+  }
 
   /**
    * Following are test cases as provided by a x86_64 amd architecture with a 64-bit linux (ubuntu),

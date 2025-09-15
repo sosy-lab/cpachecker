@@ -74,10 +74,10 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
 
   @Override
   public CExpression visit(NumericValue pValue) {
-    if (type instanceof CSimpleType) {
-      switch (((CSimpleType) type).getType()) {
+    if (type instanceof CSimpleType cSimpleType) {
+      switch (cSimpleType.getType()) {
         case FLOAT, DOUBLE -> {
-          return visitFloatingValue(pValue, (CSimpleType) type);
+          return visitFloatingValue(pValue, cSimpleType);
         }
         default -> {
           // DO NOTHING

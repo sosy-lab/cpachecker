@@ -41,8 +41,8 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     String name = decl.getName();
     CType type = decl.getType();
 
-    if (decl instanceof CDeclaration) {
-      if (((CDeclaration) decl).isGlobal()) {
+    if (decl instanceof CDeclaration cDeclaration) {
+      if (cDeclaration.isGlobal()) {
         return new GlobalVariableIdentifier(name, type, dereference);
       } else {
         return new LocalVariableIdentifier(name, type, function, dereference);
@@ -120,8 +120,8 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       --dereference;
     }
     AbstractIdentifier result = expression.getOperand().accept(this);
-    if (result instanceof BinaryIdentifier) {
-      return getMainPart((BinaryIdentifier) result);
+    if (result instanceof BinaryIdentifier binaryIdentifier) {
+      return getMainPart(binaryIdentifier);
     }
     return result;
   }
@@ -130,8 +130,8 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
   public AbstractIdentifier visit(CPointerExpression pPointerExpression) {
     ++dereference;
     AbstractIdentifier result = pPointerExpression.getOperand().accept(this);
-    if (result instanceof BinaryIdentifier) {
-      return getMainPart((BinaryIdentifier) result);
+    if (result instanceof BinaryIdentifier binaryIdentifier) {
+      return getMainPart(binaryIdentifier);
     }
     return result;
   }

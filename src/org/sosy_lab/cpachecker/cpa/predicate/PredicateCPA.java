@@ -252,7 +252,9 @@ public class PredicateCPA
             logger,
             pCfa,
             domain,
-            merge instanceof PredicateMergeOperator ? (PredicateMergeOperator) merge : null,
+            merge instanceof PredicateMergeOperator predicateMergeOperator
+                ? predicateMergeOperator
+                : null,
             prec,
             transfer,
             solver,

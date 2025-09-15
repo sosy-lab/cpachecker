@@ -44,8 +44,8 @@ public final class Disjunction extends PropositionalFormula {
         continue;
       }
 
-      if (child instanceof Disjunction) {
-        builder.addAll(((Disjunction) child).getChildren());
+      if (child instanceof Disjunction disjunction) {
+        builder.addAll(disjunction.getChildren());
       } else {
         builder.add(child);
       }

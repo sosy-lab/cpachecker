@@ -248,7 +248,7 @@ public class BlockedCFAReducer implements BlockComputer {
     private final Map<CFANode, ReducedNode> nodeMapping = new HashMap<>();
     private int functionCallId;
 
-    public ReducedNode getWrapper(CFANode pNode) {
+    ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
         boolean isLoopHead = cfa.getAllLoopHeads().orElseThrow().contains(pNode);
@@ -259,7 +259,7 @@ public class BlockedCFAReducer implements BlockComputer {
       return result;
     }
 
-    public FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
+    FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
       functionCallId = pFunctionCallId;
       cfa = pCfa;
     }

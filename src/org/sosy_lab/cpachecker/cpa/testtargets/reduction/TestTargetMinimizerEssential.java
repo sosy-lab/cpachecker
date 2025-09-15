@@ -170,8 +170,8 @@ public class TestTargetMinimizerEssential {
 
     boolean providesInput =
         pProvidesInputToRedirect
-            || (edgeToRedirect instanceof DummyInputCFAEdge
-                && ((DummyInputCFAEdge) edgeToRedirect).providesInput());
+            || (edgeToRedirect instanceof DummyInputCFAEdge dummyInputCFAEdge
+                && dummyInputCFAEdge.providesInput());
     /*
      * redirect edges (construct a new edge and replace because predecessors and successors are
      * immutable
@@ -202,15 +202,15 @@ public class TestTargetMinimizerEssential {
           new DummyInputCFAEdge(
               newSuccessor,
               newSuccessor,
-              edgeToRedirect instanceof DummyInputCFAEdge
-                  && ((DummyInputCFAEdge) edgeToRedirect).providesInput());
+              edgeToRedirect instanceof DummyInputCFAEdge dummyInputCFAEdge
+                  && dummyInputCFAEdge.providesInput());
     } else {
       redirectedEdge =
           new DummyInputCFAEdge(
               edgeToRedirect.getPredecessor(),
               newSuccessor,
-              edgeToRedirect instanceof DummyInputCFAEdge
-                  && ((DummyInputCFAEdge) edgeToRedirect).providesInput());
+              edgeToRedirect instanceof DummyInputCFAEdge dummyInputCFAEdge
+                  && dummyInputCFAEdge.providesInput());
     }
     edgeToRedirect.getPredecessor().removeLeavingEdge(edgeToRedirect);
     redirectedEdge.getPredecessor().addLeavingEdge(redirectedEdge);
@@ -272,7 +272,8 @@ public class TestTargetMinimizerEssential {
     CFANode pred = toRemove.getPredecessor();
     CFANode succ = toRemove.getSuccessor();
     boolean providesInput =
-        toRemove instanceof DummyInputCFAEdge && ((DummyInputCFAEdge) toRemove).providesInput();
+        toRemove instanceof DummyInputCFAEdge dummyInputCFAEdge
+            && dummyInputCFAEdge.providesInput();
 
     // remove the edge from its predecessor and successor
     pred.removeLeavingEdge(toRemove);

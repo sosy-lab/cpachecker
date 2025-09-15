@@ -16,15 +16,21 @@ import java.math.BigInteger;
 import java.nio.ByteOrder;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -704,19 +710,95 @@ public enum MachineModel {
   public <X extends Exception> BigInteger getSizeofInBits(
       CType pType, BaseSizeofVisitor<X> pSizeofVisitor) throws X {
     checkNotNull(pSizeofVisitor);
-    if (pType instanceof CBitFieldType) {
-      return BigInteger.valueOf(((CBitFieldType) pType).getBitFieldSize());
+    if (pType instanceof CBitFieldType cBitFieldType) {
+      return BigInteger.valueOf(cBitFieldType.getBitFieldSize());
     } else {
       return getSizeof(pType, pSizeofVisitor).multiply(BigInteger.valueOf(getSizeofCharInBits()));
     }
   }
 
-  @SuppressWarnings("ImmutableEnumChecker")
-  private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
-      new BaseAlignofVisitor(this);
-
   public int getAlignof(CType type) {
-    return type.accept(alignofVisitor);
+    return switch (type) {
+      case CArrayType pArrayType ->
+          // the alignment of an array is the same as the alignment of a member of the array
+          getAlignof(pArrayType.getType());
+
+      case CCompositeType pCompositeType ->
+          switch (pCompositeType.getKind()) {
+            case STRUCT, UNION -> {
+              int alignof = 1;
+              // TODO: Take possible padding into account
+              for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
+                int alignOfType = getAlignof(decl.getType());
+                alignof = Math.max(alignof, alignOfType);
+              }
+              yield alignof;
+            }
+            case ENUM -> throw new AssertionError(); // There is no such kind of Composite Type.
+          };
+
+      case CElaboratedType pElaboratedType -> {
+        CType def = pElaboratedType.getRealType();
+        if (def != null) {
+          yield getAlignof(def);
+        }
+
+        if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
+          yield getAlignofInt();
+        }
+
+        throw new IllegalArgumentException(
+            "Cannot compute alignment of incomplete type " + pElaboratedType);
+      }
+
+      case CEnumType pEnumType -> getAlignofInt(); // enums are always ints
+
+      case CFunctionType pFunctionType ->
+          1; // function types have per definition the value 1 if compiled with gcc
+
+      case CPointerType pPointerType -> getAlignofPtr();
+
+      case CProblemType pProblemType ->
+          throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
+
+      case CSimpleType pSimpleType ->
+          switch (pSimpleType.getType()) {
+            case BOOL -> getAlignofBool();
+
+            case CHAR -> getAlignofChar();
+
+            case FLOAT -> getAlignofFloat();
+
+            case UNSPECIFIED, INT -> {
+              // unspecified is the same as int
+              if (pSimpleType.hasLongLongSpecifier()) {
+                yield getAlignofLongLongInt();
+              } else if (pSimpleType.hasLongSpecifier()) {
+                yield getAlignofLongInt();
+              } else if (pSimpleType.hasShortSpecifier()) {
+                yield getAlignofShortInt();
+              } else {
+                yield getAlignofInt();
+              }
+            }
+            case INT128 -> getAlignofInt128();
+
+            case DOUBLE -> {
+              if (pSimpleType.hasLongSpecifier()) {
+                yield getAlignofLongDouble();
+              } else {
+                yield getAlignofDouble();
+              }
+            }
+            case FLOAT128 -> getAlignofFloat128();
+          };
+
+      case CTypedefType pTypedefType -> getAlignof(pTypedefType.getRealType());
+
+      case CVoidType pVoidType -> getAlignofVoid();
+
+      case CBitFieldType pCBitFieldType -> getAlignof(pCBitFieldType.getType());
+    };
   }
 
   /**
