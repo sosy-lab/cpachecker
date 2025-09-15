@@ -51,11 +51,11 @@ public class CombineCompositePrecisionOperator implements CombinePrecisionOperat
       if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa) {
         Precision combinePrecision = dcpa.getCombinePrecisionOperator().combine(preparedPrecisions);
         Preconditions.checkState(
-            combinePrecision.getClass().equals(preparedPrecisions.get(0).getClass()));
+            combinePrecision.getClass().equals(preparedPrecisions.getFirst().getClass()));
         wrappedPrecisions.add(combinePrecision);
       } else {
         // TODO: Handle cases where the wrapped analysis does not implement CombinePrecisionOperator
-        wrappedPrecisions.add(preparedPrecisions.get(0));
+        wrappedPrecisions.add(preparedPrecisions.getFirst());
       }
     }
     return new CompositePrecision(wrappedPrecisions.build());

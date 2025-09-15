@@ -42,7 +42,7 @@ public class BackwardTransferViolationConditionOperator implements ViolationCond
       ARGPath pARGPath, Optional<ARGState> pPreviousCondition)
       throws InterruptedException, CPATransferException {
     List<CFAEdge> counterexample = pARGPath.getFullPath();
-    CFANode lastLocation = Objects.requireNonNull(Iterables.getLast(counterexample)).getSuccessor();
+    CFANode lastLocation = Objects.requireNonNull(counterexample.getLast()).getSuccessor();
     AbstractState state =
         cpa.getInitialState(lastLocation, StateSpacePartition.getDefaultPartition());
     if (pPreviousCondition.isPresent()) {

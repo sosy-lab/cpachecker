@@ -197,20 +197,20 @@ public class DssBlockAnalysis {
   record ArgPathWithEdges(List<ARGState> states, List<CFAEdge> edges) {
 
     private ARGState getLastState() {
-      return states.get(states.size() - 1);
+      return states.getLast();
     }
 
     private ArgPathWithEdges copyWith(ARGState pNewParent, List<CFAEdge> pEdges) {
       if (!edges.isEmpty()) {
-        CFAEdge lastEdge = edges.get(edges.size() - 1);
-        if (!lastEdge.getPredecessor().equals(pEdges.get(0).getSuccessor())) {
+        CFAEdge lastEdge = edges.getLast();
+        if (!lastEdge.getPredecessor().equals(pEdges.getFirst().getSuccessor())) {
           List<CFAEdge> path = new ArrayList<>();
           path.add(lastEdge);
           CFAEdge last = lastEdge;
-          while (!last.getSuccessor().equals(pEdges.get(0).getPredecessor())) {
+          while (!last.getSuccessor().equals(pEdges.getFirst().getPredecessor())) {
             Collection<CFAEdge> successors = CFAUtils.enteringEdges(last.getPredecessor()).toList();
             path.add(Iterables.getOnlyElement(successors));
-            last = path.get(path.size() - 1);
+            last = path.getLast();
           }
           pEdges = ImmutableList.<CFAEdge>builder().addAll(pEdges).addAll(path).build();
         }
@@ -226,18 +226,18 @@ public class DssBlockAnalysis {
     waitlist.add(new ArgPathWithEdges(ImmutableList.of(state), ImmutableList.of()));
     ImmutableList.Builder<ARGPath> finished = ImmutableList.builder();
     while (!waitlist.isEmpty()) {
-      ArgPathWithEdges current = waitlist.remove(waitlist.size() - 1);
+      ArgPathWithEdges current = waitlist.removeLast();
       ARGState last = current.getLastState();
       if (last.getParents().isEmpty()) {
         finished.add(
             new ARGPath(
-                Lists.reverse(current.states()),
-                Lists.reverse(current.edges()),
-                Lists.reverse(current.edges())));
+                current.states().reversed(),
+                current.edges().reversed(),
+                current.edges().reversed()));
         continue;
       }
       for (ARGState parent : last.getParents()) {
-        waitlist.add(current.copyWith(parent, Lists.reverse(parent.getEdgesToChild(last))));
+        waitlist.add(current.copyWith(parent, parent.getEdgesToChild(last).reversed()));
       }
     }
     return finished.build();

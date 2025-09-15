@@ -50,7 +50,7 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
           new CallstackState(
               previous,
               properties.get(1),
-              Objects.requireNonNull(converter.apply(Integer.parseInt(properties.get(0)))));
+              Objects.requireNonNull(converter.apply(Integer.parseInt(properties.getFirst()))));
     }
     return previous;
   }
