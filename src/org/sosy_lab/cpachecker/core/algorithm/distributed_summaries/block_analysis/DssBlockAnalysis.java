@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -86,6 +88,8 @@ public class DssBlockAnalysis {
   private final LogManager logger;
 
   private AlgorithmStatus status;
+
+  private final boolean forcefullyCollectAllArgPaths;
 
   public DssBlockAnalysis(
       LogManager pLogger,
@@ -125,6 +129,7 @@ public class DssBlockAnalysis {
 
     preconditions = ArrayListMultimap.create();
     violationConditions = new LinkedHashMap<>();
+    forcefullyCollectAllArgPaths = pOptions.forcefullyCollectAllViolationConditions();
   }
 
   private static AnalysisComponents createBlockAlgorithm(
@@ -259,7 +264,12 @@ public class DssBlockAnalysis {
       Set<@NonNull ARGState> violations, ARGState condition, boolean first)
       throws CPAException, InterruptedException, SolverException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (ARGPath path : collectAllArgPaths(violations)) {
+    Iterable<ARGPath> paths =
+        forcefullyCollectAllArgPaths
+            ? collectAllArgPaths(violations)
+            : FluentIterable.from(violations)
+                .transformAndConcat(p -> ARGUtils.getAllPaths(reachedSet, p));
+    for (ARGPath path : paths) {
       Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(path, Optional.ofNullable(condition));
