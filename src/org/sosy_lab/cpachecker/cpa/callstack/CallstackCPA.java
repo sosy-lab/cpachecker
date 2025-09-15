@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import java.util.Collection;
 import java.util.Set;
-import javax.naming.ConfigurationException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
