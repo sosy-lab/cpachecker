@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -215,7 +216,7 @@ public class DssBlockAnalysis {
         }
       }
       return new ArgPathWithEdges(
-          ImmutableList.<ARGState>builder().addAll(states).add(pNewParent).build(),
+          listAndElement(states, pNewParent),
           ImmutableList.<CFAEdge>builder().addAll(edges).addAll(pEdges).build());
     }
   }
@@ -426,12 +427,12 @@ public class DssBlockAnalysis {
       }
     } else {
       messages.addAll(
-          reportViolationConditions(result.getSummaries(), ((ARGState) violation.state()), false));
+          reportViolationConditions(
+              result.getFinalLocationStates(), ((ARGState) violation.state()), false));
     }
     if (!result.getViolations().isEmpty()) {
       messages.addAll(
-          reportViolationConditions(
-              result.getViolations(), ((ARGState) violation.state()), false));
+          reportViolationConditions(result.getViolations(), ((ARGState) violation.state()), false));
     }
     return messages.build();
   }
