@@ -378,7 +378,7 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
    * correctly.
    */
   protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa.getType(name));
+    checkSsaSavedType(name, type, (CType) ssa.getType(name));
     int idx = ssa.getFreshIndex(name);
     if (idx <= 0) {
       idx = VARIABLE_FIRST_ASSIGNMENT;
@@ -393,7 +393,7 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
    * @return the index of the variable
    */
   protected int getIndex(String name, CType type, SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa.getType(name));
+    checkSsaSavedType(name, type, (CType) ssa.getType(name));
     int idx = ssa.getIndex(name);
     if (idx <= 0) {
       logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
@@ -456,16 +456,18 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
    * @param pts The previous PointerTargetSet.
    * @throws InterruptedException If execution is interrupted.
    */
+  @Override
   public BooleanFormula makeSsaUpdateTerm(
       final String variableName,
-      final CType variableType,
+      final Type variableType,
       final int oldIndex,
       final int newIndex,
       final PointerTargetSet pts)
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
+    checkArgument(variableType instanceof CType);
 
-    final FormulaType<?> variableFormulaType = getFormulaTypeFromCType(variableType);
+    final FormulaType<?> variableFormulaType = getFormulaTypeFromCType((CType) variableType);
     final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
     final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
 
@@ -501,6 +503,7 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
    * @param forcePointerDereference (only used in CToFormulaConverterWithPointerAliasing)
    * @return the created formula
    */
+  @Override
   public Formula makeFormulaForUninstantiatedVariable(
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     // Need to call fmgr.makeVariable directly instead of makeConstant,
@@ -519,6 +522,7 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
    * @param pType the type of the variable
    * @return the created formula
    */
+  @Override
   public Formula makeFormulaForVariable(
       SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     SSAMapBuilder ssa = pContextSSA.builder();
@@ -1035,7 +1039,7 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
     return pType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType();
   }
 
-  //  @Override
+  @Override
   public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -1700,6 +1704,7 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
    */
+  @Override
   public final Formula buildTermFromPathFormula(
       PathFormula pFormula, CIdExpression expr, CFAEdge edge) throws UnrecognizedCodeException {
 
@@ -1835,6 +1840,7 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
    * @param ssa the SSAMap to use
    * @throws InterruptedException may be thrown in subclasses
    */
+  @Override
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
       final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMapBuilder ssa)
       throws InterruptedException {
@@ -2015,5 +2021,6 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
    *
    * @param out - output stream
    */
+  @Override
   public void printStatistics(PrintStream out) {}
 }

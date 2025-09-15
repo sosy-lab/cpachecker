@@ -16,6 +16,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -139,11 +140,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       extendedFormula =
           fmgr.assignment(
               fmgr.makeVariable(
-                  ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                  ctoFormulaConverter.getFormulaTypeFromCType((CType) pSSAMap.getType(variable)),
                   newVariable,
                   pSSAIndex),
               fmgr.makeVariable(
-                  ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                  ctoFormulaConverter.getFormulaTypeFromCType((CType) pSSAMap.getType(variable)),
                   variable,
                   pSSAMap.getIndex(variable)));
       cycle = bfmgr.and(cycle, extendedFormula);

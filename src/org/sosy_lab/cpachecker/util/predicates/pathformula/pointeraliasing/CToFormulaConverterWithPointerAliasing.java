@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -249,12 +250,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   public BooleanFormula makeSsaUpdateTerm(
       final String symbolName,
-      final CType symbolType,
+      final Type pSymbolType,
       final int oldIndex,
       final int newIndex,
       final PointerTargetSet pts)
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
+    CType symbolType = (CType) pSymbolType;
 
     if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
       if (!options.useMemoryRegions()) {
@@ -326,7 +328,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether a given variable has an SSA index or not.
    */
   boolean hasIndex(final String name, final CType type, final SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa.getType(name));
+    checkSsaSavedType(name, type, (CType) ssa.getType(name));
     return ssa.getIndex(name) > 0;
   }
 

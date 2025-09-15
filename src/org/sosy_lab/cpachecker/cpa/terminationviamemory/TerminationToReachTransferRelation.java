@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -104,11 +105,11 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               extendedFormula,
               fmgr.assignment(
                   fmgr.makeVariable(
-                      ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                      ctoFormulaConverter.getFormulaTypeFromCType((CType) pSSAMap.getType(variable)),
                       newVariable,
                       pNumberOfIterationsAtLoopHead),
                   fmgr.makeVariable(
-                      ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
+                      ctoFormulaConverter.getFormulaTypeFromCType((CType) pSSAMap.getType(variable)),
                       variable,
                       pSSAMap.getIndex(variable))));
     }

@@ -40,7 +40,7 @@ public interface LanguagetoSmtConverter {
       throws InterruptedException;
 
   BooleanFormula makeSsaUpdateTerm(
-      String pSymbolName, CType pSymbolType, int pOldIndex, int pNewIndex, PointerTargetSet pOldPts)
+      String pSymbolName, Type pSymbolType, int pOldIndex, int pNewIndex, PointerTargetSet pOldPts)
       throws InterruptedException;
 
   Formula makeFormulaForVariable(

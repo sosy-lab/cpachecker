@@ -22,6 +22,7 @@ public interface AFunctionCall extends AStatement {
     return getFunctionCallExpression().getParameterExpressions();
   }
 
+  @Override
   default String toASTString() {
     return getFunctionCallExpression().toASTString();
   }

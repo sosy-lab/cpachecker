@@ -24,6 +24,8 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
+import org.sosy_lab.cpachecker.cfa.ast.k3.K3Type;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -48,20 +50,29 @@ public final class SSAMap implements Serializable {
 
   private final int defaultValue;
 
-  private static final MergeConflictHandler<String, CType> TYPE_CONFLICT_CHECKER =
+  private static final MergeConflictHandler<String, Type> TYPE_CONFLICT_CHECKER =
       new MergeConflictHandler<>() {
         @Override
-        public CType resolveConflict(String name, CType type1, CType type2) {
-          Preconditions.checkArgument(
-              (type1 instanceof CFunctionType && type2 instanceof CFunctionType)
-                  || (isEnumPointerType(type1) && isEnumPointerType(type2))
-                  || type1.equals(type2),
-              "Cannot change type of variable %s in SSAMap from %s to %s",
-              name,
-              type1,
-              type2);
+        public Type resolveConflict(String name, Type type1, Type type2) {
+          if (type1 instanceof K3Type && type2 instanceof K3Type) {
+            return (Type)
+                PersistentSortedMaps.getExceptionMergeConflictHandler()
+                    .resolveConflict(name, type1, type2);
+          } else if (type1 instanceof CType pCType1 && type2 instanceof CType pCType2) {
+            Preconditions.checkArgument(
+                (type1 instanceof CFunctionType && type2 instanceof CFunctionType)
+                    || (isEnumPointerType(pCType1) && isEnumPointerType(pCType2))
+                    || type1.equals(type2),
+                "Cannot change type of variable %s in SSAMap from %s to %s",
+                name,
+                type1,
+                type2);
 
-          return type1;
+            return type1;
+          } else {
+            throw new IllegalArgumentException(
+                "Cannot resolve conflict of type " + type1 + " and " + type2);
+          }
         }
 
         private boolean isEnumPointerType(CType type) {
@@ -73,6 +84,34 @@ public final class SSAMap implements Serializable {
                     && ((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM);
           }
           return false;
+        }
+      };
+
+  private static final Equivalence<Type> cTypeCanonicalTypeEquivalence =
+      new Equivalence<>() {
+
+        final Equivalence<CType> equivalenceCheck = CTypes.canonicalTypeEquivalence();
+
+        @Override
+        protected boolean doEquivalent(Type a, Type b) {
+          if (a instanceof K3Type pK3TypeA && b instanceof K3Type pK3TypeB) {
+            return pK3TypeA.equals(pK3TypeB);
+          } else if (a instanceof CType pCTypeA && b instanceof CType pCTypeB) {
+            return equivalenceCheck.equivalent(pCTypeA, pCTypeB);
+          } else {
+            throw new IllegalArgumentException("Cannot compare types " + a + " and " + b);
+          }
+        }
+
+        @Override
+        protected int doHash(Type t) {
+          if (t instanceof K3Type pK3Type) {
+            return pK3Type.hashCode();
+          } else if (t instanceof CType pCType) {
+            return equivalenceCheck.hash(pCType);
+          } else {
+            throw new IllegalArgumentException("Cannot hash type " + t);
+          }
         }
       };
 
@@ -89,7 +128,7 @@ public final class SSAMap implements Serializable {
     private PersistentSortedMap<String, Integer>
         vars; // Do not update without updating varsHashCode!
     private FreshValueProvider freshValueProvider;
-    private PersistentSortedMap<String, CType> varTypes;
+    private PersistentSortedMap<String, Type> varTypes;
 
     // Instead of computing vars.hashCode(),
     // we calculate the hashCode ourselves incrementally
@@ -114,13 +153,13 @@ public final class SSAMap implements Serializable {
           variable, SSAMap.getIndex(variable, vars, ssa.defaultValue));
     }
 
-    public CType getType(String name) {
+    public Type getType(String name) {
       return varTypes.get(name);
     }
 
     @SuppressWarnings("CheckReturnValue")
     @CanIgnoreReturnValue
-    public SSAMapBuilder setIndex(String name, CType type, int idx) {
+    private SSAMapBuilder setCTypeIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(
           idx > 0, "Non-positive index %s for variable %s with type %s", idx, name, type);
       int oldIdx = getIndex(name);
@@ -139,7 +178,7 @@ public final class SSAMap implements Serializable {
         type = CNumericTypes.CHAR;
       }
 
-      CType oldType = varTypes.get(name);
+      CType oldType = (CType) varTypes.get(name);
       if (oldType != null) {
         TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);
       } else {
@@ -155,6 +194,18 @@ public final class SSAMap implements Serializable {
       }
 
       return this;
+    }
+
+    @SuppressWarnings("CheckReturnValue")
+    @CanIgnoreReturnValue
+    public SSAMapBuilder setIndex(String name, Type type, int idx) {
+      if (type instanceof CType pCType) {
+        return setCTypeIndex(name, pCType, idx);
+      } else if (type instanceof K3Type) {
+        throw new IllegalArgumentException("Not implemented.");
+      }
+
+      throw new IllegalArgumentException("Unsupported type " + type + " for variable " + name);
     }
 
     public void mergeFreshValueProviderWith(final FreshValueProvider fvp) {
@@ -244,11 +295,11 @@ public final class SSAMap implements Serializable {
       defaultIndex = s1.defaultValue;
     }
 
-    PersistentSortedMap<String, CType> varTypes =
+    PersistentSortedMap<String, Type> varTypes =
         PersistentSortedMaps.merge(
             s1.varTypes,
             s2.varTypes,
-            CTypes.canonicalTypeEquivalence(),
+            cTypeCanonicalTypeEquivalence,
             TYPE_CONFLICT_CHECKER,
             MapsDifference.ignoreMapsDifference());
 
@@ -257,7 +308,7 @@ public final class SSAMap implements Serializable {
 
   private final PersistentSortedMap<String, Integer> vars;
   private final FreshValueProvider freshValueProvider;
-  private final PersistentSortedMap<String, CType> varTypes;
+  private final PersistentSortedMap<String, Type> varTypes;
 
   // Cache hashCode of potentially big map
   private final int varsHashCode;
@@ -266,7 +317,7 @@ public final class SSAMap implements Serializable {
       PersistentSortedMap<String, Integer> vars,
       FreshValueProvider freshValueProvider,
       int varsHashCode,
-      PersistentSortedMap<String, CType> varTypes,
+      PersistentSortedMap<String, Type> varTypes,
       int defaultSSAIdx) {
     this.vars = vars;
     this.freshValueProvider = freshValueProvider;
@@ -286,7 +337,7 @@ public final class SSAMap implements Serializable {
       PersistentSortedMap<String, Integer> vars,
       FreshValueProvider freshValueProvider,
       int varsHashCode,
-      PersistentSortedMap<String, CType> varTypes) {
+      PersistentSortedMap<String, Type> varTypes) {
     this(vars, freshValueProvider, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
   }
 
@@ -312,7 +363,7 @@ public final class SSAMap implements Serializable {
     return vars.containsKey(variable);
   }
 
-  public CType getType(String name) {
+  public Type getType(String name) {
     return varTypes.get(name);
   }
 
