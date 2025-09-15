@@ -61,7 +61,8 @@ class CallstackOptions {
 
   @Option(
       secure = true,
-      description = "ignore the callstack and do not track it this heavily over-approximates.")
+      description =
+          "ignore the callstack and do not track it this heavily over-approximates.")
   private boolean ignoreTransfer = false;
 
   @Option(
