@@ -59,20 +59,18 @@ public class DssAnalysisOptions {
 
   @Option(
       description =
-          "Whether to reset the precision for each run of the analysis or to keep the transmitted"
-              + " one. The latter has disadvantages as unnecessary variables might be tracked due"
-              + " to a too precise precision.",
+          "If this option is set to true, the analysis will try to cover all violation conditions"
+              + " in the block, even if no valid ARG path exists. In some cases,"
+              + " ARGUtils#getAllPaths does not compute all paths as promised. However, setting"
+              + " this option to true may lead to a significant increase in analysis time.",
       secure = true)
-  private boolean resetPrecisionForEveryRun = false;
+  private boolean forcefullyCollectAllViolationConditions = false;
 
-  @Option(
-      name = "combineVcsByHash",
-      description = "Whether to combine violation conditions at same program location",
-      secure = true)
-  private boolean combineByHash = true;
+  private final Configuration parentConfig;
 
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
+    parentConfig = pConfig;
   }
 
   public Path getBlockCFAFile() {
@@ -87,19 +85,19 @@ public class DssAnalysisOptions {
     return debug;
   }
 
-  public boolean resetPrecisionsForEveryRun() {
-    return resetPrecisionForEveryRun;
+  public boolean forcefullyCollectAllViolationConditions() {
+    return forcefullyCollectAllViolationConditions;
   }
 
   public Path getForwardConfiguration() {
     return forwardConfiguration;
   }
 
-  public Path getLogDirectory() {
-    return logDirectory;
+  public Configuration getParentConfig() {
+    return parentConfig;
   }
 
-  public boolean combineByHash() {
-    return combineByHash;
+  public Path getLogDirectory() {
+    return logDirectory;
   }
 }
