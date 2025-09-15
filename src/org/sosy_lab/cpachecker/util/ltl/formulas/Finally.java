@@ -27,18 +27,17 @@ public final class Finally extends UnaryFormula {
       return pOperand;
     }
 
-    if (pOperand instanceof Globally && ((Globally) pOperand).getOperand() instanceof Finally) {
+    if (pOperand instanceof Globally globally && globally.getOperand() instanceof Finally) {
       return pOperand;
     }
 
-    if (pOperand instanceof Until) {
-      return of(((Until) pOperand).getRight());
+    if (pOperand instanceof Until until) {
+      return of(until.getRight());
     }
 
-    if (pOperand instanceof Disjunction) {
+    if (pOperand instanceof Disjunction disjunction) {
       return new Disjunction(
-          Collections3.transformedImmutableListCopy(
-              ((Disjunction) pOperand).getChildren(), Finally::of));
+          Collections3.transformedImmutableListCopy(disjunction.getChildren(), Finally::of));
     }
 
     return new Finally(pOperand);

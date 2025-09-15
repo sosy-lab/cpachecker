@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.exceptions;
 import java.io.Serial;
 
 /**
- * Signals that the check method of a AbstractState has been passed an Argument that could not be
+ * Signals that the check method of an AbstractState has been passed an Argument that could not be
  * evaluated.
  */
 public class InvalidQueryException extends CPATransferException {

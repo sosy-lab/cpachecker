@@ -40,7 +40,7 @@ public class ExternModelLoader {
   public BooleanFormula handleExternModelFunction(List<CExpression> parameters, SSAMapBuilder ssa) {
     assert !parameters.isEmpty() : "No external model given!";
     // the parameter comes in C syntax (with ")
-    String filename = parameters.get(0).toASTString().replace("\"", "");
+    String filename = parameters.getFirst().toASTString().replace("\"", "");
     Path modelFile = Path.of(filename);
     return loadExternalFormula(modelFile, ssa);
   }
@@ -48,9 +48,9 @@ public class ExternModelLoader {
   /**
    * Loads a formula from an external dimacs file and returns it as BooleanFormula object. Each
    * variable in the dimacs file will be associated with a program variable if a corresponding (name
-   * equality) variable is known. Otherwise we use internal SMT variable to represent the dimacs
+   * equality) variable is known. Otherwise, we use internal SMT variable to represent the dimacs
    * variable and do not introduce a program variable. Might lead to problems when the program
-   * variable is introduced afterwards.
+   * variable is introduced afterward.
    *
    * @param pModelFile File with the dimacs model.
    * @return BooleanFormula

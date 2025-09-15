@@ -64,79 +64,67 @@ public class DssFactory {
       throws InvalidConfigurationException {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
-
     Map<MemoryLocation, CType> variableTypes = CFAUtils.extractVariableTypes(pCFA);
-    if (pCPA instanceof PredicateCPA predicateCPA) {
-      return distribute(
-          predicateCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pOptions,
-          pLogManager,
-          pShutdownNotifier,
-          integerToNodeMap,
-          variableTypes);
-    }
-
-    if (pCPA instanceof InvariantsCPA invariantsCPA) {
-      return distribute(
-          invariantsCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pLogManager,
-          pShutdownNotifier,
-          variableTypes);
-    }
-    if (pCPA instanceof CallstackCPA callstackCPA) {
-      return distribute(callstackCPA, pCFA, integerToNodeMap);
-    }
-    if (pCPA instanceof FunctionPointerCPA functionPointerCPA) {
-      return distribute(functionPointerCPA, integerToNodeMap);
-    }
-    if (pCPA instanceof BlockCPA blockCPA) {
-      return distribute(blockCPA, pBlockNode, integerToNodeMap);
-    }
-    if (pCPA instanceof ARGCPA argCPA) {
-      return distribute(
-          argCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pOptions,
-          pMessageFactory,
-          pLogManager,
-          pShutdownNotifier);
-    }
-    if (pCPA instanceof CompositeCPA compositeCPA) {
-      return distribute(
-          compositeCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pOptions,
-          pMessageFactory,
-          pLogManager,
-          pShutdownNotifier,
-          integerToNodeMap);
-    }
-    if (pCPA instanceof ValueAnalysisCPA valueCPA) {
-      return distribute(
-          valueCPA,
-          pBlockNode,
-          pCFA,
-          pConfiguration,
-          pLogManager,
-          pShutdownNotifier,
-          variableTypes);
-    }
-    /*
-     * TODO: implement support for LocationCPA and LocationBackwardCPA as soon as targetCFANode is
-     * not required anymore
-     */
-    // creates CPA for every thread without communication
-    return null;
+    return switch (pCPA) {
+      case PredicateCPA predicateCPA ->
+          distribute(
+              predicateCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pLogManager,
+              pShutdownNotifier,
+              integerToNodeMap,
+              variableTypes);
+      case CallstackCPA callstackCPA -> distribute(callstackCPA, pCFA, integerToNodeMap);
+      case FunctionPointerCPA functionPointerCPA ->
+          distribute(functionPointerCPA, integerToNodeMap);
+      case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, integerToNodeMap);
+      case ARGCPA argCPA ->
+          distribute(
+              argCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier);
+      case CompositeCPA compositeCPA ->
+          distribute(
+              compositeCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pOptions,
+              pMessageFactory,
+              pLogManager,
+              pShutdownNotifier,
+              integerToNodeMap);
+      case ValueAnalysisCPA valueAnalysisCPA ->
+          distribute(
+              valueAnalysisCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pLogManager,
+              pShutdownNotifier,
+              variableTypes);
+      case InvariantsCPA invariantsCPA ->
+          distribute(
+              invariantsCPA,
+              pBlockNode,
+              pCFA,
+              pConfiguration,
+              pLogManager,
+              pShutdownNotifier,
+              variableTypes);
+      case null /*TODO check if null is necessary*/, default ->
+          /* TODO: implement support for LocationCPA and LocationBackwardCPA
+          as soon as targetCFANode is not required anymore */
+          null; // creates CPA for every thread without communication
+    };
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

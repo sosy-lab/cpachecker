@@ -138,9 +138,9 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     private final Map<ARGState, ListMultimap<AFunctionDeclaration, ARGState>> callStackRecovery =
         new HashMap<>();
 
-    protected void analyze(ARGState pSuccessor) {
+    void analyze(ARGState pSuccessor) {
       if (!pSuccessor.getParents().isEmpty()) {
-        ARGState parent = pSuccessor.getParents().stream().findFirst().orElseThrow();
+        ARGState parent = pSuccessor.getParents().getFirst();
         if (callStackRecovery.containsKey(parent)) {
           // Copy the saved callstack, since we want to return to the state we had before the
           // branching
@@ -165,8 +165,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
           Verify.verify(!functionEntryNodes.isEmpty());
           collectedStates.functionContractEnsures.put(
               functionExitNode,
-              new FunctionEntryExitPair(
-                  functionEntryNodes.remove(functionEntryNodes.size() - 1), pSuccessor));
+              new FunctionEntryExitPair(functionEntryNodes.removeLast(), pSuccessor));
         }
 
         if (pSuccessor.getChildren().size() > 1 && !callStackRecovery.containsKey(pSuccessor)) {
@@ -175,7 +174,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
-    public CollectedARGStates getCollectedStates() {
+    CollectedARGStates getCollectedStates() {
       return collectedStates;
     }
   }
@@ -258,7 +257,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
                   node.getFunctionName() + "::\\result",
                   null));
     } else {
-      // Currently we do not export witnesses for other programming languages than C, therefore
+      // Currently, we do not export witnesses for other programming languages than C, therefore
       // everything else is currently not supported.
       throw new UnsupportedOperationException();
     }
@@ -271,10 +270,10 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * Provides an overapproximation of the abstractions encoded by the arg states at the location of
+   * Provides an overapproximation of the abstractions encoded by the ARG states at the location of
    * the node.
    *
-   * @param pArgStates the arg states encoding abstractions of the state
+   * @param pArgStates the ARG states encoding abstractions of the state
    * @return an over approximation of the abstraction at the state
    * @throws InterruptedException if the call to this function is interrupted
    */

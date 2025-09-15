@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
@@ -148,7 +149,7 @@ public class STBridges {
     }
     while (!paths.isEmpty()) {
       List<CFAEdge> currentPath = paths.removeFirst();
-      CFAEdge lastEdge = currentPath.get(currentPath.size() - 1);
+      CFAEdge lastEdge = currentPath.getLast();
       CFANode lastNode = lastEdge.getSuccessor();
       if (lastNode.equals(exitNode)) {
         return currentPath;
@@ -172,7 +173,7 @@ public class STBridges {
    * @return All s-t bridges in <code>pCFA</code>.
    */
   public static BridgeComponents computeBridges(BlockNodeWithoutGraphInformation blockNode) {
-    Map<CFANode, Integer> comp = new LinkedHashMap<>();
+    SequencedMap<CFANode, Integer> comp = new LinkedHashMap<>();
     CFANode exitNode = blockNode.getFinalLocation();
 
     for (CFANode node : blockNode.getNodes()) {

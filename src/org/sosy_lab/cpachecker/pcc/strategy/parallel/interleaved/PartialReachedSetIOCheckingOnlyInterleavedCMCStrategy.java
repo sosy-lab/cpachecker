@@ -189,21 +189,21 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   protected void writeProofToStream(
       ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws IOException, InvalidConfigurationException, InterruptedException {
-    if (!(pReached instanceof HistoryForwardingReachedSet)) {
+    if (!(pReached instanceof HistoryForwardingReachedSet historyForwardingReachedSet)) {
       throw new InvalidConfigurationException(
           "Reached sets used by restart algorithm are not memorized. Please enable option"
               + " analysis.memorizeReachedAfterRestart");
     }
 
     List<ReachedSet> partialReachedSets =
-        ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
+        historyForwardingReachedSet.getAllReachedSetsUsedAsDelegates();
 
     if (partialReachedSets == null || partialReachedSets.isEmpty()) {
       logger.log(Level.SEVERE, "No proof parts available. Proof cannot be generated.");
       return;
     }
 
-    List<ConfigurableProgramAnalysis> cpas = ((HistoryForwardingReachedSet) pReached).getCPAs();
+    List<ConfigurableProgramAnalysis> cpas = historyForwardingReachedSet.getCPAs();
 
     if (partialReachedSets.size() != cpas.size()) {
       logger.log(Level.SEVERE, "Analysis inconsistent. Proof cannot be generated.");
@@ -263,7 +263,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     private final AbstractState[] roots;
     private final ReachedSetFactory factory;
 
-    public ProofPartReader(
+    ProofPartReader(
         final Semaphore pReadNext,
         Semaphore pPartitionsAvailable,
         final AtomicBoolean pCheckResult,

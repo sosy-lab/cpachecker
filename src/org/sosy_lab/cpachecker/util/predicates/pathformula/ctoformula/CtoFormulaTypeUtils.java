@@ -32,14 +32,12 @@ class CtoFormulaTypeUtils {
   }
 
   private static boolean areMatchingPointerArrayTypes(CType t1, CType t2) {
-    if ((t1 instanceof CPointerType) && (t2 instanceof CArrayType)) {
+    if ((t1 instanceof CPointerType cPointerType) && (t2 instanceof CArrayType cArrayType)) {
 
-      CType componentType1 = ((CPointerType) t1).getType();
-      CType componentType2 = ((CArrayType) t2).getType();
+      CType componentType1 = cPointerType.getType();
+      CType componentType2 = cArrayType.getType();
 
-      return (t1.isConst() == t2.isConst())
-          && (t1.isVolatile() == t2.isVolatile())
-          && componentType1.equals(componentType2);
+      return t1.getQualifiers().equals(t2.getQualifiers()) && componentType1.equals(componentType2);
     } else {
       return false;
     }
@@ -54,11 +52,11 @@ class CtoFormulaTypeUtils {
     CExpression fieldOwner = fExp.getFieldOwner();
     if (fExp.isPointerDereference()) {
       CType t = fieldOwner.getExpressionType().getCanonicalType();
-      if (!(t instanceof CPointerType)) {
+      if (!(t instanceof CPointerType cPointerType)) {
         throw new UnrecognizedCodeException(
             "Can't dereference a non-pointer in a field reference", fExp);
       }
-      CType dereferencedType = ((CPointerType) t).getType();
+      CType dereferencedType = cPointerType.getType();
       return new CPointerExpression(fExp.getFileLocation(), dereferencedType, fieldOwner);
     }
     return fieldOwner;

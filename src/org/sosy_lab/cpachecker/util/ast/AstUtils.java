@@ -85,7 +85,7 @@ public class AstUtils {
         .transformAndConcat(CFAUtils::allEnteringEdges)
         .anyMatch(
             pEdge ->
-                pEdge instanceof AssumeEdge && ((AssumeEdge) pEdge).isArtificialIntermediate())) {
+                pEdge instanceof AssumeEdge assumeEdge && assumeEdge.isArtificialIntermediate())) {
 
       throw new BoundaryNodesComputationFailed("Condition edges are not connected");
     }
@@ -94,7 +94,7 @@ public class AstUtils {
     final Set<CFANode> collectorNodesBetweenConditionAndFirstBranch;
 
     if (pEdgesFirstBranch.isEmpty() && pEdgesSecondBranch.isEmpty()) {
-      // TODO: Currently we over-approximate by taking both branches when there are no edges
+      // TODO: Currently, we over-approximate by taking both branches when there are no edges
       //  in both branches
       collectorNodesBetweenConditionAndFirstBranch = nodesBoundaryCondition;
       collectorNodesBetweenConditionAndSecondBranch = nodesBoundaryCondition;

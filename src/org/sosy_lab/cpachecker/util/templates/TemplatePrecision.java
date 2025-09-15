@@ -329,7 +329,7 @@ public class TemplatePrecision implements Precision {
   private static final Equivalence<CIdExpression> BASIC_TYPE_EQUIVALENCE =
       Equivalence.equals().onResultOf(x -> ((CSimpleType) x.getDeclaration().getType()).getType());
 
-  /** Check whether all variables inside a expression have the same type. */
+  /** Check whether all variables inside an expression have the same type. */
   private boolean hasSameType(LinearExpression<CIdExpression> expr) {
     return expr.getMap().keySet().stream()
         .allMatch(x -> BASIC_TYPE_EQUIVALENCE.equivalent(x, expr.iterator().next().getKey()));
@@ -369,7 +369,7 @@ public class TemplatePrecision implements Precision {
           if (callEdge.getArguments().isEmpty()) {
             continue;
           }
-          CExpression expression = callEdge.getArguments().get(0);
+          CExpression expression = callEdge.getArguments().getFirst();
           template = expressionToSingleTemplate(expression);
         }
 
@@ -449,11 +449,11 @@ public class TemplatePrecision implements Precision {
   private Collection<LinearExpression<CIdExpression>> extractTemplatesFromStatementEdge(
       CStatementEdge edge) {
     CStatement statement = edge.getStatement();
-    if (statement instanceof CExpressionStatement) {
-      return expressionToTemplate(((CExpressionStatement) statement).getExpression());
-    } else if (statement instanceof CExpressionAssignmentStatement) {
+    if (statement instanceof CExpressionStatement cExpressionStatement) {
+      return expressionToTemplate(cExpressionStatement.getExpression());
+    } else if (statement instanceof CExpressionAssignmentStatement assignment) {
       Set<LinearExpression<CIdExpression>> out = new HashSet<>();
-      CExpressionAssignmentStatement assignment = (CExpressionAssignmentStatement) statement;
+
       CLeftHandSide lhs = assignment.getLeftHandSide();
       if (lhs instanceof CIdExpression id) {
         out.addAll(expressionToTemplate(assignment.getRightHandSide()));
@@ -494,14 +494,14 @@ public class TemplatePrecision implements Precision {
       // Special handling for constants and multiplication.
       if (operator == BinaryOperator.MULTIPLY && (templateA.isPresent() || templateB.isPresent())) {
 
-        if (operand1 instanceof CIntegerLiteralExpression && templateB.isPresent()) {
+        if (operand1 instanceof CIntegerLiteralExpression cIntegerLiteralExpression
+            && templateB.isPresent()) {
 
-          return Optional.of(
-              useCoeff((CIntegerLiteralExpression) operand1, templateB.orElseThrow()));
-        } else if (operand2 instanceof CIntegerLiteralExpression && templateA.isPresent()) {
+          return Optional.of(useCoeff(cIntegerLiteralExpression, templateB.orElseThrow()));
+        } else if (operand2 instanceof CIntegerLiteralExpression cIntegerLiteralExpression
+            && templateA.isPresent()) {
 
-          return Optional.of(
-              useCoeff((CIntegerLiteralExpression) operand2, templateA.orElseThrow()));
+          return Optional.of(useCoeff(cIntegerLiteralExpression, templateA.orElseThrow()));
         } else {
           return Optional.empty();
         }

@@ -20,6 +20,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -788,6 +789,9 @@ public class PolicyIterationManager {
    * @param generatorState State to abstract
    * @return Abstracted state if the state is reachable, empty optional otherwise.
    */
+  @SuppressFBWarnings(
+      value = "SF_SWITCH_NO_DEFAULT",
+      justification = "false alarm, maybe https://github.com/spotbugs/spotbugs/issues/3617")
   private PolicyAbstractedState performAbstraction(
       final PolicyIntermediateState generatorState,
       int locationID,
@@ -844,7 +848,6 @@ public class PolicyIterationManager {
             case ABSTRACTION_REQUIRED -> {
               // Continue with abstraction.
             }
-            default -> throw new UnsupportedOperationException("Unexpected case");
           }
         }
 
@@ -908,7 +911,6 @@ public class PolicyIterationManager {
             logger.log(Level.INFO, optEnvironment.toString());
             throw new CPATransferException("Solver returned undefined status");
           }
-          default -> throw new AssertionError("Unhandled enum value in switch: " + status);
         }
       }
     } catch (SolverException e) {
@@ -969,7 +971,7 @@ public class PolicyIterationManager {
       return Pair.of(ABSTRACTION_REQUIRED, null);
     }
 
-    // Slices and bounds for all template sub-components.
+    // Slices and bounds for all template subcomponents.
     List<Set<BooleanFormula>> slices = new ArrayList<>(pTemplate.size());
     List<PolicyBound> policyBounds = new ArrayList<>();
     List<Rational> coefficients = new ArrayList<>();
@@ -1017,7 +1019,7 @@ public class PolicyIterationManager {
 
     // Abstraction required if not all predecessors, SSA forms,
     // and pointer target sets are the same.
-    PolicyBound firstBound = policyBounds.get(0);
+    PolicyBound firstBound = policyBounds.getFirst();
     for (PolicyBound bound : policyBounds) {
       if (!bound.getPredecessor().equals(firstBound.getPredecessor())
           || !bound.getFormula().getSsa().equals(firstBound.getFormula().getSsa())
@@ -1171,22 +1173,18 @@ public class PolicyIterationManager {
       return true;
     }
 
-    switch (abstractionLocations) {
-      case ALL -> {
-        return true;
-      }
+    return switch (abstractionLocations) {
+      case ALL -> true;
+
       case LOOPHEAD -> {
         LoopBoundState loopState =
             AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
-        return (cfa.getAllLoopHeads().orElseThrow().contains(node)
+        yield (cfa.getAllLoopHeads().orElseThrow().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
       }
-      case MERGE -> {
-        return node.getNumEnteringEdges() > 1;
-      }
-      default -> throw new UnsupportedOperationException("Unexpected state");
-    }
+      case MERGE -> node.getNumEnteringEdges() > 1;
+    };
   }
 
   /**
@@ -1283,8 +1281,9 @@ public class PolicyIterationManager {
   private BooleanFormula extractFormula(AbstractState pFormulaState) {
     List<BooleanFormula> constraints = new ArrayList<>();
     for (AbstractState a : asIterable(pFormulaState)) {
-      if (!(a instanceof PolicyAbstractedState) && a instanceof FormulaReportingState) {
-        constraints.add(((FormulaReportingState) a).getFormulaApproximation(fmgr));
+      if (!(a instanceof PolicyAbstractedState)
+          && a instanceof FormulaReportingState formulaReportingState) {
+        constraints.add(formulaReportingState.getFormulaApproximation(fmgr));
       }
     }
     return bfmgr.and(constraints);

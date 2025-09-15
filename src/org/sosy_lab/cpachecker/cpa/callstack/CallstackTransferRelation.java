@@ -83,21 +83,19 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     switch (pEdge.getEdgeType()) {
       case StatementEdge -> {
         AStatementEdge edge = (AStatementEdge) pEdge;
-        if (edge.getStatement() instanceof AFunctionCall) {
+        if (edge.getStatement() instanceof AFunctionCall aFunctionCall) {
           AExpression functionNameExp =
-              ((AFunctionCall) edge.getStatement())
-                  .getFunctionCallExpression()
-                  .getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression) {
-            String functionName = ((AIdExpression) functionNameExp).getName();
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            String functionName = aIdExpression.getName();
             if (options.getUnsupportedFunctions().contains(functionName)) {
               throw new UnsupportedCodeException(functionName, edge, edge.getStatement());
             }
           }
         }
 
-        if (pEdge instanceof CFunctionSummaryStatementEdge) {
-          if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
+        if (pEdge instanceof CFunctionSummaryStatementEdge cFunctionSummaryStatementEdge) {
+          if (!shouldGoByFunctionSummaryStatement(e, cFunctionSummaryStatementEdge)) {
             // should go by function call and skip the current edge
             return ImmutableSet.of();
           }
@@ -204,7 +202,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Not a function call node -> wildcard state
-    // Info: a backward-analysis causes an callstack-state with a non-function-call-node,
+    // Info: a backward-analysis causes a callstack-state with a non-function-call-node,
     // build from the target state on getInitialState.
     return direction == AnalysisDirection.FORWARD;
   }

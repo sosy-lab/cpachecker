@@ -37,6 +37,8 @@ SPDX-License-Identifier: Apache-2.0
     </And></Match>
     <!-- Error-prone checks this, too, and SpotBugs does not know @CanIgnoreReturnValue. -->
     <Match><Bug pattern="RV_RETURN_VALUE_IGNORED"/></Match>
+    <!-- Useless check because we forbid classic switch labels, and produces false alarms -->
+    <Match><Bug pattern="SF_SWITCH_FALLTHROUGH"/></Match>
     <!-- Exclude AutoValue classes -->
     <Match><Class name="~.*\.AutoValue_.*"/></Match>
 
@@ -52,10 +54,7 @@ SPDX-License-Identifier: Apache-2.0
     </And></Match>
     <Match>
         <!-- Handled by Eclipse. -->
-        <Or>
-          <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
-          <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
-        </Or>
+        <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
     </Match>
     <Match>
         <!-- Ignore Antlr-generated files. -->
@@ -65,6 +64,10 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Generated parsers sometimes have more or less issues that need to be suppressed. -->
         <Bug pattern="US_USELESS_SUPPRESSION_ON_CLASS"/>
         <Class name="~.*Parser"/>
+    </Match>
+    <Match>
+        <!-- Ignore unmaintained package. -->
+        <Package name="org.sosy_lab.cpachecker.cfa.parser.llvm"/>
     </Match>
 
     <Match><And>

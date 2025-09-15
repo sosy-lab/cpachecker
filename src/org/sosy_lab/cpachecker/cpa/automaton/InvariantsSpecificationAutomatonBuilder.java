@@ -88,7 +88,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
   },
 
   /**
-   * Builds a invariants specification automaton using the invariants from a correctness witness.
+   * Builds an invariants specification automaton using the invariants from a correctness witness.
    * The resulting witness has two states: init and error. A transitions to the error state consists
    * of the invariants location and the assumption of the negated invariant
    */

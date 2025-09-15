@@ -518,7 +518,7 @@ public class CFAUtils {
    * This method returns true if the set of nodes is connected, i.e., there is a path between every
    * pair of nodes in the set.
    *
-   * <p>Currently this is quite inefficient, so use with caution and only for small sets of nodes.
+   * <p>Currently, this is quite inefficient, so use with caution and only for small sets of nodes.
    *
    * @param pCfaNodes the set of nodes
    * @return true if the set of nodes is connected i.e. there is a path between every pair of nodes
@@ -649,13 +649,13 @@ public class CFAUtils {
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
       } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
+        throw new AssertionError("forgotten case in traversing CFA with more than 2 leaving edges");
       } else {
         return TraversalProcess.CONTINUE;
       }
     }
 
-    public boolean hasBackwardsEdges() {
+    boolean hasBackwardsEdges() {
       return hasBackwardsEdges;
     }
   }
@@ -685,7 +685,7 @@ public class CFAUtils {
    */
   public static NavigableSet<String> filterVariablesOfFunction(
       NavigableSet<String> variables, String function) {
-    // TODO: Currently the format of the qualified name is not defined.
+    // TODO: Currently, the format of the qualified name is not defined.
     // In theory, frontends could use different formats.
     // The best would be to eliminate all uses of this method
     // (code should not use Strings, but for example AIdExpressions).
@@ -901,8 +901,8 @@ public class CFAUtils {
             .filter(FileLocation::isRealLocation)
             .toSet();
 
-    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode functionEntryNode = (FunctionEntryNode) pEdge.getPredecessor();
+    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode functionEntryNode) {
+
       if (functionEntryNode.getFileLocation().isRealLocation()) {
         return ImmutableSet.of(functionEntryNode.getFileLocation());
       }
@@ -911,15 +911,13 @@ public class CFAUtils {
   }
 
   public static Iterable<AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
-    switch (edge.getEdgeType()) {
+    return switch (edge.getEdgeType()) {
       case CallToReturnEdge -> {
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
-        return ImmutableSet.of(fnSumEdge.getExpression());
+        yield ImmutableSet.of(fnSumEdge.getExpression());
       }
-      default -> {
-        return Optionals.asSet(edge.getRawAST());
-      }
-    }
+      default -> Optionals.asSet(edge.getRawAST());
+    };
   }
 
   /**

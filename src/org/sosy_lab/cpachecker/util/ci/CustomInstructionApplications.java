@@ -198,9 +198,6 @@ public class CustomInstructionApplications {
             new CustomInstructionApplicationsFromFile(pConfig, pCfa, pLogger, pSdNotifier);
         case OPERATOR ->
             new CustomInstructionsForBinaryOperator(pConfig, pLogger, pSdNotifier, pCfa);
-        default ->
-            throw new IllegalArgumentException(
-                "Unknown type of custom instruction applications identifier");
       };
     }
   }
@@ -216,7 +213,7 @@ public class CustomInstructionApplications {
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
     private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionApplicationsFromFile(
+    CustomInstructionApplicationsFromFile(
         Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
         throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
@@ -256,7 +253,7 @@ public class CustomInstructionApplications {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionApplicationsAutomatic(
+    CustomInstructionApplicationsAutomatic(
         Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
         throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
@@ -310,7 +307,7 @@ public class CustomInstructionApplications {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path foundCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionsForBinaryOperator(
+    CustomInstructionsForBinaryOperator(
         Configuration pConfig, LogManager pLogger, ShutdownNotifier pSdNotifier, CFA pCfa)
         throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
@@ -382,10 +379,10 @@ public class CustomInstructionApplications {
         // inspect all CFA edges potential candidates
         for (CFANode node : cfa.nodes()) {
           for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-            if (edge instanceof CStatementEdge
-                && ((CStatementEdge) edge).getStatement()
-                    instanceof CExpressionAssignmentStatement) {
-              stmt = (CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement();
+            if (edge instanceof CStatementEdge cStatementEdge
+                && cStatementEdge.getStatement()
+                    instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+              stmt = cExpressionAssignmentStatement;
               if (stmt.getRightHandSide() instanceof CBinaryExpression
                   && ((CBinaryExpression) stmt.getRightHandSide())
                       .getOperator()

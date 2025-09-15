@@ -51,7 +51,9 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
       List<String> properties = Splitter.on(".").limit(2).splitToList(part);
       previous =
           new CallstackState(
-              previous, properties.get(1), converter.apply(Integer.parseInt(properties.get(0))));
+              previous,
+              properties.get(1),
+              converter.apply(Integer.parseInt(properties.getFirst())));
     }
     return previous;
   }

@@ -121,8 +121,8 @@ public class TestDataTools {
 
         PathFormula n;
         if (ignoreDeclarations
-            && e instanceof CDeclarationEdge
-            && ((CDeclarationEdge) e).getDeclaration() instanceof CVariableDeclaration) {
+            && e instanceof CDeclarationEdge cDeclarationEdge
+            && cDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
 
           // Skip variable declaration edges.
           n = path;
