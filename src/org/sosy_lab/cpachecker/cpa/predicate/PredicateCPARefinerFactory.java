@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunDefaultNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
@@ -213,11 +214,15 @@ public final class PredicateCPARefinerFactory {
           new DelegatingRefinerHeuristicStaticRefinement();
       DelegatingRefinerHeuristicRunDefaultNTimes useDefaultRefinerNTimes =
           new DelegatingRefinerHeuristicRunDefaultNTimes(10);
+      DelegatingRefinerHeuristicRedundantPredicates redundantPredicates =
+          new DelegatingRefinerHeuristicRedundantPredicates(
+              0.8, predicateCpa.getSolver().getFormulaManager());
 
       ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners =
           ImmutableList.of(
               new HeuristicDelegatingRefinerRecord(useStaticRefinerFirst, staticRefiner),
-              new HeuristicDelegatingRefinerRecord(useDefaultRefinerNTimes, defaultRefiner));
+              new HeuristicDelegatingRefinerRecord(useDefaultRefinerNTimes, defaultRefiner),
+              new HeuristicDelegatingRefinerRecord(redundantPredicates, defaultRefiner));
 
       refiner = new PredicateDelegatingRefiner(pRefiners);
     }

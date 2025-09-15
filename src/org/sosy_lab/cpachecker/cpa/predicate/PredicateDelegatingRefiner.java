@@ -55,12 +55,12 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
     TrackingForwardingReachedSet trackingForwardingReachedSet =
         (TrackingForwardingReachedSet) reachedSet;
 
-    ImmutableList<ReachedSetDelta> deltaSet =
+    ImmutableList<ReachedSetDelta> deltaSequence =
         ImmutableList.of(trackingForwardingReachedSet.getDelta());
 
     for (HeuristicDelegatingRefinerRecord pRecord : pRefiners) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
-      if (pHeuristic.fulfilled(reachedSet, deltaSet)) {
+      if (pHeuristic.fulfilled(reachedSet, deltaSequence)) {
         return pRecord.pRefiner().performRefinementForPath(pReached, pPath);
       }
     }

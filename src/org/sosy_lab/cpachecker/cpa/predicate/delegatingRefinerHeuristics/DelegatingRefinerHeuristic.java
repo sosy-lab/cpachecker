@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
@@ -24,7 +24,7 @@ public interface DelegatingRefinerHeuristic {
    * @param pDeltas the list of changes in the ReachedSet since the last refinement
    * @return true if heuristic conditions are satisfied, false otherwise
    */
-  boolean fulfilled(UnmodifiableReachedSet pReached, List<ReachedSetDelta> pDeltas);
+  boolean fulfilled(UnmodifiableReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas);
 
   /** Default setting when none of the heuristics match. Use only as a safety net. */
   DelegatingRefinerHeuristic DEFAULT = (pReached, pDeltas) -> true;

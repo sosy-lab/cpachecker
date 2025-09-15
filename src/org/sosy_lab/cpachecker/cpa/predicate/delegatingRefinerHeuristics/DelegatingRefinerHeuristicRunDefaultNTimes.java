@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
@@ -26,7 +26,8 @@ public class DelegatingRefinerHeuristicRunDefaultNTimes implements DelegatingRef
   }
 
   @Override
-  public boolean fulfilled(UnmodifiableReachedSet pReached, List<ReachedSetDelta> pDeltas) {
+  public boolean fulfilled(
+      UnmodifiableReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
     if (currentRuns < fixedRuns) {
       currentRuns++;
       return true;
