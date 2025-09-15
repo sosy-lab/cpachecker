@@ -601,7 +601,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       if (!isPrefixItpPrecise && !reachVector.isEmpty()) {
         isPrefixItpPrecise =
-            solver.implies(reachVector.get(0), partitionedFormulas.getPrefixFormula());
+            solver.implies(reachVector.getFirst(), partitionedFormulas.getPrefixFormula());
       }
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
       loopBoundMgr.incrementLoopBoundsToCheck();
@@ -673,11 +673,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void unrollProgram(ReachedSet pReachedSet) throws InterruptedException, CPAException {
-    stats.bmcPreparation.start();
+    stats.bmcUnrolling.start();
     try {
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
     } finally {
-      stats.bmcPreparation.stop();
+      stats.bmcUnrolling.stop();
     }
   }
 
@@ -829,7 +829,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             bfmgr.and(loops.subList(1, formulas.getNumLoops())), formulas.getAssertionFormula());
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
-        itpMgr.interpolate(ImmutableList.of(prefixFormula, loops.get(0), suffixFormula));
+        itpMgr.interpolate(ImmutableList.of(prefixFormula, loops.getFirst(), suffixFormula));
     assert interpolants.isPresent();
     final int initialIMCIter = stats.numOfInterpolationCalls;
     while (interpolants.isPresent()) {
@@ -846,7 +846,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       assert interpolants.orElseThrow().size() == 2;
       if (!fixedPointComputeStrategy.isISMCEnabled() && !isPrefixItpPrecise) {
         final BooleanFormula prefixApproximation =
-            bfmgr.and(reachVector.get(0), fmgr.uninstantiate(interpolants.orElseThrow().get(0)));
+            bfmgr.and(
+                reachVector.getFirst(), fmgr.uninstantiate(interpolants.orElseThrow().getFirst()));
         reachVector.set(0, prefixApproximation);
       }
       BooleanFormula interpolant = interpolants.orElseThrow().get(1);
@@ -857,11 +858,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (solver.implies(interpolant, bfmgr.or(prefixFormula, accumImage))) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
         stats.fixedPointConvergenceLength = stats.numOfInterpolationCalls - initialIMCIter;
-        finalFixedPoint = bfmgr.or(reachVector.get(0), fmgr.uninstantiate(accumImage));
+        finalFixedPoint = bfmgr.or(reachVector.getFirst(), fmgr.uninstantiate(accumImage));
         return true;
       }
       accumImage = bfmgr.or(accumImage, interpolant);
-      interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
+      interpolants =
+          itpMgr.interpolate(ImmutableList.of(interpolant, loops.getFirst(), suffixFormula));
     }
     logger.log(
         Level.FINE,
@@ -950,7 +952,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Checking fixed point of the reachability vector");
 
     if (impactLikeCovering) {
-      BooleanFormula lastImage = reachVector.get(reachVector.size() - 1);
+      BooleanFormula lastImage = reachVector.getLast();
       for (int i = 0; i < reachVector.size() - 1; ++i) {
         BooleanFormula imageAtI = reachVector.get(i);
         if (solver.implies(lastImage, imageAtI)) {
@@ -965,7 +967,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         BooleanFormula imageAtI = reachVector.get(i);
         if (solver.implies(imageAtI, currentImage)) {
           logger.log(Level.INFO, "Fixed point reached");
-          finalFixedPoint = bfmgr.or(currentImage, reachVector.get(0));
+          finalFixedPoint = bfmgr.or(currentImage, reachVector.getFirst());
           stats.fixedPointConvergenceLength = reachVector.size();
           return true;
         }

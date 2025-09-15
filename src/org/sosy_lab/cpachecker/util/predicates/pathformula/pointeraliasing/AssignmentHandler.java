@@ -792,7 +792,7 @@ class AssignmentHandler {
 
       OptionalInt arrayLength = arrayType.getLengthAsInt();
 
-      CExpressionAssignmentStatement firstAssignment = assignments.get(0);
+      CExpressionAssignmentStatement firstAssignment = assignments.getFirst();
 
       // we can visit lhs and rhs multiple times without side effects
       // as there is no CFunctionCallExpression visit possible

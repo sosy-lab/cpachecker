@@ -205,8 +205,8 @@ public class SMGEdgeInterpolator
 
       FeasibilityChecker<SMGState> checker = getFeasibilityChecker();
       SMGFeasibilityChecker smgFeasibilityChecker;
-      if (checker instanceof SMGFeasibilityChecker) {
-        smgFeasibilityChecker = (SMGFeasibilityChecker) checker;
+      if (checker instanceof SMGFeasibilityChecker sMGFeasibilityChecker) {
+        smgFeasibilityChecker = sMGFeasibilityChecker;
       } else {
         break;
       }

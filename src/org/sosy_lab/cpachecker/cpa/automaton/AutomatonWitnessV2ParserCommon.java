@@ -56,6 +56,14 @@ class AutomatonWitnessV2ParserCommon {
   private InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
       InvariantsSpecificationAutomatonBuilder.NO_ISA;
 
+  @Option(
+      secure = true,
+      name = "checkInvariantsHoldForEveryPath",
+      description =
+          "When the witness is used as an automaton, "
+              + "check that the invariants hold for every path in the program")
+  protected boolean checkInvariantsHoldForEveryPath = true;
+
   final CFA cfa;
   final LogManager logger;
   final Configuration config;

@@ -1045,7 +1045,7 @@ public class SMGCPAMaterializer {
       return false;
     }
     Collections.reverse(listOfObjects);
-    return checkList(listOfObjects.get(0), pfo, listOfObjects, currentState);
+    return checkList(listOfObjects.getFirst(), pfo, listOfObjects, currentState);
   }
 
   // Check that the pointers of a list are correct for last pointer materialization
@@ -1116,8 +1116,8 @@ public class SMGCPAMaterializer {
     SMGAndHasValueEdges readValue =
         smg.readValue(pNewAbsListSeg, nfo, smg.getSizeOfPointer(), false);
     if (readValue.getHvEdges().size() != 1
-        || !smg.isPointer(readValue.getHvEdges().get(0).hasValue())
-        || !smg.getPTEdge(readValue.getHvEdges().get(0).hasValue())
+        || !smg.isPointer(readValue.getHvEdges().getFirst().hasValue())
+        || !smg.getPTEdge(readValue.getHvEdges().getFirst().hasValue())
             .orElseThrow()
             .pointsTo()
             .equals(newConcreteRegion)) {

@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.NonNull;
@@ -94,7 +95,7 @@ public class BlockGraph {
   private boolean isBlockNodeValid(CFANode pStartNode, Set<CFAEdge> pEdgesInBlock) {
     ArrayDeque<CFANode> waiting = new ArrayDeque<>();
     waiting.push(pStartNode);
-    Set<CFANode> covered = new LinkedHashSet<>();
+    SequencedSet<CFANode> covered = new LinkedHashSet<>();
     int count = 0;
     while (!waiting.isEmpty()) {
       CFANode curr = waiting.pop();

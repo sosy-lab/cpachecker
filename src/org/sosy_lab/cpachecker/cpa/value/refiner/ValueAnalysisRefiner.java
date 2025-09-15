@@ -27,9 +27,9 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -209,7 +209,7 @@ public class ValueAnalysisRefiner
     final UnmodifiableReachedSet reached = pReached.asReachedSet();
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(reached);
 
-    Map<ARGState, List<Precision>> refinementInformation = new LinkedHashMap<>();
+    SequencedMap<ARGState, List<Precision>> refinementInformation = new LinkedHashMap<>();
     Collection<ARGState> refinementRoots =
         pInterpolationTree.obtainRefinementRoots(restartStrategy);
 
@@ -378,7 +378,7 @@ public class ValueAnalysisRefiner
       final ARGState currentState = todo.removeFirst();
 
       if (currentState.getParents().iterator().hasNext()) {
-        ARGState parentState = currentState.getParents().iterator().next();
+        ARGState parentState = currentState.getParents().getFirst();
         todo.add(parentState);
         successorRelation.put(parentState, currentState);
 

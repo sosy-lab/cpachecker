@@ -79,7 +79,7 @@ class CSizeOfVisitor extends BaseSizeofVisitor<CPATransferException> {
         }
         assert !addressOfFieldAndState.isEmpty();
 
-        SMGAddress addressOfField = addressOfFieldAndState.get(0).getObject();
+        SMGAddress addressOfField = addressOfFieldAndState.getFirst().getObject();
 
         if (addressOfField.isUnknown()) {
           return handleUnkownArrayLengthValue(pArrayType);

@@ -46,8 +46,8 @@ public class ARGProofCheckerStrategy extends AbstractARGStrategy {
     super(
         pConfig,
         pLogger,
-        pChecker instanceof PropertyCheckerCPA
-            ? ((PropertyCheckerCPA) pChecker).getPropChecker()
+        pChecker instanceof PropertyCheckerCPA propertyCheckerCPA
+            ? propertyCheckerCPA.getPropChecker()
             : new NoTargetStateChecker(),
         pShutdownNotifier,
         pProofFile);

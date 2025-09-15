@@ -114,7 +114,7 @@ public class SlicingAbstractionsTest {
             .transform(
                 x -> {
                   Object[] result = new Object[4];
-                  result[0] = x.get(0);
+                  result[0] = x.getFirst();
                   result[1] = x.get(1);
                   result[2] = new HashMap<String, String>();
                   result[3] =
@@ -129,7 +129,7 @@ public class SlicingAbstractionsTest {
             .transform(
                 x -> {
                   Object[] result = new Object[4];
-                  result[0] = x.get(0);
+                  result[0] = x.getFirst();
                   result[1] = x.get(1);
                   result[2] = new HashMap<String, String>();
                   result[3] =
@@ -146,7 +146,7 @@ public class SlicingAbstractionsTest {
   private static Object[] repack(List<Object> x) {
     Object[] result = new Object[4];
 
-    result[0] = x.get(0); // file to test
+    result[0] = x.getFirst(); // file to test
     result[1] = x.get(1); // config to test file with
 
     // result[2] will contain a map of extra options taken from x at positions 2-4

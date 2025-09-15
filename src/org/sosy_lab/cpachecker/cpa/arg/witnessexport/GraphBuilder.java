@@ -117,7 +117,7 @@ enum GraphBuilder {
             }
 
             // last edge connecting it with the real successor
-            edgeToNextState = allEdgeToNextState.get(allEdgeToNextState.size() - 1);
+            edgeToNextState = allEdgeToNextState.getLast();
           }
 
           Optional<Collection<ARGState>> state = Optional.of(Collections.singleton(s));

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
@@ -206,7 +207,7 @@ public class InvariantsCPA
   private final ConditionAdjuster conditionAdjuster;
 
   @GuardedBy("itself")
-  private final Set<MemoryLocation> currentInterestingVariables = new LinkedHashSet<>();
+  private final SequencedSet<MemoryLocation> currentInterestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
   private final AbstractDomain abstractDomain;
@@ -295,7 +296,7 @@ public class InvariantsCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    Set<CFANode> relevantLocations = new LinkedHashSet<>();
+    SequencedSet<CFANode> relevantLocations = new LinkedHashSet<>();
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 
     int interestingVariableLimit = options.interestingVariableLimit;
@@ -328,7 +329,7 @@ public class InvariantsCPA
     }
 
     // Collect relevant edges and guess that information might be interesting
-    Set<CFAEdge> relevantEdges = new LinkedHashSet<>();
+    SequencedSet<CFAEdge> relevantEdges = new LinkedHashSet<>();
     Set<MemoryLocation> interestingVariables;
     synchronized (currentInterestingVariables) {
       interestingVariables = new LinkedHashSet<>(currentInterestingVariables);
@@ -357,7 +358,7 @@ public class InvariantsCPA
     }
 
     // Try to specify all relevant variables
-    Set<MemoryLocation> relevantVariables = new LinkedHashSet<>();
+    SequencedSet<MemoryLocation> relevantVariables = new LinkedHashSet<>();
     boolean specifyRelevantVariables = options.analyzeRelevantVariablesOnly;
 
     final VariableSelection<CompoundInterval> variableSelection;
@@ -708,7 +709,7 @@ public class InvariantsCPA
 
     private ConditionAdjuster defaultInner;
 
-    public CompoundConditionAdjuster(InvariantsCPA pCPA) {
+    CompoundConditionAdjuster(InvariantsCPA pCPA) {
       cpa = Objects.requireNonNull(pCPA);
       innerAdjusters.add(new InterestingVariableLimitAdjuster(pCPA));
       innerAdjusters.add(new FormulaDepthAdjuster(pCPA));
@@ -875,7 +876,7 @@ public class InvariantsCPA
 
     private final InvariantsCPA cpa;
 
-    public AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
+    AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
       cpa = pCPA;
     }
 

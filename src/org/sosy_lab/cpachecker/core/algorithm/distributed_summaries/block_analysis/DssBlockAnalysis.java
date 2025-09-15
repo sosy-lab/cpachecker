@@ -9,15 +9,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -47,7 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -57,12 +59,12 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -82,7 +84,6 @@ public class DssBlockAnalysis {
   private final ReachedSet reachedSet;
   private final Algorithm algorithm;
 
-  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final LogManager logger;
 
   private AlgorithmStatus status;
@@ -101,8 +102,6 @@ public class DssBlockAnalysis {
     AnalysisComponents parts =
         createBlockAlgorithm(
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
-    assumptionToEdgeAllocator =
-        AssumptionToEdgeAllocator.create(pConfiguration, pLogger, pCFA.getMachineModel());
     // prepare dcpa and the algorithms
     status = AlgorithmStatus.SOUND_AND_PRECISE;
     algorithm = parts.algorithm();
@@ -195,20 +194,68 @@ public class DssBlockAnalysis {
     return reportViolationConditions(violations, null, true);
   }
 
+  record ArgPathWithEdges(List<ARGState> states, List<CFAEdge> edges) {
+
+    private ARGState getLastState() {
+      return states.get(states.size() - 1);
+    }
+
+    private ArgPathWithEdges copyWith(ARGState pNewParent, List<CFAEdge> pEdges) {
+      if (!edges.isEmpty()) {
+        CFAEdge lastEdge = edges.get(edges.size() - 1);
+        if (!lastEdge.getPredecessor().equals(pEdges.get(0).getSuccessor())) {
+          List<CFAEdge> path = new ArrayList<>();
+          path.add(lastEdge);
+          CFAEdge last = lastEdge;
+          while (!last.getSuccessor().equals(pEdges.get(0).getPredecessor())) {
+            Collection<CFAEdge> successors = CFAUtils.enteringEdges(last.getPredecessor()).toList();
+            path.add(Iterables.getOnlyElement(successors));
+            last = path.get(path.size() - 1);
+          }
+          pEdges = ImmutableList.<CFAEdge>builder().addAll(pEdges).addAll(path).build();
+        }
+      }
+      return new ArgPathWithEdges(
+          listAndElement(states, pNewParent),
+          ImmutableList.<CFAEdge>builder().addAll(edges).addAll(pEdges).build());
+    }
+  }
+
+  private Collection<ARGPath> allArgPathsFromState(ARGState state) {
+    List<ArgPathWithEdges> waitlist = new ArrayList<>();
+    waitlist.add(new ArgPathWithEdges(ImmutableList.of(state), ImmutableList.of()));
+    ImmutableList.Builder<ARGPath> finished = ImmutableList.builder();
+    while (!waitlist.isEmpty()) {
+      ArgPathWithEdges current = waitlist.remove(waitlist.size() - 1);
+      ARGState last = current.getLastState();
+      if (last.getParents().isEmpty()) {
+        finished.add(
+            new ARGPath(
+                Lists.reverse(current.states()),
+                Lists.reverse(current.edges()),
+                Lists.reverse(current.edges())));
+        continue;
+      }
+      for (ARGState parent : last.getParents()) {
+        waitlist.add(current.copyWith(parent, Lists.reverse(parent.getEdgesToChild(last))));
+      }
+    }
+    return finished.build();
+  }
+
+  private Collection<ARGPath> collectAllArgPaths(Set<@NonNull ARGState> states) {
+    ImmutableList.Builder<ARGPath> builder = ImmutableList.builder();
+    for (ARGState state : states) {
+      builder.addAll(allArgPathsFromState(state));
+    }
+    return builder.build();
+  }
+
   private Collection<DssMessage> reportViolationConditions(
       Set<@NonNull ARGState> violations, ARGState condition, boolean first)
       throws CPAException, InterruptedException, SolverException {
-    ImmutableSet.Builder<ARGPath> pathsToViolations = ImmutableSet.builder();
-    pathsToViolations.addAll(
-        transformedImmutableSetCopy(
-            violations,
-            v ->
-                ARGUtils.tryGetOrCreateCounterexampleInformation(
-                        v, dcpa.getCPA(), assumptionToEdgeAllocator)
-                    .orElseThrow()
-                    .getTargetPath()));
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (ARGPath path : pathsToViolations.build()) {
+    for (ARGPath path : collectAllArgPaths(violations)) {
       Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(path, Optional.ofNullable(condition));
@@ -237,10 +284,10 @@ public class DssBlockAnalysis {
     status = status.update(result.getStatus());
 
     if (result.getViolations().isEmpty()) {
-      if (result.getSummaries().isEmpty()) {
+      if (result.getFinalLocationStates().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
-      return reportBlockPostConditions(result.getSummaries(), true);
+      return reportBlockPostConditions(result.getFinalLocationStates(), true);
     }
 
     return reportFirstViolationConditions(result.getViolations());
@@ -263,39 +310,36 @@ public class DssBlockAnalysis {
     if (!processing.shouldProceed()) {
       return processing;
     }
-    ImmutableList.Builder<StateAndPrecision> discard = ImmutableList.builder();
+    ImmutableSet.Builder<StateAndPrecision> discard = ImmutableSet.builder();
     if (preconditions.containsKey(pReceived.getSenderId())) {
-      if (block.getLoopPredecessorIds().isEmpty()) {
-        // replace if not in loop (every summary is either overapproximating
-        // or a loop condition will cause future computations.
-        discard.addAll(preconditions.get(pReceived.getSenderId()));
-      } else {
-        // whether a fixpoint was reached
-        Collection<StateAndPrecision> previousStates = preconditions.get(pReceived.getSenderId());
-        int covered = 0;
-        for (StateAndPrecision deserialized : deserializedStates) {
-          for (StateAndPrecision previous : previousStates) {
-            if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
-              discard.add(previous);
-              continue;
-            }
-            if (dcpa.getCoverageOperator().isSubsumed(previous.state(), deserialized.state())) {
-              covered++;
-              discard.add(deserialized);
-              break;
-            }
-            if (dcpa.getCoverageOperator().isSubsumed(deserialized.state(), previous.state())) {
-              discard.add(previous);
-            }
+      // whether a fixpoint was reached
+      Collection<StateAndPrecision> previousStates = preconditions.get(pReceived.getSenderId());
+      int covered = 0;
+      for (StateAndPrecision deserialized : deserializedStates) {
+        for (StateAndPrecision previous : previousStates) {
+          if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
+            discard.add(previous);
+            continue;
+          }
+          if (dcpa.getCoverageOperator().isSubsumed(previous.state(), deserialized.state())) {
+            covered++;
+            discard.add(deserialized);
+            break;
+          }
+          if (dcpa.getCoverageOperator().isSubsumed(deserialized.state(), previous.state())) {
+            discard.add(previous);
           }
         }
-        if (covered == deserializedStates.size()) {
-          // we already have a precondition implying the new one
-          return DssMessageProcessing.stop();
-        }
+      }
+      if (covered == deserializedStates.size()) {
+        // we already have a precondition implying the new one
+        return DssMessageProcessing.stop();
       }
     }
-    ImmutableList<StateAndPrecision> discarded = discard.build();
+    if (!block.getLoopPredecessorIds().contains(pReceived.getSenderId())) {
+      discard.addAll(preconditions.get(pReceived.getSenderId()));
+    }
+    ImmutableSet<StateAndPrecision> discarded = discard.build();
     preconditions.putAll(pReceived.getSenderId(), deserializedStates);
     discarded.forEach(sp -> preconditions.remove(pReceived.getSenderId(), sp));
     return processing;
@@ -377,8 +421,14 @@ public class DssBlockAnalysis {
     status = status.update(result.getStatus());
 
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    if (!result.getSummaries().isEmpty()) {
-      messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
+    if (block.isAbstractionPossible()) {
+      if (!result.getSummaries().isEmpty()) {
+        messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
+      }
+    } else {
+      messages.addAll(
+          reportViolationConditions(
+              result.getFinalLocationStates(), ((ARGState) violation.state()), false));
     }
     if (!result.getViolations().isEmpty()) {
       messages.addAll(

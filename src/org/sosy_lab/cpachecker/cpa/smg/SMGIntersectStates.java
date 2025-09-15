@@ -508,21 +508,19 @@ public final class SMGIntersectStates {
     }
 
     if (kind1 == kind2) {
-      switch (kind1) {
+      return switch (kind1) {
         case DLL -> {
           int length1 = ((SMGDoublyLinkedList) pObj1).getMinimumLength();
           int length2 = ((SMGDoublyLinkedList) pObj2).getMinimumLength();
-          return length1 < length2 ? pObj2 : pObj1;
+          yield length1 < length2 ? pObj2 : pObj1;
         }
         case SLL -> {
           int length1 = ((SMGSingleLinkedList) pObj1).getMinimumLength();
           int length2 = ((SMGSingleLinkedList) pObj2).getMinimumLength();
-          return length1 < length2 ? pObj2 : pObj1;
+          yield length1 < length2 ? pObj2 : pObj1;
         }
-        default -> {
-          return pObj1;
-        }
-      }
+        default -> pObj1;
+      };
     }
 
     return pObj1;

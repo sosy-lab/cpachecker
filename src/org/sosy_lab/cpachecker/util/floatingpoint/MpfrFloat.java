@@ -105,17 +105,13 @@ class MpfrFloat extends CFloat {
   }
 
   private BigFloat parseBigFloat(String repr) {
-    if ("nan".equals(repr)) {
-      return BigFloat.NaN(format.precision);
-    } else if ("-nan".equals(repr)) {
-      return BigFloat.NaN(format.precision).negate();
-    } else if ("-inf".equals(repr)) {
-      return BigFloat.negativeInfinity(format.precision);
-    } else if ("inf".equals(repr)) {
-      return BigFloat.positiveInfinity(format.precision);
-    } else {
-      return new BigFloat(repr, format);
-    }
+    return switch (repr) {
+      case "nan" -> BigFloat.NaN(format.precision);
+      case "-nan" -> BigFloat.NaN(format.precision).negate();
+      case "-inf" -> BigFloat.negativeInfinity(format.precision);
+      case "inf" -> BigFloat.positiveInfinity(format.precision);
+      default -> new BigFloat(repr, format);
+    };
   }
 
   @Override
@@ -196,7 +192,7 @@ class MpfrFloat extends CFloat {
   @Override
   public CFloat round() {
     if (isNan()) {
-      return this.abs();
+      return abs();
     }
     BigFloat posValue = value.abs();
     BigFloat above = posValue.rint(format.withRoundingMode(RoundingMode.CEILING));
@@ -275,7 +271,6 @@ class MpfrFloat extends CFloat {
       case DOUBLE ->
           new MpfrFloat(value.round(BinaryMathContext.BINARY64), BinaryMathContext.BINARY64);
       case LONG_DOUBLE -> new MpfrFloat(value.round(ldouble), ldouble);
-      default -> throw new IllegalArgumentException();
     };
   }
 

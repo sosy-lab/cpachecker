@@ -566,9 +566,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
           succ.addParent(pred);
 
-        } else if (leave instanceof FunctionCallEdge && pred.getChildren().isEmpty()) {
+        } else if (leave instanceof FunctionCallEdge functionCallEdge
+            && pred.getChildren().isEmpty()) {
           // function calls are not considered to be part of the loop
-          CFANode locContinueLoop = ((FunctionCallEdge) leave).getReturnNode();
+          CFANode locContinueLoop = functionCallEdge.getReturnNode();
           Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState = new HashMap<>();
           Pair<CFANode, CallstackState> context =
               Pair.of(
@@ -592,11 +593,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               Pair<CFANode, CallstackState> newContext =
                   Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
-              if (leaveFun instanceof FunctionReturnEdge) {
-                if (!context
-                    .getSecond()
-                    .getCallNode()
-                    .equals(((FunctionReturnEdge) leaveFun).getCallNode())) {
+              if (leaveFun instanceof FunctionReturnEdge functionReturnEdge) {
+                if (!context.getSecond().getCallNode().equals(functionReturnEdge.getCallNode())) {
                   continue; // false context
                 }
                 newContext =
@@ -645,10 +643,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private ExpressionTree<Object> buildInvariantFrom(NonTerminationArgument pArg) {
     ExpressionTree<Object> computedQuasiInvariant = ExpressionTrees.getTrue();
-    if (pArg instanceof GeometricNonTerminationArgument) {
-      computedQuasiInvariant = buildInvariantFrom((GeometricNonTerminationArgument) pArg);
-    } else if (pArg instanceof InfiniteFixpointRepetition) {
-      computedQuasiInvariant = buildInvaraintFrom((InfiniteFixpointRepetition) pArg);
+    if (pArg instanceof GeometricNonTerminationArgument geometricNonTerminationArgument) {
+      computedQuasiInvariant = buildInvariantFrom(geometricNonTerminationArgument);
+    } else if (pArg instanceof InfiniteFixpointRepetition infiniteFixpointRepetition) {
+      computedQuasiInvariant = buildInvaraintFrom(infiniteFixpointRepetition);
     }
     return computedQuasiInvariant;
   }
@@ -662,8 +660,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
       for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
         RankVar rankVar = (RankVar) entry.getKey();
-        if (rankVar.getTerm() instanceof ApplicationTerm
-            && ((ApplicationTerm) rankVar.getTerm()).getParameters().length != 0) {
+        if (rankVar.getTerm() instanceof ApplicationTerm applicationTerm
+            && applicationTerm.getParameters().length != 0) {
           // ignore UFs
           continue;
         }
@@ -702,9 +700,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     Object termVal;
 
     for (Entry<Term, Term> entry : arg.getValuesAtHonda().entrySet()) {
-      if (entry.getKey() instanceof TermVariable && entry.getValue() instanceof ConstantTerm) {
-        varName = toOrigName((TermVariable) entry.getKey());
-        termVal = ((ConstantTerm) entry.getValue()).getValue();
+      if (entry.getKey() instanceof TermVariable termVariable
+          && entry.getValue() instanceof ConstantTerm constantTerm) {
+        varName = toOrigName(termVariable);
+        termVal = constantTerm.getValue();
 
         if (termVal instanceof BigDecimal) {
           // FIXME: Conversion from BigDecimal to FloatValue is lossy and may cause rounding issues
@@ -782,7 +781,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       result = result.substring(1, result.length() - 1);
       List<String> t = extractArgs(result);
 
-      if (t.get(0).startsWith("*")) {
+      if (t.getFirst().startsWith("*")) {
         if (t.size() == 2) {
           return "*(" + expressionVarName(t.get(1)) + ")";
         } else if (t.size() == 3) {
@@ -790,7 +789,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         }
       }
 
-      if (t.get(0).startsWith("+")) {
+      if (t.getFirst().startsWith("+")) {
         if (t.size() == 3) {
           return "(" + expressionVarName(t.get(1)) + ")+(" + expressionVarName(t.get(2)) + ")";
         }

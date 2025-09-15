@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.export;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -42,7 +44,7 @@ public class BlockExport {
             Instant.now().toString(),
             new Producer("CPAchecker", "2.2", "DSS"),
             new Task(ImmutableList.of(), ImmutableMap.of(), "unreach", "C")),
-        FluentIterable.from(pBlockGraph.getNodes()).transform(BlockExport::export).toList());
+        transformedImmutableListCopy(pBlockGraph.getNodes(), BlockExport::export));
   }
 
   public static BlockMetadata export(BlockNode pNode) {
@@ -69,8 +71,8 @@ public class BlockExport {
           }
         }
         containedLeavingEdges++;
-        if (leavingEdge instanceof AssumeEdge) {
-          follow = Optional.of(((AssumeEdge) leavingEdge).getTruthAssumption());
+        if (leavingEdge instanceof AssumeEdge pAssumeEdge) {
+          follow = Optional.of(pAssumeEdge.getTruthAssumption());
         }
       }
     }

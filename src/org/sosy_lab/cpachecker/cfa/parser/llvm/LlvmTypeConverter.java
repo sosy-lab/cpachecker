@@ -34,14 +34,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.llvm_j.TypeRef;
 import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 import org.sosy_lab.llvm_j.Value;
 
 /** Converts LLVM types to {@link CType CTypes}. */
-public class LlvmTypeConverter {
+class LlvmTypeConverter {
 
   private static final String PREFIX_LITERAL_STRUCT = "lit_struc_";
   private static final String PREFIX_STRUCT_MEMBER = "elem_";
@@ -54,16 +54,16 @@ public class LlvmTypeConverter {
 
   private final Map<Integer, CType> typeCache = new HashMap<>();
 
-  public LlvmTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
+  LlvmTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
     machineModel = pMachineModel;
     logger = pLogger;
   }
 
-  public @Nullable CType getCType(final Value pLlvmValue) {
+  @Nullable CType getCType(final Value pLlvmValue) {
     return getCType(pLlvmValue.typeOf(), /* isUnsigned= */ false, pLlvmValue.isConstant());
   }
 
-  public @Nullable CType getCType(
+  @Nullable CType getCType(
       final TypeRef pLlvmType, final boolean isUnsigned, final boolean isConst) {
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
@@ -90,8 +90,7 @@ public class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getArrayLength()));
 
         yield new CArrayType(
-            isConst,
-            isVolatile,
+            CTypeQualifiers.create(isConst, isVolatile),
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
             arrayLength);
       }
@@ -100,7 +99,8 @@ public class LlvmTypeConverter {
           logger.log(Level.WARNING, "Pointer address space not considered.");
         }
         yield new CPointerType(
-            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned, isConst));
+            CTypeQualifiers.create(isConst, isVolatile),
+            getCType(pLlvmType.getElementType(), isUnsigned, isConst));
       }
       case Vector -> {
         CIntegerLiteralExpression vectorLength =
@@ -110,8 +110,7 @@ public class LlvmTypeConverter {
                 BigInteger.valueOf(pLlvmType.getVectorSize()));
 
         yield new CArrayType(
-            isConst,
-            isVolatile,
+            CTypeQualifiers.create(isConst, isVolatile),
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
             vectorLength);
       }
@@ -134,8 +133,7 @@ public class LlvmTypeConverter {
 
     if (typeCache.containsKey(pStructType.hashCode())) {
       return new CElaboratedType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           ComplexTypeKind.STRUCT,
           structName,
           origName,
@@ -143,7 +141,11 @@ public class LlvmTypeConverter {
     }
 
     CCompositeType cStructType =
-        new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, structName, origName);
+        new CCompositeType(
+            CTypeQualifiers.create(isConst, isVolatile),
+            ComplexTypeKind.STRUCT,
+            structName,
+            origName);
     typeCache.put(pStructType.hashCode(), cStructType);
 
     List<TypeRef> memberTypes = pStructType.getStructElementTypes();
@@ -241,7 +243,7 @@ public class LlvmTypeConverter {
     }
 
     if (isConst) {
-      return CTypes.withConst(baseType);
+      return baseType.withConst();
     } else {
       return baseType;
     }
@@ -286,8 +288,6 @@ public class LlvmTypeConverter {
 
   private CType getSimplestCType(
       final CBasicType pBasicType, final boolean isUnsigned, boolean pIsLong) {
-    final boolean isConst = false;
-    final boolean isVolatile = false;
     final boolean isShort = false;
     final boolean isSigned = false;
     final boolean isComplex = false;
@@ -295,8 +295,7 @@ public class LlvmTypeConverter {
     final boolean isLongLong = false;
 
     return new CSimpleType(
-        isConst,
-        isVolatile,
+        CTypeQualifiers.NONE,
         pBasicType,
         pIsLong,
         isShort,

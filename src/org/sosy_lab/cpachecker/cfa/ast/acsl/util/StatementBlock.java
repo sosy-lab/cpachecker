@@ -95,11 +95,10 @@ public class StatementBlock implements SyntacticBlock {
         continue;
       }
       visited.add(currentEdge);
-      if (currentEdge instanceof CFunctionCallEdge) {
+      if (currentEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
         // If currentEdge is a function call, then continue with the return edge and skip
         // everything in between
-        CFAUtils.enteringEdges(((CFunctionCallEdge) currentEdge).getReturnNode())
-            .copyInto(waitlist);
+        CFAUtils.enteringEdges(cFunctionCallEdge.getReturnNode()).copyInto(waitlist);
         continue;
       }
       CFANode successor = currentEdge.getSuccessor();

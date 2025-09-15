@@ -106,7 +106,7 @@ public class EclipseCdtWrapper {
 
     private final ICParserExtensionConfiguration parserConfig;
 
-    public CLanguage(final ICParserExtensionConfiguration pParserConfig) {
+    CLanguage(final ICParserExtensionConfiguration pParserConfig) {
       parserConfig = pParserConfig;
     }
 

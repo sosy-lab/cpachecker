@@ -18,7 +18,6 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -532,7 +531,8 @@ public final class ValueAnalysisState
               + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      ValueAndType val = constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
+      ValueAndType val =
+          constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.getFirst()));
       if (val == null) {
         return false;
       }
@@ -601,7 +601,7 @@ public final class ValueAnalysisState
                   + pModification
                   + "\" is invalid. Could not split the property string correctly.");
         } else {
-          String varName = assignmentParts.get(0);
+          String varName = assignmentParts.getFirst();
           try {
             Value newValue = new NumericValue(Long.parseLong(assignmentParts.get(1)));
             this.assignConstant(varName, newValue);
@@ -672,8 +672,8 @@ public final class ValueAnalysisState
 
               Number value = num.getNumber();
               final BitvectorFormula val;
-              if (value instanceof BigInteger) {
-                val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
+              if (value instanceof BigInteger bigInteger) {
+                val = bitvectorFMGR.makeBitvector(bitSize, bigInteger);
               } else {
                 val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
               }
@@ -739,7 +739,7 @@ public final class ValueAnalysisState
   }
 
   public Set<Entry<MemoryLocation, ValueAndType>> getConstants() {
-    return Collections.unmodifiableSet(constantsMap.entrySet());
+    return constantsMap.entrySet();
   }
 
   /**
@@ -857,8 +857,8 @@ public final class ValueAnalysisState
   }
 
   private BigInteger getBigIntFromIntegerNumber(Number pNum) {
-    if (pNum instanceof BigInteger) {
-      return (BigInteger) pNum;
+    if (pNum instanceof BigInteger bigInteger) {
+      return bigInteger;
     } else {
       return BigInteger.valueOf(pNum.longValue());
     }

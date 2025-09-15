@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.Ignore;
@@ -192,7 +193,7 @@ public class WitnessExporterTest {
       Map<String, String> pOverrideOptions,
       TempCompressedFilePath pWitnessPath)
       throws Exception {
-    Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
+    SequencedMap<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
     overrideOptions.put(
         "counterexample.export.graphml", pWitnessPath.uncompressedFilePath.toString());
     if (pGenerationConfig.equals(WitnessGenerationConfig.K_INDUCTION)) {
@@ -262,7 +263,7 @@ public class WitnessExporterTest {
       TempCompressedFilePath witnessPath,
       WitnessType witnessType)
       throws Exception {
-    Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
+    SequencedMap<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
     final String validationConfigFile;
     String specification = pSpecification;
     switch (witnessType) {
@@ -309,7 +310,7 @@ public class WitnessExporterTest {
 
     private final Path compressedFilePath;
 
-    public TempCompressedFilePath(String pPrefix, String pSuffix) throws IOException {
+    TempCompressedFilePath(String pPrefix, String pSuffix) throws IOException {
       String compressedSuffix = ".gz";
       compressedFilePath =
           TempFile.builder()
@@ -339,8 +340,8 @@ public class WitnessExporterTest {
       if (this == pOther) {
         return true;
       }
-      return pOther instanceof TempCompressedFilePath
-          && compressedFilePath.equals(((TempCompressedFilePath) pOther).compressedFilePath);
+      return pOther instanceof TempCompressedFilePath other
+          && compressedFilePath.equals(other.compressedFilePath);
     }
 
     @Override
@@ -367,18 +368,18 @@ public class WitnessExporterTest {
     }
 
     @CanIgnoreReturnValue
-    public WitnessTester forSpecification(String pSpecificationFile) {
+    WitnessTester forSpecification(String pSpecificationFile) {
       specificationFile = Objects.requireNonNull(pSpecificationFile);
       return this;
     }
 
     @CanIgnoreReturnValue
-    public WitnessTester addOverrideOption(String pOptionName, String pOptionValue) {
+    WitnessTester addOverrideOption(String pOptionName, String pOptionValue) {
       overrideOptionsBuilder.put(pOptionName, pOptionValue);
       return this;
     }
 
-    public void performTest() throws Exception {
+    void performTest() throws Exception {
       WitnessExporterTest.performTest(
           programFile,
           specificationFile,

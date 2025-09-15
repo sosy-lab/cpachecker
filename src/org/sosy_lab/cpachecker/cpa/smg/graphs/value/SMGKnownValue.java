@@ -27,7 +27,7 @@ public abstract class SMGKnownValue {
 
   @Override
   public boolean equals(Object pObj) {
-    return pObj instanceof SMGKnownValue && value.equals(((SMGKnownValue) pObj).value);
+    return pObj instanceof SMGKnownValue other && value.equals(other.value);
   }
 
   @Override

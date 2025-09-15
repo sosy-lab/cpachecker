@@ -62,8 +62,8 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof Constant
-          && constantResult.getValue().equals(((Constant) o).constantResult.getValue());
+      return o instanceof Constant other
+          && constantResult.getValue().equals(other.constantResult.getValue());
     }
   }
 
@@ -130,7 +130,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof VarAccess && varId.equals(((VarAccess) o).varId);
+      return o instanceof VarAccess other && varId.equals(other.varId);
     }
   }
 

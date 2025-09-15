@@ -277,9 +277,8 @@ public final class Solver implements AutoCloseable {
    * formulas.
    */
   public void printStatistics(PrintStream pOut) {
-    if (solvingContext instanceof StatisticsSolverContext) {
-      final SolverStatistics stats =
-          ((StatisticsSolverContext) solvingContext).getSolverStatistics();
+    if (solvingContext instanceof StatisticsSolverContext statisticsSolverContext) {
+      final SolverStatistics stats = statisticsSolverContext.getSolverStatistics();
       pOut.println();
       writingStatisticsTo(pOut)
           .put("Statistics about operations", "")
