@@ -45,6 +45,7 @@ public class InstrumentationAutomaton {
     LOOPHEAD,
     INIT,
     FUNCTIONHEADFORLOOP,
+    MAINFUNCTIONHEAD,
     FALSE
   }
 
@@ -173,7 +174,9 @@ public class InstrumentationAutomaton {
 
   private InstrumentationState initializeMemorySafety(
       ImmutableList.Builder<InstrumentationTransition> builder) {
-    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.TRUE, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.TRUE, this);
+    InstrumentationState q2 =
+        new InstrumentationState("q2", StateAnnotation.MAINFUNCTIONHEAD, this);
     InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT, this);
 
     this.initialState = q1;
@@ -422,12 +425,18 @@ public class InstrumentationAutomaton {
                     + "{\\n"
                     + "  __check_memory_leaks();\\n"
                     + "  exit(x);\\n"
-                    + "}\\n"
-                    + "__init_memory_tracker();\\n"),
+                    + "}\\n"),
             InstrumentationOrder.BEFORE,
             q2);
-    builder.add(t1);
-    return q2;
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation("__init_memory_tracker();"),
+            InstrumentationOrder.BEFORE,
+            q3);
+    builder.add(t1, t2);
+    return q3;
   }
 
   private InstrumentationState trackMemory(

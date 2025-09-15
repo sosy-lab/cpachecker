@@ -49,6 +49,15 @@ public class InstrumentationState {
   }
 
   public boolean stateMatchesCfaNode(CFANode pCFANode) {
+    if (stateAnnotation == StateAnnotation.MAINFUNCTIONHEAD
+        && pCFANode.getFunctionName().equals("main")) {
+      for (int i = 0; i < pCFANode.getNumEnteringEdges(); i++) {
+        if (pCFANode.getEnteringEdge(i).getDescription().contains("Function start")) {
+          return true;
+        }
+      }
+      return false;
+    }
     return ((stateAnnotation == StateAnnotation.INIT || stateAnnotation == StateAnnotation.TRUE)
             && !name.equals("DUMMY"))
         || ((stateAnnotation == StateAnnotation.LOOPHEAD && pCFANode.isLoopStart())
