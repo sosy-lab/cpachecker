@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
@@ -1276,7 +1277,7 @@ public class SMGCPAExpressionEvaluator {
         // So to evade more expensive SAT checks, we just check the constraint on its own.
         currentState = currentState.updateLastCheckedMemoryBounds(constraint);
         SolverResult satResAndModel =
-            solver.checkUnsat(
+            solver.checkUnsatWithFreshSolver(
                 currentState.getConstraints().copyWithNew(constraint), stackFrameFunctionName);
         if (satResAndModel.isSAT()) {
           return SatisfiabilityAndSMGState.of(
@@ -1328,7 +1329,7 @@ public class SMGCPAExpressionEvaluator {
     if (pMachineModel.getSizeof(canonicalType).intValueExact()
         >= pMachineModel.getSizeof(CNumericTypes.LONG_LONG_INT)) {
       return new CSimpleType(
-          false, false, CBasicType.INT128, false, false, true, false, false, false, false);
+          CTypeQualifiers.NONE, CBasicType.INT128, false, false, true, false, false, false, false);
     }
 
     return CNumericTypes.LONG_LONG_INT;
@@ -1362,7 +1363,15 @@ public class SMGCPAExpressionEvaluator {
     if (sizeOfMemoryAddressTypeInBits <= (sizeOfLongLongInt + 3)) {
       CType longDongInt =
           new CSimpleType(
-              false, false, CBasicType.INT128, false, false, true, false, false, false, false);
+              CTypeQualifiers.NONE,
+              CBasicType.INT128,
+              false,
+              false,
+              true,
+              false,
+              false,
+              false,
+              false);
       Preconditions.checkArgument(
           sizeOfMemoryAddressTypeInBits
               < (pMachineModel.getSizeofInBits(longDongInt).intValueExact() + 3));
@@ -1414,8 +1423,9 @@ public class SMGCPAExpressionEvaluator {
     try {
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
+      // TODO: think about reusing the solver
       SolverResult satResAndModel =
-          solver.checkUnsat(
+          solver.checkUnsatWithFreshSolver(
               currentState.getConstraints().copyWithNew(newConstraints), stackFrameFunctionName);
       if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
         for (Constraint newConstraint : newConstraints) {
@@ -1437,11 +1447,13 @@ public class SMGCPAExpressionEvaluator {
     return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
   }
 
+  // Used for finding value assignments
   public SatisfiabilityAndSMGState checkIsUnsatWithCurrentConstraints(SMGState currentState)
       throws SMGSolverException {
     try {
+      // TODO: think about reusing the solver
       SolverResult satResAndModel =
-          solver.checkUnsat(
+          solver.checkUnsatWithFreshSolver(
               currentState.getConstraints(), currentState.getStackFrameTopFunctionName());
       if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
         return SatisfiabilityAndSMGState.of(

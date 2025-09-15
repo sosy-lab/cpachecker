@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGTest;
@@ -60,8 +61,16 @@ public class SMGStateTest {
 
   private CSimpleType unspecifiedType =
       new CSimpleType(
-          false, false, CBasicType.UNSPECIFIED, false, false, true, false, false, false, false);
-  private CType pointerType = new CPointerType(false, false, unspecifiedType);
+          CTypeQualifiers.NONE,
+          CBasicType.UNSPECIFIED,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false);
+  private CType pointerType = new CPointerType(CTypeQualifiers.NONE, unspecifiedType);
   private static final MachineModel MM = MachineModel.LINUX32;
   private final long ptrSize = MM.getSizeofInBits(pointerType).longValueExact();
 

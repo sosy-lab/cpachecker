@@ -85,8 +85,7 @@ class ASTLiteralConverter {
     valueStr = valueStr.substring(0, valueStr.length() - 1);
     type =
         new CSimpleType(
-            type.isConst(),
-            type.isVolatile(),
+            type.getQualifiers(),
             type.getType(),
             type.hasLongSpecifier(),
             type.hasShortSpecifier(),

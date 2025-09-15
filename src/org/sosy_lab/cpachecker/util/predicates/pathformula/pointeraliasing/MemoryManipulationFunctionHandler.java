@@ -449,9 +449,7 @@ class MemoryManipulationFunctionHandler {
       return new CCastExpression(
           FileLocation.DUMMY,
           new CPointerType(
-              argument.getExpressionType().isConst(),
-              argument.getExpressionType().isVolatile(),
-              CNumericTypes.UNSIGNED_CHAR),
+              argument.getExpressionType().getQualifiers(), CNumericTypes.UNSIGNED_CHAR),
           argument);
     }
 
@@ -529,8 +527,7 @@ class MemoryManipulationFunctionHandler {
       // fuse the last two dimensions together
       idType =
           new CArrayType(
-              lastDimensionType.isConst(),
-              lastDimensionType.isVolatile(),
+              lastDimensionType.getQualifiers(),
               secondLastDimensionType.getType(),
               multipliedLength);
     }

@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
@@ -229,7 +230,7 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = CTypes.copyDequalified(pCompositeType);
+    CCompositeType compositeType = pCompositeType.withoutQualifiers();
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
@@ -827,7 +828,7 @@ public class CtoFormulaConverter implements LanguagetoSmtConverter {
 
     if (fromType instanceof CFunctionType) {
       // references to functions can be seen as function pointers
-      fromType = new CPointerType(false, false, fromType);
+      fromType = new CPointerType(CTypeQualifiers.NONE, fromType);
     }
 
     // This results in a signed type for pointers, which is what we need because GCC does sign
