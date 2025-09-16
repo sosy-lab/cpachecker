@@ -36,6 +36,10 @@ public class SymbolicValueFactory {
     SINGLETON.idCounter = 0;
   }
 
+  public static void setIdCounter(int pIdCounter) {
+    SINGLETON.idCounter = pIdCounter;
+  }
+
   public SymbolicIdentifier newIdentifier(MemoryLocation pMemoryLocation) {
     return new SymbolicIdentifier(idCounter++, pMemoryLocation);
   }

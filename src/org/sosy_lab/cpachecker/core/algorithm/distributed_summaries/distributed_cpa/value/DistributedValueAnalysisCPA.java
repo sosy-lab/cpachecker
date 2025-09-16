@@ -8,22 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -41,13 +32,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class DistributedValueAnalysisCPA implements ForwardingDistributedConfigurableProgramAnalysis {
+public class DistributedValueAnalysisCPA
+    implements ForwardingDistributedConfigurableProgramAnalysis {
   private final ValueAnalysisCPA valueCPA;
   private final CFA cfa;
   private final BlockNode blockNode;
@@ -61,14 +52,14 @@ public class DistributedValueAnalysisCPA implements ForwardingDistributedConfigu
   private final ValueStateCoverageOperator coverageOperator;
   private final FormulaManagerView formulaManager;
 
-
   public DistributedValueAnalysisCPA(
       ValueAnalysisCPA pValueCPA,
       CFA pCFA,
       Configuration pConfiguration,
       BlockNode pBlockNode,
       LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     valueCPA = pValueCPA;
     cfa = pCFA;
     Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier);
@@ -85,8 +76,15 @@ public class DistributedValueAnalysisCPA implements ForwardingDistributedConfigu
     coverageOperator = new ValueStateCoverageOperator(formulaManager);
     blockNode = pBlockNode;
 
+    int blockNodeId = 0;
+    if (blockNode.getId().startsWith("L"))
+      blockNodeId = Integer.parseInt(blockNode.getId().substring(1)) * 100 + 1;
+    if (blockNode.getId().startsWith("MH"))
+      blockNodeId = Integer.parseInt(blockNode.getId().substring(2)) * 100 + 2;
+    if (blockNode.getId().startsWith("MV"))
+      blockNodeId = Integer.parseInt(blockNode.getId().substring(2)) * 100 + 3;
 
-    // here compute
+    SymbolicValueFactory.setIdCounter(blockNodeId << 16);
   }
 
   @Override
@@ -146,7 +144,8 @@ public class DistributedValueAnalysisCPA implements ForwardingDistributedConfigu
 
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
-    BooleanFormula formula = ((ValueAnalysisState) pAbstractState).getFormulaApproximation(formulaManager);
+    BooleanFormula formula =
+        ((ValueAnalysisState) pAbstractState).getFormulaApproximation(formulaManager);
     return formulaManager.getBooleanFormulaManager().isTrue(formula);
   }
 
@@ -158,12 +157,9 @@ public class DistributedValueAnalysisCPA implements ForwardingDistributedConfigu
   @Override
   public ValueAnalysisState getInitialState(CFANode node, StateSpacePartition partition) {
     ValueAnalysisState init = new ValueAnalysisState(cfa.getMachineModel());
-    HashMap<String, Type> accessedVars =
+    Map<String, Type> accessedVars =
         DeserializeValueAnalysisStateOperator.getAccessedVariables(blockNode);
     DeserializeValueAnalysisStateOperator.havocVariables(init, accessedVars);
     return init;
   }
-
-
-
 }
