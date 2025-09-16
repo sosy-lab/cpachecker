@@ -133,8 +133,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       if (reachedSet.getFirstState() instanceof CompositeState cS) {
         cState = cS;
         initialPrecision = reachedSet.getPrecision(cS);
-      }
-      else {
+      } else {
         ARGState state = (ARGState) reachedSet.getFirstState();
         assert state != null;
         cState = (CompositeState) state.getWrappedState();

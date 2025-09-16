@@ -22,11 +22,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.DistributedConstraintsCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.DistributedConstraintsCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DistributedValueAnalysisCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -101,10 +101,10 @@ public class DssFactory {
               pShutdownNotifier);
       case LocationCPA locationCPA -> distribute(locationCPA, pBlockNode, integerToNodeMap);
       case ConstraintsCPA constraintsCPA -> distribute(constraintsCPA, pBlockNode);
-      case ValueAnalysisCPA valueAnalysisCPA -> distribute(valueAnalysisCPA, pCFA, pConfiguration, pBlockNode,
-          pLogManager, pShutdownNotifier);
+      case ValueAnalysisCPA valueAnalysisCPA ->
+          distribute(
+              valueAnalysisCPA, pCFA, pConfiguration, pBlockNode, pLogManager, pShutdownNotifier);
       case null /*TODO check if null is necessary*/, default -> null;
-
     };
   }
 
@@ -124,11 +124,15 @@ public class DssFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      ValueAnalysisCPA pValueCPA, CFA pCFA, Configuration pConfiguration, BlockNode pBlockNode,
-      LogManager pLogManager, ShutdownNotifier pShutdownNotifier)
+      ValueAnalysisCPA pValueCPA,
+      CFA pCFA,
+      Configuration pConfiguration,
+      BlockNode pBlockNode,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    return new DistributedValueAnalysisCPA(pValueCPA, pCFA, pConfiguration, pBlockNode, pLogManager,
-        pShutdownNotifier);
+    return new DistributedValueAnalysisCPA(
+        pValueCPA, pCFA, pConfiguration, pBlockNode, pLogManager, pShutdownNotifier);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

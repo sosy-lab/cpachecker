@@ -11,14 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Preconditions;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.FullConstraintsPrecision;
 
 public class CombineConstraintsPrecisionOperator implements CombinePrecisionOperator {
   @Override
   public Precision combine(Collection<Precision> precisions) throws InterruptedException {
-    Preconditions.checkArgument(precisions.stream().allMatch(FullConstraintsPrecision.class::isInstance));
+    Preconditions.checkArgument(
+        precisions.stream().allMatch(FullConstraintsPrecision.class::isInstance));
     return FullConstraintsPrecision.getInstance();
   }
 }
