@@ -26,12 +26,10 @@ public class K3Script {
   @Override
   public boolean equals(Object obj) {
     if (obj == this) {
-        return true;
+      return true;
     }
 
-    return
-        obj instanceof K3Script other &&
-        Objects.equals(commands, other.commands);
+    return obj instanceof K3Script other && Objects.equals(commands, other.commands);
   }
 
   @Override

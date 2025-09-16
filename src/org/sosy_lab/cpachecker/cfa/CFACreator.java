@@ -767,7 +767,8 @@ public class CFACreator {
         case C -> throw new CParserException("No functions found in program");
         case K3 ->
             throw new K3ParserException(
-                "No verification call found in the K3 program. Please check the syntax of your K3 program.");
+                "No verification call found in the K3 program. Please check the syntax of your K3"
+                    + " program.");
         default -> throw new AssertionError();
       }
     }

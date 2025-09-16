@@ -105,11 +105,13 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               extendedFormula,
               fmgr.assignment(
                   fmgr.makeVariable(
-                      ctoFormulaConverter.getFormulaTypeFromCType((CType) pSSAMap.getType(variable)),
+                      ctoFormulaConverter.getFormulaTypeFromCType(
+                          (CType) pSSAMap.getType(variable)),
                       newVariable,
                       pNumberOfIterationsAtLoopHead),
                   fmgr.makeVariable(
-                      ctoFormulaConverter.getFormulaTypeFromCType((CType) pSSAMap.getType(variable)),
+                      ctoFormulaConverter.getFormulaTypeFromCType(
+                          (CType) pSSAMap.getType(variable)),
                       variable,
                       pSSAMap.getIndex(variable))));
     }

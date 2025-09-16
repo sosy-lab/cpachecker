@@ -174,8 +174,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               fmgr.getArrayFormulaManager();
             } catch (UnsupportedOperationException e) {
               throw new InvalidConfigurationException(
-                  "Cannot use arrays with current solver, either choose a different solver or disable"
-                      + " arrays.");
+                  "Cannot use arrays with current solver, either choose a different solver or"
+                      + " disable arrays.");
             }
           }
 

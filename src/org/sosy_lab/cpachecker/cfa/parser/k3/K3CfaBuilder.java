@@ -505,7 +505,8 @@ class K3CfaBuilder {
         case K3GetCounterexampleCommand pK3GetCounterexampleCommand -> {
           logger.log(
               Level.WARNING,
-              "Ignoring get-counterexample command, since there was no verify call command before.");
+              "Ignoring get-counterexample command, since there was no verify call command"
+                  + " before.");
         }
         case K3GetProofCommand pK3GetProofCommand -> {
           logger.log(
@@ -537,14 +538,16 @@ class K3CfaBuilder {
         default ->
             logger.log(
                 Level.WARNING,
-                "The command after the verify call command is neither a get-proof nor a get-counterexample command. It will be ignored.");
+                "The command after the verify call command is neither a get-proof nor a"
+                    + " get-counterexample command. It will be ignored.");
       }
     }
 
     if (indexOfFirstVerifyCall + 2 < commands.size()) {
       logger.log(
           Level.WARNING,
-          "There are commands after the verify call and the possible get-proof/get-counterexample command. These will be ignored.");
+          "There are commands after the verify call and the possible get-proof/get-counterexample"
+              + " command. These will be ignored.");
     }
 
     // Finish the main function

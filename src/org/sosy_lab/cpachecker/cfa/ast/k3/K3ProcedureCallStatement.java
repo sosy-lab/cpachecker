@@ -82,8 +82,9 @@ public final class K3ProcedureCallStatement extends K3CfaEdgeStatement implement
   @Override
   public AFunctionCallExpression getFunctionCallExpression() {
     throw new RuntimeException(
-        "K3ProcedureCallStatement does not have a function call expression. "
-            + "This is due to design choices in the language, where function calls are only statements and not expressions.");
+        "K3ProcedureCallStatement does not have a function call expression. This is due to design"
+            + " choices in the language, where function calls are only statements and not"
+            + " expressions.");
   }
 
   @Override
