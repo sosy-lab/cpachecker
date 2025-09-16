@@ -9,15 +9,20 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueViolationConditionOperator implements ViolationConditionOperator {
   public final MachineModel machineModel;
@@ -35,12 +40,47 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
     assert !states.isEmpty();
 
     AbstractState entry = states.getFirst().getWrappedState();
-    if (!(entry instanceof CompositeState cS))
+    ValueAnalysisState violationCondition = new ValueAnalysisState(machineModel);
+
+    if (!(entry instanceof CompositeState compositeEntry))
       return Optional.of(new ValueAnalysisState(machineModel));
-    for (AbstractState state : cS.getWrappedStates()) {
-      if (state instanceof ValueAnalysisState)
-        return Optional.of(state);
+    for (AbstractState state : compositeEntry.getWrappedStates()) {
+      if (state instanceof ValueAnalysisState valueState)
+        violationCondition = valueState;
     }
-    return Optional.of(new ValueAnalysisState(machineModel));
+
+    ValueAnalysisState violationValue = getViolationValueState(states.getLast(), machineModel);
+    for (Map.Entry<MemoryLocation, ValueAndType> variable : violationValue.getConstants()) {
+      if (!violationCondition.contains(variable.getKey()))
+        violationCondition.assignConstant(variable.getKey(),
+            variable.getValue().getValue(),
+            variable.getValue().getType());
+
+    }
+    return Optional.of(violationCondition);
+  }
+
+  private static ValueAnalysisState getViolationValueState(ARGState pState,
+                                                           MachineModel pMachineModel) {
+
+    if (! (pState.getWrappedState() instanceof CompositeState cS))
+      return new ValueAnalysisState(pMachineModel);
+
+    for (AbstractState state : cS.getWrappedStates()) {
+       if (state instanceof BlockState blockState && blockState.isTarget()) {
+         AbstractState violation = blockState.getErrorCondition().get();
+         if (! (violation instanceof ARGState argState) ||
+             ! (argState.getWrappedState() instanceof CompositeState compositeViolation))
+           return new ValueAnalysisState(pMachineModel);
+
+         for (AbstractState wrappedState : compositeViolation.getWrappedStates()) {
+           if (wrappedState instanceof ValueAnalysisState valueState)
+             return valueState;
+         }
+       }
+
+    }
+    return new ValueAnalysisState(pMachineModel);
+
   }
 }
