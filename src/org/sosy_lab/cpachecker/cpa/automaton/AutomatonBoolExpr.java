@@ -293,7 +293,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
                   Sets.difference(
                       transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
                       transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
-              .transformAndConcat(CFAUtils::allLeavingEdges)
+              .transformAndConcat(CFANode::getAllLeavingEdges)
               .filter(edge -> pElement.edges().contains(edge))
               .toSet();
     }

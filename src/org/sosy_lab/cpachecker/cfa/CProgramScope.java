@@ -620,7 +620,7 @@ public class CProgramScope implements Scope {
       Collection<CFANode> pNodes) {
     FluentIterable<CAstNode> varUses =
         FluentIterable.from(pNodes)
-            .transformAndConcat(CFAUtils::leavingEdges)
+            .transformAndConcat(CFANode::getLeavingEdges)
             .transformAndConcat(CProgramScope::getAstNodesFromCfaEdge)
             .filter(CAstNode.class)
             .filter(
