@@ -21,9 +21,4 @@ public interface AFunctionCall extends AStatement {
   default List<? extends AExpression> getParameterExpressions() {
     return getFunctionCallExpression().getParameterExpressions();
   }
-
-  @Override
-  default String toASTString() {
-    return getFunctionCallExpression().toASTString() + ";";
-  }
 }
