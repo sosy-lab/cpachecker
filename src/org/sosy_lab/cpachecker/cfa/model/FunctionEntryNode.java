@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
@@ -36,6 +37,11 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   // an infinite loop, the CFA doesn't contain an exit node for the function. If this is the case,
   // this field is null.
   private @Nullable FunctionExitNode exitNode;
+
+  // Cache for getEnteringEdges that is backed by an ImmutableSet.
+  // This makes getEnteringEdges().contains(edge) much faster if there are many entering edges
+  // (which can happen for FunctionEntryNodes). Cf. #1388
+  private FluentIterable<CFAEdge> enteringEdges;
 
   protected FunctionEntryNode(
       final FileLocation pFileLocation,
@@ -102,6 +108,7 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   @Override
   public void addEnteringEdge(CFAEdge pEnteringEdge) {
     checkArgument(pEnteringEdge instanceof FunctionCallEdge);
+    enteringEdges = null;
     super.addEnteringEdge(pEnteringEdge);
   }
 
@@ -116,7 +123,11 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   @Deprecated
   @Override
   public final FluentIterable<CFAEdge> getEnteringEdges() {
-    return super.getEnteringEdges();
+    if (enteringEdges == null) {
+      enteringEdges = from(super.getEnteringEdges().toSet());
+      assert super.getEnteringEdges().size() == enteringEdges.size();
+    }
+    return enteringEdges;
   }
 
   @SuppressWarnings("unchecked")
