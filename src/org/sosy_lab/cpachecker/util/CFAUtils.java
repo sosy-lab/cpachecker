@@ -133,6 +133,8 @@ public class CFAUtils {
    * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
    * These edges are equal, so a set would only contain one of the parallel edges.
    */
+  @InlineMe(replacement = "node.getAllEnteringEdges()")
+  @Deprecated
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     return node.getAllEnteringEdges();
   }
@@ -152,6 +154,8 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains the entering edges of a given CFANode, excluding the
    * summary edge.
    */
+  @InlineMe(replacement = "node.getEnteringEdges()")
+  @Deprecated
   public static FluentIterable<CFAEdge> enteringEdges(final CFANode node) {
     return node.getEnteringEdges();
   }
@@ -164,6 +168,8 @@ public class CFAUtils {
    * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
    * These edges are equal, so a set would only contain one of the parallel edges.
    */
+  @InlineMe(replacement = "node.getAllLeavingEdges()")
+  @Deprecated
   public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
     return node.getAllLeavingEdges();
   }
@@ -189,6 +195,8 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains the leaving edges of a given CFANode, excluding the
    * summary edge.
    */
+  @InlineMe(replacement = "node.getLeavingEdges()")
+  @Deprecated
   public static FluentIterable<CFAEdge> leavingEdges(final CFANode node) {
     return node.getLeavingEdges();
   }
@@ -222,7 +230,7 @@ public class CFAUtils {
    * the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> predecessorsOf(final CFANode node) {
-    return enteringEdges(node).transform(CFAEdge::getPredecessor);
+    return node.getEnteringEdges().transform(CFAEdge::getPredecessor);
   }
 
   /**
@@ -230,7 +238,7 @@ public class CFAUtils {
    * including the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> allPredecessorsOf(final CFANode node) {
-    return allEnteringEdges(node).transform(CFAEdge::getPredecessor);
+    return node.getAllEnteringEdges().transform(CFAEdge::getPredecessor);
   }
 
   /**
@@ -238,7 +246,7 @@ public class CFAUtils {
    * one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> successorsOf(final CFANode node) {
-    return leavingEdges(node).transform(CFAEdge::getSuccessor);
+    return node.getLeavingEdges().transform(CFAEdge::getSuccessor);
   }
 
   /**
@@ -246,7 +254,7 @@ public class CFAUtils {
    * the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
-    return allLeavingEdges(node).transform(CFAEdge::getSuccessor);
+    return node.getAllLeavingEdges().transform(CFAEdge::getSuccessor);
   }
 
   @Deprecated // entry nodes do not have summary edges
@@ -298,7 +306,8 @@ public class CFAUtils {
   /** Returns the other AssumeEdge (with the negated condition) of a given AssumeEdge. */
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
     return Iterables.getOnlyElement(
-        CFAUtils.leavingEdges(edge.getPredecessor())
+        edge.getPredecessor()
+            .getLeavingEdges()
             .filter(e -> !e.equals(edge))
             .filter(AssumeEdge.class));
   }
@@ -565,7 +574,7 @@ public class CFAUtils {
       List<CFANode> currentPath = waitlist.poll();
       CFANode pathSucc = currentPath.getLast();
       List<BlankEdge> leavingBlankEdges =
-          CFAUtils.leavingEdges(pathSucc).filter(BlankEdge.class).toList();
+          pathSucc.getLeavingEdges().filter(BlankEdge.class).toList();
       if (pathSucc.getNumLeavingEdges() <= 0
           || leavingBlankEdges.size() < pathSucc.getNumLeavingEdges()) {
         blankPaths.add(currentPath);
@@ -585,7 +594,7 @@ public class CFAUtils {
       List<CFANode> currentPath = waitlist.poll();
       CFANode pathPred = currentPath.getFirst();
       List<BlankEdge> enteringBlankEdges =
-          CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
+          pathPred.getEnteringEdges().filter(BlankEdge.class).toList();
       if (pathPred.getNumEnteringEdges() <= 0
           || enteringBlankEdges.size() < pathPred.getNumEnteringEdges()) {
         blankPaths.add(currentPath);
@@ -607,13 +616,15 @@ public class CFAUtils {
     // Using the method getFileLocationsFromCfaEdge produces some weird results
     // when considering the initialized global variables and stuff like that
     Set<FileLocation> allFileLocationFirstNode =
-        CFAUtils.allEnteringEdges(pNode1)
-            .append(CFAUtils.allLeavingEdges(pNode1))
+        pNode1
+            .getAllEnteringEdges()
+            .append(pNode1.getAllLeavingEdges())
             .transform(CFAEdge::getFileLocation)
             .toSet();
     Set<FileLocation> allFileLocationSecondtNode =
-        CFAUtils.allEnteringEdges(pNode2)
-            .append(CFAUtils.allLeavingEdges(pNode2))
+        pNode2
+            .getAllEnteringEdges()
+            .append(pNode2.getAllLeavingEdges())
             .transform(CFAEdge::getFileLocation)
             .toSet();
 

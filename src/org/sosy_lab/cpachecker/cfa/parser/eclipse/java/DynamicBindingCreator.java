@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.SortedSetMultimap;
 import java.util.ArrayDeque;
@@ -243,7 +242,7 @@ class DynamicBindingCreator {
         continue;
       }
 
-      for (CFAEdge edge : leavingEdges(node)) {
+      for (CFAEdge edge : node.getLeavingEdges()) {
         if (edge instanceof AStatementEdge statement) {
           JStatement expr = (JStatement) statement.getStatement();
 

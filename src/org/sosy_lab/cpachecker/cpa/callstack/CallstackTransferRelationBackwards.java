@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -144,7 +143,7 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
 
   @Override
   protected FunctionCallEdge findOutgoingCallEdge(CFANode predNode) {
-    for (CFAEdge edge : leavingEdges(predNode)) {
+    for (CFAEdge edge : predNode.getLeavingEdges()) {
       if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         return (FunctionCallEdge) edge;
       }

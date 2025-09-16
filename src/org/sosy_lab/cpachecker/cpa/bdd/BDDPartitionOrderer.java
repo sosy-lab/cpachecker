@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -163,7 +162,7 @@ public class BDDPartitionOrderer {
     public TraversalProcess visitNode(CFANode pNode) {
       int numChildren = pNode.getNumLeavingEdges();
       if (numChildren > 1) { // split-point
-        leavingEdges(pNode).copyInto(edges);
+        pNode.getLeavingEdges().copyInto(edges);
         return TraversalProcess.SKIP;
 
       } else {

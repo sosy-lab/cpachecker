@@ -604,7 +604,7 @@ public final class AutomatonGraphmlCommon {
     if (!Ascii.toUpperCase(idExpression.getName()).startsWith(CPACHECKER_TMP_PREFIX)) {
       return false;
     }
-    FluentIterable<CFAEdge> successorEdges = CFAUtils.leavingEdges(statementEdge.getSuccessor());
+    FluentIterable<CFAEdge> successorEdges = statementEdge.getSuccessor().getLeavingEdges();
     if (successorEdges.size() != 1) {
       return false;
     }
@@ -711,7 +711,7 @@ public final class AutomatonGraphmlCommon {
       if (isDefaultCase(assumeEdge)) {
         CFANode successorNode = assumeEdge.getSuccessor();
         FileLocation switchLocation =
-            Iterables.getOnlyElement(CFAUtils.leavingEdges(successorNode)).getFileLocation();
+            Iterables.getOnlyElement(successorNode.getLeavingEdges()).getFileLocation();
         if (switchLocation.isRealLocation()) {
           location = switchLocation;
         } else {
@@ -750,7 +750,7 @@ public final class AutomatonGraphmlCommon {
     if (assumeEdge.getTruthAssumption()) {
       return false;
     }
-    FluentIterable<CFAEdge> successorEdges = CFAUtils.leavingEdges(assumeEdge.getSuccessor());
+    FluentIterable<CFAEdge> successorEdges = assumeEdge.getSuccessor().getLeavingEdges();
     if (successorEdges.size() != 1) {
       return false;
     }
@@ -847,7 +847,7 @@ public final class AutomatonGraphmlCommon {
         boolean cont = true;
         while (cont) {
           cont = false;
-          Iterator<CFAEdge> leavingEdges = CFAUtils.leavingEdges(successor).iterator();
+          Iterator<CFAEdge> leavingEdges = successor.getLeavingEdges().iterator();
           if (!leavingEdges.hasNext()) {
             return false;
           }
@@ -939,7 +939,9 @@ public final class AutomatonGraphmlCommon {
     if (namesOnEdge.isEmpty()) {
       return false;
     }
-    return !CFAUtils.leavingEdges(assumeEdge.getSuccessor())
+    return !assumeEdge
+        .getSuccessor()
+        .getLeavingEdges()
         .filter(e -> e.getFileLocation().equals(pEdge.getFileLocation()))
         .filter(FunctionCallEdge.class)
         .filter(e -> namesOnEdge.contains(e.getSuccessor().getFunctionName()))
@@ -965,7 +967,7 @@ public final class AutomatonGraphmlCommon {
     }
 
     // Check if the subsequent edge matches the termination-value assignment
-    FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(assumeEdge.getSuccessor());
+    FluentIterable<CFAEdge> leavingEdges = assumeEdge.getSuccessor().getLeavingEdges();
     if (leavingEdges.size() != 1) {
       return false;
     }
@@ -990,7 +992,7 @@ public final class AutomatonGraphmlCommon {
     }
 
     // Now check if this is followed by a terminating assume
-    leavingEdges = CFAUtils.leavingEdges(terminationValueAssignmentEdge.getSuccessor());
+    leavingEdges = terminationValueAssignmentEdge.getSuccessor().getLeavingEdges();
     if (leavingEdges.size() != 2) {
       return false;
     }
@@ -1034,7 +1036,7 @@ public final class AutomatonGraphmlCommon {
   }
 
   private static boolean isEmptyStub(FunctionEntryNode pEntryNode) {
-    Iterator<CFAEdge> startEdges = CFAUtils.leavingEdges(pEntryNode).iterator();
+    Iterator<CFAEdge> startEdges = pEntryNode.getLeavingEdges().iterator();
     if (!startEdges.hasNext()) {
       return false;
     }
@@ -1043,7 +1045,7 @@ public final class AutomatonGraphmlCommon {
       return false;
     }
     CFANode innerNode = startEdge.getSuccessor();
-    Iterator<CFAEdge> defaultReturnEdges = CFAUtils.leavingEdges(innerNode).iterator();
+    Iterator<CFAEdge> defaultReturnEdges = innerNode.getLeavingEdges().iterator();
     if (!defaultReturnEdges.hasNext()) {
       return false;
     }
@@ -1061,7 +1063,7 @@ public final class AutomatonGraphmlCommon {
     CFANode pred = pEdge.getPredecessor();
     return pEdge instanceof BlankEdge
         && pred.getNumLeavingEdges() == 1
-        && CFAUtils.enteringEdges(pred)
+        && pred.getEnteringEdges()
             .filter(BlankEdge.class)
             .anyMatch(e -> e.getDescription().equals("while"));
   }

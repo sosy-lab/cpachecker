@@ -25,7 +25,6 @@ import java.util.SequencedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class STBridges {
 
@@ -74,7 +73,7 @@ public class STBridges {
         for (CFANode cfaNode : connection) {
           boolean hasSuccessorInIncludes = false;
           boolean hasSuccessorOutOfIncludes = false;
-          for (CFAEdge leavingEdge : CFAUtils.leavingEdges(cfaNode)) {
+          for (CFAEdge leavingEdge : cfaNode.getLeavingEdges()) {
             if (includes.contains(leavingEdge.getSuccessor())) {
               connectionEdges.add(leavingEdge);
               hasSuccessorInIncludes = true;
@@ -96,7 +95,7 @@ public class STBridges {
 
           boolean hasPredecessorInIncludes = false;
           boolean hasPredecessorOutOfIncludes = false;
-          for (CFAEdge enteringEdge : CFAUtils.enteringEdges(cfaNode)) {
+          for (CFAEdge enteringEdge : cfaNode.getEnteringEdges()) {
             if (includes.contains(enteringEdge.getPredecessor())) {
               hasPredecessorInIncludes = true;
             } else {
@@ -140,7 +139,7 @@ public class STBridges {
     Deque<List<CFAEdge>> paths = new ArrayDeque<>();
     CFANode mainFunction = blockNode.getInitialLocation();
     CFANode exitNode = blockNode.getFinalLocation();
-    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(mainFunction)) {
+    for (CFAEdge leavingEdge : mainFunction.getLeavingEdges()) {
 
       if (blockNode.getEdges().contains(leavingEdge)) {
         List<CFAEdge> path = new ArrayList<>();
@@ -155,7 +154,7 @@ public class STBridges {
       if (lastNode.equals(exitNode)) {
         return currentPath;
       }
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(lastNode)) {
+      for (CFAEdge leavingEdge : lastNode.getLeavingEdges()) {
         if (blockNode.getEdges().contains(leavingEdge)) {
           List<CFAEdge> copy = new ArrayList<>(currentPath);
           copy.add(leavingEdge);
@@ -232,7 +231,7 @@ public class STBridges {
       CFANode pNode, List<CFAEdge> pFlipped, BlockNodeWithoutGraphInformation blockNode) {
     ImmutableSet<CFAEdge> copy = ImmutableSet.copyOf(pFlipped);
     ImmutableSet.Builder<CFANode> successors = ImmutableSet.builder();
-    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pNode)) {
+    for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
       if (!copy.contains(leavingEdge) && blockNode.getEdges().contains(leavingEdge)) {
         successors.add(leavingEdge.getSuccessor());
       }

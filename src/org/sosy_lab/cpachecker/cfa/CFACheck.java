@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Verify.verify;
-import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.Iterables;
@@ -205,7 +203,7 @@ public class CFACheck {
     Set<CFAEdge> seenEdges = new HashSet<>();
     Set<CFANode> seenNodes = new HashSet<>();
 
-    for (CFAEdge edge : leavingEdges(pNode)) {
+    for (CFAEdge edge : pNode.getLeavingEdges()) {
       verify(seenEdges.add(edge), "Duplicate leaving edge %s on node %s", edge, debugFormat(pNode));
       checkEdge(edge, machineModel);
 
@@ -217,7 +215,7 @@ public class CFACheck {
           debugFormat(pNode));
 
       verify(
-          enteringEdges(successor).contains(edge),
+          successor.getEnteringEdges().contains(edge),
           "Node %s has leaving edge %s, but node %s does not have this edge as entering edge!",
           debugFormat(pNode),
           edge,
@@ -227,7 +225,7 @@ public class CFACheck {
     seenEdges.clear();
     seenNodes.clear();
 
-    for (CFAEdge edge : enteringEdges(pNode)) {
+    for (CFAEdge edge : pNode.getEnteringEdges()) {
       verify(
           seenEdges.add(edge), "Duplicate entering edge %s on node %s", edge, debugFormat(pNode));
 
@@ -239,7 +237,7 @@ public class CFACheck {
           debugFormat(pNode));
 
       verify(
-          leavingEdges(predecessor).contains(edge),
+          predecessor.getLeavingEdges().contains(edge),
           "Node %s has entering edge %s, but node %s does not have this edge as leaving edge!",
           debugFormat(pNode),
           edge,
