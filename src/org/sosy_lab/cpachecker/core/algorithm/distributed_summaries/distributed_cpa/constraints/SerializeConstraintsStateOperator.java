@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.SerializePredicateStateOperator.READABLE_KEY;
+
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.HashSet;
@@ -17,7 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 public class SerializeConstraintsStateOperator implements SerializeOperator {
 
@@ -26,21 +27,20 @@ public class SerializeConstraintsStateOperator implements SerializeOperator {
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pState) {
     ConstraintsState state = (ConstraintsState) pState;
-    HashSet<Constraint> constraints = new HashSet<Constraint>(state.getConstraints());
+    HashSet<Constraint> constraints = new HashSet<>(state.getConstraints());
     String serializedConstraints;
 
     try {
       serializedConstraints = DssSerializeObjectUtil.serialize(constraints);
     } catch (IOException e) {
-      throw new AssertionError("Unable to serialize constraints "
-          + state.getConstraints().toString());
+      throw new AssertionError(
+          "Unable to serialize constraints " + state.getConstraints().toString());
     }
 
     return ContentBuilder.builder()
         .pushLevel(ConstraintsState.class.getName())
         .put(CONSTRAINTS_KEY, serializedConstraints)
+        .put(READABLE_KEY, constraints.toString())
         .build();
   }
-
 }
-
