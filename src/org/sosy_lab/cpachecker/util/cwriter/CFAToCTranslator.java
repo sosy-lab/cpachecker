@@ -182,7 +182,7 @@ public class CFAToCTranslator {
       final CompoundStatement pCurrentBlock,
       final Collection<NodeAndBlock> pEnteringBlocks) {
 
-    if (CFAUtils.enteringEdges(pCurrentNode).size() <= 1
+    if (pCurrentNode.getNumEnteringEdges() <= 1
         || pEnteringBlocks == null
         || pEnteringBlocks.size() <= 1) {
       return pCurrentBlock;

@@ -83,9 +83,8 @@ public class AstUtils {
     // is why we need to check if the edges are artificial intermediate edges.
     if (FluentIterable.from(nodesBoundaryCondition)
         .transformAndConcat(CFAUtils::enteringEdges)
-        .anyMatch(
-            pEdge ->
-                pEdge instanceof AssumeEdge assumeEdge && assumeEdge.isArtificialIntermediate())) {
+        .filter(AssumeEdge.class)
+        .anyMatch(AssumeEdge::isArtificialIntermediate)) {
 
       throw new BoundaryNodesComputationFailed("Condition edges are not connected");
     }

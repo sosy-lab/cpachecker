@@ -251,8 +251,8 @@ public class CFAUtils {
   public static Set<CFAEdge> forwardLinearReach(CFAEdge edge) {
     CFAEdge current = edge;
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
-    while (CFAUtils.leavingEdges(current.getSuccessor()).size() == 1) {
-      current = CFAUtils.leavingEdges(current.getSuccessor()).first().get();
+    while (current.getSuccessor().getNumLeavingEdges() == 1) {
+      current = current.getSuccessor().getLeavingEdge(0);
       builder.add(current);
     }
     return builder.build();
