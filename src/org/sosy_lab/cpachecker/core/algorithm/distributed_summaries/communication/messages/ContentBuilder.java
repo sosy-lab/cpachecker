@@ -28,21 +28,53 @@ public class ContentBuilder {
     levels = new ArrayList<>();
   }
 
+  /**
+   * Creates a new builder for message content.
+   * The builder produces a flat map of key-value pairs, where keys can be
+   * hierarchical using dot notation. Levels can be pushed and popped to
+   * create a hierarchy.
+   * @return the new builder
+   */
   public static ContentBuilder builder() {
     // 4 is the default expected size (ImmutableCollection.Builder.DEFAULT_INITIAL_CAPACITY)
     return new ContentBuilder(4);
   }
 
+  /**
+   * Creates a new builder for message content with the given expected size.
+   * The builder produces a flat map of key-value pairs, where keys can be
+   * hierarchical using dot notation. Levels can be pushed and popped to
+   * create a hierarchy.
+   * @param pExpectedSize the expected number of entries in the map
+   * @return the new builder
+   */
   public static ContentBuilder builderWithExpectedSize(int pExpectedSize) {
     return new ContentBuilder(pExpectedSize);
   }
 
+  /**
+   * Pushes a new level to the hierarchy.
+   * If a key is added, it will be prefixed with the current levels,
+   * separated by dots. For example, if the levels are ["level1", "level2"]
+   * and the key "key" is added with value "value",
+   * the resulting entry will be "level1.level2.key=value".
+   * @param pLevel the name of the new level
+   * @return this builder
+   */
   @CanIgnoreReturnValue
   public ContentBuilder pushLevel(String pLevel) {
     levels.add(pLevel);
     return this;
   }
 
+  /**
+   * Adds the given key-value pair to the content if the condition is true.
+   * @see #put(String, String)
+   * @param pCondition the condition to check
+   * @param pKey the key to add
+   * @param pValue the value to add
+   * @return this builder
+   */
   @CanIgnoreReturnValue
   public ContentBuilder putIf(boolean pCondition, String pKey, String pValue) {
     if (pCondition) {
@@ -51,6 +83,11 @@ public class ContentBuilder {
     return this;
   }
 
+  /**
+   * Pops the last level from the hierarchy.
+   * If there are no levels, nothing happens.
+   * @return this builder
+   */
   @CanIgnoreReturnValue
   public ContentBuilder popLevel() {
     if (!levels.isEmpty()) {
@@ -59,6 +96,16 @@ public class ContentBuilder {
     return this;
   }
 
+  /**
+   * Adds the given key-value pair to the content.
+   * The key will be prefixed with the current levels,
+   * separated by dots. For example, if the levels are ["level1", "level2"]
+   * and the key "key" is added with value "value",
+   * the resulting entry will be "level1.level2.key=value".
+   * @param pKey the key to add
+   * @param pValue the value to add
+   * @return this builder
+   */
   @CanIgnoreReturnValue
   public ContentBuilder put(String pKey, String pValue) {
     String fullKey = Joiner.on(".").join(listAndElement(levels, pKey));
@@ -66,6 +113,15 @@ public class ContentBuilder {
     return this;
   }
 
+  /**
+   * Adds all entries from the given map to the content.
+   * Each key will be prefixed with the current levels,
+   * separated by dots. For example, if the levels are ["level1", "level2"]
+   * and the map contains the entry "key"="value",
+   * the resulting entry will be "level1.level2.key=value".
+   * @param pContent the map to add
+   * @return this builder
+   */
   @CanIgnoreReturnValue
   public ContentBuilder putAll(Map<String, String> pContent) {
     for (Map.Entry<String, String> entry : pContent.entrySet()) {
@@ -74,6 +130,11 @@ public class ContentBuilder {
     return this;
   }
 
+  /**
+   * Builds the content map.
+   * If a key was added multiple times, the last value is kept.
+   * @return the built content map
+   */
   public ImmutableMap<String, String> build() {
     return contentBuilder.buildKeepingLast();
   }
