@@ -397,13 +397,18 @@ public class ConfigurationFileChecks {
     @SuppressWarnings("deprecation")
     final String cpaBelowArgCpa = Objects.requireNonNullElse(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
+    final boolean isK3Config = basePath.toString().contains("k3");
     final boolean isTestGenerationConfig =
         basePath.toString().contains("testCaseGeneration")
             || basePath.toString().contains("testcomp");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
-    if (options.language == Language.JAVA) {
+    if (isK3Config) {
+      // For K3 Programs the speccification is inside the program itself, so we do not need to check
+      // anything
+      assertThat(spec).isEqualTo("");
+    } else if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
     } else if (isOptionEnabled(config, "analysis.checkCounterexamplesWithBDDCPARestriction")) {
       assertThat(spec).contains("specification/BDDCPAErrorLocation.spc");
