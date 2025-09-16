@@ -405,7 +405,7 @@ public class ConfigurationFileChecks {
     final boolean isConditionalTesting = basePath.toString().contains("conditional-testing");
 
     if (isK3Config) {
-      // For K3 Programs the speccification is inside the program itself, so we do not need to check
+      // For K3 Programs the specification is inside the program itself, so we do not need to check
       // anything
       assertThat(spec).isEqualTo("");
     } else if (options.language == Language.JAVA) {
