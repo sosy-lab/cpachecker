@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Transfer relation for Symbolic Execution Analysis. */
@@ -454,14 +453,15 @@ public class ConstraintsTransferRelation
       Optional<AbstractState> errorState = ((BlockState) pStrengtheningState).getErrorCondition();
 
       if (errorState.isEmpty() || !(errorState.get() instanceof ARGState cS)) {
-          return Optional.empty();
+        return Optional.empty();
       }
 
       List<ConstraintsState> newStates = new ArrayList<>();
       newStates.add(pStateToStrengthen);
       boolean nothingChanged = true;
 
-      for (AbstractState currStrengtheningState : ((CompositeState) cS.getWrappedStates().getLast()).getWrappedStates()) {
+      for (AbstractState currStrengtheningState :
+          ((CompositeState) cS.getWrappedStates().getLast()).getWrappedStates()) {
         StrengthenOperator strengthenOperator = null;
 
         ConstraintsState currStateToStrengthen = newStates.getFirst();
@@ -473,11 +473,10 @@ public class ConstraintsTransferRelation
           strengthenOperator = new AutomatonStrengthenOperator();
 
         } else if (currStrengtheningState instanceof ConstraintsState) {
-          strengthenOperator = new ContraintsAnalysisStrengthenOperator();
+          strengthenOperator = new ConstraintsAnalysisStrengthenOperator();
         }
 
-        if (strengthenOperator == null)
-          continue;
+        if (strengthenOperator == null) continue;
 
         Optional<Collection<ConstraintsState>> oNewStrengthenedStates =
             strengthenOperator.strengthen(
@@ -496,13 +495,12 @@ public class ConstraintsTransferRelation
           }
         }
       }
-      if (nothingChanged)
-        return Optional.empty();
+      if (nothingChanged) return Optional.empty();
       return Optional.of(newStates);
     }
+  }
 
-
-  private final class ContraintsAnalysisStrengthenOperator implements StrengthenOperator {
+  private final class ConstraintsAnalysisStrengthenOperator implements StrengthenOperator {
 
     @Override
     public Optional<Collection<ConstraintsState>> strengthen(
@@ -516,28 +514,22 @@ public class ConstraintsTransferRelation
       ConstraintsState newState = pStateToStrengthen;
 
       for (Constraint constraint : ((ConstraintsState) pStrengtheningState).getConstraints()) {
-          newState = newState.copyWithNew(constraint);
+        newState = newState.copyWithNew(constraint);
       }
 
-      if (pStateToStrengthen.equals(newState))
-        return Optional.empty();
+      if (pStateToStrengthen.equals(newState)) return Optional.empty();
 
       try {
         newState = getIfSatisfiable(newState, functionName, solver);
       } catch (SolverException pE) {
         throw new CPATransferException("Solver failed when strengthening constraints state", pE);
       }
-      if (newState != null)
-        return Optional.of(ImmutableSet.of(newState));
+      if (newState != null) return Optional.of(ImmutableSet.of(newState));
       return Optional.of(ImmutableSet.of());
-      }
     }
   }
 
-
-
-
-      private interface StrengthenOperator {
+  private interface StrengthenOperator {
 
     /**
      * Strengthen the given {@link ConstraintsState} with the provided {@link AbstractState}.

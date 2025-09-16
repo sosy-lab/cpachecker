@@ -12,14 +12,11 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.SerializeValuePrecisionOperator.RAW_PRECISION_KEY;
 
 import com.google.common.base.Preconditions;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -28,8 +25,6 @@ import org.sosy_lab.cpachecker.core.defaults.precision.ScopedRefinablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
@@ -37,8 +32,8 @@ public class DeserializeValuePrecisionOperator implements DeserializePrecisionOp
   private final Configuration config;
   private final Optional<VariableClassification> vC;
 
-  public DeserializeValuePrecisionOperator(Configuration pConfig,
-                                           Optional<VariableClassification> pVC) {
+  public DeserializeValuePrecisionOperator(
+      Configuration pConfig, Optional<VariableClassification> pVC) {
     config = pConfig;
     vC = pVC;
   }
@@ -63,8 +58,10 @@ public class DeserializeValuePrecisionOperator implements DeserializePrecisionOp
       return variableTrackingPrecision;
 
     if (precisionType.equals(ScopedRefinablePrecision.class.getName())) {
-      List<MemoryLocation> rawPrecision = Arrays.stream(serializedPrecision.split(","))
-          .map(e -> MemoryLocation.fromQualifiedName(e)).toList();
+      List<MemoryLocation> rawPrecision =
+          Arrays.stream(serializedPrecision.split(","))
+              .map(e -> MemoryLocation.fromQualifiedName(e))
+              .toList();
       return new ScopedRefinablePrecision(variableTrackingPrecision, rawPrecision);
     }
     throw new AssertionError("Unsupported precision type");
