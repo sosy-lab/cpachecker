@@ -86,7 +86,7 @@ public class SerializeNumeralFormulaVisitor
         output.append(",");
       }
     }
-    return output.toString() + ".ti" + typeInfoToString(pConstant.getTypeInfo());
+    return output + ".ti" + typeInfoToString(pConstant.getTypeInfo());
   }
 
   @Override
@@ -200,8 +200,8 @@ public class SerializeNumeralFormulaVisitor
   }
 
   private String typeInfoToString(TypeInfo typeInfo) {
-    if (typeInfo instanceof BitVectorInfo) {
-      return ((BitVectorInfo) typeInfo).getSize() + "," + ((BitVectorInfo) typeInfo).isSigned();
+    if (typeInfo instanceof BitVectorInfo bvi) {
+      return bvi.getSize() + "," + bvi.isSigned();
     } else {
       return typeInfo.abbrev();
     }

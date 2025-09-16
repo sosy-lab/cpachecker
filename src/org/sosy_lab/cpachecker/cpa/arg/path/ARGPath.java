@@ -79,6 +79,17 @@ public class ARGPath extends AbstractAppender {
     assert states.size() - 1 == edges.size();
   }
 
+  public ARGPath(List<ARGState> pStates, List<CFAEdge> pPath, List<CFAEdge> pFullPath) {
+    states = ImmutableList.copyOf(pStates);
+    edges = pPath;
+    fullPath = ImmutableList.copyOf(pFullPath);
+    for (int i = 0; i < fullPath.size() - 1; i++) {
+      if (!fullPath.get(i).getSuccessor().equals(fullPath.get(i + 1).getPredecessor())) {
+        throw new AssertionError("The full path should have the same predecessor");
+      }
+    }
+  }
+
   public ARGPath(List<ARGState> pStates, List<@Nullable CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     checkArgument(

@@ -9,13 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.SerializeValueVisitor;
@@ -25,16 +25,14 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SerializeValueAnalysisStateOperator implements SerializeOperator {
 
-  private final Solver solver;
   private final FormulaManagerView formulaManager;
 
   public SerializeValueAnalysisStateOperator(Solver pSolver) {
-    solver = pSolver;
-    formulaManager = solver.getFormulaManager();
+    formulaManager = pSolver.getFormulaManager();
   }
 
   @Override
-  public DssMessagePayload serialize(AbstractState pState) {
+  public ImmutableMap<String, String> serialize(AbstractState pState) {
     ValueAnalysisState valueState = (ValueAnalysisState) pState;
     SerializeValueVisitor visitor = new SerializeValueVisitor();
     List<String> entries = new ArrayList<>();
@@ -48,11 +46,10 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
     }
     String serializedValueString = Joiner.on(" && ").join(entries);
 
-    DssMessagePayload.Builder payload =
-        DssMessagePayload.builder()
-            .addEntry(ValueAnalysisCPA.class.getName(), serializedValueString);
-
-    return payload.buildPayload();
+    return ContentBuilder.builder()
+        .pushLevel(ValueAnalysisState.class.getName())
+        .put(STATE_KEY, serializedValueString)
+        .build();
   }
 
   @Override

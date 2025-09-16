@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory.AnalysisComponents;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
@@ -74,8 +74,8 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
 
   private final String testProgramPath;
 
-  public DeserializeDataflowAnalysisStateOperatorTest(String testProgramPath) {
-    this.testProgramPath = testProgramPath;
+  public DeserializeDataflowAnalysisStateOperatorTest(String pTestProgramPath) {
+    testProgramPath = pTestProgramPath;
   }
 
   private CFA cfa;
@@ -122,7 +122,7 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
   public void testDeserializeFromFormula_equivalentFormulas() throws Exception {
     for (BlockNode blockNode : blockGraph.getNodes()) {
       AnalysisComponents components =
-          DssBlockAnalysisFactory.createAlgorithm(
+          DssBlockAnalysis.createBlockAlgorithm(
               logger, specification, cfa, config, shutdownManager, blockNode);
 
       ConfigurableProgramAnalysis cpa = components.cpa();
@@ -162,7 +162,7 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
     for (BlockNode blockNode : blockGraph.getNodes()) {
 
       AnalysisComponents components =
-          DssBlockAnalysisFactory.createAlgorithm(
+          DssBlockAnalysis.createBlockAlgorithm(
               logger, specification, cfa, config, shutdownManager, blockNode);
 
       ConfigurableProgramAnalysis cpa = components.cpa();

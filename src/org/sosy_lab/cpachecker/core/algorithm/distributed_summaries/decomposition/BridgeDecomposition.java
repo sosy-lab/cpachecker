@@ -63,9 +63,8 @@ public class BridgeDecomposition implements DssBlockDecomposition {
 
       cutNodes.clear();
     }
-    BlockGraph blockGraph = BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, listOfAllNodes);
 
-    return blockGraph;
+    return BlockGraph.fromBlockNodesWithoutGraphInformation(listOfAllNodes);
   }
 
   private List<BlockNodeWithoutGraphInformation> getMoreBlockNodes(

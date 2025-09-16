@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public interface SerializeOperator {
+
+  String STATE_KEY = "state";
 
   /**
    * Serialize an abstract state to the content of a message
@@ -20,7 +22,7 @@ public interface SerializeOperator {
    * @param pState this state will be serialized
    * @return payload
    */
-  DssMessagePayload serialize(AbstractState pState);
+  ImmutableMap<String, String> serialize(AbstractState pState);
 
   default BooleanFormula serializeToFormula(AbstractState pState) {
     throw new UnsupportedOperationException("This method is not supported.");

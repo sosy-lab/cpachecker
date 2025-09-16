@@ -36,6 +36,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
  */
 public class CTypeParser {
 
+  public static CTypeQualifiers getQualifiers(boolean isConst, boolean isVolatile) {
+    CTypeQualifiers qualifier = CTypeQualifiers.NONE;
+    if (isConst && isVolatile) {
+      qualifier = CTypeQualifiers.CONST_VOLATILE;
+    } else if (isConst) {
+      qualifier = CTypeQualifiers.CONST;
+    } else if (isVolatile) {
+      qualifier = CTypeQualifiers.VOLATILE;
+    }
+    return qualifier;
+  }
+
   public static CType parse(String input) {
     if (input.startsWith("ArrayType(")) {
       return parseArrayType(input);
@@ -82,8 +94,6 @@ public class CTypeParser {
       String name,
       String origName) {}
 
-  private record VoidTypeParts(boolean isConst, boolean isVolatile) {}
-
   private record SimpleTypeParts(
       boolean isConst,
       boolean isVolatile,
@@ -113,7 +123,7 @@ public class CTypeParser {
             parse(parts.get(2)));
 
     return new CPointerType(
-        pointerParts.isConst(), pointerParts.isVolatile(), pointerParts.innerType());
+        getQualifiers(pointerParts.isConst(), pointerParts.isVolatile()), pointerParts.innerType());
   }
 
   private static CType parseArrayType(String input) {
@@ -125,7 +135,8 @@ public class CTypeParser {
             Boolean.parseBoolean(parts.get(1)),
             parse(parts.get(2)));
 
-    return new CArrayType(arrayParts.isConst(), arrayParts.isVolatile(), arrayParts.innerType());
+    return new CArrayType(
+        getQualifiers(arrayParts.isConst(), arrayParts.isVolatile()), arrayParts.innerType());
   }
 
   private static CType parseFunctionType(String input) {
@@ -162,8 +173,7 @@ public class CTypeParser {
             parts.get(2),
             parse(parts.get(3)));
     return new CTypedefType(
-        typeDefParts.isConst(),
-        typeDefParts.isVolatile(),
+        getQualifiers(typeDefParts.isConst(), typeDefParts.isVolatile()),
         typeDefParts.name(),
         typeDefParts.canonicalType());
   }
@@ -179,8 +189,7 @@ public class CTypeParser {
             parts.get(3),
             parts.get(4));
     return new CElaboratedType(
-        elaborateParts.isConst(),
-        elaborateParts.isVolatile(),
+        getQualifiers(elaborateParts.isConst(), elaborateParts.isVolatile()),
         elaborateParts.kind(),
         elaborateParts.name(),
         elaborateParts.origName(),
@@ -190,9 +199,16 @@ public class CTypeParser {
   private static CType parseVoidType(String input) {
     String content = extractInnerContent(input, "VoidType(");
     List<String> parts = splitIgnoringNestedCommas(content);
-    VoidTypeParts voidParts =
-        new VoidTypeParts(Boolean.parseBoolean(parts.get(0)), Boolean.parseBoolean(parts.get(1)));
-    return CVoidType.create(voidParts.isConst(), voidParts.isVolatile());
+    boolean isConst = Boolean.parseBoolean(parts.get(0));
+    boolean isVolatile = Boolean.parseBoolean(parts.get(1));
+    if (isConst && isVolatile) {
+      return CVoidType.CONST_VOLATILE_VOID;
+    } else if (isVolatile) {
+      return CVoidType.VOLATILE_VOID;
+    } else if (isConst) {
+      return CVoidType.CONST_VOID;
+    }
+    return CVoidType.VOID;
   }
 
   private static CType parseSimpleType(String input) {
@@ -211,8 +227,7 @@ public class CTypeParser {
             Boolean.parseBoolean(parts.get(8)),
             Boolean.parseBoolean(parts.get(9)));
     return new CSimpleType(
-        simpParts.isConst(),
-        simpParts.isVolatile(),
+        getQualifiers(simpParts.isConst(), simpParts.isVolatile()),
         simpParts.basicType(),
         simpParts.hasLongSpecifier(),
         simpParts.hasShortSpecifier(),
@@ -234,8 +249,7 @@ public class CTypeParser {
             parts.get(3),
             parts.get(4));
     return new CCompositeType(
-        compParts.isConst(),
-        compParts.isVolatile(),
+        getQualifiers(compParts.isConst(), compParts.isVolatile()),
         compParts.kind(),
         compParts.name(),
         compParts.origName());
@@ -264,8 +278,17 @@ public class CTypeParser {
 
     CSimpleType enumCompatibleType =
         new CSimpleType(
-            false, false, CBasicType.INT, false, false, false, false, false, false, false);
-    return new CEnumType(isConst, isVolatile, enumCompatibleType, enumerators, name, origName);
+            getQualifiers(false, false),
+            CBasicType.INT,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false);
+    return new CEnumType(
+        getQualifiers(isConst, isVolatile), enumCompatibleType, enumerators, name, origName);
   }
 
   private static String extractInnerContent(String input, String prefix) {
@@ -323,7 +346,7 @@ public class CTypeParser {
         currentPart.append(c);
       }
     }
-    if (currentPart.length() > 0) {
+    if (!currentPart.isEmpty()) {
       partsBuilder.add(currentPart.toString().trim());
     }
     return partsBuilder.build();

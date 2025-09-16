@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
-import java.util.HashMap;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -18,9 +18,17 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -38,9 +46,12 @@ public class DistributedDataFlowAnalysisCPA
   private final InvariantsCPA invariantsCPA;
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
+  private final SerializePrecisionOperator serializePrecisionOperator;
+  private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final CombineOperator combineOperator;
+  private final CombinePrecisionOperator combinePrecisionOperator;
+  private final CoverageOperator coverageOperator;
   private final BlockNode blockNode;
-  private final Map<MemoryLocation, CType> variableTypes;
-  private final Solver solver;
 
   public DistributedDataFlowAnalysisCPA(
       InvariantsCPA pInvariantsCPA,
@@ -53,12 +64,17 @@ public class DistributedDataFlowAnalysisCPA
       throws InvalidConfigurationException {
     invariantsCPA = pInvariantsCPA;
     blockNode = pNode;
-    variableTypes = new HashMap<>(pVariableTypes);
-    solver = Solver.create(pConfig, pLogManager, shutdownNotifier);
+    Solver solver = Solver.create(pConfig, pLogManager, shutdownNotifier);
     serializeOperator = new SerializeDataflowAnalysisStateOperator(solver);
     deserializeOperator =
         new DeserializeDataflowAnalysisStateOperator(
-            invariantsCPA, pCFA, pNode, variableTypes, solver);
+            invariantsCPA, pCFA, pNode, ImmutableMap.copyOf(pVariableTypes), solver);
+    serializePrecisionOperator = new NoPrecisionSerializeOperator();
+    deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
+    combinePrecisionOperator = new CombineSingletonPrecisionOperator();
+    // TODO: implement both operators
+    combineOperator = null;
+    coverageOperator = null;
   }
 
   @Override
@@ -69,6 +85,21 @@ public class DistributedDataFlowAnalysisCPA
   @Override
   public DeserializeOperator getDeserializeOperator() {
     return deserializeOperator;
+  }
+
+  @Override
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return serializePrecisionOperator;
+  }
+
+  @Override
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return combinePrecisionOperator;
   }
 
   @Override
@@ -87,11 +118,16 @@ public class DistributedDataFlowAnalysisCPA
   }
 
   @Override
-  public boolean isTop(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     if (pAbstractState instanceof InvariantsState invariantsState) {
       return invariantsState.getEnvironment().isEmpty();
     }
     return false;
+  }
+
+  @Override
+  public AbstractState reset(AbstractState pAbstractState) {
+    return pAbstractState;
   }
 
   @Override
@@ -105,5 +141,15 @@ public class DistributedDataFlowAnalysisCPA
                 blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition()));
       }
     };
+  }
+
+  @Override
+  public CoverageOperator getCoverageOperator() {
+    return coverageOperator;
+  }
+
+  @Override
+  public CombineOperator getCombineOperator() {
+    return combineOperator;
   }
 }

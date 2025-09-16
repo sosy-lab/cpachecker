@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
-import java.util.HashMap;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -18,9 +18,14 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -38,8 +43,6 @@ public class DistributedValueAnalysisCPA
   private final ValueAnalysisCPA valueAnalysisCPA;
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
-  private final Map<MemoryLocation, CType> variableTypes;
-  private final Solver solver;
 
   private final BlockNode blockNode;
 
@@ -53,10 +56,11 @@ public class DistributedValueAnalysisCPA
       Map<MemoryLocation, CType> pVariableTypes)
       throws InvalidConfigurationException {
     valueAnalysisCPA = pValueAnalysisCPA;
-    variableTypes = new HashMap<>(pVariableTypes);
-    solver = Solver.create(pConfig, pLogManager, shutdownNotifier);
+    Solver solver = Solver.create(pConfig, pLogManager, shutdownNotifier);
     serializeOperator = new SerializeValueAnalysisStateOperator(solver);
-    deserializeOperator = new DeserializeValueAnalysisStateOperator(pCFA, variableTypes, solver);
+    deserializeOperator =
+        new DeserializeValueAnalysisStateOperator(
+            pCFA, ImmutableMap.copyOf(pVariableTypes), solver);
     blockNode = pNode;
   }
 
@@ -68,6 +72,21 @@ public class DistributedValueAnalysisCPA
   @Override
   public DeserializeOperator getDeserializeOperator() {
     return deserializeOperator;
+  }
+
+  @Override
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return null;
+  }
+
+  @Override
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return null;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return null;
   }
 
   @Override
@@ -86,9 +105,14 @@ public class DistributedValueAnalysisCPA
   }
 
   @Override
-  public boolean isTop(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     ValueAnalysisState valueAnalysisState = (ValueAnalysisState) pAbstractState;
     return valueAnalysisState.getConstants().isEmpty();
+  }
+
+  @Override
+  public AbstractState reset(AbstractState pAbstractState) {
+    return pAbstractState;
   }
 
   @Override
@@ -102,5 +126,15 @@ public class DistributedValueAnalysisCPA
                 blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition()));
       }
     };
+  }
+
+  @Override
+  public CoverageOperator getCoverageOperator() {
+    return null;
+  }
+
+  @Override
+  public CombineOperator getCombineOperator() {
+    return null;
   }
 }

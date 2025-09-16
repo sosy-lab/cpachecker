@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Predicate;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownManager;
@@ -26,8 +27,8 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory.AnalysisComponents;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
@@ -60,17 +61,14 @@ public class DeserializePredicateStateOperatorTest {
   private Configuration config;
   private LogManager logger;
   private ShutdownManager shutdownManager;
-  private ShutdownNotifier shutdownNotifier;
-  private Solver solver;
   private Specification specification;
-  private FormulaManagerView fmv;
 
   @Before
   public void setUp() throws Exception {
     config = TestDataTools.configurationForTest().loadFromFile(CONFIG_PATH).build();
     logger = LogManager.createTestLogManager();
     shutdownManager = ShutdownManager.create();
-    shutdownNotifier = shutdownManager.getNotifier();
+    ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
     CFACreator creator = new CFACreator(config, logger, shutdownNotifier);
     cfa = creator.parseFileAndCreateCFA(ImmutableList.of(TEST_PROGRAM_PATH));
     variableTypes = CFAUtils.extractVariableTypes(cfa);
@@ -85,7 +83,7 @@ public class DeserializePredicateStateOperatorTest {
   public void testDeserializeFromFormula_equivalenceHolds() throws Exception {
     for (BlockNode blockNode : blockGraph.getNodes()) {
       AnalysisComponents components =
-          DssBlockAnalysisFactory.createAlgorithm(
+          DssBlockAnalysis.createBlockAlgorithm(
               logger, specification, cfa, config, shutdownManager, blockNode);
 
       ConfigurableProgramAnalysis cpa = components.cpa();
@@ -93,12 +91,12 @@ public class DeserializePredicateStateOperatorTest {
       algorithm.run(components.reached());
 
       PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-      solver = predicateCPA.getSolver();
-      fmv = solver.getFormulaManager();
+      Assert.assertNotNull(predicateCPA);
+      Solver solver = predicateCPA.getSolver();
+      FormulaManagerView fmv = solver.getFormulaManager();
 
       DeserializePredicateStateOperator deserializer =
-          new DeserializePredicateStateOperator(
-              predicateCPA, cfa, blockNode, variableTypes, solver);
+          new DeserializePredicateStateOperator(predicateCPA, cfa, blockNode, variableTypes);
       SerializePredicateStateOperator serializer =
           new SerializePredicateStateOperator(predicateCPA, cfa, true, solver);
       BooleanFormula hardcodedFormula1 =

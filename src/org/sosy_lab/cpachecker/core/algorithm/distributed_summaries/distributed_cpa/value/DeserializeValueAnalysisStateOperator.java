@@ -19,10 +19,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeParser;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -37,10 +38,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
 
-  private CFA cfa;
   private final Map<MemoryLocation, CType> variableTypes;
-  private final Solver solver;
   private final FormulaManagerView formulaManager;
+  private final CFA cfa;
 
   private static final String BOOLEAN_VALUE_PREFIX = "BooleanValue";
   private static final String NUMERIC_VALUE_PREFIX = "NumericValue";
@@ -48,19 +48,15 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
 
   public DeserializeValueAnalysisStateOperator(
       CFA pCFA, Map<MemoryLocation, CType> pVariableTypes, Solver pSolver) {
-    cfa = pCFA;
     variableTypes = pVariableTypes;
-    solver = pSolver;
-    formulaManager = solver.getFormulaManager();
+    formulaManager = pSolver.getFormulaManager();
+    cfa = pCFA;
   }
 
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
-    Optional<Object> abstractStateOptional = pMessage.getAbstractState(ValueAnalysisCPA.class);
-    if (!abstractStateOptional.isPresent()) {
-      return new ValueAnalysisState(cfa.getMachineModel());
-    }
-    String valueAnalysisString = (String) abstractStateOptional.orElseThrow();
+    ContentReader reader = pMessage.getAbstractStateContent(ValueAnalysisState.class);
+    String valueAnalysisString = reader.get(STATE_KEY);
 
     if (valueAnalysisString.isEmpty()) {
       return new ValueAnalysisState(cfa.getMachineModel());
@@ -82,15 +78,12 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
         if (value != null) {
           constantsMap.put(
               MemoryLocation.forIdentifier(identifier),
-              new ValueAndType(value, getSimpleTypeFromString(valueParts.get(0))));
+              new ValueAndType(value, getSimpleTypeFromString(valueParts.getFirst())));
         }
       }
-      ValueAnalysisState state =
-          new ValueAnalysisState(
-              Optional.of(cfa.getMachineModel()),
-              PathCopyingPersistentTreeMap.copyOf(constantsMap));
 
-      return state;
+      return new ValueAnalysisState(
+          Optional.of(cfa.getMachineModel()), PathCopyingPersistentTreeMap.copyOf(constantsMap));
     }
   }
 
@@ -159,8 +152,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     }
 
     return new CSimpleType(
-        isConst,
-        isVolatile,
+        CTypeParser.getQualifiers(isConst, isVolatile),
         basicType,
         isLong,
         isShort,
