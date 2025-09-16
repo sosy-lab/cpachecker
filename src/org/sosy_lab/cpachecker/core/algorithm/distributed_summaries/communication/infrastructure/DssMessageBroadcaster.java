@@ -17,22 +17,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 
-/**
- * Broadcasts DSS messages to multiple connections based on their communication entity or sender ID.
- */
 public class DssMessageBroadcaster {
 
-  private final Map<String, @NonNull BlockingQueue<DssMessage>> connectionsBySenderId;
+  public record CommunicationId(String senderId, DssCommunicationEntity dssCommunicationEntity) {}
+
+  private final Map<String, BlockingQueue<DssMessage>> connectionsBySenderId;
   private final Multimap<DssCommunicationEntity, BlockingQueue<DssMessage>> connectionsByEntity;
 
   /**
    * Creates a new broadcaster for the given connections.
-   *
-   * @param pConnections the connections to use for broadcasting. The key is a pair of the sender ID
-   *     and the communication entity.
+   * @param pConnections the connections to use for broadcasting.
+   *   The key is a pair of the sender ID and the communication entity.
    */
   public DssMessageBroadcaster(Map<CommunicationId, BlockingQueue<DssMessage>> pConnections) {
     connectionsBySenderId = new ConcurrentHashMap<>();
@@ -45,20 +42,17 @@ public class DssMessageBroadcaster {
         });
   }
 
-  public boolean isEmpty() {
-    return connectionsBySenderId.values().stream().allMatch(BlockingQueue::isEmpty);
-  }
-
   private void broadcast(DssMessage message, DssCommunicationEntity entity) {
     Collection<BlockingQueue<DssMessage>> queues = connectionsByEntity.get(entity);
-    for (BlockingQueue<DssMessage> queue : queues) {
-      queue.add(message);
+    synchronized (connectionsByEntity) {
+      for (BlockingQueue<DssMessage> queue : queues) {
+        queue.add(message);
+      }
     }
   }
 
   /**
    * Broadcasts a message to the connections with the given receiver ids.
-   *
    * @param message the message to broadcast
    * @param ids the receiver ids to broadcast to
    */
@@ -70,8 +64,7 @@ public class DssMessageBroadcaster {
   }
 
   /**
-   * Broadcasts a message to all connected entities.
-   *
+   * Broadcasts a message to all connections.
    * @param message the message to broadcast
    */
   public void broadcastToAll(DssMessage message) {
@@ -79,9 +72,9 @@ public class DssMessageBroadcaster {
   }
 
   /**
-   * Broadcasts a message to all observer workers. Observer workers are workers that do not perform
-   * any analysis but only observe the analysis results and statistics.
-   *
+   * Broadcasts a message to all observer workers.
+   * Observer workers are workers that do not perform any analysis but only observe the analysis
+   * results and statistics.
    * @param message the message to broadcast
    */
   public void broadcastToObserver(DssMessage message) {
