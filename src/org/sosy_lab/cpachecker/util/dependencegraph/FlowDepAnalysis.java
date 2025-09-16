@@ -99,7 +99,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
   private CFunctionCallEdge getFunctionCallEdge(CFunctionSummaryEdge pSummaryEdge) {
 
-    for (CFAEdge edge : CFAUtils.leavingEdges(pSummaryEdge.getPredecessor())) {
+    for (CFAEdge edge : pSummaryEdge.getPredecessor().getLeavingEdges()) {
       if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
         return cFunctionCallEdge;
       }
@@ -278,7 +278,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     globalEdges.forEach(this::pushEdge);
 
     // init function parameters
-    for (CFAEdge callEdge : CFAUtils.allEnteringEdges(pRootNode)) {
+    for (CFAEdge callEdge : pRootNode.getAllEnteringEdges()) {
       pushEdge(callEdge);
       popEdge(callEdge);
     }
@@ -340,7 +340,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     if (pNode instanceof FunctionExitNode) {
       for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(pNode.getFunction())) {
         for (ReachDefAnalysis.Def<MemoryLocation, CFAEdge> def : getReachDefs(defVar)) {
-          for (CFAEdge returnEdge : CFAUtils.leavingEdges(pNode)) {
+          for (CFAEdge returnEdge : pNode.getLeavingEdges()) {
             flowDeps.put(returnEdge, def);
           }
         }
@@ -439,21 +439,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
       if (exitNode.isPresent()) {
 
-        for (CFAEdge defEdge : CFAUtils.enteringEdges(exitNode.orElseThrow())) {
-          for (CFAEdge edge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
-            if (!(edge instanceof FunctionReturnEdge returnEdge)) {
-              // skip any edge at FunctionExitNode that is not a return edge;
-              // we are only interested in finding the return statement of the function.
-              // (Q:How can edges other than FunctionReturnEdges even exist at FunctionExitNodes?
-              //  A: They may be artificially added to the CFA after program parsing.)
-              logger.logf(
-                  Level.FINE,
-                  "Skipping non-return edge '%s' at function exit while collecting return"
-                      + " value->return statement dependence (over variable '%s')",
-                  edge,
-                  returnVar);
-              continue;
-            }
+        for (CFAEdge defEdge : exitNode.orElseThrow().getEnteringEdges()) {
+          for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
             dependenceConsumer.accept(defEdge, returnEdge, returnVar, false);
           }
         }
@@ -520,12 +507,12 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     @Override
     public Iterable<CFAEdge> getLeavingEdges(CFANode pNode) {
-      return () -> Iterators.filter(CFAUtils.allLeavingEdges(pNode).iterator(), this::ignoreEdge);
+      return () -> Iterators.filter(pNode.getAllLeavingEdges().iterator(), this::ignoreEdge);
     }
 
     @Override
     public Iterable<CFAEdge> getEnteringEdges(CFANode pNode) {
-      return () -> Iterators.filter(CFAUtils.allEnteringEdges(pNode).iterator(), this::ignoreEdge);
+      return () -> Iterators.filter(pNode.getAllEnteringEdges().iterator(), this::ignoreEdge);
     }
   }
 }

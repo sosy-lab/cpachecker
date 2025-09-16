@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -151,7 +150,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       for (LocationState state :
           AbstractStates.asIterable(pSuccessor).filter(LocationState.class)) {
         CFANode node = state.getLocationNode();
-        FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(node);
+        FluentIterable<CFAEdge> leavingEdges = node.getLeavingEdges();
         if (node.isLoopStart()) {
           collectedStates.loopInvariants.put(node, pSuccessor);
         } else if (leavingEdges.size() == 1

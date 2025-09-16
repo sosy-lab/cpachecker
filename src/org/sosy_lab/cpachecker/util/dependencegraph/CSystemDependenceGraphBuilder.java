@@ -404,7 +404,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private CFunctionCallEdge getCallEdge(CFunctionSummaryEdge pSummaryEdge) {
 
-    for (CFAEdge edge : CFAUtils.leavingEdges(pSummaryEdge.getPredecessor())) {
+    for (CFAEdge edge : pSummaryEdge.getPredecessor().getLeavingEdges()) {
       if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
         return cFunctionCallEdge;
       }
