@@ -16,23 +16,18 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class ConstraintsViolationConditionOperator implements ViolationConditionOperator {
   @Override
   public Optional<AbstractState> computeViolationCondition(
-      ARGPath pARGPath,
-      Optional<ARGState> pPreviousCondition) {
+      ARGPath pARGPath, Optional<ARGState> pPreviousCondition) {
     ImmutableList<ARGState> states = pARGPath.asStatesList();
     assert !states.isEmpty();
 
     AbstractState violation = states.getLast().getWrappedState();
-    if (!(violation instanceof CompositeState cS))
-      return Optional.of(new ConstraintsState());
+    if (!(violation instanceof CompositeState cS)) return Optional.of(new ConstraintsState());
     for (AbstractState state : cS.getWrappedStates()) {
-      if (state instanceof ConstraintsState)
-        return Optional.of(state);
+      if (state instanceof ConstraintsState) return Optional.of(state);
     }
     return Optional.of(new ConstraintsState());
   }
