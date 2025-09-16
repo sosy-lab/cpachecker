@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import java.util.List;
-import java.util.Objects;
 
 public class K3Script {
 
@@ -25,15 +24,15 @@ public class K3Script {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    return obj instanceof K3Script other && Objects.equals(commands, other.commands);
+    return obj instanceof K3Script other && commands.equals(other.commands);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(commands);
+    return commands.hashCode();
   }
 }

@@ -43,12 +43,12 @@ public abstract sealed class K3Statement implements K3AstNode
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (obj == this) {
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
       return true;
     }
 
-    return obj instanceof K3Statement other
+    return pOther instanceof K3Statement other
         && tagAttributes.equals(other.tagAttributes)
         && tagReferences.equals(other.tagReferences);
   }
