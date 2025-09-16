@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
 import com.google.errorprone.annotations.DoNotCall;
 import com.google.errorprone.annotations.InlineMe;
@@ -29,7 +28,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -110,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -135,34 +134,7 @@ public class CFAUtils {
    * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
-    if (node.getEnteringSummaryEdge() == null) {
-      return enteringEdges(node);
-    }
-    return new FluentIterable<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<>() {
-
-          // the index of the next edge (-1 means the summary edge)
-          private int i = -1;
-
-          @Override
-          public boolean hasNext() {
-            return i < node.getNumEnteringEdges();
-          }
-
-          @Override
-          public CFAEdge next() {
-            if (i == -1) {
-              i = 0;
-              return node.getEnteringSummaryEdge();
-            }
-            return node.getEnteringEdge(i++);
-          }
-        };
-      }
-    };
+    return node.getAllEnteringEdges();
   }
 
   /**
@@ -181,28 +153,7 @@ public class CFAUtils {
    * summary edge.
    */
   public static FluentIterable<CFAEdge> enteringEdges(final CFANode node) {
-    checkNotNull(node);
-    return new FluentIterable<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<>() {
-
-          // the index of the next edge
-          private int i = 0;
-
-          @Override
-          public boolean hasNext() {
-            return i < node.getNumEnteringEdges();
-          }
-
-          @Override
-          public CFAEdge next() {
-            return node.getEnteringEdge(i++);
-          }
-        };
-      }
-    };
+    return node.getEnteringEdges();
   }
 
   /**
@@ -214,34 +165,7 @@ public class CFAUtils {
    * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
-    if (node.getLeavingSummaryEdge() == null) {
-      return leavingEdges(node);
-    }
-    return new FluentIterable<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<>() {
-
-          // the index of the next edge (-1 means the summary edge)
-          private int i = -1;
-
-          @Override
-          public boolean hasNext() {
-            return i < node.getNumLeavingEdges();
-          }
-
-          @Override
-          public CFAEdge next() {
-            if (i == -1) {
-              i = 0;
-              return node.getLeavingSummaryEdge();
-            }
-            return node.getLeavingEdge(i++);
-          }
-        };
-      }
-    };
+    return node.getAllLeavingEdges();
   }
 
   /**
@@ -266,28 +190,7 @@ public class CFAUtils {
    * summary edge.
    */
   public static FluentIterable<CFAEdge> leavingEdges(final CFANode node) {
-    checkNotNull(node);
-    return new FluentIterable<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<>() {
-
-          // the index of the next edge
-          private int i = 0;
-
-          @Override
-          public boolean hasNext() {
-            return i < node.getNumLeavingEdges();
-          }
-
-          @Override
-          public CFAEdge next() {
-            return node.getLeavingEdge(i++);
-          }
-        };
-      }
-    };
+    return node.getLeavingEdges();
   }
 
   /**
@@ -306,63 +209,12 @@ public class CFAUtils {
     return FluentIterable.from(pCfa.nodes()).transformAndConcat(CFAUtils::allLeavingEdges);
   }
 
-  @SuppressWarnings("unchecked")
   public static FluentIterable<FunctionCallEdge> enteringEdges(final FunctionEntryNode node) {
-    return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) enteringEdges((CFANode) node);
+    return node.getEnteringCallEdges();
   }
 
-  public static FluentIterable<CFAEdge> leavingEdges(final FunctionExitNode node) {
-    // may be strengthened to only return FunctionReturnEdges
-    // if no analysis adds dummy edges after FunctionExitNodes anymore
-    // (currently https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1319)
-    // and we really want unchecked casts
-    return leavingEdges((CFANode) node);
-  }
-
-  @Deprecated // entry nodes do not have summary edges
-  @InlineMe(
-      replacement = "CFAUtils.enteringEdges(node)",
-      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<FunctionCallEdge> allEnteringEdges(final FunctionEntryNode node) {
-    return enteringEdges(node);
-  }
-
-  @Deprecated // exit nodes do not have summary edges
-  @InlineMe(
-      replacement = "CFAUtils.enteringEdges(node)",
-      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<CFAEdge> allEnteringEdges(final FunctionExitNode node) {
-    return enteringEdges(node);
-  }
-
-  @Deprecated // entry nodes do not have summary edges
-  @InlineMe(
-      replacement = "CFAUtils.leavingEdges(node)",
-      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<CFAEdge> allLeavingEdges(final FunctionEntryNode node) {
-    return leavingEdges(node);
-  }
-
-  @Deprecated // exit nodes do not have summary edges
-  @InlineMe(
-      replacement = "CFAUtils.leavingEdges(node)",
-      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<CFAEdge> allLeavingEdges(final FunctionExitNode node) {
-    return leavingEdges(node);
-  }
-
-  @Deprecated // termination nodes do not have leaving edges
-  @DoNotCall
-  public static FluentIterable<CFAEdge> leavingEdges(
-      @SuppressWarnings("unused") final CFATerminationNode node) {
-    throw new AssertionError("useless method");
-  }
-
-  @Deprecated // termination nodes do not have leaving edges
-  @DoNotCall
-  public static FluentIterable<CFAEdge> allLeavingEdges(
-      @SuppressWarnings("unused") final CFATerminationNode node) {
-    throw new AssertionError("useless method");
+  public static FluentIterable<FunctionReturnEdge> leavingEdges(final FunctionExitNode node) {
+    return node.getLeavingReturnEdges();
   }
 
   /**

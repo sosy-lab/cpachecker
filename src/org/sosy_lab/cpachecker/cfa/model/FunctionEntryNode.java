@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.DoNotCall;
 import java.util.List;
@@ -109,6 +110,20 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
     return (FunctionCallEdge) super.getEnteringEdge(pIndex);
   }
 
+  /**
+   * @deprecated use {@link #getEnteringCallEdges()} instead, it has a stronger return type
+   */
+  @Deprecated
+  @Override
+  public final FluentIterable<CFAEdge> getEnteringEdges() {
+    return super.getEnteringEdges();
+  }
+
+  @SuppressWarnings("unchecked")
+  public final FluentIterable<FunctionCallEdge> getEnteringCallEdges() {
+    return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) getEnteringEdges();
+  }
+
   @Override
   public final void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
     throw new AssertionError("function-entry nodes cannot have summary edges");
@@ -131,5 +146,25 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   @DoNotCall // safe to call but useless
   public final @Nullable FunctionSummaryEdge getLeavingSummaryEdge() {
     return null;
+  }
+
+  /**
+   * @deprecated use {@link #getEnteringCallEdges()} instead, there is no summary edge anyway
+   */
+  @Override
+  @Deprecated
+  @DoNotCall
+  public final FluentIterable<CFAEdge> getAllEnteringEdges() {
+    return getEnteringEdges();
+  }
+
+  /**
+   * @deprecated use {@link #getLeavingEdges()} instead, there is no summary edge anyway
+   */
+  @Override
+  @Deprecated
+  @DoNotCall
+  public final FluentIterable<CFAEdge> getAllLeavingEdges() {
+    return getLeavingEdges();
   }
 }
