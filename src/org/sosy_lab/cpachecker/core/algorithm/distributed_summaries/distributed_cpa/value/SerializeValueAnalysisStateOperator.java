@@ -8,15 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.SerializePredicateStateOperator.READABLE_KEY;
+
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 public class SerializeValueAnalysisStateOperator implements SerializeOperator {
   @Override
@@ -26,12 +26,12 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
     try {
       serializedState = DssSerializeObjectUtil.serialize(state);
     } catch (IOException e) {
-      throw new AssertionError("Unable to serialize value analysis state "
-          + state.toString());
+      throw new AssertionError("Unable to serialize value analysis state " + state.toString());
     }
     return ContentBuilder.builder()
         .pushLevel(ValueAnalysisState.class.getName())
         .put(STATE_KEY, serializedState)
+        .put(READABLE_KEY, state.getConstants().toString())
         .build();
   }
 }
