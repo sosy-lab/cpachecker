@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
@@ -19,11 +17,12 @@ import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.FullConstraints
 public class SerializeConstraintsPrecisionOperator implements SerializePrecisionOperator {
   public static final String DSS_MESSAGE_CONSTRAINTS_KEY = "constraints";
 
-  public SerializeConstraintsPrecisionOperator() { }
+  public SerializeConstraintsPrecisionOperator() {}
 
   @Override
   public ImmutableMap<String, String> serializePrecision(Precision pPrecision) {
-    ContentBuilder contentBuilder = ContentBuilder.builder().pushLevel(FullConstraintsPrecision.class.getName());
+    ContentBuilder contentBuilder =
+        ContentBuilder.builder().pushLevel(FullConstraintsPrecision.class.getName());
     contentBuilder.put(DSS_MESSAGE_CONSTRAINTS_KEY, "");
     return contentBuilder.build();
   }

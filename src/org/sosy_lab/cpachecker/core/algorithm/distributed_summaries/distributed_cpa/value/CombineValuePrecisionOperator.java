@@ -29,18 +29,21 @@ public class CombineValuePrecisionOperator implements CombinePrecisionOperator {
       return precisions.iterator().next();
     }
 
-    Preconditions.checkArgument(precisions.stream().allMatch(ScopedRefinablePrecision.class::isInstance) ||
+    Preconditions.checkArgument(
         precisions.stream().allMatch(ScopedRefinablePrecision.class::isInstance));
-    List<VariableTrackingPrecision>
-        baselines = precisions.stream().map(e -> ((ScopedRefinablePrecision) e)
-                                        .getBaseline()).distinct().toList();
+    List<VariableTrackingPrecision> baselines =
+        precisions.stream()
+            .map(e -> ((ScopedRefinablePrecision) e).getBaseline())
+            .distinct()
+            .toList();
 
     assert baselines.size() == 1 : "Can't combine precisions with different or no baselines";
 
-    Set<MemoryLocation> rawPrecision = precisions.stream()
-        .map(e -> ((ScopedRefinablePrecision) e).getRawPrecision())
-        .flatMap(Set::stream)
-        .collect(Collectors.toSet());
+    Set<MemoryLocation> rawPrecision =
+        precisions.stream()
+            .map(e -> ((ScopedRefinablePrecision) e).getRawPrecision())
+            .flatMap(Set::stream)
+            .collect(Collectors.toSet());
 
     return new ScopedRefinablePrecision(baselines.getFirst(), rawPrecision);
   }

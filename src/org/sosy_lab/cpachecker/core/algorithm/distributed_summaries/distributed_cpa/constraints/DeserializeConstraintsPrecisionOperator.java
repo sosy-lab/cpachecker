@@ -13,13 +13,14 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.FullConstraintsPrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 
 public class DeserializeConstraintsPrecisionOperator implements DeserializePrecisionOperator {
   @Override
   public Precision deserializePrecision(DssMessage pMessage) {
     ContentReader contentReader = pMessage.getPrecisionContent(FullConstraintsPrecision.class);
-    assert contentReader.get(SerializeConstraintsPrecisionOperator.DSS_MESSAGE_CONSTRAINTS_KEY).isEmpty();
+    assert contentReader
+        .get(SerializeConstraintsPrecisionOperator.DSS_MESSAGE_CONSTRAINTS_KEY)
+        .isEmpty();
     return FullConstraintsPrecision.getInstance();
   }
 }

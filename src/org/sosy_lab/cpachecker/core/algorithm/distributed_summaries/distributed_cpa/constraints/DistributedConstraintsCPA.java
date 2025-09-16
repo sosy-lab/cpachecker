@@ -8,13 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -27,13 +24,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 
-public class DistributedConstraintsCPA implements
-                                             ForwardingDistributedConfigurableProgramAnalysis
+public class DistributedConstraintsCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
-
-{
   private final ConstraintsCPA constraintsCPA;
-  private final BlockNode blockNode;
   private final DeserializeConstraintsStateOperator deserializeOperator;
   private final SerializeConstraintsStateOperator serializeOperator;
   private final ConstraintsViolationConditionOperator violationConditionOperator;
@@ -43,13 +36,8 @@ public class DistributedConstraintsCPA implements
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final ConstraintsStateCoverageOperator coverageOperator;
 
-
-
-  public DistributedConstraintsCPA(
-      ConstraintsCPA pConstraintsCPA,
-      BlockNode pBlockNode) {
+  public DistributedConstraintsCPA(ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
     constraintsCPA = pConstraintsCPA;
-    blockNode = pBlockNode;
     serializeOperator = new SerializeConstraintsStateOperator();
     deserializeOperator = new DeserializeConstraintsStateOperator();
     violationConditionOperator = new ConstraintsViolationConditionOperator();
@@ -57,7 +45,8 @@ public class DistributedConstraintsCPA implements
     deserializePrecisionOperator = new DeserializeConstraintsPrecisionOperator();
     proceedOperator = new ProceedConstraintsStateOperator();
     combinePrecisionOperator = new CombineConstraintsPrecisionOperator();
-    coverageOperator = new ConstraintsStateCoverageOperator(constraintsCPA, pBlockNode.getInitialLocation());
+    coverageOperator =
+        new ConstraintsStateCoverageOperator(constraintsCPA, pBlockNode.getInitialLocation());
   }
 
   @Override
@@ -118,10 +107,10 @@ public class DistributedConstraintsCPA implements
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     ConstraintsState constraintsState = (ConstraintsState) pAbstractState;
-    // What if we have "assume x == x"? 
+    // What if we have "assume x == x"?
     // create new "true" state, ask is it is subsumed?
-    return constraintsState.getDefiniteAssignment().isEmpty() &&
-        constraintsState.getConstraints().isEmpty();
+    return constraintsState.getDefiniteAssignment().isEmpty()
+        && constraintsState.getConstraints().isEmpty();
   }
 
   @Override
