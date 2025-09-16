@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -21,6 +22,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 public final class FunctionExitNode extends CFANode {
 
   private FunctionEntryNode entryNode;
+
+  // Cache for getLeavingEdges that is backed by an ImmutableSet.
+  // This makes getLeavingEdges().contains(edge) much faster if there are many leaving edges
+  // (which can happen for FunctionExitNodes). Cf. #1388
+  private FluentIterable<CFAEdge> leavingEdges;
 
   public FunctionExitNode(AFunctionDeclaration pFunction) {
     super(pFunction);
@@ -39,6 +45,7 @@ public final class FunctionExitNode extends CFANode {
   @Override
   public void addLeavingEdge(CFAEdge pLeavingEdge) {
     checkArgument(pLeavingEdge instanceof FunctionReturnEdge || pLeavingEdge instanceof BlankEdge);
+    leavingEdges = null;
     super.addLeavingEdge(pLeavingEdge);
   }
 
@@ -56,7 +63,11 @@ public final class FunctionExitNode extends CFANode {
   @Deprecated
   @Override
   public FluentIterable<CFAEdge> getLeavingEdges() {
-    return super.getLeavingEdges();
+    if (leavingEdges == null) {
+      leavingEdges = from(super.getLeavingEdges().toSet());
+      assert super.getLeavingEdges().size() == leavingEdges.size();
+    }
+    return leavingEdges;
   }
 
   @SuppressWarnings("unchecked")
