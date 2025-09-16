@@ -84,6 +84,7 @@ public class K3ParserTest {
     K3Script output =
         new K3Script(
             ImmutableList.of(
+                new K3SetLogicCommand("LIA", FileLocation.DUMMY),
                 new K3VariableDeclarationCommand(w, FileLocation.DUMMY),
                 new K3VariableDeclarationCommand(z, FileLocation.DUMMY),
                 new K3ProcedureDefinitionCommand(
@@ -155,6 +156,7 @@ public class K3ParserTest {
     K3Script output =
         new K3Script(
             ImmutableList.of(
+                new K3SetLogicCommand("LIA", FileLocation.DUMMY),
                 new K3VariableDeclarationCommand(w, FileLocation.DUMMY),
                 new K3VariableDeclarationCommand(z, FileLocation.DUMMY),
                 new K3ProcedureDefinitionCommand(
