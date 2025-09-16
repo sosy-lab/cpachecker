@@ -413,7 +413,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
           // we are only interested in finding the function caller here.
           // (Q:How can edges other than FunctionReturnEdges even exist at FunctionExitNodes?
           //  A: They may be artificially added to the CFA after program parsing.)
-          logger.log(
+          logger.logf(
               Level.FINE,
               "Skipping non-return edge '%s' at function exit while collecting return value->return"
                   + " statement dependence (over foreign definitions)",
@@ -446,7 +446,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
               // we are only interested in finding the return statement of the function.
               // (Q:How can edges other than FunctionReturnEdges even exist at FunctionExitNodes?
               //  A: They may be artificially added to the CFA after program parsing.)
-              logger.log(
+              logger.logf(
                   Level.FINE,
                   "Skipping non-return edge '%s' at function exit while collecting return"
                       + " value->return statement dependence (over variable '%s')",
@@ -464,7 +464,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
             // we are only interested in finding the function caller here.
             // (Q:How can edges other than FunctionReturnEdges even exist at FunctionExitNodes?
             //  A: They may be artificially added to the CFA after program parsing.)
-            logger.log(
+            logger.logf(
                 Level.FINE,
                 "Skipping non-return edge '%s' at function exit while collecting return"
                     + " statement->caller dependence (over variable '%s')",
