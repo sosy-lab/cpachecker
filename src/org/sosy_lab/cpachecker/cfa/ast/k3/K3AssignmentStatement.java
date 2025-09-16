@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -47,7 +47,7 @@ public final class K3AssignmentStatement extends K3CfaEdgeStatement {
                 .join(
                     assignments.entrySet().stream()
                         .map(entry -> entry.getKey() + " " + entry.getValue())
-                        .collect(Collectors.toList()))
+                        .collect(ImmutableList.toImmutableList()))
             + ")")
         + "))";
   }
