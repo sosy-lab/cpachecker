@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapCode;
 import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapFile;
 
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Parser based on Eclipse CDT */
@@ -346,7 +348,9 @@ class EclipseCParser implements CParser {
           result.withASTStructure(
               AstCfaRelationBuilder.getASTCFARelation(
                   pSourceOriginMapping,
-                  result.getCFAEdges(),
+                  from(result.cfaNodes().values())
+                      .transformAndConcat(CFAUtils::allLeavingEdges)
+                      .toSet(),
                   asts,
                   result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
                   result.cfaNodeToAstParametersInScope().orElseThrow(),
