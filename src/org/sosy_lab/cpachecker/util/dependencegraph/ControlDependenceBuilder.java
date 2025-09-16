@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.ForwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
@@ -59,7 +58,7 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
   private static Iterable<CFAEdge> functionEdges(Set<CFANode> pFunctionNodes) {
 
     return FluentIterable.from(pFunctionNodes)
-        .transformAndConcat(CFAUtils::allLeavingEdges)
+        .transformAndConcat(CFANode::getAllLeavingEdges)
         .filter(edge -> !ignoreFunctionEdge(edge));
   }
 
