@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -32,11 +34,9 @@ public final class K3ProcedureDeclaration extends AFunctionDeclaration implement
         pFileLocation,
         new K3ProcedureType(
             pFileLocation,
-            FluentIterable.from(pParameters).transform(K3ParameterDeclaration::getType).toList(),
-            FluentIterable.from(pLocalVariables)
-                .transform(K3ParameterDeclaration::getType)
-                .toList(),
-            FluentIterable.from(pReturnValues).transform(K3ParameterDeclaration::getType).toList()),
+            transformedImmutableListCopy(pParameters, K3ParameterDeclaration::getType),
+            transformedImmutableListCopy(pLocalVariables, K3ParameterDeclaration::getType),
+            transformedImmutableListCopy(pReturnValues, K3ParameterDeclaration::getType)),
         pName,
         pName,
         pParameters);
@@ -47,7 +47,11 @@ public final class K3ProcedureDeclaration extends AFunctionDeclaration implement
 
   public static K3ProcedureDeclaration mainFunctionDeclaration() {
     return new K3ProcedureDeclaration(
-        FileLocation.DUMMY, "__VERIFIER_MAIN", List.of(), List.of(), List.of());
+        FileLocation.DUMMY,
+        "__VERIFIER_MAIN",
+        ImmutableList.of(),
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   @Override

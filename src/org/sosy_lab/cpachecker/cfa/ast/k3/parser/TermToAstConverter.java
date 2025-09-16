@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -51,9 +52,8 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<K3Term> {
   public K3Term visitApplicationTerm(ApplicationTermContext ctx) {
     return new K3SymbolApplicationTerm(
         ctx.getChild(1).getText(),
-        FluentIterable.from(ctx.term())
-            .transform(termContext -> Objects.requireNonNull(termContext).accept(this))
-            .toList(),
+        transformedImmutableListCopy(
+            ctx.term(), termContext -> Objects.requireNonNull(termContext).accept(this)),
         fileLocationFromContext(ctx));
   }
 }

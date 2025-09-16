@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
-import com.google.common.collect.FluentIterable;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
@@ -189,9 +190,8 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
     List<K3TagReference> references = getTagReferences();
 
     List<K3SimpleDeclaration> variables =
-        FluentIterable.from(ctx.symbol())
-            .transform(x -> scope.getVariable(Objects.requireNonNull(x).getText()))
-            .toList();
+        transformedImmutableListCopy(
+            ctx.symbol(), x -> scope.getVariable(Objects.requireNonNull(x).getText()));
     FileLocation location = fileLocationFromContext(ctx);
     return new K3HavocStatement(location, properties, references, variables);
   }
@@ -229,6 +229,6 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<K3Statement> {
       assignments.put(leftHandSide, rightHandSide);
     }
     FileLocation location = fileLocationFromContext(ctx);
-    return new K3AssignmentStatement(assignments.build(), location, properties, references);
+    return new K3AssignmentStatement(assignments.buildOrThrow(), location, properties, references);
   }
 }

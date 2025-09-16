@@ -200,7 +200,7 @@ class K3CfaBuilder {
                 "break",
                 pK3BreakStatement.getFileLocation(),
                 predecessorNode,
-                outermostLoopHead.get(),
+                outermostLoopHead.orElseThrow(),
                 "break");
         CFACreationUtils.addEdgeToCFA(edge, logger);
       }
@@ -211,7 +211,7 @@ class K3CfaBuilder {
                 "continue",
                 pK3ContinueStatement.getFileLocation(),
                 predecessorNode,
-                outermostLoopHead.get(),
+                outermostLoopHead.orElseThrow(),
                 "continue");
         CFACreationUtils.addEdgeToCFA(edge, logger);
       }
@@ -474,8 +474,8 @@ class K3CfaBuilder {
           K3ProcedureCallStatement procedureCallStatement =
               new K3ProcedureCallStatement(
                   FileLocation.DUMMY,
-                  List.of(),
-                  List.of(),
+                  ImmutableList.of(),
+                  ImmutableList.of(),
                   pVerifyCallCommand.getProcedureDeclaration(),
                   pVerifyCallCommand.getTerms(),
                   ImmutableList.of());

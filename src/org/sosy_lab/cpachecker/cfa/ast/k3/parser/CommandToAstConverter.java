@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -154,8 +156,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
   public K3Command visitVerifyCall(VerifyCallContext pContext) {
     K3ProcedureDeclaration procedureDeclaration =
         scope.getProcedureDeclaration(pContext.symbol().getText());
-    List<K3Term> terms =
-        FluentIterable.from(pContext.term()).transform(termConverter::visit).toList();
+    List<K3Term> terms = transformedImmutableListCopy(pContext.term(), termConverter::visit);
 
     return new VerifyCallCommand(procedureDeclaration, terms, fileLocationFromContext(pContext));
   }
@@ -163,9 +164,8 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
   @Override
   public K3Command visitAnnotateTag(AnnotateTagContext pContext) {
     List<K3TagAttribute> tags =
-        FluentIterable.from(pContext.attribute())
-            .transform(attribute -> tagToAstConverter.visit(attribute))
-            .toList();
+        transformedImmutableListCopy(
+            pContext.attribute(), attribute -> tagToAstConverter.visit(attribute));
     String tagName = pContext.symbol().getText();
     return new K3AnnotateTagCommand(tagName, tags, fileLocationFromContext(pContext));
   }

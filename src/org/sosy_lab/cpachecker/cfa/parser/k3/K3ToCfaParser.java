@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.k3;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -83,7 +84,7 @@ public class K3ToCfaParser implements Parser {
     }
 
     ParseResult parseResult = buildCfaFromScript(script);
-    parseResult = parseResult.withFileNames(List.of(path));
+    parseResult = parseResult.withFileNames(ImmutableList.of(path));
 
     return parseResult;
   }
