@@ -135,7 +135,9 @@ public class CFAUtils {
    * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
-    checkNotNull(node);
+    if (node.getEnteringSummaryEdge() == null) {
+      return enteringEdges(node);
+    }
     return new FluentIterable<>() {
 
       @Override
@@ -143,7 +145,7 @@ public class CFAUtils {
         return new UnmodifiableIterator<>() {
 
           // the index of the next edge (-1 means the summary edge)
-          private int i = (node.getEnteringSummaryEdge() != null) ? -1 : 0;
+          private int i = -1;
 
           @Override
           public boolean hasNext() {
@@ -212,7 +214,9 @@ public class CFAUtils {
    * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
-    checkNotNull(node);
+    if (node.getLeavingSummaryEdge() == null) {
+      return leavingEdges(node);
+    }
     return new FluentIterable<>() {
 
       @Override
@@ -220,7 +224,7 @@ public class CFAUtils {
         return new UnmodifiableIterator<>() {
 
           // the index of the next edge (-1 means the summary edge)
-          private int i = (node.getLeavingSummaryEdge() != null) ? -1 : 0;
+          private int i = -1;
 
           @Override
           public boolean hasNext() {
