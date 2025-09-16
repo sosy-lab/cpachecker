@@ -299,6 +299,9 @@ public class ConstraintsTransferRelation
       } else if (currStrengtheningState instanceof BlockState) {
         strengthenOperator = new BlockAnalysisStrengthenOperator();
       }
+      if (currStrengtheningState instanceof ConstraintsState) {
+        strengthenOperator = new ConstraintsAnalysisStrengthenOperator();
+      }
 
       if (strengthenOperator != null) {
         Optional<Collection<ConstraintsState>> oNewStrengthenedStates =
