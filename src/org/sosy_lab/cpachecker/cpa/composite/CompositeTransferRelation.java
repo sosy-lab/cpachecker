@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -44,9 +45,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -308,6 +315,40 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     return createCartesianProduct(allComponentsSuccessors, resultCount);
   }
 
+  // This method combines the value state of this composite state with the value state
+  // of the block state's violation condition. The result is a constraint state that can be used in
+  // strengthening.
+
+  private Optional<ConstraintsState> combineValueStates(final List<AbstractState> reachedState) {
+    BlockState blockState = null;
+    ValueAnalysisState valueState = null;
+    for (int i = 0; i < size; i++) {
+      if (transferRelations.get(i) instanceof BlockTransferRelation)
+        blockState = (BlockState) reachedState.get(i);
+      if (transferRelations.get(i) instanceof ValueAnalysisTransferRelation)
+        valueState = (ValueAnalysisState) reachedState.get(i);
+    }
+    if (blockState == null || valueState == null || !blockState.isTarget()) return Optional.empty();
+    AbstractState violation = blockState.getErrorCondition().get();
+    if (!(violation instanceof ARGState argState)
+        || !(argState.getWrappedState() instanceof CompositeState cS)) return Optional.empty();
+
+    for (AbstractState state : cS.getWrappedStates())
+      if (state instanceof ValueAnalysisState valueState2) {
+        /*for (Map.Entry<MemoryLocation, ValueAndType> variable : valueState2.getConstants()) {
+          if (! (valueState.contains(variable.getKey())))
+            valueState.assignConstant(variable.getKey(),
+                variable.getValue().getValue(),
+                variable.getValue().getType());
+        }*/
+
+        return Optional.of(
+            new ConstraintsState(ValueAnalysisState.compareInConstraint(valueState, valueState2)));
+      }
+
+    return Optional.empty();
+  }
+
   private Collection<List<AbstractState>> callStrengthen(
       final List<AbstractState> reachedState,
       final CompositePrecision compositePrecision,
@@ -315,6 +356,9 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       throws CPATransferException, InterruptedException {
     List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
     int resultCount = 1;
+
+    Optional<ConstraintsState> addedConstraint = combineValueStates(reachedState);
+    addedConstraint.ifPresent(reachedState::add);
 
     for (int i = 0; i < size; i++) {
 

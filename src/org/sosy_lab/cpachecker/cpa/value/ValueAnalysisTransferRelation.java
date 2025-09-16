@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -1408,23 +1407,23 @@ public class ValueAnalysisTransferRelation
           toStrengthen.addAll(result);
         }
         case BlockState blockState -> {
-          if (!blockState.isTarget())
-            continue;
+          if (!blockState.isTarget()) continue;
 
           for (ValueAnalysisState stateToStrengthen : toStrengthen) {
             super.setInfo(pElement, pPrecision, pCfaEdge);
             AbstractState wrappedState = blockState.getErrorCondition().get();
-            if (! (wrappedState instanceof ARGState argState)
-                || ! (argState.getWrappedState() instanceof CompositeState cS))
-              continue;
+            if (!(wrappedState instanceof ARGState argState)
+                || !(argState.getWrappedState() instanceof CompositeState cS)) continue;
 
-            Collection<? extends AbstractState> ret =
-                strengthen(stateToStrengthen, cS.getWrappedStates(), pCfaEdge, pPrecision);
-            Preconditions.checkArgument(ret.stream().allMatch(ValueAnalysisState.class::isInstance));
-
-            toStrengthen.clear();
-            toStrengthen.addAll(result);
-
+            for (AbstractState violationState : cS.getWrappedStates())
+              if (violationState instanceof ValueAnalysisState valueAnalysisState) {
+                for (Map.Entry<MemoryLocation, ValueAndType> entry :
+                    valueAnalysisState.getConstants()) {
+                  if (!stateToStrengthen.contains(entry.getKey()))
+                    stateToStrengthen.assignConstant(
+                        entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+                }
+              }
           }
         }
         default -> {}
