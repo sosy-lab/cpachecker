@@ -58,7 +58,6 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
           "Path to the compiler. Can be absolute or"
               + " only the name of the program if it is in the PATH")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME", justification = "just a default")
   private Path pathToCompiler = Path.of("/usr/bin/gcc");
 
   @Option(secure = true, description = "The file in which the generated C code is saved.")
@@ -81,6 +80,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   private final LogManager logger;
   private final Timer timer = new Timer();
 
+  // This suppression is for a initializer of pathToCompiler, needs to be on constructor.
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME", justification = "just a default")
   public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa)
       throws InvalidConfigurationException {
     if (cfa.getLanguage() != Language.C) {
