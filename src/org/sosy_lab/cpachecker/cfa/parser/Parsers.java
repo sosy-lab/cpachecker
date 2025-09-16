@@ -280,8 +280,7 @@ public class Parsers {
       final LogManager pLogger,
       final Configuration pConfig,
       final MachineModel pMachineModel,
-      final ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+      final ShutdownNotifier pShutdownNotifier) {
 
     try {
       Constructor<? extends Parser> parserConstructor = loadedK3Parser.get();

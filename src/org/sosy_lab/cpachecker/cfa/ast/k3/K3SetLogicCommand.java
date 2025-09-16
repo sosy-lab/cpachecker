@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class K3SetLogicCommand implements K3Command, SMTLibCommand {
 
+  @Serial private static final long serialVersionUID = -4993252812017741400L;
   private final String logic;
   private final FileLocation fileLocation;
 

@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
+import java.io.Serial;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public final class K3NumeralConstantTerm implements K3ConstantTerm {
 
+  @Serial private static final long serialVersionUID = 7803396078401840337L;
   private final BigInteger value;
   private final FileLocation fileLocation;
 
