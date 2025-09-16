@@ -26,10 +26,13 @@ public class ValueStateCoverageOperator implements CoverageOperator {
   @Override
   public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
-    BooleanFormula formula1 = ((ValueAnalysisState) state1).getFormulaApproximation(formulaManagerView);
-    BooleanFormula formula2 = ((ValueAnalysisState) state2).getFormulaApproximation(formulaManagerView);
+    BooleanFormula formula1 =
+        ((ValueAnalysisState) state1).getFormulaApproximation(formulaManagerView);
+    BooleanFormula formula2 =
+        ((ValueAnalysisState) state2).getFormulaApproximation(formulaManagerView);
 
-    BooleanFormula oneImpliesTwo = formulaManagerView.makeOr(formulaManagerView.makeNot(formula1), formula2);
+    BooleanFormula oneImpliesTwo =
+        formulaManagerView.makeOr(formulaManagerView.makeNot(formula1), formula2);
     return formulaManagerView.getBooleanFormulaManager().isTrue(oneImpliesTwo);
   }
 
