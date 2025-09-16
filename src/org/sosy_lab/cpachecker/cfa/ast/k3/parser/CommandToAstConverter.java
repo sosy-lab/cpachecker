@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.k3.parser;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.nio.file.Path;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.k3.K3AnnotateTagCommand;
@@ -103,7 +102,7 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<K3Command> {
 
   private List<K3ParameterDeclaration> createParameterDeclarations(
       ProcDeclarationArgumentsContext pContext) {
-    Builder<K3ParameterDeclaration> parameters = ImmutableList.builder();
+    ImmutableList.Builder<K3ParameterDeclaration> parameters = ImmutableList.builder();
     for (int i = 0; i < pContext.symbol().size(); i++) {
 
       SymbolContext parameter = pContext.symbol(i);

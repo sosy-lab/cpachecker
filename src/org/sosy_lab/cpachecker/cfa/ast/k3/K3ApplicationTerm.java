@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
-import com.google.common.base.Objects;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -47,11 +46,11 @@ public abstract sealed class K3ApplicationTerm implements K3Term permits K3Symbo
     if (this == pO) {
       return true;
     }
-    return pO instanceof K3ApplicationTerm other && Objects.equal(terms, other.terms);
+    return pO instanceof K3ApplicationTerm other && terms.equals(other.terms);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(terms);
+    return terms.hashCode();
   }
 }

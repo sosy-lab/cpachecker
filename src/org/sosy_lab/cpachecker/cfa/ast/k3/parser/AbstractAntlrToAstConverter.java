@@ -20,13 +20,11 @@ class AbstractAntlrToAstConverter<T> extends K3BaseVisitor<T> {
   private final Optional<Path> filePath;
 
   public AbstractAntlrToAstConverter(K3Scope pScope, Path pFilePath) {
-    super();
     scope = pScope;
     filePath = Optional.of(pFilePath);
   }
 
   public AbstractAntlrToAstConverter(K3Scope pScope) {
-    super();
     scope = pScope;
     filePath = Optional.empty();
   }

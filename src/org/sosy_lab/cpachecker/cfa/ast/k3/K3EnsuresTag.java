@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
-import com.google.common.base.Objects;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -52,11 +51,11 @@ public final class K3EnsuresTag implements K3TagProperty {
     if (this == pO) {
       return true;
     }
-    return pO instanceof K3EnsuresTag other && Objects.equal(term, other.term);
+    return pO instanceof K3EnsuresTag other && term.equals(other.term);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(term);
+    return term.hashCode();
   }
 }

@@ -54,8 +54,8 @@ public class K3ParserTest {
     String programString;
     try {
       programString = Joiner.on("\n").join(Files.readAllLines(inputPath));
-    } catch (IOException pE) {
-      throw new K3AstParseException("Could not read input file: " + inputPath, pE);
+    } catch (IOException e) {
+      throw new K3AstParseException("Could not read input file: " + inputPath, e);
     }
     K3Script parsed = K3ToAstParser.parseScript(programString);
     assert parsed.equals(output) : "Parsed object does not match expected object";

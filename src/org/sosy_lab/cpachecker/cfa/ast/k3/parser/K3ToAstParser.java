@@ -79,8 +79,8 @@ public class K3ToAstParser {
     String programString;
     try {
       programString = Joiner.on("\n").join(Files.readAllLines(pFilePath));
-    } catch (IOException pE) {
-      throw new K3AstParseException("Could not read input file: " + pFilePath, pE);
+    } catch (IOException e) {
+      throw new K3AstParseException("Could not read input file: " + pFilePath, e);
     }
 
     return parseScript(programString, Optional.of(pFilePath));

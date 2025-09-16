@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.k3;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
 import java.io.Serial;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +68,7 @@ public final class K3AssignmentStatement extends K3CfaEdgeStatement {
     }
 
     return pO instanceof K3AssignmentStatement other
-        && Objects.equal(assignments, other.assignments)
+        && assignments.equals(other.assignments)
         && super.equals(pO);
   }
 
@@ -77,7 +76,7 @@ public final class K3AssignmentStatement extends K3CfaEdgeStatement {
   public int hashCode() {
     int prime = 31;
     int result = 1;
-    result = result * prime + Objects.hashCode(assignments);
+    result = result * prime + assignments.hashCode();
     result = prime * result + super.hashCode();
     return result;
   }

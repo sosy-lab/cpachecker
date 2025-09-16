@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.k3;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -71,14 +70,14 @@ public class K3ToCfaParser implements Parser {
           "K3 parser expects exactly one file, but got " + filenames.size());
     }
 
-    Path path = Paths.get(filenames.getFirst());
+    Path path = Path.of(filenames.getFirst());
 
     parseTimer.start();
     K3Script script;
     try {
       script = K3ToAstParser.parseScript(path);
-    } catch (K3AstParseException pE) {
-      throw new K3ParserException("Failed converting the input file into AST objects", pE);
+    } catch (K3AstParseException e) {
+      throw new K3ParserException("Failed converting the input file into AST objects", e);
     } finally {
       parseTimer.stop();
     }
@@ -96,8 +95,8 @@ public class K3ToCfaParser implements Parser {
     K3Script script;
     try {
       script = K3ToAstParser.parseScript(filename, code);
-    } catch (K3AstParseException pE) {
-      throw new K3ParserException("Failed converting the input file into AST objects", pE);
+    } catch (K3AstParseException e) {
+      throw new K3ParserException("Failed converting the input file into AST objects", e);
     } finally {
       parseTimer.stop();
     }
