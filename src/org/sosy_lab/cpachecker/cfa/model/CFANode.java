@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -163,27 +164,7 @@ public sealed class CFANode implements Comparable<CFANode>
    * summary edge.
    */
   public FluentIterable<CFAEdge> getEnteringEdges() {
-    return new FluentIterable<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<>() {
-
-          // the index of the next edge
-          private int i = 0;
-
-          @Override
-          public boolean hasNext() {
-            return i < enteringEdges.size();
-          }
-
-          @Override
-          public CFAEdge next() {
-            return enteringEdges.get(i++);
-          }
-        };
-      }
-    };
+    return from(Collections.unmodifiableList(enteringEdges));
   }
 
   /**
@@ -191,27 +172,7 @@ public sealed class CFANode implements Comparable<CFANode>
    * summary edge.
    */
   public FluentIterable<CFAEdge> getLeavingEdges() {
-    return new FluentIterable<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<>() {
-
-          // the index of the next edge
-          private int i = 0;
-
-          @Override
-          public boolean hasNext() {
-            return i < leavingEdges.size();
-          }
-
-          @Override
-          public CFAEdge next() {
-            return leavingEdges.get(i++);
-          }
-        };
-      }
-    };
+    return from(Collections.unmodifiableList(leavingEdges));
   }
 
   /**
