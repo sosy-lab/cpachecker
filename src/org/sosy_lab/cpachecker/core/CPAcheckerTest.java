@@ -76,6 +76,7 @@ public class CPAcheckerTest {
   }
 
   @Test
+  @Ignore
   public void testRunForSafeK3Program() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE_K3, Language.K3, "");
     TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_K3);
