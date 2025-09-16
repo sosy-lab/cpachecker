@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -57,6 +58,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
           "Path to the compiler. Can be absolute or"
               + " only the name of the program if it is in the PATH")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME", justification = "just a default")
   private Path pathToCompiler = Path.of("/usr/bin/gcc");
 
   @Option(secure = true, description = "The file in which the generated C code is saved.")
