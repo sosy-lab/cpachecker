@@ -98,7 +98,7 @@ public final class CArrayType extends AArrayType implements CType {
 
   private String toASTString(String pDeclarator, AAstNodeRepresentation pAAstNodeRepresentation) {
     checkNotNull(pDeclarator);
-    if (getType() instanceof  CArrayType arrayType){
+    if (getType() instanceof CArrayType arrayType) {
       return qualifiers.toASTStringPrefix()
           + arrayType.toASTString(
               pDeclarator

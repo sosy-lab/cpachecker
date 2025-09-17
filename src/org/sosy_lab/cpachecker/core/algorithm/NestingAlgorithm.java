@@ -122,8 +122,10 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     return new NestedAnalysis(algorithm, cpa, reached);
   }
 
-  private Configuration buildSubConfig(Path singleConfigFileName, Collection<String> ignoreOptions,
-                                       Collection<AdditionalConfigParameter> pAdditionalOptions)
+  private Configuration buildSubConfig(
+      Path singleConfigFileName,
+      Collection<String> ignoreOptions,
+      Collection<AdditionalConfigParameter> pAdditionalOptions)
       throws IOException, InvalidConfigurationException {
 
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();

@@ -51,8 +51,7 @@ public class SequenceGenUtils {
   private final ImmutableSet<CFANode> endlessLoopHeads;
   private final Set<Integer> linesWithIfOrLoop;
 
-  public record PathElement(Boolean decision, CFAEdge edge, ARGState prevARGState) {
-  }
+  public record PathElement(Boolean decision, CFAEdge edge, ARGState prevARGState) {}
 
   public SequenceGenUtils(LogManager pLogger, CFA pCfa) throws CPAException {
     logger = pLogger;
@@ -60,9 +59,16 @@ public class SequenceGenUtils {
     if (pCfa.getLoopStructure().isEmpty()) {
       throw new CPAException("Expecting a loopStruct");
     }
-    endlessLoopHeads = loopHeads.stream().filter(l -> l.getNumLeavingEdges() == 1 && l.getLeavingEdge(0) instanceof BlankEdge blank && blank.getRawStatement().equals("1"))
-        .collect(ImmutableSet.toImmutableSet());
-//    endlessLoopHeads = CFAUtils.getEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()).stream().collect(ImmutableSet.toImmutableSet());
+    endlessLoopHeads =
+        loopHeads.stream()
+            .filter(
+                l ->
+                    l.getNumLeavingEdges() == 1
+                        && l.getLeavingEdge(0) instanceof BlankEdge blank
+                        && blank.getRawStatement().equals("1"))
+            .collect(ImmutableSet.toImmutableSet());
+    //    endlessLoopHeads =
+    // CFAUtils.getEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()).stream().collect(ImmutableSet.toImmutableSet());
     linesWithIfOrLoop = new HashSet<>();
     try (Stream<String> linesStream =
         Files.lines(pCfa.getFileNames().getFirst(), StandardCharsets.UTF_8)) {
@@ -76,7 +82,8 @@ public class SequenceGenUtils {
     } catch (IOException e) {
       throw new CPAException(
           String.format(
-              "Failed to read the original program file due to '%s'. Hence, we cannot determine the lines with branches and loops, thus aborting!",
+              "Failed to read the original program file due to '%s'. Hence, we cannot determine the"
+                  + " lines with branches and loops, thus aborting!",
               e));
     }
     logger.logf(
@@ -94,10 +101,8 @@ public class SequenceGenUtils {
             .collect(ImmutableSet.toImmutableSet()));
   }
 
-
   public List<Pair<Boolean, Integer>> computeSequenceForLoopbound(
-      ARGPath pARGPath,
-      Set<String> blacklist, Optional<ARGState> lastState) throws CPAException {
+      ARGPath pARGPath, Set<String> blacklist, Optional<ARGState> lastState) throws CPAException {
     logger.log(Level.INFO, pARGPath);
 
     // Check, if the given path is sat by conjoining the path formulae of the abstraction locations.
@@ -122,8 +127,9 @@ public class SequenceGenUtils {
             }
             logger.log(Level.FINE, callState.getCurrentFunction());
             if (edge instanceof CAssumeEdge assumeEdge) {
-              boolean decision = (assumeEdge.getTruthAssumption() && !assumeEdge.isSwapped()) || (
-                  !assumeEdge.getTruthAssumption() && assumeEdge.isSwapped());
+              boolean decision =
+                  (assumeEdge.getTruthAssumption() && !assumeEdge.isSwapped())
+                      || (!assumeEdge.getTruthAssumption() && assumeEdge.isSwapped());
               addIfNewDecision(decisionNodesTaken, assumeEdge, abstractState, decision, pARGPath);
             } else if (endlessLoopHeads.contains(edge.getPredecessor())) {
               addIfNewDecision(decisionNodesTaken, edge, abstractState, true, pARGPath);
@@ -155,7 +161,9 @@ public class SequenceGenUtils {
       List<PathElement> decisionNodesTaken,
       CFAEdge edge,
       ARGState pAbstractState,
-      boolean decision, ARGPath pARGPath) throws CPAException {
+      boolean decision,
+      ARGPath pARGPath)
+      throws CPAException {
 
     Optional<PathElement> lastEntry =
         Optional.ofNullable(decisionNodesTaken.isEmpty() ? null : decisionNodesTaken.getLast());
@@ -196,13 +204,10 @@ public class SequenceGenUtils {
         AbstractStates.extractStateByType(pSecondState, CallstackState.class);
 
     return firstCallingContext != null && firstCallingContext.equals(secondCallingContext);
-
   }
 
-  private boolean noLoopHeadInBetween(
-      ARGState pFirstState,
-      ARGState pSecondState,
-      ARGPath pARGPath) throws CPAException {
+  private boolean noLoopHeadInBetween(ARGState pFirstState, ARGState pSecondState, ARGPath pARGPath)
+      throws CPAException {
     boolean firstFound = false;
 
     PathIterator pathIterator = pARGPath.fullPathIterator();
@@ -212,8 +217,8 @@ public class SequenceGenUtils {
 
         if (abstractState.equals(pFirstState)) {
           firstFound = true;
-        } else if (firstFound && loopHeads.contains(
-            AbstractStates.extractLocation(abstractState))) {
+        } else if (firstFound
+            && loopHeads.contains(AbstractStates.extractLocation(abstractState))) {
           return false;
         } else if (firstFound && abstractState.equals(pSecondState)) {
           return true;

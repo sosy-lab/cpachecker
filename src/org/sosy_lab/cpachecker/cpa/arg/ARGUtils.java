@@ -616,7 +616,7 @@ public class ARGUtils {
 
         if (!pReached.contains(child)) {
           assert (child.isCovered() && child.getChildren().isEmpty()) // 1)
-              || pReached.getWaitlist().containsAll(child.getParents()) // 2)
+                  || pReached.getWaitlist().containsAll(child.getParents()) // 2)
               : "Referenced child is missing in reached set.";
         }
       }

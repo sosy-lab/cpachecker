@@ -130,9 +130,9 @@ public class RangeExecution extends NestingAlgorithm {
                 aggregatedReachedSets);
         parallelAlgorithm.computeAnalyses(path2LoopBound, configFiles);
         return parallelAlgorithm.run(pReached);
-      } catch (InvalidConfigurationException | IOException pE) {
+      } catch (InvalidConfigurationException | IOException e1) {
         logger.logException(
-            Level.SEVERE, pE, "Could not create parallel algorithm, hence aborting");
+            Level.SEVERE, e1, "Could not create parallel algorithm, hence aborting");
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
     }
@@ -199,17 +199,17 @@ public class RangeExecution extends NestingAlgorithm {
           logger.logUserException(Level.WARNING, e, message);
         }
         return new ArrayList<>();
-      } catch (CPAException | InterruptedException pE) {
+      } catch (CPAException | InterruptedException e1) {
         logger.logfUserException(
             Level.WARNING,
-            pE,
+            e1,
             "An error occured during execution of ranged analysis: %s at iteration %d",
             this.configForTestcase,
             i);
         return new ArrayList<>();
       }
 
-      // run algorith
+      // run algorithm
       try {
         currentAlgorithm.run(currentReached);
         if (path2File.toFile().exists()) {
@@ -218,10 +218,10 @@ public class RangeExecution extends NestingAlgorithm {
           logger.logf(Level.WARNING, "Could not generate a test-input for loopbound %d!", i);
           return new ArrayList<>();
         }
-      } catch (CPAException | InterruptedException pE) {
+      } catch (CPAException | InterruptedException e1) {
         logger.logfUserException(
             Level.WARNING,
-            pE,
+            e1,
             "An error occured during execution of ranged analysis: %s at iteration %d",
             this.configForTestcase,
             i);

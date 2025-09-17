@@ -269,9 +269,6 @@ analysis.algorithm.computeRSEInput = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
-# Distribute predicate analysis to multiple workers
-analysis.algorithm.configurableComponents = false
-
 # Use distributed summary synthesis. This decomposes the input program into
 # smaller units that are analyzed concurrently. See
 # https://doi.org/10.1145/3660766 for details.
@@ -3938,6 +3935,12 @@ cpa.value.functionValuesForRandom = no default value
 
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
+
+# If 'ignoreFunctionValue' is set to true, this option allows to provide a
+# fixed set of values in the TestComp format. It is used for function-calls
+# to calls of VERIFIER_nondet_*. The file is provided via the option
+# functionValuesForRandom 
+cpa.value.ignoreFunctionValueExceptRandom = false
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.

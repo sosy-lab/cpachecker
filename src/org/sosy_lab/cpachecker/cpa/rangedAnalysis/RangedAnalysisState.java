@@ -19,8 +19,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 public class RangedAnalysisState
     implements LatticeAbstractState<RangedAnalysisState>, Serializable, Graphable {
 
-  @Serial
-  private static final long serialVersionUID = 6762491514691078996L;
+  @Serial private static final long serialVersionUID = 6762491514691078996L;
 
   private final @Nullable ValueAnalysisState leftState;
   private final @Nullable ValueAnalysisState rightState;

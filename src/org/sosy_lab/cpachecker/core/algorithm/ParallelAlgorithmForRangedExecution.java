@@ -161,6 +161,4 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
       }
     }
   }
-
-
 }

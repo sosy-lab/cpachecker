@@ -40,7 +40,6 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
   private ValueAnalysisTransferRelation leftTR;
   private ValueAnalysisTransferRelation rightTR;
 
-
   public RangedAnalysisTransferRelation(LogManager pLogger, Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);

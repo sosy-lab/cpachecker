@@ -779,21 +779,23 @@ public class ARGToCTranslator {
             declaration = "";
           }
 
-        //Avoid declaration of structs with Empty initializers, as they are not allowed by the C standard.
-        if (lDeclarationEdge.getDeclaration().getType() instanceof CComplexType complexType
-            && complexType.getKind() == ComplexTypeKind.STRUCT){
-          int assignAfterPos = declaration.indexOf("=") + 1;
-          if (assignAfterPos > 0 && declaration.substring(assignAfterPos).strip().equals("{  };")){
-            declaration = declaration.substring(0, assignAfterPos-1) + ";";
+          // Avoid declaration of structs with Empty initializers, as they are not allowed by the C
+          // standard.
+          if (lDeclarationEdge.getDeclaration().getType() instanceof CComplexType complexType
+              && complexType.getKind() == ComplexTypeKind.STRUCT) {
+            int assignAfterPos = declaration.indexOf("=") + 1;
+            if (assignAfterPos > 0
+                && declaration.substring(assignAfterPos).strip().equals("{  };")) {
+              declaration = declaration.substring(0, assignAfterPos - 1) + ";";
+              return declaration;
+            }
+          }
+
+          if (lDeclarationEdge.getDeclaration().isGlobal()) {
+            globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
+          } else {
             return declaration;
           }
-        }
-
-        if (lDeclarationEdge.getDeclaration().isGlobal()) {
-          globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
-        } else {
-          return declaration;
-        }
 
           break;
         }
@@ -842,9 +844,11 @@ public class ARGToCTranslator {
       // create temp variable to avoid name clashes
       String tempVariableName = TMPVARPREFIX + getFreshIndex();
       String tempVariableType = formalParam.getType().toASTString(tempVariableName);
-      if (formalParam.getType().isConst()){
-        actualParamAssignStatements.add(new SimpleStatement(pCFAEdge, tempVariableType +" = " + actualParamSignature + ";"));
-        formalParamAssignStatements.add(new SimpleStatement(pCFAEdge, formalParamSignature + " = " + tempVariableName + ";"));
+      if (formalParam.getType().isConst()) {
+        actualParamAssignStatements.add(
+            new SimpleStatement(pCFAEdge, tempVariableType + " = " + actualParamSignature + ";"));
+        formalParamAssignStatements.add(
+            new SimpleStatement(pCFAEdge, formalParamSignature + " = " + tempVariableName + ";"));
       } else {
         actualParamAssignStatements.add(new SimpleStatement(pCFAEdge, tempVariableType + ";"));
         actualParamAssignStatements.add(
@@ -853,7 +857,10 @@ public class ARGToCTranslator {
         formalParamAssignStatements.add(
             new SimpleStatement(
                 pCFAEdge,
-                formalParam.getQualifiedName().replace("::", "__") + " = " + tempVariableName + ";"));
+                formalParam.getQualifiedName().replace("::", "__")
+                    + " = "
+                    + tempVariableName
+                    + ";"));
       }
     }
 

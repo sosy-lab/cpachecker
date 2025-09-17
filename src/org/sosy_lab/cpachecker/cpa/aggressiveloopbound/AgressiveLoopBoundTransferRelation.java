@@ -85,16 +85,14 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
       secure = true,
       description = "if there is a branch associated with a loop, only take the left branch.")
   private boolean useLeftPathInsideLoops = true;
+
   @Option(
       secure = true,
       description = "if there is a branch not associated with a loop, only take the left branch.")
   private boolean alwaysUseLeftPath = true;
 
-  @Option(
-      secure = true,
-      description = "Ignore functions with assume_abort_if_not")
+  @Option(secure = true, description = "Ignore functions with assume_abort_if_not")
   private boolean stepThoughAssumeAbortIfNot = true;
-
 
   private @Nullable AutomatonTransferRelation automatonTransferRelation;
 
@@ -207,8 +205,7 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
     if (successor.getNumLeavingEdges() == 1 && this.automatonTransferRelation != null) {
       CFAEdge successorEdge = successor.getLeavingEdge(0);
       if ((successorEdge instanceof BlankEdge && successorEdge.getDescription().contains("break"))
-          ||
-          successorEdge instanceof CReturnStatementEdge) {
+          || successorEdge instanceof CReturnStatementEdge) {
         return true;
       }
       if (successorEdge instanceof BlankEdge
@@ -229,7 +226,8 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
           Collection<AutomatonState> potentialTargetState =
               automatonTransferRelation.getAbstractSuccessorsForEdge(
                   other, AlwaysTopPrecision.INSTANCE, pSuccessorEdge);
-          return potentialTargetState.stream().anyMatch(s -> s.isTarget()) || potentialTargetState.isEmpty();
+          return potentialTargetState.stream().anyMatch(s -> s.isTarget())
+              || potentialTargetState.isEmpty();
         } catch (CPATransferException e1) {
           return false;
         }
@@ -256,7 +254,8 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
 
     if (!((AgressiveLoopBoundState) state).getLoopStack().isEmpty()
         && pCfaEdge.getSuccessor().getNumLeavingEdges() == 1
-        && edgeLeadsToTargetStateOrIsBreak(pCfaEdge.getSuccessor().getLeavingEdge(0), otherStates)) {
+        && edgeLeadsToTargetStateOrIsBreak(
+            pCfaEdge.getSuccessor().getLeavingEdge(0), otherStates)) {
       logger.logf(
           currentLogLevel,
           "Stoping at edge  %s, as it would lead to a target state within the loop",
@@ -288,9 +287,10 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
         }
       }
     }
-    if (pCfaEdge instanceof AssumeEdge && loopState.getLoopStack().isEmpty()
-        && !((AgressiveLoopBoundState) state).isAnyLoopSeen() && nextIsReturnEdgeFromMain(pCfaEdge,
-        otherStates)) {
+    if (pCfaEdge instanceof AssumeEdge
+        && loopState.getLoopStack().isEmpty()
+        && !((AgressiveLoopBoundState) state).isAnyLoopSeen()
+        && nextIsReturnEdgeFromMain(pCfaEdge, otherStates)) {
       logger.logf(
           currentLogLevel,
           "Ignoring edge %s, as it does not lead to a loop and we haven't seen one",
@@ -319,8 +319,8 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
       logger.logf(currentLogLevel, "Stoping at edge %s, as stop is set", pCfaEdge);
       return ImmutableList.of();
     } else if (this.stepThoughAssumeAbortIfNot && pCfaEdge instanceof AssumeEdge) {
-      if (isLeftBranchInsideAssumeAbortIfNot(pCfaEdge, otherStates) && !pCfaEdge.getPredecessor()
-          .isLoopStart()) {
+      if (isLeftBranchInsideAssumeAbortIfNot(pCfaEdge, otherStates)
+          && !pCfaEdge.getPredecessor().isLoopStart()) {
         logger.logf(currentLogLevel, "Stoping within assume abort if not %s,", pCfaEdge);
         return ImmutableList.of();
       } else {
@@ -334,8 +334,9 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
   private boolean otherEdgeExitsLoopsAndIsThusIgnored(AbstractState pState, AssumeEdge pAssume) {
     AssumeEdge otherEdge = CFAUtils.getComplimentaryAssumeEdge(pAssume);
     Loop oldLoop = loopExitEdges.get(otherEdge);
-    return  oldLoop != null && pState instanceof  AgressiveLoopBoundState state && proceedWithLoop(
-          state, oldLoop) ;
+    return oldLoop != null
+        && pState instanceof AgressiveLoopBoundState state
+        && proceedWithLoop(state, oldLoop);
   }
 
   private boolean nextIsReturnEdgeFromMain(CFAEdge pCfaEdge, Iterable<AbstractState> pOtherStates) {
@@ -345,31 +346,30 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
     }
     for (AbstractState state : pOtherStates) {
       if (state instanceof CallstackState csstate) {
-        return  csstate.getCurrentFunction().equals(nameOfMainFunction);
+        return csstate.getCurrentFunction().equals(nameOfMainFunction);
       }
     }
     return false;
   }
 
   private boolean isLeftBranchInsideAssumeAbortIfNot(
-      CFAEdge pCfaEdge,
-      Iterable<AbstractState> pOtherStates) {
+      CFAEdge pCfaEdge, Iterable<AbstractState> pOtherStates) {
     if (isInsideAssumeAbortIfNot(pOtherStates)) {
       AssumeEdge assumeState = (AssumeEdge) pCfaEdge;
       if ((!assumeState.isSwapped() && assumeState.getTruthAssumption())
           || (assumeState.isSwapped() && !assumeState.getTruthAssumption())) {
         if (pCfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
-          //We ignore the edge leading to abort within the assume_abort_ifNot function
+          // We ignore the edge leading to abort within the assume_abort_ifNot function
           CFAEdge succesorEdge = pCfaEdge.getSuccessor().getLeavingEdge(0);
           if (succesorEdge instanceof CStatementEdge
               && ((CStatementEdge) succesorEdge).getStatement() instanceof CFunctionCallStatement
               && succesorEdge.getRawStatement().equals(ABORT_STATEMENT)) {
             logger.logf(
                 currentLogLevel,
-                "Stopping at edge %s, as it is configured to ignore the abort path in assume_abort_if_not",
+                "Stopping at edge %s, as it is configured to ignore the abort path in"
+                    + " assume_abort_if_not",
                 pCfaEdge);
             return true;
-
           }
         }
       }
@@ -379,11 +379,13 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
 
   private boolean isInsideAssumeAbortIfNot(Iterable<AbstractState> pOtherStates) {
     Optional<CallstackState> callStackState =
-        AbstractStates.asFlatIterable(pOtherStates).filter(s -> s instanceof CallstackState)
-            .stream().map(s -> (CallstackState) s)
+        AbstractStates.asFlatIterable(pOtherStates)
+            .filter(s -> s instanceof CallstackState)
+            .stream()
+            .map(s -> (CallstackState) s)
             .findFirst();
-    return callStackState.isPresent() && callStackState.orElseThrow().getCurrentFunction()
-        .equals(ASSUME_ABORT_IF_NOT);
+    return callStackState.isPresent()
+        && callStackState.orElseThrow().getCurrentFunction().equals(ASSUME_ABORT_IF_NOT);
   }
 
   public void setAutomatonTransferRelation(AutomatonTransferRelation pTransferRelation) {

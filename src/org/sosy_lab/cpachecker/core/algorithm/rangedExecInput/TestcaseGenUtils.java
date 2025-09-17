@@ -60,7 +60,7 @@ public class TestcaseGenUtils {
   private final ImmutableSet<String> namesOfRandomFunctions;
   private final Solver solver;
   private final LogManager logger;
-  private final  PathFormulaManager pfManager;
+  private final PathFormulaManager pfManager;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
 
@@ -266,8 +266,8 @@ public class TestcaseGenUtils {
           @Nullable CFAEdge edge = pathIterator.getOutgoingEdge();
           if (edge != null) {
             // Check  if the edge is an assignemtnt with random function at rhs
-            if (edge instanceof CStatementEdge) {
-              CStatement stmt = ((CStatementEdge) edge).getStatement();
+            if (edge instanceof CStatementEdge stmtEdge) {
+              CStatement stmt = stmtEdge.getStatement();
               if (stmt instanceof CFunctionCallAssignmentStatement ass) {
                 if (leftIsVar(ass.getLeftHandSide()) && isRandomFctCall(ass.getRightHandSide())) {
                   Optional<Long> value =
@@ -327,8 +327,8 @@ public class TestcaseGenUtils {
 
     Formula varAsFormula = varMap.entrySet().stream().findFirst().orElseThrow().getValue();
     Object evalRes = pM.evaluate(varAsFormula);
-    if (evalRes instanceof Number) {
-      return Optional.of(((Number) evalRes).longValue());
+    if (evalRes instanceof Number num) {
+      return Optional.of(num.longValue());
     } else if (evalRes == null) {
       return Optional.of(DEFAULT_LONG);
     }
