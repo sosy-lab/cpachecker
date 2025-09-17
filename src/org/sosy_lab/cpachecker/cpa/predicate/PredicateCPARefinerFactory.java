@@ -11,8 +11,11 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.Locale;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -28,6 +31,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunDefaultNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicType;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -65,6 +70,28 @@ public final class PredicateCPARefinerFactory {
       description =
           "use DelegatingRefiner to switch between refiners bases on a set of heuristics.")
   private boolean usePredicateDelegatingRefiner = false;
+
+  @Option(
+      secure = true,
+      description =
+          "List of heuristic-refiner pairs for the DelegatingRefiner. Only use when"
+              + " usePredicateDelegatingRefiner = true.")
+  private ImmutableList<String> heuristicRefinerPairs =
+      ImmutableList.of("STATIC:STATIC", "DEFAULT_N_TIMES:DEFAULT", " REDUNDANT_PREDICATES:DEFAULT");
+
+  @Option(
+      secure = true,
+      description =
+          "Number of times the PredicateCPARefiner should run to collect data for subsequent"
+              + " DelegatingRefiner heuristics ")
+  private int pDefaultFixedRuns = 10;
+
+  @Option(
+      secure = true,
+      description =
+          "Acceptable redundancy percentage for added predicates for DelegatingRefiner heuristic"
+              + " (0.0 - 1.0)")
+  private double pAcceptableRedundancyThreshold = 0.8;
 
   private final PredicateCPA predicateCpa;
 
@@ -208,25 +235,89 @@ public final class PredicateCPARefinerFactory {
     }
 
     ARGBasedRefiner refiner = staticRefiner;
-
     if (usePredicateDelegatingRefiner) {
-      DelegatingRefinerHeuristicStaticRefinement useStaticRefinerFirst =
-          new DelegatingRefinerHeuristicStaticRefinement();
-      DelegatingRefinerHeuristicRunDefaultNTimes useDefaultRefinerNTimes =
-          new DelegatingRefinerHeuristicRunDefaultNTimes(10);
-      DelegatingRefinerHeuristicRedundantPredicates redundantPredicates =
-          new DelegatingRefinerHeuristicRedundantPredicates(
-              0.8, predicateCpa.getSolver().getFormulaManager());
-
+      ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pRefinersAvailable =
+          buildRefinerMap(defaultRefiner, staticRefiner);
       ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners =
-          ImmutableList.of(
-              new HeuristicDelegatingRefinerRecord(useStaticRefinerFirst, staticRefiner),
-              new HeuristicDelegatingRefinerRecord(useDefaultRefinerNTimes, defaultRefiner),
-              new HeuristicDelegatingRefinerRecord(redundantPredicates, defaultRefiner));
+          createDelegatingRefinerConfig(pRefinersAvailable);
 
       refiner = new PredicateDelegatingRefiner(pRefiners);
     }
 
     return refiner;
+  }
+
+  // Maps available refiner implementations to their corresponding enum identifiers to choose as
+  // value for the DelegatingRefiner heuristics. To support a new refiner, please add an entry to
+  // DelegatingRefinerRefinerType and extend this map accordingly.
+  private ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> buildRefinerMap(
+      ARGBasedRefiner defaultRefiner, ARGBasedRefiner staticRefiner) {
+    return ImmutableMap.of(
+        DelegatingRefinerRefinerType.DEFAULT,
+        defaultRefiner,
+        DelegatingRefinerRefinerType.STATIC,
+        staticRefiner);
+  }
+
+  // Creates a List of records for the DelegatingRefiner for what refiner to choose for which
+  // heuristics, based on user input in the command-line.
+  private ImmutableList<HeuristicDelegatingRefinerRecord> createDelegatingRefinerConfig(
+      ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pRefinersAvailable)
+      throws InvalidConfigurationException {
+
+    ImmutableList.Builder<HeuristicDelegatingRefinerRecord> recordBuilder = ImmutableList.builder();
+
+    for (String heuristicRefinerPair : heuristicRefinerPairs) {
+      Iterable<String> rawPair = Splitter.on(':').trimResults().split(heuristicRefinerPair);
+      ImmutableList<String> pairs = ImmutableList.copyOf(rawPair);
+      if (pairs.size() != 2) {
+        throw new IllegalArgumentException(
+            "Invalid heuristic-refiner format: "
+                + heuristicRefinerPair
+                + ". Please use format such as DEFAULT_N_TIMES:DEFAULT, STATIC:STATIC");
+      }
+
+      DelegatingRefinerHeuristicType pHeuristicName;
+      try {
+        pHeuristicName =
+            DelegatingRefinerHeuristicType.valueOf(pairs.getFirst().toUpperCase(Locale.ROOT));
+      } catch (IllegalArgumentException unknownHeuristicType) {
+        throw new InvalidConfigurationException(
+            "Unknown heuristic type: " + pairs.getFirst(), unknownHeuristicType);
+      }
+
+      DelegatingRefinerRefinerType pRefinerName;
+      try {
+        pRefinerName =
+            DelegatingRefinerRefinerType.valueOf(pairs.getLast().toUpperCase(Locale.ROOT));
+      } catch (IllegalArgumentException unknownRefinerType) {
+        throw new InvalidConfigurationException(
+            "Unknown refiner type: " + pairs.getLast(), unknownRefinerType);
+      }
+
+      ARGBasedRefiner pRefiner =
+          checkNotNull(
+              pRefinersAvailable.get(pRefinerName), "Unknown refiner type " + pRefinerName);
+
+      switch (pHeuristicName) {
+        case STATIC ->
+            recordBuilder.add(
+                new HeuristicDelegatingRefinerRecord(
+                    new DelegatingRefinerHeuristicStaticRefinement(), pRefiner));
+        case DEFAULT_N_TIMES ->
+            recordBuilder.add(
+                new HeuristicDelegatingRefinerRecord(
+                    new DelegatingRefinerHeuristicRunDefaultNTimes(pDefaultFixedRuns), pRefiner));
+        case REDUNDANT_PREDICATES ->
+            recordBuilder.add(
+                new HeuristicDelegatingRefinerRecord(
+                    new DelegatingRefinerHeuristicRedundantPredicates(
+                        pAcceptableRedundancyThreshold,
+                        predicateCpa.getSolver().getFormulaManager()),
+                    pRefiner));
+      }
+    }
+
+    return recordBuilder.build();
   }
 }

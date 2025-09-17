@@ -2736,6 +2736,10 @@ cpa.predicate.refinement.global.stopAfterNRefinements = 0
 # BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)
 cpa.predicate.refinement.graphblockformulastrategy = false
 
+# List of heuristic-refiner pairs for the DelegatingRefiner. Only use when
+# usePredicateDelegatingRefiner = true.
+cpa.predicate.refinement.heuristicRefinerPairs = ["STATIC:STATIC", "DEFAULT_N_TIMES:DEFAULT", " REDUNDANT_PREDICATES:DEFAULT"]
+
 # Enable/Disable adding partial state invariants into the PathFormulas
 cpa.predicate.refinement.includePartialInvariants = AbstractionPosition.BOTH
 
@@ -2773,6 +2777,14 @@ cpa.predicate.refinement.newtonrefinement.infeasibleCore = true
 # use live variables in order to abstract the predicates produced while
 # NewtonRefinement
 cpa.predicate.refinement.newtonrefinement.liveVariables = true
+
+# Acceptable redundancy percentage for added predicates for DelegatingRefiner
+# heuristic (0.0 - 1.0)
+cpa.predicate.refinement.pAcceptableRedundancyThreshold = 0.8
+
+# Number of times the PredicateCPARefiner should run to collect data for
+# subsequent DelegatingRefiner heuristics 
+cpa.predicate.refinement.pDefaultFixedRuns = 10
 
 # use heuristic to extract predicates from the CFA statically on first
 # refinement

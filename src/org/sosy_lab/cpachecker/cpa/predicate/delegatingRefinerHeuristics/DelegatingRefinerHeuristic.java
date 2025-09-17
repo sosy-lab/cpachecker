@@ -25,7 +25,4 @@ public interface DelegatingRefinerHeuristic {
    * @return true if heuristic conditions are satisfied, false otherwise
    */
   boolean fulfilled(UnmodifiableReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas);
-
-  /** Default setting when none of the heuristics match. Use only as a safety net. */
-  DelegatingRefinerHeuristic DEFAULT = (pReached, pDeltas) -> true;
 }
