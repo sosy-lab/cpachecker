@@ -60,6 +60,14 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
     return !getFinalLocation().equals(getViolationConditionLocation());
   }
 
+  public boolean hasLoopPredecessor(String pId) {
+    return loopPredecessorIds.contains(pId);
+  }
+
+  public boolean allPredecessorsAreLoopPredecessors() {
+    return predecessorIds.equals(loopPredecessorIds);
+  }
+
   @Override
   public CFANode getViolationConditionLocation() {
     return violationConditionLocation;

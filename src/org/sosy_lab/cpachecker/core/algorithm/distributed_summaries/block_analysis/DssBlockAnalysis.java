@@ -567,8 +567,8 @@ public class DssBlockAnalysis {
       boolean putStates = true;
 
       // check whether a loop predecessor is top
-      if (block.getLoopPredecessorIds().contains(predecessorId)
-          && !block.getLoopPredecessorIds().equals(block.getPredecessorIds())) {
+      if (block.hasLoopPredecessor(predecessorId)
+          && !block.allPredecessorsAreLoopPredecessors()) {
         for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
           if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
             putStates = false;
