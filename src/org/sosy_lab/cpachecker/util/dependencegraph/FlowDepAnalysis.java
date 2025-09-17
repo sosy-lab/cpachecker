@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -384,7 +383,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
   private void addFunctionUseDependences() {
 
-    for (FunctionCallEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
+    for (FunctionCallEdge callEdge : entryNode.getEnteringCallEdges()) {
       CFAEdge summaryEdge = callEdge.getSummaryEdge();
       assert summaryEdge != null : "Missing summary edge for call edge: " + callEdge;
       for (MemoryLocation parameter : getEdgeDefs(callEdge)) {
@@ -400,7 +399,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     if (exitNode.isPresent()) {
 
-      for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+      for (FunctionReturnEdge returnEdge : exitNode.orElseThrow().getLeavingReturnEdges()) {
         CFAEdge summaryEdge = returnEdge.getSummaryEdge();
         assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
         for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(function)) {
@@ -421,12 +420,12 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       if (exitNode.isPresent()) {
 
         for (CFAEdge defEdge : exitNode.orElseThrow().getEnteringEdges()) {
-          for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+          for (FunctionReturnEdge returnEdge : exitNode.orElseThrow().getLeavingReturnEdges()) {
             dependenceConsumer.accept(defEdge, returnEdge, returnVar, false);
           }
         }
 
-        for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+        for (FunctionReturnEdge returnEdge : exitNode.orElseThrow().getLeavingReturnEdges()) {
           CFAEdge summaryEdge = returnEdge.getSummaryEdge();
           assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
           dependenceConsumer.accept(returnEdge, summaryEdge, returnVar, false);
