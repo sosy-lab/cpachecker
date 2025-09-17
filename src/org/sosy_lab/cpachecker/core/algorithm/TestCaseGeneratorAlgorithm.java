@@ -387,7 +387,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     return new ARGState(new CompositeState(elements), null);
   }
 
-  // parses argstate and modifies them if necessesary during creation of startState
+  // parses argstate and modifies it if necessesary during creation of startState
   // todo modify other elements of wrapped state as well?
   private AbstractState processElements(AbstractState abstractState) {
     if (abstractState instanceof ValueAnalysisState) {
@@ -409,22 +409,27 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     for (int i = reachStateAssignments.size() - 1; i >= 0; i--) {
       CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(i);
       ImmutableList<AExpressionStatement> stateExpStmts = edgeWithAssignment.getExpStmts();
-      writeExpressionToState(stateExpStmts, valueAnalysisState);
+      mapExpressions(stateExpStmts, valueAnalysisState);
     }
   }
 
-  // reads the value assigned to a variable, and adds that value to the abstract state,
-  // but only if there is no disctinct value tracked already for that variable
-  private void writeExpressionToState(
+
+  private void mapExpressions(
       ImmutableList<AExpressionStatement> expStmt, ValueAnalysisState valueAnalysisState) {
     if (expStmt.isEmpty()) {
       return;
     }
-    // todo can expStmt contain more than 1 element? replace with precondition?
-    assert expStmt.size() == 1;
 
-    CBinaryExpression cBinaryExpression = (CBinaryExpression) expStmt.get(0).getExpression();
-    // todo add guards and asserts
+    for (int i = 0; i < expStmt.size(); i++) {
+      writeExpressionToState((CBinaryExpression) expStmt.get(i).getExpression(),
+          valueAnalysisState);
+    }
+  }
+  // reads the value assigned to a variable, and adds that value to the abstract state,
+  // but only if there is no disctinct value tracked already for that variable
+  private void writeExpressionToState(
+      CBinaryExpression cBinaryExpression,
+      ValueAnalysisState valueAnalysisState) {
     CIdExpression op1 = (CIdExpression) cBinaryExpression.getOperand1();
     CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
     Value variableValue = new NumericValue(op2.getValue());
@@ -432,7 +437,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       valueAnalysisState.assignConstantSafe(op1.getDeclaration(), variableValue);
     }
   }
-
   private ValueAnalysisState extractVAState(CompositeState wrappedState) {
     assert (wrappedState != null);
     for (int i = wrappedState.getNumberOfStates() - 1; i >= 0; i--) {
