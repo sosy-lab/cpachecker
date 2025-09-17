@@ -335,13 +335,6 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
 
     for (AbstractState state : cS.getWrappedStates())
       if (state instanceof ValueAnalysisState valueState2) {
-        /*for (Map.Entry<MemoryLocation, ValueAndType> variable : valueState2.getConstants()) {
-          if (! (valueState.contains(variable.getKey())))
-            valueState.assignConstant(variable.getKey(),
-                variable.getValue().getValue(),
-                variable.getValue().getType());
-        }*/
-
         return Optional.of(
             new ConstraintsState(ValueAnalysisState.compareInConstraint(valueState, valueState2)));
       }
