@@ -212,7 +212,7 @@ public class RangedExecutionInputComputation implements Algorithm {
               && namesOfRandomFunctions.stream()
                   .anyMatch(
                       name ->
-                          (Objects.requireNonNull(funCall))
+                          Objects.requireNonNull(funCall)
                               .getFunctionNameExpression()
                               .toString()
                               .startsWith(name))) {
