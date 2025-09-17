@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.rangedExecInputSequences;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -89,16 +90,12 @@ public class SequenceGenUtils {
     logger.logf(
         Level.INFO,
         "Lines with branch or loop are %s",
-        linesWithIfOrLoop.stream().sorted().collect(ImmutableList.toImmutableList()));
+        ImmutableList.sortedCopyOf(linesWithIfOrLoop));
     logger.logf(
         Level.INFO,
         "Loopheads are %s\n, endless loopheads are %s",
-        loopHeads.stream()
-            .map(l -> l.getEnteringEdge(0).getLineNumber())
-            .collect(ImmutableSet.toImmutableSet()),
-        endlessLoopHeads.stream()
-            .map(l -> l.getEnteringEdge(0).getLineNumber())
-            .collect(ImmutableSet.toImmutableSet()));
+        transformedImmutableSetCopy(loopHeads, l -> l.getEnteringEdge(0).getLineNumber()),
+        transformedImmutableSetCopy(endlessLoopHeads, l -> l.getEnteringEdge(0).getLineNumber()));
   }
 
   public List<Pair<Boolean, Integer>> computeSequenceForLoopbound(

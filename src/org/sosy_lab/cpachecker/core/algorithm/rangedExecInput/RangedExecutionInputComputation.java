@@ -136,7 +136,7 @@ public class RangedExecutionInputComputation implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
-    if (!(pReached instanceof PartitionedReachedSet)) {
+    if (!(pReached instanceof PartitionedReachedSet reached)) {
       throw new CPAException("Expecting a partioned reached set");
     }
 
@@ -146,8 +146,6 @@ public class RangedExecutionInputComputation implements Algorithm {
       throw new CPAException(
           "Cannot generate a testcase, because there is no random call or no loop in the program");
     }
-
-    PartitionedReachedSet reached = (PartitionedReachedSet) pReached;
 
     // run algorithm
 
@@ -208,14 +206,13 @@ public class RangedExecutionInputComputation implements Algorithm {
   private boolean hasRandom() {
     for (CFANode node : cfa.nodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (edge instanceof CStatementEdge
-            && ((CStatementEdge) edge).getStatement() instanceof CAssignment) {
-          if (CFAEdgeUtils.getRightHandSide(edge) instanceof CFunctionCallExpression
+        if (edge instanceof CStatementEdge stmtEdge
+            && stmtEdge.getStatement() instanceof CAssignment) {
+          if (CFAEdgeUtils.getRightHandSide(edge) instanceof CFunctionCallExpression funCall
               && namesOfRandomFunctions.stream()
                   .anyMatch(
                       name ->
-                          ((CFunctionCallExpression)
-                                  Objects.requireNonNull(CFAEdgeUtils.getRightHandSide(edge)))
+                          (Objects.requireNonNull(funCall))
                               .getFunctionNameExpression()
                               .toString()
                               .startsWith(name))) {

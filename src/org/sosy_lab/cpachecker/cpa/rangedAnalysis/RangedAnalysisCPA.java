@@ -84,9 +84,7 @@ public class RangedAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
   private RangedAnalysisCPA(
       Configuration config, LogManager pLogger, CFA pCfa, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, CPAException, InterruptedException {
-    super(
-        DelegateAbstractDomain.getInstance(),
-        new RangedAnalysisTransferRelation(pLogger, config, pCfa));
+    super(DelegateAbstractDomain.getInstance(), new RangedAnalysisTransferRelation(pLogger, pCfa));
     config.inject(this);
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;

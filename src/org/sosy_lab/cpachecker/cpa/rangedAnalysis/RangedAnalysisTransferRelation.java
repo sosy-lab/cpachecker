@@ -15,8 +15,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -36,13 +34,11 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
   private final Optional<LoopStructure> loopStruct;
 
-  int abortCount = 0;
+  // int abortCount = 0;
   private ValueAnalysisTransferRelation leftTR;
   private ValueAnalysisTransferRelation rightTR;
 
-  public RangedAnalysisTransferRelation(LogManager pLogger, Configuration pConfig, CFA pCfa)
-      throws InvalidConfigurationException {
-    pConfig.inject(this);
+  public RangedAnalysisTransferRelation(LogManager pLogger, CFA pCfa) {
     logger = pLogger;
     loopStruct = pCfa.getLoopStructure();
   }
