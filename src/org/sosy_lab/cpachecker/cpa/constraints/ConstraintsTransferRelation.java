@@ -454,6 +454,8 @@ public class ConstraintsTransferRelation
         throws CPATransferException, InterruptedException {
 
       assert pStrengtheningState instanceof BlockState;
+      if (!((BlockState) pStrengtheningState).isTarget()) return Optional.empty();
+
       Optional<AbstractState> errorState = ((BlockState) pStrengtheningState).getErrorCondition();
 
       if (errorState.isEmpty() || !(errorState.get() instanceof ARGState cS)) {
