@@ -743,7 +743,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               pointerState,
               foreignDefUseData,
               complexTypeDeclarationEdges,
-              dependenceConsumer)
+              dependenceConsumer,
+              logger)
           .run();
     }
   }
