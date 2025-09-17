@@ -241,7 +241,7 @@ public final class PredicateCPARefinerFactory {
       ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners =
           createDelegatingRefinerConfig(pRefinersAvailable);
 
-      refiner = new PredicateDelegatingRefiner(pRefiners);
+      refiner = new PredicateDelegatingRefiner(pRefiners, logger);
     }
 
     return refiner;
@@ -313,7 +313,7 @@ public final class PredicateCPARefinerFactory {
                 new HeuristicDelegatingRefinerRecord(
                     new DelegatingRefinerHeuristicRedundantPredicates(
                         pAcceptableRedundancyThreshold,
-                        predicateCpa.getSolver().getFormulaManager()),
+                        predicateCpa.getSolver().getFormulaManager(), predicateCpa.getLogger()),
                     pRefiner));
       }
     }

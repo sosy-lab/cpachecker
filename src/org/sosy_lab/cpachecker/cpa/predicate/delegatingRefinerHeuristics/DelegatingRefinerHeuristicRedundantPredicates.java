@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import java.util.List;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -32,11 +34,15 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
   private final double redundancyThreshold;
   private final FormulaManagerView formulaManager;
+  private final LogManager logger;
 
   public DelegatingRefinerHeuristicRedundantPredicates(
-      double acceptableRedundancyThreshold, FormulaManagerView pFormulaManager) {
+      double acceptableRedundancyThreshold,
+      FormulaManagerView pFormulaManager,
+      final LogManager pLogger) {
     this.redundancyThreshold = acceptableRedundancyThreshold;
     this.formulaManager = checkNotNull(pFormulaManager);
+    this.logger = pLogger;
   }
 
   @Override
@@ -66,16 +72,32 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     }
 
     int maxPatternCount = 0;
+    NormalizedPatternType maxPatternName = null;
 
     for (NormalizedPatternType pattern : patternSequence.elementSet()) {
       int patternCount = patternSequence.count(pattern);
 
       if (patternCount > maxPatternCount) {
         maxPatternCount = patternCount;
+        maxPatternName = pattern;
       }
     }
 
     double dominanceRate = (double) maxPatternCount / totalNumberPatterns;
+
+    if (maxPatternName != null) {
+      logger.log(
+          Level.FINEST,
+          String.format(
+              "Current redundancy rate in predicates %.2f. Most redundancy in pattern %s.",
+              dominanceRate, checkNotNull(maxPatternName.describeForLogs())));
+    } else {
+      logger.log(
+          Level.FINEST,
+          String.format(
+              "Current redundancy rate in predicates %.2f. No dominant pattern found.",
+              dominanceRate));
+    }
 
     return dominanceRate <= redundancyThreshold;
   }
@@ -89,7 +111,21 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     NEGATION,
     BITVECTOR_OP,
     QUANTIFIED,
-    OTHER
+    OTHER;
+
+    private String describeForLogs() {
+      return switch (this) {
+        case CONST_ONLY -> "only predicates with constants";
+        case CONST_AND_VAR -> "predicates that mix constants and variables";
+        case EQ_VAR_VAR -> "predicates with equality between variables";
+        case NESTED_AND -> "predicates with nested conjunctions";
+        case NESTED_OR -> "predicates with nested disjunctions";
+        case NEGATION -> "Negated predicates";
+        case BITVECTOR_OP -> "predicates with bitvector operations";
+        case QUANTIFIED -> "Quantified formulas";
+        case OTHER -> "Other, not classified predicates";
+      };
+    }
   }
 
   private static class PatternNormalizer implements FormulaVisitor<NormalizedPatternType> {

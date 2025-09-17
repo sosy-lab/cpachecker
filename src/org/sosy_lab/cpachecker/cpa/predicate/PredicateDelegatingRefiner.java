@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet;
@@ -29,10 +31,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
   private final ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners;
+  private final LogManager logger;
 
   public PredicateDelegatingRefiner(
-      ImmutableList<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords) {
+      ImmutableList<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords,
+      final LogManager pLogger) {
     this.pRefiners = ImmutableList.copyOf(pHeuristicRefinerRecords);
+    this.logger = pLogger;
   }
 
   @Override
@@ -61,6 +66,12 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
     for (HeuristicDelegatingRefinerRecord pRecord : pRefiners) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
       if (pHeuristic.fulfilled(reachedSet, deltaSequence)) {
+        logger.log(
+            Level.FINE,
+            String.format(
+                "Heuristic %s matched for refiner %s.",
+                pHeuristic.getClass().getSimpleName(),
+                pRecord.pRefiner().getClass().getSimpleName()));
         return pRecord.pRefiner().performRefinementForPath(pReached, pPath);
       }
     }
