@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
-
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;

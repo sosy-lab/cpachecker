@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;

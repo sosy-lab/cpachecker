@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-
 import com.google.common.collect.SortedSetMultimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;

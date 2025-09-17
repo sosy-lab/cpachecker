@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;

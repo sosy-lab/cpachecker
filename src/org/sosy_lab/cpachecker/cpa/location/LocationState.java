@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.location;
 
-
 import com.google.common.base.Ascii;
 import com.google.common.base.Splitter;
 import java.io.IOException;
