@@ -113,6 +113,12 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   }
 
   @Override
+  public void removeEnteringEdge(CFAEdge pEdge) {
+    enteringEdges = null;
+    super.removeEnteringEdge(pEdge);
+  }
+
+  @Override
   public FunctionCallEdge getEnteringEdge(int pIndex) {
     return (FunctionCallEdge) super.getEnteringEdge(pIndex);
   }

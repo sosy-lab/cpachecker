@@ -50,6 +50,12 @@ public final class FunctionExitNode extends CFANode {
   }
 
   @Override
+  public void removeLeavingEdge(CFAEdge pEdge) {
+    leavingEdges = null;
+    super.removeLeavingEdge(pEdge);
+  }
+
+  @Override
   public CFAEdge getLeavingEdge(int pIndex) {
     Preconditions.checkState(
         super.getLeavingEdge(pIndex) instanceof BlankEdge
