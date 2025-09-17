@@ -10,16 +10,22 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
@@ -63,44 +69,52 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
       MemoryLocation mL = MemoryLocation.fromQualifiedName(entry.getKey());
       if (pState.contains(mL)) continue;
       pState.assignConstant(
-          mL, SymbolicValueFactory.getInstance().newIdentifier(mL), entry.getValue());
+          mL,
+          SymbolicValueFactory.getInstance()
+              .asConstant(SymbolicValueFactory.getInstance().newIdentifier(mL), entry.getValue()),
+          entry.getValue());
     }
   }
 
   public static Map<String, Type> getAccessedVariables(BlockNode pBlockNode) {
     HashMap<String, Type> accessedVariables = new HashMap<>();
     ImmutableSet<CFAEdge> edges = pBlockNode.getEdges();
+    List<CExpression> expressions = new ArrayList<>();
+
     for (CFAEdge edge : edges) {
       // TODO other types of edges?
-      if (edge instanceof CAssumeEdge cAssumeEdge) {
-        accessedVariables.putAll(
-            CFAUtils.getIdExpressionsOfExpression(cAssumeEdge.getExpression()).stream()
-                .collect(
-                    Collectors.toMap(
-                        id -> id.getDeclaration().getQualifiedName(),
-                        id -> id.getDeclaration().getType())));
-      }
-      if (!(edge instanceof AStatementEdge aStatementEdge)
-          || !(aStatementEdge.getStatement() instanceof CAssignment cAssignment)) continue;
+      if (edge instanceof CAssumeEdge cAssumeEdge) expressions.add(cAssumeEdge.getExpression());
 
-      if (cAssignment instanceof CFunctionCallAssignmentStatement cFunAssignment) {
-        for (CExpression expr :
-            cFunAssignment.getFunctionCallExpression().getParameterExpressions())
-          accessedVariables.putAll(
-              CFAUtils.getIdExpressionsOfExpression(expr).stream()
-                  .collect(
-                      Collectors.toMap(
-                          id -> id.getDeclaration().getQualifiedName(),
-                          id -> id.getDeclaration().getType())));
+      if (edge instanceof CFunctionCallEdge callEdge) {
+        expressions.addAll(callEdge.getArguments());
+        expressions.addAll(callEdge.getFunctionCallExpression().getParameterExpressions());
       }
-      if (cAssignment instanceof CExpressionAssignmentStatement cExprAssignment) {
-        accessedVariables.putAll(
-            CFAUtils.getIdExpressionsOfExpression(cExprAssignment.getRightHandSide()).stream()
-                .collect(
-                    Collectors.toMap(
-                        id -> id.getDeclaration().getQualifiedName(),
-                        id -> id.getDeclaration().getType())));
+
+      if (edge instanceof CDeclarationEdge declarationEdge
+          && declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration
+          && variableDeclaration.getInitializer() instanceof CInitializerExpression initExpr) {
+        expressions.add(initExpr.getExpression());
       }
+
+      if (edge instanceof AStatementEdge aStatementEdge
+          && aStatementEdge.getStatement() instanceof CAssignment cAssignment) {
+        if (cAssignment instanceof CFunctionCallAssignmentStatement cFunAssignment) {
+          expressions.addAll(cFunAssignment.getFunctionCallExpression().getParameterExpressions());
+        }
+        if (cAssignment instanceof CExpressionAssignmentStatement cExprAssignment) {
+          expressions.add(cExprAssignment.getRightHandSide());
+        }
+      }
+    }
+
+    for (CExpression expr : expressions) {
+      CFAUtils.getIdExpressionsOfExpression(expr).stream()
+          .collect(
+              Collectors.toMap(
+                  id -> id.getDeclaration().getQualifiedName(),
+                  id -> id.getDeclaration().getType(),
+                  (first, second) -> first))
+          .forEach(accessedVariables::putIfAbsent);
     }
     return accessedVariables;
   }
