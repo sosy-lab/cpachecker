@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -43,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -391,7 +389,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
   private void addFunctionUseDependences() {
 
-    for (FunctionCallEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
+    for (FunctionCallEdge callEdge : entryNode.getEnteringCallEdges()) {
       CFAEdge summaryEdge = callEdge.getSummaryEdge();
       assert summaryEdge != null : "Missing summary edge for call edge: " + callEdge;
       for (MemoryLocation parameter : getEdgeDefs(callEdge)) {
@@ -407,19 +405,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     if (exitNode.isPresent()) {
 
-      for (CFAEdge edge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
-        if (!(edge instanceof FunctionReturnEdge returnEdge)) {
-          // skip any edge at FunctionExitNode that is not a return edge;
-          // we are only interested in finding the function caller here.
-          // (Q:How can edges other than FunctionReturnEdges even exist at FunctionExitNodes?
-          //  A: They may be artificially added to the CFA after program parsing.)
-          logger.logf(
-              Level.FINE,
-              "Skipping non-return edge '%s' at function exit while collecting return value->return"
-                  + " statement dependence (over foreign definitions)",
-              edge);
-          continue;
-        }
+      for (FunctionReturnEdge returnEdge : exitNode.orElseThrow().getLeavingReturnEdges()) {
         CFAEdge summaryEdge = returnEdge.getSummaryEdge();
         assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
         for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(function)) {
@@ -440,25 +426,12 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       if (exitNode.isPresent()) {
 
         for (CFAEdge defEdge : exitNode.orElseThrow().getEnteringEdges()) {
-          for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+          for (FunctionReturnEdge returnEdge : exitNode.orElseThrow().getLeavingReturnEdges()) {
             dependenceConsumer.accept(defEdge, returnEdge, returnVar, false);
           }
         }
 
-        for (CFAEdge edge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
-          if (!(edge instanceof FunctionReturnEdge returnEdge)) {
-            // skip any edge at FunctionExitNode that is not a return edge;
-            // we are only interested in finding the function caller here.
-            // (Q:How can edges other than FunctionReturnEdges even exist at FunctionExitNodes?
-            //  A: They may be artificially added to the CFA after program parsing.)
-            logger.logf(
-                Level.FINE,
-                "Skipping non-return edge '%s' at function exit while collecting return"
-                    + " statement->caller dependence (over variable '%s')",
-                edge,
-                returnVar);
-            continue;
-          }
+        for (FunctionReturnEdge returnEdge : exitNode.orElseThrow().getLeavingReturnEdges()) {
           CFAEdge summaryEdge = returnEdge.getSummaryEdge();
           assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
           dependenceConsumer.accept(returnEdge, summaryEdge, returnVar, false);

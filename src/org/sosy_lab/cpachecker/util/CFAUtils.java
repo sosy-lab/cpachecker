@@ -217,10 +217,14 @@ public class CFAUtils {
     return FluentIterable.from(pCfa.nodes()).transformAndConcat(CFAUtils::allLeavingEdges);
   }
 
+  @Deprecated
+  @InlineMe(replacement = "node.getEnteringCallEdges()")
   public static FluentIterable<FunctionCallEdge> enteringEdges(final FunctionEntryNode node) {
     return node.getEnteringCallEdges();
   }
 
+  @Deprecated
+  @InlineMe(replacement = "node.getLeavingReturnEdges()")
   public static FluentIterable<FunctionReturnEdge> leavingEdges(final FunctionExitNode node) {
     return node.getLeavingReturnEdges();
   }
