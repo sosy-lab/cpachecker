@@ -167,7 +167,7 @@ public class RangedExecutionInputComputation implements Algorithm {
         ARGUtils.getAllPathsFromTo(
             AbstractStates.extractStateByType(first, ARGState.class),
             AbstractStates.extractStateByType(last, ARGState.class));
-    logger.log(Level.INFO, new ArrayList<>(paths).get(0));
+    logger.log(Level.INFO, new ArrayList<>(paths).getFirst());
     if (paths.size() != 1) {
       throw new CPAException(
           "There are more than one path present. We cannot compute a testcase for this!");

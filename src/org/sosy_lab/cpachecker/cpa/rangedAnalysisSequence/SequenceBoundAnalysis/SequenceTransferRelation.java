@@ -37,8 +37,7 @@ public class SequenceTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pState, Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    logger.log(
-        Level.FINE, String.format("Processing edge %s, current State is %s", pCfaEdge, pState));
+    logger.logf(Level.FINE, "Processing edge %s, current State is %s", pCfaEdge, pState);
 
     SequenceState state = (SequenceState) pState;
     if (pCfaEdge instanceof AssumeEdge) {

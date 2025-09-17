@@ -273,7 +273,8 @@ public class TestcaseGenUtils {
                   Optional<Long> value =
                       getIntegerValueFromModelForEdge(pM, abstractState, edge, ass);
                   if (value.isPresent()) {
-                    results.add(Pair.of((CIdExpression) ass.getLeftHandSide(), value.get()));
+                    results.add(
+                        Pair.of((CIdExpression) ass.getLeftHandSide(), value.orElseThrow()));
                   } else {
                     throw new CPAException(
                         String.format(
@@ -316,9 +317,8 @@ public class TestcaseGenUtils {
     toRemove.forEach(e -> varMap.remove(e));
     if (varMap.size() != 1) {
       if (varMap.isEmpty()) {
-        logger.log(
-            Level.WARNING,
-            String.format("Unable to compute the variable at LHS for the expression %s", edge));
+        logger.logf(
+            Level.WARNING, "Unable to compute the variable at LHS for the expression %s", edge);
         return Optional.empty();
       }
       throw new CPAException(

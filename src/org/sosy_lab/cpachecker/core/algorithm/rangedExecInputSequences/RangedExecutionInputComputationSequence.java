@@ -132,7 +132,7 @@ public class RangedExecutionInputComputationSequence implements Algorithm {
 
       List<Pair<Boolean, Integer>> inputs =
           utils.computeSequenceForLoopbound(
-              paths.stream().findFirst().get(), blacklist, Optional.empty());
+              paths.stream().findFirst().orElseThrow(), blacklist, Optional.empty());
       if (inputs.isEmpty()) {
         throw new CPAException("We failed to generate a sequence, aborting!");
       }
@@ -149,6 +149,6 @@ public class RangedExecutionInputComputationSequence implements Algorithm {
 
   private boolean hasLoop() {
     return this.cfa.getLoopStructure().isPresent()
-        && this.cfa.getLoopStructure().get().getCount() > 0;
+        && this.cfa.getLoopStructure().orElseThrow().getCount() > 0;
   }
 }

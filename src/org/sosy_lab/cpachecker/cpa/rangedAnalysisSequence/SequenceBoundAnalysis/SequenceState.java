@@ -106,8 +106,8 @@ public class SequenceState implements LatticeAbstractState<SequenceState>, Targe
       // testcase is underspecified.
       return !stopIfUnderspecifiedTestcase;
     }
-    if (remainingDecisionsToTake.get(0) == pCfaEdge.getTruthAssumption()
-        || (remainingDecisionsToTake.get(0) != pCfaEdge.getTruthAssumption()
+    if (remainingDecisionsToTake.getFirst() == pCfaEdge.getTruthAssumption()
+        || (remainingDecisionsToTake.getFirst() != pCfaEdge.getTruthAssumption()
             && pCfaEdge.isSwapped())) {
       return true;
     }

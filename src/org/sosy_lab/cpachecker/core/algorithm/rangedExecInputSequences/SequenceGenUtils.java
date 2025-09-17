@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.rangedExecInputSequences;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -62,8 +64,8 @@ public class SequenceGenUtils {
         .collect(ImmutableSet.toImmutableSet());
 //    endlessLoopHeads = CFAUtils.getEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()).stream().collect(ImmutableSet.toImmutableSet());
     linesWithIfOrLoop = new HashSet<>();
-    try (Stream<String> linesStream = Files.lines(pCfa.getFileNames().get(0),
-        StandardCharsets.UTF_8)) {
+    try (Stream<String> linesStream =
+        Files.lines(pCfa.getFileNames().getFirst(), StandardCharsets.UTF_8)) {
       List<String> lines = linesStream.collect(ImmutableList.toImmutableList());
       for (int i = 0; i < lines.size(); i++) {
         Pattern pattern = Pattern.compile(KEYWORD_FOR_BRANCH_OR_LOOP);
@@ -77,15 +79,19 @@ public class SequenceGenUtils {
               "Failed to read the original program file due to '%s'. Hence, we cannot determine the lines with branches and loops, thus aborting!",
               e));
     }
-    logger.log(Level.INFO, String.format("Lines with branch or loop are %s",
-        linesWithIfOrLoop.stream().sorted().collect(
-            ImmutableList.toImmutableList())));
-    logger.log(Level.INFO, String.format("Loopheads are %s\n, endless loopheads are %s",
-        loopHeads.stream().map(l -> l.getEnteringEdge(0).getLineNumber())
+    logger.logf(
+        Level.INFO,
+        "Lines with branch or loop are %s",
+        linesWithIfOrLoop.stream().sorted().collect(ImmutableList.toImmutableList()));
+    logger.logf(
+        Level.INFO,
+        "Loopheads are %s\n, endless loopheads are %s",
+        loopHeads.stream()
+            .map(l -> l.getEnteringEdge(0).getLineNumber())
             .collect(ImmutableSet.toImmutableSet()),
-        endlessLoopHeads.stream().map(l -> l.getEnteringEdge(0).getLineNumber())
-            .collect(ImmutableSet.toImmutableSet())));
-
+        endlessLoopHeads.stream()
+            .map(l -> l.getEnteringEdge(0).getLineNumber())
+            .collect(ImmutableSet.toImmutableSet()));
   }
 
 
@@ -111,8 +117,7 @@ public class SequenceGenUtils {
           if (edge != null && callState != null) {
             // Check  if the edge is an assignment with random function at rhs
             if (blacklist.contains(callState.getCurrentFunction())) {
-              logger.log(Level.FINE,
-                  String.format("Ignoring edge %s as it is part of the blacklist", edge));
+              logger.logf(Level.FINE, "Ignoring edge %s as it is part of the blacklist", edge);
               continue;
             }
             logger.log(Level.FINE, callState.getCurrentFunction());
@@ -131,9 +136,9 @@ public class SequenceGenUtils {
     checkForEndlessLoopheads(decisionNodesTaken, pARGPath);
 
     ImmutableList<Pair<Boolean, Integer>> resultList;
-    resultList = decisionNodesTaken.stream()
-        .map(e -> Pair.of(e.decision, e.edge.getLineNumber())).collect(
-            ImmutableList.toImmutableList());
+    resultList =
+        transformedImmutableListCopy(
+            decisionNodesTaken, e -> Pair.of(e.decision, e.edge.getLineNumber()));
     logger.log(Level.INFO, resultList);
     return resultList;
   }
@@ -152,10 +157,8 @@ public class SequenceGenUtils {
       ARGState pAbstractState,
       boolean decision, ARGPath pARGPath) throws CPAException {
 
-
-    Optional<PathElement> lastEntry = Optional.ofNullable(
-        decisionNodesTaken.isEmpty() ? null
-                                     : decisionNodesTaken.get(decisionNodesTaken.size() - 1));
+    Optional<PathElement> lastEntry =
+        Optional.ofNullable(decisionNodesTaken.isEmpty() ? null : decisionNodesTaken.getLast());
     // Check if the current entry is a loophead, then add it anyway
     if (loopHeads.contains(edge.getSuccessor())) {
       decisionNodesTaken.add(new PathElement(decision, edge, pAbstractState));
@@ -170,15 +173,19 @@ public class SequenceGenUtils {
             // ||)
             && sameCallingContext(entry.prevARGState, pAbstractState)
             && noLoopHeadInBetween(entry.prevARGState, pAbstractState, pARGPath)) {
-          logger.log(Level.INFO, String.format(
+          logger.logf(
+              Level.INFO,
               "Overwriting decision for edge %s (that was %s), with %s and decision '%s' ",
-              entry.edge, entry.decision, edge, decision));
+              entry.edge,
+              entry.decision,
+              edge,
+              decision);
           decisionNodesTaken.remove(entry);
         }
       }
       decisionNodesTaken.add(new PathElement(decision, edge, pAbstractState));
     } else {
-      logger.log(Level.INFO, String.format("Ignoring %s with value %s", edge, decision));
+      logger.logf(Level.INFO, "Ignoring %s with value %s", edge, decision);
     }
   }
 
@@ -232,11 +239,12 @@ public class SequenceGenUtils {
         String.join(
             DELIMITER,
             pInputs.stream()
-                .map(pair -> {
-                  assert pair.getSecond() != null;
-                  assert pair.getFirst() != null;
-                  return pair.getSecond().toString() + "," + pair.getFirst().toString();
-                })
+                .map(
+                    pair -> {
+                      assert pair.getSecond() != null;
+                      assert pair.getFirst() != null;
+                      return pair.getSecond().toString() + "," + pair.getFirst();
+                    })
                 .collect(ImmutableList.toImmutableList())));
     IO.writeFile(testcaseName, Charset.defaultCharset(), Joiner.on("\n").join(content));
   }

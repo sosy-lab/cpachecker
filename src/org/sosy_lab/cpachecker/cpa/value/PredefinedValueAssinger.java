@@ -85,12 +85,11 @@ public class PredefinedValueAssinger implements MemoryLocationValueHandler {
     } catch (ParserConfigurationException | SAXException | IOException e) {
       // Nothing to do here, as we are not able to lead the additional information, hence ignoring
       // the file
-      logger.logUserException(
+      logger.logfUserException(
           Level.WARNING,
           e,
-          String.format(
-              "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
-              functionValuesForRandom));
+          "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
+          functionValuesForRandom);
       valuesFromFile = new HashMap<>();
     }
   }
@@ -207,11 +206,11 @@ public class PredefinedValueAssinger implements MemoryLocationValueHandler {
           this.logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
         }
       } catch (NumberFormatException e) {
-        this.logger.logUserException(
+        this.logger.logfUserException(
             Level.WARNING,
             e,
-            String.format(
-                "The given value does not match the number format %s ", pStringValueForNumber));
+            "The given value does not match the number format %s ",
+            pStringValueForNumber);
         if (this.tryToParseAllValues) {
           if (type.hasUnsignedSpecifier()) {
             return new NumericValue(Long.parseUnsignedLong(pStringValueForNumber));

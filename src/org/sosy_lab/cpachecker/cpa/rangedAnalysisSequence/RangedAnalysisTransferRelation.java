@@ -127,12 +127,11 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    logger.log(
+    logger.logf(
         Level.FINE,
-        String.format(
-            "Current abstract state at location %s is  '%s'",
-            AbstractStates.extractLocations(pOtherStates).first().get(),
-            AbstractStates.extractStateByType(pState, RangedAnalysisState.class)));
+        "Current abstract state at location %s is  '%s'",
+        AbstractStates.extractLocations(pOtherStates).first().get(),
+        AbstractStates.extractStateByType(pState, RangedAnalysisState.class));
     return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
   }
 

@@ -75,8 +75,7 @@ public class RandomWalkTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pState, Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    logger.log(
-        Level.FINE, String.format("Processing edge %s, current State is %s", pCfaEdge, pState));
+    logger.logf(Level.FINE, "Processing edge %s, current State is %s", pCfaEdge, pState);
 
     RandomWalkState state = (RandomWalkState) pState;
     if (pCfaEdge instanceof AssumeEdge) {

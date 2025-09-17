@@ -127,7 +127,7 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
         }
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
-        if (cause instanceof CPAException) {
+        if (cause instanceof CPAException cpaException) {
           if (cause.getMessage().contains("recursion")) {
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to recursion");
@@ -136,7 +136,7 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to concurrency");
           }
-          exceptions.add((CPAException) cause);
+          exceptions.add(cpaException);
 
         } else {
           // cancel other computations

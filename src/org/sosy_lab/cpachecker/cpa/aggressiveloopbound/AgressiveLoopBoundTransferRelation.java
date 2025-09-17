@@ -14,6 +14,7 @@ import static com.google.common.base.Predicates.instanceOf;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
@@ -143,8 +144,7 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
       AbstractState pState, Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    logger.log(
-       currentLogLevel, String.format("Processing edge %s, current State is %s", pCfaEdge, pState));
+    logger.logf(currentLogLevel, "Processing edge %s, current State is %s", pCfaEdge, pState);
 
     AgressiveLoopBoundState state = (AgressiveLoopBoundState) pState;
     state = state.copy();
@@ -158,13 +158,11 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
     if (oldLoop != null) {
       if (proceedWithLoop(
           state, oldLoop)) { // Dont exit the loop (hence dont produce a successor state
-        logger.log(
-            currentLogLevel, String.format("Visiting edge %s, is a Loop exit, dont proceed", pCfaEdge));
+        logger.logf(currentLogLevel, "Visiting edge %s, is a Loop exit, dont proceed", pCfaEdge);
         state = state.setStop(true);
         return Collections.singleton(state);
       } else {
-        logger.log(
-            currentLogLevel, String.format("Visiting edge %s, is a Loop exit, proceed", pCfaEdge));
+        logger.logf(currentLogLevel, "Visiting edge %s, is a Loop exit, proceed", pCfaEdge);
         state = state.exit(oldLoop);
         return Collections.singleton(state);
       }
@@ -189,14 +187,12 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
 
     if (newLoop != null) {
       if (proceedWithLoop(state, newLoop) && this.maxLoopIterations > 0) { // Entere the loop
-        logger.log(
-            currentLogLevel, String.format("Visiting edge %s, is a Loop entry, proceed", pCfaEdge));
+        logger.logf(currentLogLevel, "Visiting edge %s, is a Loop entry, proceed", pCfaEdge);
         state = state.enter(newLoop);
         return Collections.singleton(state);
       } else {
         // Dont enter the loop
-        logger.log(
-            currentLogLevel, String.format("Visiting edge %s, is a Loop entry, dont proceed", pCfaEdge));
+        logger.logf(currentLogLevel, "Visiting edge %s, is a Loop entry, dont proceed", pCfaEdge);
         // Dont need to set stop for the state, as we ignore it anyway
         return ImmutableList.of();
       }
@@ -261,11 +257,11 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
     if (!((AgressiveLoopBoundState) state).getLoopStack().isEmpty()
         && pCfaEdge.getSuccessor().getNumLeavingEdges() == 1
         && edgeLeadsToTargetStateOrIsBreak(pCfaEdge.getSuccessor().getLeavingEdge(0), otherStates)) {
-      logger.log(
+      logger.logf(
           currentLogLevel,
-          String.format(
-              "Stoping at edge  %s, as it would lead to a target state within the loop", pCfaEdge));
-      return Collections.emptySet();
+          "Stoping at edge  %s, as it would lead to a target state within the loop",
+          pCfaEdge);
+      return ImmutableSet.of();
     }
 
     if (useLeftPathInsideLoops && pCfaEdge instanceof AssumeEdge assumeState) {
@@ -278,14 +274,14 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
               && !pCfaEdge.getPredecessor().isLoopStart()) {
             if (!isInsideAssumeAbortIfNot(otherStates) && stepThoughAssumeAbortIfNot) {
 
-              //We need this extra check, as otherwise the true and false branch insisde assumeabortIfNot are irgnored
+              // We need this extra check, as otherwise the true and false branch insisde
+              // assumeabortIfNot are irgnored
 
               // Abort, as not the leftmost edge
-              logger.log(
+              logger.logf(
                   currentLogLevel,
-                  String.format(
-                      "Visiting edge %s, is not the leftmost edge inside a loop, hence dont proceed",
-                      pCfaEdge));
+                  "Visiting edge %s, is not the leftmost edge inside a loop, hence dont proceed",
+                  pCfaEdge);
               return ImmutableList.of();
             }
           }
@@ -295,7 +291,10 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
     if (pCfaEdge instanceof AssumeEdge && loopState.getLoopStack().isEmpty()
         && !((AgressiveLoopBoundState) state).isAnyLoopSeen() && nextIsReturnEdgeFromMain(pCfaEdge,
         otherStates)) {
-      logger.log(currentLogLevel, String.format("Ignoring edge %s, as it does not lead to a loop and we haven't seen one", pCfaEdge));
+      logger.logf(
+          currentLogLevel,
+          "Ignoring edge %s, as it does not lead to a loop and we haven't seen one",
+          pCfaEdge);
       return ImmutableList.of();
     }
 
@@ -317,12 +316,12 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
     //      }
     //    }
     if (((AgressiveLoopBoundState) state).isStop()) {
-      logger.log(currentLogLevel, String.format("Stoping at edge %s, as stop is set", pCfaEdge));
+      logger.logf(currentLogLevel, "Stoping at edge %s, as stop is set", pCfaEdge);
       return ImmutableList.of();
     } else if (this.stepThoughAssumeAbortIfNot && pCfaEdge instanceof AssumeEdge) {
       if (isLeftBranchInsideAssumeAbortIfNot(pCfaEdge, otherStates) && !pCfaEdge.getPredecessor()
           .isLoopStart()) {
-        logger.log(currentLogLevel, String.format("Stoping within assume abort if not %s,", pCfaEdge));
+        logger.logf(currentLogLevel, "Stoping within assume abort if not %s,", pCfaEdge);
         return ImmutableList.of();
       } else {
         return Collections.singleton(state);
@@ -365,9 +364,10 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
           if (succesorEdge instanceof CStatementEdge
               && ((CStatementEdge) succesorEdge).getStatement() instanceof CFunctionCallStatement
               && succesorEdge.getRawStatement().equals(ABORT_STATEMENT)) {
-            logger.log(currentLogLevel, String.format(
+            logger.logf(
+                currentLogLevel,
                 "Stopping at edge %s, as it is configured to ignore the abort path in assume_abort_if_not",
-                pCfaEdge));
+                pCfaEdge);
             return true;
 
           }

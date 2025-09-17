@@ -190,7 +190,7 @@ public class RangedAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
 
     List<Path> files = pCfa.getFileNames();
     if (files.size() == 1) {
-      String filename = files.get(0).toAbsolutePath().toString();
+      String filename = files.getFirst().toAbsolutePath().toString();
       String testcasePath = filename.substring(0, filename.lastIndexOf("."));
       if (!suffix.isEmpty()) {
         testcasePath = testcasePath + suffix;
