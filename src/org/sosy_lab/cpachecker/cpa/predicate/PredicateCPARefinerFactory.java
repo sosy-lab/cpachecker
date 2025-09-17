@@ -313,7 +313,8 @@ public final class PredicateCPARefinerFactory {
                 new HeuristicDelegatingRefinerRecord(
                     new DelegatingRefinerHeuristicRedundantPredicates(
                         pAcceptableRedundancyThreshold,
-                        predicateCpa.getSolver().getFormulaManager(), predicateCpa.getLogger()),
+                        predicateCpa.getSolver().getFormulaManager(),
+                        predicateCpa.getLogger()),
                     pRefiner));
       }
     }

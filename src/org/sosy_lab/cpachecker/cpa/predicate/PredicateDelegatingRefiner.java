@@ -66,12 +66,11 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
     for (HeuristicDelegatingRefinerRecord pRecord : pRefiners) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
       if (pHeuristic.fulfilled(reachedSet, deltaSequence)) {
-        logger.log(
+        logger.logf(
             Level.FINE,
-            String.format(
-                "Heuristic %s matched for refiner %s.",
-                pHeuristic.getClass().getSimpleName(),
-                pRecord.pRefiner().getClass().getSimpleName()));
+            "Heuristic %s matched for refiner %s.",
+            pHeuristic.getClass().getSimpleName(),
+            pRecord.pRefiner().getClass().getSimpleName());
         return pRecord.pRefiner().performRefinementForPath(pReached, pPath);
       }
     }

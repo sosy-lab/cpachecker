@@ -86,17 +86,16 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     double dominanceRate = (double) maxPatternCount / totalNumberPatterns;
 
     if (maxPatternName != null) {
-      logger.log(
+      logger.logf(
           Level.FINEST,
-          String.format(
-              "Current redundancy rate in predicates %.2f. Most redundancy in pattern %s.",
-              dominanceRate, checkNotNull(maxPatternName.describeForLogs())));
+          "Current redundancy rate in predicates %.2f. Most redundancy in pattern %s.",
+          dominanceRate,
+          checkNotNull(maxPatternName.describeForLogs()));
     } else {
-      logger.log(
+      logger.logf(
           Level.FINEST,
-          String.format(
-              "Current redundancy rate in predicates %.2f. No dominant pattern found.",
-              dominanceRate));
+          "Current redundancy rate in predicates %.2f. No dominant pattern found.",
+          dominanceRate);
     }
 
     return dominanceRate <= redundancyThreshold;
