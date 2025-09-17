@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -53,18 +55,22 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final Function<CFANode, BlockState> blockStateSupplier;
   private final CombinePrecisionOperator combinePrecisionOperator;
 
-  public DistributedBlockCPA(ConfigurableProgramAnalysis pBlockCpa, BlockNode pNode) {
+  public DistributedBlockCPA(
+      ConfigurableProgramAnalysis pBlockCpa, BlockNode pNode, DssAnalysisOptions pOptions) {
     checkArgument(
         pBlockCpa instanceof BlockCPA, "%s is no %s", pBlockCpa.getClass(), BlockCPA.class);
     blockCpa = pBlockCpa;
     node = pNode;
     blockStateSupplier =
-        location -> new BlockState(location, pNode, BlockStateType.INITIAL, Optional.empty());
+        location ->
+            new BlockState(
+                location, pNode, BlockStateType.INITIAL, Optional.empty(), ImmutableList.of());
 
     serializeOperator = new SerializeBlockStateOperator();
     deserializeOperator = new DeserializeBlockStateOperator(pNode);
     proceedOperator = new ProceedBlockStateOperator(pNode);
-    verificationConditionOperator = new BlockViolationConditionOperator();
+    verificationConditionOperator =
+        new BlockViolationConditionOperator(pOptions.isDebugModeEnabled());
     coverageOperator = new BlockStateCoverageOperator();
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();

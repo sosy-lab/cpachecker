@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -86,6 +88,8 @@ public class DssBlockAnalysis {
   private final LogManager logger;
 
   private AlgorithmStatus status;
+
+  private final boolean forcefullyCollectAllArgPaths;
 
   public DssBlockAnalysis(
       LogManager pLogger,
@@ -125,6 +129,7 @@ public class DssBlockAnalysis {
 
     preconditions = ArrayListMultimap.create();
     violationConditions = new LinkedHashMap<>();
+    forcefullyCollectAllArgPaths = pOptions.forcefullyCollectAllViolationConditions();
   }
 
   private static AnalysisComponents createBlockAlgorithm(
@@ -168,11 +173,15 @@ public class DssBlockAnalysis {
   public Collection<DssMessage> reportUnreachableBlockEnd() {
     return ImmutableSet.of(
         messageFactory.createDssPreconditionMessage(
-            block.getId(), false, status, ImmutableMap.of()));
+            block.getId(),
+            false,
+            status,
+            ImmutableList.copyOf(block.getSuccessorIds()),
+            ImmutableMap.of()));
   }
 
   private Collection<DssMessage> reportBlockPostConditions(
-      Set<@NonNull ARGState> blockEnds, boolean allowTop) {
+      Set<@NonNull ARGState> blockEnds, boolean allowTop, Set<String> pEligibleSuccessors) {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     for (ARGState abstraction : blockEnds) {
       if (dcpa.isMostGeneralBlockEntryState(abstraction) && !allowTop) {
@@ -184,7 +193,8 @@ public class DssBlockAnalysis {
             transformedImmutableListCopy(
                 blockEnds, a -> new StateAndPrecision(a, reachedSet.getPrecision(a))));
     messages.add(
-        messageFactory.createDssPreconditionMessage(block.getId(), true, status, serialized));
+        messageFactory.createDssPreconditionMessage(
+            block.getId(), true, status, ImmutableList.copyOf(pEligibleSuccessors), serialized));
     return messages.build();
   }
 
@@ -254,7 +264,12 @@ public class DssBlockAnalysis {
       Set<@NonNull ARGState> violations, ARGState condition, boolean first)
       throws CPAException, InterruptedException, SolverException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (ARGPath path : collectAllArgPaths(violations)) {
+    Iterable<ARGPath> paths =
+        forcefullyCollectAllArgPaths
+            ? collectAllArgPaths(violations)
+            : FluentIterable.from(violations)
+                .transformAndConcat(p -> ARGUtils.getAllPaths(reachedSet, p));
+    for (ARGPath path : paths) {
       Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(path, Optional.ofNullable(condition));
@@ -286,7 +301,8 @@ public class DssBlockAnalysis {
       if (result.getFinalLocationStates().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
-      return reportBlockPostConditions(result.getFinalLocationStates(), true);
+      return reportBlockPostConditions(
+          result.getFinalLocationStates(), true, block.getSuccessorIds());
     }
 
     return reportFirstViolationConditions(result.getViolations());
@@ -369,8 +385,10 @@ public class DssBlockAnalysis {
   public Collection<DssMessage> analyzePrecondition()
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (StateAndPrecision stateAndPrecision : violationConditions.values()) {
-      messages.addAll(analyzeViolationCondition(stateAndPrecision));
+    for (Entry<String, StateAndPrecision> idToStateAndPrecision : violationConditions.entrySet()) {
+      messages.addAll(
+          analyzeViolationCondition(
+              idToStateAndPrecision.getValue(), idToStateAndPrecision.getKey()));
     }
     return messages.build();
   }
@@ -390,7 +408,7 @@ public class DssBlockAnalysis {
       throw new IllegalArgumentException(
           "No violation condition found for sender ID: " + pSenderId);
     }
-    return analyzeViolationCondition(violation);
+    return analyzeViolationCondition(violation, pSenderId);
   }
 
   /**
@@ -404,7 +422,8 @@ public class DssBlockAnalysis {
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
-  public Collection<DssMessage> analyzeViolationCondition(StateAndPrecision violation)
+  public Collection<DssMessage> analyzeViolationCondition(
+      StateAndPrecision violation, String pSuccessor)
       throws CPAException, InterruptedException, SolverException {
     prepareReachedSet();
     // debugPrecondition();
@@ -422,7 +441,11 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     if (block.isAbstractionPossible()) {
       if (!result.getSummaries().isEmpty()) {
-        messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
+        Set<String> eligible =
+            block.getLoopPredecessorIds().isEmpty()
+                ? block.getSuccessorIds()
+                : ImmutableSet.of(pSuccessor);
+        messages.addAll(reportBlockPostConditions(result.getSummaries(), false, eligible));
       }
     } else {
       messages.addAll(

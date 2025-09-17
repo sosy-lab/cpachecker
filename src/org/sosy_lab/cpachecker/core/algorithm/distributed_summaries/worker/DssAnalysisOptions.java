@@ -57,6 +57,15 @@ public class DssAnalysisOptions {
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path logDirectory = Path.of("block_analysis/logfiles");
 
+  @Option(
+      description =
+          "If this option is set to true, the analysis will try to cover all violation conditions"
+              + " in the block, even if no valid ARG path exists. In some cases,"
+              + " ARGUtils#getAllPaths does not compute all paths as promised. However, setting"
+              + " this option to true may lead to a significant increase in analysis time.",
+      secure = true)
+  private boolean forcefullyCollectAllViolationConditions = false;
+
   private final Configuration parentConfig;
 
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
@@ -74,6 +83,10 @@ public class DssAnalysisOptions {
 
   public boolean isDebugModeEnabled() {
     return debug;
+  }
+
+  public boolean forcefullyCollectAllViolationConditions() {
+    return forcefullyCollectAllViolationConditions;
   }
 
   public Path getForwardConfiguration() {

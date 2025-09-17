@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import java.util.Map;
 
 public class DssPreconditionMessage extends DssMessage {
@@ -16,10 +17,17 @@ public class DssPreconditionMessage extends DssMessage {
   public static final String DSS_MESSAGE_REACHABLE_KEY = "reachable";
 
   private final boolean reachable;
+  private final List<String> receivers;
 
-  DssPreconditionMessage(String pSenderId, ImmutableMap<String, String> pContent) {
+  DssPreconditionMessage(
+      String pSenderId, List<String> pReceivers, ImmutableMap<String, String> pContent) {
     super(pSenderId, DssMessageType.PRECONDITION, pContent);
     reachable = Boolean.parseBoolean(pContent.get(DSS_MESSAGE_REACHABLE_KEY));
+    receivers = pReceivers;
+  }
+
+  public List<String> getReceivers() {
+    return receivers;
   }
 
   @Override

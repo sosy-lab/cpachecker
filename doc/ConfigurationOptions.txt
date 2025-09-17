@@ -1745,6 +1745,9 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
+# ignore the callstack and do not track it this heavily over-approximates.
+cpa.callstack.ignoreTransfer = false
+
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -4229,6 +4232,13 @@ distributedSummaries.decomposition.importDecomposition = no default value
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
   enum:     [DSS, SINGLE_WORKER]
+
+# If this option is set to true, the analysis will try to cover all violation
+# conditions in the block, even if no valid ARG path exists. In some cases,
+# ARGUtils#getAllPaths does not compute all paths as promised. However,
+# setting this option to true may lead to a significant increase in analysis
+# time.
+distributedSummaries.forcefullyCollectAllViolationConditions = false
 
 # output file for visualizing the block graph
 distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"

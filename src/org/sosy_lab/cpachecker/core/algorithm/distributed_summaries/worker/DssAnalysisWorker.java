@@ -179,7 +179,8 @@ public class DssAnalysisWorker extends DssWorker {
       switch (message.getType()) {
         case PRECONDITION -> {
           broadcaster.broadcastToObserver(message);
-          broadcaster.broadcastToIds(message, block.getSuccessorIds());
+          broadcaster.broadcastToIds(
+              message, ImmutableSet.copyOf(((DssPreconditionMessage) message).getReceivers()));
         }
         case VIOLATION_CONDITION -> {
           broadcaster.broadcastToObserver(message);

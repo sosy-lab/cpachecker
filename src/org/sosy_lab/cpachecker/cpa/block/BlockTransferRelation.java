@@ -58,7 +58,8 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               cfaEdge.getSuccessor(),
               blockState.getBlockNode(),
               getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-              blockState.getErrorCondition()));
+              blockState.getErrorCondition(),
+              blockState.getHistory()));
     }
 
     return ImmutableList.of();
