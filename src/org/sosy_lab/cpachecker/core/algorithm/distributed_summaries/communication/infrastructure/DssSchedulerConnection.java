@@ -18,6 +18,12 @@ public class DssSchedulerConnection implements DssConnection {
   private final DssMessageBroadcaster broadcaster;
   private boolean closed;
 
+  /**
+   * Creates a new connection for the scheduler.
+   *
+   * @param pIncomingQueue the incoming queue for messages to the scheduler
+   * @param pBroadcaster the broadcaster to use for sending messages
+   */
   public DssSchedulerConnection(
       BlockingQueue<DssMessage> pIncomingQueue, DssMessageBroadcaster pBroadcaster) {
     incomingQueue = pIncomingQueue;
