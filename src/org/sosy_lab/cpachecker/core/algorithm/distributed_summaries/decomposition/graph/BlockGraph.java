@@ -117,7 +117,7 @@ public class BlockGraph {
   }
 
   public static BlockGraph fromBlockNodesWithoutGraphInformation(
-      Collection<@NonNull ? extends BlockNodeWithoutGraphInformation> pNodes) {
+      Collection<? extends @NonNull BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodes = ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> endNodes = ArrayListMultimap.create();
     for (BlockNodeWithoutGraphInformation blockNode : pNodes) {
