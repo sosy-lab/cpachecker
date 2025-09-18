@@ -472,10 +472,12 @@ public class ConstraintsTransferRelation
 
         ConstraintsState currStateToStrengthen = newStates.getFirst();
 
-        if (currStrengtheningState instanceof ValueAnalysisState) {
-          strengthenOperator = new ValueAnalysisStrengthenOperator();
-
-        } else if (currStrengtheningState instanceof AutomatonState) {
+        if (currStrengtheningState instanceof ValueAnalysisState valueState) {
+          ConstraintsState newState = simplify(currStateToStrengthen, valueState);
+          newStates.clear();
+          newStates.add(newState);
+        }
+        if (currStrengtheningState instanceof AutomatonState) {
           strengthenOperator = new AutomatonStrengthenOperator();
 
         } else if (currStrengtheningState instanceof ConstraintsState) {
@@ -530,7 +532,9 @@ public class ConstraintsTransferRelation
       } catch (SolverException pE) {
         throw new CPATransferException("Solver failed when strengthening constraints state", pE);
       }
-      if (newState != null) return Optional.of(ImmutableSet.of(newState));
+      if (newState != null) {
+        return Optional.of(ImmutableSet.of(simplifier.removeTrivialConstraints(newState)));
+      }
       return Optional.of(ImmutableSet.of());
     }
   }
