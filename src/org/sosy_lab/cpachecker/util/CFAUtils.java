@@ -108,7 +108,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -225,7 +224,7 @@ public class CFAUtils {
 
   @Deprecated
   @InlineMe(replacement = "node.getLeavingReturnEdges()")
-  public static FluentIterable<FunctionReturnEdge> leavingEdges(final FunctionExitNode node) {
+  public static FluentIterable<CFAEdge> leavingEdges(final FunctionExitNode node) {
     return node.getLeavingReturnEdges();
   }
 

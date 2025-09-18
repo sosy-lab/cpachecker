@@ -64,7 +64,8 @@ public final class FunctionExitNode extends CFANode {
   }
 
   /**
-   * @deprecated use {@link #getLeavingReturnEdges()} instead, it has a stronger return type
+   * @deprecated use {@link #getLeavingReturnEdges()} instead, it may have a stronger return type in
+   *     the future
    */
   @Deprecated
   @Override
@@ -76,10 +77,12 @@ public final class FunctionExitNode extends CFANode {
     return leavingEdges;
   }
 
-  @SuppressWarnings("unchecked")
-  public FluentIterable<FunctionReturnEdge> getLeavingReturnEdges() {
-    // TODO this case is broken since e2a8384a (cf. #1319)
-    return (FluentIterable<FunctionReturnEdge>) (FluentIterable<?>) getLeavingEdges();
+  public FluentIterable<CFAEdge> getLeavingReturnEdges() {
+    // may be strengthened to only return FunctionReturnEdges
+    // if no analysis adds dummy edges after FunctionExitNodes anymore
+    // (currently https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1319)
+    // and we really want unchecked casts
+    return getLeavingEdges();
   }
 
   @Override

@@ -200,7 +200,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       Sideassignments pSideAssignmentStack,
       CheckBindingVisitor pCheckBinding,
       ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope,
+      Set<FileLocation> pUnhandledAtomicOccurrences) {
     options = pOptions;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -213,7 +214,8 @@ class CFAFunctionBuilder extends ASTVisitor {
             pParseContext,
             pMachine,
             staticVariablePrefix,
-            pSideAssignmentStack);
+            pSideAssignmentStack,
+            pUnhandledAtomicOccurrences);
     parseContext = pParseContext;
     checkBinding = pCheckBinding;
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
