@@ -117,7 +117,7 @@ public class BlockGraph {
   }
 
   public static BlockGraph fromBlockNodesWithoutGraphInformation(
-      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
+      Collection<@NonNull ? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodes = ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> endNodes = ArrayListMultimap.create();
     for (BlockNodeWithoutGraphInformation blockNode : pNodes) {
@@ -130,8 +130,11 @@ public class BlockGraph {
                 .filter(n -> endNodes.get(n.getInitialLocation()).isEmpty()));
     Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopPredecessors =
         findLoopPredecessors(root, pNodes);
+    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopSuccessors =
+        ArrayListMultimap.create();
+    loopPredecessors.forEach((block, predecessor) -> loopSuccessors.put(predecessor, block));
 
-    ImmutableSet<BlockNode> blockNodes =
+    ImmutableSet<@NonNull BlockNode> blockNodes =
         transformedImmutableSetCopy(
             pNodes,
             b ->
@@ -153,7 +156,14 @@ public class BlockGraph {
                         .immutableCopy(),
                     transformedImmutableSetCopy(
                         startNodes.get(b.getFinalLocation()),
-                        BlockNodeWithoutGraphInformation::getId)));
+                        BlockNodeWithoutGraphInformation::getId),
+                    Sets.intersection(
+                            transformedImmutableSetCopy(
+                                startNodes.get(b.getFinalLocation()),
+                                BlockNodeWithoutGraphInformation::getId),
+                            transformedImmutableSetCopy(
+                                loopSuccessors.get(b), BlockNodeWithoutGraphInformation::getId))
+                        .immutableCopy()));
     return new BlockGraph(blockNodes);
   }
 
@@ -174,6 +184,7 @@ public class BlockGraph {
               ImmutableSet.copyOf(importedBlock.predecessors()),
               ImmutableSet.copyOf(importedBlock.loopPredecessors()),
               ImmutableSet.copyOf(importedBlock.successors()),
+              ImmutableSet.copyOf(importedBlock.loopSuccessors()),
               pIdToNodeMap.get(importedBlock.abstractionLocation())));
     }
     return new BlockGraph(nodes.build());
@@ -219,6 +230,7 @@ public class BlockGraph {
               attributes.put("startNode", n.getInitialLocation().getNodeNumber());
               attributes.put("endNode", n.getFinalLocation().getNodeNumber());
               attributes.put("loopPredecessors", n.getLoopPredecessorIds());
+              attributes.put("loopSuccessors", n.getLoopSuccessorIds());
               attributes.put(
                   "abstractionLocation", n.getViolationConditionLocation().getNodeNumber());
               treeMap.put(n.getId(), attributes);

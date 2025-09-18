@@ -110,9 +110,10 @@ public class DssBlockAnalyses {
     private final AlgorithmStatus status;
 
     /**
-     * Interpret the reached set after the block analysis.
-     * We collect all states at the final location, all target states (violations) and all
-     * summary states (final location, not target, no children).
+     * Interpret the reached set after the block analysis. We collect all states at the final
+     * location, all target states (violations) and all summary states (final location, not target,
+     * no children).
+     *
      * @param pReachedSet the reached set after the block analysis
      * @param pBlockNode the block node that was analyzed
      * @param pStatus the status returned by the analysis algorithm

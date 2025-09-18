@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure;
 
-/**
- * Entities for communication in distributed summaries.
- */
+/** Entities for communication in distributed summaries. */
 public enum DssCommunicationEntity {
   /* Block worker */
   BLOCK,

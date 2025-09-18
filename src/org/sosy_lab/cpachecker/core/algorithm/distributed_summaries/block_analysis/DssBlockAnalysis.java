@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -19,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -28,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.ShutdownManager;
@@ -134,6 +138,7 @@ public class DssBlockAnalysis {
 
   /**
    * Creates the CPA algorithm to be used for the analysis of the given block node.
+   *
    * @param logger the logger to use
    * @param specification the specification to use
    * @param cfa the CFA to use
@@ -193,7 +198,7 @@ public class DssBlockAnalysis {
             ImmutableMap.of()));
   }
 
-  private Collection<DssMessage> reportBlockPostConditions(
+  private Collection<DssMessage> reportPreconditions(
       Set<@NonNull ARGState> blockEnds, boolean allowTop, Set<String> pEligibleSuccessors) {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     for (ARGState abstraction : blockEnds) {
@@ -267,9 +272,10 @@ public class DssBlockAnalysis {
 
   /**
    * Collects all ARG paths from the given set of states. This is a potentially expensive operation
-   * and should only be used if absolutely necessary.
-   * The method {@link ARGUtils#getAllPaths(ReachedSet, ARGState)} should be
-   * preferred if possible, however, sometimes it tends to produce an incomplete number of paths.
+   * and should only be used if absolutely necessary. The method {@link
+   * ARGUtils#getAllPaths(ReachedSet, ARGState)} should be preferred if possible, however, sometimes
+   * it tends to produce an incomplete number of paths.
+   *
    * @param states the states to collect the paths from
    * @return all ARG paths from the given states
    */
@@ -311,6 +317,7 @@ public class DssBlockAnalysis {
 
   /**
    * Executes the configured CPA algorithm on the block with the initial state and precision.
+   *
    * @return Important messages for other blocks.
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
@@ -329,18 +336,18 @@ public class DssBlockAnalysis {
       if (result.getFinalLocationStates().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
-      return reportBlockPostConditions(
-          result.getFinalLocationStates(), true, block.getSuccessorIds());
+      return reportPreconditions(result.getFinalLocationStates(), true, block.getSuccessorIds());
     }
 
     return reportFirstViolationConditions(result.getViolations());
   }
 
   /**
-   * Adds a new precondition to the known preconditions.
-   * The method checks whether the new precondition is already covered by an existing one.
-   * If this is the case, the new precondition is discarded and the analysis will not proceed.
-   * Otherwise, the new precondition is added and the analysis will proceed.
+   * Adds a new precondition to the known preconditions. The method checks whether the new
+   * precondition is already covered by an existing one. If this is the case, the new precondition
+   * is discarded and the analysis will not proceed. Otherwise, the new precondition is added and
+   * the analysis will proceed.
+   *
    * @param pReceived The new precondition to add.
    * @return Whether the analysis should proceed.
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
@@ -401,6 +408,7 @@ public class DssBlockAnalysis {
 
   /**
    * Adds a new abstract state to the known violation conditions.
+   *
    * @param pNewViolationCondition The new violation condition to add.
    * @return Whether the analysis should proceed.
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
@@ -490,8 +498,10 @@ public class DssBlockAnalysis {
         Set<String> eligible =
             block.getLoopPredecessorIds().isEmpty()
                 ? block.getSuccessorIds()
-                : ImmutableSet.of(pSuccessor);
-        messages.addAll(reportBlockPostConditions(result.getSummaries(), false, eligible));
+                : block.hasLoopSuccessor(pSuccessor)
+                    ? Sets.union(ImmutableSet.of(pSuccessor), block.getNonLoopSuccessorIds())
+                    : Sets.union(block.getLoopSuccessorIds(), ImmutableSet.of(pSuccessor));
+        messages.addAll(reportPreconditions(result.getSummaries(), false, eligible));
       }
     } else {
       messages.addAll(
@@ -567,8 +577,7 @@ public class DssBlockAnalysis {
       boolean putStates = true;
 
       // check whether a loop predecessor is top
-      if (block.hasLoopPredecessor(predecessorId)
-          && !block.allPredecessorsAreLoopPredecessors()) {
+      if (block.hasLoopPredecessor(predecessorId) && !block.allPredecessorsAreLoopPredecessors()) {
         for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
           if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
             putStates = false;
@@ -593,6 +602,25 @@ public class DssBlockAnalysis {
     if (reachedSet.isEmpty()) {
       reachedSet.add(makeStartState(), makeStartPrecision());
     }
+  }
+
+  private String prettyPrintBlock(Function<AbstractState, String> pStateToString) {
+    String precondition =
+        FluentIterable.from(preconditions.keys())
+            .transform(
+                predecessor ->
+                    FluentIterable.from(preconditions.get(predecessor))
+                        .transform(p -> pStateToString.apply(p.state()))
+                        .join(Joiner.on("\n  ")))
+            .join(Joiner.on("\n  "));
+    String header = "Block " + block.getId() + " with preconditions:\n  " + precondition;
+    header += "\nand violation conditions:\n  ";
+    header +=
+        FluentIterable.from(violationConditions.values())
+            .transform(p -> pStateToString.apply(p.state()))
+            .join(Joiner.on("\n  "));
+    int rep = Splitter.on("\n").splitToStream(header).mapToInt(String::length).max().orElse(0);
+    return "=".repeat(rep) + "\n" + header + "\n" + "=".repeat(rep);
   }
 
   public DistributedConfigurableProgramAnalysis getDcpa() {

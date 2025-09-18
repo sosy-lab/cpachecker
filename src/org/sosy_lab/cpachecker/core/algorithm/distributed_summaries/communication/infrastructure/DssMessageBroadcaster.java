@@ -28,8 +28,9 @@ public class DssMessageBroadcaster {
 
   /**
    * Creates a new broadcaster for the given connections.
-   * @param pConnections the connections to use for broadcasting.
-   *   The key is a pair of the sender ID and the communication entity.
+   *
+   * @param pConnections the connections to use for broadcasting. The key is a pair of the sender ID
+   *     and the communication entity.
    */
   public DssMessageBroadcaster(Map<CommunicationId, BlockingQueue<DssMessage>> pConnections) {
     connectionsBySenderId = new ConcurrentHashMap<>();
@@ -53,6 +54,7 @@ public class DssMessageBroadcaster {
 
   /**
    * Broadcasts a message to the connections with the given receiver ids.
+   *
    * @param message the message to broadcast
    * @param ids the receiver ids to broadcast to
    */
@@ -65,6 +67,7 @@ public class DssMessageBroadcaster {
 
   /**
    * Broadcasts a message to all connections.
+   *
    * @param message the message to broadcast
    */
   public void broadcastToAll(DssMessage message) {
@@ -72,9 +75,9 @@ public class DssMessageBroadcaster {
   }
 
   /**
-   * Broadcasts a message to all observer workers.
-   * Observer workers are workers that do not perform any analysis but only observe the analysis
-   * results and statistics.
+   * Broadcasts a message to all observer workers. Observer workers are workers that do not perform
+   * any analysis but only observe the analysis results and statistics.
+   *
    * @param message the message to broadcast
    */
   public void broadcastToObserver(DssMessage message) {

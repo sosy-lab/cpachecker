@@ -30,9 +30,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
- * Abstract base class for messages used in distributed summary synthesis.
- * Each message has a sender ID, a type, a timestamp, and content.
- * The content is a flat map of key-value pairs, where keys can be hierarchical using dot notation.
+ * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
+ * ID, a type, a timestamp, and content. The content is a flat map of key-value pairs, where keys
+ * can be hierarchical using dot notation.
  */
 public abstract class DssMessage {
 
@@ -59,6 +59,7 @@ public abstract class DssMessage {
 
   /**
    * Creates a new message with the given sender ID, type, and content.
+   *
    * @param pSenderId the ID of the sender
    * @param pType the type of the message
    * @param pContent the content of the message
@@ -73,6 +74,7 @@ public abstract class DssMessage {
 
   /**
    * Checks whether the given content is valid for this message type.
+   *
    * @param pContent the content to check
    * @return true if the content is valid, false otherwise
    */
