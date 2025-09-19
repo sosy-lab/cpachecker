@@ -8,11 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -92,9 +89,11 @@ public class PredicateDelegatingRefinerTest {
     PredicateCPARefinerFactory pPredicateCPARefinerFactory = setUpRefinerFactory(pConfig);
     ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pAvailableRefiners =
         setUpRefinerMap(pPredicateCPARefinerFactory);
-    assertEquals(2, pAvailableRefiners.size());
-    assertSame(defaultRefiner, pAvailableRefiners.get(DelegatingRefinerRefinerType.DEFAULT));
-    assertSame(staticRefiner, pAvailableRefiners.get(DelegatingRefinerRefinerType.STATIC));
+    assertThat(pAvailableRefiners).hasSize(2);
+    assertThat(pAvailableRefiners)
+        .containsEntry(DelegatingRefinerRefinerType.DEFAULT, defaultRefiner);
+    assertThat(pAvailableRefiners)
+        .containsEntry(DelegatingRefinerRefinerType.STATIC, staticRefiner);
   }
 
   /**
@@ -112,11 +111,10 @@ public class PredicateDelegatingRefinerTest {
     ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
         pStaticRefinerFactory.createDelegatingRefinerConfig(setUpRefinerMap(pStaticRefinerFactory));
 
-    assertTrue(
-        pRefinerRecords.getFirst().pHeuristic()
-            instanceof DelegatingRefinerHeuristicStaticRefinement);
-    assertEquals(1, pRefinerRecords.size());
-    assertEquals(staticRefiner, pRefinerRecords.getFirst().pRefiner());
+    assertThat(pRefinerRecords).hasSize(1);
+    assertThat(pRefinerRecords.getFirst().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
   }
 
   /**
@@ -135,14 +133,13 @@ public class PredicateDelegatingRefinerTest {
         pDefaultRefinerFactory.createDelegatingRefinerConfig(
             setUpRefinerMap(pDefaultRefinerFactory));
 
-    assertTrue(
-        pRefinerRecords.getFirst().pHeuristic()
-            instanceof DelegatingRefinerHeuristicRunDefaultNTimes);
-    assertEquals(defaultRefiner, pRefinerRecords.getFirst().pRefiner());
-    assertEquals(
-        10,
-        ((DelegatingRefinerHeuristicRunDefaultNTimes) pRefinerRecords.getFirst().pHeuristic())
-            .getFixedRuns());
+    assertThat(pRefinerRecords.getFirst().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicRunDefaultNTimes.class);
+    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(defaultRefiner);
+    assertThat(
+            ((DelegatingRefinerHeuristicRunDefaultNTimes) pRefinerRecords.getFirst().pHeuristic())
+                .getFixedRuns())
+        .isEqualTo(10);
   }
 
   /**
@@ -163,10 +160,10 @@ public class PredicateDelegatingRefinerTest {
         pDefaultIndividualRunsRefinerFactory.createDelegatingRefinerConfig(
             setUpRefinerMap(pDefaultIndividualRunsRefinerFactory));
 
-    assertEquals(
-        5,
-        ((DelegatingRefinerHeuristicRunDefaultNTimes) pRefinerRecords.getFirst().pHeuristic())
-            .getFixedRuns());
+    assertThat(
+            ((DelegatingRefinerHeuristicRunDefaultNTimes) pRefinerRecords.getFirst().pHeuristic())
+                .getFixedRuns())
+        .isEqualTo(5);
   }
 
   /**
@@ -186,14 +183,14 @@ public class PredicateDelegatingRefinerTest {
         pRedundantRefinerFactory.createDelegatingRefinerConfig(
             setUpRefinerMap(pRedundantRefinerFactory));
 
-    assertTrue(
-        pRefinerRecords.getFirst().pHeuristic()
-            instanceof DelegatingRefinerHeuristicRedundantPredicates);
-    assertEquals(defaultRefiner, pRefinerRecords.getFirst().pRefiner());
-    assert (((DelegatingRefinerHeuristicRedundantPredicates)
-                pRefinerRecords.getFirst().pHeuristic())
-            .getRedundancyThreshold()
-        == 0.8);
+    assertThat(pRefinerRecords.getFirst().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
+    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(defaultRefiner);
+    assertThat(
+            ((DelegatingRefinerHeuristicRedundantPredicates)
+                    pRefinerRecords.getFirst().pHeuristic())
+                .getRedundancyThreshold())
+        .isEqualTo(0.8);
   }
 
   /**
@@ -215,10 +212,11 @@ public class PredicateDelegatingRefinerTest {
         pRedundantCustomThresholdRefinerFactory.createDelegatingRefinerConfig(
             setUpRefinerMap(pRedundantCustomThresholdRefinerFactory));
 
-    assert (((DelegatingRefinerHeuristicRedundantPredicates)
-                pRefinerRecords.getFirst().pHeuristic())
-            .getRedundancyThreshold()
-        == 0.1);
+    assertThat(
+            ((DelegatingRefinerHeuristicRedundantPredicates)
+                    pRefinerRecords.getFirst().pHeuristic())
+                .getRedundancyThreshold())
+        .isEqualTo(0.1);
   }
 
   /**
@@ -239,15 +237,13 @@ public class PredicateDelegatingRefinerTest {
         pMultipleRefinerFactory.createDelegatingRefinerConfig(
             setUpRefinerMap(pMultipleRefinerFactory));
 
-    assertTrue(
-        pRefinerRecords.getFirst().pHeuristic()
-            instanceof DelegatingRefinerHeuristicRedundantPredicates);
-    assertTrue(
-        pRefinerRecords.getLast().pHeuristic()
-            instanceof DelegatingRefinerHeuristicStaticRefinement);
-    assertEquals(2, pRefinerRecords.size());
-    assertEquals(staticRefiner, pRefinerRecords.getFirst().pRefiner());
-    assertEquals(staticRefiner, pRefinerRecords.getLast().pRefiner());
+    assertThat(pRefinerRecords.getFirst().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
+    assertThat(pRefinerRecords.getLast().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
+    assertThat(pRefinerRecords.getLast().pRefiner()).isSameInstanceAs(staticRefiner);
+    assertThat(pRefinerRecords).hasSize(2);
   }
 
   /** This test checks if DelegatingRefiner parses command-line input case-insensitively. */
@@ -264,14 +260,12 @@ public class PredicateDelegatingRefinerTest {
         pLowerCaseRefinerFactory.createDelegatingRefinerConfig(
             setUpRefinerMap(pLowerCaseRefinerFactory));
 
-    assertTrue(
-        pRefinerRecords.getFirst().pHeuristic()
-            instanceof DelegatingRefinerHeuristicStaticRefinement);
-    assertTrue(
-        pRefinerRecords.getLast().pHeuristic()
-            instanceof DelegatingRefinerHeuristicStaticRefinement);
-    assertEquals(staticRefiner, pRefinerRecords.getFirst().pRefiner());
-    assertEquals(defaultRefiner, pRefinerRecords.getLast().pRefiner());
+    assertThat(pRefinerRecords.getFirst().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+    assertThat(pRefinerRecords.getLast().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
+    assertThat(pRefinerRecords.getLast().pRefiner()).isSameInstanceAs(defaultRefiner);
   }
 
   /**
@@ -291,11 +285,10 @@ public class PredicateDelegatingRefinerTest {
         pIgnoreWhiteSpaceColonConfigRefinerFactory.createDelegatingRefinerConfig(
             setUpRefinerMap(pIgnoreWhiteSpaceColonConfigRefinerFactory));
 
-    assertTrue(
-        pRefinerRecords.getFirst().pHeuristic()
-            instanceof DelegatingRefinerHeuristicStaticRefinement);
-    assertEquals(1, pRefinerRecords.size());
-    assertEquals(staticRefiner, pRefinerRecords.getFirst().pRefiner());
+    assertThat(pRefinerRecords.getFirst().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
+    assertThat(pRefinerRecords).hasSize(1);
   }
 
   /**
@@ -317,18 +310,16 @@ public class PredicateDelegatingRefinerTest {
         pIgnoreWhiteSpaceCommaConfigRefinerFactory.createDelegatingRefinerConfig(
             setUpRefinerMap(pIgnoreWhiteSpaceCommaConfigRefinerFactory));
 
-    assertTrue(
-        pRefinerRecords.getFirst().pHeuristic()
-            instanceof DelegatingRefinerHeuristicStaticRefinement);
-    assertTrue(
-        pRefinerRecords.get(1).pHeuristic() instanceof DelegatingRefinerHeuristicRunDefaultNTimes);
-    assertTrue(
-        pRefinerRecords.get(2).pHeuristic()
-            instanceof DelegatingRefinerHeuristicRedundantPredicates);
-    assertEquals(3, pRefinerRecords.size());
-    assertEquals(staticRefiner, pRefinerRecords.getFirst().pRefiner());
-    assertEquals(defaultRefiner, pRefinerRecords.get(1).pRefiner());
-    assertEquals(defaultRefiner, pRefinerRecords.get(2).pRefiner());
+    assertThat(pRefinerRecords.getFirst().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+    assertThat(pRefinerRecords.get(1).pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicRunDefaultNTimes.class);
+    assertThat(pRefinerRecords.get(2).pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
+    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
+    assertThat(pRefinerRecords.get(1).pRefiner()).isSameInstanceAs(defaultRefiner);
+    assertThat(pRefinerRecords.get(2).pRefiner()).isSameInstanceAs(defaultRefiner);
+    assertThat(pRefinerRecords).hasSize(3);
   }
 
   /**
@@ -347,18 +338,16 @@ public class PredicateDelegatingRefinerTest {
     ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
         pEmptyInputFactory.createDelegatingRefinerConfig(setUpRefinerMap(pEmptyInputFactory));
 
-    assertEquals(3, pRefinerRecords.size());
-    assertTrue(
-        pRefinerRecords.getFirst().pHeuristic()
-            instanceof DelegatingRefinerHeuristicStaticRefinement);
-    assertTrue(
-        pRefinerRecords.get(1).pHeuristic() instanceof DelegatingRefinerHeuristicRunDefaultNTimes);
-    assertTrue(
-        pRefinerRecords.get(2).pHeuristic()
-            instanceof DelegatingRefinerHeuristicRedundantPredicates);
-    assertEquals(staticRefiner, pRefinerRecords.getFirst().pRefiner());
-    assertEquals(defaultRefiner, pRefinerRecords.get(1).pRefiner());
-    assertEquals(defaultRefiner, pRefinerRecords.get(2).pRefiner());
+    assertThat(pRefinerRecords.getFirst().pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
+    assertThat(pRefinerRecords.get(1).pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicRunDefaultNTimes.class);
+    assertThat(pRefinerRecords.get(2).pHeuristic())
+        .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
+    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
+    assertThat(pRefinerRecords.get(1).pRefiner()).isSameInstanceAs(defaultRefiner);
+    assertThat(pRefinerRecords.get(2).pRefiner()).isSameInstanceAs(defaultRefiner);
+    assertThat(pRefinerRecords).hasSize(3);
   }
 
   /**
@@ -369,10 +358,11 @@ public class PredicateDelegatingRefinerTest {
   public void checkDefaultNTimesRunNumbers() {
     DelegatingRefinerHeuristicRunDefaultNTimes runDefaultNTimes =
         new DelegatingRefinerHeuristicRunDefaultNTimes(3);
-    assertTrue(runDefaultNTimes.fulfilled(null, ImmutableList.of()));
-    assertTrue(runDefaultNTimes.fulfilled(null, ImmutableList.of()));
-    assertTrue(runDefaultNTimes.fulfilled(null, ImmutableList.of()));
-    assertFalse(runDefaultNTimes.fulfilled(null, ImmutableList.of()));
+
+    assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isTrue();
+    assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isTrue();
+    assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isTrue();
+    assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isFalse();
   }
 
   /**
