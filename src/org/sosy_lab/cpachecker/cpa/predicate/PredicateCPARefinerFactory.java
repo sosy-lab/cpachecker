@@ -11,10 +11,12 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -250,7 +252,7 @@ public final class PredicateCPARefinerFactory {
   // Maps available refiner implementations to their corresponding enum identifiers to choose as
   // value for the DelegatingRefiner heuristics. To support a new refiner, please add an entry to
   // DelegatingRefinerRefinerType and extend this map accordingly.
-  private ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> buildRefinerMap(
+  ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> buildRefinerMap(
       ARGBasedRefiner defaultRefiner, ARGBasedRefiner staticRefiner) {
     return ImmutableMap.of(
         DelegatingRefinerRefinerType.DEFAULT,
@@ -261,7 +263,7 @@ public final class PredicateCPARefinerFactory {
 
   // Creates a List of records for the DelegatingRefiner for what refiner to choose for which
   // heuristics, based on user input in the command-line.
-  private ImmutableList<HeuristicDelegatingRefinerRecord> createDelegatingRefinerConfig(
+  ImmutableList<HeuristicDelegatingRefinerRecord> createDelegatingRefinerConfig(
       ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pRefinersAvailable)
       throws InvalidConfigurationException {
 
@@ -271,10 +273,10 @@ public final class PredicateCPARefinerFactory {
       Iterable<String> rawPair = Splitter.on(':').trimResults().split(heuristicRefinerPair);
       ImmutableList<String> pairs = ImmutableList.copyOf(rawPair);
       if (pairs.size() != 2) {
-        throw new IllegalArgumentException(
+        throw new InvalidConfigurationException(
             "Invalid heuristic-refiner format: "
                 + heuristicRefinerPair
-                + ". Please use format such as DEFAULT_N_TIMES:DEFAULT, STATIC:STATIC");
+                + ". Please use this format: STATIC:STATIC,DEFAULT_N_TIMES:DEFAULT.");
       }
 
       DelegatingRefinerHeuristicType pHeuristicName;
@@ -283,7 +285,11 @@ public final class PredicateCPARefinerFactory {
             DelegatingRefinerHeuristicType.valueOf(pairs.getFirst().toUpperCase(Locale.ROOT));
       } catch (IllegalArgumentException unknownHeuristicType) {
         throw new InvalidConfigurationException(
-            "Unknown heuristic type: " + pairs.getFirst(), unknownHeuristicType);
+            "Unknown heuristic type: "
+                + pairs.getFirst()
+                + ". Available heuristics: "
+                + Joiner.on(",").join(EnumSet.allOf(DelegatingRefinerHeuristicType.class)),
+            unknownHeuristicType);
       }
 
       DelegatingRefinerRefinerType pRefinerName;
@@ -292,30 +298,46 @@ public final class PredicateCPARefinerFactory {
             DelegatingRefinerRefinerType.valueOf(pairs.getLast().toUpperCase(Locale.ROOT));
       } catch (IllegalArgumentException unknownRefinerType) {
         throw new InvalidConfigurationException(
-            "Unknown refiner type: " + pairs.getLast(), unknownRefinerType);
+            "Unknown refiner type: "
+                + pairs.getLast()
+                + ". Available refiners: "
+                + pRefinersAvailable.keySet(),
+            unknownRefinerType);
       }
 
-      ARGBasedRefiner pRefiner =
-          checkNotNull(
-              pRefinersAvailable.get(pRefinerName), "Unknown refiner type " + pRefinerName);
+      ARGBasedRefiner pRefiner = pRefinersAvailable.get(pRefinerName);
+      if (pRefiner == null) {
+        throw new InvalidConfigurationException(
+            "Refiner must not be null. Available refiners: " + pRefinersAvailable.keySet());
+      }
 
       switch (pHeuristicName) {
         case STATIC ->
             recordBuilder.add(
                 new HeuristicDelegatingRefinerRecord(
                     new DelegatingRefinerHeuristicStaticRefinement(), pRefiner));
-        case DEFAULT_N_TIMES ->
-            recordBuilder.add(
-                new HeuristicDelegatingRefinerRecord(
-                    new DelegatingRefinerHeuristicRunDefaultNTimes(pDefaultFixedRuns), pRefiner));
-        case REDUNDANT_PREDICATES ->
-            recordBuilder.add(
-                new HeuristicDelegatingRefinerRecord(
-                    new DelegatingRefinerHeuristicRedundantPredicates(
-                        pAcceptableRedundancyThreshold,
-                        predicateCpa.getSolver().getFormulaManager(),
-                        predicateCpa.getLogger()),
-                    pRefiner));
+        case DEFAULT_N_TIMES -> {
+          if (pDefaultFixedRuns < 0) {
+            throw new InvalidConfigurationException(
+                "Number of runs for the refiner must not be negative.");
+          }
+          recordBuilder.add(
+              new HeuristicDelegatingRefinerRecord(
+                  new DelegatingRefinerHeuristicRunDefaultNTimes(pDefaultFixedRuns), pRefiner));
+        }
+        case REDUNDANT_PREDICATES -> {
+          if (pAcceptableRedundancyThreshold < 0.0 || pAcceptableRedundancyThreshold > 1.0) {
+            throw new InvalidConfigurationException(
+                "Acceptable redundancy rate must be between 0.0 and 1.0.");
+          }
+          recordBuilder.add(
+              new HeuristicDelegatingRefinerRecord(
+                  new DelegatingRefinerHeuristicRedundantPredicates(
+                      pAcceptableRedundancyThreshold,
+                      predicateCpa.getSolver().getFormulaManager(),
+                      predicateCpa.getLogger()),
+                  pRefiner));
+        }
       }
     }
 
