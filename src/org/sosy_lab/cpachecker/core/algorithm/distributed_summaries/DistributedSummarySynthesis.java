@@ -122,6 +122,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     for (BlockNode node : modification.blockGraph().getNodes()) {
       dssStats.getAverageNumberOfEdges().setNextValue(node.getEdges().size());
     }
+    dssStats.getNumberWorkers().setNextValue(blockGraph.getNodes().size());
     return modification;
   }
 
