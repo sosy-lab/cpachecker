@@ -159,7 +159,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             };
         // Test if the predicate of the error state is unsatisfiable
         try {
-          if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
+          if (!solver.isUnsat(predicates.getLast())) {
             throw new RefinementFailedException(Reason.SequenceOfAssertionsToWeak, pAllStatesTrace);
           }
         } catch (SolverException e) {

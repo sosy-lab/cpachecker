@@ -130,7 +130,7 @@ public class LoopPartitioning extends PartitioningHeuristic {
     // either through the loopstart or with a break-statement.
     final List<CFANode> waitlist = new ArrayList<>(addNodes);
     while (!waitlist.isEmpty()) {
-      final CFANode node = waitlist.remove(0);
+      final CFANode node = waitlist.removeFirst();
       if (pLoopBody.add(node)) {
         for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
           if (edge.getEdgeType() != CFAEdgeType.FunctionReturnEdge) {

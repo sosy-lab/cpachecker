@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -437,7 +438,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
         if (isFirstPostcondition) {
           // Do postconditions first, so that information is known before error conditions are
           // checked
-          toBeConsideredNew.add(0, message);
+          toBeConsideredNew.addFirst(message);
           isFirstPostcondition = false;
         } else {
           toBeConsideredOld.add(message);
@@ -488,7 +489,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     for (String blockID : ImmutableList.sortedCopyOf(stats.keySet())) {
       writer = writer.put("BlockID " + blockID, blockID).beginLevel();
       Object mapObject = stats.get(blockID);
-      Map<?, ?> map = new LinkedHashMap<>((Map<?, ?>) mapObject);
+      SequencedMap<?, ?> map = new LinkedHashMap<>((Map<?, ?>) mapObject);
       Map<?, ?> forwardMap =
           ImmutableSortedMap.copyOf(
               (Map<?, ?>) map.remove(DssStatisticType.FORWARD_ANALYSIS_STATS.name()));

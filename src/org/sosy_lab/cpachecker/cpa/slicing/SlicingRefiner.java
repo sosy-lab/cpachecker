@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -412,7 +413,7 @@ public class SlicingRefiner implements Refiner {
 
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException, CPAException {
 
-    List<CFAEdge> innerEdges = pPath.getInnerEdges();
+    List<@Nullable CFAEdge> innerEdges = pPath.getInnerEdges();
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     Set<CFAEdge> relevantEdges = new HashSet<>();
 
@@ -426,7 +427,7 @@ public class SlicingRefiner implements Refiner {
         List<InfeasiblePrefix> prefixes = prefixProvider.extractInfeasiblePrefixes(pPath);
         if (!prefixes.isEmpty()) {
           Set<CFAEdge> prefixAssumeEdges =
-              prefixes.get(0).getPath().getInnerEdges().stream()
+              prefixes.getFirst().getPath().getInnerEdges().stream()
                   .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
                   .collect(ImmutableSet.toImmutableSet());
           criteriaEdges.addAll(prefixAssumeEdges);
@@ -547,11 +548,11 @@ public class SlicingRefiner implements Refiner {
       precision = pPrecision;
     }
 
-    public ARGState getState() {
+    ARGState getState() {
       return state;
     }
 
-    public SlicingPrecision getPrecision() {
+    SlicingPrecision getPrecision() {
       return precision;
     }
   }
@@ -567,11 +568,11 @@ public class SlicingRefiner implements Refiner {
       precisions = pPrecisions;
     }
 
-    public boolean hasSliceChanged() {
+    boolean hasSliceChanged() {
       return sliceChanged;
     }
 
-    public Set<StateSlicingPrecision> getStatePrecisions() {
+    Set<StateSlicingPrecision> getStatePrecisions() {
       return precisions;
     }
   }

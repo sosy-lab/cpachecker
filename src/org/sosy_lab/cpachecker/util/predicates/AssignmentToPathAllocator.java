@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -118,10 +119,10 @@ public class AssignmentToPathAllocator {
     // Assignable Terms are needed, that's why we declare two maps of variables and functions. One
     // for the calculation of the SSAIndex, the other to save the references to the objects we want
     // to store in the concrete State, so we can avoid recreating those objects
-    final Map<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
-    final Map<LeftHandSide, Object> variables = new LinkedHashMap<>();
+    final SequencedMap<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
+    final SequencedMap<LeftHandSide, Object> variables = new LinkedHashMap<>();
     final SetMultimap<String, ValueAssignment> functionEnvironment = LinkedHashMultimap.create();
-    final Map<String, Map<Address, Object>> memory = new LinkedHashMap<>();
+    final SequencedMap<String, SequencedMap<Address, Object>> memory = new LinkedHashMap<>();
 
     int ssaMapIndex = 0;
 
@@ -187,7 +188,7 @@ public class AssignmentToPathAllocator {
 
     private final Multimap<String, ValueAssignment> uninterpretedFunctions;
 
-    public PredicateAnalysisConcreteExpressionEvaluator(
+    PredicateAnalysisConcreteExpressionEvaluator(
         Multimap<String, ValueAssignment> pUninterpretedFunction) {
       uninterpretedFunctions = pUninterpretedFunction;
     }
@@ -207,30 +208,28 @@ public class AssignmentToPathAllocator {
 
       String typeName = getTypeString(pCExp.getExpressionType());
 
-      if (pCExp instanceof CBinaryExpression binExp) {
-
-        String opString = binExp.getOperator().getOperator();
-
-        switch (binExp.getOperator()) {
-          case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
-          default -> {
-            // default
+      return switch (pCExp) {
+        case CBinaryExpression binExp -> {
+          String opString = binExp.getOperator().getOperator();
+          switch (binExp.getOperator()) {
+            case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
+            default -> {
+              // default
+            }
           }
+          yield typeName + "_" + opString + "_";
         }
-
-        return typeName + "_" + opString + "_";
-
-      } else if (pCExp instanceof CUnaryExpression unExp) {
-        String op = unExp.getOperator().getOperator();
-
-        return typeName + "_" + op + "_";
-      } else if (pCExp instanceof CCastExpression castExp) {
-        CType type2 = castExp.getOperand().getExpressionType();
-        String typeName2 = getTypeString(type2);
-        return "__cast_" + typeName2 + "_to_" + typeName + "__";
-      }
-
-      return "";
+        case CUnaryExpression unExp -> {
+          String op = unExp.getOperator().getOperator();
+          yield typeName + "_" + op + "_";
+        }
+        case CCastExpression castExp -> {
+          CType type2 = castExp.getOperand().getExpressionType();
+          String typeName2 = getTypeString(type2);
+          yield "__cast_" + typeName2 + "_to_" + typeName + "__";
+        }
+        default -> "";
+      };
     }
 
     private String getTypeString(CType pExpressionType) {
@@ -290,11 +289,11 @@ public class AssignmentToPathAllocator {
 
     private Value asValue(Object pValue) {
 
-      if (!(pValue instanceof Number)) {
+      if (!(pValue instanceof Number number)) {
         return Value.UnknownValue.getInstance();
       }
 
-      return new NumericValue((Number) pValue);
+      return new NumericValue(number);
     }
 
     @Override
@@ -354,10 +353,10 @@ public class AssignmentToPathAllocator {
     boolean isReference = references.size() > IS_FIELD_REFERENCE;
 
     if (isNotGlobal) {
-      function = nameAndFunction.get(0);
+      function = nameAndFunction.getFirst();
       name = nameAndFunction.get(1);
     } else {
-      name = nameAndFunction.get(0);
+      name = nameAndFunction.getFirst();
     }
 
     if (isReference) {
@@ -395,10 +394,10 @@ public class AssignmentToPathAllocator {
   /** We need the variableEnvironment and functionEnvironment for their SSAIndeces. */
   private void createAssignments(
       ImmutableCollection<ValueAssignment> terms,
-      Map<String, ValueAssignment> variableEnvironment,
-      Map<LeftHandSide, Object> pVariables,
+      SequencedMap<String, ValueAssignment> variableEnvironment,
+      SequencedMap<LeftHandSide, Object> pVariables,
       Multimap<String, ValueAssignment> functionEnvironment,
-      Map<String, Map<Address, Object>> memory) {
+      SequencedMap<String, SequencedMap<Address, Object>> memory) {
 
     for (final ValueAssignment term : terms) {
       String name = term.getName();
@@ -461,10 +460,11 @@ public class AssignmentToPathAllocator {
   }
 
   private void addHeapValue(
-      Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
+      SequencedMap<String, SequencedMap<Address, Object>> memory,
+      ValueAssignment pFunctionAssignment) {
     String heapName = getName(pFunctionAssignment);
 
-    Map<Address, Object> heap = memory.get(heapName);
+    SequencedMap<Address, Object> heap = memory.get(heapName);
     if (heap == null) {
       heap = new LinkedHashMap<>();
       memory.put(heapName, heap);
@@ -618,7 +618,7 @@ public class AssignmentToPathAllocator {
     private final ImmutableSet<ValueAssignment> constants;
     private final ImmutableSet<ValueAssignment> ufFunctionsWithoutSSAIndex;
 
-    public AssignableTermsInPath(
+    AssignableTermsInPath(
         ImmutableSetMultimap<Integer, ValueAssignment> pAssignableTermsAtPosition,
         ImmutableSet<ValueAssignment> pConstants,
         ImmutableSet<ValueAssignment> pUfFunctionsWithoutSSAIndex) {
@@ -628,16 +628,16 @@ public class AssignmentToPathAllocator {
       ufFunctionsWithoutSSAIndex = pUfFunctionsWithoutSSAIndex;
     }
 
-    public ImmutableSetMultimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
+    ImmutableSetMultimap<Integer, ValueAssignment> getAssignableTermsAtPosition() {
       return assignableTermsAtPosition;
     }
 
-    public ImmutableSet<ValueAssignment> getConstants() {
+    ImmutableSet<ValueAssignment> getConstants() {
       return constants;
     }
 
     @SuppressWarnings("unused")
-    public ImmutableSet<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
+    ImmutableSet<ValueAssignment> getUfFunctionsWithoutSSAIndex() {
       return ufFunctionsWithoutSSAIndex;
     }
 

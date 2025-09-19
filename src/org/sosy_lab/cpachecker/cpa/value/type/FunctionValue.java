@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.type;
 
 import java.io.Serial;
+import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public record FunctionValue(String name) implements Value {
@@ -40,8 +41,8 @@ public record FunctionValue(String name) implements Value {
   }
 
   @Override
-  public Long asLong(CType pType) {
-    return null;
+  public OptionalLong asLong(CType pType) {
+    return OptionalLong.empty();
   }
 
   @Override

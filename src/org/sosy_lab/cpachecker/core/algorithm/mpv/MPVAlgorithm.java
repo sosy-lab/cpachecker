@@ -435,7 +435,8 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
                   .divide(overallPartitions - currentPartitionNumber);
       case DISTRIBUTE_BY_PROPERTY -> {
         if (partition.getNumberOfProperties() == 1) {
-          AbstractSingleProperty currentProperty = partition.getProperties().getProperties().get(0);
+          AbstractSingleProperty currentProperty =
+              partition.getProperties().getProperties().getFirst();
           if (propertyDistribution.containsKey(currentProperty)) {
             adjustedTimeLimit =
                 TimeSpan.ofMillis(

@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -75,8 +76,7 @@ class PointerTargetSetManager {
   static CType getFakeBaseType(long size) {
     return checkIsSimplified(
         new CArrayType(
-            false,
-            false,
+            CTypeQualifiers.NONE,
             CVoidType.VOID,
             new CIntegerLiteralExpression(
                 FileLocation.DUMMY, CNumericTypes.SIGNED_CHAR, BigInteger.valueOf(size))));
@@ -91,7 +91,7 @@ class PointerTargetSetManager {
    * @return Whether the type is a fake base type or not.
    */
   static boolean isFakeBaseType(final CType type) {
-    return type instanceof CArrayType && ((CArrayType) type).getType() instanceof CVoidType;
+    return type instanceof CArrayType cArrayType && cArrayType.getType() instanceof CVoidType;
   }
 
   /**
@@ -505,7 +505,8 @@ class PointerTargetSetManager {
               + Joiner.on("_and_")
                   .join(
                       Iterables.transform(members, m -> m.getType().toString().replace(" ", "_")));
-      return new CCompositeType(false, false, ComplexTypeKind.UNION, members, varName, varName);
+      return new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.UNION, members, varName, varName);
     }
 
     /**
@@ -517,7 +518,7 @@ class PointerTargetSetManager {
       return type instanceof CCompositeType compositeType
           && compositeType.getKind() == ComplexTypeKind.UNION
           && !compositeType.getMembers().isEmpty()
-          && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
+          && compositeType.getMembers().getFirst().getName().equals(getUnitedFieldBaseName(0));
     }
   }
 

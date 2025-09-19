@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -155,7 +155,7 @@ public class SMGUseDefBasedInterpolator {
       }
     }
 
-    return Lists.reverse(interpolants);
+    return interpolants.reversed();
   }
 
   /**
@@ -167,7 +167,7 @@ public class SMGUseDefBasedInterpolator {
    */
   public Map<ARGState, SMGInterpolant> obtainInterpolantsAsMap() {
 
-    Map<ARGState, SMGInterpolant> interpolants = new LinkedHashMap<>();
+    SequencedMap<ARGState, SMGInterpolant> interpolants = new LinkedHashMap<>();
     for (Pair<ARGState, SMGInterpolant> itp : obtainInterpolants()) {
       interpolants.put(itp.getFirst(), itp.getSecond());
     }
@@ -258,8 +258,8 @@ public class SMGUseDefBasedInterpolator {
 
       CExpression arrayLength = pArrayType.getLength();
 
-      if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+      if (arrayLength instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        int length = cIntegerLiteralExpression.getValue().intValue();
 
         return createMemoryLocationsForArray(length, pArrayType.getType());
       }

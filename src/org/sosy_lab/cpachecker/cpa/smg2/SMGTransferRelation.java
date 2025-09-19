@@ -208,6 +208,7 @@ public class SMGTransferRelation
     solver =
         new ConstraintsSolver(
             Configuration.defaultConfiguration(),
+            pMachineModel,
             smtSolver,
             formulaManager,
             converter,
@@ -491,46 +492,44 @@ public class SMGTransferRelation
    */
   private List<SMGState> createVariableOnTheSpot(CExpression leftHandSideExpr, SMGState pState)
       throws CPATransferException {
-    if (leftHandSideExpr instanceof CIdExpression leftCIdExpr) {
-      CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
-      String varName = decl.getQualifiedName();
-      SMGState currentState = pState;
-      // The orElse(true) skips the call on purpose!
-      if (pState.isLocalOrGlobalVariablePresent(varName)
-          && !pState.isLocalOrGlobalVariableValid(varName).orElse(true)) {
-        currentState = pState.copyAndRemoveStackVariable(varName);
-      }
-      if (!currentState.isLocalOrGlobalVariablePresent(varName)) {
-        if (decl instanceof CVariableDeclaration) {
-          return evaluator.handleVariableDeclarationWithoutInizializer(
-              currentState, (CVariableDeclaration) decl);
-        } else if (decl instanceof CParameterDeclaration) {
-          return evaluator.handleVariableDeclarationWithoutInizializer(
-              currentState, ((CParameterDeclaration) decl).asVariableDeclaration());
+    return switch (leftHandSideExpr) {
+      case CIdExpression leftCIdExpr -> {
+        CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
+        String varName = decl.getQualifiedName();
+        SMGState currentState = pState;
+        // The orElse(true) skips the call on purpose!
+        if (pState.isLocalOrGlobalVariablePresent(varName)
+            && !pState.isLocalOrGlobalVariableValid(varName).orElse(true)) {
+          currentState = pState.copyAndRemoveStackVariable(varName);
         }
+        if (!currentState.isLocalOrGlobalVariablePresent(varName)) {
+          if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+            yield evaluator.handleVariableDeclarationWithoutInizializer(
+                currentState, cVariableDeclaration);
+          } else if (decl instanceof CParameterDeclaration cParameterDeclaration) {
+            yield evaluator.handleVariableDeclarationWithoutInizializer(
+                currentState, cParameterDeclaration.asVariableDeclaration());
+          }
+        }
+        yield ImmutableList.of(pState);
       }
-      return ImmutableList.of(pState);
+      case CArraySubscriptExpression cArraySubscriptExpression ->
+          createVariableOnTheSpot(cArraySubscriptExpression.getArrayExpression(), pState);
 
-    } else if (leftHandSideExpr instanceof CArraySubscriptExpression) {
-      CExpression arrayExpr = ((CArraySubscriptExpression) leftHandSideExpr).getArrayExpression();
-      return createVariableOnTheSpot(arrayExpr, pState);
+      case CFieldReference cFieldReference ->
+          createVariableOnTheSpot(cFieldReference.getFieldOwner(), pState);
 
-    } else if (leftHandSideExpr instanceof CFieldReference) {
-      CExpression fieldOwn = ((CFieldReference) leftHandSideExpr).getFieldOwner();
-      return createVariableOnTheSpot(fieldOwn, pState);
+      case CPointerExpression cPointerExpression ->
+          createVariableOnTheSpot(cPointerExpression.getOperand(), pState);
 
-    } else if (leftHandSideExpr instanceof CPointerExpression) {
-      CExpression operand = ((CPointerExpression) leftHandSideExpr).getOperand();
-      return createVariableOnTheSpot(operand, pState);
+      case CUnaryExpression cUnaryExpression ->
+          createVariableOnTheSpot(cUnaryExpression.getOperand(), pState);
 
-    } else if (leftHandSideExpr instanceof CUnaryExpression) {
-      CExpression operand = ((CUnaryExpression) leftHandSideExpr).getOperand();
-      return createVariableOnTheSpot(operand, pState);
-    } else if (leftHandSideExpr instanceof CCastExpression) {
-      CExpression operand = ((CCastExpression) leftHandSideExpr).getOperand();
-      return createVariableOnTheSpot(operand, pState);
-    }
-    return ImmutableList.of(pState);
+      case CCastExpression cCastExpression ->
+          createVariableOnTheSpot(cCastExpression.getOperand(), pState);
+
+      case null /*TODO check if null is necessary*/, default -> ImmutableList.of(pState);
+    };
   }
 
   @Override
@@ -613,7 +612,7 @@ public class SMGTransferRelation
                     callEdge.getFileLocation(),
                     stringExpr);
             Preconditions.checkArgument(statesWithString.size() == 1);
-            currentState = statesWithString.get(0);
+            currentState = statesWithString.getFirst();
           }
         }
         // Implicit & on the array expr
@@ -621,7 +620,7 @@ public class SMGTransferRelation
             evaluator.createAddress(cParamExp, currentState, callEdge);
 
         Preconditions.checkArgument(addressesAndStates.size() == 1);
-        valueAndState = addressesAndStates.get(0);
+        valueAndState = addressesAndStates.getFirst();
       } else {
         // Evaluate the CExpr into a Value
         // Note: this evaluates local arrays into pointers!!!!!
@@ -632,7 +631,7 @@ public class SMGTransferRelation
         // If this ever fails; we need to take all states/values into account, meaning we would need
         // to proceed from this point onwards with all of them with all following operations
         Preconditions.checkArgument(valuesAndStates.size() == 1);
-        valueAndState = valuesAndStates.get(0);
+        valueAndState = valuesAndStates.getFirst();
       }
       readValuesInOrderBuilder.add(valueAndState.getValue());
       currentState = valueAndState.getState();
@@ -704,7 +703,7 @@ public class SMGTransferRelation
       List<SMGStateAndOptionalSMGObjectAndOffset> knownMemoriesAndStates =
           currentState.dereferencePointer(paramValue);
       Preconditions.checkArgument(knownMemoriesAndStates.size() == 1);
-      SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemoriesAndStates.get(0);
+      SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemoriesAndStates.getFirst();
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
         throw new SMGException("Could not associate a local array in a new function.");
@@ -741,13 +740,13 @@ public class SMGTransferRelation
 
         // Nothing can materialize here
         Preconditions.checkArgument(derefedPointerOffsetAndState.size() == 1);
-        currentState = derefedPointerOffsetAndState.get(0).getSMGState();
+        currentState = derefedPointerOffsetAndState.getFirst().getSMGState();
 
-        if (!derefedPointerOffsetAndState.get(0).hasSMGObjectAndOffset()) {
+        if (!derefedPointerOffsetAndState.getFirst().hasSMGObjectAndOffset()) {
           throw new SMGException("Usage of unknown variable in function " + callEdge);
         }
 
-        Value offsetForObject = derefedPointerOffsetAndState.get(0).getOffsetForObject();
+        Value offsetForObject = derefedPointerOffsetAndState.getFirst().getOffsetForObject();
         if (!offsetForObject.isNumericValue()) {
           throw new SMGException(
               "Usage of symbolic offsets in function arguments for structs not supported at the"
@@ -755,7 +754,7 @@ public class SMGTransferRelation
                   + callEdge);
         }
         offsetSource = offsetForObject.asNumericValue().bigIntegerValue();
-        memorySource = derefedPointerOffsetAndState.get(0).getSMGObject();
+        memorySource = derefedPointerOffsetAndState.getFirst().getSMGObject();
         sizeOfNewVariable = evaluator.subtractBitOffsetValues(memorySource.getSize(), offsetSource);
 
       } else if (paramValue instanceof SymbolicIdentifier symbParamValue) {
@@ -941,8 +940,8 @@ public class SMGTransferRelation
    *
    */
   private boolean representsBoolean(Value value, boolean bool) {
-    if (value instanceof BooleanValue) {
-      return ((BooleanValue) value).isTrue() == bool;
+    if (value instanceof BooleanValue booleanValue) {
+      return booleanValue.isTrue() == bool;
 
     } else if (value.isNumericValue()) {
       if (bool) {
@@ -1102,12 +1101,12 @@ public class SMGTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof AbstractStateWithAssumptions) {
+      } else if (ae instanceof AbstractStateWithAssumptions stateWithAssumptions) {
         try {
           result.clear();
           for (SMGState stateToStrengthen : toStrengthen) {
             super.setInfo(element, pPrecision, cfaEdge);
-            AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
+
             result.addAll(
                 strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, cfaEdge));
           }
@@ -1194,22 +1193,22 @@ public class SMGTransferRelation
       SMGObject addressToWriteTo = targetAndOffsetAndState.getSMGObject();
       Value offsetToWriteTo = targetAndOffsetAndState.getOffsetForObject();
 
-      if (rValue instanceof CStringLiteralExpression
+      if (rValue instanceof CStringLiteralExpression cStringLiteralExpression
           && leftHandSideType instanceof CPointerType
           && rightHandSideType instanceof CArrayType
-          && lValue instanceof CIdExpression) {
+          && lValue instanceof CIdExpression cIdExpression) {
         // Assignment of a String pointer to an existing variable with a not yet existing String
         // Create the String, get the address, save address to left hand side var
         returnStateBuilder.addAll(
             evaluator.handleStringInitializer(
                 currentState,
-                (CVariableDeclaration) ((CIdExpression) lValue).getDeclaration(),
+                (CVariableDeclaration) cIdExpression.getDeclaration(),
                 cfaEdge,
-                ((CIdExpression) lValue).getDeclaration().getQualifiedName(),
+                cIdExpression.getDeclaration().getQualifiedName(),
                 offsetToWriteTo,
                 lValue.getExpressionType(),
                 cfaEdge.getFileLocation(),
-                (CStringLiteralExpression) rValue));
+                cStringLiteralExpression));
         continue;
       } else if (leftHandSideType instanceof CPointerType
           && rightHandSideType instanceof CArrayType) {
@@ -1290,13 +1289,12 @@ public class SMGTransferRelation
               offsetToWriteToInBits,
               currentState));
 
-    } else if (valueToWrite instanceof AddressExpression) {
+    } else if (valueToWrite instanceof AddressExpression addressInValue) {
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType)) {
         Preconditions.checkArgument(
             rightHandSideType.equals(leftHandSideType)
                 || rightHandSideType.canBeAssignedFrom(leftHandSideType));
         // This is a copy based on a pointer
-        AddressExpression addressInValue = (AddressExpression) valueToWrite;
         Value pointerOffset = addressInValue.getOffset();
         if (!pointerOffset.isNumericValue()) {
           // Write unknown to left
@@ -1324,7 +1322,7 @@ public class SMGTransferRelation
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
-          ValueAndSMGState newAddressAndState = newAddressesAndStates.get(0);
+          ValueAndSMGState newAddressAndState = newAddressesAndStates.getFirst();
           currentState = newAddressAndState.getState();
           properPointer = newAddressAndState.getValue();
         }
@@ -1351,7 +1349,6 @@ public class SMGTransferRelation
       } else {
         // Genuine pointer that needs to be written
         // Retranslate into a pointer and write the pointer
-        AddressExpression addressInValue = (AddressExpression) valueToWrite;
         if (addressInValue.getOffset().isNumericValue()
             && addressInValue.getOffset().asNumericValue().longValue() == 0) {
           // offset == 0 -> write the value directly (known pointer)
@@ -1364,7 +1361,7 @@ public class SMGTransferRelation
 
           // Very unlikely that a 0+ list abstraction gets materialized here
           Preconditions.checkArgument(newAddressesAndStates.size() == 1);
-          ValueAndSMGState newAddressAndState = newAddressesAndStates.get(0);
+          ValueAndSMGState newAddressAndState = newAddressesAndStates.getFirst();
           currentState = newAddressAndState.getState();
           valueToWrite = newAddressAndState.getValue();
         } else {

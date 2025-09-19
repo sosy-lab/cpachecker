@@ -138,9 +138,9 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     private final Map<ARGState, ListMultimap<AFunctionDeclaration, ARGState>> callStackRecovery =
         new HashMap<>();
 
-    protected void analyze(ARGState pSuccessor) {
+    void analyze(ARGState pSuccessor) {
       if (!pSuccessor.getParents().isEmpty()) {
-        ARGState parent = pSuccessor.getParents().stream().findFirst().orElseThrow();
+        ARGState parent = pSuccessor.getParents().getFirst();
         if (callStackRecovery.containsKey(parent)) {
           // Copy the saved callstack, since we want to return to the state we had before the
           // branching
@@ -165,8 +165,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
           Verify.verify(!functionEntryNodes.isEmpty());
           collectedStates.functionContractEnsures.put(
               functionExitNode,
-              new FunctionEntryExitPair(
-                  functionEntryNodes.remove(functionEntryNodes.size() - 1), pSuccessor));
+              new FunctionEntryExitPair(functionEntryNodes.removeLast(), pSuccessor));
         }
 
         if (pSuccessor.getChildren().size() > 1 && !callStackRecovery.containsKey(pSuccessor)) {
@@ -175,7 +174,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
-    public CollectedARGStates getCollectedStates() {
+    CollectedARGStates getCollectedStates() {
       return collectedStates;
     }
   }

@@ -62,7 +62,7 @@ public class TaskRecord {
       return defaultReturnSpecification;
     }
 
-    Path specFile = pSpecification.getFiles().asList().get(0);
+    Path specFile = pSpecification.getFiles().asList().getFirst();
     ImmutableList<String> simplifiedSpecification =
         FluentIterable.from(Files.readAllLines(specFile, StandardCharsets.UTF_8))
             .transform(String::trim)
@@ -75,7 +75,7 @@ public class TaskRecord {
       return defaultReturnSpecification;
     }
 
-    return simplifiedSpecification.get(0);
+    return simplifiedSpecification.getFirst();
   }
 
   public static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)

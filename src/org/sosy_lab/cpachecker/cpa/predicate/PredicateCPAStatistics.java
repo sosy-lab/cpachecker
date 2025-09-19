@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -226,7 +227,7 @@ final class PredicateCPAStatistics implements Statistics {
 
   private Set<AbstractionPredicate> getAllPredicates(MutablePredicateSets predicates) {
     Preconditions.checkNotNull(predicates);
-    Set<AbstractionPredicate> allPredicates = new LinkedHashSet<>(predicates.global);
+    SequencedSet<AbstractionPredicate> allPredicates = new LinkedHashSet<>(predicates.global);
     allPredicates.addAll(predicates.function.values());
     allPredicates.addAll(predicates.location.values());
     allPredicates.addAll(predicates.locationInstance.values());

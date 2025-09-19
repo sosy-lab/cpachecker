@@ -72,7 +72,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     private int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
-    public RestartAlgorithmStatistics(List<String> pAlgorithms, LogManager pLogger) {
+    RestartAlgorithmStatistics(List<String> pAlgorithms, LogManager pLogger) {
       super(pLogger);
       algorithms = pAlgorithms;
     }
@@ -308,8 +308,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           continue;
         }
 
-        if (reached instanceof HistoryForwardingReachedSet) {
-          ((HistoryForwardingReachedSet) reached).saveCPA(currentCpa);
+        if (reached instanceof HistoryForwardingReachedSet historyForwardingReachedSet) {
+          historyForwardingReachedSet.saveCPA(currentCpa);
         }
         reached.setDelegate(currentReached);
 

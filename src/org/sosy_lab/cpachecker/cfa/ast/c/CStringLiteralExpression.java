@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public final class CStringLiteralExpression extends AStringLiteralExpression
     implements CLiteralExpression {
@@ -148,6 +148,6 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     CExpression length =
         new CIntegerLiteralExpression(
             pFileLocation, CNumericTypes.INT, BigInteger.valueOf(astString.length() - 2 + 1));
-    return new CArrayType(false, false, CTypes.withConst(CNumericTypes.CHAR), length);
+    return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR, length);
   }
 }

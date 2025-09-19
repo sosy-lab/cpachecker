@@ -179,8 +179,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (refiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
+    if (refiner instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 

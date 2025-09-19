@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -108,7 +109,7 @@ public final class PredicateMapWriter {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
-    Set<String> definitions = new LinkedHashSet<>();
+    SequencedSet<String> definitions = new LinkedHashSet<>();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)

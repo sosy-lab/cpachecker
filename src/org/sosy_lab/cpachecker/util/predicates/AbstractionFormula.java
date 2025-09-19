@@ -194,7 +194,7 @@ public class AbstractionFormula implements Serializable {
     private final String instantiatedFormulaDump;
     private final PathFormula blockFormula;
 
-    public SerializationProxy(AbstractionFormula pAbstractionFormula) {
+    SerializationProxy(AbstractionFormula pAbstractionFormula) {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       instantiatedFormulaDump =
