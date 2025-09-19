@@ -88,7 +88,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     if (maxPatternName != null) {
       logger.logf(
           Level.FINEST,
-          "Current redundancy rate in predicates %.2f. Most redundancy in pattern %s.",
+          "Current redundancy rate in predicates %.2f. Most redundant pattern is %s.",
           dominanceRate,
           checkNotNull(maxPatternName.describeForLogs()));
     } else {
@@ -99,6 +99,10 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     }
 
     return dominanceRate <= redundancyThreshold;
+  }
+
+  public double getRedundancyThreshold() {
+    return redundancyThreshold;
   }
 
   private enum NormalizedPatternType {

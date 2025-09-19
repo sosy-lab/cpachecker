@@ -34,4 +34,8 @@ public class DelegatingRefinerHeuristicRunDefaultNTimes implements DelegatingRef
     }
     return false;
   }
+
+  public int getFixedRuns() {
+    return fixedRuns;
+  }
 }
