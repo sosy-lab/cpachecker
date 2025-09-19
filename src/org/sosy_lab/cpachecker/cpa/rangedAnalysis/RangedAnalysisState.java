@@ -76,10 +76,10 @@ public class RangedAnalysisState implements LatticeAbstractState<RangedAnalysisS
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof RangedAnalysisState that)) {
-      return false;
-    }
-    return Objects.equals(leftState, that.leftState) && Objects.equals(rightState, that.rightState);
+
+    return pO instanceof RangedAnalysisState that
+        && Objects.equals(leftState, that.leftState)
+        && Objects.equals(rightState, that.rightState);
   }
 
   @Override

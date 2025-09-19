@@ -56,15 +56,15 @@ public class SequenceState implements LatticeAbstractState<SequenceState>, Targe
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof SequenceState that)) {
-      return false;
-    }
-    return Objects.equals(remainingDecisionsToTake, that.remainingDecisionsToTake);
+
+    return pO instanceof SequenceState that
+        && remainingDecisionsToTake.equals(that.remainingDecisionsToTake)
+        && stopIfUnderspecifiedTestcase == that.stopIfUnderspecifiedTestcase;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(remainingDecisionsToTake);
+    return Objects.hash(remainingDecisionsToTake, stopIfUnderspecifiedTestcase);
   }
 
   @Override
