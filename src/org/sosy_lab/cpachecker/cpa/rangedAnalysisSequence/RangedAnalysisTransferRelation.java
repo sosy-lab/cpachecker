@@ -73,11 +73,11 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
                 .findAny()
                 .orElse(null);
 
-    if (cfaEdge instanceof CAssumeEdge) {
-      boolean truthAssumption = ((CAssumeEdge) cfaEdge).getTruthAssumption();
+    if (cfaEdge instanceof CAssumeEdge assumeEdge) {
+      boolean truthAssumption = assumeEdge.getTruthAssumption();
 
       // Middle states are already handled above
-      // Check for beeing on left path and right path is empty:
+      // Check for being on left path and right path is empty:
       if (oldLeft != null && oldRight == null) {
         if (truthAssumption && newLeft == null) {
           // The left bounds goes right (false branch), hence the left (true) branch is not in range

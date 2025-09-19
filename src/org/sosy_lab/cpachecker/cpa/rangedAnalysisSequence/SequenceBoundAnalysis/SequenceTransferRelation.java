@@ -40,8 +40,8 @@ public class SequenceTransferRelation extends SingleEdgeTransferRelation {
     logger.logf(Level.FINE, "Processing edge %s, current State is %s", pCfaEdge, pState);
 
     SequenceState state = (SequenceState) pState;
-    if (pCfaEdge instanceof AssumeEdge) {
-      if (state.thisEdgeShouldBeTaken((AssumeEdge) pCfaEdge)) {
+    if (pCfaEdge instanceof AssumeEdge assumeEdge) {
+      if (state.thisEdgeShouldBeTaken(assumeEdge)) {
         return Collections.singleton(state.takeEdge(pCfaEdge));
       } else {
         return ImmutableSet.of();

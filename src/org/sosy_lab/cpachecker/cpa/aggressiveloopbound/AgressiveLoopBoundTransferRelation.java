@@ -361,8 +361,8 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
         if (pCfaEdge.getSuccessor().getNumLeavingEdges() == 1) {
           // We ignore the edge leading to abort within the assume_abort_ifNot function
           CFAEdge succesorEdge = pCfaEdge.getSuccessor().getLeavingEdge(0);
-          if (succesorEdge instanceof CStatementEdge
-              && ((CStatementEdge) succesorEdge).getStatement() instanceof CFunctionCallStatement
+          if (succesorEdge instanceof CStatementEdge stmtEdge
+              && stmtEdge.getStatement() instanceof CFunctionCallStatement
               && succesorEdge.getRawStatement().equals(ABORT_STATEMENT)) {
             logger.logf(
                 currentLogLevel,

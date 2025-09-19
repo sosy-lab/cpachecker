@@ -203,7 +203,7 @@ public class RangedAnalysisTest {
     private final Map<String, String> overrideOptionsBuilder = new HashMap<>();
     private final Result expectedResult;
 
-    public RangeExecTester(
+    private RangeExecTester(
         Testcases pProgramFile, RangedExecutionConfig pGenerationConfig, Result pResult) {
       programFile = Objects.requireNonNull(pProgramFile);
       generationConfig = Objects.requireNonNull(pGenerationConfig);
@@ -211,12 +211,12 @@ public class RangedAnalysisTest {
     }
 
     @CanIgnoreReturnValue
-    public RangeExecTester addOverrideOption(String pOptionName, String pOptionValue) {
+    private RangeExecTester addOverrideOption(String pOptionName, String pOptionValue) {
       overrideOptionsBuilder.put(pOptionName, pOptionValue);
       return this;
     }
 
-    public void performTest() throws Exception {
+    private void performTest() throws Exception {
       RangedAnalysisTest.performTest(
           programFile, generationConfig, overrideOptionsBuilder, expectedResult);
     }

@@ -95,8 +95,7 @@ public class PredefinedValueAssinger implements MemoryLocationValueHandler {
   }
 
   private boolean expressionIsRandomCall(CRightHandSide pExp) {
-    if (pExp instanceof CFunctionCallExpression) {
-      CFunctionCallExpression call = (CFunctionCallExpression) pExp;
+    if (pExp instanceof CFunctionCallExpression call) {
       if (call.getFunctionNameExpression() instanceof CIdExpression
           && ((CIdExpression) call.getFunctionNameExpression())
               .getName()
@@ -117,8 +116,7 @@ public class PredefinedValueAssinger implements MemoryLocationValueHandler {
       throws UnrecognizedCodeException {
     if (pExpression == null) { // if the expression is null, we do not know the value
       pState.forget(pMemLocation);
-    } else if (pExpression instanceof CRightHandSide
-        && expressionIsRandomCall((CRightHandSide) pExpression)) {
+    } else if (pExpression instanceof CRightHandSide rhsExpr && expressionIsRandomCall(rhsExpr)) {
       if (valuesFromFile.isEmpty()) {
         pState.forget(pMemLocation);
       } else {

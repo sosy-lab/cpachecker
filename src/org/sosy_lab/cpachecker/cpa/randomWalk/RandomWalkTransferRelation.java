@@ -78,9 +78,9 @@ public class RandomWalkTransferRelation extends SingleEdgeTransferRelation {
     logger.logf(Level.FINE, "Processing edge %s, current State is %s", pCfaEdge, pState);
 
     RandomWalkState state = (RandomWalkState) pState;
-    if (pCfaEdge instanceof AssumeEdge) {
+    if (pCfaEdge instanceof AssumeEdge assumeEdge) {
       if (state.thisEdgeShouldBeTaken(
-          (AssumeEdge) pCfaEdge, probForLeftBranchForLoop, probForLeftBranchForAssign)) {
+          assumeEdge, probForLeftBranchForLoop, probForLeftBranchForAssign)) {
         return Collections.singleton(state.takeEdge(pCfaEdge, logger));
       } else {
         return ImmutableSet.of();
