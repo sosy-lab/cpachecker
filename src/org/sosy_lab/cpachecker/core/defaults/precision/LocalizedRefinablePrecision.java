@@ -10,14 +10,25 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.List;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionType;
 
 class LocalizedRefinablePrecision extends RefinablePrecision {
 
@@ -66,6 +77,32 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
         writer.write(variable.getExtendedQualifiedName() + "\n");
       }
     }
+  }
+
+  @Override
+  public List<PrecisionExchangeEntry> asWitnessEntries(CFA pCfa) {
+    ImmutableList.Builder<PrecisionExchangeEntry> entriesBuilder = ImmutableList.builder();
+    AstCfaRelation astCfaRelation = pCfa.getAstCfaRelation();
+
+    for (CFANode currentLocation : rawPrecision.keySet()) {
+      Optional<PrecisionScope> precisionScope =
+          PrecisionScope.localPrecisionScopeFor(currentLocation, astCfaRelation);
+      if (precisionScope.isEmpty()) {
+        // We overapproximate by making this function wide
+        precisionScope = Optional.of(new FunctionPrecisionScope(currentLocation.getFunctionName()));
+      }
+
+      entriesBuilder.add(
+          new PrecisionExchangeEntry(
+              YAMLWitnessExpressionType.C,
+              precisionScope.orElseThrow(),
+              PrecisionType.RELEVANT_MEMORY_LOCATIONS,
+              FluentIterable.from(rawPrecision.get(currentLocation))
+                  .transform(MemoryLocation::asCExpression)
+                  .toList()));
+    }
+
+    return entriesBuilder.build();
   }
 
   @Override

@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
@@ -136,7 +137,11 @@ public class ValueAnalysisCPA extends AbstractCPA
   private SymbolicStatistics symbolicStats;
 
   private ValueAnalysisCPA(
-      Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa)
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA cfa,
+      Specification pSpecification)
       throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
     this.config = config;
@@ -149,7 +154,9 @@ public class ValueAnalysisCPA extends AbstractCPA
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
-    statistics = new ValueAnalysisCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
+    statistics =
+        new ValueAnalysisCPAStatistics(
+            this, cfa, config, logger, pShutdownNotifier, pSpecification);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
     errorPathAllocator =
         new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());

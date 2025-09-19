@@ -20,12 +20,14 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.defaults.precision.RefinablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 
 public class SMGPrecision extends RefinablePrecision {
 
@@ -94,6 +96,11 @@ public class SMGPrecision extends RefinablePrecision {
     }
 
     writer.write("*:\n" + Joiner.on("\n").join(globals));
+  }
+
+  @Override
+  public List<PrecisionExchangeEntry> asWitnessEntries(CFA pCfa) {
+    throw new RuntimeException("SMGPrecision does not support witness export");
   }
 
   @Override

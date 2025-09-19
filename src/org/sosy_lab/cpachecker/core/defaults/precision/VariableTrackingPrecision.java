@@ -14,11 +14,13 @@ import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.ForOverride;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -27,6 +29,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 
 public abstract class VariableTrackingPrecision implements Precision {
 
@@ -135,6 +138,9 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @param writer the write to write the precision to
    */
   public abstract void serialize(Writer writer) throws IOException;
+
+  /** This method serializes the precision in a format suitable for witness files. */
+  public abstract List<PrecisionExchangeEntry> asWitnessEntries(CFA pCfa);
 
   /**
    * This method joins this precision with another precision

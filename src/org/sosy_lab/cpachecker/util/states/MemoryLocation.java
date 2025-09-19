@@ -160,6 +160,15 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return variableName + "/" + offset;
   }
 
+  /** */
+  public String asCExpression() {
+    String variableName = getIdentifier();
+    if (offset == null) {
+      return variableName;
+    }
+    return variableName + " + " + offset;
+  }
+
   /**
    * Returns the qualified name consisting of the function name if present and the identifier. Note:
    * MemoryLocation consists of more than just those Strings!

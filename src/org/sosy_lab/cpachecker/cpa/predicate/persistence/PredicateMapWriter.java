@@ -38,14 +38,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -53,9 +51,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractYAMLWitnessExporte
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalLoopPrecisionScope;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionDeclaration;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
@@ -296,36 +291,8 @@ public final class PredicateMapWriter {
 
         for (CFANode cfaNode : pLocation.keySet()) {
           String functionName = cfaNode.getFunctionName();
-          Optional<PrecisionScope> precisionScope;
-
-          if (cfaNode.isLoopStart()) {
-            Optional<IterationElement> iterationStructure =
-                astCfaRelation.getTightestIterationStructureForNode(cfaNode);
-
-            if (iterationStructure.isEmpty()) {
-              precisionScope = Optional.empty();
-            } else {
-              FileLocation fileLocation =
-                  iterationStructure.orElseThrow().getCompleteElement().location();
-              precisionScope =
-                  Optional.of(
-                      new LocalLoopPrecisionScope(
-                          LocationRecord.createLocationRecordAtStart(fileLocation, functionName)));
-            }
-
-          } else {
-            Optional<FileLocation> fileLocation =
-                astCfaRelation.getStatementFileLocationForNode(cfaNode);
-            if (fileLocation.isEmpty()) {
-              precisionScope = Optional.empty();
-            } else {
-              precisionScope =
-                  Optional.of(
-                      new LocalPrecisionScope(
-                          LocationRecord.createLocationRecordAtStart(
-                              fileLocation.orElseThrow(), functionName)));
-            }
-          }
+          Optional<PrecisionScope> precisionScope =
+              PrecisionScope.localPrecisionScopeFor(cfaNode, astCfaRelation);
 
           if (precisionScope.isEmpty()) {
             // TODO: This should never happen, it is a bug in the AST-CFA relation.

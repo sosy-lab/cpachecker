@@ -16,6 +16,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionScope.PrecisionScopeDeserializer;
 
 @JsonDeserialize(using = PrecisionScopeDeserializer.class)
@@ -30,6 +35,36 @@ public abstract class PrecisionScope {
 
   public String getEntryType() {
     return entryType;
+  }
+
+  public static Optional<PrecisionScope> localPrecisionScopeFor(
+      CFANode pNode, AstCfaRelation pAstCfaRelation) {
+    String functionName = pNode.getFunctionName();
+    if (pNode.isLoopStart()) {
+      Optional<IterationElement> iterationStructure =
+          pAstCfaRelation.getTightestIterationStructureForNode(pNode);
+
+      if (iterationStructure.isEmpty()) {
+        return Optional.empty();
+      } else {
+        FileLocation fileLocation =
+            iterationStructure.orElseThrow().getCompleteElement().location();
+        return Optional.of(
+            new LocalLoopPrecisionScope(
+                LocationRecord.createLocationRecordAtStart(fileLocation, functionName)));
+      }
+
+    } else {
+      Optional<FileLocation> fileLocation = pAstCfaRelation.getStatementFileLocationForNode(pNode);
+      if (fileLocation.isEmpty()) {
+        return Optional.empty();
+      } else {
+        return Optional.of(
+            new LocalPrecisionScope(
+                LocationRecord.createLocationRecordAtStart(
+                    fileLocation.orElseThrow(), functionName)));
+      }
+    }
   }
 
   public static class PrecisionScopeDeserializer extends JsonDeserializer<PrecisionScope> {

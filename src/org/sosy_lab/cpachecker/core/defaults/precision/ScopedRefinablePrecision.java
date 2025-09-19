@@ -12,16 +12,26 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionType;
 
 public class ScopedRefinablePrecision extends RefinablePrecision {
 
@@ -74,6 +84,43 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
     }
 
     writer.write("*:\n" + Joiner.on("\n").join(globals));
+  }
+
+  @Override
+  public List<PrecisionExchangeEntry> asWitnessEntries(CFA pCfa) {
+    ImmutableList.Builder<String> globalVariables = ImmutableList.builder();
+    ImmutableListMultimap.Builder<String, String> functionWideVariables =
+        ImmutableListMultimap.builder();
+
+    for (MemoryLocation variable : rawPrecision) {
+      if (variable.isOnFunctionStack()) {
+        functionWideVariables.put(variable.getFunctionName(), variable.asCExpression());
+      } else {
+        globalVariables.add(variable.asCExpression());
+      }
+    }
+
+    ImmutableList.Builder<PrecisionExchangeEntry> entries = ImmutableList.builder();
+    if (!globalVariables.build().isEmpty()) {
+      entries.add(
+          new PrecisionExchangeEntry(
+              YAMLWitnessExpressionType.C,
+              new GlobalPrecisionScope(),
+              PrecisionType.RELEVANT_MEMORY_LOCATIONS,
+              globalVariables.build()));
+    }
+
+    for (Entry<String, Collection<String>> functionEntry :
+        functionWideVariables.build().asMap().entrySet()) {
+      entries.add(
+          new PrecisionExchangeEntry(
+              YAMLWitnessExpressionType.C,
+              new FunctionPrecisionScope(functionEntry.getKey()),
+              PrecisionType.RELEVANT_MEMORY_LOCATIONS,
+              ImmutableList.copyOf(functionEntry.getValue())));
+    }
+
+    return entries.build();
   }
 
   @Override

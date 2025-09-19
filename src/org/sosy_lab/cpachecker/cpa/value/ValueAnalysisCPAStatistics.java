@@ -8,11 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -30,19 +34,33 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractYAMLWitnessExporter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ProducerRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.TaskRecord;
 
 @Options(prefix = "cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
 
+  private Optional<MetadataRecord> metadataRecord;
+
   @Option(secure = true, description = "target file to hold the exported precision")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
+
+  @Option(secure = true, description = "target file to hold the witness based precision")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path witnessPrecisionFile = null;
 
   @Option(
       secure = true,
@@ -74,6 +92,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   private final StatCounter deterministicAssumptions =
       new StatCounter("Number of deterministic assumptions");
   private final ValueAnalysisCPA cpa;
+  private final CFA cfa;
   private final LogManager logger;
   private final ValueAnalysisResultToLoopInvariants loopInvGenExporter;
 
@@ -84,9 +103,11 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       final CFA cfa,
       Configuration config,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier)
+      final ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification)
       throws InvalidConfigurationException {
     this.cpa = cpa;
+    this.cfa = cfa;
     logger = pLogger;
 
     config.inject(this, ValueAnalysisCPAStatistics.class);
@@ -97,6 +118,17 @@ public class ValueAnalysisCPAStatistics implements Statistics {
               cfa.getAllLoopHeads().orElse(null), config, logger, pShutdownNotifier, cfa);
     } else {
       loopInvGenExporter = null;
+    }
+
+    try {
+      metadataRecord =
+          Optional.of(
+              MetadataRecord.createMetadataRecord(
+                  ProducerRecord.getProducerRecord(config),
+                  TaskRecord.getTaskDescription(cfa, pSpecification),
+                  YAMLWitnessVersion.V2d2));
+    } catch (IOException e) {
+      metadataRecord = Optional.empty();
     }
   }
 
@@ -123,7 +155,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     writer.put(numberOfVariables);
     writer.put(numberOfGlobalVariables);
 
-    if (precisionFile != null) {
+    if (precisionFile != null || witnessPrecisionFile != null) {
       exportPrecision(reached);
     }
 
@@ -172,13 +204,23 @@ public class ValueAnalysisCPAStatistics implements Statistics {
    * @param reached the set of reached states.
    */
   private void exportPrecision(UnmodifiableReachedSet reached) {
+    Preconditions.checkArgument(precisionFile != null || witnessPrecisionFile != null);
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
-    try (Writer writer = IO.openOutputFile(precisionFile, Charset.defaultCharset())) {
-      consolidatedPrecision.serialize(writer);
-    } catch (IOException e) {
-      cpa.getLogger()
-          .logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
+    if (precisionFile != null) {
+      try (Writer writer = IO.openOutputFile(precisionFile, Charset.defaultCharset())) {
+        consolidatedPrecision.serialize(writer);
+      } catch (IOException e) {
+        cpa.getLogger()
+            .logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
+      }
+    }
+    if (witnessPrecisionFile != null) {
+      List<PrecisionExchangeEntry> entries = consolidatedPrecision.asWitnessEntries(cfa);
+      PrecisionExchangeSetEntry precisionExchangeSetEntry =
+          new PrecisionExchangeSetEntry(metadataRecord.orElseThrow(), ImmutableList.of(), entries);
+      AbstractYAMLWitnessExporter.exportEntries(
+          ImmutableList.of(precisionExchangeSetEntry), witnessPrecisionFile, logger);
     }
   }
 
