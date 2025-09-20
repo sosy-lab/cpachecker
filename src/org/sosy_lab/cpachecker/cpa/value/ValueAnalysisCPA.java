@@ -118,12 +118,6 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
-  @Option(
-      secure = true,
-      description = "get an initial precision from a witness based precision file")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path initialWitnessPrecisionFile = null;
-
   @Option(secure = true, description = "get an initial precision from a predicate precision file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
@@ -165,7 +159,7 @@ public class ValueAnalysisCPA extends AbstractCPA
       ShutdownNotifier pShutdownNotifier,
       CFA cfa,
       Specification pSpecification)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
     this.config = config;
     this.logger = logger;
@@ -201,10 +195,8 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
-      throws InvalidConfigurationException {
-    if (initialPrecisionFile == null
-        && initialPredicatePrecisionFile == null
-        && initialWitnessPrecisionFile == null) {
+      throws InvalidConfigurationException, InterruptedException {
+    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
       return VariableTrackingPrecision.createStaticPrecision(
           pConfig, pCfa.getVarClassification(), getClass());
     }
@@ -217,46 +209,45 @@ public class ValueAnalysisCPA extends AbstractCPA
                 pConfig, pCfa.getVarClassification(), getClass()));
 
     if (initialPredicatePrecisionFile != null) {
-
       // convert the predicate precision to variable tracking precision and
       // refine precision with increment from the newly gained variable tracking precision
       // otherwise return empty precision if given predicate precision is empty
-
       initialPrecision =
           initialPrecision.withIncrement(
               predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
     }
     if (initialPrecisionFile != null) {
-      // create precision with empty, refinable component precision
-      // refine the refinable component precision with increment from file
-      initialPrecision = initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
-    }
-    if (initialWitnessPrecisionFile != null) {
-      // create precision with empty, refinable component precision
-      // refine the refinable component precision with increment from witness file
-      List<AbstractEntry> entries;
-      try (InputStream witnessInputStream =
-          MoreFiles.asByteSource(initialWitnessPrecisionFile).openStream()) {
-        entries = AutomatonWitnessV2ParserUtils.parseYAML(witnessInputStream);
-      } catch (IOException e) {
-        logger.logUserException(
-            Level.WARNING,
-            e,
-            "Could not read precision from witness file named " + initialWitnessPrecisionFile);
-        return initialPrecision;
-      }
-
-      for (AbstractEntry entry : entries) {
-        if (entry instanceof PrecisionExchangeSetEntry pExchangeSetEntry) {
-          initialPrecision =
-              initialPrecision.withIncrement(
-                  precisionExchangeSetToMapping(pExchangeSetEntry.getContent(), cfa));
-        } else {
-          logger.logf(
+      if (AutomatonWitnessV2ParserUtils.isYAMLWitness(initialPrecisionFile)) {
+        // create precision with empty, refinable component precision
+        // refine the refinable component precision with increment from witness file
+        List<AbstractEntry> entries;
+        try (InputStream witnessInputStream =
+            MoreFiles.asByteSource(initialPrecisionFile).openStream()) {
+          entries = AutomatonWitnessV2ParserUtils.parseYAML(witnessInputStream);
+        } catch (IOException e) {
+          logger.logUserException(
               Level.WARNING,
-              "Witness file %s does not contain a precision exchange set entry, ignoring it.",
-              initialWitnessPrecisionFile);
+              e,
+              "Could not read precision from witness file named " + initialPrecisionFile);
+          return initialPrecision;
         }
+
+        for (AbstractEntry entry : entries) {
+          if (entry instanceof PrecisionExchangeSetEntry pExchangeSetEntry) {
+            initialPrecision =
+                initialPrecision.withIncrement(
+                    precisionExchangeSetToMapping(pExchangeSetEntry.getContent(), cfa));
+          } else {
+            logger.logf(
+                Level.WARNING,
+                "Witness file %s does not contain a precision exchange set entry, ignoring it.",
+                initialPrecisionFile);
+          }
+        }
+      } else {
+        // create precision with empty, refinable component precision
+        // refine the refinable component precision with increment from file
+        initialPrecision = initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
       }
     }
 
@@ -379,7 +370,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null
         && initialPredicatePrecisionFile == null
-        && initialWitnessPrecisionFile == null
         && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
