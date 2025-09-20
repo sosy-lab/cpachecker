@@ -105,17 +105,17 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
           case FP_IS_ZERO
               // +0.0 and -0.0 are equal and are both handled here.
               ->
-              cache.get(newArgs.get(0)) + " == 0.0";
+              cache.get(newArgs.getFirst()) + " == 0.0";
           case FP_IS_NAN -> {
             // NaN is not a number, and it is unequal to itself in C99.
             // see https://sourceware.org/glibc/manual/2.41/html_node/Infinity-and-NaN.html
-            String nanArg = cache.get(newArgs.get(0));
+            String nanArg = cache.get(newArgs.getFirst());
             yield nanArg + " != " + nanArg;
           }
           case FP_IS_INF -> {
             // C99 standard for positive infinity is "1 / 0",
             // see https://sourceware.org/glibc/manual/2.41/html_node/Infinity-and-NaN.html
-            String infArg = cache.get(newArgs.get(0));
+            String infArg = cache.get(newArgs.getFirst());
             yield infArg + " == (1 / 0) || " + infArg + " == -(1 / 0)";
           }
           default -> {
