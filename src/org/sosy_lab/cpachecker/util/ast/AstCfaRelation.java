@@ -224,7 +224,7 @@ public final class AstCfaRelation {
     nodes.add(firstNode.orElseThrow());
 
     while (!toVisit.isEmpty()) {
-      CFANode currentNode = toVisit.remove(toVisit.size() - 1);
+      CFANode currentNode = toVisit.removeLast();
       Set<CFANode> newNodes =
           CFAUtils.leavingEdges(currentNode)
               .filter(BlankEdge.class)

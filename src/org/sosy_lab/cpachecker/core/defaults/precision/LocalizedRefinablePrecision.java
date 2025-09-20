@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
@@ -97,9 +97,8 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
               YAMLWitnessExpressionType.C,
               precisionScope.orElseThrow(),
               PrecisionType.RELEVANT_MEMORY_LOCATIONS,
-              FluentIterable.from(rawPrecision.get(currentLocation))
-                  .transform(MemoryLocation::asCExpression)
-                  .toList()));
+              transformedImmutableListCopy(
+                  rawPrecision.get(currentLocation), MemoryLocation::asCExpression)));
     }
 
     return entriesBuilder.build();
