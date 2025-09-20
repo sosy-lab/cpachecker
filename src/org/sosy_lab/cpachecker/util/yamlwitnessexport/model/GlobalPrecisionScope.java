@@ -12,9 +12,9 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
-public class GlobalPrecisionScope extends PrecisionScope {
+public final class GlobalPrecisionScope extends PrecisionScope {
 
-  protected static final String GLOBAL_TYPE_IDENTIFIER = "global";
+  public static final String GLOBAL_TYPE_IDENTIFIER = "global";
 
   public GlobalPrecisionScope() {
 

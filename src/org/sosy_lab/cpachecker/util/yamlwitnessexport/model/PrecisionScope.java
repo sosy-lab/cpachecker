@@ -24,7 +24,11 @@ import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionScope.PrecisionScopeDeserializer;
 
 @JsonDeserialize(using = PrecisionScopeDeserializer.class)
-public abstract class PrecisionScope {
+public abstract sealed class PrecisionScope
+    permits FunctionPrecisionScope,
+        GlobalPrecisionScope,
+        LocalLoopPrecisionScope,
+        LocalPrecisionScope {
 
   @JsonProperty("type")
   protected final String entryType;

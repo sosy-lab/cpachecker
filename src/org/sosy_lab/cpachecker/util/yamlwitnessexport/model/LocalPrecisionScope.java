@@ -13,9 +13,9 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
-public class LocalPrecisionScope extends PrecisionScope {
+public final class LocalPrecisionScope extends PrecisionScope {
 
-  protected static final String LOCATION_TYPE_IDENTIFIER = "location";
+  public static final String LOCATION_TYPE_IDENTIFIER = "location";
 
   @JsonProperty("location")
   private final LocationRecord location;

@@ -15,9 +15,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonPropertyOrder({"type", "function"})
-public class FunctionPrecisionScope extends PrecisionScope {
+public final class FunctionPrecisionScope extends PrecisionScope {
 
-  protected static final String FUNCTION_TYPE_IDENTIFIER = "function";
+  public static final String FUNCTION_TYPE_IDENTIFIER = "function";
 
   @JsonProperty("functionName")
   private final String functionName;

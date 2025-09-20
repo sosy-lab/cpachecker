@@ -10,14 +10,19 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -49,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
@@ -60,8 +66,19 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalLoopPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionType;
 
 @Options(prefix = "cpa.value")
 public class ValueAnalysisCPA extends AbstractCPA
@@ -100,6 +117,12 @@ public class ValueAnalysisCPA extends AbstractCPA
   @Option(secure = true, description = "get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
+
+  @Option(
+      secure = true,
+      description = "get an initial precision from a witness based precision file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialWitnessPrecisionFile = null;
 
   @Option(secure = true, description = "get an initial precision from a predicate precision file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -179,7 +202,9 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException {
-    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && initialWitnessPrecisionFile == null) {
       return VariableTrackingPrecision.createStaticPrecision(
           pConfig, pCfa.getVarClassification(), getClass());
     }
@@ -206,8 +231,113 @@ public class ValueAnalysisCPA extends AbstractCPA
       // refine the refinable component precision with increment from file
       initialPrecision = initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
     }
+    if (initialWitnessPrecisionFile != null) {
+      // create precision with empty, refinable component precision
+      // refine the refinable component precision with increment from witness file
+      List<AbstractEntry> entries;
+      try (InputStream witnessInputStream =
+          MoreFiles.asByteSource(initialWitnessPrecisionFile).openStream()) {
+        entries = AutomatonWitnessV2ParserUtils.parseYAML(witnessInputStream);
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING,
+            e,
+            "Could not read precision from witness file named " + initialWitnessPrecisionFile);
+        return initialPrecision;
+      }
+
+      for (AbstractEntry entry : entries) {
+        if (entry instanceof PrecisionExchangeSetEntry pExchangeSetEntry) {
+          initialPrecision =
+              initialPrecision.withIncrement(
+                  precisionExchangeSetToMapping(pExchangeSetEntry.getContent(), cfa));
+        } else {
+          logger.logf(
+              Level.WARNING,
+              "Witness file %s does not contain a precision exchange set entry, ignoring it.",
+              initialWitnessPrecisionFile);
+        }
+      }
+    }
 
     return initialPrecision;
+  }
+
+  private Multimap<CFANode, MemoryLocation> precisionExchangeSetToMapping(
+      List<PrecisionExchangeEntry> pEntries, CFA pCfa) {
+    ImmutableListMultimap.Builder<CFANode, MemoryLocation> builder =
+        ImmutableListMultimap.builder();
+    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+
+    Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(pCfa);
+    CFANode defaultLocation = getDefaultLocation(idToCfaNode);
+    for (PrecisionExchangeEntry entry : pEntries) {
+      if (entry.format() != YAMLWitnessExpressionType.C
+          || entry.type() != PrecisionType.RELEVANT_MEMORY_LOCATIONS) {
+        logger.log(
+            Level.WARNING,
+            "Ignoring unsupported precision entry with type "
+                + entry.type()
+                + " and format "
+                + entry.format());
+        continue;
+      }
+
+      switch (entry.scope()) {
+        case GlobalPrecisionScope pGlobalScope -> {
+          for (String var : entry.values()) {
+            builder.put(defaultLocation, MemoryLocation.parseCExpression(var, Optional.empty()));
+          }
+        }
+        case FunctionPrecisionScope pFunctionScope -> {
+          for (String var : entry.values()) {
+            builder.put(
+                defaultLocation,
+                MemoryLocation.parseCExpression(
+                    var, Optional.of(pFunctionScope.getFunctionName())));
+          }
+        }
+        case LocalLoopPrecisionScope pLoopScope -> {
+          LocationRecord locationRecord = pLoopScope.getLocation();
+
+          Optional<CFANode> location =
+              astCfaRelation.getNodeForIterationStatementLocation(
+                  locationRecord.getLine(), locationRecord.getColumn());
+          if (location.isEmpty()) {
+            continue;
+          }
+
+          for (String var : entry.values()) {
+            builder.put(
+                location.orElseThrow(),
+                MemoryLocation.parseCExpression(
+                    var, Optional.ofNullable(location.orElseThrow().getFunctionName())));
+          }
+        }
+
+        case LocalPrecisionScope pLocalScope -> {
+          LocationRecord locationRecord = pLocalScope.getLocation();
+
+          Set<CFANode> location =
+              astCfaRelation.getNodeForStatementLocation(
+                  locationRecord.getLine(), locationRecord.getColumn());
+          if (location.isEmpty()) {
+            continue;
+          }
+
+          for (String var : entry.values()) {
+            for (CFANode node : location) {
+              builder.put(
+                  node,
+                  MemoryLocation.parseCExpression(
+                      var, Optional.ofNullable(node.getFunctionName())));
+            }
+          }
+        }
+      }
+    }
+
+    return builder.build();
   }
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
@@ -249,6 +379,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null
         && initialPredicatePrecisionFile == null
+        && initialWitnessPrecisionFile == null
         && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;

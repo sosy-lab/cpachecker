@@ -19,6 +19,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 
@@ -167,6 +168,23 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       return variableName;
     }
     return variableName + " + " + offset;
+  }
+
+  public static MemoryLocation parseCExpression(
+      String pVariableName, Optional<String> pFunctionName) {
+    List<String> offsetParts = Splitter.on('+').splitToList(pVariableName);
+    String varName = offsetParts.getFirst().trim();
+
+    boolean hasOffset = offsetParts.size() == 2;
+
+    @Nullable Long offset = hasOffset ? Long.parseLong(offsetParts.get(1).trim()) : null;
+
+    if (pFunctionName.isPresent()) {
+      String functionName = pFunctionName.orElseThrow();
+      return new MemoryLocation(functionName, varName, offset);
+    } else {
+      return new MemoryLocation(null, varName.replace("/" + offset, ""), offset);
+    }
   }
 
   /**
