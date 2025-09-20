@@ -139,7 +139,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case UMINUS, BV_NEG, FP_NEG -> "-";
       case AND -> " && ";
       case BV_AND -> " & ";
-      case OR -> "\n|| ";
+      case OR -> " || ";
       case BV_OR -> " | ";
       case BV_XOR -> " ^ ";
       case SUB, BV_SUB, FP_SUB -> " - ";
