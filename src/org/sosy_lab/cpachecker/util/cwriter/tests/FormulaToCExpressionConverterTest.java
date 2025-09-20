@@ -757,6 +757,49 @@ public class FormulaToCExpressionConverterTest {
               fmgrv.makeVariable("z", FormulaType.getSinglePrecisionFloatingPointType()));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x / y) == z)");
     }
+
+    @Test
+    public void convertFPIsZero() throws InterruptedException {
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.isZero(fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
+      String expected =
+          switch (solverToUse()) {
+            // replacement value for solvers that do not support FP theory.
+            case OPENSMT, PRINCESS, SMTINTERPOL -> "(0 == y)";
+            default -> "(y == 0.0)";
+          };
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo(expected);
+    }
+
+    @Test
+    public void convertFPIsNan() throws InterruptedException {
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.isNaN(fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
+      String expected =
+          switch (solverToUse()) {
+            // replacement value for solvers that do not support FP theory.
+            case OPENSMT, PRINCESS, SMTINTERPOL -> "(__NaN__ == y)";
+            default -> "(y != y)";
+          };
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo(expected);
+    }
+
+    @Test
+    public void convertFPIsInf() throws InterruptedException {
+      FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
+      BooleanFormula formula =
+          fmgrv.isInfinity(
+              fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
+      String expected =
+          switch (solverToUse()) {
+            // replacement value for solvers that do not support FP theory.
+            case OPENSMT, PRINCESS, SMTINTERPOL -> "((__+Infinity__ == y) || (__-Infinity__ == y))";
+            default -> "(y == (1 / 0) || y == -(1 / 0))";
+          };
+      assertThat(converter.formulaToCExpression(formula)).isEqualTo(expected);
+    }
   }
 
   @RunWith(Parameterized.class)
