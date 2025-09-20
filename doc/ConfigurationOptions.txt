@@ -3855,6 +3855,9 @@ cpa.value.initialPrecisionFile = no default value
 # get an initial precision from a predicate precision file
 cpa.value.initialPredicatePrecisionFile = no default value
 
+# get an initial precision from a witness based precision file
+cpa.value.initialWitnessPrecisionFile = no default value
+
 # apply optimizations based on equality of input interpolant and candidate
 # interpolant
 cpa.value.interpolation.applyItpEqualityOptimization = true
