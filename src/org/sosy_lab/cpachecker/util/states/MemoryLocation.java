@@ -161,7 +161,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return variableName + "/" + offset;
   }
 
-  /** */
+  /** Return a string that represents this memory location as a C expression. */
   public String asCExpression() {
     String variableName = getIdentifier();
     if (offset == null) {
