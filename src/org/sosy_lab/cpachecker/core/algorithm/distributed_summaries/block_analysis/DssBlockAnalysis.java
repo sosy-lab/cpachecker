@@ -371,7 +371,7 @@ public class DssBlockAnalysis {
     }
     if (covered == deserializedStates.size()) {
       // we already have a precondition implying the new one
-      // return DssMessageProcessing.stop();
+      return DssMessageProcessing.stop();
     }
     if (!block.getLoopPredecessorIds().contains(pReceived.getSenderId())) {
       for (StateAndPrecision sp : preconditions.get(pReceived.getSenderId())) {
