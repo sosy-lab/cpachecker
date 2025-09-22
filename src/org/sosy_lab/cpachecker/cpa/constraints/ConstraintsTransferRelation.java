@@ -474,11 +474,6 @@ public class ConstraintsTransferRelation
 
         ConstraintsState currStateToStrengthen = newStates.getFirst();
 
-        if (currStrengtheningState instanceof ValueAnalysisState valueState) {
-          ConstraintsState newState = simplify(currStateToStrengthen, valueState);
-          newStates.clear();
-          newStates.add(newState);
-        }
         if (currStrengtheningState instanceof AutomatonState) {
           strengthenOperator = new AutomatonStrengthenOperator();
 
