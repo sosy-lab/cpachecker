@@ -375,7 +375,8 @@ public class DssBlockAnalysis {
     for (StateAndPrecision deserialized : deserializedStates) {
       for (Entry<String, StateAndPrecision> previousEntry : preconditions.entries()) {
         StateAndPrecision previous = previousEntry.getValue();
-        if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
+        if (previousEntry.getKey().equals(pReceived.getSenderId())
+            && dcpa.isMostGeneralBlockEntryState(previous.state())) {
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
           continue;
         }
@@ -592,6 +593,7 @@ public class DssBlockAnalysis {
     // clear stateful data structures
     reachedSet.clear();
     resetStates();
+    boolean isTop = false;
 
     // prepare states to be added to the reached set
     Optional<Precision> combinedPrecision = combinePrecisionIfPossible();
@@ -613,16 +615,26 @@ public class DssBlockAnalysis {
       // if not, add the states to the precondition
       if (putStates) {
         for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
+          if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
+            isTop = true;
+            break;
+          }
           precondition.add(
               new StateAndPrecision(
                   stateAndPrecision.state(),
                   combinedPrecision.orElse(stateAndPrecision.precision())));
         }
       }
+
+      if (isTop) {
+        break;
+      }
     }
 
     // execute the CPA algorithm with the prepared states at the start location of the block
-    DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, precondition.build());
+    if (!isTop) {
+      DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, precondition.build());
+    }
     if (reachedSet.isEmpty()) {
       reachedSet.add(makeStartState(), makeStartPrecision());
     }
