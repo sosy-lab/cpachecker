@@ -323,7 +323,7 @@ public class DssBlockAnalysis {
 
     status = status.update(result.getStatus());
 
-    if (result.getViolations().isEmpty()) {
+    if (result.getAllViolations().isEmpty()) {
       if (result.getFinalLocationStates().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
@@ -335,7 +335,7 @@ public class DssBlockAnalysis {
       return reportPreconditions(summariesWithPrecision.build(), true);
     }
 
-    return reportFirstViolationConditions(result.getViolations());
+    return reportFirstViolationConditions(result.getAllViolations());
   }
 
   /**
@@ -532,8 +532,9 @@ public class DssBlockAnalysis {
             computeViolationConditionStatesFromBlockEnd(
                 result.getFinalLocationStates(), violations));
       }
-      if (!result.getViolations().isEmpty()) {
-        vcs.addAll(computeViolationConditionStates(result.getViolations()));
+      if (!result.getAllViolations().isEmpty()) {
+        vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
+        vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
       }
     }
     return new AnalysisResult(summaries.build(), vcs.build());
@@ -593,50 +594,52 @@ public class DssBlockAnalysis {
     // clear stateful data structures
     reachedSet.clear();
     resetStates();
-    boolean isTop = false;
 
     // prepare states to be added to the reached set
-    Optional<Precision> combinedPrecision = combinePrecisionIfPossible();
-    ImmutableList.Builder<StateAndPrecision> precondition = ImmutableList.builder();
-    for (String predecessorId : preconditions.keySet()) {
-      Collection<StateAndPrecision> statesAndPrecisions = preconditions.get(predecessorId);
-      boolean putStates = true;
+    if (!block.allPredecessorsAreLoopPredecessors()) {
+      boolean isTop = false;
+      Optional<Precision> combinedPrecision = combinePrecisionIfPossible();
+      ImmutableList.Builder<StateAndPrecision> precondition = ImmutableList.builder();
+      for (String predecessorId : preconditions.keySet()) {
+        Collection<StateAndPrecision> statesAndPrecisions = preconditions.get(predecessorId);
+        boolean putStates = true;
 
-      // check whether a loop predecessor is top
-      if (block.hasLoopPredecessor(predecessorId) && !block.allPredecessorsAreLoopPredecessors()) {
-        for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
-          if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-            putStates = false;
-            break;
+        // check whether a loop predecessor is top
+        if (block.hasLoopPredecessor(predecessorId)
+            && !block.allPredecessorsAreLoopPredecessors()) {
+          for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
+            if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
+              putStates = false;
+              break;
+            }
           }
         }
-      }
 
-      // if not, add the states to the precondition
-      if (putStates) {
-        for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
-          if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-            isTop = true;
-            break;
+        // if not, add the states to the precondition
+        if (putStates) {
+          for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
+            if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
+              isTop = true;
+              break;
+            }
+            precondition.add(
+                new StateAndPrecision(
+                    stateAndPrecision.state(),
+                    combinedPrecision.orElse(stateAndPrecision.precision())));
           }
-          precondition.add(
-              new StateAndPrecision(
-                  stateAndPrecision.state(),
-                  combinedPrecision.orElse(stateAndPrecision.precision())));
+        }
+
+        if (isTop) {
+          break;
         }
       }
-
-      if (isTop) {
-        break;
+      // execute the CPA algorithm with the prepared states at the start location of the block
+      if (!isTop) {
+        DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, precondition.build());
       }
-    }
-
-    // execute the CPA algorithm with the prepared states at the start location of the block
-    if (!isTop) {
-      DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, precondition.build());
     }
     if (reachedSet.isEmpty()) {
-      reachedSet.add(makeStartState(), makeStartPrecision());
+      return ImmutableList.of(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     }
     ImmutableList.Builder<StateAndPrecision> toProcess = ImmutableList.builder();
     reachedSet.forEach((s, p) -> toProcess.add(new StateAndPrecision(s, p)));
