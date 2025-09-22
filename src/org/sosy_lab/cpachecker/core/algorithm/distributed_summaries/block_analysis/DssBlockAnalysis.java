@@ -379,12 +379,14 @@ public class DssBlockAnalysis {
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
           continue;
         }
-        if (dcpa.getCoverageOperator().isSubsumed(previous.state(), deserialized.state())) {
+        boolean previousLessEqualDeserialized =
+            dcpa.getCoverageOperator().isSubsumed(previous.state(), deserialized.state());
+        boolean deserializedLessEqualPrevious =
+            dcpa.getCoverageOperator().isSubsumed(deserialized.state(), previous.state());
+        if (previousLessEqualDeserialized && deserializedLessEqualPrevious) {
           covered++;
-          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), deserialized));
-          break;
-        }
-        if (dcpa.getCoverageOperator().isSubsumed(deserialized.state(), previous.state())) {
+          discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
+        } else if (previousLessEqualDeserialized) {
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
         }
       }
