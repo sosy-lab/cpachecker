@@ -34,7 +34,7 @@ public class DssSerializeObjectUtil {
             new ByteArrayInputStream(Base64.getDecoder().decode(pSerialize));
         ObjectInputStream in = new ObjectInputStream(bis)) {
       return pClass.cast(in.readObject());
-    } catch (IOException | ClassNotFoundException e) {
+    } catch (IOException | ClassNotFoundException | ClassCastException e) {
       // in no scenario, deserializing a message should cause exceptions
       throw new AssertionError(e);
     }
