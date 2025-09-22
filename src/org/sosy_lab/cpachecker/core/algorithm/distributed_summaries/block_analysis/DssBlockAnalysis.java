@@ -594,54 +594,57 @@ public class DssBlockAnalysis {
     // clear stateful data structures
     reachedSet.clear();
     resetStates();
+    boolean isSound = true;
 
     // prepare states to be added to the reached set
-    if (!block.allPredecessorsAreLoopPredecessors()) {
-      boolean isTop = false;
-      Optional<Precision> combinedPrecision = combinePrecisionIfPossible();
-      ImmutableList.Builder<StateAndPrecision> precondition = ImmutableList.builder();
-      for (String predecessorId : preconditions.keySet()) {
-        Collection<StateAndPrecision> statesAndPrecisions = preconditions.get(predecessorId);
-        boolean putStates = true;
+    boolean isTop = false;
+    Optional<Precision> combinedPrecision = combinePrecisionIfPossible();
+    ImmutableList.Builder<StateAndPrecision> precondition = ImmutableList.builder();
+    for (String predecessorId : preconditions.keySet()) {
+      Collection<StateAndPrecision> statesAndPrecisions = preconditions.get(predecessorId);
+      boolean putStates = true;
 
-        // check whether a loop predecessor is top
-        if (block.hasLoopPredecessor(predecessorId)
-            && !block.allPredecessorsAreLoopPredecessors()) {
-          for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
-            if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-              putStates = false;
-              break;
-            }
+      // check whether a loop predecessor is top
+      if (block.hasLoopPredecessor(predecessorId) && !block.allPredecessorsAreLoopPredecessors()) {
+        for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
+          if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
+            putStates = false;
+            isSound = false;
+            break;
           }
         }
+      }
 
-        // if not, add the states to the precondition
-        if (putStates) {
-          for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
-            if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-              isTop = true;
-              break;
-            }
-            precondition.add(
-                new StateAndPrecision(
-                    stateAndPrecision.state(),
-                    combinedPrecision.orElse(stateAndPrecision.precision())));
+      // if not, add the states to the precondition
+      if (putStates) {
+        for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
+          if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
+            isTop = true;
+            break;
           }
+          precondition.add(
+              new StateAndPrecision(
+                  stateAndPrecision.state(),
+                  combinedPrecision.orElse(stateAndPrecision.precision())));
         }
+      }
 
-        if (isTop) {
-          break;
-        }
+      if (isTop) {
+        isSound = true;
+        break;
       }
-      // execute the CPA algorithm with the prepared states at the start location of the block
-      if (!isTop) {
-        DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, precondition.build());
-      }
+    }
+    // execute the CPA algorithm with the prepared states at the start location of the block
+    if (!isTop) {
+      DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, precondition.build());
     }
     if (reachedSet.isEmpty()) {
       return ImmutableList.of(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     }
     ImmutableList.Builder<StateAndPrecision> toProcess = ImmutableList.builder();
+    if (!isSound || block.allPredecessorsAreLoopPredecessors()) {
+      toProcess.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
+    }
     reachedSet.forEach((s, p) -> toProcess.add(new StateAndPrecision(s, p)));
     reachedSet.clear();
     return toProcess.build();
