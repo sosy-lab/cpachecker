@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
