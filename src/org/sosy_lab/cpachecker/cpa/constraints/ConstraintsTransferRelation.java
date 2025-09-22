@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -456,9 +457,10 @@ public class ConstraintsTransferRelation
       assert pStrengtheningState instanceof BlockState;
       if (!((BlockState) pStrengtheningState).isTarget()) return Optional.empty();
 
-      Optional<AbstractState> errorState = ((BlockState) pStrengtheningState).getErrorCondition();
+      List<? extends @NonNull AbstractState> violations =
+          ((BlockState) pStrengtheningState).getViolationConditions();
 
-      if (errorState.isEmpty() || !(errorState.get() instanceof ARGState cS)) {
+      if (!(violations.getFirst() instanceof ARGState cS)) {
         return Optional.empty();
       }
 

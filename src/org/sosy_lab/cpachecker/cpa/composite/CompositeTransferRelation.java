@@ -329,7 +329,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         valueState = (ValueAnalysisState) reachedState.get(i);
     }
     if (blockState == null || valueState == null || !blockState.isTarget()) return Optional.empty();
-    AbstractState violation = blockState.getErrorCondition().get();
+    AbstractState violation = blockState.getViolationConditions().getFirst();
     if (!(violation instanceof ARGState argState)
         || !(argState.getWrappedState() instanceof CompositeState cS)) return Optional.empty();
 
