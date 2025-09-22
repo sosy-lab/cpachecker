@@ -117,7 +117,9 @@ public class DssBlockAnalyses {
 
     private final ImmutableSet<ARGState> summaries;
     private final ImmutableSet<ARGState> finalLocationStates;
-    private final ImmutableSet<ARGState> violations;
+    private final ImmutableSet<ARGState> allViolations;
+    private final ImmutableSet<ARGState> vcViolations;
+    private final ImmutableSet<ARGState> targetStates;
     private final AlgorithmStatus status;
 
     /**
@@ -134,6 +136,8 @@ public class DssBlockAnalyses {
       status = pStatus;
       ImmutableSet.Builder<ARGState> summariesBuilder = ImmutableSet.builder();
       ImmutableSet.Builder<ARGState> violationsBuilder = ImmutableSet.builder();
+      ImmutableSet.Builder<ARGState> vcViolationsBuilder = ImmutableSet.builder();
+      ImmutableSet.Builder<ARGState> targetStatesBuilder = ImmutableSet.builder();
       ImmutableSet.Builder<ARGState> finalLocationBuilder = ImmutableSet.builder();
       for (AbstractState abstractState : pReachedSet) {
         ARGState argState = (ARGState) abstractState;
@@ -149,15 +153,22 @@ public class DssBlockAnalyses {
           // if we find a target state, it is either a real violation
           // or the ghost edge was reached (violation condition cannot be refuted)
           violationsBuilder.add(argState);
+          if (blockState.getType() == BlockStateType.ABSTRACTION) {
+            vcViolationsBuilder.add(argState);
+          } else {
+            targetStatesBuilder.add(argState);
+          }
         } else if (blockState.getLocationNode().equals(pBlockNode.getFinalLocation())
             && blockState.getType() == BlockStateType.FINAL
             && argState.getChildren().isEmpty()) {
           summariesBuilder.add(argState);
         }
       }
-      violations = violationsBuilder.build();
+      allViolations = violationsBuilder.build();
       summaries = summariesBuilder.build();
       finalLocationStates = finalLocationBuilder.build();
+      vcViolations = vcViolationsBuilder.build();
+      targetStates = targetStatesBuilder.build();
     }
 
     public AlgorithmStatus getStatus() {
@@ -168,8 +179,16 @@ public class DssBlockAnalyses {
       return summaries;
     }
 
-    public ImmutableSet<ARGState> getViolations() {
-      return violations;
+    public ImmutableSet<ARGState> getAllViolations() {
+      return allViolations;
+    }
+
+    public ImmutableSet<ARGState> getTargetStates() {
+      return targetStates;
+    }
+
+    public ImmutableSet<ARGState> getViolationConditionViolations() {
+      return vcViolations;
     }
 
     public ImmutableSet<ARGState> getFinalLocationStates() {
@@ -182,7 +201,7 @@ public class DssBlockAnalyses {
           + "abstractionStates="
           + summaries
           + ", violationStates="
-          + violations
+          + allViolations
           + ", status="
           + status
           + '}';

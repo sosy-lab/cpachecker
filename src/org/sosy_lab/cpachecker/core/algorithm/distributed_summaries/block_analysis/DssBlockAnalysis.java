@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
@@ -252,14 +253,33 @@ public class DssBlockAnalysis {
   }
 
   private Collection<DssMessage> reportPreconditions(
-      Collection<? extends @NonNull StateAndPrecision> summaries, boolean allowTop) {
+      Collection<? extends @NonNull StateAndPrecision> summaries, boolean allowTop)
+      throws CPAException, InterruptedException {
+    List<StateAndPrecision> sps = new ArrayList<>(summaries.size());
+    for (StateAndPrecision summary : summaries) {
+      sps.add(new StateAndPrecision(summary.state(), makeStartPrecision()));
+    }
+    reachedSet.clear();
+    DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, sps);
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (StateAndPrecision abstraction : summaries) {
-      if (dcpa.isMostGeneralBlockEntryState(abstraction.state()) && !allowTop) {
+    for (AbstractState abstraction : reachedSet.asCollection()) {
+      if (dcpa.isMostGeneralBlockEntryState(abstraction) && !allowTop) {
         return messages.build();
       }
     }
-    ImmutableMap<String, String> serialized = dcpa.serialize(ImmutableList.copyOf(summaries));
+    ImmutableSet<AbstractState> remainingStates = ImmutableSet.copyOf(reachedSet.asCollection());
+    ImmutableList.Builder<StateAndPrecision> finalStates = ImmutableList.builder();
+    for (StateAndPrecision summary : summaries) {
+      if (remainingStates.contains(summary.state())) {
+        finalStates.add(summary);
+      }
+    }
+    ImmutableList<StateAndPrecision> uniqueSummaries = finalStates.build();
+    if (uniqueSummaries.isEmpty()) {
+      throw new AssertionError("No unique summaries found after CPA run");
+    }
+    ImmutableMap<String, String> serialized = dcpa.serialize(uniqueSummaries);
+    reachedSet.clear();
     messages.add(
         messageFactory.createDssPreconditionMessage(
             block.getId(),
@@ -303,7 +323,7 @@ public class DssBlockAnalysis {
 
     status = status.update(result.getStatus());
 
-    if (result.getViolations().isEmpty()) {
+    if (result.getAllViolations().isEmpty()) {
       if (result.getFinalLocationStates().isEmpty()) {
         return reportUnreachableBlockEnd();
       }
@@ -315,7 +335,7 @@ public class DssBlockAnalysis {
       return reportPreconditions(summariesWithPrecision.build(), true);
     }
 
-    return reportFirstViolationConditions(result.getViolations());
+    return reportFirstViolationConditions(result.getAllViolations());
   }
 
   /**
@@ -355,23 +375,26 @@ public class DssBlockAnalysis {
     for (StateAndPrecision deserialized : deserializedStates) {
       for (Entry<String, StateAndPrecision> previousEntry : preconditions.entries()) {
         StateAndPrecision previous = previousEntry.getValue();
-        if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
+        if (previousEntry.getKey().equals(pReceived.getSenderId())
+            && dcpa.isMostGeneralBlockEntryState(previous.state())) {
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
           continue;
         }
-        if (dcpa.getCoverageOperator().isSubsumed(previous.state(), deserialized.state())) {
+        boolean previousLessEqualDeserialized =
+            dcpa.getCoverageOperator().isSubsumed(previous.state(), deserialized.state());
+        boolean deserializedLessEqualPrevious =
+            dcpa.getCoverageOperator().isSubsumed(deserialized.state(), previous.state());
+        if (previousLessEqualDeserialized && deserializedLessEqualPrevious) {
           covered++;
-          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), deserialized));
-          break;
-        }
-        if (dcpa.getCoverageOperator().isSubsumed(deserialized.state(), previous.state())) {
+          discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
+        } else if (previousLessEqualDeserialized) {
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
         }
       }
     }
     if (covered == deserializedStates.size()) {
-      // we already have a precondition implying the new one
-      // return DssMessageProcessing.stop();
+      // we already have a precondition equivalent to the new one
+      return DssMessageProcessing.stop();
     }
     if (!block.getLoopPredecessorIds().contains(pReceived.getSenderId())) {
       for (StateAndPrecision sp : preconditions.get(pReceived.getSenderId())) {
@@ -421,7 +444,7 @@ public class DssBlockAnalysis {
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
-    for (String successor : violationConditions.keys()) {
+    for (String successor : violationConditions.keySet()) {
       AnalysisResult result =
           analyzeViolationCondition(
               transformedImmutableListCopy(
@@ -509,8 +532,9 @@ public class DssBlockAnalysis {
             computeViolationConditionStatesFromBlockEnd(
                 result.getFinalLocationStates(), violations));
       }
-      if (!result.getViolations().isEmpty()) {
-        vcs.addAll(computeViolationConditionStates(result.getViolations()));
+      if (!result.getAllViolations().isEmpty()) {
+        vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
+        vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
       }
     }
     return new AnalysisResult(summaries.build(), vcs.build());
@@ -570,8 +594,10 @@ public class DssBlockAnalysis {
     // clear stateful data structures
     reachedSet.clear();
     resetStates();
+    boolean isSound = true;
 
     // prepare states to be added to the reached set
+    boolean isTop = false;
     Optional<Precision> combinedPrecision = combinePrecisionIfPossible();
     ImmutableList.Builder<StateAndPrecision> precondition = ImmutableList.builder();
     for (String predecessorId : preconditions.keySet()) {
@@ -583,6 +609,7 @@ public class DssBlockAnalysis {
         for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
           if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
             putStates = false;
+            isSound = false;
             break;
           }
         }
@@ -591,20 +618,33 @@ public class DssBlockAnalysis {
       // if not, add the states to the precondition
       if (putStates) {
         for (StateAndPrecision stateAndPrecision : statesAndPrecisions) {
+          if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
+            isTop = true;
+            break;
+          }
           precondition.add(
               new StateAndPrecision(
                   stateAndPrecision.state(),
                   combinedPrecision.orElse(stateAndPrecision.precision())));
         }
       }
-    }
 
+      if (isTop) {
+        isSound = true;
+        break;
+      }
+    }
     // execute the CPA algorithm with the prepared states at the start location of the block
-    DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, precondition.build());
+    if (!isTop) {
+      DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, precondition.build());
+    }
     if (reachedSet.isEmpty()) {
-      reachedSet.add(makeStartState(), makeStartPrecision());
+      return ImmutableList.of(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     }
     ImmutableList.Builder<StateAndPrecision> toProcess = ImmutableList.builder();
+    if (!isSound || block.allPredecessorsAreLoopPredecessors()) {
+      toProcess.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
+    }
     reachedSet.forEach((s, p) -> toProcess.add(new StateAndPrecision(s, p)));
     reachedSet.clear();
     return toProcess.build();
