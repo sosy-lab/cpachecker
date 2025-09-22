@@ -162,9 +162,11 @@ public final class ValueAnalysisState
 
   // Same as assignConstant, but if an variable is already present in the VA State, it does not get
   // overwritten
-  // todo add assert?
+  // Used by extractor component of TestCaseGeneratorAlgorithm
+  // assignConstantFromCexpression
   public void assignConstantSafe(CSimpleDeclaration cDeclaration, Value value) {
     MemoryLocation pMemoryLocation = MemoryLocation.forDeclaration(cDeclaration);
+//    forIdentifier(String pIdentifier, long pOffset)
     if (!this.contains(pMemoryLocation)) {
       addToConstantsMap(pMemoryLocation, value, null);
     }

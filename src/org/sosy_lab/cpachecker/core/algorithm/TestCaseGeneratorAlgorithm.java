@@ -33,9 +33,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -425,18 +429,35 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           valueAnalysisState);
     }
   }
+
   // reads the value assigned to a variable, and adds that value to the abstract state,
   // but only if there is no disctinct value tracked already for that variable
   private void writeExpressionToState(
       CBinaryExpression cBinaryExpression,
       ValueAnalysisState valueAnalysisState) {
-    CIdExpression op1 = (CIdExpression) cBinaryExpression.getOperand1();
+    Optional<CIdExpression> op1 = processOperand1(cBinaryExpression.getOperand1());
     CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
     Value variableValue = new NumericValue(op2.getValue());
-    if (!variableValue.isUnknown()) {
-      valueAnalysisState.assignConstantSafe(op1.getDeclaration(), variableValue);
+    if (!variableValue.isUnknown() &&  op1.isPresent()) {
+      valueAnalysisState.assignConstantSafe(op1.get().getDeclaration(), variableValue);
     }
   }
+
+  private Optional<CIdExpression> processOperand1(CExpression op1) {
+    if (op1 instanceof CIdExpression) {
+      return Optional.of((CIdExpression) op1);
+    } else if (op1 instanceof CUnaryExpression) {
+      return Optional.of((CIdExpression) ((CUnaryExpression) op1).getOperand());
+    } else if (op1 instanceof CPointerExpression) {
+      return Optional.of((CIdExpression) ((CPointerExpression) op1).getOperand());
+    } else if (op1 instanceof CArraySubscriptExpression) {
+//      return Optional.empty();
+      return processOperand1(((CArraySubscriptExpression) op1).getArrayExpression());
+    }
+//    assert(false);
+    return Optional.empty();
+  }
+
   private ValueAnalysisState extractVAState(CompositeState wrappedState) {
     assert (wrappedState != null);
     for (int i = wrappedState.getNumberOfStates() - 1; i >= 0; i--) {
