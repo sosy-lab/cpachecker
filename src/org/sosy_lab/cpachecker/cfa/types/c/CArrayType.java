@@ -98,6 +98,7 @@ public final class CArrayType extends AArrayType implements CType {
 
   private String toASTString(String pDeclarator, AAstNodeRepresentation pAAstNodeRepresentation) {
     checkNotNull(pDeclarator);
+    // TODO: wrong, cf. #1375
     return qualifiers.toASTStringPrefix()
         + getType()
             .toASTString(
@@ -182,6 +183,8 @@ public final class CArrayType extends AArrayType implements CType {
     // C11 standard 6.7.3 (9) specifies that qualifiers like const and volatile
     // on an array type always refer to the element type, not the array type.
     // So we push these modifiers down to the element type here.
+    // TODO: wrong, cf. #1375 Only pQualifiersToAdd needs to be pushed down.
+    // TODO 6.7.3 (3) specifies that _Atomic must not be applied to array types.
     return new CArrayType(
         CTypeQualifiers.NONE,
         getType().getCanonicalType(CTypeQualifiers.union(qualifiers, pQualifiersToAdd)),

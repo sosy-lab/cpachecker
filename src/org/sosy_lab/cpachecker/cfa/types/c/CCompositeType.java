@@ -244,6 +244,10 @@ public final class CCompositeType implements CComplexType {
    * Be careful, this method compares the CType as it is to the given object, typedefs won't be
    * resolved. If you want to compare the type without having typedefs in it use
    * #getCanonicalType().equals()
+   *
+   * <p>Note that this ignores the members of the struct/union. This should usually be fine because
+   * we make type names unique by renaming while parsing the program. (This differs from {@link
+   * CEnumType#equals(Object)} currently, cf. #1376.)
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -276,6 +280,11 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public CCompositeType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    // Here we keep the same set of members, including with their non-canonicalized types.
+    // We need a canonical representation of types mostly for easier type comparisons,
+    // but composite types should be declared exactly once anyway, so their CCompositeType instance
+    // should already be canonical in the sense that if we refer to the same type we already have
+    // an equal instance (modulo qualifiers).
     CTypeQualifiers newQualifiers = CTypeQualifiers.union(qualifiers, pQualifiersToAdd);
     if (qualifiers.equals(newQualifiers)) {
       return this;

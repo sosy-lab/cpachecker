@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -297,6 +298,22 @@ public class ValueAnalysisTransferRelation
         && options.isIgnoreFunctionValue()
         && options.getFunctionValuesForRandom() != null) {
       setupFunctionValuesForRandom();
+    }
+  }
+
+  @Override
+  public Collection<ValueAnalysisState> getAbstractSuccessorsForEdge(
+      final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    if (stats != null) {
+      stats.transferTime.start();
+    }
+    try {
+      return super.getAbstractSuccessorsForEdge(abstractState, abstractPrecision, cfaEdge);
+    } finally {
+      if (stats != null) {
+        stats.transferTime.stop();
+      }
     }
   }
 
@@ -1552,7 +1569,7 @@ public class ValueAnalysisTransferRelation
                     || (variableType.equals(CNumericTypes.FLOAT)
                         && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
                         && otherVariableValue.isExplicitlyKnown()
-                        && Long.valueOf(0)
+                        && OptionalLong.of(0)
                             .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
                   value = otherVariableValue;
                   shouldAssign = true;

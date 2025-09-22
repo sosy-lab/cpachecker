@@ -160,4 +160,8 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
   public TestTargetPrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
+
+  public boolean isRunInParallel() {
+    return runParallel;
+  }
 }

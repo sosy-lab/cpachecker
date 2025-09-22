@@ -210,6 +210,9 @@ public final class CTypes {
     // implementation.
     // We chose the implementation with compatibility to 'signed int', that GCC
     // seemingly uses.
+    // TODO: This needs to be updated in accordance with #348, cf.
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/348#note_2709463414
+    // Afterwards also enable the test in CTypeCompatibilityTest.
     if (pTypeA instanceof CEnumType && pTypeB instanceof CSimpleType) {
       return pTypeB.getCanonicalType().equals(basicSignedInt.getCanonicalType());
     } else if (pTypeA instanceof CSimpleType && pTypeB instanceof CEnumType) {
@@ -313,11 +316,13 @@ public final class CTypes {
         // type discards the qualifiers of the array type and
         // instead qualifies the pointer with the qualifiers
         // used inside the size specifier brackets.
+        // TODO: wrong, cf. #1375
+        // Can probably delegate to CArrayType.asPointerType()
         CType sizeType = sizeExpression.getExpressionType();
         pType = new CPointerType(sizeType.getQualifiers(), innerType);
       }
     } else if (pType instanceof CFunctionType) {
-      pType = new CPointerType(pType.getQualifiers(), pType);
+      pType = new CPointerType(CTypeQualifiers.NONE, pType);
     }
     return pType;
   }

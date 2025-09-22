@@ -36,6 +36,11 @@ public final class CProblemType implements CType {
   }
 
   @Override
+  public boolean isAtomic() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public boolean isIncomplete() {
     throw new UnsupportedOperationException();
   }

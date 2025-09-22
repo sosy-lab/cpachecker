@@ -110,7 +110,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -251,8 +250,8 @@ public class CFAUtils {
   public static Set<CFAEdge> forwardLinearReach(CFAEdge edge) {
     CFAEdge current = edge;
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
-    while (CFAUtils.leavingEdges(current.getSuccessor()).size() == 1) {
-      current = CFAUtils.leavingEdges(current.getSuccessor()).first().get();
+    while (current.getSuccessor().getNumLeavingEdges() == 1) {
+      current = current.getSuccessor().getLeavingEdge(0);
       builder.add(current);
     }
     return builder.build();
@@ -308,9 +307,12 @@ public class CFAUtils {
     return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) enteringEdges((CFANode) node);
   }
 
-  @SuppressWarnings("unchecked")
-  public static FluentIterable<FunctionReturnEdge> leavingEdges(final FunctionExitNode node) {
-    return (FluentIterable<FunctionReturnEdge>) (FluentIterable<?>) leavingEdges((CFANode) node);
+  public static FluentIterable<CFAEdge> leavingEdges(final FunctionExitNode node) {
+    // may be strengthened to only return FunctionReturnEdges
+    // if no analysis adds dummy edges after FunctionExitNodes anymore
+    // (currently https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1319)
+    // and we really want unchecked casts
+    return leavingEdges((CFANode) node);
   }
 
   @Deprecated // entry nodes do not have summary edges
@@ -341,7 +343,7 @@ public class CFAUtils {
   @InlineMe(
       replacement = "CFAUtils.leavingEdges(node)",
       imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<FunctionReturnEdge> allLeavingEdges(final FunctionExitNode node) {
+  public static FluentIterable<CFAEdge> allLeavingEdges(final FunctionExitNode node) {
     return leavingEdges(node);
   }
 

@@ -391,7 +391,7 @@ public class ConfigurationFileChecks {
     config.inject(options);
 
     @SuppressWarnings("deprecation")
-    final String spec = config.getProperty(SPECIFICATION_OPTION);
+    final @Nullable String spec = config.getProperty(SPECIFICATION_OPTION);
     @SuppressWarnings("deprecation")
     final String cpas = Objects.requireNonNullElse(config.getProperty("CompositeCPA.cpas"), "");
     @SuppressWarnings("deprecation")

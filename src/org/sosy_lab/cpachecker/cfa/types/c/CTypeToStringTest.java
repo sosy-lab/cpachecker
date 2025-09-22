@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypesTest.CONST_VOLATILE_INT;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -36,22 +37,41 @@ public class CTypeToStringTest {
 
   private static final String VAR = "var";
 
-  private static final CType CONST_VOLATILE_INT =
-      new CSimpleType(
-          CTypeQualifiers.CONST_VOLATILE,
-          CBasicType.INT,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false);
-
   @Parameters(name = "{0} [{1}]")
   @SuppressWarnings("checkstyle:NoWhitespaceAfter") // nicely readable in this special case
   public static Object[][] types() {
     return new Object[][] {
+      {
+        "int var", CNumericTypes.INT,
+      },
+      {
+        "_Atomic int var", CNumericTypes.INT.withQualifiersSetTo(CTypeQualifiers.ATOMIC),
+      },
+      {
+        "const int var", CNumericTypes.INT.withQualifiersSetTo(CTypeQualifiers.CONST),
+      },
+      {
+        "volatile int var", CNumericTypes.INT.withQualifiersSetTo(CTypeQualifiers.VOLATILE),
+      },
+      {
+        "_Atomic const int var",
+        CNumericTypes.INT.withQualifiersSetTo(CTypeQualifiers.ATOMIC_CONST),
+      },
+      {
+        "_Atomic volatile int var",
+        CNumericTypes.INT.withQualifiersSetTo(CTypeQualifiers.ATOMIC_VOLATILE),
+      },
+      {
+        "const volatile int var",
+        CNumericTypes.INT.withQualifiersSetTo(CTypeQualifiers.CONST_VOLATILE),
+      },
+      {
+        "_Atomic const volatile int var",
+        CNumericTypes.INT.withQualifiersSetTo(CTypeQualifiers.ATOMIC_CONST_VOLATILE),
+      },
+      {
+        "_Atomic int *var", new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT.withAtomic()),
+      },
       { // declare var as pointer to int
         "int *var", new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT),
       },

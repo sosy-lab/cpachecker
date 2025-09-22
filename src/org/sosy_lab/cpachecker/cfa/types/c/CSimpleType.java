@@ -169,7 +169,7 @@ public final class CSimpleType implements CType {
   @Override
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
-    List<String> parts = new ArrayList<>();
+    List<@Nullable String> parts = new ArrayList<>();
     parts.add(Strings.emptyToNull(qualifiers.toASTStringPrefix().trim()));
 
     if (isUnsigned) {

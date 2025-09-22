@@ -56,7 +56,7 @@ public class PredicateViolationConditionOperator implements ViolationConditionOp
         result = counterexampleState.getPathFormula();
       }
     }
-    for (CFAEdge cfaEdge : pARGPath.getFullPath().reversed()) {
+    for (CFAEdge cfaEdge : pARGPath.getFullPath().reverse()) {
       result = backwardManager.makeAnd(result, cfaEdge);
     }
     if (hasRootAsPredecessor) {

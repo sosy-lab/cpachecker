@@ -9,14 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.cpachecker.cfa.types.c.CTypesTest.CONST_VOLATILE_INT;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 public class CanonicalTypeTest {
-
-  private static final CType VOLATILE_CONST_INT =
-      CNumericTypes.INT.withConst().withVolatile().getCanonicalType();
 
   @Test
   public void simpleTypeChar() {
@@ -53,7 +51,7 @@ public class CanonicalTypeTest {
         new CTypedefType(CTypeQualifiers.CONST_VOLATILE, "TYPEDEF", CNumericTypes.INT);
 
     // typedefs push their qualifiers to the target type (C11 § 6.7.3 (5))
-    assertThat(typedef.getCanonicalType()).isEqualTo(VOLATILE_CONST_INT);
+    assertThat(typedef.getCanonicalType()).isEqualTo(CONST_VOLATILE_INT.getCanonicalType());
   }
 
   @Test
@@ -61,7 +59,9 @@ public class CanonicalTypeTest {
     CArrayType array = new CArrayType(CTypeQualifiers.CONST_VOLATILE, CNumericTypes.INT);
 
     // arrays push their qualifiers to the element type (C11 § 6.7.3 (9))
-    CArrayType expected = new CArrayType(CTypeQualifiers.NONE, VOLATILE_CONST_INT);
+    // TODO: wrong, cf. #1375
+    CArrayType expected =
+        new CArrayType(CTypeQualifiers.NONE, CONST_VOLATILE_INT.getCanonicalType());
     assertThat(array.getCanonicalType()).isEqualTo(expected);
   }
 
@@ -70,7 +70,8 @@ public class CanonicalTypeTest {
     CTypedefType typedef = new CTypedefType(CTypeQualifiers.CONST, "TYPEDEF", CNumericTypes.INT);
     CArrayType array = new CArrayType(CTypeQualifiers.VOLATILE, typedef);
 
-    CArrayType expected = new CArrayType(CTypeQualifiers.NONE, VOLATILE_CONST_INT);
+    CArrayType expected =
+        new CArrayType(CTypeQualifiers.NONE, CONST_VOLATILE_INT.getCanonicalType());
     assertThat(array.getCanonicalType()).isEqualTo(expected);
   }
 
@@ -79,7 +80,8 @@ public class CanonicalTypeTest {
     CArrayType array = new CArrayType(CTypeQualifiers.VOLATILE, CNumericTypes.INT);
     CTypedefType typedef = new CTypedefType(CTypeQualifiers.CONST, "TYPEDEF", array);
 
-    CArrayType expected = new CArrayType(CTypeQualifiers.NONE, VOLATILE_CONST_INT);
+    CArrayType expected =
+        new CArrayType(CTypeQualifiers.NONE, CONST_VOLATILE_INT.getCanonicalType());
     assertThat(typedef.getCanonicalType()).isEqualTo(expected);
   }
 

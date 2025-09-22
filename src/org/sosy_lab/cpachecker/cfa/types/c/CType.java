@@ -43,6 +43,10 @@ public sealed interface CType extends Type
    */
   CTypeQualifiers getQualifiers();
 
+  default boolean isAtomic() {
+    return getQualifiers().containsAtomic();
+  }
+
   default boolean isConst() {
     return getQualifiers().containsConst();
   }
@@ -112,7 +116,8 @@ public sealed interface CType extends Type
 
   /**
    * Implements assignment compatibility for simple assignments (=) as described in the constraints
-   * of C-Standard §6.5.16.1 (1).
+   * of C-Standard §6.5.16.1 (1). Note that this does not forbid assigning to const objects, so this
+   * method does not check whether the current instance is const.
    *
    * <p>Currently the fifth of those constraints is not considered, since a {@link CType} does not
    * expose if it is a null pointer constant.
@@ -151,6 +156,9 @@ public sealed interface CType extends Type
     // Cf. C-Standard §6.3.2.3 (1):
     if (leftHandSide instanceof CPointerType cPointerType) {
       if (cPointerType.getType() instanceof CVoidType) {
+        // TODO This is wrong, cf. #1035 and
+        // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/c8bc0c7a1433b70fc28771314d61c26ea6f618b6#note_1170818138
+        // When fixed, update the test in CTypeCompatibilityTest
         if (rightHandSide.isIncomplete() || CTypes.isObjectType(rightHandSide)) {
           return true;
         }
@@ -181,6 +189,34 @@ public sealed interface CType extends Type
 
     // default case
     return false;
+  }
+
+  /**
+   * Return a copy of a given type that has the "atomic" flag not set. If the given type is already
+   * a non-atomic type, it is returned unchanged.
+   *
+   * <p>This method only eliminates the outermost atomic flag, if it is present, i.e., it does not
+   * change a non-atomic pointer to an atomic int.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   */
+  default CType withoutAtomic() {
+    return withQualifiersSetTo(getQualifiers().withoutAtomic());
+  }
+
+  /**
+   * Return a copy of a given type that has the "atomic" flag set. If the given type is already an
+   * atomic type, it is returned unchanged.
+   *
+   * <p>This method only adds the outermost atomic flag, if it is not present, i.e., it does not
+   * change an atomic pointer to a non-atomic int.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   */
+  default CType withAtomic() {
+    return withQualifiersSetTo(getQualifiers().withAtomic());
   }
 
   /**
@@ -240,8 +276,8 @@ public sealed interface CType extends Type
   }
 
   /**
-   * Return a copy of this type that has the "const" and "volatile" flags removed. If the type
-   * already has no qualifiers, it is returned unchanged.
+   * Return a copy of this type that has the "atomic", "const", and "volatile" flags removed. If the
+   * type already has no qualifiers, it is returned unchanged.
    *
    * <p>This method only eliminates the outermost qualifiers, if present, i.e., it does not change a
    * non-const non-volatile pointer to a const volatile int.
@@ -254,8 +290,8 @@ public sealed interface CType extends Type
   }
 
   /**
-   * Return a copy of this type that has the quantifiers (e.g., const/volatile) set to the given
-   * values.
+   * Return a copy of this type that has the quantifiers (e.g., atomic/const/volatile) set to the
+   * given values.
    *
    * <p>This method only changes the outermost quantifiers.
    *

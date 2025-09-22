@@ -143,6 +143,7 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
     // We ignore pQualifiersToAdd.
     // Qualified function types are undefined according to C11 §6.7.3 (9),
     // so we used to throw an exception here, but ignoring it does not hurt.
+    // Atomic is also not allowed (§6.7.3 (3)).
     // Probably no compiler does something else than ignoring these qualifiers as well.
 
     ImmutableList.Builder<CType> newParameterTypes = ImmutableList.builder();
