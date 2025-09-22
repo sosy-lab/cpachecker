@@ -40,6 +40,8 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
     ImmutableSet<Constraint> constraints2 = ((ConstraintsState) state2).getConstraints();
 
     if (constraints2.isEmpty()) return true;
+
+    // TODO FIX - this is an overapproximation!!
     HashSet<Constraint> constraints = HashSet.newHashSet(constraints1.size() + constraints2.size());
 
     constraints.addAll(constraints1);
