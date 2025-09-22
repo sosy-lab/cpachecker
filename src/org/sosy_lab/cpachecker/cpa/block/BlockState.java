@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -45,18 +44,18 @@ public class BlockState
   private final BlockStateType type;
   private final BlockNode blockNode;
   private final ImmutableList<String> history;
-  private Optional<AbstractState> errorCondition;
+  private List<? extends AbstractState> violationConditions;
 
   public BlockState(
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
-      Optional<AbstractState> pErrorCondition,
+      List<? extends AbstractState> pViolationConditions,
       List<String> pHistory) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    errorCondition = pErrorCondition;
+    violationConditions = pViolationConditions;
     history = ImmutableList.copyOf(pHistory);
   }
 
@@ -64,8 +63,8 @@ public class BlockState
     return history;
   }
 
-  public void setViolationCondition(AbstractState pErrorCondition) {
-    errorCondition = Optional.of(pErrorCondition);
+  public void setViolationConditions(List<? extends AbstractState> pViolationConditions) {
+    violationConditions = pViolationConditions;
   }
 
   public BlockNode getBlockNode() {
@@ -104,18 +103,22 @@ public class BlockState
         : ImmutableSet.of();
   }
 
-  public Optional<AbstractState> getErrorCondition() {
-    return errorCondition;
+  public List<? extends @NonNull AbstractState> getViolationConditions() {
+    return violationConditions;
   }
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     if (isTarget()) {
-      FluentIterable<BooleanFormula> approximations =
-          AbstractStates.asIterable(errorCondition.orElseThrow())
-              .filter(ViolationConditionReportingState.class)
-              .transform(s -> s.getViolationCondition(manager));
-      return manager.getBooleanFormulaManager().and(approximations.toList());
+      ImmutableList.Builder<BooleanFormula> combined = ImmutableList.builder();
+      for (AbstractState violationCondition : violationConditions) {
+        FluentIterable<BooleanFormula> approximations =
+            AbstractStates.asIterable(violationCondition)
+                .filter(ViolationConditionReportingState.class)
+                .transform(s -> s.getViolationCondition(manager));
+        combined.add(manager.getBooleanFormulaManager().and(approximations.toList()));
+      }
+      return manager.getBooleanFormulaManager().or(combined.build());
     }
     return manager.getBooleanFormulaManager().makeTrue();
   }
@@ -142,6 +145,6 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
-    return errorCondition.isPresent() && node.equals(blockNode.getViolationConditionLocation());
+    return !violationConditions.isEmpty() && node.equals(blockNode.getViolationConditionLocation());
   }
 }
