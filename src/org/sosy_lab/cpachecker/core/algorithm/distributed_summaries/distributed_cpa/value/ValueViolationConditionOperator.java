@@ -62,7 +62,7 @@ public class ValueViolationConditionOperator implements ViolationConditionOperat
 
     for (AbstractState state : cS.getWrappedStates()) {
       if (state instanceof BlockState blockState && blockState.isTarget()) {
-        AbstractState violation = blockState.getErrorCondition().get();
+        AbstractState violation = blockState.getViolationConditions().getFirst();
         if (!(violation instanceof ARGState argState)
             || !(argState.getWrappedState() instanceof CompositeState compositeViolation))
           return new ValueAnalysisState(pMachineModel);

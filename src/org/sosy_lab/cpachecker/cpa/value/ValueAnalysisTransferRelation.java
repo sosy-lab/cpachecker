@@ -1411,7 +1411,7 @@ public class ValueAnalysisTransferRelation
 
           for (ValueAnalysisState stateToStrengthen : toStrengthen) {
             super.setInfo(pElement, pPrecision, pCfaEdge);
-            AbstractState wrappedState = blockState.getErrorCondition().get();
+            AbstractState wrappedState = blockState.getViolationConditions().getFirst();
             if (!(wrappedState instanceof ARGState argState)
                 || !(argState.getWrappedState() instanceof CompositeState cS)) continue;
 
