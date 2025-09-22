@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 
