@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
@@ -252,14 +253,33 @@ public class DssBlockAnalysis {
   }
 
   private Collection<DssMessage> reportPreconditions(
-      Collection<? extends @NonNull StateAndPrecision> summaries, boolean allowTop) {
+      Collection<? extends @NonNull StateAndPrecision> summaries, boolean allowTop)
+      throws CPAException, InterruptedException {
+    List<StateAndPrecision> sps = new ArrayList<>(summaries.size());
+    for (StateAndPrecision summary : summaries) {
+      sps.add(new StateAndPrecision(summary.state(), makeStartPrecision()));
+    }
+    reachedSet.clear();
+    DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, sps);
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    for (StateAndPrecision abstraction : summaries) {
-      if (dcpa.isMostGeneralBlockEntryState(abstraction.state()) && !allowTop) {
+    for (AbstractState abstraction : reachedSet.asCollection()) {
+      if (dcpa.isMostGeneralBlockEntryState(abstraction) && !allowTop) {
         return messages.build();
       }
     }
-    ImmutableMap<String, String> serialized = dcpa.serialize(ImmutableList.copyOf(summaries));
+    ImmutableSet<AbstractState> remainingStates = ImmutableSet.copyOf(reachedSet.asCollection());
+    ImmutableList.Builder<StateAndPrecision> finalStates = ImmutableList.builder();
+    for (StateAndPrecision summary : summaries) {
+      if (remainingStates.contains(summary.state())) {
+        finalStates.add(summary);
+      }
+    }
+    ImmutableList<StateAndPrecision> uniqueSummaries = finalStates.build();
+    if (uniqueSummaries.isEmpty()) {
+      throw new AssertionError("No unique summaries found after CPA run");
+    }
+    ImmutableMap<String, String> serialized = dcpa.serialize(uniqueSummaries);
+    reachedSet.clear();
     messages.add(
         messageFactory.createDssPreconditionMessage(
             block.getId(),
@@ -421,7 +441,7 @@ public class DssBlockAnalysis {
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
-    for (String successor : violationConditions.keys()) {
+    for (String successor : violationConditions.keySet()) {
       AnalysisResult result =
           analyzeViolationCondition(
               transformedImmutableListCopy(
