@@ -51,7 +51,7 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             topMost.getLocationNode(),
             topMost.getBlockNode(),
             topMost.getType(),
-            topMost.getErrorCondition(),
+            topMost.getViolationConditions(),
             listAndElement(previousHistory, topMost.getBlockNode().getId()));
     return Optional.of(withHistory);
   }
