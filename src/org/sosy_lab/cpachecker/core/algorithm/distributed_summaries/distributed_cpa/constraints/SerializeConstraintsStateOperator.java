@@ -27,14 +27,13 @@ public class SerializeConstraintsStateOperator implements SerializeOperator {
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pState) {
     ConstraintsState state = (ConstraintsState) pState;
-    HashSet<Constraint> constraints = new HashSet<>(state.getConstraints());
+    HashSet<Constraint> constraints = new HashSet<>(state);
     String serializedConstraints;
 
     try {
       serializedConstraints = DssSerializeObjectUtil.serialize(constraints);
     } catch (IOException e) {
-      throw new AssertionError(
-          "Unable to serialize constraints " + state.getConstraints().toString());
+      throw new AssertionError("Unable to serialize constraints " + state.getConstraints());
     }
 
     return ContentBuilder.builder()
