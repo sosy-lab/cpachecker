@@ -518,7 +518,7 @@ public class ConstraintsTransferRelation
       assert pStrengtheningState instanceof ConstraintsState;
       ConstraintsState newState = pStateToStrengthen;
 
-      for (Constraint constraint : ((ConstraintsState) pStrengtheningState).getConstraints()) {
+      for (Constraint constraint : ((ConstraintsState) pStrengtheningState)) {
         newState = newState.copyWithNew(constraint);
       }
 

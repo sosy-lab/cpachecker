@@ -36,8 +36,8 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
   public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
 
-    ImmutableSet<Constraint> constraints1 = ((ConstraintsState) state1).getConstraints();
-    ImmutableSet<Constraint> constraints2 = ((ConstraintsState) state2).getConstraints();
+    Set<Constraint> constraints1 = new HashSet<>((ConstraintsState) state1);
+    Set<Constraint> constraints2 = new HashSet<>((ConstraintsState) state2);
 
     if (constraints2.isEmpty()) return true;
 

@@ -202,7 +202,4 @@ public final class ConstraintsState extends ForwardingSet<Constraint>
     return false;
   }
 
-  public ImmutableSet<Constraint> getConstraints() {
-    return constraints;
-  }
 }

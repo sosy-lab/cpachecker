@@ -33,7 +33,7 @@ public class SerializeConstraintsStateOperator implements SerializeOperator {
     try {
       serializedConstraints = DssSerializeObjectUtil.serialize(constraints);
     } catch (IOException e) {
-      throw new AssertionError("Unable to serialize constraints " + state.getConstraints());
+      throw new AssertionError("Unable to serialize constraints " + state);
     }
 
     return ContentBuilder.builder()

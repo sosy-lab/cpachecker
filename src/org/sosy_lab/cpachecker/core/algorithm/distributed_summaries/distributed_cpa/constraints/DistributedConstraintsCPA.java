@@ -110,7 +110,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
     // What if we have "assume x == x"?
     // create new "true" state, ask is it is subsumed?
     return constraintsState.getDefiniteAssignment().isEmpty()
-        && constraintsState.getConstraints().isEmpty();
+        && constraintsState.isEmpty();
   }
 
   @Override
