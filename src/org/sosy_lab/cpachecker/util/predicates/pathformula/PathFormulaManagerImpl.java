@@ -106,7 +106,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final LanguagetoSmtConverter converter;
+  private final LanguageToSmtConverter converter;
   private final @Nullable CtoWpConverter wpConverter;
   private final PathFormulaBuilderFactory pfbFactory;
   private final LogManager logger;

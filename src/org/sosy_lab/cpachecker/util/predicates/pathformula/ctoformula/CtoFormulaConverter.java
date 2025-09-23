@@ -93,7 +93,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguagetoSmtConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -117,7 +117,7 @@ import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 /** Class containing all the code that converts C code into a formula. */
-public class CtoFormulaConverter implements LanguagetoSmtConverter {
+public class CtoFormulaConverter implements LanguageToSmtConverter {
 
   // list of functions that are pure (no side effects from the perspective of this analysis)
   static final ImmutableSet<String> PURE_EXTERNAL_FUNCTIONS =

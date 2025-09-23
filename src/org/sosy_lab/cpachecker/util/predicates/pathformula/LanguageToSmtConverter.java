@@ -21,7 +21,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public interface LanguagetoSmtConverter {
+public interface LanguageToSmtConverter {
 
   // Index that is used to read from variables that were not assigned yet
   int VARIABLE_UNINITIALIZED = 1;

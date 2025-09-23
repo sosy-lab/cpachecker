@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguagetoSmtConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -43,7 +43,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 @SuppressWarnings("unused")
-public class K3ToFormulaConverter implements LanguagetoSmtConverter {
+public class K3ToFormulaConverter implements LanguageToSmtConverter {
 
   private final FormulaManagerView fmgr;
   private final FormulaEncodingOptions options;
