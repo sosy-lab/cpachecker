@@ -1237,25 +1237,26 @@ public class SMGState
    * are incomparable.
    *
    */
-  public Optional<MergedSMGStateAndMergeStatus> merge(SMGState pOther) throws CPAException {
-    if (getSize() != pOther.getSize()) {
+  public Optional<MergedSMGStateAndMergeStatus> merge(SMGState pOtherStateFromReached)
+      throws CPAException {
+    if (getSize() != pOtherStateFromReached.getSize()) {
       // If there is a non-equal number of (stack/global) variables, the merge fails anyway
       return Optional.empty();
     }
 
     // We may not forget any errors already found
-    if (!checkErrorEqualityForTwoStates(pOther)
+    if (!checkErrorEqualityForTwoStates(pOtherStateFromReached)
         || !copyAndPruneUnreachable()
-            .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable())) {
+            .checkErrorEqualityForTwoStates(pOtherStateFromReached.copyAndPruneUnreachable())) {
       return Optional.empty();
     }
 
-    if (!lastCheckedMemoryAccess.equals(pOther.lastCheckedMemoryAccess)) {
+    if (!lastCheckedMemoryAccess.equals(pOtherStateFromReached.lastCheckedMemoryAccess)) {
       // TODO: most likely too strict.
       return Optional.empty();
     }
 
-    SMGState otherSanitizedState = pOther.removeOldConstraints();
+    SMGState otherSanitizedState = pOtherStateFromReached.removeOldConstraints();
     SMGState thisSanitizedState = removeOldConstraints();
     if (!otherSanitizedState.constraintsState.equals(thisSanitizedState.constraintsState)) {
       // TODO: Problem: there might still be distinct symbolic values with the same constraints.
