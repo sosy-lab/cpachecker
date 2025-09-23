@@ -19,10 +19,10 @@ public final class FunctionPrecisionScope extends PrecisionScope {
 
   public static final String FUNCTION_TYPE_IDENTIFIER = "function";
 
-  @JsonProperty("functionName")
+  @JsonProperty("function_name")
   private final String functionName;
 
-  public FunctionPrecisionScope(@JsonProperty("functionName") String pFunctionName) {
+  public FunctionPrecisionScope(@JsonProperty("function_name") String pFunctionName) {
     super(FUNCTION_TYPE_IDENTIFIER);
     functionName = pFunctionName;
   }
