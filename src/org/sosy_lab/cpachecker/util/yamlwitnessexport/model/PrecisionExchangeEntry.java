@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry.PrecisionExchangeEntryDeserializer;
@@ -56,7 +57,8 @@ public record PrecisionExchangeEntry(
               mapper.treeToValue(invariantNode.get("format"), YAMLWitnessExpressionType.class),
               mapper.treeToValue(invariantNode.get("scope"), PrecisionScope.class),
               mapper.treeToValue(invariantNode.get("type"), PrecisionType.class),
-              mapper.treeToValue(invariantNode.get("values"), List.class));
+              // We can't use generics for the types at runtime
+              Arrays.asList(mapper.treeToValue(invariantNode.get("values"), String[].class)));
 
       return result;
     }
