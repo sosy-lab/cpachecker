@@ -112,7 +112,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * <p>For each block, an {@link DssWorkerBuilder#addAnalysisWorker(BlockNode, DssAnalysisOptions)
  * analysis worker} is created. An additional {@link DssWorkerBuilder#addRootWorker(BlockNode,
  * DssAnalysisOptions) root worker}) is responsible for messages reaching the program entry point.
- * If {@link #options#isDebugModeEnabled() debug mode} is enabled, a {@link
+ * If {@link DssAnalysisOptions#isDebugModeEnabled() debug mode} is enabled, a {@link
  * DssWorkerBuilder#addVisualizationWorker(BlockGraph, DssAnalysisOptions) visualization worker} is
  * used to provide a visualization of the message exchange between analysis workers.
  *
