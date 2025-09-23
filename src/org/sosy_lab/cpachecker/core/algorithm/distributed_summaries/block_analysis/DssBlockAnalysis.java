@@ -87,6 +87,7 @@ public class DssBlockAnalysis {
   private final LogManager logger;
 
   private AlgorithmStatus status;
+  private boolean isOriginal;
 
   private final boolean forcefullyCollectAllArgPaths;
 
@@ -129,6 +130,8 @@ public class DssBlockAnalysis {
     preconditions = ArrayListMultimap.create();
     violationConditions = ArrayListMultimap.create();
     forcefullyCollectAllArgPaths = pOptions.forcefullyCollectAllViolationConditions();
+
+    isOriginal = false;
   }
 
   /**
@@ -292,6 +295,7 @@ public class DssBlockAnalysis {
 
   private Collection<DssMessage> reportFirstViolationConditions(Set<@NonNull ARGState> violations)
       throws CPAException, InterruptedException, SolverException {
+    isOriginal = true;
     return reportViolationConditions(computeViolationConditionStatesFromOrigin(violations), true);
   }
 
@@ -527,14 +531,16 @@ public class DssBlockAnalysis {
           }
           summaries.addAll(summaryWithPrecision.build());
         }
+        if (!result.getAllViolations().isEmpty()) {
+          vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
+          if (isOriginal) {
+            vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
+          }
+        }
       } else {
         vcs.addAll(
             computeViolationConditionStatesFromBlockEnd(
                 result.getFinalLocationStates(), violations));
-      }
-      if (!result.getAllViolations().isEmpty()) {
-        vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
-        vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
       }
     }
     return new AnalysisResult(summaries.build(), vcs.build());
