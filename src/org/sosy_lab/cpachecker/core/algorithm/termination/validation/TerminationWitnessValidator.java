@@ -219,7 +219,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
   private ReachedSet checkSupportingInvariants() throws CPAException {
     try {
-      String invariantsSpecPath = "test/programs/benchmarks/properties/no-overflow.prp";
+      String invariantsSpecPath = "config/properties/no-overflow.prp";
       Configuration generationConfig =
           CPAMain.createConfiguration(
                   new String[] {

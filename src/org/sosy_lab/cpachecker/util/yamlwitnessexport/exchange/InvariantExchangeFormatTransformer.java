@@ -193,8 +193,9 @@ public class InvariantExchangeFormatTransformer {
       matcher.appendReplacement(result, variable + "__PREV");
     }
     matcher.appendTail(result);
+    invariantString = result.toString().replace("\\", "");
 
-    return result.toString();
+    return invariantString;
   }
 
   private boolean isLoopInvariant(InvariantEntry pInvariantEntry) {
