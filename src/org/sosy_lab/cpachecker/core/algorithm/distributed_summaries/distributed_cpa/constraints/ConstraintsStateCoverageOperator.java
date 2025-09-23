@@ -41,9 +41,10 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
     Set<Constraint> constraints2 = new HashSet<>((ConstraintsState) state2);
 
     if (constraints2.isEmpty()) return true;
+    return constraints1.equals(constraints2);
 
     // TODO FIX - this is an overapproximation!!
-    HashSet<Constraint> constraints = HashSet.newHashSet(constraints1.size() + constraints2.size());
+/*    HashSet<Constraint> constraints = HashSet.newHashSet(constraints1.size() + constraints2.size());
 
     constraints.addAll(constraints1);
     for (Constraint c : constraints2) {
@@ -56,7 +57,7 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
       return result.isUNSAT();
     } catch (SolverException pE) {
       throw new CPAException("Solver failed checking ConstraintState subsumption", pE);
-    }
+    } */
   }
 
   @Override
