@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
@@ -217,7 +218,14 @@ public class ValueAnalysisCPA extends AbstractCPA
               predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
     }
     if (initialPrecisionFile != null) {
-      if (AutomatonWitnessV2ParserUtils.isYAMLWitness(initialPrecisionFile)) {
+      boolean isYAMLWitness;
+      try {
+        isYAMLWitness = AutomatonWitnessV2ParserUtils.isYAMLWitness(initialPrecisionFile);
+      } catch (WitnessParseException e) {
+        isYAMLWitness = false;
+      }
+
+      if (isYAMLWitness) {
         // create precision with empty, refinable component precision
         // refine the refinable component precision with increment from witness file
         List<AbstractEntry> entries;
