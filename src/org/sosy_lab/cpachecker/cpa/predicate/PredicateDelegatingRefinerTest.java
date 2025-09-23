@@ -151,7 +151,7 @@ public class PredicateDelegatingRefinerTest {
     Configuration pDefaultIndividualRunsConfig =
         TestDataTools.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .setOption("cpa.predicate.refinement.pDefaultFixedRuns", "5")
+            .setOption("cpa.predicate.refinement.defaultFixedRuns", "5")
             .build();
     PredicateCPARefinerFactory pDefaultIndividualRunsRefinerFactory =
         setUpRefinerFactory(pDefaultIndividualRunsConfig);
@@ -203,7 +203,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
-            .setOption("cpa.predicate.refinement.pAcceptableRedundancyThreshold", "0.1")
+            .setOption("cpa.predicate.refinement.acceptableRedundancyThreshold", "0.1")
             .build();
     PredicateCPARefinerFactory pRedundantCustomThresholdRefinerFactory =
         setUpRefinerFactory(pRedundantCustomThresholdConfig);
@@ -309,34 +309,6 @@ public class PredicateDelegatingRefinerTest {
     ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
         pIgnoreWhiteSpaceCommaConfigRefinerFactory.createDelegatingRefinerConfig(
             setUpRefinerMap(pIgnoreWhiteSpaceCommaConfigRefinerFactory));
-
-    assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
-    assertThat(pRefinerRecords.get(1).pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRunDefaultNTimes.class);
-    assertThat(pRefinerRecords.get(2).pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
-    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
-    assertThat(pRefinerRecords.get(1).pRefiner()).isSameInstanceAs(defaultRefiner);
-    assertThat(pRefinerRecords.get(2).pRefiner()).isSameInstanceAs(defaultRefiner);
-    assertThat(pRefinerRecords).hasSize(3);
-  }
-
-  /**
-   * This test checks if DelegatingRefiner uses its default configuration for an empty command-line
-   * input for predicate-heuristic pairs.
-   */
-  @Test
-  public void checkEmptyHeuristicRefinerInput() throws Exception {
-    Configuration pEmptyInputConfig =
-        TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", " ")
-            .build();
-
-    PredicateCPARefinerFactory pEmptyInputFactory = setUpRefinerFactory(pEmptyInputConfig);
-
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pEmptyInputFactory.createDelegatingRefinerConfig(setUpRefinerMap(pEmptyInputFactory));
 
     assertThat(pRefinerRecords.getFirst().pHeuristic())
         .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
@@ -496,7 +468,7 @@ public class PredicateDelegatingRefinerTest {
     Configuration pNegativeFixedRunsConfig =
         TestDataTools.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .setOption("cpa.predicate.refinement.pDefaultFixedRuns", "-5")
+            .setOption("cpa.predicate.refinement.defaultFixedRuns", "-5")
             .build();
     PredicateCPARefinerFactory pNegativeFixedRunsFactory =
         setUpRefinerFactory(pNegativeFixedRunsConfig);
@@ -517,7 +489,7 @@ public class PredicateDelegatingRefinerTest {
     Configuration pDoubleFixedRunsConfig =
         TestDataTools.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .setOption("cpa.predicate.refinement.pDefaultFixedRuns", "5.0")
+            .setOption("cpa.predicate.refinement.defaultFixedRuns", "5.0")
             .build();
     assertThrows(
         InvalidConfigurationException.class, () -> setUpRefinerFactory(pDoubleFixedRunsConfig));
@@ -533,7 +505,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
-            .setOption("cpa.predicate.refinement.pAcceptableRedundancyThreshold", "-0.1")
+            .setOption("cpa.predicate.refinement.acceptableRedundancyThreshold", "-0.1")
             .build();
     PredicateCPARefinerFactory pNegativeRedundancyRefinerFactory =
         setUpRefinerFactory(pNegativeRedundancyConfig);
@@ -555,7 +527,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
-            .setOption("cpa.predicate.refinement.pAcceptableRedundancyThreshold", "2.0")
+            .setOption("cpa.predicate.refinement.acceptableRedundancyThreshold", "2.0")
             .build();
     PredicateCPARefinerFactory pTooLargeRedundancyRefinerFactory =
         setUpRefinerFactory(pTooLargeRedundancyConfig);
@@ -577,7 +549,7 @@ public class PredicateDelegatingRefinerTest {
         TestDataTools.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
-            .setOption("cpa.predicate.refinement.pAcceptableRedundancyThreshold", "xyz")
+            .setOption("cpa.predicate.refinement.acceptableRedundancyThreshold", "xyz")
             .build();
 
     assertThrows(

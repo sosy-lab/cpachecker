@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristic;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunDefaultNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
@@ -79,25 +81,39 @@ public final class PredicateCPARefinerFactory {
           "List of heuristic-refiner pairs for the DelegatingRefiner. Only use when"
               + " usePredicateDelegatingRefiner = true.")
   private ImmutableList<String> heuristicRefinerPairs =
-      ImmutableList.of("STATIC:STATIC", "DEFAULT_N_TIMES:DEFAULT", " REDUNDANT_PREDICATES:DEFAULT");
+      ImmutableList.of(
+          "STATIC:STATIC",
+          "DEFAULT_N_TIMES:DEFAULT",
+          "INTERPOLATION_RATE:DEFAULT",
+          "REDUNDANT_PREDICATES:DEFAULT");
 
   @Option(
       secure = true,
       description =
           "Number of times the PredicateCPARefiner should run to collect data for subsequent"
               + " DelegatingRefiner heuristics ")
-  private int pDefaultFixedRuns = 10;
+  private int defaultFixedRuns = 10;
+
+  @Option(
+      secure = true,
+      description =
+          "Acceptable number of interpolants generated per refinement for DelegatingRefiner"
+              + " heuristic")
+  private double defaultInterpolantRate = 7.0;
 
   @Option(
       secure = true,
       description =
           "Acceptable redundancy percentage for added predicates for DelegatingRefiner heuristic"
               + " (0.0 - 1.0)")
-  private double pAcceptableRedundancyThreshold = 0.8;
+  private double acceptableRedundancyThreshold = 0.8;
 
   private final PredicateCPA predicateCpa;
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
+
+  private final TrackingPredicateCPARefinementContext refinementContext =
+      new TrackingPredicateCPARefinementContext();
 
   /**
    * Create a factory instance.
@@ -217,7 +233,8 @@ public final class PredicateCPARefinerFactory {
             prefixProvider,
             prefixSelector,
             invariantsManager,
-            pRefinementStrategy);
+            pRefinementStrategy,
+            refinementContext);
 
     ARGBasedRefiner staticRefiner = defaultRefiner;
     if (performInitialStaticRefinement) {
@@ -311,36 +328,50 @@ public final class PredicateCPARefinerFactory {
             "Refiner must not be null. Available refiners: " + pRefinersAvailable.keySet());
       }
 
+      DelegatingRefinerHeuristic pHeuristic;
+
       switch (pHeuristicName) {
-        case STATIC ->
-            recordBuilder.add(
-                new HeuristicDelegatingRefinerRecord(
-                    new DelegatingRefinerHeuristicStaticRefinement(), pRefiner));
+        case STATIC -> pHeuristic = new DelegatingRefinerHeuristicStaticRefinement();
+
         case DEFAULT_N_TIMES -> {
-          if (pDefaultFixedRuns < 0) {
+          if (defaultFixedRuns < 0) {
             throw new InvalidConfigurationException(
                 "Number of runs for the refiner must not be negative.");
           }
-          recordBuilder.add(
-              new HeuristicDelegatingRefinerRecord(
-                  new DelegatingRefinerHeuristicRunDefaultNTimes(pDefaultFixedRuns), pRefiner));
+          pHeuristic = new DelegatingRefinerHeuristicRunDefaultNTimes(defaultFixedRuns);
         }
+
+        case INTERPOLATION_RATE -> {
+          if (defaultInterpolantRate < 0.0) {
+            throw new InvalidConfigurationException(
+                "Acceptable number of interpolants per refinement must not be negative");
+          }
+          pHeuristic =
+              new DelegatingRefinerHeuristicInterpolationRate(
+                  refinementContext, predicateCpa.getLogger(), defaultInterpolantRate);
+        }
+
         case REDUNDANT_PREDICATES -> {
-          if (pAcceptableRedundancyThreshold < 0.0 || pAcceptableRedundancyThreshold > 1.0) {
+          if (acceptableRedundancyThreshold < 0.0 || acceptableRedundancyThreshold > 1.0) {
             throw new InvalidConfigurationException(
                 "Acceptable redundancy rate must be between 0.0 and 1.0.");
           }
-          recordBuilder.add(
-              new HeuristicDelegatingRefinerRecord(
-                  new DelegatingRefinerHeuristicRedundantPredicates(
-                      pAcceptableRedundancyThreshold,
-                      predicateCpa.getSolver().getFormulaManager(),
-                      predicateCpa.getLogger()),
-                  pRefiner));
+          pHeuristic =
+              new DelegatingRefinerHeuristicRedundantPredicates(
+                  acceptableRedundancyThreshold,
+                  predicateCpa.getSolver().getFormulaManager(),
+                  predicateCpa.getLogger());
         }
-      }
-    }
 
+        default ->
+            throw new InvalidConfigurationException(
+                "Unknown heuristic"
+                    + pHeuristicName
+                    + ". Available heuristics: "
+                    + Joiner.on(",").join(EnumSet.allOf(DelegatingRefinerHeuristicType.class)));
+      }
+      recordBuilder.add(new HeuristicDelegatingRefinerRecord(pHeuristic, pRefiner));
+    }
     return recordBuilder.build();
   }
 }

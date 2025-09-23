@@ -15,5 +15,6 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 public enum DelegatingRefinerHeuristicType {
   STATIC,
   DEFAULT_N_TIMES,
-  REDUNDANT_PREDICATES
+  REDUNDANT_PREDICATES,
+  INTERPOLATION_RATE
 }
