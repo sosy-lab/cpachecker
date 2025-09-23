@@ -165,14 +165,19 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   public String asCExpression() {
     String variableName = getIdentifier();
     if (offset == null) {
-      return variableName;
+      return "&" + variableName;
     }
     return variableName + " + " + offset;
   }
 
   public static MemoryLocation parseCExpression(
       String pVariableName, Optional<String> pFunctionName) {
-    List<String> offsetParts = Splitter.on('+').splitToList(pVariableName);
+    String realVariableName = pVariableName.trim();
+    if (realVariableName.startsWith("&")) {
+      realVariableName = pVariableName.substring(1).trim();
+    }
+
+    List<String> offsetParts = Splitter.on('+').splitToList(realVariableName);
     String varName = offsetParts.getFirst().trim();
 
     boolean hasOffset = offsetParts.size() == 2;
