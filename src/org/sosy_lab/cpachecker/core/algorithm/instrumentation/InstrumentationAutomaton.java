@@ -923,21 +923,19 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                "if (saved == 0 && !((pc_INSTR == pc)"
-                    + (!liveVariablesAndTypes.isEmpty() ? " && " : "")
+                "if (saved == 0) {pc_INSTR = pc"
+                    + (!liveVariablesAndTypes.isEmpty() ? " ; " : "")
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
-                                "("
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey()
-                                    + " == "
-                                    + getDereferencesForPointer(entry.getValue())
+                                getDereferencesForPointer(entry.getValue())
                                     + entry.getKey()
                                     + "_INSTR"
-                                    + ")")
-                        .collect(Collectors.joining("&&"))
-                    + ")){abort();}"),
+                                    + " = "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey())
+                        .collect(Collectors.joining(";"))
+                    + "}"),
             InstrumentationOrder.BEFORE,
             q4);
     InstrumentationTransition t4 =
