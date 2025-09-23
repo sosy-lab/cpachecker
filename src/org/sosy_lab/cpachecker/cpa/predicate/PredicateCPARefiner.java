@@ -167,6 +167,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
   private final RefinementStrategy strategy;
   private final Optional<NewtonRefinementManager> newtonManager;
   private final Optional<UCBRefinementManager> ucbManager;
+  private final TrackingPredicateCPARefinementContext refinementContext;
 
   PredicateCPARefiner(
       final Configuration pConfig,
@@ -180,7 +181,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
       final PrefixProvider pPrefixProvider,
       final PrefixSelector pPrefixSelector,
       final PredicateCPAInvariantsManager pInvariantsManager,
-      final RefinementStrategy pStrategy)
+      final RefinementStrategy pStrategy,
+      final TrackingPredicateCPARefinementContext pRefinementContext)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPARefiner.class);
     logger = pLogger;
@@ -195,6 +197,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
     prefixProvider = pPrefixProvider;
     prefixSelector = pPrefixSelector;
     invariantsManager = pInvariantsManager;
+
+    refinementContext = pRefinementContext;
 
     if (pLoopStructure.isPresent()) {
       loopFinder = new LoopCollectingEdgeVisitor(pLoopStructure.orElseThrow(), pConfig);
@@ -291,6 +295,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
                 abstractionStatesTrace,
                 counterexample.getInterpolants(),
                 repeatedCounterexample && !wereInvariantsUsedInLastRefinement);
+        refinementContext.storeInterpolants(counterexample.getInterpolants());
+        refinementContext.storeNumberOfRefinements(totalRefinement.getUpdateCount());
 
         if (!trackFurtherCEX) {
           // when trackFurtherCEX is false, we only track 'one' CEX, otherwise we track all of them.
