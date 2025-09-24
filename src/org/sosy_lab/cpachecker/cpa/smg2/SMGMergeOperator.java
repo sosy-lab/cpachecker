@@ -45,7 +45,8 @@ public class SMGMergeOperator implements MergeOperator {
     SMGState newSMGState = (SMGState) newSuccessorState;
     SMGState smgStateFromReached = (SMGState) stateFromReached;
 
-    Optional<MergedSMGStateAndMergeStatus> mergeResult = merge(newSMGState, smgStateFromReached);
+    Optional<MergedSMGStateAndMergeStatus> mergeResult =
+        merge(newSMGState, smgStateFromReached, false);
     if (mergeResult.isPresent()) {
       return mergeResult.orElseThrow().getMergedSMGState();
     }
@@ -55,21 +56,23 @@ public class SMGMergeOperator implements MergeOperator {
 
   /**
    * If merge fails, returns empty. Else, returns the merged state and the merge status. Only for
-   * tests.
+   * tests. Note: ignores block-end status of states when merging.
    */
   public Optional<MergedSMGStateAndMergeStatus> mergeForTests(
       SMGState newSuccessorState, SMGState stateFromReached) throws CPAException {
 
-    return merge(newSuccessorState, stateFromReached);
+    return merge(newSuccessorState, stateFromReached, true);
   }
 
   private Optional<MergedSMGStateAndMergeStatus> merge(
-      SMGState newSMGState, SMGState smgStateFromReached) throws CPAException {
+      SMGState newSMGState, SMGState smgStateFromReached, boolean ignoreBlockEnds)
+      throws CPAException {
     checkArgument(!newSMGState.isResultOfMerge());
 
     // We only check at block ends, as this is where abstractions are performed.
     if (!newSMGState.mergeAtBlockEnd()
-        || (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd())) {
+        || (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd())
+        || ignoreBlockEnds) {
 
       // A merge w/o nested lists can be expensive, but most of the time not needed.
       // TODO: allow with option, as it can havoc non-equal values and allows for a broader, but
