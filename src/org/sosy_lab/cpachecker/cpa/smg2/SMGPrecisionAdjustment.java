@@ -186,11 +186,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     private final @Nullable ImmutableSet<CFANode> loopHeads;
 
-    public PrecAdjustmentOptions(Configuration config, CFA pCfa)
+    public PrecAdjustmentOptions(Configuration config, @Nullable CFA pCfa)
         throws InvalidConfigurationException {
       config.inject(this);
 
-      if (alwaysAtLoop && pCfa.getAllLoopHeads().isPresent()) {
+      if (alwaysAtLoop && pCfa != null && pCfa.getAllLoopHeads().isPresent()) {
         loopHeads = pCfa.getAllLoopHeads().orElseThrow();
       } else {
         loopHeads = null;
