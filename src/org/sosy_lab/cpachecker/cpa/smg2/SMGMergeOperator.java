@@ -107,7 +107,8 @@ public class SMGMergeOperator implements MergeOperator {
           mergedState = mergedState.withBlockEnd(smgStateFromReached.getBlockEnd());
         }
         checkState(mergedState.isResultOfMerge());
-        checkState(mergedState.getBlockEnd() == smgStateFromReached.getBlockEnd());
+        checkState(
+            ignoreBlockEnds || (mergedState.getBlockEnd() == smgStateFromReached.getBlockEnd()));
 
         // The merged state is strictly equally or more abstract than the input states.
         return Optional.of(MergedSMGStateAndMergeStatus.of(mergedState, mergeStatus));
