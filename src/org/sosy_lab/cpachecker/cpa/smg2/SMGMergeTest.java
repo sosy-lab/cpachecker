@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -278,27 +279,50 @@ public class SMGMergeTest extends SMGCPATest0 {
    * Asserts that all states that have abstracted list elements in them are mergeable with all other
    * states, and that the resulting states themselves are mergeable, until only 1 state remains that
    * subsumes all original and intermediate states.
+   *
+   * <p>concrete list length == CLL Note: the order in which CPAchecker generates and merges states
+   * is (example): From left to right: CLL1, CLL2, S/DLL3 S/DLL3 is then merged with CLL1 AND CLL2
+   * (as they are in reached), the newly merged states S/DLL1 and S/DLL2 replace CLL1 and CLL2 in
+   * reached, and S/DLL3 is subsumed by any of the 2 in stop.
    */
   private SMGState assertMergeSucceedsWithAllAbstractedStates(
       List<SMGState> statesToTestWithAbstraction) throws CPAException, InterruptedException {
     // Assert mergeability of abstracted states with abstracted states
-    SMGState smallestAbstractedState =
-        assertSuccessfulMergeOfAbstractedStates(statesToTestWithAbstraction);
+    SMGState abstractedState = assertSuccessfulMergeOfAbstractedStates(statesToTestWithAbstraction);
 
     List<SMGState> allNonAbstractedStates =
         statesToTestWithAbstraction.stream()
             .filter(s -> s.getMemoryModel().getSmg().getNumberOfAbstractedLists() == 0)
             .collect(ImmutableList.toImmutableList());
 
-    // All non-abstracted states should be mergeable with abstracted states here
-    // They should also be mergeable with the previously merged state
+    // All non-abstracted states should be mergeable with abstracted states.
+    // They should also be mergeable with the previously merged state.
+    SMGState smallestAbstractedState = abstractedState;
     for (int i = allNonAbstractedStates.size() - 1; i >= 0; i--) {
       SMGState stateToMerge = allNonAbstractedStates.get(i);
+      if (smallestAbstractedState != abstractedState) {
+        // They should also be mergeable with the previously merged state.
+        Optional<MergedSMGStateAndMergeStatus> mergeResult =
+            mergeOp.mergeForTests(smallestAbstractedState, stateToMerge);
+
+        assertThat(mergeResult).isPresent();
+        assertThat(mergeResult.orElseThrow().getMergeStatus())
+            .isEqualTo(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
+        assertThat(
+                smallestAbstractedState.isLessOrEqual(
+                    mergeResult.orElseThrow().getMergedSMGState()))
+            .isTrue();
+      }
+
+      // All non-abstracted states should be mergeable with abstracted states.
       Optional<MergedSMGStateAndMergeStatus> mergeResult =
-          mergeOp.mergeForTests(smallestAbstractedState, stateToMerge);
+          mergeOp.mergeForTests(abstractedState, stateToMerge);
 
       assertThat(mergeResult).isPresent();
-      assertThat(mergeResult.orElseThrow().getMergeStatus()).isEqualTo(SMGMergeStatus.RIGHT_ENTAIL);
+      assertThat(mergeResult.orElseThrow().getMergeStatus())
+          .isEqualTo(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
+      assertThat(abstractedState.isLessOrEqual(mergeResult.orElseThrow().getMergedSMGState()))
+          .isTrue();
       smallestAbstractedState = mergeResult.orElseThrow().getMergedSMGState();
     }
     return smallestAbstractedState;
@@ -306,7 +330,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
   /**
    * Asserts the mergeablity of all states with list abstractions in input list and returns the
-   * minimal state.
+   * state with the abstracted list that is the largest (i.e. smallest min length).
    */
   private static SMGState assertSuccessfulMergeOfAbstractedStates(
       List<SMGState> statesToTestWithAbstraction) throws CPAException, InterruptedException {
@@ -314,130 +338,34 @@ public class SMGMergeTest extends SMGCPATest0 {
         statesToTestWithAbstraction.stream()
             .filter(s -> s.getMemoryModel().getSmg().getNumberOfAbstractedLists() > 0)
             .collect(ImmutableList.toImmutableList());
-    SMGState smallestAbstractedState = allAbstractedStates.get(0);
-    boolean mergedSmallestWithItself = false;
-    boolean mergedOthers = false;
-    for (SMGState abstractedState : allAbstractedStates) {
-      assertThat(abstractedState.getMemoryModel().getSmg().getNumberOfAbstractedLists())
-          .isEqualTo(1);
-      // Assert order of allAbstractedStates is ascending based on size of abstracted lists
-      assertThat(
-              abstractedState
-                  .getMemoryModel()
-                  .getSmg()
-                  .getAllValidAbstractedObjects()
-                  .iterator()
-                  .next()
-                  .getMinLength())
-          .isAtLeast(
-              smallestAbstractedState
-                  .getMemoryModel()
-                  .getSmg()
-                  .getAllValidAbstractedObjects()
-                  .iterator()
-                  .next()
-                  .getMinLength());
+    assertThat(allAbstractedStates.size()).isGreaterThan(1);
 
-      if (smallestAbstractedState == abstractedState) {
-        mergedSmallestWithItself = true;
-        Optional<MergedSMGStateAndMergeStatus> mergeResEqualStates =
-            mergeOp.mergeForTests(smallestAbstractedState, abstractedState);
-        assertThat(mergeResEqualStates).isPresent();
-        assertThat(mergeResEqualStates.orElseThrow().getMergeStatus())
-            .isEqualTo(SMGMergeStatus.EQUAL);
-        // merged original with itself <= original
-        assertThat(
-                mergeResEqualStates
-                    .orElseThrow()
-                    .getMergedSMGState()
-                    .isLessOrEqual(smallestAbstractedState))
-            .isTrue();
-        // original <= merged original with itself
-        assertThat(
-                smallestAbstractedState.isLessOrEqual(
-                    mergeResEqualStates.orElseThrow().getMergedSMGState()))
-            .isTrue();
-
-      } else {
-        mergedOthers = true;
-
-        // TODO: does the order of states in merge make sense?
-        Optional<MergedSMGStateAndMergeStatus> mergeResLargerSmall =
-            mergeOp.mergeForTests(abstractedState, smallestAbstractedState);
-        assertThat(mergeResLargerSmall).isPresent();
-        // abstractedState should be entailed in smallestAbstractedState
-        // abstractedState ⊏ smallestAbstractedState
-        assertThat(mergeResLargerSmall.orElseThrow().getMergeStatus())
-            .isEqualTo(SMGMergeStatus.LEFT_ENTAIL);
-        // mergeResLargerSmall state <= smallestAbstractedState
-        assertThat(
-                mergeResLargerSmall
-                    .orElseThrow()
-                    .getMergedSMGState()
-                    .isLessOrEqual(smallestAbstractedState))
-            .isTrue();
-        // mergeResLargerSmall state <= abstractedState
-        assertThat(
-                mergeResLargerSmall
-                    .orElseThrow()
-                    .getMergedSMGState()
-                    .isLessOrEqual(abstractedState))
-            .isTrue();
-        // mergeResLargerSmall state <= mergeResLargerSmall state
-        assertThat(
-                mergeResLargerSmall
-                    .orElseThrow()
-                    .getMergedSMGState()
-                    .isLessOrEqual(mergeResLargerSmall.orElseThrow().getMergedSMGState()))
-            .isTrue();
-
-        // TODO: does the order of states in merge make sense?
-        Optional<MergedSMGStateAndMergeStatus> mergeResSmallLarger =
-            mergeOp.mergeForTests(smallestAbstractedState, abstractedState);
-        assertThat(mergeResSmallLarger).isPresent();
-        // abstractedState should be entailed in smallestAbstractedState
-        assertThat(mergeResLargerSmall.orElseThrow().getMergeStatus())
-            .isEqualTo(SMGMergeStatus.RIGHT_ENTAIL);
-        // mergeResSmallLarger state <= smallestAbstractedState
-        assertThat(
-                mergeResSmallLarger
-                    .orElseThrow()
-                    .getMergedSMGState()
-                    .isLessOrEqual(smallestAbstractedState))
-            .isTrue();
-        // mergeResSmallLarger state <= abstractedState
-        assertThat(
-                mergeResSmallLarger
-                    .orElseThrow()
-                    .getMergedSMGState()
-                    .isLessOrEqual(abstractedState))
-            .isTrue();
-        // mergeResSmallLarger state <= mergeResSmallLarger state
-        assertThat(
-                mergeResSmallLarger
-                    .orElseThrow()
-                    .getMergedSMGState()
-                    .isLessOrEqual(mergeResSmallLarger.orElseThrow().getMergedSMGState()))
-            .isTrue();
-
-        // Both abstracted states should be comparable
-        assertThat(
-                mergeResLargerSmall
-                    .orElseThrow()
-                    .getMergedSMGState()
-                    .isLessOrEqual(mergeResSmallLarger.orElseThrow().getMergedSMGState()))
-            .isTrue();
-        assertThat(
-                mergeResSmallLarger
-                    .orElseThrow()
-                    .getMergedSMGState()
-                    .isLessOrEqual(mergeResLargerSmall.orElseThrow().getMergedSMGState()))
-            .isTrue();
-      }
+    // Assert that they are ordered ascending
+    for (int i = 0; i < allAbstractedStates.size() - 1; i++) {
+      Set<SMGSinglyLinkedListSegment> abstrObjs =
+          allAbstractedStates.get(i).getMemoryModel().getSmg().getAllValidAbstractedObjects();
+      Set<SMGSinglyLinkedListSegment> abstrObjsNext =
+          allAbstractedStates.get(i + 1).getMemoryModel().getSmg().getAllValidAbstractedObjects();
+      assertThat(abstrObjs).hasSize(1);
+      assertThat(abstrObjsNext).hasSize(1);
+      assertThat(abstrObjsNext.iterator().next().getMinLength())
+          .isGreaterThan(abstrObjs.iterator().next().getMinLength());
     }
-    assertThat(mergedSmallestWithItself).isTrue();
-    assertThat(mergedOthers).isTrue();
-    return smallestAbstractedState;
+
+    SMGState smallestAbstractedState = allAbstractedStates.get(allAbstractedStates.size() - 1);
+    for (int i = allAbstractedStates.size() - 2; i >= 0; i--) {
+      SMGState stateToMergeRight = allAbstractedStates.get(i);
+      Optional<MergedSMGStateAndMergeStatus> mergeRes =
+          mergeOp.mergeForTests(smallestAbstractedState, stateToMergeRight);
+      assertThat(mergeRes).isPresent();
+      // Right is bigger (by having a smaller min length), hence it entails
+      assertThat(mergeRes.orElseThrow().getMergeStatus())
+          .isEqualTo(SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT);
+
+      assertThat(smallestAbstractedState.isLessOrEqual(mergeRes.orElseThrow().getMergedSMGState()))
+          .isTrue();
+    }
+    return allAbstractedStates.get(0);
   }
 
   /**
