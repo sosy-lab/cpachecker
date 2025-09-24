@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -56,13 +58,14 @@ public class SMGMergeOperator implements MergeOperator {
    * tests.
    */
   public Optional<MergedSMGStateAndMergeStatus> mergeForTests(
-      SMGState newState, SMGState stateFromReached) throws CPAException {
+      SMGState newSuccessorState, SMGState stateFromReached) throws CPAException {
 
-    return merge(newState, stateFromReached);
+    return merge(newSuccessorState, stateFromReached);
   }
 
   private Optional<MergedSMGStateAndMergeStatus> merge(
       SMGState newSMGState, SMGState smgStateFromReached) throws CPAException {
+    checkArgument(!newSMGState.isResultOfMerge());
 
     // We only check at block ends, as this is where abstractions are performed.
     if (!newSMGState.mergeAtBlockEnd()
@@ -94,6 +97,8 @@ public class SMGMergeOperator implements MergeOperator {
 
         SMGState mergedState = mergedStateAndStatus.getMergedSMGState();
         // Retain merge status to reason about in stop operator
+        checkArgument(
+            !smgStateFromReached.isResultOfMerge()); // Might happen, extend merge info if it does!
         mergedState = mergedState.asResultOfMerge(newSMGState, smgStateFromReached, mergeStatus);
         // Retain block-end status
         if (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd()) {
