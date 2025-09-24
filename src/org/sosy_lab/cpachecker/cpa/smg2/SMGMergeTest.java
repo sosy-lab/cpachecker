@@ -229,9 +229,11 @@ public class SMGMergeTest extends SMGCPATest0 {
         // Check that they are not mergeable before abstraction
         assertNotMergeable(nestedListsToTest);
 
+        // TODO:
+        boolean nestedListHasStackPointerAtTheEnd = false;
         // Abstract (only viable states are abstracted)
         List<SMGState> statesToTestWithAbstraction =
-            abstractAbstractableStates(nestedListsToTest, dll);
+            abstractAbstractableStates(nestedListsToTest, dll, nestedListHasStackPointerAtTheEnd);
 
         // Merge now succeed with the abstracted state(s)
         mergedStatesFromOneNestedListBuilder.add(
@@ -263,13 +265,21 @@ public class SMGMergeTest extends SMGCPATest0 {
       BiFunction<Integer, Map<String, Integer>, ListSpec> spec,
       Map<String, Integer> variableAndPointerLocationInList)
       throws CPAException, InterruptedException {
-    List<SMGState> statesToTest = generateListsFromSpec(spec, variableAndPointerLocationInList);
+    assertThat(variableAndPointerLocationInList.size()).isAtLeast(1);
+    assertThat(variableAndPointerLocationInList.size()).isAtMost(2);
+    // listHasTwoStackPointers is true for lists with a pointer at the beginning and end, which
+    // changes the abstraction for singly linked lists (as the last element is not part of the
+    // abstraction).
+    boolean listHasTwoStackPointers = variableAndPointerLocationInList.size() == 2;
+    List<SMGState> statesToTest =
+        generateListsFromSpec(spec, variableAndPointerLocationInList, listHasTwoStackPointers);
 
     // Check that they are not mergeable before abstraction
     assertNotMergeable(statesToTest);
 
     // Abstract (only viable states are abstracted)
-    List<SMGState> statesToTestWithAbstraction = abstractAbstractableStates(statesToTest, dll);
+    List<SMGState> statesToTestWithAbstraction =
+        abstractAbstractableStates(statesToTest, dll, listHasTwoStackPointers);
 
     // Merge now succeed with the abstracted state(s)
     assertMergeSucceedsWithAllAbstractedStates(statesToTestWithAbstraction);
@@ -370,11 +380,13 @@ public class SMGMergeTest extends SMGCPATest0 {
 
   /**
    * Abstracts all viable states, i.e. all elements that are comparable and of min subsequent
-   * length. All other states are returned as is.
+   * length. All other states are returned as is. listHasTwoStackPointers is true for lists with a
+   * pointer at the beginning and end, which changes the abstraction for singly linked lists (as the
+   * last element is not part of the abstraction).
    */
-  private List<SMGState> abstractAbstractableStates(List<SMGState> statesToTest, boolean dll)
+  private List<SMGState> abstractAbstractableStates(
+      List<SMGState> statesToTest, boolean dll, boolean listHasTwoStackPointers)
       throws CPAException {
-    boolean foundAbstractedState = false;
     ImmutableList.Builder<SMGState> statesToTestWithAbstractionBuilder = ImmutableList.builder();
     for (int numOfState = 0; numOfState < statesToTest.size(); numOfState++) {
       SMGState stateToAbstract = statesToTest.get(numOfState);
@@ -387,8 +399,12 @@ public class SMGMergeTest extends SMGCPATest0 {
               .findAndAbstractLists();
       statesToTestWithAbstractionBuilder.add(resultState);
 
-      if (numOfState + 1 >= smgPrecOptions.getListAbstractionMinimumLengthThreshold()) {
-        // Abstraction should only succeed for the last state with a list long enough
+      int firstAbstractedState = smgPrecOptions.getListAbstractionMinimumLengthThreshold();
+      if (listHasTwoStackPointers) {
+        firstAbstractedState++;
+      }
+      if (numOfState + 1 >= firstAbstractedState) {
+        // Abstraction should only succeed for states with a list long enough
         assertThat(resultState == stateToAbstract).isFalse();
         assertThat(stateToAbstract.getMemoryModel().getSmg().getNumberOfAbstractedLists())
             .isEqualTo(0);
@@ -429,8 +445,6 @@ public class SMGMergeTest extends SMGCPATest0 {
               .isNotInstanceOf(SMGDoublyLinkedListSegment.class);
         }
 
-        foundAbstractedState = true;
-
       } else {
         assertThat(resultState == stateToAbstract).isTrue();
         assertThat(stateToAbstract.getMemoryModel().getSmg().getNumberOfAbstractedLists())
@@ -438,8 +452,13 @@ public class SMGMergeTest extends SMGCPATest0 {
         assertThat(resultState.getMemoryModel().getSmg().getNumberOfAbstractedLists()).isEqualTo(0);
       }
     }
-    assertThat(foundAbstractedState).isTrue();
+
     List<SMGState> statesToTestWithAbstraction = statesToTestWithAbstractionBuilder.build();
+    assertThat(
+            statesToTestWithAbstraction.stream()
+                .filter(s -> s.getMemoryModel().getSmg().getNumberOfAbstractedLists() > 0)
+                .count())
+        .isAtLeast(2);
     return statesToTestWithAbstraction;
   }
 
@@ -519,20 +538,23 @@ public class SMGMergeTest extends SMGCPATest0 {
   /** Generates lists of length 1 to "min abstraction + 1" of the spec given. */
   private List<SMGState> generateListsFromSpec(
       BiFunction<Integer, Map<String, Integer>, ListSpec> spec,
-      Map<String, Integer> variableAndPointerLocationInList)
+      Map<String, Integer> variableAndPointerLocationInList,
+      boolean listHasTwoStackPointers)
       throws CPATransferException {
+    int maxConcreteElements = smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1;
+    if (listHasTwoStackPointers) {
+      maxConcreteElements++;
+    }
     ImmutableList.Builder<SMGState> statesToTestBuilder = ImmutableList.builder();
 
     // Generate concrete lists of length 1 to abstraction minimum + 1
-    for (int listLength = 1;
-        listLength <= smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1;
-        listLength++) {
+    for (int listLength = 1; listLength <= maxConcreteElements; listLength++) {
       statesToTestBuilder.add(
           buildConcreteListWith(spec.apply(listLength, variableAndPointerLocationInList)));
     }
 
     List<SMGState> statesToTest = statesToTestBuilder.build();
-    assertThat(statesToTest).hasSize(smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1);
+    assertThat(statesToTest).hasSize(maxConcreteElements);
     return statesToTest;
   }
 
