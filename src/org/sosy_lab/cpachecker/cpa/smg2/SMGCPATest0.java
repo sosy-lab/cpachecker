@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
@@ -64,6 +65,8 @@ public class SMGCPATest0 {
   protected SMGState currentState;
   protected SMGCPAMaterializer materializer;
   protected SMGOptions smgOptions;
+  protected PrecAdjustmentOptions smgPrecOptions;
+  protected static SMGMergeOperator mergeOp;
 
   protected SMGCPAExpressionEvaluator evaluator;
 
@@ -81,7 +84,7 @@ public class SMGCPATest0 {
   // Some tasks define their own list length, as e.g. nested lists get quite expensive fast
   protected static final int TEST_LIST_LENGTH = 50;
 
-  protected CFAEdge dummyCDAEdge =
+  protected CFAEdge dummyCFAEdge =
       new DummyCFAEdge(CFANode.newDummyCFANode(), CFANode.newDummyCFANode());
 
   // The visitor should always use the currentState!
@@ -113,6 +116,8 @@ public class SMGCPATest0 {
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
     currentState = currentState.copyAndAddDummyStackFrame();
+    smgPrecOptions = new PrecAdjustmentOptions(Configuration.defaultConfiguration(), null);
+    mergeOp = new SMGMergeOperator(new SMGCPAStatistics());
   }
 
   public SMGState getFreshState() {
@@ -222,7 +227,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(0),
             CPointerType.POINTER_TO_VOID,
-            dummyCDAEdge);
+            dummyCFAEdge);
 
     // Pointer to the next list segment
     currentState =
@@ -232,7 +237,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             listPtrs[0],
             CPointerType.POINTER_TO_VOID,
-            dummyCDAEdge);
+            dummyCFAEdge);
     if (dll) {
       currentState =
           currentState.writeValueWithChecks(
@@ -241,7 +246,7 @@ public class SMGCPATest0 {
               numericPointerSizeInBits,
               new NumericValue(0),
               CPointerType.POINTER_TO_VOID,
-              dummyCDAEdge);
+              dummyCFAEdge);
       List<SMGStateAndOptionalSMGObjectAndOffset> derefedFirstAbstrListElem =
           currentState.dereferencePointer(listPtrs[0]);
       ValueAndSMGState ptrToFirstNotAbstrAndState =
@@ -256,7 +261,7 @@ public class SMGCPATest0 {
               numericPointerSizeInBits,
               ptrToFirstNotAbstr,
               CPointerType.POINTER_TO_VOID,
-              dummyCDAEdge);
+              dummyCFAEdge);
     }
 
     SMGObject listSegmentBack = SMGObject.of(0, segmentSize, BigInteger.ZERO);
@@ -268,7 +273,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(0),
             CPointerType.POINTER_TO_VOID,
-            dummyCDAEdge);
+            dummyCFAEdge);
     currentState =
         currentState.writeValueWithChecks(
             listSegmentBack,
@@ -276,7 +281,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(0),
             CPointerType.POINTER_TO_VOID,
-            dummyCDAEdge);
+            dummyCFAEdge);
     if (dll) {
       currentState =
           currentState.writeValueWithChecks(
@@ -285,7 +290,7 @@ public class SMGCPATest0 {
               numericPointerSizeInBits,
               listPtrs[listLength - 3],
               CPointerType.POINTER_TO_VOID,
-              dummyCDAEdge);
+              dummyCFAEdge);
     }
 
     // Pointer from the last to be abstracted list to the last
@@ -304,7 +309,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             ptrToLastAndState.getValue(),
             CPointerType.POINTER_TO_VOID,
-            dummyCDAEdge);
+            dummyCFAEdge);
 
     return ImmutableList.<Value>builder()
         .add(ptrToFrontAndState.getValue())
@@ -337,7 +342,7 @@ public class SMGCPATest0 {
                 new NumericValue(pointerSizeInBits),
                 new NumericValue(j),
                 CNumericTypes.INT,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
 
       // Pointer to the next list segment (from the prev to this, except for the last)
@@ -350,7 +355,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 nextPointer,
                 CPointerType.POINTER_TO_VOID,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
       if (prevObject != null) {
         ValueAndSMGState pointerAndState =
@@ -364,7 +369,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 pointerAndState.getValue(),
                 CPointerType.POINTER_TO_VOID,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
 
       if (dll) {
@@ -386,7 +391,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 prevPointer,
                 CPointerType.POINTER_TO_VOID,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
       if (i == 0 || i == listLength - 1) {
         // Pointer to the list segment
@@ -410,7 +415,7 @@ public class SMGCPATest0 {
                   new NumericValue(pointerSizeInBits),
                   pointerAndState.getValue(),
                   CPointerType.POINTER_TO_VOID,
-                  dummyCDAEdge);
+                  dummyCFAEdge);
         } catch (CPATransferException e) {
           if (e instanceof SMGException) {
             throw (SMGException) e;
@@ -438,7 +443,7 @@ public class SMGCPATest0 {
                   numericPointerSizeInBits,
                   pointerAndState.getValue(),
                   CPointerType.POINTER_TO_VOID,
-                  dummyCDAEdge);
+                  dummyCFAEdge);
         } catch (CPATransferException e) {
           if (e instanceof SMGException) {
             throw (SMGException) e;
@@ -527,7 +532,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 new NumericValue(valueStart + j),
                 CNumericTypes.INT,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
 
       // Pointer to the next list segment (from the prev to this, except for the last)
@@ -540,7 +545,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 nextPointer,
                 CPointerType.POINTER_TO_VOID,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
       if (prevObject != null) {
         ValueAndSMGState pointerAndState =
@@ -554,7 +559,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 pointerAndState.getValue(),
                 CPointerType.POINTER_TO_VOID,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
 
       if (dll) {
@@ -576,7 +581,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 prevPointer,
                 CPointerType.POINTER_TO_VOID,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
       // Pointer to the list segment
       ValueAndSMGState pointerAndState =
@@ -605,7 +610,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 pointer,
                 CPointerType.POINTER_TO_VOID,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
     }
     if (valueStart == 0) {
@@ -705,7 +710,7 @@ public class SMGCPATest0 {
               new NumericValue(BigInteger.valueOf(sizeOfElements)),
               valuesInOrder[i],
               CNumericTypes.INT,
-              dummyCDAEdge);
+              dummyCFAEdge);
     }
 
     return array;
