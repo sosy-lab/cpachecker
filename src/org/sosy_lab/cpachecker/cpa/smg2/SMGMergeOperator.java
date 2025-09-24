@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.EQUAL;
-import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.LEFT_ENTAIL;
-
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -32,24 +29,54 @@ public class SMGMergeOperator implements MergeOperator {
     totalMergeTimer = statistics.getMergeTime();
   }
 
+  // If the returned state is not equal to the second input state (the state from the reached-set),
+  // then the input state from the reached set is removed from the reached-set (and waitlist) and
+  // the new state returned from this method is put into the reached-set (and waitlist).
+  // Independently, the new successor state is put into the stop operator after all merges have
+  // concluded. As a consequence, a newly merged state is checked against the new successor in STOP,
+  // so we retain the merge info to speed the stop operator up.
   @Override
   public AbstractState merge(
-      AbstractState newState, AbstractState stateFromReached, Precision precision)
+      AbstractState newSuccessorState, AbstractState stateFromReached, Precision precision)
       throws CPAException, InterruptedException {
 
-    SMGState newSMGState = (SMGState) newState;
+    SMGState newSMGState = (SMGState) newSuccessorState;
     SMGState smgStateFromReached = (SMGState) stateFromReached;
 
+    Optional<MergedSMGStateAndMergeStatus> mergeResult = merge(newSMGState, smgStateFromReached);
+    if (mergeResult.isPresent()) {
+      return mergeResult.orElseThrow().getMergedSMGState();
+    }
+
+    return smgStateFromReached;
+  }
+
+  /**
+   * If merge fails, returns empty. Else, returns the merged state and the merge status. Only for
+   * tests.
+   */
+  public Optional<MergedSMGStateAndMergeStatus> mergeForTests(
+      SMGState newState, SMGState stateFromReached) throws CPAException {
+
+    return merge(newState, stateFromReached);
+  }
+
+  private Optional<MergedSMGStateAndMergeStatus> merge(
+      SMGState newSMGState, SMGState smgStateFromReached) throws CPAException {
+
+    // We only check at block ends, as this is where abstractions are performed.
     if (!newSMGState.mergeAtBlockEnd()
         || (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd())) {
 
-      // A merge w/o nested lists is expensive but most of the time not needed
+      // A merge w/o nested lists can be expensive, but most of the time not needed.
+      // TODO: allow with option, as it can havoc non-equal values and allows for a broader, but
+      // less precise abstraction.
       Set<SMGSinglyLinkedListSegment> abstrObjs1 =
           newSMGState.getMemoryModel().getSmg().getAllValidAbstractedObjects();
       Set<SMGSinglyLinkedListSegment> abstrObjs2 =
           smgStateFromReached.getMemoryModel().getSmg().getAllValidAbstractedObjects();
       if (abstrObjs1.isEmpty() && abstrObjs2.isEmpty()) {
-        return smgStateFromReached;
+        return Optional.empty();
       }
 
       totalMergeTimer.start();
@@ -65,33 +92,19 @@ public class SMGMergeOperator implements MergeOperator {
         MergedSMGStateAndMergeStatus mergedStateAndStatus = maybeMergedStateAndStatus.orElseThrow();
         SMGMergeStatus mergeStatus = mergedStateAndStatus.getMergeStatus();
 
-        // right-entails shows that smgStateFromReached < newState
-        // left-entails shows that newState < smgStateFromReached
-        if (mergeStatus == EQUAL) {
-          // Don't merge equal states, as they are subsumed with the stop-operator
-          assert newSMGState.isLessOrEqual(smgStateFromReached);
-          newSMGState.addLessOrEqualState(smgStateFromReached);
-          smgStateFromReached.addLessOrEqualState(newSMGState);
-          return smgStateFromReached;
-        } else if (mergeStatus == LEFT_ENTAIL) {
-          // Don't merge left-entail states, as they are subsumed with the stop-operator
-          assert newSMGState.isLessOrEqual(smgStateFromReached);
-          newSMGState.addLessOrEqualState(smgStateFromReached);
-          return smgStateFromReached;
-        }
-
-        // Retain block-end status
         SMGState mergedState = mergedStateAndStatus.getMergedSMGState();
+        // Retain merge status to reason about in stop operator
+        mergedState = mergedState.asResultOfMerge(newSMGState, smgStateFromReached, mergeStatus);
+        // Retain block-end status
         if (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd()) {
           mergedState = mergedState.withBlockEnd(newSMGState.getBlockEnd());
         }
 
-        newSMGState.addLessOrEqualState(mergedState);
-        smgStateFromReached.addLessOrEqualState(mergedState);
-        return mergedState;
+        // The merged state is strictly equally or more abstract than the input states.
+        return Optional.of(MergedSMGStateAndMergeStatus.of(mergedState, mergeStatus));
       }
     }
 
-    return smgStateFromReached;
+    return Optional.empty();
   }
 }
