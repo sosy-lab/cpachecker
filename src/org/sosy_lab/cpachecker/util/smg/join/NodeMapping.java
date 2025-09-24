@@ -253,13 +253,10 @@ public class NodeMapping {
     checkNotNull(v2);
     Map<SMGTargetSpecifier, SMGValue> innerMap1 = mapping1.getValueMap().get(v1);
     Map<SMGTargetSpecifier, SMGValue> innerMap2 = mapping2.getValueMap().get(v2);
-    if (innerMap1.equals(innerMap2)) {
-      if (innerMap1.size() > 1) {
-        return true;
-      }
-      return true;
-    } else if (innerMap1 == null || innerMap2 == null) {
+    if (innerMap1 == null || innerMap2 == null) {
       return false;
+    } else if (innerMap1.equals(innerMap2)) {
+      return true;
     } else {
       boolean strictMatch =
           innerMap1.entrySet().stream()
