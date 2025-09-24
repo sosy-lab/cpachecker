@@ -558,11 +558,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /** This method is an exact copy of {@link IMCAlgorithm#unrollProgram} */
   private void unrollProgram(ReachedSet pReachedSet) throws InterruptedException, CPAException {
-    stats.bmcPreparation.start();
+    stats.bmcUnrolling.start();
     try {
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
     } finally {
-      stats.bmcPreparation.stop();
+      stats.bmcUnrolling.stop();
     }
   }
 

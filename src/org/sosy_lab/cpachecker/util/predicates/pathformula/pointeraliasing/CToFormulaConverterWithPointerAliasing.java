@@ -532,7 +532,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           newRegion = regionMgr.makeMemoryRegion(baseType);
         }
         constraints.addConstraint(
-            fmgr.makeEqual(
+            fmgr.assignment(
                 makeSafeDereference(baseType, address, ssa, newRegion),
                 makeVariable(baseName, baseType, ssa)));
       }

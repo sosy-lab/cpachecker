@@ -50,7 +50,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="33.4.8-jre"
+        <dependency org="com.google.guava" name="guava" rev="33.5.0-jre"
                     conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.10"
@@ -123,11 +123,11 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="1.4.4"
+        <dependency org="com.google.truth" name="truth" rev="1.4.5"
                     conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="33.4.8-jre"
+        <dependency org="com.google.guava" name="guava-testlib" rev="33.5.0-jre"
                     conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
@@ -156,9 +156,9 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.28.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
-        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.9.4" conf="spotbugs->default"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.9.6" conf="spotbugs->default"/>
         <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
-        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.9.4" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.9.6" conf="runtime->default; contrib->sources"/>
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
