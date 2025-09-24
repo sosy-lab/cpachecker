@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.util.smg.join;
 /** The join of two SMG returns a status flag. */
 public enum SMGMergeStatus {
   EQUAL("≃"),
+  /** The left state is entailed (contained) in the right state, e.g. 3+ ⊏ 2+. */
   LEFT_ENTAIL("⊏"),
+  /** The right state is entailed (contained) in the left state, e.g. 2+ ⊐ 3+. */
   RIGHT_ENTAIL("⊐"),
   INCOMPARABLE("⋈");
 
