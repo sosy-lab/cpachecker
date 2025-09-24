@@ -935,7 +935,7 @@ public class InstrumentationAutomaton {
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey())
                         .collect(Collectors.joining(";"))
-                    + "}"),
+                    + ";}"),
             InstrumentationOrder.BEFORE,
             q4);
     InstrumentationTransition t4 =
