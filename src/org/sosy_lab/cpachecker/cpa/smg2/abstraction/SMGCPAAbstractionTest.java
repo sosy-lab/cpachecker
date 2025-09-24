@@ -5316,7 +5316,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               numericPointerSizeInBits,
               topListPtr,
               null,
-              dummyCDAEdge);
+              dummyCFAEdge);
 
       for (int all = 0; all < listLength + 2; all++) {
         // put in abstractable nested in all
@@ -7164,7 +7164,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(1),
             CNumericTypes.INT,
-            dummyCDAEdge);
+            dummyCFAEdge);
     currentState =
         currentState.writeValueWithChecks(
             currentAbstraction,
@@ -7172,7 +7172,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(0),
             CPointerType.POINTER_TO_VOID,
-            dummyCDAEdge);
+            dummyCFAEdge);
     currentState =
         currentState.writeValueWithChecks(
             currentAbstraction,
@@ -7180,7 +7180,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(0),
             CPointerType.POINTER_TO_VOID,
-            dummyCDAEdge);
+            dummyCFAEdge);
     // Pointer to the abstracted list
     Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
     currentState =
@@ -7335,7 +7335,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(1),
             CNumericTypes.INT,
-            dummyCDAEdge);
+            dummyCFAEdge);
     currentState =
         currentState.writeValueWithChecks(
             currentAbstraction,
@@ -7343,7 +7343,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(0),
             CNumericTypes.INT,
-            dummyCDAEdge);
+            dummyCFAEdge);
     // First pointer to the abstracted list
     Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
     currentState =
