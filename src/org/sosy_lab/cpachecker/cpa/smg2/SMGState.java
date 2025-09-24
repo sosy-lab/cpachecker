@@ -1499,9 +1499,7 @@ public class SMGState
       return true;
     }
 
-    if (mergeInfo.isPresent()) {
-      throw new AssertionError("Error: A successor state can not be the result of a merge.");
-    }
+    checkArgument(mergeInfo.isEmpty(), "A successor state can not be the result of a merge");
 
     if (pOther.mergeInfo.isPresent()) {
       // Try to apply info from merge first
@@ -1513,8 +1511,9 @@ public class SMGState
           "Checking stop with an state that should have been removed from the reached-set. This"
               + " should never happen.");
       if (this == otherMergedLeftState) {
-        logger.log(
-            Level.WARNING, "stop operator stops based on merge with %s", otherUnpackedMergeInfo);
+        // Note about incomparable status: this does not mean that the merged state does not subsume
+        // the input states, just that the input states had both asymmetrical abstractions that were
+        // unified.
         return true;
       }
     }
