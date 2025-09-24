@@ -45,6 +45,7 @@ public class StatesMergedAndMergeStatus {
     return stateFromReached;
   }
 
+  @SuppressWarnings("unused")
   public SMGMergeStatus getMergeStatus() {
     return status;
   }
