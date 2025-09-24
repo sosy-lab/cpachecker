@@ -7713,6 +7713,23 @@ public class SMGState
     return mergeInfo.isPresent();
   }
 
+  /** For tests only, so that lessOrEquals can be tested on more states. */
+  protected SMGState removeResultOfMerge() {
+    return new SMGState(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        errorInfo,
+        materializer,
+        lastCheckedMemoryAccess,
+        constraintsState,
+        evaluator,
+        statistics,
+        blockEnd,
+        Optional.empty());
+  }
+
   // TODO: To be replaced with a better structure, i.e. union-find
   // This is mutable on purpose!
   public static class EqualityCache<V> {
