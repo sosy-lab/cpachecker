@@ -64,35 +64,63 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     SSAMap ssaMap =
         TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 2, fmgr, scope);
 
-    // T(s,s')
+    // T(s,s') ∧ I(s) ∧ I(s')
     BooleanFormula oneStep = fmgr.instantiate(pFormula, ssaMap);
+    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+      ssaMap =
+          TransitionInvariantUtils.setIndicesToDifferentValues(
+              supportingInvariant, 1, 2, fmgr, scope);
+      oneStep = bfmgr.and(oneStep, fmgr.instantiate(supportingInvariant, ssaMap));
+      ssaMap =
+          TransitionInvariantUtils.setIndicesToDifferentValues(
+              supportingInvariant, 1, 6, fmgr, scope);
+      oneStep = bfmgr.and(oneStep, fmgr.instantiate(supportingInvariant, ssaMap));
 
-    // T(s,s1), ¬T(s',s1)
+      oneStep =
+          bfmgr.and(
+              TransitionInvariantUtils.makeStatesEquivalent(oneStep, oneStep, 1, 6, bfmgr, fmgr),
+              oneStep);
+    }
+
+    // T(s,s1) ∧ I(s1), ¬T(s',s1)
     SSAMap ssaMapForS =
         TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 3, fmgr, scope);
     BooleanFormula stepFromS = fmgr.instantiate(pFormula, ssaMapForS);
+    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+      ssaMap =
+          TransitionInvariantUtils.setIndicesToDifferentValues(
+              supportingInvariant, 1, 3, fmgr, scope);
+      stepFromS = bfmgr.and(stepFromS, fmgr.instantiate(supportingInvariant, ssaMap));
+    }
     SSAMap ssaMapForSPrime =
         TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 4, 3, fmgr, scope);
     BooleanFormula stepFromSPrime = fmgr.instantiate(pFormula, ssaMapForSPrime);
     stepFromSPrime = fmgr.makeNot(stepFromSPrime);
 
-    // ∃s1. T(s,s1) ∧ ¬T(s',s1)
+    // ∃s1. T(s,s1) ∧ ¬T(s',s1) ∧ I(s1)
     BooleanFormula middleStep = fmgr.makeAnd(stepFromS, stepFromSPrime);
     middleStep = qfmgr.exists(collectAllCurrVariables(stepFromS), middleStep);
 
-    // T(s,s2), T(s',s2)
+    // T(s,s2), T(s',s2) ∧ I(s2)
     SSAMap ssaMapForS2 =
         TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 5, fmgr, scope);
     BooleanFormula stepFromS2 = fmgr.instantiate(pFormula, ssaMapForS2);
     SSAMap ssaMapForSPrime2 =
         TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 4, 5, fmgr, scope);
     BooleanFormula stepFromSPrime2 = fmgr.instantiate(pFormula, ssaMapForSPrime2);
+    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+      ssaMap =
+          TransitionInvariantUtils.setIndicesToDifferentValues(
+              supportingInvariant, 1, 5, fmgr, scope);
+      stepFromSPrime2 = bfmgr.and(stepFromSPrime2, fmgr.instantiate(supportingInvariant, ssaMap));
+    }
 
-    // ∀s2.T(s',s2) => T(s,s2)
+    // ∀s2.T(s',s2) ∧ I(s2) => T(s,s2)
     BooleanFormula middleStep2 = bfmgr.implication(stepFromSPrime2, stepFromS2);
-    middleStep2 = qfmgr.forall(collectAllCurrVariables(stepFromS2), middleStep2);
+    middleStep2 = qfmgr.forall(collectAllCurrVariables(stepFromSPrime2), middleStep2);
 
-    // T(s,s') => [∃s1.T(s,s1) ∧ ¬T(s',s1)] ∧ [∀s2.T(s',s2) => T(s,s2)]
+    // T(s,s') ∧ I(s) ∧ I(s') => [∃s1.T(s,s1) ∧ I(s1) ∧ ¬T(s',s1)] ∧ [∀s2.T(s',s2) ∧ I(s1) =>
+    // T(s,s2)]
     BooleanFormula conclusion = bfmgr.and(middleStep, middleStep2);
     oneStep =
         bfmgr.and(
