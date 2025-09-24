@@ -1493,6 +1493,10 @@ public class SMGState
   // "this" state.
   @Override
   public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
+    if (this == pOther) {
+      return true;
+    }
+
     if (mergeInfo.isPresent()) {
       throw new AssertionError("Error: A successor state can not be the result of a merge.");
     }
