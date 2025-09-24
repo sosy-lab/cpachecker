@@ -75,6 +75,12 @@ public class SMGMergeOperator implements MergeOperator {
         || (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd())
         || ignoreBlockEnds) {
 
+      // TODO: add option for strict and not so strict interpretation of this!
+      if (!ignoreBlockEnds
+          && !newSMGState.getBlockEnd().equals(smgStateFromReached.getBlockEnd())) {
+        return Optional.empty();
+      }
+
       // A merge w/o nested lists can be expensive, but most of the time not needed.
       // TODO: allow with option, as it can havoc non-equal values and allows for a broader, but
       // less precise abstraction.
