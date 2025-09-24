@@ -231,7 +231,7 @@ public class SMGState
     mergeInfo = Optional.empty();
   }
 
-  /** Only to be used for merge info addition! * */
+  /** Only to be used for merge info and block end addition! */
   private SMGState(
       MachineModel pMachineModel,
       SymbolicProgramConfiguration spc,
@@ -244,7 +244,7 @@ public class SMGState
       SMGCPAExpressionEvaluator pEvaluator,
       SMGCPAStatistics pStatistics,
       Optional<CFANode> pBlockEnd,
-      StatesMergedAndMergeStatus pMergeInfo) {
+      Optional<StatesMergedAndMergeStatus> pMergeInfo) {
     memoryModel = spc;
     machineModel = pMachineModel;
     logger = logManager;
@@ -256,7 +256,7 @@ public class SMGState
     constraintsState = pConstraintsState;
     statistics = pStatistics;
     blockEnd = pBlockEnd;
-    mergeInfo = Optional.of(pMergeInfo);
+    mergeInfo = pMergeInfo;
   }
 
   private SMGState(
@@ -284,6 +284,7 @@ public class SMGState
     mergeInfo = Optional.empty();
   }
 
+  /** Retains merge info! */
   public SMGState withBlockEnd(CFANode loc) {
     return new SMGState(
         machineModel,
@@ -296,7 +297,8 @@ public class SMGState
         constraintsState,
         evaluator,
         statistics,
-        loc);
+        Optional.of(loc),
+        mergeInfo);
   }
 
   private SMGState copyWithAddedConstraints(ImmutableList<Constraint> pConstraints) {
@@ -1511,7 +1513,8 @@ public class SMGState
           "Checking stop with an state that should have been removed from the reached-set. This"
               + " should never happen.");
       if (this == otherMergedLeftState) {
-        logger.log(Level.INFO, "stop operator stops based on merge with ", otherUnpackedMergeInfo);
+        logger.log(
+            Level.WARNING, "stop operator stops based on merge with %s", otherUnpackedMergeInfo);
         return true;
       }
     }
@@ -7699,12 +7702,13 @@ public class SMGState
         evaluator,
         statistics,
         blockEnd,
-        StatesMergedAndMergeStatus.of(pNewSMGState, pSmgStateFromReached, pMergeStatus));
+        Optional.of(
+            StatesMergedAndMergeStatus.of(pNewSMGState, pSmgStateFromReached, pMergeStatus)));
   }
 
   /**
    * True only if the state is the direct result of a merge. Any modification after merging makes
-   * the state lose this!
+   * the state lose this except for block end changes!
    */
   protected boolean isResultOfMerge() {
     return mergeInfo.isPresent();

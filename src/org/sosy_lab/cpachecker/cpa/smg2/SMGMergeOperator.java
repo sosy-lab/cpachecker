@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Optional;
 import java.util.Set;
@@ -104,9 +105,11 @@ public class SMGMergeOperator implements MergeOperator {
             !smgStateFromReached.isResultOfMerge()); // Might happen, extend merge info if it does!
         mergedState = mergedState.asResultOfMerge(newSMGState, smgStateFromReached, mergeStatus);
         // Retain block-end status
-        if (newSMGState.createdAtBlockEnd() && smgStateFromReached.createdAtBlockEnd()) {
-          mergedState = mergedState.withBlockEnd(newSMGState.getBlockEnd());
+        if (smgStateFromReached.createdAtBlockEnd()) {
+          mergedState = mergedState.withBlockEnd(smgStateFromReached.getBlockEnd());
         }
+        checkState(mergedState.isResultOfMerge());
+        checkState(mergedState.getBlockEnd() == smgStateFromReached.getBlockEnd());
 
         // The merged state is strictly equally or more abstract than the input states.
         return Optional.of(MergedSMGStateAndMergeStatus.of(mergedState, mergeStatus));
