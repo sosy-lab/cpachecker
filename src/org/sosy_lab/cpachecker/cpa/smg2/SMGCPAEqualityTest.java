@@ -1163,7 +1163,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
               new NumericValue(pointerSizeInBits),
               new NumericValue(-1),
               CNumericTypes.INT,
-              dummyCDAEdge);
+              dummyCFAEdge);
 
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(currentState, listLength - 1, new SMGCPAStatistics());
