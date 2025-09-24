@@ -12,9 +12,9 @@ package org.sosy_lab.cpachecker.util.smg.join;
 public enum SMGMergeStatus {
   EQUAL("≃"),
   /** The left state is entailed (contained) in the right state, e.g. 3+ ⊏ 2+. */
-  LEFT_ENTAIL("⊏"),
+  LEFT_ENTAILED_IN_RIGHT("⊏"),
   /** The right state is entailed (contained) in the left state, e.g. 2+ ⊐ 3+. */
-  RIGHT_ENTAIL("⊐"),
+  RIGHT_ENTAILED_IN_LEFT("⊐"),
   INCOMPARABLE("⋈");
 
   private final String symbol;
