@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGMergeOperator;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMGCandidate;
@@ -245,7 +244,6 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
             .get(0);
 
     // Now merge
-    SMGMergeOperator mergeOp = new SMGMergeOperator(new SMGCPAStatistics());
     stateLeft = stateLeft.withBlockEnd(CFANode.newDummyCFANode());
     stateRight = stateRight.withBlockEnd(CFANode.newDummyCFANode());
     SMGState mergedState = (SMGState) mergeOp.merge(stateLeft, stateRight, null);
