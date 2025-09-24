@@ -101,8 +101,6 @@ public class SMGMergeOperator implements MergeOperator {
 
         SMGState mergedState = mergedStateAndStatus.getMergedSMGState();
         // Retain merge status to reason about in stop operator
-        checkArgument(
-            !smgStateFromReached.isResultOfMerge()); // Might happen, extend merge info if it does!
         mergedState = mergedState.asResultOfMerge(newSMGState, smgStateFromReached, mergeStatus);
         // Retain block-end status
         if (smgStateFromReached.createdAtBlockEnd()) {
