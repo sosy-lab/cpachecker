@@ -782,11 +782,11 @@ public class SymbolicProgramConfiguration {
 
       // If level(v1) - level(v2) < nestingLevel, update join status with ⊏
       if (v1NestingLvl - v2NestingLvl < nestingDiff) {
-        status = status.updateWith(SMGMergeStatus.LEFT_ENTAIL);
+        status = status.updateWith(SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT);
       }
       // If level(v1) - level(v2) > nestingLevel, update join status with ⊐
       if (v1NestingLvl - v2NestingLvl > nestingDiff) {
-        status = status.updateWith(SMGMergeStatus.RIGHT_ENTAIL);
+        status = status.updateWith(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
       }
       // Return with new value equal v (the paper says v1, but that's clearly wrong!)
       return Optional.of(
@@ -899,7 +899,7 @@ public class SymbolicProgramConfiguration {
       if (res.isEmpty()) {
         return Optional.empty();
       } else if (res.orElseThrow().isRecoverableFailure()) {
-
+        // return Optional.empty();
         throw new RuntimeException("investigate merge error for list extensions");
         /*
         // min len > 0 is a conservative assumption to not endlessly unroll.
@@ -971,6 +971,7 @@ public class SymbolicProgramConfiguration {
       } else if (res.orElseThrow().isRecoverableFailure()) {
         // Either delayed merge or suddenly we want to extend the other side?
         // Or the extension failed here, and has to be done earlier.
+        // return Optional.empty();
         throw new RuntimeException("investigate merge error for list extensions");
       }
     }
@@ -1123,28 +1124,28 @@ public class SymbolicProgramConfiguration {
         && obj2 instanceof SMGSinglyLinkedListSegment sll2
         && sll1.getMinLength() < sll2.getMinLength())) {
       //    let s := updateJoinStatus(s, ⊐).
-      status = status.updateWith(SMGMergeStatus.RIGHT_ENTAIL);
+      status = status.updateWith(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
     }
     if ((obj1 instanceof SMGSinglyLinkedListSegment
             && !(obj2 instanceof SMGSinglyLinkedListSegment))
         || (obj1 instanceof SMGDoublyLinkedListSegment
             && !(obj2 instanceof SMGDoublyLinkedListSegment))) {
       //    let s := updateJoinStatus(s, ⊐).
-      status = status.updateWith(SMGMergeStatus.RIGHT_ENTAIL);
+      status = status.updateWith(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
     }
     // 10. If len'1(o1) > len'2(o2) or kind1(o1) = reg ∧ kind2 (o2) = dls,
     if ((obj1 instanceof SMGSinglyLinkedListSegment sll1
         && obj2 instanceof SMGSinglyLinkedListSegment sll2
         && sll1.getMinLength() > sll2.getMinLength())) {
       //      let s := updateJoinStatus(s, ⊏).
-      status = status.updateWith(SMGMergeStatus.LEFT_ENTAIL);
+      status = status.updateWith(SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT);
     }
     if ((obj2 instanceof SMGSinglyLinkedListSegment
             && !(obj1 instanceof SMGSinglyLinkedListSegment))
         || (obj2 instanceof SMGDoublyLinkedListSegment
             && !(obj1 instanceof SMGDoublyLinkedListSegment))) {
       //      let s := updateJoinStatus(s, ⊏).
-      status = status.updateWith(SMGMergeStatus.LEFT_ENTAIL);
+      status = status.updateWith(SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT);
     }
     // 11. Return s.
     return Optional.of(SMGMergeStatusOrRecoverableFailure.of(status));
@@ -1303,7 +1304,7 @@ public class SymbolicProgramConfiguration {
     }
     // 6. Update status with: If length of d1 == 0 -> ⊐, else incomparable
     if (sll1.getMinLength() == 0) {
-      status = status.updateWith(SMGMergeStatus.RIGHT_ENTAIL);
+      status = status.updateWith(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
     } else {
       status = status.updateWith(SMGMergeStatus.INCOMPARABLE);
     }
@@ -1551,7 +1552,7 @@ public class SymbolicProgramConfiguration {
     }
     // 6. Update status with: If length of d2 == 0 -> ⊐, else incomparable
     if (sll2.getMinLength() == 0) {
-      status = status.updateWith(SMGMergeStatus.LEFT_ENTAIL);
+      status = status.updateWith(SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT);
     } else {
       status = status.updateWith(SMGMergeStatus.INCOMPARABLE);
     }
@@ -2339,11 +2340,11 @@ public class SymbolicProgramConfiguration {
     //      If a 0 edge in the original obj1 is shrunk or no longer present, ⊏
     status =
         checkZeroEdgesAndUpdateStatus(
-            updatedSPC1, offsetsToZero1, obj1, status, SMGMergeStatus.LEFT_ENTAIL);
+            updatedSPC1, offsetsToZero1, obj1, status, SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT);
     //      If a 0 edge in the original obj2 is shrunk or no longer present, ⊐
     status =
         checkZeroEdgesAndUpdateStatus(
-            updatedSPC2, offsetsToZero2, obj2, status, SMGMergeStatus.RIGHT_ENTAIL);
+            updatedSPC2, offsetsToZero2, obj2, status, SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
 
     // 5. Add values present in ones SMGs object in the other as far as possible
     // TODO: this merging of values could be a Symbolic Expression of (0 OR other value)

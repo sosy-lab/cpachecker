@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.EQUAL;
-import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.LEFT_ENTAIL;
+import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Equivalence.Wrapper;
@@ -2383,7 +2383,8 @@ public class SMGState
       }
       return mergeRes.isPresent()
           && (mergeRes.orElseThrow().getMergeStatus() == EQUAL
-              || (!trueEqualityCheck && mergeRes.orElseThrow().getMergeStatus() == LEFT_ENTAIL));
+              || (!trueEqualityCheck
+                  && mergeRes.orElseThrow().getMergeStatus() == LEFT_ENTAILED_IN_RIGHT));
     }
   }
 
