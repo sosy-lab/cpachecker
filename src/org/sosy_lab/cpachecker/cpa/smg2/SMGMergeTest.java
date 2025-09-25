@@ -313,14 +313,15 @@ public class SMGMergeTest extends SMGCPATest0 {
       if (smallestAbstractedState != abstractedState) {
         // They should also be mergeable with the previously merged state.
         Optional<MergedSMGStateAndMergeStatus> mergeResult =
-            mergeOp.mergeForTests(smallestAbstractedState, stateToMerge);
+            mergeOp.mergeForTests(smallestAbstractedState.removeResultOfMerge(), stateToMerge);
 
         assertThat(mergeResult).isPresent();
         assertThat(mergeResult.orElseThrow().getMergeStatus())
             .isEqualTo(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
         assertThat(
-                smallestAbstractedState.isLessOrEqual(
-                    mergeResult.orElseThrow().getMergedSMGState()))
+                smallestAbstractedState
+                    .removeResultOfMerge()
+                    .isLessOrEqual(mergeResult.orElseThrow().getMergedSMGState()))
             .isTrue();
       }
 
