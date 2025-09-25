@@ -101,7 +101,8 @@ public class LoopInfoUtils {
       // for example, i, calling pCProgramScope.lookupVariable(i) throws an exception.
       // Therefore, retrieving the type of the loop variable i must be handled seperately.
       boolean isForLoop =
-          loop.getIncomingEdges().stream().findAny().orElseThrow().getRawAST().isPresent();
+          loop.getIncomingEdges().stream().findAny().isPresent()
+              && loop.getIncomingEdges().stream().findAny().orElseThrow().getRawAST().isPresent();
       if (isForLoop) {
         AAstNode initializationExpression =
             loop.getIncomingEdges().stream().findAny().orElseThrow().getRawAST().orElseThrow();
