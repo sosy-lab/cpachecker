@@ -157,7 +157,7 @@ public class SeqStringUtil {
   }
 
   /** Returns "pString {" */
-  public static String appendCurlyBracketRight(String pString) {
+  public static String appendCurlyBracketLeft(String pString) {
     return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
   }
 

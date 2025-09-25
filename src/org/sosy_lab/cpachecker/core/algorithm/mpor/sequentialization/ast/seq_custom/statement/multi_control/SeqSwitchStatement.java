@@ -60,7 +60,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<String> switchCase = ImmutableList.builder();
     switchCase.addAll(SeqStringUtil.buildLinesOfCodeFromCAstNodes(precedingStatements));
-    switchCase.add(SeqStringUtil.appendCurlyBracketRight(switchExpression.toASTString()));
+    switchCase.add(SeqStringUtil.appendCurlyBracketLeft(switchExpression.toASTString()));
     switchCase.addAll(buildCases(options, statements));
     switchCase.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return SeqStringUtil.joinWithNewlines(switchCase.build());

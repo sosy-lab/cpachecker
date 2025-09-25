@@ -121,7 +121,7 @@ public class SeqMainFunction extends SeqFunction {
 
     // --- loop starts here ---
     SeqSingleControlExpression loopHead = buildLoopHead(options, binaryExpressionBuilder);
-    rBody.add(SeqStringUtil.appendCurlyBracketRight(loopHead.toASTString()));
+    rBody.add(SeqStringUtil.appendCurlyBracketLeft(loopHead.toASTString()));
 
     if (options.conflictReduction) {
       // add last_thread = next_thread assignment (before setting next_thread)

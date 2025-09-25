@@ -57,7 +57,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
       String controlStatementString = controlExpression.toASTString();
       ifElseChain.add(
           isFirst
-              ? SeqStringUtil.appendCurlyBracketRight(controlStatementString)
+              ? SeqStringUtil.appendCurlyBracketLeft(controlStatementString)
               : SeqStringUtil.wrapInCurlyBracketsOutwards(controlStatementString));
       ifElseChain.add(statement.getValue().toASTString());
       isFirst = false;

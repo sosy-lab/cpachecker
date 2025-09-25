@@ -51,7 +51,7 @@ public class SeqAssumeFunction extends SeqFunction {
   public ImmutableList<String> buildBody() throws UnrecognizedCodeException {
     ImmutableList.Builder<String> rBody = ImmutableList.builder();
     String code =
-        SeqStringUtil.appendCurlyBracketRight(ifCond.toASTString())
+        SeqStringUtil.appendCurlyBracketLeft(ifCond.toASTString())
             + SeqSyntax.SPACE
             + abortCall.toASTString()
             + SeqSyntax.SEMICOLON

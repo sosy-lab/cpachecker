@@ -111,7 +111,7 @@ public class NumStatementsNondeterministicSimulation {
               pGhostElements,
               pBinaryExpressionBuilder);
       SeqIfExpression ifExpression = new SeqIfExpression(ifCondition);
-      rLines.add(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString()));
+      rLines.add(SeqStringUtil.appendCurlyBracketLeft(ifExpression.toASTString()));
 
       if (pOptions.kAssignLazy) {
         // add the K = nondet assignment for this thread
@@ -133,7 +133,7 @@ public class NumStatementsNondeterministicSimulation {
                 pBinaryExpressionBuilder.buildBinaryExpression(
                     SeqIdExpression.I, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
             SeqIfExpression iEqualsZeroExpression = new SeqIfExpression(iEqualsZeroCondition);
-            rLines.add(SeqStringUtil.appendCurlyBracketRight(iEqualsZeroExpression.toASTString()));
+            rLines.add(SeqStringUtil.appendCurlyBracketLeft(iEqualsZeroExpression.toASTString()));
             rLines.add(SeqAssumptionBuilder.buildAssumption(kGreaterZero).toASTString());
             rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
           }
@@ -141,7 +141,7 @@ public class NumStatementsNondeterministicSimulation {
 
         // if (K > 0) ...
         SeqIfExpression lazyIfExpression = new SeqIfExpression(lazyIfCondition);
-        rLines.add(SeqStringUtil.appendCurlyBracketRight(lazyIfExpression.toASTString()));
+        rLines.add(SeqStringUtil.appendCurlyBracketLeft(lazyIfExpression.toASTString()));
       }
 
       // reset iteration only when needed i.e. after if (...) for performance

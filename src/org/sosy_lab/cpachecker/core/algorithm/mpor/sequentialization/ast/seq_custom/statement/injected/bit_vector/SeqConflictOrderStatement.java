@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.statement;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -59,7 +59,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
     // assume(*conflict*) i.e. continue in thread n only if it is not in conflict with last_thread
     String assumeCall = SeqAssumptionBuilder.buildAssumption(lastBitVectorEvaluation.toASTString());
     // add all LOC
-    lines.add(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString()));
+    lines.add(SeqStringUtil.appendCurlyBracketLeft(ifExpression.toASTString()));
     lines.add(assumeCall);
     lines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return SeqStringUtil.joinWithNewlines(lines.build());
