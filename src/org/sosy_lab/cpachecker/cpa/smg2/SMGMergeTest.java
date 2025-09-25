@@ -61,19 +61,6 @@ public class SMGMergeTest extends SMGCPATest0 {
   // Tests merge for SLL with a pointer from a stack variable towards the beginning
   // Tests ALL permutations needed to fully subsume a list.
   @Test
-  public void mergeSLLWithNondetValueAndPointerTowardsBeginning()
-      throws CPAException, InterruptedException {
-    Map<String, Integer> variableAndPointerLocationInList =
-        ImmutableMap.of(TOP_LIST_STACK_VARIABLE_1, 0);
-    BiFunction<Integer, Map<String, Integer>, ListSpec> spec =
-        ListSpec::getSllWithSingleIdenticalNondetIntValueAfterNfo;
-
-    generateListsAndAssertMergeability(false, spec, variableAndPointerLocationInList);
-  }
-
-  // Tests merge for SLL with a pointer from a stack variable towards the beginning
-  // Tests ALL permutations needed to fully subsume a list.
-  @Test
   public void mergeSLLWithZeroValueAndPointerTowardsBeginning()
       throws CPAException, InterruptedException {
     Map<String, Integer> variableAndPointerLocationInList =
@@ -118,6 +105,34 @@ public class SMGMergeTest extends SMGCPATest0 {
     BiFunction<Integer, Map<String, Integer>, ListSpec> spec = ListSpec::getDllWithNoValues;
 
     generateListsAndAssertMergeability(true, spec, variableAndPointerLocationInList);
+  }
+
+  // Tests merge for SLL with each element having an identical nondet value with a pointer from a
+  // stack variable towards the beginning.
+  // Tests ALL permutations needed to fully subsume a list.
+  @Test
+  public void mergeSLLWithIdenticalNondetValuesAndPointerTowardsBeginning()
+      throws CPAException, InterruptedException {
+    Map<String, Integer> variableAndPointerLocationInList =
+        ImmutableMap.of(TOP_LIST_STACK_VARIABLE_1, 0);
+    BiFunction<Integer, Map<String, Integer>, ListSpec> spec =
+        ListSpec::getSllWithSingleIdenticalNondetIntValueBeforeNfoAndPfo;
+
+    generateListsAndAssertMergeability(false, spec, variableAndPointerLocationInList);
+  }
+
+  // Tests merge for SLL with each element having a distinct nondet value with a pointer from a
+  // stack variable towards the beginning.
+  // Tests ALL permutations needed to fully subsume a list.
+  @Test
+  public void mergeSLLWithDistinctNondetValuesAndPointerTowardsBeginning()
+      throws CPAException, InterruptedException {
+    Map<String, Integer> variableAndPointerLocationInList =
+        ImmutableMap.of(TOP_LIST_STACK_VARIABLE_1, 0);
+    BiFunction<Integer, Map<String, Integer>, ListSpec> spec =
+        ListSpec::getSllWithSingleDistinctNondetIntValueBeforeNfoAndPfo;
+
+    generateListsAndAssertMergeability(false, spec, variableAndPointerLocationInList);
   }
 
   // Tests merge for DLL with each element having an identical nondet value with a pointer from a
@@ -271,6 +286,7 @@ public class SMGMergeTest extends SMGCPATest0 {
     // changes the abstraction for singly linked lists (as the last element is not part of the
     // abstraction).
     boolean listHasTwoStackPointers = variableAndPointerLocationInList.size() == 2;
+
     List<SMGState> statesToTest =
         generateListsFromSpec(spec, variableAndPointerLocationInList, listHasTwoStackPointers);
 
@@ -542,6 +558,7 @@ public class SMGMergeTest extends SMGCPATest0 {
       Map<String, Integer> variableAndPointerLocationInList,
       boolean listHasTwoStackPointers)
       throws CPATransferException {
+    SMGState initialState = currentState;
     int maxConcreteElements = smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1;
     if (listHasTwoStackPointers) {
       maxConcreteElements++;
@@ -550,12 +567,30 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     // Generate concrete lists of length 1 to abstraction minimum + 1
     for (int listLength = 1; listLength <= maxConcreteElements; listLength++) {
-      statesToTestBuilder.add(
-          buildConcreteListWith(spec.apply(listLength, variableAndPointerLocationInList)));
+      ListSpec concreteSpec = spec.apply(listLength, variableAndPointerLocationInList);
+
+      if (listLength == 1) {
+        // Make sure that shared values are truly shared between the states!
+        // Values lazily generated for each state anew if not for this, resulting in actual new and
+        // distinct
+        // values when the same value is wanted. So we generate them once in the shared state if
+        // truly
+        // shared and identical values are requested.
+        List<List<Value>> sharedValues = sharedValuesInListSpec;
+        for (List<Value> sharedValuesInAList : sharedValues) {
+          for (Value sharedValue : sharedValuesInAList) {
+            currentState =
+                currentState.copyAndAddValue(sharedValue, CNumericTypes.INT).getSMGState();
+          }
+        }
+      }
+
+      statesToTestBuilder.add(buildConcreteListWith(concreteSpec));
     }
 
     List<SMGState> statesToTest = statesToTestBuilder.build();
     assertThat(statesToTest).hasSize(maxConcreteElements);
+    currentState = initialState;
     return statesToTest;
   }
 
@@ -602,7 +637,17 @@ public class SMGMergeTest extends SMGCPATest0 {
     Optional<BigInteger> maybePrevPtrOffset = listToBuild.getPrevPointerTargetOffset();
     BigInteger sizeOfSegment = listToBuild.getSizeOfSegment();
     boolean dll = listToBuild.isDll();
+
+    // Values that are unique to each list generated by a spec, i.e. even handing the same list to 2
+    // (non-nested list) specs will yield 2 lists with distinct values!
     List<List<Value>> valuesToFill = listToBuild.getValuesToFill();
+    // TODO: implement a mixed case here, most likely through adding offsets, i.e. make the second
+    // list a map.
+    assertThat(sharedValuesInListSpec.isEmpty() || (valuesToFill == null || valuesToFill.isEmpty()))
+        .isTrue();
+    if (valuesToFill.isEmpty()) {
+      valuesToFill = sharedValuesInListSpec;
+    }
     BigInteger nextOffset = listToBuild.getNextOffset();
     Optional<BigInteger> maybePrevOffset = listToBuild.getPrevOffset();
 
@@ -705,8 +750,9 @@ public class SMGMergeTest extends SMGCPATest0 {
     // Write wanted values
     if (valuesToFill != null && !valuesToFill.isEmpty()) {
       for (int elementIndex = 0; elementIndex < listLength; elementIndex++) {
+        // If the check below fails: is the padding for shared values to low?
         checkArgument(
-            valuesToFill.size() == listLength,
+            valuesToFill.size() >= listLength,
             "Specifying values to set must happen for none or all list segments");
         List<Value> valuesToFillInThisElement = valuesToFill.get(elementIndex);
         SMGObject objToWriteTo = listObjects[elementIndex];
@@ -864,7 +910,9 @@ public class SMGMergeTest extends SMGCPATest0 {
     // last list element is used!
     private Map<String, Integer> stackVariableForPtrToListAndLocation;
 
-    // First list is list item to give values to, second is values per segment.
+    // First list is list element to give values to, second is values per segment.
+    // The values will be generated when the list is generated, i.e. 2 lists will have distinct
+    // elements, even when the same one is put in the list!
     // All types are INT
     private List<List<Value>> valuesToFill;
 
@@ -1059,11 +1107,15 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     public static ListSpec getSllWithSingleIdenticalNondetIntValueAfterNfo(
         int length, Map<String, Integer> stackVariableForPtrToListAndLocation) {
-      ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
-      SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-      Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
-      for (int i = 0; i < length; i++) {
-        nondetValues.add(ImmutableList.of(nondetValue));
+      if (sharedValuesInListSpec.isEmpty()) {
+        ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
+        SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        // This is called with the smallest list, length 1, first. So we need to pad this
+        for (int i = 0; i < length + 5; i++) {
+          nondetValues.add(ImmutableList.of(nondetValue));
+        }
+        sharedValuesInListSpec = nondetValues.build();
       }
       return new ListSpec(
           stackVariableForPtrToListAndLocation,
@@ -1073,18 +1125,22 @@ public class SMGMergeTest extends SMGCPATest0 {
           BigInteger.ZERO,
           Optional.of(BigInteger.ZERO),
           ImmutableList.of(),
-          nondetValues.build(),
+          ImmutableList.of(),
           BigInteger.ZERO,
           Optional.empty());
     }
 
     public static ListSpec getDllWithSingleIdenticalNondetIntValueAfterNfoAndPfo(
         int length, Map<String, Integer> stackVariableForPtrToListAndLocation) {
-      ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
-      SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-      Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
-      for (int i = 0; i < length; i++) {
-        nondetValues.add(ImmutableList.of(nondetValue));
+      if (sharedValuesInListSpec.isEmpty()) {
+        ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
+        SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        // This is called with the smallest list, length 1, first. So we need to pad this
+        for (int i = 0; i < length + 5; i++) {
+          nondetValues.add(ImmutableList.of(nondetValue));
+        }
+        sharedValuesInListSpec = nondetValues.build();
       }
       return new ListSpec(
           stackVariableForPtrToListAndLocation,
@@ -1094,18 +1150,22 @@ public class SMGMergeTest extends SMGCPATest0 {
           BigInteger.ZERO,
           Optional.of(BigInteger.ZERO),
           ImmutableList.of(),
-          nondetValues.build(),
+          ImmutableList.of(),
           BigInteger.ZERO,
           Optional.of(BigInteger.valueOf(32)));
     }
 
     public static ListSpec getSllWithSingleIdenticalNondetIntValueBeforeNfo(
         int length, Map<String, Integer> stackVariableForPtrToListAndLocation) {
-      ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
-      SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-      Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
-      for (int i = 0; i < length; i++) {
-        nondetValues.add(ImmutableList.of(nondetValue));
+      if (sharedValuesInListSpec.isEmpty()) {
+        ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
+        SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        // This is called with the smallest list, length 1, first. So we need to pad this
+        for (int i = 0; i < length + 5; i++) {
+          nondetValues.add(ImmutableList.of(nondetValue));
+        }
+        sharedValuesInListSpec = nondetValues.build();
       }
       return new ListSpec(
           stackVariableForPtrToListAndLocation,
@@ -1115,18 +1175,47 @@ public class SMGMergeTest extends SMGCPATest0 {
           BigInteger.ZERO,
           Optional.of(BigInteger.ZERO),
           ImmutableList.of(),
-          nondetValues.build(),
+          ImmutableList.of(),
+          BigInteger.valueOf(32),
+          Optional.empty());
+    }
+
+    public static ListSpec getSllWithSingleIdenticalNondetIntValueBeforeNfoAndPfo(
+        int length, Map<String, Integer> stackVariableForPtrToListAndLocation) {
+      if (sharedValuesInListSpec.isEmpty()) {
+        ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
+        SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        // This is called with the smallest list, length 1, first. So we need to pad this
+        for (int i = 0; i < length + 5; i++) {
+          nondetValues.add(ImmutableList.of(nondetValue));
+        }
+        sharedValuesInListSpec = nondetValues.build();
+      }
+      return new ListSpec(
+          stackVariableForPtrToListAndLocation,
+          false,
+          BigInteger.valueOf(64),
+          length,
+          BigInteger.ZERO,
+          Optional.empty(),
+          ImmutableList.of(),
+          ImmutableList.of(),
           BigInteger.valueOf(32),
           Optional.empty());
     }
 
     public static ListSpec getDllWithSingleIdenticalNondetIntValueBeforeNfoAndPfo(
         int length, Map<String, Integer> stackVariableForPtrToListAndLocation) {
-      ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
-      SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-      Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
-      for (int i = 0; i < length; i++) {
-        nondetValues.add(ImmutableList.of(nondetValue));
+      if (sharedValuesInListSpec.isEmpty()) {
+        ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
+        SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        // This is called with the smallest list, length 1, first. So we need to pad this
+        for (int i = 0; i < length + 5; i++) {
+          nondetValues.add(ImmutableList.of(nondetValue));
+        }
+        sharedValuesInListSpec = nondetValues.build();
       }
       return new ListSpec(
           stackVariableForPtrToListAndLocation,
@@ -1136,9 +1225,30 @@ public class SMGMergeTest extends SMGCPATest0 {
           BigInteger.ZERO,
           Optional.of(BigInteger.ZERO),
           ImmutableList.of(),
-          nondetValues.build(),
+          ImmutableList.of(),
           BigInteger.valueOf(32),
           Optional.of(BigInteger.valueOf(64)));
+    }
+
+    public static ListSpec getSllWithSingleDistinctNondetIntValueBeforeNfoAndPfo(
+        int length, Map<String, Integer> stackVariableForPtrToListAndLocation) {
+      ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
+      SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+      for (int i = 0; i < length; i++) {
+        nondetValues.add(
+            ImmutableList.of(factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT)));
+      }
+      return new ListSpec(
+          stackVariableForPtrToListAndLocation,
+          false,
+          BigInteger.valueOf(64),
+          length,
+          BigInteger.ZERO,
+          Optional.empty(),
+          ImmutableList.of(),
+          nondetValues.build(),
+          BigInteger.valueOf(32),
+          Optional.empty());
     }
 
     public static ListSpec getDllWithSingleDistinctNondetIntValueBeforeNfoAndPfo(
