@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.java_smt.api.FloatingPointNumber;
+import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
 
 /**
  * Java based implementation of multi-precision floating point values with correct rounding.
@@ -2686,13 +2687,13 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       // significand
       significand = significand.setBit(format.sigBits);
     }
-    return new FloatValue(format, pNumber.getSign(), exponent, significand);
+    return new FloatValue(format, pNumber.getMathSign() == Sign.NEGATIVE, exponent, significand);
   }
 
   /** Convert this {@link FloatValue} to {@link FloatingPointNumber} */
   public FloatingPointNumber toFloatingPointNumber() {
     return FloatingPointNumber.of(
-        sign,
+        sign ? Sign.NEGATIVE : Sign.POSITIVE,
         BigInteger.valueOf(exponent + format.bias()),
         significand.clearBit(format.sigBits()),
         format.expBits(),
