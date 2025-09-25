@@ -42,8 +42,8 @@ public class PartialOrderReducer {
       if (pOptions.bitVectorReduction && pOptions.conflictReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
             StatementLinker.link(pOptions, pClauses, memoryModel);
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectors =
-            BitVectorInjector.injectWithEvaluations(
+        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorReduction =
+            BitVectorInjector.injectBitVectorReduction(
                 pOptions,
                 linked,
                 pBitVectorVariables.orElseThrow(),
@@ -52,7 +52,7 @@ public class PartialOrderReducer {
                 pLogger);
         return ConflictResolver.resolve(
             pOptions,
-            withBitVectors,
+            withBitVectorReduction,
             pBitVectorVariables.orElseThrow(),
             memoryModel,
             pBinaryExpressionBuilder,
@@ -61,7 +61,7 @@ public class PartialOrderReducer {
       } else if (pOptions.bitVectorReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
             StatementLinker.link(pOptions, pClauses, memoryModel);
-        return BitVectorInjector.injectWithEvaluations(
+        return BitVectorInjector.injectBitVectorReduction(
             pOptions,
             linked,
             pBitVectorVariables.orElseThrow(),
@@ -72,17 +72,12 @@ public class PartialOrderReducer {
       } else if (pOptions.conflictReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
             StatementLinker.link(pOptions, pClauses, memoryModel);
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectors =
-            BitVectorInjector.injectWithoutEvaluations(
-                pOptions,
-                linked,
-                pBitVectorVariables.orElseThrow(),
-                memoryModel,
-                pBinaryExpressionBuilder,
-                pLogger);
+        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorAssignments =
+            BitVectorAssignmentInjector.injectBitVectorAssignments(
+                pOptions, linked, pBitVectorVariables.orElseThrow(), memoryModel, pLogger);
         return ConflictResolver.resolve(
             pOptions,
-            withBitVectors,
+            withBitVectorAssignments,
             pBitVectorVariables.orElseThrow(),
             memoryModel,
             pBinaryExpressionBuilder,
