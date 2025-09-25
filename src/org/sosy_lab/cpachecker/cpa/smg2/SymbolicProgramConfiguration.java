@@ -705,7 +705,6 @@ public class SymbolicProgramConfiguration {
     }
 
     // 2. if m1(v1) == m2(v2) = v != 0, return (already joined). (m1 == mapping1 etc.)
-
     if (mapping1.hasMapping(v1) && mapping2.hasMapping(v2)) {
       // If this fails, add spec to getter
       checkState(pSpc1.getSmg().isPointer(v1) || pSpc2.getSmg().isPointer(v2));
@@ -1035,9 +1034,9 @@ public class SymbolicProgramConfiguration {
       // Should not be possible, but better safe than sorry
       return Optional.of(SMGMergeStatusOrRecoverableFailure.of(initialJoinStatus));
     } else if (obj1.isZero()) {
-      return Optional.of(SMGMergeStatusOrRecoverableFailure.of(leftListLonger()));
-    } else if (obj2.isZero()) {
       return Optional.of(SMGMergeStatusOrRecoverableFailure.of(rightListLonger()));
+    } else if (obj2.isZero()) {
+      return Optional.of(SMGMergeStatusOrRecoverableFailure.of(leftListLonger()));
     }
     SMGObject m1o1 = mapping1.getMappedObject(obj1);
     SMGObject m2o2 = mapping2.getMappedObject(obj2);
