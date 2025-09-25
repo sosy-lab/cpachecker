@@ -46,13 +46,12 @@ public class PartialOrderReducer {
       MemoryModel memoryModel = pMemoryModel.orElseThrow();
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
           StatementLinker.link(pOptions, pClauses, memoryModel);
-      BitVectorVariables bitVectorVariables = pBitVectorVariables.orElseThrow();
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorReduction =
           pOptions.bitVectorReduction
               ? BitVectorInjector.injectBitVectorReduction(
                   pOptions,
                   linked,
-                  bitVectorVariables,
+                  pBitVectorVariables.orElseThrow(),
                   memoryModel,
                   pBinaryExpressionBuilder,
                   pLogger)
@@ -62,7 +61,7 @@ public class PartialOrderReducer {
               ? ConflictResolver.resolve(
                   pOptions,
                   withBitVectorReduction,
-                  bitVectorVariables,
+                  pBitVectorVariables.orElseThrow(),
                   memoryModel,
                   pBinaryExpressionBuilder,
                   pLogger)
@@ -73,13 +72,19 @@ public class PartialOrderReducer {
               ? KIgnoreZeroInjector.injectKIgnoreZeroReduction(
                   pOptions,
                   withConflictReduction,
-                  bitVectorVariables,
+                  pBitVectorVariables.orElseThrow(),
                   memoryModel,
                   pBinaryExpressionBuilder)
               : withConflictReduction;
       // always inject bit vector assignments after evaluations i.e. reductions
-      return BitVectorAssignmentInjector.injectBitVectorAssignments(
-          pOptions, withKIgnoreZeroReduction, bitVectorVariables, memoryModel, pLogger);
+      return isAnyBitVectorReductionEnabled(pOptions)
+          ? BitVectorAssignmentInjector.injectBitVectorAssignments(
+              pOptions,
+              withKIgnoreZeroReduction,
+              pBitVectorVariables.orElseThrow(),
+              memoryModel,
+              pLogger)
+          : linked;
     }
     return pClauses;
   }
@@ -130,6 +135,12 @@ public class PartialOrderReducer {
   }
 
   // boolean helpers ===============================================================================
+
+  private static boolean isAnyBitVectorReductionEnabled(MPOROptions pOptions) {
+    return pOptions.bitVectorReduction
+        || pOptions.conflictReduction
+        || pOptions.kIgnoreZeroReduction;
+  }
 
   /**
    * Checks whether bit vector injections are allowed, i.e. if they do not result in interleaving

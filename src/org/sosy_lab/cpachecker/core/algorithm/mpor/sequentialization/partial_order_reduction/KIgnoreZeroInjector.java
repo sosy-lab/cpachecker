@@ -13,10 +13,13 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -55,7 +58,7 @@ class KIgnoreZeroInjector {
           activeThread,
           injectKIgnoreZeroReductionIntoClauses(
               pOptions,
-              activeThread,
+              activeThread.getKVariable(),
               otherThreads,
               clauses,
               labelClauseMap,
@@ -71,7 +74,7 @@ class KIgnoreZeroInjector {
 
   private static ImmutableList<SeqThreadStatementClause> injectKIgnoreZeroReductionIntoClauses(
       MPOROptions pOptions,
-      MPORThread pActiveThread,
+      Optional<CIdExpression> pKVariable,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
@@ -89,7 +92,7 @@ class KIgnoreZeroInjector {
             injectKIgnoreZeroReductionIntoBlock(
                 pOptions,
                 block,
-                pActiveThread,
+                pKVariable,
                 pOtherThreads,
                 pLabelClauseMap,
                 pLabelBlockMap,
@@ -105,7 +108,7 @@ class KIgnoreZeroInjector {
   private static SeqThreadStatementBlock injectKIgnoreZeroReductionIntoBlock(
       MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
-      MPORThread pActiveThread,
+      Optional<CIdExpression> pKVariable,
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -119,7 +122,7 @@ class KIgnoreZeroInjector {
       newStatements.add(
           injectKIgnoreZeroReductionIntoStatement(
               pOptions,
-              pActiveThread,
+              pKVariable,
               pOtherThreads,
               statement,
               pLabelClauseMap,
@@ -133,7 +136,7 @@ class KIgnoreZeroInjector {
 
   private static SeqThreadStatement injectKIgnoreZeroReductionIntoStatement(
       MPOROptions pOptions,
-      MPORThread pActiveThread,
+      Optional<CIdExpression> pKVariable,
       ImmutableSet<MPORThread> pOtherThreads,
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
@@ -161,7 +164,7 @@ class KIgnoreZeroInjector {
                   pBinaryExpressionBuilder);
           SeqKIgnoreZeroStatement kIgnoreZeroStatement =
               buildKIgnoreZeroStatement(
-                  pActiveThread,
+                  pKVariable,
                   pCurrentStatement,
                   evaluationExpression,
                   newTarget,
@@ -177,7 +180,7 @@ class KIgnoreZeroInjector {
   }
 
   private static SeqKIgnoreZeroStatement buildKIgnoreZeroStatement(
-      MPORThread pActiveThread,
+      Optional<CIdExpression> pKVariable,
       SeqThreadStatement pStatement,
       BitVectorEvaluationExpression pBitVectorEvaluationExpression,
       SeqThreadStatementClause pTargetClause,
@@ -193,7 +196,7 @@ class KIgnoreZeroInjector {
       }
     }
     return new SeqKIgnoreZeroStatement(
-        pActiveThread.getKVariable().orElseThrow(),
+        pKVariable.isPresent() ? pKVariable.orElseThrow() : SeqIdExpression.K,
         reductionAssumptions.build(),
         pBitVectorEvaluationExpression,
         pTargetClause.getFirstBlock().getLabel(),
