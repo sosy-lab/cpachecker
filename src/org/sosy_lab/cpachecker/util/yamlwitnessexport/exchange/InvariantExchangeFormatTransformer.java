@@ -184,8 +184,8 @@ public class InvariantExchangeFormatTransformer {
     if (!isTransitionInvariant(pInvariantEntry)) {
       return invariantString;
     }
-    Pattern pattern = Pattern.compile("\\\\at\\(([^)]+),AnyPrev\\)");
-    Matcher matcher = pattern.matcher(invariantString.replaceAll("\\s+", ""));
+    Pattern pattern = Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
+    Matcher matcher = pattern.matcher(invariantString);
     StringBuilder result = new StringBuilder();
 
     while (matcher.find()) {

@@ -41,6 +41,10 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter {
+  private final String LONG_LONG_CAST = "((long long)";
+  private final String AT_KEYWORD = "\\at(";
+  private final String ANY_PREV_KEYWORD = ", AnyPrev)";
+
   public TerminationYAMLWitnessExporter(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -54,10 +58,13 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
 
   // The function replaces variable names with annotation \at(..., AnyPrev), i.e. x -> \at(x,
   // AnyPrev)
-  private String addPrevKeyWordInFrontOfTheVariables(
-      String pRankingFunction, Iterable<IProgramVar> pVars) {
+  private String wrapTheVariablesWithAdditionalContext(
+      String pRankingFunction,
+      Iterable<IProgramVar> pVars,
+      String pContextPref,
+      String pContextSuff) {
     for (IProgramVar var : pVars) {
-      String newVarName = "\\at(" + var + ", AnyPrev)";
+      String newVarName = pContextPref + var + pContextSuff;
       pRankingFunction = pRankingFunction.replace(var.toString(), newVarName);
     }
     return pRankingFunction;
@@ -77,8 +84,14 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
             fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
             pLoopHead.getFunctionName());
+    String invariant =
+        wrapTheVariablesWithAdditionalContext(
+            pSupportingInvariant.toString(),
+            pSupportingInvariant.getVariables(),
+            LONG_LONG_CAST,
+            ")");
     return new InvariantEntry(
-        TransitionInvariantUtils.removeFunctionFromVarsName(pSupportingInvariant.toString()),
+        TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
         InvariantRecordType.LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.C,
         locationRecord);
@@ -103,17 +116,35 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
       for (AffineFunction rankingFunction : pNestedRankingFunction.getComponents()) {
         String prevRank =
             rightSideOfRankingFunction(
-                addPrevKeyWordInFrontOfTheVariables(
-                    rankingFunction.toString(), rankingFunction.getVariables()));
-        String currentRank = rightSideOfRankingFunction(rankingFunction.toString());
+                wrapTheVariablesWithAdditionalContext(
+                    rankingFunction.toString(),
+                    rankingFunction.getVariables(),
+                    LONG_LONG_CAST + AT_KEYWORD,
+                    ANY_PREV_KEYWORD + ")"));
+        String currentRank =
+            rightSideOfRankingFunction(
+                wrapTheVariablesWithAdditionalContext(
+                    pRankingFunction.toString(),
+                    pRankingFunction.getVariables(),
+                    LONG_LONG_CAST,
+                    ")"));
         transitionInvariants.add(prevRank + " > " + currentRank);
       }
     } else {
       String prevRank =
           rightSideOfRankingFunction(
-              addPrevKeyWordInFrontOfTheVariables(
-                  pRankingFunction.toString(), pRankingFunction.getVariables()));
-      String currentRank = rightSideOfRankingFunction(pRankingFunction.toString());
+              wrapTheVariablesWithAdditionalContext(
+                  pRankingFunction.toString(),
+                  pRankingFunction.getVariables(),
+                  LONG_LONG_CAST + AT_KEYWORD,
+                  ANY_PREV_KEYWORD + ")"));
+      String currentRank =
+          rightSideOfRankingFunction(
+              wrapTheVariablesWithAdditionalContext(
+                  pRankingFunction.toString(),
+                  pRankingFunction.getVariables(),
+                  LONG_LONG_CAST,
+                  ")"));
       transitionInvariants.add(prevRank + " > " + currentRank);
     }
     return new InvariantEntry(
