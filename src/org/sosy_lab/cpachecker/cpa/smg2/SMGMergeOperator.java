@@ -16,6 +16,9 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus;
@@ -24,12 +27,21 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class SMGMergeOperator implements MergeOperator {
 
+  @SuppressWarnings("unused")
+  private final SMGOptions options;
+
+  private final PrecAdjustmentOptions precOptions;
   private final SMGCPAStatistics statistics;
   private final StatTimer totalMergeTimer;
 
-  public SMGMergeOperator(SMGCPAStatistics pStatistics) {
+  public SMGMergeOperator(
+      SMGCPAStatistics pStatistics,
+      SMGOptions pOptions,
+      PrecAdjustmentOptions pPrecAdjustmentOptions) {
     statistics = pStatistics;
     totalMergeTimer = statistics.getMergeTime();
+    options = pOptions;
+    precOptions = pPrecAdjustmentOptions;
   }
 
   // If the returned state is not equal to the second input state (the state from the reached-set),
@@ -106,6 +118,20 @@ public class SMGMergeOperator implements MergeOperator {
         SMGMergeStatus mergeStatus = mergedStateAndStatus.getMergeStatus();
 
         SMGState mergedState = mergedStateAndStatus.getMergedSMGState();
+        // TODO: add option for this etc.
+        try {
+          // We might now be able to fold more items into an abstracted element
+          mergedState =
+              new SMGCPAAbstractionManager(
+                      mergedState,
+                      precOptions.getListAbstractionMinimumLengthThreshold(),
+                      statistics)
+                  .findAndAbstractLists();
+        } catch (SMGException e) {
+          // Do nothing. This should never happen anyway
+          throw new RuntimeException(e);
+        }
+
         // Retain merge status to reason about in stop operator
         mergedState = mergedState.asResultOfMerge(newSMGState, smgStateFromReached, mergeStatus);
         // Retain block-end status

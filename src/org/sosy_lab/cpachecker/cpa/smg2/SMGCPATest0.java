@@ -117,7 +117,7 @@ public class SMGCPATest0 {
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
     currentState = currentState.copyAndAddDummyStackFrame();
     smgPrecOptions = new PrecAdjustmentOptions(Configuration.defaultConfiguration(), null);
-    mergeOp = new SMGMergeOperator(new SMGCPAStatistics());
+    mergeOp = new SMGMergeOperator(new SMGCPAStatistics(), smgOptions, smgPrecOptions);
   }
 
   public SMGState getFreshState() {
