@@ -87,9 +87,12 @@ public class SMGCPATest0 {
   protected CFAEdge dummyCFAEdge =
       new DummyCFAEdge(CFANode.newDummyCFANode(), CFANode.newDummyCFANode());
 
+  protected static List<List<Value>> sharedValuesInListSpec = ImmutableList.of();
+
   // The visitor should always use the currentState!
   @Before
   public void init() throws InvalidConfigurationException {
+    sharedValuesInListSpec = ImmutableList.of();
     // We always assume lists to be head, nfo and pfo, each pointer sized.
     machineModel = MachineModel.LINUX32;
     pointerSizeInBits = BigInteger.valueOf(machineModel.getSizeofPtrInBits());
