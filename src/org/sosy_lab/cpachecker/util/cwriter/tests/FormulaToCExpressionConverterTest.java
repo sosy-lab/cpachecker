@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /** Tests for {@link FormulaToCExpressionConverter}. */
 @RunWith(Enclosed.class)
@@ -88,13 +89,13 @@ public class FormulaToCExpressionConverterTest {
     // avoided. Some function declarations can not be enforced from user-side.
 
     @Test
-    public void convertVar() throws InterruptedException {
+    public void convertVar() throws InterruptedException, SolverException {
       BooleanFormula var = bmgrv.makeVariable("x");
       assertThat(converter.formulaToCExpression(var)).isEqualTo("x");
     }
 
     @Test
-    public void convertConstant() throws InterruptedException {
+    public void convertConstant() throws InterruptedException, SolverException {
       BooleanFormula trueFormula = bmgrv.makeTrue();
       assertThat(converter.formulaToCExpression(trueFormula)).isEqualTo("true");
       BooleanFormula falseFormula = bmgrv.makeFalse();
@@ -102,39 +103,39 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertNot() throws InterruptedException {
+    public void convertNot() throws InterruptedException, SolverException {
       BooleanFormula formula = bmgrv.not(bmgrv.makeVariable("x"));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(!x)");
     }
 
     @Test
-    public void convertAnd() throws InterruptedException {
+    public void convertAnd() throws InterruptedException, SolverException {
       BooleanFormula formula = bmgrv.and(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x && y)");
     }
 
     @Test
-    public void convertNegatedAnd() throws InterruptedException {
+    public void convertNegatedAnd() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(bmgrv.and(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("((!x) || (!y))");
     }
 
     @Test
-    public void convertOr() throws InterruptedException {
+    public void convertOr() throws InterruptedException, SolverException {
       BooleanFormula formula = bmgrv.or(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x || y)");
     }
 
     @Test
-    public void convertNegatedOr() throws InterruptedException {
+    public void convertNegatedOr() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(bmgrv.or(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("((!x) && (!y))");
     }
 
     @Test
-    public void convertImplication() throws InterruptedException {
+    public void convertImplication() throws InterruptedException, SolverException {
       BooleanFormula formula = bmgrv.implication(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
       String expected =
           switch (solverToUse()) {
@@ -145,14 +146,14 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertNegatedImplication() throws InterruptedException {
+    public void convertNegatedImplication() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(bmgrv.implication(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x && (!y))");
     }
 
     @Test
-    public void convertEquivalence() throws InterruptedException {
+    public void convertEquivalence() throws InterruptedException, SolverException {
       BooleanFormula formula = bmgrv.equivalence(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
       String expected =
           switch (solverToUse()) {
@@ -163,7 +164,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertNegatedEquivalence() throws InterruptedException {
+    public void convertNegatedEquivalence() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(bmgrv.equivalence(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
       String expected =
@@ -175,7 +176,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertXor() throws InterruptedException {
+    public void convertXor() throws InterruptedException, SolverException {
       BooleanFormula formula = bmgrv.xor(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
       String expected =
           switch (solverToUse()) {
@@ -188,7 +189,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertNegatedXor() throws InterruptedException {
+    public void convertNegatedXor() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(bmgrv.xor(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
       String expected =
@@ -202,20 +203,20 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertEqual() throws InterruptedException {
+    public void convertEqual() throws InterruptedException, SolverException {
       BooleanFormula formula = imgrv.equal(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x == y)");
     }
 
     @Test
-    public void convertNegatedEqual() throws InterruptedException {
+    public void convertNegatedEqual() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(imgrv.equal(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
       assertThat(converter.formulaToCExpression(formula)).isEqualTo("(!(x == y))");
     }
 
     @Test
-    public void convertLessThan() throws InterruptedException {
+    public void convertLessThan() throws InterruptedException, SolverException {
       BooleanFormula formula = imgrv.lessThan(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
       String expected =
           switch (solverToUse()) {
@@ -228,7 +229,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertNegatedLessThan() throws InterruptedException {
+    public void convertNegatedLessThan() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(imgrv.lessThan(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
       String expected =
@@ -242,7 +243,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertLessOrEquals() throws InterruptedException {
+    public void convertLessOrEquals() throws InterruptedException, SolverException {
       BooleanFormula formula = imgrv.lessOrEquals(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
       String expected =
           switch (solverToUse()) {
@@ -254,7 +255,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertNegatedLessOrEquals() throws InterruptedException {
+    public void convertNegatedLessOrEquals() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(imgrv.lessOrEquals(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
       String expected =
@@ -267,7 +268,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertGreaterThan() throws InterruptedException {
+    public void convertGreaterThan() throws InterruptedException, SolverException {
       BooleanFormula formula = imgrv.greaterThan(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
       String expected =
           switch (solverToUse()) {
@@ -280,7 +281,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertNegatedGreaterThan() throws InterruptedException {
+    public void convertNegatedGreaterThan() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(imgrv.greaterThan(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
       String expected =
@@ -294,7 +295,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertGreaterOrEquals() throws InterruptedException {
+    public void convertGreaterOrEquals() throws InterruptedException, SolverException {
       BooleanFormula formula =
           imgrv.greaterOrEquals(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
       String expected =
@@ -308,7 +309,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertNegatedGreaterOrEquals() throws InterruptedException {
+    public void convertNegatedGreaterOrEquals() throws InterruptedException, SolverException {
       BooleanFormula formula =
           bmgrv.not(imgrv.greaterOrEquals(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
       String expected =
@@ -322,7 +323,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertAddition() throws InterruptedException {
+    public void convertAddition() throws InterruptedException, SolverException {
       BooleanFormula formula =
           imgrv.equal(
               imgrv.add(imgrv.makeVariable("x"), imgrv.makeVariable("y")), imgrv.makeVariable("z"));
@@ -334,7 +335,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertSubtraction() throws InterruptedException {
+    public void convertSubtraction() throws InterruptedException, SolverException {
       BooleanFormula formula =
           imgrv.equal(
               imgrv.subtract(imgrv.makeVariable("x"), imgrv.makeVariable("y")),
@@ -349,7 +350,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertMultiplication() throws InterruptedException {
+    public void convertMultiplication() throws InterruptedException, SolverException {
       requireIntegers();
 
       BooleanFormula formula =
@@ -364,7 +365,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertDivision() throws InterruptedException {
+    public void convertDivision() throws InterruptedException, SolverException {
       skipTestForSolvers(Solvers.MATHSAT5, Solvers.PRINCESS);
       BooleanFormula formula =
           imgrv.equal(
@@ -373,7 +374,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertModulo() throws InterruptedException {
+    public void convertModulo() throws InterruptedException, SolverException {
       skipTestForSolvers(Solvers.MATHSAT5, Solvers.PRINCESS, Solvers.BITWUZLA);
       BooleanFormula formula =
           imgrv.equal(
@@ -382,7 +383,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVLessThan() throws InterruptedException {
+    public void convertBVLessThan() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.lessThan(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
@@ -400,7 +401,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVLessOrEquals() throws InterruptedException {
+    public void convertBVLessOrEquals() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.lessOrEquals(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
@@ -418,7 +419,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVGreaterThan() throws InterruptedException {
+    public void convertBVGreaterThan() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.greaterThan(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
@@ -437,7 +438,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVGreaterOrEquals() throws InterruptedException {
+    public void convertBVGreaterOrEquals() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.greaterOrEquals(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
@@ -456,7 +457,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVNot() throws InterruptedException {
+    public void convertBVNot() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(bvmgrv.not(bvmgrv.makeVariable(5, "x")), bvmgrv.makeVariable(5, "y"));
@@ -469,7 +470,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVAnd() throws InterruptedException {
+    public void convertBVAnd() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
@@ -483,7 +484,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVOr() throws InterruptedException {
+    public void convertBVOr() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
@@ -493,7 +494,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVXor() throws InterruptedException {
+    public void convertBVXor() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
@@ -503,7 +504,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVAddition() throws InterruptedException {
+    public void convertBVAddition() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
@@ -513,7 +514,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVSubtraction() throws InterruptedException {
+    public void convertBVSubtraction() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(
@@ -530,7 +531,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVNeg() throws InterruptedException {
+    public void convertBVNeg() throws InterruptedException, SolverException {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(bvmgrv.negate(bvmgrv.makeVariable(5, "x")), bvmgrv.makeVariable(5, "y"));
@@ -544,7 +545,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVMultiplication() throws InterruptedException {
+    public void convertBVMultiplication() throws InterruptedException, SolverException {
       skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.OPENSMT);
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
@@ -555,7 +556,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVDivision() throws InterruptedException {
+    public void convertBVDivision() throws InterruptedException, SolverException {
       skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.PRINCESS, Solvers.Z3, Solvers.OPENSMT);
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
@@ -578,7 +579,7 @@ public class FormulaToCExpressionConverterTest {
      * The correct equivalent for the % operator in C is signed remainder in SMTLIB2.
      */
     @Test
-    public void convertBVModulo() throws InterruptedException {
+    public void convertBVModulo() throws InterruptedException, SolverException {
       skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.OPENSMT, Solvers.MATHSAT5, Solvers.PRINCESS);
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
@@ -598,7 +599,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertBVSHL() throws InterruptedException {
+    public void convertBVSHL() throws InterruptedException, SolverException {
       skipTestForSolvers(Solvers.Z3);
       // TODO How to transform EXTRACT to C expression (without too much overhead?
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
@@ -610,7 +611,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPEqual() throws InterruptedException {
+    public void convertFPEqual() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
@@ -620,7 +621,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPLessThan() throws InterruptedException {
+    public void convertFPLessThan() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.lessThan(
@@ -636,7 +637,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPLessOrEquals() throws InterruptedException {
+    public void convertFPLessOrEquals() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.lessOrEquals(
@@ -652,7 +653,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPGreaterThan() throws InterruptedException {
+    public void convertFPGreaterThan() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.greaterThan(
@@ -669,7 +670,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPGreaterOrEquals() throws InterruptedException {
+    public void convertFPGreaterOrEquals() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.greaterOrEquals(
@@ -686,7 +687,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPAddition() throws InterruptedException {
+    public void convertFPAddition() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
@@ -698,7 +699,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPSubtraction() throws InterruptedException {
+    public void convertFPSubtraction() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
@@ -717,7 +718,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPNeg() throws InterruptedException {
+    public void convertFPNeg() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.equalWithFPSemantics(
@@ -733,7 +734,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPMultiplication() throws InterruptedException {
+    public void convertFPMultiplication() throws InterruptedException, SolverException {
       skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.OPENSMT);
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
@@ -746,7 +747,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPDivision() throws InterruptedException {
+    public void convertFPDivision() throws InterruptedException, SolverException {
       skipTestForSolvers(Solvers.SMTINTERPOL, Solvers.PRINCESS, Solvers.OPENSMT);
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
@@ -759,7 +760,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPIsZero() throws InterruptedException {
+    public void convertFPIsZero() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.isZero(fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
@@ -773,7 +774,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPIsNan() throws InterruptedException {
+    public void convertFPIsNan() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.isNaN(fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
@@ -787,7 +788,7 @@ public class FormulaToCExpressionConverterTest {
     }
 
     @Test
-    public void convertFPIsInf() throws InterruptedException {
+    public void convertFPIsInf() throws InterruptedException, SolverException {
       FloatingPointFormulaManagerView fmgrv = mgrv.getFloatingPointFormulaManager();
       BooleanFormula formula =
           fmgrv.isInfinity(
