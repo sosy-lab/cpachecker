@@ -80,7 +80,8 @@ public class SeqKIgnoreZeroStatement implements SeqInjectedBitVectorStatement {
         new SeqIfExpression(
             binaryExpressionBuilder.buildBinaryExpression(
                 kVariable, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS));
-    SeqIfExpression ifCommutes = new SeqIfExpression(bitVectorEvaluationExpression);
+    // negate the evaluation expression
+    SeqIfExpression ifCommutes = new SeqIfExpression(bitVectorEvaluationExpression.negate());
     SeqGotoStatement gotoNext = new SeqGotoStatement(nextLabel);
 
     // create string
@@ -93,5 +94,14 @@ public class SeqKIgnoreZeroStatement implements SeqInjectedBitVectorStatement {
         + SeqSyntax.CURLY_BRACKET_RIGHT
         + SeqSyntax.NEWLINE
         + SeqSyntax.CURLY_BRACKET_RIGHT;
+  }
+
+  public SeqKIgnoreZeroStatement cloneWithGotoLabelNumber(int pLabelNumber) {
+    return new SeqKIgnoreZeroStatement(
+        kVariable,
+        reductionAssumptions,
+        bitVectorEvaluationExpression,
+        nextLabel.cloneWithLabelNumber(pLabelNumber),
+        binaryExpressionBuilder);
   }
 }

@@ -42,6 +42,10 @@ public class BitVectorEvaluationExpression implements SeqExpression {
     return SeqSyntax.EMPTY_STRING;
   }
 
+  /**
+   * Negates the evaluation expression by wrapping it in {@code !(...)}. Note that if a negated
+   * evaluation expression evaluates to {@code true}, then there is no conflict.
+   */
   public SeqLogicalNotExpression negate() {
     if (binaryExpression.isPresent()) {
       return new SeqLogicalNotExpression(binaryExpression.orElseThrow());

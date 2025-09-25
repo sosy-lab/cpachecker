@@ -271,6 +271,7 @@ public class SeqThreadStatementUtil {
       MPOROptions pOptions, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return switch (pOptions.reductionOrder) {
+      // if NONE is specified, we default to BITVECTOR_THEN_CONFLICT
       case NONE, BITVECTOR_THEN_CONFLICT ->
           orderInjectedReductionStatements(
               pInjectedStatements,

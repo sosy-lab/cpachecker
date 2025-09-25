@@ -44,66 +44,42 @@ public class PartialOrderReducer {
 
     if (pOptions.linkReduction) {
       MemoryModel memoryModel = pMemoryModel.orElseThrow();
-
-      if (pOptions.bitVectorReduction && pOptions.conflictReduction) {
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-            StatementLinker.link(pOptions, pClauses, memoryModel);
-        BitVectorVariables bitVectorVariables = pBitVectorVariables.orElseThrow();
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorReduction =
-            BitVectorInjector.injectBitVectorReduction(
-                pOptions,
-                linked,
-                bitVectorVariables,
-                memoryModel,
-                pBinaryExpressionBuilder,
-                pLogger);
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withConflictReduction =
-            ConflictResolver.resolve(
-                pOptions,
-                withBitVectorReduction,
-                bitVectorVariables,
-                memoryModel,
-                pBinaryExpressionBuilder,
-                pLogger);
-        // always inject bit vector assignments after evaluations i.e. reductions
-        return BitVectorAssignmentInjector.injectBitVectorAssignments(
-            pOptions, withConflictReduction, bitVectorVariables, memoryModel, pLogger);
-
-      } else if (pOptions.bitVectorReduction) {
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-            StatementLinker.link(pOptions, pClauses, memoryModel);
-        BitVectorVariables bitVectorVariables = pBitVectorVariables.orElseThrow();
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorReduction =
-            BitVectorInjector.injectBitVectorReduction(
-                pOptions,
-                linked,
-                bitVectorVariables,
-                memoryModel,
-                pBinaryExpressionBuilder,
-                pLogger);
-        // always inject bit vector assignments after evaluations i.e. reductions
-        return BitVectorAssignmentInjector.injectBitVectorAssignments(
-            pOptions, withBitVectorReduction, bitVectorVariables, memoryModel, pLogger);
-
-      } else if (pOptions.conflictReduction) {
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
-            StatementLinker.link(pOptions, pClauses, memoryModel);
-        BitVectorVariables bitVectorVariables = pBitVectorVariables.orElseThrow();
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withConflictReduction =
-            ConflictResolver.resolve(
-                pOptions,
-                linked,
-                bitVectorVariables,
-                memoryModel,
-                pBinaryExpressionBuilder,
-                pLogger);
-        // always inject bit vector assignments after evaluations i.e. reductions
-        return BitVectorAssignmentInjector.injectBitVectorAssignments(
-            pOptions, withConflictReduction, bitVectorVariables, memoryModel, pLogger);
-
-      } else {
-        return StatementLinker.link(pOptions, pClauses, memoryModel);
-      }
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
+          StatementLinker.link(pOptions, pClauses, memoryModel);
+      BitVectorVariables bitVectorVariables = pBitVectorVariables.orElseThrow();
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorReduction =
+          pOptions.bitVectorReduction
+              ? BitVectorInjector.injectBitVectorReduction(
+                  pOptions,
+                  linked,
+                  bitVectorVariables,
+                  memoryModel,
+                  pBinaryExpressionBuilder,
+                  pLogger)
+              : linked;
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withConflictReduction =
+          pOptions.conflictReduction
+              ? ConflictResolver.resolve(
+                  pOptions,
+                  withBitVectorReduction,
+                  bitVectorVariables,
+                  memoryModel,
+                  pBinaryExpressionBuilder,
+                  pLogger)
+              : withBitVectorReduction;
+      // this needs to be last, it collects the prior injections
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withKIgnoreZeroReduction =
+          pOptions.kIgnoreZeroReduction
+              ? KIgnoreZeroInjector.injectKIgnoreZeroReduction(
+                  pOptions,
+                  withConflictReduction,
+                  bitVectorVariables,
+                  memoryModel,
+                  pBinaryExpressionBuilder)
+              : withConflictReduction;
+      // always inject bit vector assignments after evaluations i.e. reductions
+      return BitVectorAssignmentInjector.injectBitVectorAssignments(
+          pOptions, withKIgnoreZeroReduction, bitVectorVariables, memoryModel, pLogger);
     }
     return pClauses;
   }
