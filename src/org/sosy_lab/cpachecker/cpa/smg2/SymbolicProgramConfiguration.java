@@ -706,31 +706,46 @@ public class SymbolicProgramConfiguration {
 
     // 2. if m1(v1) == m2(v2) = v != 0, return (already joined). (m1 == mapping1 etc.)
     if (mapping1.hasMapping(v1) && mapping2.hasMapping(v2)) {
-      // If this fails, add spec to getter
-      checkState(pSpc1.getSmg().isPointer(v1) || pSpc2.getSmg().isPointer(v2));
-      Optional<SMGPointsToEdge> maybePTE1 = pSpc1.getSmg().getPTEdge(v1);
-      Optional<SMGPointsToEdge> maybePTE2 = pSpc2.getSmg().getPTEdge(v2);
-      checkState(maybePTE1.isPresent() || maybePTE2.isPresent());
-      // If one of the original values is FIRST/LAST, and the mapped spec is equal,
-      //  then the other mapped value also needs this spec.
-      // Both specs might be REGION, and the mapping might be FIRST/LAST, or even both.
-      //  (signaling an inserted linked-list)
-      // TODO: how to resolve gracefully? With source obj?
-      boolean someEqualMapping = NodeMapping.hasSomeEqualMapping(mapping1, v1, mapping2, v2, false);
-      if (someEqualMapping) {
-        // There is an equal value possible, figure out which one
-        // TODO: the same way? Or even just return it with the method?
+      if (!pSpc1.getSmg().isPointer(v1) && !pSpc2.getSmg().isPointer(v2)) {
+        // Non-pointer (Nondet or concrete) value of some sort
         SMGValue mv1 = mapping1.getMappedValue(v1);
         SMGValue mv2 = mapping2.getMappedValue(v2);
-
-        // == someEqualMapping
-        checkState((mv1.equals(mv2) && !mv1.isZero()));
         if (mv1.equals(mv2) && !mv1.isZero()) {
+          // TODO: unify with code below
           return Optional.of(
               MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
                   mv1,
                   MergedSPCAndMergeStatusWithMergingSPCsAndMapping.of(
                       pNewSpc, initialJoinStatus, pSpc1, pSpc2, mapping1, mapping2)));
+        }
+
+      } else {
+        // If this fails, add spec to getter
+        Optional<SMGPointsToEdge> maybePTE1 = pSpc1.getSmg().getPTEdge(v1);
+        Optional<SMGPointsToEdge> maybePTE2 = pSpc2.getSmg().getPTEdge(v2);
+        checkState(maybePTE1.isPresent() || maybePTE2.isPresent());
+        // If one of the original values is FIRST/LAST, and the mapped spec is equal,
+        //  then the other mapped value also needs this spec.
+        // Both specs might be REGION, and the mapping might be FIRST/LAST, or even both.
+        //  (signaling an inserted linked-list)
+        // TODO: how to resolve gracefully? With source obj?
+        boolean someEqualMapping =
+            NodeMapping.hasSomeEqualMapping(mapping1, v1, mapping2, v2, false);
+        if (someEqualMapping) {
+          // There is an equal value possible, figure out which one
+          // TODO: the same way? Or even just return it with the method?
+          SMGValue mv1 = mapping1.getMappedValue(v1);
+          SMGValue mv2 = mapping2.getMappedValue(v2);
+
+          // == someEqualMapping
+          checkState((mv1.equals(mv2) && !mv1.isZero()));
+          if (mv1.equals(mv2) && !mv1.isZero()) {
+            return Optional.of(
+                MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.of(
+                    mv1,
+                    MergedSPCAndMergeStatusWithMergingSPCsAndMapping.of(
+                        pNewSpc, initialJoinStatus, pSpc1, pSpc2, mapping1, mapping2)));
+          }
         }
       }
     }
