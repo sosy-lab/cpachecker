@@ -42,46 +42,58 @@ public class PartialOrderReducer {
       if (pOptions.bitVectorReduction && pOptions.conflictReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
             StatementLinker.link(pOptions, pClauses, memoryModel);
+        BitVectorVariables bitVectorVariables = pBitVectorVariables.orElseThrow();
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorReduction =
             BitVectorInjector.injectBitVectorReduction(
                 pOptions,
                 linked,
-                pBitVectorVariables.orElseThrow(),
+                bitVectorVariables,
                 memoryModel,
                 pBinaryExpressionBuilder,
                 pLogger);
-        return ConflictResolver.resolve(
-            pOptions,
-            withBitVectorReduction,
-            pBitVectorVariables.orElseThrow(),
-            memoryModel,
-            pBinaryExpressionBuilder,
-            pLogger);
+        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withConflictReduction =
+            ConflictResolver.resolve(
+                pOptions,
+                withBitVectorReduction,
+                bitVectorVariables,
+                memoryModel,
+                pBinaryExpressionBuilder,
+                pLogger);
+        // always inject bit vector assignments after evaluations i.e. reductions
+        return BitVectorAssignmentInjector.injectBitVectorAssignments(
+            pOptions, withConflictReduction, bitVectorVariables, memoryModel, pLogger);
 
       } else if (pOptions.bitVectorReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
             StatementLinker.link(pOptions, pClauses, memoryModel);
-        return BitVectorInjector.injectBitVectorReduction(
-            pOptions,
-            linked,
-            pBitVectorVariables.orElseThrow(),
-            memoryModel,
-            pBinaryExpressionBuilder,
-            pLogger);
+        BitVectorVariables bitVectorVariables = pBitVectorVariables.orElseThrow();
+        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorReduction =
+            BitVectorInjector.injectBitVectorReduction(
+                pOptions,
+                linked,
+                bitVectorVariables,
+                memoryModel,
+                pBinaryExpressionBuilder,
+                pLogger);
+        // always inject bit vector assignments after evaluations i.e. reductions
+        return BitVectorAssignmentInjector.injectBitVectorAssignments(
+            pOptions, withBitVectorReduction, bitVectorVariables, memoryModel, pLogger);
 
       } else if (pOptions.conflictReduction) {
         ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
             StatementLinker.link(pOptions, pClauses, memoryModel);
-        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorAssignments =
-            BitVectorAssignmentInjector.injectBitVectorAssignments(
-                pOptions, linked, pBitVectorVariables.orElseThrow(), memoryModel, pLogger);
-        return ConflictResolver.resolve(
-            pOptions,
-            withBitVectorAssignments,
-            pBitVectorVariables.orElseThrow(),
-            memoryModel,
-            pBinaryExpressionBuilder,
-            pLogger);
+        BitVectorVariables bitVectorVariables = pBitVectorVariables.orElseThrow();
+        ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withConflictReduction =
+            ConflictResolver.resolve(
+                pOptions,
+                linked,
+                bitVectorVariables,
+                memoryModel,
+                pBinaryExpressionBuilder,
+                pLogger);
+        // always inject bit vector assignments after evaluations i.e. reductions
+        return BitVectorAssignmentInjector.injectBitVectorAssignments(
+            pOptions, withConflictReduction, bitVectorVariables, memoryModel, pLogger);
 
       } else {
         return StatementLinker.link(pOptions, pClauses, memoryModel);
