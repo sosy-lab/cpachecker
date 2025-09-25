@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
+  // TODO: merge into SMGOptions
   @Options(prefix = "cpa.smg2.abstraction")
   public static class PrecAdjustmentOptions {
 
