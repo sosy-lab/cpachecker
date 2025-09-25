@@ -780,7 +780,7 @@ public class SymbolicProgramConfiguration {
           return Optional.empty();
         }
         // TODO: constraints equality is currently handled in SMGState merge() (we reject all
-        // possible states with non-equal constraints)
+        //  possible states with non-equal constraints)
 
       }
 
