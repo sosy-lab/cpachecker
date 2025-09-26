@@ -290,7 +290,7 @@ public class SMGCPAAbstractionManager {
           // will be found via the prev object
           continue;
         }
-        SMGValue nextPointerValue = readNfoEdges.get(0).hasValue();
+        SMGValue nextPointerValue = readNfoEdges.getFirst().hasValue();
         if (!smg.isPointer(nextPointerValue)
             || !smg.getPTEdge(nextPointerValue).orElseThrow().getOffset().isNumericValue()
             || !smg.getPTEdge(nextPointerValue)
@@ -569,7 +569,7 @@ public class SMGCPAAbstractionManager {
     SMGHasValueEdge nextPtrOfLeftmost =
         smg.readValue(leftMostObj, suspectedNfo, state.getMemoryModel().getSizeOfPointer(), false)
             .getHvEdges()
-            .get(0);
+            .getFirst();
     Preconditions.checkArgument(smg.isPointer(nextPtrOfLeftmost.hasValue()));
     SMGObject nextOfLeftmost = smg.getPTEdge(nextPtrOfLeftmost.hasValue()).orElseThrow().pointsTo();
     // TODO: use read instead of looping through the offsets in both lookThroughs
@@ -692,7 +692,7 @@ public class SMGCPAAbstractionManager {
                       smg.getSizeOfPointer(),
                       false)
                   .getHvEdges()
-                  .get(0);
+                  .getFirst();
           if (smg.isPointer(maybeRealNext.hasValue())
               && smg.getPTEdge(maybeRealNext.hasValue()).orElseThrow().pointsTo().equals(prevObj)) {
             return ListType.NONE;
@@ -820,7 +820,7 @@ public class SMGCPAAbstractionManager {
                   false)
               .getHvEdges();
       Preconditions.checkArgument(maybeReadBackPtrs.size() == 1);
-      SMGHasValueEdge maybeReadBackPtr = maybeReadBackPtrs.get(0);
+      SMGHasValueEdge maybeReadBackPtr = maybeReadBackPtrs.getFirst();
       if (smg.isPointer(maybeReadBackPtr.hasValue())) {
         // possible back-pointer
         SMGPointsToEdge maybeBackPointerEdge =
@@ -1110,8 +1110,8 @@ public class SMGCPAAbstractionManager {
     }
 
     int addSize = 1;
-    if (root instanceof SMGSinglyLinkedListSegment) {
-      addSize = ((SMGSinglyLinkedListSegment) root).getMinLength();
+    if (root instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      addSize = sMGSinglyLinkedListSegment.getMinLength();
     }
 
     for (SMGHasValueEdge hve : smg.getEdges(root)) {
@@ -1425,7 +1425,7 @@ public class SMGCPAAbstractionManager {
     // We abort after we find 1 valid pointer for the candidate
     ImmutableList<SMGHasValueEdge> sortedPointersList =
         ImmutableList.sortedCopyOf(Comparator.comparing(SMGHasValueEdge::getOffset), setOfPointers);
-    // If there are no targets that match this one, this is either a end part or not a list
+    // If there are no targets that match this one, this is either an end part or not a list
     if (setOfPointers.isEmpty()) {
       return Optional.empty();
     }
@@ -1618,7 +1618,7 @@ public class SMGCPAAbstractionManager {
             assert targetNestingLvl == 0;
             assert smg.getNestingLevel(value) == 0;
             alreadyChecked.add(target);
-            continue;
+
           } else if (specifier.equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
             // Level is 1 larger than target
             assert smg.getNestingLevel(value) + 1 == targetNestingLvl;
@@ -1686,7 +1686,7 @@ public class SMGCPAAbstractionManager {
         assert specifier.equals(SMGTargetSpecifier.IS_REGION);
         assert targetNestingLvl == 0;
         assert valueNestingLvl == 0;
-        continue;
+
       } else if (specifier.equals(SMGTargetSpecifier.IS_ALL_POINTER)) {
         // Level of pointer is 1 larger than target
         assert valueNestingLvl + 1 == targetNestingLvl;
@@ -1703,9 +1703,9 @@ public class SMGCPAAbstractionManager {
         if (target instanceof SMGSinglyLinkedListSegment) {
           assert specifier.equals(SMGTargetSpecifier.IS_FIRST_POINTER)
               || specifier.equals(SMGTargetSpecifier.IS_LAST_POINTER);
-          if (currentObject instanceof SMGSinglyLinkedListSegment) {
+          if (currentObject instanceof SMGSinglyLinkedListSegment currentSll) {
             // There is at most 1 parent
-            if (offset.equals(((SMGSinglyLinkedListSegment) currentObject).getNextOffset())
+            if (offset.equals(currentSll.getNextOffset())
                 || (target instanceof SMGDoublyLinkedListSegment currDll
                     && offset.equals(currDll.getPrevOffset()))) {
               assert currentObject.getNestingLevel() == targetNestingLvl;

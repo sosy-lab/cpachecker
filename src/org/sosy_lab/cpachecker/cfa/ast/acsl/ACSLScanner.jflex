@@ -17,7 +17,7 @@ import java_cup.runtime.Symbol;
 import org.sosy_lab.common.log.LogManager;
 
 @javax.annotation.processing.Generated("JFlex")
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"URF_UNREAD_FIELD", "DLS_DEAD_LOCAL_STORE"})
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"URF_UNREAD_FIELD", "DLS_DEAD_LOCAL_STORE", "SF_SWITCH_FALLTHROUGH"})
 %%
 
 %class ACSLScanner

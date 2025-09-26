@@ -85,8 +85,12 @@ src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLSymbols.java
 .idea/findbugs-idea.xml
 .idea/junitgenerator-prj-settings.xml
 .idea/vcs.xml
+.idea/ktfmt.xml
 
 /src/org/sosy_lab/cpachecker/core/counterexample/build_tmp/*
 node_modules/
 /.idea/sonarlint.xml
 /.idea/sonarlint/
+
+contrib/worker-visualization/venv/
+contrib/worker-visualization/.idea

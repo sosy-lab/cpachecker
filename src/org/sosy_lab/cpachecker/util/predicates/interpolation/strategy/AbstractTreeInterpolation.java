@@ -83,16 +83,16 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
     // (D) variables/symbols in each interpolant are part of both partitions
 
     // PROBLEM: we rebuild some interpolants before returning them from {@getInterpolants()}.
-    // Thus the check might fail. TODO check this!
+    // Thus, the check might fail. TODO check this!
 
     assert formulas.size() == subtrees.length() : "each formula must be part of a subtree";
     assert formulas.size() == interpolants.size() + 1
         : "number of interpolants should match the tree-structure";
 
     // check (A)
-    if (!solver.implies(formulas.get(0), interpolants.get(0))) {
+    if (!solver.implies(formulas.getFirst(), interpolants.getFirst())) {
       throw new SolverException(
-          String.format("interpolant %s is not implied by leaf formula.", interpolants.get(0)));
+          String.format("interpolant %s is not implied by leaf formula.", interpolants.getFirst()));
     }
     for (int i = 1; i < subtrees.length() - 1; i++) {
       if (subtrees.get(i) > subtrees.get(i - 1)) {
@@ -204,7 +204,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
     END // node with several children, end of a subtree
   }
 
-  /** returns the current position in a interpolation tree. */
+  /** returns the current position in an interpolation tree. */
   private static <T> TreePosition getTreePosition(
       final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds, final int position) {
     final AbstractState abstractionState =
@@ -245,8 +245,8 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
       }
 
       final CFANode lastEntryNode = callstack.getLast();
-      if ((node instanceof FunctionExitNode
-          && ((FunctionExitNode) node).getEntryNode().equals(lastEntryNode))
+      if ((node instanceof FunctionExitNode functionExitNode
+          && functionExitNode.getEntryNode().equals(lastEntryNode))
       // || (node.getEnteringSummaryEdge() != null
       // && node.getEnteringSummaryEdge().getPredecessor().getLeavingEdge(0).getSuccessor() ==
       // lastEntryNode)
@@ -282,7 +282,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
     final ImmutableIntArray.Builder startOfSubTree = ImmutableIntArray.builder();
     final Deque<Pair<InterpolationGroup<T>, Integer>> stack = new ArrayDeque<>();
     final Pair<InterpolationGroup<T>, Integer> leftMostSubtree =
-        Pair.of(formulasWithStatesAndGroupdIds.get(0), 0); // initial element of the tree
+        Pair.of(formulasWithStatesAndGroupdIds.getFirst(), 0); // initial element of the tree
 
     stack.add(leftMostSubtree); // every tree starts at the left-most node, post-order!
     for (int positionOfA = 0; positionOfA < formulasWithStatesAndGroupdIds.size(); positionOfA++) {
@@ -291,38 +291,28 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
       final InterpolationGroup<T> formula = formulasWithStatesAndGroupdIds.get(positionOfA);
 
       switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
-        case START:
-          {
+        case START ->
             // start new left subtree, i.e. next formula is left leaf of a subtree.
             // current formula will be used as merge-formula (common root of new subtree and
             // previous formulas)
             stack.addLast(Pair.of(formula, formulas.size()));
-            break;
-          }
-        case END:
-          {
-            // first add the last inner formula
-            startOfSubTree.add(stack.getLast().getSecond());
-            formulas.add(formula);
+        case END -> {
+          // first add the last inner formula
+          startOfSubTree.add(stack.getLast().getSecond());
+          formulas.add(formula);
 
-            // then add the common root (merge-formula)
-            final Pair<InterpolationGroup<T>, Integer> commonRoot = stack.removeLast();
-            startOfSubTree.add(stack.getLast().getSecond());
-            formulas.add(commonRoot.getFirst());
+          // then add the common root (merge-formula)
+          final Pair<InterpolationGroup<T>, Integer> commonRoot = stack.removeLast();
+          startOfSubTree.add(stack.getLast().getSecond());
+          formulas.add(commonRoot.getFirst());
 
-            assert commonRoot.getSecond() >= stack.getLast().getSecond()
-                : "adding a complete subtree can only be done on the right side";
-
-            break;
-          }
-        case MIDDLE:
-          {
-            startOfSubTree.add(stack.getLast().getSecond());
-            formulas.add(formula);
-            break;
-          }
-        default:
-          throw new AssertionError();
+          assert commonRoot.getSecond() >= stack.getLast().getSecond()
+              : "adding a complete subtree can only be done on the right side";
+        }
+        case MIDDLE -> {
+          startOfSubTree.add(stack.getLast().getSecond());
+          formulas.add(formula);
+        }
       }
     }
     ImmutableIntArray resultingStartOfSubtree = startOfSubTree.build();
@@ -348,9 +338,9 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
   }
 
   /**
-   * The default Predicate Analysis can only handle a flat list of interpolants. Thus we convert the
-   * tree-structure back into a linear chain of interpolants. The analysis must handle special cases
-   * on its own, i.e. use BAM with function-rebuilding.
+   * The default Predicate Analysis can only handle a flat list of interpolants. Thus, we convert
+   * the tree-structure back into a linear chain of interpolants. The analysis must handle special
+   * cases on its own, i.e. use BAM with function-rebuilding.
    *
    * <p>For function-entries (START-point) we use TRUE, for function-returns (END-point) both
    * function-summary and function-execution (merged into one formula).
@@ -375,29 +365,17 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
         positionOfA++) {
       // last interpolant would be False.
 
-      final BooleanFormula itp;
-      switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
-        case START:
-          {
-            itp = bfmgr.makeTrue();
-            break;
-          }
-        case END:
-          {
-            // add the last inner formula and the common root (merge-formula)
-            final BooleanFormula functionSummary = iter.next();
-            final BooleanFormula functionExecution = iter.next();
-            itp = rebuildInterpolant(functionSummary, functionExecution);
-            break;
-          }
-        case MIDDLE:
-          {
-            itp = iter.next();
-            break;
-          }
-        default:
-          throw new AssertionError();
-      }
+      final BooleanFormula itp =
+          switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
+            case START -> bfmgr.makeTrue();
+            case END -> {
+              // add the last inner formula and the common root (merge-formula)
+              final BooleanFormula functionSummary = iter.next();
+              final BooleanFormula functionExecution = iter.next();
+              yield rebuildInterpolant(functionSummary, functionExecution);
+            }
+            case MIDDLE -> iter.next();
+          };
       interpolants.add(itp);
     }
 
@@ -408,7 +386,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
 
   /**
    * We need all atoms of both interpolants in one formula, If one of the formulas is True or False,
-   * we do not get Atoms from it. Thus we remove those cases.
+   * we do not get Atoms from it. Thus, we remove those cases.
    */
   protected BooleanFormula rebuildInterpolant(
       final BooleanFormula functionSummary, final BooleanFormula functionExecution) {

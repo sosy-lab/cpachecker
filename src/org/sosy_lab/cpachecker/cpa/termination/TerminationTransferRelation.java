@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -108,7 +108,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
           ImmutableList.of(),
           ImmutableSet.of());
 
-  private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
+  private SequencedSet<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
   private final TerminationLoopInformation terminationInformation;
   private final LogManager logger;

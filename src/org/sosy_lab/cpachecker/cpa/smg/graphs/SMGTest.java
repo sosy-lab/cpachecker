@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public class SMGTest {
-  private LogManager logger = LogManager.createTestLogManager();
+  private final LogManager logger = LogManager.createTestLogManager();
 
   private SMG smg;
   private static final int mockTypeSize = 32;

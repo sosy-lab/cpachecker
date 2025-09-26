@@ -112,10 +112,10 @@ public final class FlowDependenceState implements AbstractState, AbstractWrapper
     PointerState pointers = null;
     assert wrappedStates.size() == 2 : "Wrapped state has wrong size: " + wrappedStates.size();
     for (AbstractState s : wrappedStates) {
-      if (s instanceof ReachingDefState) {
-        reachdef = (ReachingDefState) s;
-      } else if (s instanceof PointerState) {
-        pointers = (PointerState) s;
+      if (s instanceof ReachingDefState reachingDefState) {
+        reachdef = reachingDefState;
+      } else if (s instanceof PointerState pointerState) {
+        pointers = pointerState;
       } else {
         throw new AssertionError("Wrong state type: " + s.getClass().getSimpleName());
       }

@@ -22,8 +22,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -85,7 +86,12 @@ public class SMGCPATest0 {
   protected static final int TEST_LIST_LENGTH = 50;
 
   protected CFAEdge dummyCFAEdge =
-      new DummyCFAEdge(CFANode.newDummyCFANode(), CFANode.newDummyCFANode());
+      new BlankEdge(
+          "dummy edge",
+          FileLocation.DUMMY,
+          CFANode.newDummyCFANode(),
+          CFANode.newDummyCFANode(),
+          "dummy for tests");
 
   protected static List<List<Value>> sharedValuesInListSpec = ImmutableList.of();
 
@@ -101,7 +107,7 @@ public class SMGCPATest0 {
     dllSize = pointerSizeInBits.multiply(BigInteger.valueOf(3));
     dllSizeValue = new NumericValue(dllSize);
     sllSizeValue = new NumericValue(sllSize);
-    // Per default we expect the nfo after the hfo and the pfo after that
+    // By default, we expect the nfo after the hfo and the pfo after that
     nfo = hfo.add(pointerSizeInBits);
     pfo = nfo.add(pointerSizeInBits);
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
@@ -160,6 +166,7 @@ public class SMGCPATest0 {
 
     return new ConstraintsSolver(
         Configuration.defaultConfiguration(),
+        machineModel,
         smtSolver,
         formulaManager,
         converter,
@@ -259,7 +266,7 @@ public class SMGCPATest0 {
       Value ptrToFirstNotAbstr = ptrToFirstNotAbstrAndState.getValue();
       currentState =
           currentState.writeValueWithChecks(
-              derefedFirstAbstrListElem.get(0).getSMGObject(),
+              derefedFirstAbstrListElem.getFirst().getSMGObject(),
               new NumericValue(pfo),
               numericPointerSizeInBits,
               ptrToFirstNotAbstr,
@@ -300,14 +307,14 @@ public class SMGCPATest0 {
     List<SMGStateAndOptionalSMGObjectAndOffset> derefedLastAbstrListElem =
         currentState.dereferencePointer(listPtrs[listLength - 3]);
     assertThat(derefedLastAbstrListElem).hasSize(1);
-    assertThat(derefedLastAbstrListElem.get(0).hasSMGObjectAndOffset()).isTrue();
+    assertThat(derefedLastAbstrListElem.getFirst().hasSMGObjectAndOffset()).isTrue();
     ValueAndSMGState ptrToLastAndState =
         currentState.searchOrCreateAddress(
             listSegmentBack, CPointerType.POINTER_TO_VOID, otherPtrOffset);
     currentState = ptrToLastAndState.getState();
     currentState =
         currentState.writeValueWithChecks(
-            derefedLastAbstrListElem.get(0).getSMGObject(),
+            derefedLastAbstrListElem.getFirst().getSMGObject(),
             new NumericValue(nfo),
             numericPointerSizeInBits,
             ptrToLastAndState.getValue(),
@@ -420,10 +427,10 @@ public class SMGCPATest0 {
                   CPointerType.POINTER_TO_VOID,
                   dummyCFAEdge);
         } catch (CPATransferException e) {
-          if (e instanceof SMGException) {
-            throw (SMGException) e;
-          } else if (e instanceof SMGSolverException) {
-            throw (SMGSolverException) e;
+          if (e instanceof SMGException sMGException) {
+            throw sMGException;
+          } else if (e instanceof SMGSolverException sMGSolverException) {
+            throw sMGSolverException;
           }
           // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException
@@ -448,10 +455,10 @@ public class SMGCPATest0 {
                   CPointerType.POINTER_TO_VOID,
                   dummyCFAEdge);
         } catch (CPATransferException e) {
-          if (e instanceof SMGException) {
-            throw (SMGException) e;
-          } else if (e instanceof SMGSolverException) {
-            throw (SMGSolverException) e;
+          if (e instanceof SMGException sMGException) {
+            throw sMGException;
+          } else if (e instanceof SMGSolverException sMGSolverException) {
+            throw sMGSolverException;
           }
           // This can never happen, but we are forced to do this as the visitor demands the
           // CPATransferException
@@ -661,7 +668,7 @@ public class SMGCPATest0 {
    * Checks that all pointers given have data that is located in the beginning of the list as 32bit
    * integers with the first being 0, then +1 for each after that in the same list.
    *
-   * @param pointers a array of pointers pointing to a list with the default data scheme.
+   * @param pointers an array of pointers pointing to a list with the default data scheme.
    */
   protected void checkListDataIntegrity(Value[] pointers, boolean dll) throws SMGException {
     int toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).intValue();

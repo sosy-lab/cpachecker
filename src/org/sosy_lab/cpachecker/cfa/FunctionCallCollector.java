@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -28,28 +27,24 @@ public class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
 
   private final List<AStatementEdge> functionCalls = new ArrayList<>();
 
-  public Collection<AStatementEdge> getFunctionCalls() {
-    return Collections.unmodifiableCollection(functionCalls);
+  public List<AStatementEdge> getFunctionCalls() {
+    return Collections.unmodifiableList(functionCalls);
   }
 
   @Override
   public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
     switch (pEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          final AStatementEdge edge = (AStatementEdge) pEdge;
-          if (edge.getStatement() instanceof AFunctionCall) {
-            functionCalls.add(edge);
-          }
-          break;
+      case StatementEdge -> {
+        final AStatementEdge edge = (AStatementEdge) pEdge;
+        if (edge.getStatement() instanceof AFunctionCall) {
+          functionCalls.add(edge);
         }
-
-      case FunctionCallEdge:
-      case FunctionReturnEdge:
-      case CallToReturnEdge:
-        throw new AssertionError("functioncall- and return-edges should not exist at this time.");
-      default:
+      }
+      case FunctionCallEdge, FunctionReturnEdge, CallToReturnEdge ->
+          throw new AssertionError("functioncall- and return-edges should not exist at this time.");
+      default -> {
         // nothing to do
+      }
     }
     return CFATraversal.TraversalProcess.CONTINUE;
   }

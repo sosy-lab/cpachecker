@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 import org.sosy_lab.cpachecker.util.smg.util.SMGAndSMGValues;
 
 /**
- * Class to represent a immutable bipartite symbolic memory graph. Manipulating methods return a
+ * Class to represent an immutable bipartite symbolic memory graph. Manipulating methods return a
  * modified copy but do not modify a certain instance. Consists of (SMG-)objects, values, edges from
  * the objects to the values (has-value edges), edges from the values to objects (points-to edges)
  * and labelling functions (to get the kind, nesting level, size etc. of objects etc.)
@@ -1202,7 +1202,7 @@ public class SMG {
   }
 
   /**
-   * This is a general method to get a all SMGHasValueEdges by object and a filter predicate.
+   * This is a general method to get all SMGHasValueEdges by object and a filter predicate.
    * Examples:
    *
    * <p>{@code Predicate<SMGHasValueEdge> filterOffset = o -> o.getOffset().equals(offset);} Returns
@@ -1314,7 +1314,7 @@ public class SMG {
 
     // if the field to be read is covered by nullified blocks, i.e. if
     // forall . of <= i < of +  size(t) exists . e element H(o, of, t): i element I(e),
-    // let v := 0. Otherwise extend V by a fresh value node v.
+    // let v := 0. Otherwise, we extend V by a fresh value node v.
     Optional<SMGValue> isCoveredBy = isCoveredByNullifiedBlocks(object, offset, sizeInBits);
     if (isCoveredBy.isPresent()) {
       return SMGAndHasValueEdges.of(
@@ -1342,7 +1342,7 @@ public class SMG {
    * @param offset The offset (beginning of the field).
    * @param sizeInBits Size in bits of the field.
    * @param value The value to be written into the field.
-   * @return A SMG with the value at the specified position.
+   * @return An SMG with the value at the specified position.
    */
   public SMG writeValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
@@ -1452,7 +1452,7 @@ public class SMG {
   /**
    * This Method checks for the entered SMGObject if there exists SMGHasValueEdges such that the
    * field [offset; offset + size) is covered by nullObjects. Important: One may not take
-   * SMGHasValueEdges into account which lay outside of the SMGObject! Else it would be possible to
+   * SMGHasValueEdges into account which lay outside the SMGObject! Else it would be possible to
    * read potentially invalid memory!
    *
    * @param object The SMGObject in which a field is to be checked for nullified blocks.
@@ -1504,7 +1504,7 @@ public class SMG {
    * Returns the sorted Map<offset, max size> of SMGHasValueEdge of values equaling zero that cover
    * the entered SMGObject somewhere. Only edges that do not exceed the boundries of the range
    * offset to offset + size are used. It always defaults to the max size, such that no smaller size
-   * for a offset exists. Example: <0, 16> and <0, 24> would result in <0, 24>.
+   * for an offset exists. Example: <0, 16> and <0, 24> would result in <0, 24>.
    *
    * @param smgObject The SMGObject one wants to check for covering NullObjects.
    * @return TreeMap<offset, max size> of covering edges.
@@ -1635,8 +1635,9 @@ public class SMG {
     }
     Optional<SMGPointsToEdge> maybePTEdge = getPTEdge(value);
     return maybePTEdge.isPresent()
-        && maybePTEdge.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment
-        && ((SMGSinglyLinkedListSegment) maybePTEdge.orElseThrow().pointsTo()).getMinLength() == 0;
+        && maybePTEdge.orElseThrow().pointsTo()
+            instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment
+        && sMGSinglyLinkedListSegment.getMinLength() == 0;
   }
 
   /**
@@ -1664,7 +1665,7 @@ public class SMG {
    * Checks whether a given value is a pointer address.
    *
    * @param pValue to be checked
-   * @return true if pValue is a pointer.
+   * @return whether pValue is a pointer.
    */
   public boolean isPointer(SMGValue pValue) {
     assert pointsToEdges.containsKey(SMGValue.zeroValue())

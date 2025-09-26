@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -193,7 +192,6 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    *
    * }</pre>
    */
-  @SuppressFBWarnings("UC_USELESS_VOID_METHOD") // false positive by SpotBugs
   public void replace(CFAEdge pEdge, CFAEdge pNewEdge) {
 
     EndpointPair<CFANode> endpoints = incidentNodes(pEdge);

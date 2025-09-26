@@ -38,7 +38,7 @@ class PushSummandVisitor<T>
   /** The evaluation visitor used to evaluate the addition and negation of constants. */
   private final FormulaEvaluationVisitor<T> evaluationVisitor;
 
-  /** This flag indicates whether or not this visitor managed to get a summand consumed. */
+  /** This flag indicates whether this visitor managed to get a summand consumed. */
   private boolean consumed = false;
 
   /**

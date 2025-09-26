@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -143,26 +142,25 @@ public class ARGUtils {
       if (children.size() > 2) {
         return true;
       } else if (children.size() == 2) {
-        ARGState firstChild = children.get(0);
+        ARGState firstChild = children.getFirst();
         ARGState secondChild = children.get(1);
         List<CFAEdge> edgesToFirstChild = current.getEdgesToChild(firstChild);
         if (edgesToFirstChild.size() > 1) {
           return true;
         }
-        CFAEdge edgeToFirstChild = edgesToFirstChild.iterator().next();
-        if (!(edgeToFirstChild instanceof AssumeEdge)) {
+        CFAEdge edgeToFirstChild = edgesToFirstChild.getFirst();
+        if (!(edgeToFirstChild instanceof AssumeEdge assumeEdge)) {
           return true;
         }
         List<CFAEdge> edgesToSecondChild = current.getEdgesToChild(secondChild);
         if (edgesToSecondChild.size() > 1) {
           return true;
         }
-        CFAEdge edgeToSecondChild = edgesToSecondChild.iterator().next();
+        CFAEdge edgeToSecondChild = edgesToSecondChild.getFirst();
         if (!(edgeToSecondChild instanceof AssumeEdge)) {
           return true;
         }
-        if (!CFAUtils.getComplimentaryAssumeEdge((AssumeEdge) edgeToFirstChild)
-            .equals(edgeToSecondChild)) {
+        if (!CFAUtils.getComplimentaryAssumeEdge(assumeEdge).equals(edgeToSecondChild)) {
           return true;
         }
       }
@@ -256,7 +254,7 @@ public class ARGUtils {
       return Optional.empty();
     }
 
-    return Optional.of(new ARGPath(Lists.reverse(states)));
+    return Optional.of(new ARGPath(states.reversed()));
   }
 
   public static ARGPath getOnePathFromTo(final Predicate<ARGState> pIsStart, final ARGState pEnd) {
@@ -322,7 +320,7 @@ public class ARGUtils {
         currentARGState = parentElement;
       }
     }
-    return new ARGPath(Lists.reverse(states));
+    return new ARGPath(states.reversed());
   }
 
   /**
@@ -402,7 +400,7 @@ public class ARGUtils {
     ARGState currentElement = root;
     while (!currentElement.getChildren().isEmpty()) {
       states.add(currentElement);
-      currentElement = currentElement.getChildren().iterator().next();
+      currentElement = currentElement.getChildren().getFirst();
     }
     states.add(currentElement);
     return new ARGPath(states);
@@ -473,15 +471,16 @@ public class ARGUtils {
       ARGState child;
       CFAEdge edge;
       switch (childrenInArg.size()) {
-        case 0:
+        case 0 -> {
           return builder.build(currentElement);
-
-        case 1: // only one successor, easy
+        }
+        case 1 -> {
+          // only one successor, easy
           child = Iterables.getOnlyElement(childrenInArg);
           edge = currentElement.getEdgeToChild(child);
-          break;
-
-        case 2: // branch
+        }
+        case 2 -> {
+          // branch
           // first, find out the edges and the children
           AssumeEdge trueEdge = null;
           AssumeEdge falseEdge = null;
@@ -489,10 +488,11 @@ public class ARGUtils {
           ARGState falseChild = null;
 
           Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
-          if (Iterables.any(
-              locs, loc -> !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class)))) {
-            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
-          }
+          checkArgument(
+              !Iterables.any(
+                  locs,
+                  loc -> !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))),
+              "ARG branches where there is no AssumeEdge!");
 
           for (ARGState currentChild : childrenInArg) {
             CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
@@ -504,17 +504,15 @@ public class ARGUtils {
               falseChild = currentChild;
             }
           }
-          if (trueEdge == null || falseEdge == null) {
-            throw new IllegalArgumentException("ARG branches with non-complementary AssumeEdges!");
-          }
+          checkArgument(
+              trueEdge != null && falseEdge != null,
+              "ARG branches with non-complementary AssumeEdges!");
           assert trueChild != null;
           assert falseChild != null;
 
           // search first idx where we have a predicate for the current branching
           Boolean predValue = branchingInformation.apply(currentElement, trueEdge);
-          if (predValue == null) {
-            throw new IllegalArgumentException("ARG branches without direction information!");
-          }
+          checkArgument(predValue != null, "ARG branches without direction information!");
 
           // now select the right edge
           if (predValue) {
@@ -524,10 +522,8 @@ public class ARGUtils {
             edge = falseEdge;
             child = falseChild;
           }
-          break;
-
-        default:
-          throw new IllegalArgumentException("ARG splits with more than two branches!");
+        }
+        default -> throw new IllegalArgumentException("ARG splits with more than two branches!");
       }
 
       checkArgument(stateFilter.test(child), "ARG and direction information from solver disagree!");
@@ -646,7 +642,7 @@ public class ARGUtils {
       @Nullable CounterexampleInfo pCounterExample)
       throws IOException {
 
-    ARGState rootState = pPaths.iterator().next().getFirstState();
+    ARGState rootState = pPaths.getFirst().getFirstState();
 
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
 
@@ -848,10 +844,8 @@ public class ARGUtils {
     Deque<String> sortedFunctionOccurrence = new ArrayDeque<>();
     for (ARGState s : sortedStates) {
       CFANode node = extractLocation(s);
-      if (!sortedFunctionOccurrence.isEmpty()
-          && sortedFunctionOccurrence.getLast().equals(node.getFunctionName())) {
-        continue;
-      } else {
+      if (sortedFunctionOccurrence.isEmpty()
+          || !sortedFunctionOccurrence.getLast().equals(node.getFunctionName())) {
         sortedFunctionOccurrence.add(node.getFunctionName());
       }
     }
@@ -871,15 +865,12 @@ public class ARGUtils {
         inLoopState = s;
         inLoopNode = extractLocation(inLoopState);
         outLoopState = null;
-        continue;
 
-        // function call inside a loop we want to uproll
       } else if (!loopFound
           && inLoopNode != null
           && !inLoopNode.getFunctionName().equals(extractLocation(s).getFunctionName())) {
-        continue;
+        // function call inside a loop we want to uproll
 
-        // function call in the path we want to uproll
       } else if (!loopFound
           && inLoopNode == null
           && loc.getLeavingSummaryEdge() != null
@@ -889,15 +880,14 @@ public class ARGUtils {
           // calls right now
           && sortedFunctionOccurrence.getFirst().equals(sortedFunctionOccurrence.getLast())
           && sortedFunctionOccurrence.size() > 1) {
+        // function call in the path we want to uproll
         inFunctionState = s;
         inFunctionNode = extractLocation(inFunctionState);
         outFunctionState = null;
 
       } else if (inFunctionNode != null
-          // as long as we are in the other function we can just continue, this
-          // is handled later on
           && !inFunctionNode.getFunctionName().equals(extractLocation(s).getFunctionName())) {
-        continue;
+        // as long as we are in the other function we can just continue, this is handled later on
 
       } else if (!loopFound) {
         if (inLoopState != null && outLoopState == null) {
@@ -1066,8 +1056,8 @@ public class ARGUtils {
         CFANode edgeSuccessor = edge.getSuccessor();
 
         // skip function calls
-        if (edge instanceof FunctionCallEdge) {
-          CFANode sumEdgeSuccessor = ((FunctionCallEdge) edge).getReturnNode();
+        if (edge instanceof FunctionCallEdge functionCallEdge) {
+          CFANode sumEdgeSuccessor = functionCallEdge.getReturnNode();
 
           // only continue if we do not meet the loophead again
           if (!sumEdgeSuccessor.equals(loopHead)) {
@@ -1116,7 +1106,7 @@ public class ARGUtils {
               || !AbstractStates.extractLocation(outOfLoopState).equals(edgeSuccessor)) {
             sb.append("STOP;\n");
 
-            // here we go out of the loop back to the arg path
+            // here we go out of the loop back to the ARG path
           } else {
             handleGotoArg(sb, outOfLoopState);
           }
@@ -1201,21 +1191,11 @@ public class ARGUtils {
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
-        case '\n':
-          appendTo.append("\\n");
-          break;
-        case '\r':
-          appendTo.append("\\r");
-          break;
-        case '\"':
-          appendTo.append("\\\"");
-          break;
-        case '\\':
-          appendTo.append("\\\\");
-          break;
-        default:
-          appendTo.append(c);
-          break;
+        case '\n' -> appendTo.append("\\n");
+        case '\r' -> appendTo.append("\\r");
+        case '\"' -> appendTo.append("\\\"");
+        case '\\' -> appendTo.append("\\\\");
+        default -> appendTo.append(c);
       }
     }
   }
@@ -1232,9 +1212,9 @@ public class ARGUtils {
    *       issue is fixed, the prefix "try" should be removed from the function name and the return
    *       type should be changed to {@link CounterexampleInfo}.
    *   <li>If no counterexample is registered for the state yet, this function uses a heuristic for
-   *       determining whether or not the counterexample should be marked as imprecise. Currently,
-   *       this heuristic will simply always mark a counterexample as feasible if and only if the
-   *       analysis used consists of either a ValueAnalysisCPA or a SMGCPA.
+   *       determining whether the counterexample should be marked as imprecise. Currently, this
+   *       heuristic will simply always mark a counterexample as feasible if and only if the
+   *       analysis used consists of either a ValueAnalysisCPA or an SMGCPA.
    * </ol>
    *
    * @param pTargetState the target state to get the counterexample for.
@@ -1297,17 +1277,17 @@ public class ARGUtils {
     // Loop until all paths reached the root
     while (!paths.isEmpty()) {
       // Expand currently considered path
-      List<ARGState> curPath = paths.remove(paths.size() - 1);
+      List<ARGState> curPath = paths.removeLast();
       Preconditions.checkNotNull(curPath);
       // If there is no more to expand - add this path and continue
-      if (curPath.get(curPath.size() - 1) == root) {
-        results.add(new ARGPath(Lists.reverse(curPath)));
+      if (curPath.getLast() == root) {
+        results.add(new ARGPath(curPath.reversed()));
 
         continue;
       }
 
       // Add all parents of currently first state on the current path
-      for (ARGState parentElement : curPath.get(curPath.size() - 1).getParents()) {
+      for (ARGState parentElement : curPath.getLast().getParents()) {
         ImmutableList.Builder<ARGState> tmp =
             ImmutableList.builderWithExpectedSize(curPath.size() + 1);
         tmp.addAll(curPath);

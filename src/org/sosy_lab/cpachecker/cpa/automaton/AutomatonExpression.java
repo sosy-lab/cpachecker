@@ -63,7 +63,7 @@ interface AutomatonExpression<T> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof StringExpression && toPrint.equals(((StringExpression) o).toPrint);
+      return o instanceof StringExpression other && toPrint.equals(other.toPrint);
     }
   }
 

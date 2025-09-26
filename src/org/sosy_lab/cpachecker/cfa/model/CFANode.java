@@ -248,19 +248,19 @@ public sealed class CFANode implements Comparable<CFANode>
    * locations of edges instead.
    */
   public String describeFileLocation() {
-    if (this instanceof FunctionEntryNode) {
+    if (this instanceof FunctionEntryNode functionEntryNode) {
       return "entry of function "
           + getFunctionName()
           + " in "
-          + ((FunctionEntryNode) this).getFileLocation();
+          + functionEntryNode.getFileLocation();
     }
 
-    if (this instanceof FunctionExitNode) {
+    if (this instanceof FunctionExitNode functionExitNode) {
       // these nodes do not belong to a location
       return "exit of function "
           + getFunctionName()
           + " in "
-          + ((FunctionExitNode) this).getEntryNode().getFileLocation();
+          + functionExitNode.getEntryNode().getFileLocation();
     }
 
     if (getNumLeavingEdges() > 0) {
@@ -290,8 +290,8 @@ public sealed class CFANode implements Comparable<CFANode>
         pOutOfScopeVariables.stream()
             .filter(
                 decl ->
-                    !(decl instanceof CVariableDeclaration)
-                        || !((CVariableDeclaration) decl).isGlobal())
+                    !(decl instanceof CVariableDeclaration cVariableDeclaration)
+                        || !cVariableDeclaration.isGlobal())
             .collect(ImmutableSet.toImmutableSet()));
   }
 
@@ -304,7 +304,7 @@ public sealed class CFANode implements Comparable<CFANode>
    * Variables can come into scope again, e.g. when iterating through a loop or calling a function
    * twice.
    *
-   * <p>We currently do not return function parameters for function exit nodes. Additionally we do
+   * <p>We currently do not return function parameters for function exit nodes. Additionally, we do
    * not report any analysis-specific variables for encoding the return value of a function. Those
    * variables can be retrieved separately via {@link FunctionExitNode#getEntryNode()} or directly
    * in the analysis.

@@ -21,9 +21,9 @@ public abstract class GenericSinglePathRefiner
     extends WrappedConfigurableRefinementBlock<
         Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
-  private StatTimer totalTimer = new StatTimer("Time for generic refiner");
-  private StatCounter numberOfRefinements = new StatCounter("Number of refinements");
-  private StatCounter numberOfRepeatedPath = new StatCounter("Number of repeated paths");
+  private final StatTimer totalTimer = new StatTimer("Time for generic refiner");
+  private final StatCounter numberOfRefinements = new StatCounter("Number of refinements");
+  private final StatCounter numberOfRepeatedPath = new StatCounter("Number of repeated paths");
 
   protected GenericSinglePathRefiner(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper) {
@@ -62,7 +62,7 @@ public abstract class GenericSinglePathRefiner
     Preconditions.checkArgument(!path.isUnreachable(), "Path could not be unreachable here");
 
     if (path.isRefinedAsReachableBy(this)) {
-      // Means that is is reachable, but other refiners declined it.
+      // Means that it is reachable, but other refiners declined it.
       // Now the pair changes. Do not refine it again.
       numberOfRepeatedPath.inc();
       return RefinementResult.createTrue();

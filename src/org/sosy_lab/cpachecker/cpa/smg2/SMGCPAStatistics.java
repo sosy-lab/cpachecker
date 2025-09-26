@@ -38,7 +38,7 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 
-  private LongAdder iterations = new LongAdder();
+  private final LongAdder iterations = new LongAdder();
 
   private final StatCounter listMaterializations =
       new StatCounter("Number of list materialization's");

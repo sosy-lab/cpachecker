@@ -32,8 +32,8 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
   private Constant(TypeInfo pInfo, T pValue) {
     super(pInfo);
     Preconditions.checkNotNull(pValue);
-    if (pValue instanceof Typed) {
-      Preconditions.checkArgument(pInfo.equals(((Typed) pValue).getTypeInfo()));
+    if (pValue instanceof Typed typed) {
+      Preconditions.checkArgument(pInfo.equals(typed.getTypeInfo()));
     }
     value = pValue;
   }
@@ -79,21 +79,21 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
   }
 
   /**
-   * Gets a invariants formula representing a constant with the given value.
+   * Gets an invariants formula representing a constant with the given value.
    *
    * @param pInfo the type information for the constant.
    * @param pValue the value of the constant.
-   * @return a invariants formula representing a constant with the given value.
+   * @return an invariants formula representing a constant with the given value.
    */
   static <T> Constant<T> of(TypeInfo pInfo, T pValue) {
     return new Constant<>(pInfo, pValue);
   }
 
   /**
-   * Gets a invariants formula representing a constant with the given value.
+   * Gets an invariants formula representing a constant with the given value.
    *
    * @param pValue the value of the constant.
-   * @return a invariants formula representing a constant with the given value.
+   * @return an invariants formula representing a constant with the given value.
    */
   static <T extends Typed> Constant<T> of(T pValue) {
     return new Constant<>(pValue.getTypeInfo(), pValue);

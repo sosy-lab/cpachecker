@@ -131,20 +131,15 @@ public final class AddressExpression extends SymbolicExpression {
       return false;
     }
     if (hasAbstractState()
-        && o instanceof AddressExpression
-        && ((AddressExpression) o).hasAbstractState()) {
-      if (getAbstractState() instanceof SMGState
-          && ((AddressExpression) o).getAbstractState() instanceof SMGState) {
-        // Precondition as this should never fail in SMGs
-        Preconditions.checkArgument(getOffset().equals(((AddressExpression) o).getOffset()));
-        // SMG values have the offset baked into them. Only the SMG truly knows equality for them
-        return SMGState.areValuesEqual(
-            (SMGState) getAbstractState(),
-            addressValue,
-            (SMGState) ((AddressExpression) o).getAbstractState(),
-            ((AddressExpression) o).addressValue,
-            false);
-      }
+        && o instanceof AddressExpression other
+        && other.hasAbstractState()
+        && getAbstractState() instanceof SMGState thisState
+        && other.getAbstractState() instanceof SMGState otherState) {
+      // Precondition as this should never fail in SMGs
+      Preconditions.checkArgument(getOffset().equals(other.getOffset()));
+      // SMG values have the offset baked into them. Only the SMG truly knows equality for them
+      return SMGState.areValuesEqual(
+          thisState, addressValue, otherState, other.addressValue, false);
     }
     return super.equals(o);
   }

@@ -8,14 +8,11 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
@@ -113,7 +110,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -254,8 +250,8 @@ public class CFAUtils {
   public static Set<CFAEdge> forwardLinearReach(CFAEdge edge) {
     CFAEdge current = edge;
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
-    while (CFAUtils.leavingEdges(current.getSuccessor()).size() == 1) {
-      current = CFAUtils.leavingEdges(current.getSuccessor()).first().get();
+    while (current.getSuccessor().getNumLeavingEdges() == 1) {
+      current = current.getSuccessor().getLeavingEdge(0);
       builder.add(current);
     }
     return builder.build();
@@ -311,9 +307,12 @@ public class CFAUtils {
     return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) enteringEdges((CFANode) node);
   }
 
-  @SuppressWarnings("unchecked")
-  public static FluentIterable<FunctionReturnEdge> leavingEdges(final FunctionExitNode node) {
-    return (FluentIterable<FunctionReturnEdge>) (FluentIterable<?>) leavingEdges((CFANode) node);
+  public static FluentIterable<CFAEdge> leavingEdges(final FunctionExitNode node) {
+    // may be strengthened to only return FunctionReturnEdges
+    // if no analysis adds dummy edges after FunctionExitNodes anymore
+    // (currently https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1319)
+    // and we really want unchecked casts
+    return leavingEdges((CFANode) node);
   }
 
   @Deprecated // entry nodes do not have summary edges
@@ -344,7 +343,7 @@ public class CFAUtils {
   @InlineMe(
       replacement = "CFAUtils.leavingEdges(node)",
       imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<FunctionReturnEdge> allLeavingEdges(final FunctionExitNode node) {
+  public static FluentIterable<CFAEdge> allLeavingEdges(final FunctionExitNode node) {
     return leavingEdges(node);
   }
 
@@ -442,10 +441,10 @@ public class CFAUtils {
 
   /** Returns the other AssumeEdge (with the negated condition) of a given AssumeEdge. */
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
-    checkArgument(edge.getPredecessor().getNumLeavingEdges() == 2);
-    return (AssumeEdge)
-        Iterables.getOnlyElement(
-            CFAUtils.leavingEdges(edge.getPredecessor()).filter(not(Predicates.equalTo(edge))));
+    return Iterables.getOnlyElement(
+        CFAUtils.leavingEdges(edge.getPredecessor())
+            .filter(e -> !e.equals(edge))
+            .filter(AssumeEdge.class));
   }
 
   /**
@@ -517,7 +516,7 @@ public class CFAUtils {
    * This method returns true if the set of nodes is connected, i.e., there is a path between every
    * pair of nodes in the set.
    *
-   * <p>Currently this is quite inefficient, so use with caution and only for small sets of nodes.
+   * <p>Currently, this is quite inefficient, so use with caution and only for small sets of nodes.
    *
    * @param pCfaNodes the set of nodes
    * @return true if the set of nodes is connected i.e. there is a path between every pair of nodes
@@ -648,13 +647,13 @@ public class CFAUtils {
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
       } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
+        throw new AssertionError("forgotten case in traversing CFA with more than 2 leaving edges");
       } else {
         return TraversalProcess.CONTINUE;
       }
     }
 
-    public boolean hasBackwardsEdges() {
+    boolean hasBackwardsEdges() {
       return hasBackwardsEdges;
     }
   }
@@ -684,7 +683,7 @@ public class CFAUtils {
    */
   public static NavigableSet<String> filterVariablesOfFunction(
       NavigableSet<String> variables, String function) {
-    // TODO: Currently the format of the qualified name is not defined.
+    // TODO: Currently, the format of the qualified name is not defined.
     // In theory, frontends could use different formats.
     // The best would be to eliminate all uses of this method
     // (code should not use Strings, but for example AIdExpressions).
@@ -708,7 +707,7 @@ public class CFAUtils {
     waitlist.offer(ImmutableList.of(pNode));
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
-      CFANode pathSucc = currentPath.get(currentPath.size() - 1);
+      CFANode pathSucc = currentPath.getLast();
       List<BlankEdge> leavingBlankEdges =
           CFAUtils.leavingEdges(pathSucc).filter(BlankEdge.class).toList();
       if (pathSucc.getNumLeavingEdges() <= 0
@@ -728,7 +727,7 @@ public class CFAUtils {
     blankPaths.clear();
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
-      CFANode pathPred = currentPath.get(0);
+      CFANode pathPred = currentPath.getFirst();
       List<BlankEdge> enteringBlankEdges =
           CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
       if (pathPred.getNumEnteringEdges() <= 0
@@ -785,8 +784,8 @@ public class CFAUtils {
             .filter(FileLocation::isRealLocation)
             .toSet();
 
-    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode functionEntryNode = (FunctionEntryNode) pEdge.getPredecessor();
+    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode functionEntryNode) {
+
       if (functionEntryNode.getFileLocation().isRealLocation()) {
         return ImmutableSet.of(functionEntryNode.getFileLocation());
       }
@@ -795,13 +794,13 @@ public class CFAUtils {
   }
 
   public static Iterable<AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
-    switch (edge.getEdgeType()) {
-      case CallToReturnEdge:
+    return switch (edge.getEdgeType()) {
+      case CallToReturnEdge -> {
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
-        return ImmutableSet.of(fnSumEdge.getExpression());
-      default:
-        return Optionals.asSet(edge.getRawAST());
-    }
+        yield ImmutableSet.of(fnSumEdge.getExpression());
+      }
+      default -> Optionals.asSet(edge.getRawAST());
+    };
   }
 
   /**

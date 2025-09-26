@@ -167,7 +167,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     return switch (unknownValueStrategy) {
       case DISCARD -> new UnknownValueAssigner();
       case INTRODUCE_SYMBOLIC -> new SymbolicValueAssigner(config);
-      default -> throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
     };
   }
 
@@ -219,17 +218,14 @@ public class ValueAnalysisCPA extends AbstractCPA
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
-      if (currentLine.trim().isEmpty()) {
-        continue;
-
-      } else if (currentLine.endsWith(":")) {
+      if (currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
         Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
 
-      } else {
+      } else if (!currentLine.trim().isEmpty()) {
         mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
       }
     }

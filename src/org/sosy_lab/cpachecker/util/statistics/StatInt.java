@@ -18,10 +18,10 @@ import java.util.stream.IntStream;
 /** Thread-safe implementation of numerical statistics. */
 public class StatInt extends AbstractStatValue implements IntConsumer {
 
-  private LongAccumulator maxValue = new LongAccumulator(Math::max, Integer.MIN_VALUE);
-  private LongAccumulator minValue = new LongAccumulator(Math::min, Integer.MAX_VALUE);
-  private LongAdder valueCount = new LongAdder();
-  private LongAdder valueSum = new LongAdder();
+  private final LongAccumulator maxValue = new LongAccumulator(Math::max, Integer.MIN_VALUE);
+  private final LongAccumulator minValue = new LongAccumulator(Math::min, Integer.MAX_VALUE);
+  private final LongAdder valueCount = new LongAdder();
+  private final LongAdder valueSum = new LongAdder();
 
   public static StatInt forStream(StatKind pMainStatisticKind, String pTitle, IntStream pStream) {
     return new StatInt(pMainStatisticKind, pTitle, pStream.summaryStatistics());

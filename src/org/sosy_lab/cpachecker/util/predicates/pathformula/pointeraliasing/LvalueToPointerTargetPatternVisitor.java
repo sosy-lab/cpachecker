@@ -60,67 +60,61 @@ class LvalueToPointerTargetPatternVisitor
       final CExpression operand1 = e.getOperand1();
       final CExpression operand2 = e.getOperand2();
 
-      switch (e.getOperator()) {
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR:
-        case DIVIDE:
-        case EQUALS:
-        case GREATER_EQUAL:
-        case GREATER_THAN:
-        case LESS_EQUAL:
-        case LESS_THAN:
-        case MODULO:
-        case MULTIPLY:
-        case NOT_EQUALS:
-        case SHIFT_LEFT:
-        case SHIFT_RIGHT:
-          return null;
+      return switch (e.getOperator()) {
+        case BINARY_AND,
+            BINARY_OR,
+            BINARY_XOR,
+            DIVIDE,
+            EQUALS,
+            GREATER_EQUAL,
+            GREATER_THAN,
+            LESS_EQUAL,
+            LESS_THAN,
+            MODULO,
+            MULTIPLY,
+            NOT_EQUALS,
+            SHIFT_LEFT,
+            SHIFT_RIGHT ->
+            null;
 
-        case MINUS:
-          {
-            final PointerTargetPatternBuilder result = operand1.accept(this);
-            if (result != null) {
-              final Long offset = tryEvaluateExpression(operand2);
-              final Long oldOffset = result.getProperOffset();
-              if (offset != null && oldOffset != null && offset < oldOffset) {
-                result.setProperOffset(oldOffset - offset);
-              } else {
-                result.retainBase();
-              }
-              return result;
+        case MINUS -> {
+          final PointerTargetPatternBuilder result = operand1.accept(this);
+          if (result != null) {
+            final Long offset = tryEvaluateExpression(operand2);
+            final Long oldOffset = result.getProperOffset();
+            if (offset != null && oldOffset != null && offset < oldOffset) {
+              result.setProperOffset(oldOffset - offset);
             } else {
-              return null;
+              result.retainBase();
             }
+            yield result;
+          } else {
+            yield null;
           }
-
-        case PLUS:
-          {
-            PointerTargetPatternBuilder result = operand1.accept(this);
-            final Long offset;
-            if (result == null) {
-              result = operand2.accept(this);
-              offset = tryEvaluateExpression(operand1);
-            } else {
-              offset = tryEvaluateExpression(operand2);
-            }
-            if (result != null) {
-              final Long remaining = result.getRemainingOffset(typeHandler);
-              if (offset != null && remaining != null && offset < remaining) {
-                assert result.getProperOffset() != null : "Unexpected nondet proper offset";
-                result.setProperOffset(result.getProperOffset() + offset);
-              } else {
-                result.retainBase();
-              }
-              return result;
-            } else {
-              return null;
-            }
+        }
+        case PLUS -> {
+          PointerTargetPatternBuilder result = operand1.accept(this);
+          final Long offset;
+          if (result == null) {
+            result = operand2.accept(this);
+            offset = tryEvaluateExpression(operand1);
+          } else {
+            offset = tryEvaluateExpression(operand2);
           }
-
-        default:
-          throw new UnrecognizedCodeException("Unhandled binary operator", cfaEdge, e);
-      }
+          if (result != null) {
+            final Long remaining = result.getRemainingOffset(typeHandler);
+            if (offset != null && remaining != null && offset < remaining) {
+              assert result.getProperOffset() != null : "Unexpected nondet proper offset";
+              result.setProperOffset(result.getProperOffset() + offset);
+            } else {
+              result.retainBase();
+            }
+            yield result;
+          } else {
+            yield null;
+          }
+        }
+      };
     }
 
     @Override
@@ -181,11 +175,7 @@ class LvalueToPointerTargetPatternVisitor
       final CType elementType;
       if (containerType instanceof CPointerType) {
         elementType = ((CPointerType) containerType).getType();
-        containerType =
-            new CArrayType(
-                containerType.isConst(), // TODO: Set array size
-                containerType.isVolatile(),
-                elementType);
+        containerType = new CArrayType(containerType.getQualifiers(), elementType);
       } else {
         elementType = ((CArrayType) containerType).getType();
       }
@@ -214,12 +204,10 @@ class LvalueToPointerTargetPatternVisitor
     final PointerTargetPatternBuilder result = ownerExpression.accept(this);
     if (result != null) {
       final CType containerType = typeHandler.getSimplifiedType(ownerExpression);
-      if (containerType instanceof CCompositeType) {
-        assert ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM
-            : "Enums are not composites!";
+      if (containerType instanceof CCompositeType cCompositeType) {
+        assert cCompositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
 
-        final OptionalLong offset =
-            typeHandler.getOffset((CCompositeType) containerType, e.getFieldName());
+        final OptionalLong offset = typeHandler.getOffset(cCompositeType, e.getFieldName());
         if (!offset.isPresent()) {
           return null; // TODO this looses values of bit fields
         }
@@ -249,13 +237,9 @@ class LvalueToPointerTargetPatternVisitor
   public PointerTargetPatternBuilder visit(final CUnaryExpression e)
       throws UnrecognizedCodeException {
     switch (e.getOperator()) {
-      case AMPER:
-      case MINUS:
-      case SIZEOF:
-      case TILDE:
-        throw new UnrecognizedCodeException("Illegal unary operator", cfaEdge, e);
-      default:
-        throw new UnrecognizedCodeException("Unhandled unary operator", cfaEdge, e);
+      case AMPER, MINUS, SIZEOF, TILDE ->
+          throw new UnrecognizedCodeException("Illegal unary operator", cfaEdge, e);
+      default -> throw new UnrecognizedCodeException("Unhandled unary operator", cfaEdge, e);
     }
   }
 
@@ -286,8 +270,8 @@ class LvalueToPointerTargetPatternVisitor
   }
 
   private static @Nullable Long tryEvaluateExpression(CExpression e) {
-    if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().longValueExact();
+    if (e instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      return cIntegerLiteralExpression.getValue().longValueExact();
     }
     return null;
   }

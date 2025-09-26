@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file is part of CPAchecker,
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
 #
-# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -15,12 +15,18 @@
 # From here on you should not need to change anything
 #------------------------------------------------------------------------------
 
+bash_major_version=$(echo $BASH_VERSION | cut -d'.' -f1)
+if [ -n "$bash_major_version" ] && [ "$bash_major_version" -lt 5 ]; then
+  echo "Your Bash version is too old, please install Bash 5 or later." 1>&2
+  echo "Used Bash version: $BASH_VERSION" 1>&2
+  exit 1
+fi
 java_version="`$JAVA -XX:-UsePerfData -Xmx5m -version 2>&1`"
 result=$?
 if [ $result -eq 127 ]; then
-  echo "Java not found, please install Java 17 or newer." 1>&2
-  echo "For Ubuntu: sudo apt-get install openjdk-17-jre" 1>&2
-  echo "If you have installed Java 17, but it is not in your PATH," 1>&2
+  echo "Java not found, please install Java 21 or newer." 1>&2
+  echo "For Ubuntu: sudo apt-get install openjdk-21-jre" 1>&2
+  echo "If you have installed Java 21, but it is not in your PATH," 1>&2
   echo "let the environment variable JAVA point to the \"java\" binary." 1>&2
   exit 1
 fi
@@ -30,11 +36,11 @@ if [ $result -ne 0 ]; then
   echo "Please make sure you are able to execute Java processes by running \"$JAVA\"."
   exit 1
 fi
-java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | cut -f1 -d.`"
-if [ -z "$java_version" ] || [ "$java_version" -lt 17 ] ; then
-  echo "Your Java version is too old, please install Java 17 or newer." 1>&2
-  echo "For Ubuntu: sudo apt-get install openjdk-17-jre" 1>&2
-  echo "If you have installed Java 17, but it is not in your PATH," 1>&2
+java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | cut -f1 -d. | cut -f1 -d-`"
+if [ -z "$java_version" ] || [ "$java_version" -lt 21 ] ; then
+  echo "Your Java version is too old, please install Java 21 or newer." 1>&2
+  echo "For Ubuntu: sudo apt-get install openjdk-21-jre" 1>&2
+  echo "If you have installed Java 21, but it is not in your PATH," 1>&2
   echo "let the environment variable JAVA point to the \"java\" binary." 1>&2
   exit 1
 fi
@@ -128,10 +134,12 @@ elif [ -n "$TMP" ]; then
 fi
 
 # Determine whether to enable Java assertions
-if [ "$BENCHMARK_MODE" = true ]; then
-  JAVA_ASSERTIONS=-da
-else
-  JAVA_ASSERTIONS=-ea
+if [[ ! -v JAVA_ASSERTIONS ]]; then
+  if [ "$BENCHMARK_MODE" = true ]; then
+    JAVA_ASSERTIONS=-da
+  else
+    JAVA_ASSERTIONS=-ea
+  fi
 fi
 
 # Determine heap size

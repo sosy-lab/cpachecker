@@ -126,7 +126,7 @@ public class CPABuilder {
     if (rootCpaConfig.cpaClass == CompositeCPA.class
         && rootCpaConfig.getAllChildren().isEmpty()
         && allAutomata.isEmpty()) {
-      // By default there is a top-level CompositeCPA, and if it has no children, this means that
+      // By default, there is a top-level CompositeCPA, and if it has no children, this means that
       // the user did not specify any meaningful configuration.
       throw new InvalidConfigurationException(
           "Please specify a configuration with at least one CPA or specification automaton. "
@@ -230,7 +230,7 @@ public class CPABuilder {
     }
 
     List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue);
-    String cpaNameFromOption = optionParts.get(0);
+    String cpaNameFromOption = optionParts.getFirst();
     String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaNameFromOption);
     Class<?> cpaClass = getCPAClass(optionName, cpaNameFromOption);
 
@@ -308,7 +308,7 @@ public class CPABuilder {
    * Instantiate CPA(s) according to given config, including any necessary children.
    *
    * @param cpas Additional list of CPAs to inject at first possible place. Will be cleared
-   *     afterwards.
+   *     afterward.
    */
   private ConfigurableProgramAnalysis instantiateCPAandChildren(
       final CPAConfig cpaConfig,
@@ -321,7 +321,7 @@ public class CPABuilder {
     if (cpaConfig.isPlaceholder) {
       if (cpaConfig.equals(SPECIFICATION_PLACEHOLDER)) {
         if (cpas.size() == 1) {
-          return cpas.get(0);
+          return cpas.getFirst();
         } else {
           String count = cpas.isEmpty() ? "none" : Integer.toString(cpas.size());
           throw new InvalidConfigurationException(
@@ -456,12 +456,12 @@ public class CPABuilder {
       throw new UnexpectedCheckedException("instantiation of CPA " + pCpaName, cause);
     }
 
-    if (!(factoryObj instanceof CPAFactory)) {
+    if (!(factoryObj instanceof CPAFactory cPAFactory)) {
       throw new InvalidComponentException(
           cpaClass, "CPA", "Factory method did not return a CPAFactory instance.");
     }
 
-    return (CPAFactory) factoryObj;
+    return cPAFactory;
   }
 
   private void createAndSetChildrenCPAs(

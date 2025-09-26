@@ -33,7 +33,7 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private static class Block {
-    public static final String ENTRY_BLOCK_NAME = "entry_block_main";
+    static final String ENTRY_BLOCK_NAME = "entry_block_main";
 
     // function name which is the basis for the block
     @SuppressWarnings("unused")
@@ -59,7 +59,7 @@ public class BlockWaitlist implements Waitlist {
     }
 
     @SuppressWarnings("unused")
-    public int getSavedResources() {
+    int getSavedResources() {
       return savedResources;
     }
 
@@ -72,7 +72,7 @@ public class BlockWaitlist implements Waitlist {
     /**
      * check resource limits
      *
-     * @return true if resource limit has been reached
+     * @return whether resource limit has been reached
      */
     boolean checkResources() {
       if (isEntryBlock) {
@@ -178,8 +178,8 @@ public class BlockWaitlist implements Waitlist {
   // map of saved empty blocks (to count resources during)
   private final Map<BKey, Block> savedBlocksMap = new TreeMap<>();
 
-  private BlockConfiguration config;
-  private LogManager logger;
+  private final BlockConfiguration config;
+  private final LogManager logger;
 
   /**
    * Constructor that needs a factory for the waitlist implementation that should be used to store
@@ -239,7 +239,7 @@ public class BlockWaitlist implements Waitlist {
    * checks whether function name is a block (for example, starts with emg_control or emg_callback
    * or matches ldv_.*_instance_)
    *
-   * @return true if it is a block entry
+   * @return whether it is a block entry
    */
   private boolean isBlock(String func) {
     for (Pattern p : ldvPattern) {

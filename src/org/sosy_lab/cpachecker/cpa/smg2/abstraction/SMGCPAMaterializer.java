@@ -514,7 +514,7 @@ public class SMGCPAMaterializer {
             .equals(SMGTargetSpecifier.IS_REGION));
 
     // TODO: problem, on 1+ we might have first and last ptrs (and all), but never want to switch
-    // the last and all pointer to an concrete element for the extended list (this case), but
+    // the last and all pointer to a concrete element for the extended list (this case), but
     // switch it to the 0+
 
     // Create the now smaller abstracted list
@@ -1083,7 +1083,7 @@ public class SMGCPAMaterializer {
       return false;
     }
     Collections.reverse(listOfObjects);
-    return checkList(listOfObjects.get(0), pfo, listOfObjects, currentState);
+    return checkList(listOfObjects.getFirst(), pfo, listOfObjects, currentState);
   }
 
   // Check that the pointers of a list are correct for last pointer materialization
@@ -1154,8 +1154,8 @@ public class SMGCPAMaterializer {
     SMGAndHasValueEdges readValue =
         smg.readValue(pNewAbsListSeg, nfo, smg.getSizeOfPointer(), false);
     if (readValue.getHvEdges().size() != 1
-        || !smg.isPointer(readValue.getHvEdges().get(0).hasValue())
-        || !smg.getPTEdge(readValue.getHvEdges().get(0).hasValue())
+        || !smg.isPointer(readValue.getHvEdges().getFirst().hasValue())
+        || !smg.getPTEdge(readValue.getHvEdges().getFirst().hasValue())
             .orElseThrow()
             .pointsTo()
             .equals(newConcreteRegion)) {
