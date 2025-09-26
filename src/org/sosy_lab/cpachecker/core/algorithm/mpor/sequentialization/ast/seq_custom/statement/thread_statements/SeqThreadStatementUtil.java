@@ -263,6 +263,7 @@ public class SeqThreadStatementUtil {
     rOrdered.addAll(
         pInjectedStatements.stream()
             .filter(statement -> !leftOver.contains(statement))
+            // since we clone kIgnoreZeroStatements, .contains does not work
             .filter(statement -> !(statement instanceof SeqKIgnoreZeroStatement))
             .collect(ImmutableList.toImmutableList()));
     rOrdered.addAll(leftOver);
@@ -273,8 +274,8 @@ public class SeqThreadStatementUtil {
       MPOROptions pOptions, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return switch (pOptions.reductionOrder) {
-      case NONE -> throw new IllegalArgumentException("no reductionOrder specified");
-      case BITVECTOR_THEN_CONFLICT ->
+      // if NONE is specified, default to BITVECTOR_THEN_CONFLICT
+      case NONE, BITVECTOR_THEN_CONFLICT ->
           orderInjectedReductionStatements(
               pInjectedStatements,
               SeqBitVectorEvaluationStatement.class,
