@@ -17,8 +17,6 @@ import static org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier.IS_LAST_
 import static org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier.IS_REGION;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -132,7 +130,7 @@ public class NodeMapping {
     return getMappedValue(oldValue, maybeSpec.orElseThrow().targetSpecifier());
   }
 
-  public @Nullable SMGObject getMappedObject(SMGObject object) {
+  public SMGObject getMappedObject(SMGObject object) {
     checkNotNull(object);
     return objectMap.get(object);
   }
@@ -182,7 +180,8 @@ public class NodeMapping {
     checkArgument(!vNew.isZero());
 
     Map<SMGTargetSpecifier, SMGValue> existingInnerMap = valueMap.get(vOld);
-    Builder<SMGValue, Map<SMGTargetSpecifier, SMGValue>> newMapBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<SMGValue, Map<SMGTargetSpecifier, SMGValue>> newMapBuilder =
+        ImmutableMap.builder();
     if (existingInnerMap != null) {
       // REGION => no FIRST/LAST/ALL
       // FIRST/LAST/ALL => no REGION
@@ -270,13 +269,8 @@ public class NodeMapping {
                   e ->
                       innerMap2.containsValue(e.getValue())
                           && (allowZeroMapping || !e.getValue().isZero()));
-      if (strictMatch) {
-        return true;
-      } else if (looseMatch) {
-        return true;
-      } else {
-        return false;
-      }
+
+      return strictMatch || looseMatch;
     }
   }
 

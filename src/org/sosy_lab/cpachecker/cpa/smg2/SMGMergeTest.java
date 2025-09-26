@@ -485,7 +485,7 @@ public class SMGMergeTest extends SMGCPATest0 {
           .isGreaterThan(abstrObjs.iterator().next().getMinLength());
     }
 
-    SMGState smallestAbstractedState = allAbstractedStates.get(allAbstractedStates.size() - 1);
+    SMGState smallestAbstractedState = allAbstractedStates.getLast();
     for (int i = allAbstractedStates.size() - 2; i >= 0; i--) {
       SMGState stateToMergeRight = allAbstractedStates.get(i);
       Optional<MergedSMGStateAndMergeStatus> mergeRes =
@@ -530,7 +530,7 @@ public class SMGMergeTest extends SMGCPATest0 {
               abstrObjs.stream().mapToInt(SMGSinglyLinkedListSegment::getMinLength).sum());
     }
 
-    SMGState smallestAbstractedState = allAbstractedStates.get(allAbstractedStates.size() - 1);
+    SMGState smallestAbstractedState = allAbstractedStates.getLast();
     for (int i = allAbstractedStates.size() - 2; i >= 0; i--) {
       SMGState stateToMergeRight = allAbstractedStates.get(i);
       Optional<MergedSMGStateAndMergeStatus> mergeRes =

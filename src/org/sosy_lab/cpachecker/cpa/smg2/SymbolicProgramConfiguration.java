@@ -39,11 +39,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -545,7 +544,7 @@ public class SymbolicProgramConfiguration {
     SymbolicProgramConfiguration spc2 = mergedFields.getMergingSPC2();
 
     // 2. Collect the set F of all pairs (of, t) occurring in has-value edges leading from o1 or o2
-    SortedMap<Integer, Integer> offsetsToSize1 = new TreeMap<>();
+    NavigableMap<Integer, Integer> offsetsToSize1 = new TreeMap<>();
     for (SMGHasValueEdge hve1 :
         spc1.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj1, PersistentSet.of())) {
       offsetsToSize1.put(hve1.getOffset().intValue(), hve1.getSizeInBits().intValue());
@@ -833,7 +832,6 @@ public class SymbolicProgramConfiguration {
    * Handles recoverable failures. Will try to insert a 0+ object for recoverable failures and will
    * try to extend the list by materializing for other types of failure.
    */
-  @Nonnull
   private static Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue>
       handleRecoverableFailure(
           SymbolicProgramConfiguration pSpc1,
@@ -994,7 +992,6 @@ public class SymbolicProgramConfiguration {
   }
 
   // TODO: this is a dummy, lower mat to SPC level.
-  @Nonnull
   private static Optional<SymbolicProgramConfiguration> getMaterializedListAndSPC(
       SymbolicProgramConfiguration pSpc, SMGValue v, SMGSinglyLinkedListSegment sll)
       throws SMGException {
@@ -2196,7 +2193,7 @@ public class SymbolicProgramConfiguration {
     PersistentSet<SMGHasValueEdge> hves2 =
         spc2.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(obj2, PersistentSet.of());
 
-    SortedMap<Integer, SMGHasValueEdge> offsetsToZero1 = new TreeMap<>();
+    NavigableMap<Integer, SMGHasValueEdge> offsetsToZero1 = new TreeMap<>();
     ImmutableMap.Builder<Integer, SMGHasValueEdge> offsetsToNonZeroPtrs1Builder =
         ImmutableMap.builder();
     // ImmutableMap.Builder<Integer, SMGHasValueEdge> offsetsToNonZeroNonPtrs1Builder =
@@ -2217,7 +2214,7 @@ public class SymbolicProgramConfiguration {
     // ImmutableMap<Integer, SMGHasValueEdge> offsetsToNonZeroNonPtrs1 =
     // offsetsToNonZeroNonPtrs1Builder.build();
 
-    SortedMap<Integer, SMGHasValueEdge> offsetsToZero2 = new TreeMap<>();
+    NavigableMap<Integer, SMGHasValueEdge> offsetsToZero2 = new TreeMap<>();
     ImmutableMap.Builder<Integer, SMGHasValueEdge> offsetsToNonZeroPtrs2Builder =
         ImmutableMap.builder();
     // ImmutableMap.Builder<Integer, SMGHasValueEdge> offsetsToNonZeroNonPtrs2Builder =
@@ -2466,11 +2463,11 @@ public class SymbolicProgramConfiguration {
    */
   private static SMGMergeStatus checkZeroEdgesAndUpdateStatus(
       SymbolicProgramConfiguration currentSPC,
-      SortedMap<Integer, SMGHasValueEdge> originalZeroEdges,
+      NavigableMap<Integer, SMGHasValueEdge> originalZeroEdges,
       SMGObject object,
       SMGMergeStatus currentStatus,
       SMGMergeStatus newStatus) {
-    SortedMap<Integer, SMGHasValueEdge> newOffsetsToZero = new TreeMap<>();
+    NavigableMap<Integer, SMGHasValueEdge> newOffsetsToZero = new TreeMap<>();
     for (SMGHasValueEdge hve :
         currentSPC
             .smg

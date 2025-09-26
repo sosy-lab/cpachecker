@@ -67,7 +67,6 @@ public class SMGCPATest0 {
   protected SMGCPAMaterializer materializer;
   protected SMGOptions smgOptions;
   protected PrecAdjustmentOptions smgPrecOptions;
-  protected static SMGMergeOperator mergeOp;
 
   protected SMGCPAExpressionEvaluator evaluator;
 
@@ -93,12 +92,25 @@ public class SMGCPATest0 {
           CFANode.newDummyCFANode(),
           "dummy for tests");
 
-  protected static List<List<Value>> sharedValuesInListSpec = ImmutableList.of();
+  protected static final SMGMergeOperator mergeOp;
+
+  static {
+    try {
+      mergeOp =
+          new SMGMergeOperator(
+              new SMGCPAStatistics(),
+              new SMGOptions(Configuration.defaultConfiguration()),
+              new PrecAdjustmentOptions(Configuration.defaultConfiguration(), null));
+    } catch (InvalidConfigurationException pE) {
+      throw new RuntimeException(pE);
+    }
+  }
+
+  static List<List<Value>> sharedValuesInListSpec = ImmutableList.of();
 
   // The visitor should always use the currentState!
   @Before
   public void init() throws InvalidConfigurationException {
-    sharedValuesInListSpec = ImmutableList.of();
     // We always assume lists to be head, nfo and pfo, each pointer sized.
     machineModel = MachineModel.LINUX32;
     pointerSizeInBits = BigInteger.valueOf(machineModel.getSizeofPtrInBits());
@@ -126,7 +138,6 @@ public class SMGCPATest0 {
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
     currentState = currentState.copyAndAddDummyStackFrame();
     smgPrecOptions = new PrecAdjustmentOptions(Configuration.defaultConfiguration(), null);
-    mergeOp = new SMGMergeOperator(new SMGCPAStatistics(), smgOptions, smgPrecOptions);
   }
 
   public SMGState getFreshState() {

@@ -2269,27 +2269,23 @@ public class SMGState
           || !(thisLookThroughElementsPrev.size() > 1
               && thisLookThroughElementsPrev
                   .getFirst()
-                  .equals(thisLookThroughElementsPrev.get(thisLookThroughElementsPrev.size() - 1))
+                  .equals(thisLookThroughElementsPrev.getLast())
               && otherLookThroughElementsPrev.size() > 1
               && otherLookThroughElementsPrev
                   .getFirst()
-                  .equals(
-                      otherLookThroughElementsPrev.get(otherLookThroughElementsPrev.size() - 1)));
+                  .equals(otherLookThroughElementsPrev.getLast()));
       assert !loopingThis
           || (thisLookThroughElementsPrev.size() > 1
               && thisLookThroughElementsPrev
                   .getFirst()
-                  .equals(thisLookThroughElementsPrev.get(thisLookThroughElementsPrev.size() - 1))
+                  .equals(thisLookThroughElementsPrev.getLast())
               && otherLookThroughElementsPrev.size() > 1
               && otherLookThroughElementsPrev
                   .getFirst()
-                  .equals(
-                      otherLookThroughElementsPrev.get(otherLookThroughElementsPrev.size() - 1)));
+                  .equals(otherLookThroughElementsPrev.getLast()));
       // End check (terminates under the same conditions)
-      SMGObject lastThisInListPrev =
-          thisLookThroughElementsPrev.get(thisLookThroughElementsPrev.size() - 1);
-      SMGObject lastOtherInListPrev =
-          otherLookThroughElementsPrev.get(otherLookThroughElementsPrev.size() - 1);
+      SMGObject lastThisInListPrev = thisLookThroughElementsPrev.getLast();
+      SMGObject lastOtherInListPrev = otherLookThroughElementsPrev.getLast();
       if (lastThisInListPrev.isZero() ^ lastOtherInListPrev.isZero()) {
         // One ends in 0, the other doesn't
         return false;
