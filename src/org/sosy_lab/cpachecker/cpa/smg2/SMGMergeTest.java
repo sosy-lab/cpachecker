@@ -498,7 +498,7 @@ public class SMGMergeTest extends SMGCPATest0 {
       assertThat(smallestAbstractedState.isLessOrEqual(mergeRes.orElseThrow().getMergedSMGState()))
           .isTrue();
     }
-    return allAbstractedStates.get(0);
+    return allAbstractedStates.getFirst();
   }
 
   /**
@@ -543,7 +543,7 @@ public class SMGMergeTest extends SMGCPATest0 {
       assertThat(smallestAbstractedState.isLessOrEqual(mergeRes.orElseThrow().getMergedSMGState()))
           .isTrue();
     }
-    return allAbstractedStates.get(0);
+    return allAbstractedStates.getFirst();
   }
 
   /**
@@ -1109,7 +1109,7 @@ public class SMGMergeTest extends SMGCPATest0 {
           if (valuesToFill != null
               && valuesToFill.size() > elementIndex
               && !valuesToFill.get(elementIndex).isEmpty()) {
-            expectedValue = valuesToFill.get(elementIndex).get(0);
+            expectedValue = valuesToFill.get(elementIndex).getFirst();
           }
           Optional<SMGValue> expectedSMGValue =
               currentState.getMemoryModel().getSMGValueFromValue(expectedValue);

@@ -124,7 +124,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         stateLeft
             .writeValueTo(
                 addressToNewRegion, BigInteger.ZERO, thirtyTwo, zero, CNumericTypes.INT, null)
-            .get(0);
+            .getFirst();
     stateLeft =
         stateLeft
             .writeValueTo(
@@ -134,7 +134,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 ptrToNested2Plus,
                 pointerType,
                 null)
-            .get(0);
+            .getFirst();
     // Now put target of abstracted region to concrete that is also pointed to by a stack var
     stateLeft = stateLeft.copyAndAddLocalVariable(thirtyTwo, variableName2, pointerType);
     ValueAndSMGState addressAndStateVar2 =
@@ -197,7 +197,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 zero,
                 CNumericTypes.INT,
                 null)
-            .get(0);
+            .getFirst();
     stateRight =
         stateRight
             .writeValueTo(
@@ -207,7 +207,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 ptrToNestedRight,
                 pointerType,
                 null)
-            .get(0);
+            .getFirst();
     // Now put target of abstracted region to concrete that is also pointed to by a stack var
     stateRight = stateRight.copyAndAddLocalVariable(thirtyTwo, variableName2, pointerType);
     ValueAndSMGState addressAndStateRightVar2 =
@@ -241,7 +241,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                 addressToSecondNestedRegion,
                 pointerType,
                 null)
-            .get(0);
+            .getFirst();
 
     // Now merge
     stateLeft = stateLeft.withBlockEnd(CFANode.newDummyCFANode());

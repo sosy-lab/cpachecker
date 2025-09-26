@@ -457,7 +457,7 @@ public class SymbolicProgramConfiguration {
         if (readEdges.getHvEdges().size() != 1) {
           break;
         }
-        SMGValue nextPtrValue = readEdges.getHvEdges().get(0).hasValue();
+        SMGValue nextPtrValue = readEdges.getHvEdges().getFirst().hasValue();
         if (nextPtrValue.isZero() || !mergedSPC.smg.isPointer(nextPtrValue)) {
           break;
         }
@@ -579,14 +579,14 @@ public class SymbolicProgramConfiguration {
           spc1.getSmg()
               .readValue(obj1, BigInteger.valueOf(offset), BigInteger.valueOf(size), false)
               .getHvEdges()
-              .get(0)
+              .getFirst()
               .hasValue();
       assert spc1.getValueFromSMGValue(v1).isPresent();
       SMGValue v2 =
           spc2.getSmg()
               .readValue(obj2, BigInteger.valueOf(offset), BigInteger.valueOf(size), false)
               .getHvEdges()
-              .get(0)
+              .getFirst()
               .hasValue();
       assert spc2.getValueFromSMGValue(v2).isPresent();
       int currentNestingDiff = nestingDiff;
@@ -1019,7 +1019,7 @@ public class SymbolicProgramConfiguration {
       if (matList.size() != 1) {
         return Optional.empty();
       }
-      return Optional.of(matList.get(0).getSMGState().getMemoryModel());
+      return Optional.of(matList.getFirst().getSMGState().getMemoryModel());
     } catch (InvalidConfigurationException e) {
       throw new RuntimeException(e);
     }
@@ -2283,7 +2283,7 @@ public class SymbolicProgramConfiguration {
       } else if (allEqualEdgesIn2.isEmpty()) {
         hves1NotZeroPtrsNotIn2Builder.add(h1);
       } else {
-        SMGHasValueEdge hve2 = allEqualEdgesIn2.get(0);
+        SMGHasValueEdge hve2 = allEqualEdgesIn2.getFirst();
         assert !hve2.hasValue().isZero();
         if (!spc2.smg.isPointer(hve2.hasValue())) {
           hves1NotZeroPtrsNotIn2Builder.add(h1);
@@ -2310,7 +2310,7 @@ public class SymbolicProgramConfiguration {
       } else if (allEqualEdgesIn1.isEmpty()) {
         hves2NotZeroPtrsNotIn1Builder.add(h2);
       } else {
-        SMGHasValueEdge hve1 = allEqualEdgesIn1.get(0);
+        SMGHasValueEdge hve1 = allEqualEdgesIn1.getFirst();
         assert !hve1.hasValue().isZero();
         if (!spc1.smg.isPointer(hve1.hasValue())) {
           hves2NotZeroPtrsNotIn1Builder.add(h2);
@@ -2384,7 +2384,7 @@ public class SymbolicProgramConfiguration {
       if (maybeHve2.size() != 1) {
         throw new SMGException("Error when merging 2 has-value-edges.");
       }
-      if (maybeHve2.get(0).hasValue().isZero()) {
+      if (maybeHve2.getFirst().hasValue().isZero()) {
         CType maybeV1Type = spc1.valueToTypeMap.get(hve1NotZero.hasValue());
         if (maybeV1Type == null) {
           throw new SMGException(
@@ -2408,7 +2408,7 @@ public class SymbolicProgramConfiguration {
       if (maybeHve1.size() != 1) {
         throw new SMGException("Error when merging 2 has-value-edges.");
       }
-      if (maybeHve1.get(0).hasValue().isZero()) {
+      if (maybeHve1.getFirst().hasValue().isZero()) {
         SMGValue smgValueFrom2 = hve2NotZero.hasValue();
         CType maybeV2Type = spc2.valueToTypeMap.get(smgValueFrom2);
         if (maybeV2Type == null) {

@@ -2235,12 +2235,12 @@ public class SMGState
     // Loop check (same element twice)
     boolean loopingThis = false;
     if (thisLookThroughElementsNext.size() > 1
-        && thisLookThroughElementsNext.get(0).equals(lastThisInListNext)) {
+        && thisLookThroughElementsNext.getFirst().equals(lastThisInListNext)) {
       loopingThis = true;
     }
     boolean loopingOther = false;
     if (otherLookThroughElementsNext.size() > 1
-        && otherLookThroughElementsNext.get(0).equals(lastOtherInListNext)) {
+        && otherLookThroughElementsNext.getFirst().equals(lastOtherInListNext)) {
       loopingOther = true;
     }
     if (loopingThis != loopingOther) {
@@ -2268,21 +2268,21 @@ public class SMGState
       assert loopingThis
           || !(thisLookThroughElementsPrev.size() > 1
               && thisLookThroughElementsPrev
-                  .get(0)
+                  .getFirst()
                   .equals(thisLookThroughElementsPrev.get(thisLookThroughElementsPrev.size() - 1))
               && otherLookThroughElementsPrev.size() > 1
               && otherLookThroughElementsPrev
-                  .get(0)
+                  .getFirst()
                   .equals(
                       otherLookThroughElementsPrev.get(otherLookThroughElementsPrev.size() - 1)));
       assert !loopingThis
           || (thisLookThroughElementsPrev.size() > 1
               && thisLookThroughElementsPrev
-                  .get(0)
+                  .getFirst()
                   .equals(thisLookThroughElementsPrev.get(thisLookThroughElementsPrev.size() - 1))
               && otherLookThroughElementsPrev.size() > 1
               && otherLookThroughElementsPrev
-                  .get(0)
+                  .getFirst()
                   .equals(
                       otherLookThroughElementsPrev.get(otherLookThroughElementsPrev.size() - 1)));
       // End check (terminates under the same conditions)
