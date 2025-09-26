@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqConflictOrderStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqKIgnoreZeroStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqLastBitVectorUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqCountUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -262,6 +263,7 @@ public class SeqThreadStatementUtil {
     rOrdered.addAll(
         pInjectedStatements.stream()
             .filter(statement -> !leftOver.contains(statement))
+            .filter(statement -> !(statement instanceof SeqKIgnoreZeroStatement))
             .collect(ImmutableList.toImmutableList()));
     rOrdered.addAll(leftOver);
     return rOrdered.build();
@@ -271,8 +273,8 @@ public class SeqThreadStatementUtil {
       MPOROptions pOptions, ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return switch (pOptions.reductionOrder) {
-      // if NONE is specified, we default to BITVECTOR_THEN_CONFLICT
-      case NONE, BITVECTOR_THEN_CONFLICT ->
+      case NONE -> throw new IllegalArgumentException("no reductionOrder specified");
+      case BITVECTOR_THEN_CONFLICT ->
           orderInjectedReductionStatements(
               pInjectedStatements,
               SeqBitVectorEvaluationStatement.class,
@@ -290,6 +292,22 @@ public class SeqThreadStatementUtil {
       Class<? extends SeqInjectedStatement> pFirstClass,
       Class<? extends SeqInjectedStatement> pSecondClass) {
 
+    ImmutableList<SeqInjectedStatement> kIgnoreZeroStatements =
+        getInjectedStatementsByClass(pInjectedStatements, SeqKIgnoreZeroStatement.class);
+    if (!kIgnoreZeroStatements.isEmpty()) {
+      // order the reduction assumptions inside kIgnoreZeroStatements separately
+      assert kIgnoreZeroStatements.size() == 1 : "there can only be a single kIgnoreZeroStatement";
+      SeqKIgnoreZeroStatement kIgnoreZeroStatement =
+          (SeqKIgnoreZeroStatement) kIgnoreZeroStatements.getFirst();
+      ImmutableList<SeqInjectedStatement> reductionAssumptions =
+          kIgnoreZeroStatement.getReductionAssumptions();
+      return ImmutableList.of(
+          kIgnoreZeroStatement.cloneWithReductionAssumptions(
+              ImmutableList.<SeqInjectedStatement>builder()
+                  .addAll(getInjectedStatementsByClass(reductionAssumptions, pFirstClass))
+                  .addAll(getInjectedStatementsByClass(reductionAssumptions, pSecondClass))
+                  .build()));
+    }
     return ImmutableList.<SeqInjectedStatement>builder()
         .addAll(getInjectedStatementsByClass(pInjectedStatements, pFirstClass))
         .addAll(getInjectedStatementsByClass(pInjectedStatements, pSecondClass))

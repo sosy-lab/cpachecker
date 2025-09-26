@@ -197,9 +197,9 @@ class KIgnoreZeroInjector {
     }
     return new SeqKIgnoreZeroStatement(
         pKVariable.isPresent() ? pKVariable.orElseThrow() : SeqIdExpression.K,
-        reductionAssumptions.build(),
         pBitVectorEvaluationExpression,
         pTargetClause.getFirstBlock().getLabel(),
+        reductionAssumptions.build(),
         pBinaryExpressionBuilder);
   }
 

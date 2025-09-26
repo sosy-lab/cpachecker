@@ -27,25 +27,25 @@ public class SeqKIgnoreZeroStatement implements SeqInjectedBitVectorStatement {
 
   private final CIdExpression kVariable;
 
-  private final ImmutableList<SeqInjectedStatement> reductionAssumptions;
-
   private final BitVectorEvaluationExpression bitVectorEvaluationExpression;
 
   private final SeqBlockLabelStatement nextLabel;
+
+  private final ImmutableList<SeqInjectedStatement> reductionAssumptions;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public SeqKIgnoreZeroStatement(
       CIdExpression pKVariable,
-      ImmutableList<SeqInjectedStatement> pReductionAssumptions,
       BitVectorEvaluationExpression pBitVectorEvaluationExpression,
       SeqBlockLabelStatement pNextLabel,
+      ImmutableList<SeqInjectedStatement> pReductionAssumptions,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     kVariable = pKVariable;
-    reductionAssumptions = pReductionAssumptions;
     bitVectorEvaluationExpression = pBitVectorEvaluationExpression;
     nextLabel = pNextLabel;
+    reductionAssumptions = pReductionAssumptions;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
@@ -99,9 +99,26 @@ public class SeqKIgnoreZeroStatement implements SeqInjectedBitVectorStatement {
   public SeqKIgnoreZeroStatement cloneWithGotoLabelNumber(int pLabelNumber) {
     return new SeqKIgnoreZeroStatement(
         kVariable,
-        reductionAssumptions,
         bitVectorEvaluationExpression,
         nextLabel.cloneWithLabelNumber(pLabelNumber),
+        reductionAssumptions,
         binaryExpressionBuilder);
+  }
+
+  public SeqKIgnoreZeroStatement cloneWithReductionAssumptions(
+      ImmutableList<SeqInjectedStatement> pReductionAssumptions) {
+
+    return new SeqKIgnoreZeroStatement(
+        kVariable,
+        bitVectorEvaluationExpression,
+        nextLabel,
+        pReductionAssumptions,
+        binaryExpressionBuilder);
+  }
+
+  // Getters =======================================================================================
+
+  public ImmutableList<SeqInjectedStatement> getReductionAssumptions() {
+    return reductionAssumptions;
   }
 }
