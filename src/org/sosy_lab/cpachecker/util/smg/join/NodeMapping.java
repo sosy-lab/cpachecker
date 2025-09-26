@@ -97,9 +97,9 @@ public class NodeMapping {
       return new MappedValueTuple(mapping1.getMappedValue(v1), mapping2.getMappedValue(v2));
     } else {
       // At least 1 source is a pointer
-      if (innerMap1.size() <= 1) {}
+      // if (innerMap1.size() <= 1) {}
 
-      if (innerMap2.size() <= 1) {}
+      // if (innerMap2.size() <= 1) {}
 
       if (maybePTE1.isPresent() && maybePTE2.isPresent()) {
         // The source specifier might not match the mapped value(s) specifier, as region might map
