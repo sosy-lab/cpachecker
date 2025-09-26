@@ -26,6 +26,8 @@ public class BitVectorVariables {
 
   private final Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseAccessBitVectors;
 
+  private final Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseReadBitVectors;
+
   private final Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseWriteBitVectors;
 
   private final Optional<LastDenseBitVector> lastDenseAccessBitVector;
@@ -43,6 +45,7 @@ public class BitVectorVariables {
       Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
       Optional<ImmutableMap<MemoryLocation, SparseBitVector>> pSparseAccessBitVectors,
+      Optional<ImmutableMap<MemoryLocation, SparseBitVector>> pSparseReadBitVectors,
       Optional<ImmutableMap<MemoryLocation, SparseBitVector>> pSparseWriteBitVectors,
       Optional<LastDenseBitVector> pLastDenseAccessBitVector,
       Optional<LastDenseBitVector> pLastDenseWriteBitVector,
@@ -53,6 +56,7 @@ public class BitVectorVariables {
     denseReadBitVectors = pDenseReadBitVectors;
     denseWriteBitVectors = pDenseWriteBitVectors;
     sparseAccessBitVectors = pSparseAccessBitVectors;
+    sparseReadBitVectors = pSparseReadBitVectors;
     sparseWriteBitVectors = pSparseWriteBitVectors;
     lastDenseAccessBitVector = pLastDenseAccessBitVector;
     lastDenseWriteBitVector = pLastDenseWriteBitVector;
@@ -111,7 +115,7 @@ public class BitVectorVariables {
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE sparse bit vectors");
       case ACCESS -> sparseAccessBitVectors.orElseThrow();
-      case READ -> throw new IllegalArgumentException("no READ sparse bit vectors");
+      case READ -> sparseReadBitVectors.orElseThrow();
       case WRITE -> sparseWriteBitVectors.orElseThrow();
     };
   }
@@ -170,6 +174,10 @@ public class BitVectorVariables {
 
   public ImmutableMap<MemoryLocation, SparseBitVector> getSparseAccessBitVectors() {
     return sparseAccessBitVectors.orElseThrow();
+  }
+
+  public ImmutableMap<MemoryLocation, SparseBitVector> getSparseReadBitVectors() {
+    return sparseReadBitVectors.orElseThrow();
   }
 
   public ImmutableMap<MemoryLocation, SparseBitVector> getSparseWriteBitVectors() {

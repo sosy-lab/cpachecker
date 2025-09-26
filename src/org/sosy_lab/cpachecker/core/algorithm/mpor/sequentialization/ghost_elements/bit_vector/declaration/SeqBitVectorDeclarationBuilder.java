@@ -218,16 +218,18 @@ public class SeqBitVectorDeclarationBuilder {
     ImmutableMap<MemoryLocation, SparseBitVector> sparseBitVectors =
         pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (MPORThread thread : pClauses.keySet()) {
+      ImmutableSet<MemoryLocation> directMemoryLocations =
+          getDirectMemoryLocationsByAccessType(pMemoryModel, pClauses.get(thread), pAccessType);
       ImmutableSet<MemoryLocation> reachableMemoryLocations =
           getReachableMemoryLocationsByAccessType(pMemoryModel, pClauses.get(thread), pAccessType);
       for (var entry : sparseBitVectors.entrySet()) {
-        assert entry.getValue().variables.containsKey(thread) : "thread must have sparse variable";
-        CIdExpression variable = entry.getValue().variables.get(thread);
-        final boolean value = reachableMemoryLocations.contains(entry.getKey());
-        SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(value);
-        SeqBitVectorDeclaration declaration =
-            new SeqBitVectorDeclaration(BitVectorDataType.__UINT8_T, variable, initializer);
-        rDeclarations.add(declaration);
+        rDeclarations.addAll(
+            buildSparseBitVectorDeclarations(
+                entry.getValue(),
+                thread,
+                entry.getKey(),
+                directMemoryLocations,
+                reachableMemoryLocations));
       }
     }
     Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>> lastSparseBitVectors =
@@ -243,5 +245,33 @@ public class SeqBitVectorDeclarationBuilder {
       }
     }
     return rDeclarations.build();
+  }
+
+  private static ImmutableList<SeqBitVectorDeclaration> buildSparseBitVectorDeclarations(
+      SparseBitVector pSparseBitVector,
+      MPORThread pThread,
+      MemoryLocation pMemoryLocation,
+      ImmutableSet<MemoryLocation> pDirectMemoryLocations,
+      ImmutableSet<MemoryLocation> pReachableMemoryLocations) {
+
+    SeqBitVectorDeclaration directDeclaration =
+        buildSparseBitVectorDeclaration(
+            pSparseBitVector.directVariables.get(pThread),
+            pDirectMemoryLocations.contains(pMemoryLocation));
+    SeqBitVectorDeclaration reachableDeclaration =
+        buildSparseBitVectorDeclaration(
+            pSparseBitVector.reachableVariables.get(pThread),
+            pReachableMemoryLocations.contains(pMemoryLocation));
+    return ImmutableList.<SeqBitVectorDeclaration>builder()
+        .add(directDeclaration)
+        .add(reachableDeclaration)
+        .build();
+  }
+
+  private static SeqBitVectorDeclaration buildSparseBitVectorDeclaration(
+      CIdExpression pVariable, boolean pValue) {
+
+    SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(pValue);
+    return new SeqBitVectorDeclaration(BitVectorDataType.__UINT8_T, pVariable, initializer);
   }
 }

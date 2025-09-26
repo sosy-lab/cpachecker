@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -26,6 +27,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -104,5 +107,23 @@ public class BitVectorEvaluationUtil {
       }
     }
     return rNested;
+  }
+
+  static ImmutableListMultimap<MemoryLocation, SeqExpression>
+      mapMemoryLocationsToSparseBitVectorsByAccessType(
+          ImmutableSet<MPORThread> pOtherThreads,
+          BitVectorVariables pBitVectorVariables,
+          MemoryAccessType pAccessType) {
+
+    ImmutableListMultimap.Builder<MemoryLocation, SeqExpression> rMap =
+        ImmutableListMultimap.builder();
+    for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
+      MemoryLocation memoryLocation = entry.getKey();
+      ImmutableMap<MPORThread, CIdExpression> variables = entry.getValue().reachableVariables;
+      ImmutableList<SeqExpression> otherVariables =
+          BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(pOtherThreads, variables);
+      rMap.putAll(memoryLocation, otherVariables);
+    }
+    return rMap.build();
   }
 }

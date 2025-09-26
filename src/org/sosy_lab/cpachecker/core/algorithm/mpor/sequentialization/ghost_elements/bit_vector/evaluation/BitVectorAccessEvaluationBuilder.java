@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
@@ -46,9 +47,7 @@ class BitVectorAccessEvaluationBuilder {
           buildFullDenseVariableOnlyEvaluation(
               pActiveThread, pOtherThreads, pBitVectorVariables, pBinaryExpressionBuilder);
       case SPARSE ->
-          // TODO add support
-          throw new IllegalArgumentException(
-              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+          buildFullSparseVariableOnlyEvaluation(pActiveThread, pOtherThreads, pBitVectorVariables);
     };
   }
 
@@ -180,22 +179,53 @@ class BitVectorAccessEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
-      MemoryLocation memoryLocation = entry.getKey();
-      // create logical disjunction -> (B || C || ...)
-      SeqExpression disjunction =
-          BitVectorEvaluationUtil.logicalDisjunction(pSparseBitVectorMap.get(memoryLocation));
-      // create logical and -> (A && (B || C || ...))
+    for (MemoryLocation memoryLocation : pBitVectorVariables.getSparseAccessBitVectors().keySet()) {
       SeqExpression directBitVector =
           BitVectorEvaluationUtil.buildSparseDirectBitVector(
               memoryLocation, pDirectMemoryLocations);
       SeqLogicalAndExpression logicalAnd =
-          new SeqLogicalAndExpression(directBitVector, disjunction);
+          buildSingleSparseLogicalAndExpression(
+              pSparseBitVectorMap, directBitVector, memoryLocation);
       sparseExpressions.add(logicalAnd);
     }
     // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
     SeqExpression logicalDisjunction =
         BitVectorEvaluationUtil.logicalDisjunction(sparseExpressions.build());
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalDisjunction));
+  }
+
+  private static BitVectorEvaluationExpression buildFullSparseVariableOnlyEvaluation(
+      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
+      BitVectorVariables pBitVectorVariables) {
+
+    ImmutableListMultimap<MemoryLocation, SeqExpression> sparseBitVectorMap =
+        BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
+            pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
+    ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
+    for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
+      SeqExpression directBitVector =
+          new CToSeqExpression(entry.getValue().directVariables.get(pActiveThread));
+      SeqLogicalAndExpression logicalAnd =
+          buildSingleSparseLogicalAndExpression(
+              sparseBitVectorMap, directBitVector, entry.getKey());
+      sparseExpressions.add(logicalAnd);
+    }
+    // create disjunction of logical not: (A && (B || C)) || (A' && (B' || C'))
+    SeqExpression logicalDisjunction =
+        BitVectorEvaluationUtil.logicalDisjunction(sparseExpressions.build());
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalDisjunction));
+  }
+
+  private static SeqLogicalAndExpression buildSingleSparseLogicalAndExpression(
+      ImmutableListMultimap<MemoryLocation, SeqExpression> pSparseBitVectorMap,
+      SeqExpression pDirectBitVector,
+      MemoryLocation pMemoryLocation) {
+
+    // create logical disjunction -> (B || C || ...)
+    SeqExpression disjunction =
+        BitVectorEvaluationUtil.logicalDisjunction(pSparseBitVectorMap.get(pMemoryLocation));
+    // create logical and -> (A && (B || C || ...))
+    return new SeqLogicalAndExpression(pDirectBitVector, disjunction);
   }
 }

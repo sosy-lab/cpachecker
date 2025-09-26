@@ -17,16 +17,21 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SparseBitVector {
 
-  public final ImmutableMap<MPORThread, CIdExpression> variables;
+  // TODO make optionals
+  public final ImmutableMap<MPORThread, CIdExpression> directVariables;
+
+  public final ImmutableMap<MPORThread, CIdExpression> reachableVariables;
 
   public final MemoryAccessType accessType;
 
-  // TODO need direct and reachable variable maps
   SparseBitVector(
-      ImmutableMap<MPORThread, CIdExpression> pAccessVariables, MemoryAccessType pAccessType) {
+      ImmutableMap<MPORThread, CIdExpression> pDirectVariables,
+      ImmutableMap<MPORThread, CIdExpression> pReachableVariables,
+      MemoryAccessType pAccessType) {
 
     checkArgument(!pAccessType.equals(MemoryAccessType.NONE));
-    variables = pAccessVariables;
+    directVariables = pDirectVariables;
+    reachableVariables = pReachableVariables;
     accessType = pAccessType;
   }
 }

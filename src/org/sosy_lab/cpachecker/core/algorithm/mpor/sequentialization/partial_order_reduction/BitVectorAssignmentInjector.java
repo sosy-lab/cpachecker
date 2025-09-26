@@ -283,8 +283,17 @@ public class BitVectorAssignmentInjector {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
+      if (pOptions.kIgnoreZeroReduction) {
+        rStatements.addAll(
+            buildSparseDirectBitVectorAssignmentsByAccessType(
+                pOptions,
+                pThread,
+                pBitVectorVariables,
+                pDirectMemoryLocations,
+                MemoryAccessType.ACCESS));
+      }
       rStatements.addAll(
-          buildSparseBitVectorAssignmentsByAccessType(
+          buildSparseReachableBitVectorAssignmentsByAccessType(
               pOptions,
               pThread,
               pBitVectorVariables,
@@ -323,14 +332,14 @@ public class BitVectorAssignmentInjector {
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
       rStatements.addAll(
-          buildSparseBitVectorAssignmentsByAccessType(
+          buildSparseReachableBitVectorAssignmentsByAccessType(
               pOptions,
               pThread,
               pBitVectorVariables,
               pReachableAccessMemoryLocations,
               MemoryAccessType.ACCESS));
       rStatements.addAll(
-          buildSparseBitVectorAssignmentsByAccessType(
+          buildSparseReachableBitVectorAssignmentsByAccessType(
               pOptions,
               pThread,
               pBitVectorVariables,
@@ -384,7 +393,29 @@ public class BitVectorAssignmentInjector {
   }
 
   private static ImmutableList<SeqBitVectorAssignmentStatement>
-      buildSparseBitVectorAssignmentsByAccessType(
+      buildSparseDirectBitVectorAssignmentsByAccessType(
+          MPOROptions pOptions,
+          MPORThread pThread,
+          BitVectorVariables pBitVectorVariables,
+          ImmutableSet<MemoryLocation> pDirectMemoryLocations,
+          MemoryAccessType pAccessType) {
+
+    // use list so that the assignment order is deterministic
+    ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
+    for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
+      ImmutableMap<MPORThread, CIdExpression> variables = entry.getValue().directVariables;
+      Optional<SeqBitVectorAssignmentStatement> assignment =
+          buildSparseBitVectorAssignment(
+              pOptions, entry.getKey(), pDirectMemoryLocations, variables.get(pThread));
+      if (assignment.isPresent()) {
+        rAssignments.add(assignment.orElseThrow());
+      }
+    }
+    return rAssignments.build();
+  }
+
+  private static ImmutableList<SeqBitVectorAssignmentStatement>
+      buildSparseReachableBitVectorAssignmentsByAccessType(
           MPOROptions pOptions,
           MPORThread pThread,
           BitVectorVariables pBitVectorVariables,
@@ -394,7 +425,7 @@ public class BitVectorAssignmentInjector {
     // use list so that the assignment order is deterministic
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rAssignments = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType).entrySet()) {
-      ImmutableMap<MPORThread, CIdExpression> variables = entry.getValue().variables;
+      ImmutableMap<MPORThread, CIdExpression> variables = entry.getValue().reachableVariables;
       Optional<SeqBitVectorAssignmentStatement> assignment =
           buildSparseBitVectorAssignment(
               pOptions, entry.getKey(), pReachableMemoryLocations, variables.get(pThread));

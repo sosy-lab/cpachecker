@@ -353,7 +353,7 @@ class ConflictResolver {
     ImmutableMap<MemoryLocation, SparseBitVector> sparseBitVectors =
         pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (var entry : sparseBitVectors.entrySet()) {
-      for (var innerEntry : entry.getValue().variables.entrySet()) {
+      for (var innerEntry : entry.getValue().reachableVariables.entrySet()) {
         if (innerEntry.getKey().equals(pActiveThread)) {
           MemoryLocation memoryLocation = entry.getKey();
           LastSparseBitVector lastSparseBitVector = lastSparseBitVectors.get(memoryLocation);

@@ -76,6 +76,7 @@ public class BitVectorBuilder {
             Optional.empty(),
             sparseAccessBitVectors,
             Optional.empty(),
+            Optional.empty(),
             lastDenseAccessBitVector,
             Optional.empty(),
             lastSparseAccessBitVectors,
@@ -98,6 +99,9 @@ public class BitVectorBuilder {
     Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseAccessBitVectors =
         buildSparseBitVectorsByAccessType(
             pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.ACCESS);
+    Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseReadBitVectors =
+        buildSparseBitVectorsByAccessType(
+            pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.READ);
     Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseWriteBitVectors =
         buildSparseBitVectorsByAccessType(
             pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.WRITE);
@@ -118,6 +122,7 @@ public class BitVectorBuilder {
             denseReadBitVectors,
             denseWriteBitVectors,
             sparseAccessBitVectors,
+            sparseReadBitVectors,
             sparseWriteBitVectors,
             lastDenseAccessBitVector,
             lastDenseWriteBitVector,
@@ -189,16 +194,19 @@ public class BitVectorBuilder {
     }
     ImmutableMap.Builder<MemoryLocation, SparseBitVector> rAccessVariables = ImmutableMap.builder();
     for (MemoryLocation memoryLocation : pRelevantMemoryLocations.keySet()) {
-      ImmutableMap<MPORThread, CIdExpression> variables =
-          buildSparseBitVectorVariablesByAccessType(
-              pOptions, pThreads, memoryLocation, pAccessType);
-      rAccessVariables.put(memoryLocation, new SparseBitVector(variables, pAccessType));
+      ImmutableMap<MPORThread, CIdExpression> directVariables =
+          buildSparseBitVectorsByAccessType(pOptions, true, pThreads, memoryLocation, pAccessType);
+      ImmutableMap<MPORThread, CIdExpression> reachableVariables =
+          buildSparseBitVectorsByAccessType(pOptions, false, pThreads, memoryLocation, pAccessType);
+      rAccessVariables.put(
+          memoryLocation, new SparseBitVector(directVariables, reachableVariables, pAccessType));
     }
     return Optional.of(rAccessVariables.buildOrThrow());
   }
 
-  private static ImmutableMap<MPORThread, CIdExpression> buildSparseBitVectorVariablesByAccessType(
+  private static ImmutableMap<MPORThread, CIdExpression> buildSparseBitVectorsByAccessType(
       MPOROptions pOptions,
+      boolean pIsDirect,
       ImmutableList<MPORThread> pThreads,
       MemoryLocation pMemoryLocation,
       MemoryAccessType pAccessType) {
@@ -207,7 +215,8 @@ public class BitVectorBuilder {
     for (MPORThread thread : pThreads) {
       rAccessVariables.put(
           thread,
-          BitVectorUtil.createSparseAccessVariable(pOptions, thread, pMemoryLocation, pAccessType));
+          BitVectorUtil.createSparseAccessVariable(
+              pOptions, pIsDirect, thread, pMemoryLocation, pAccessType));
     }
     return rAccessVariables.buildOrThrow();
   }

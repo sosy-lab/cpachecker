@@ -186,6 +186,7 @@ public class BitVectorUtil {
 
   public static CIdExpression createSparseAccessVariable(
       MPOROptions pOptions,
+      boolean pIsDirect,
       MPORThread pThread,
       MemoryLocation pMemoryLocation,
       MemoryAccessType pAccessType) {
@@ -193,7 +194,7 @@ public class BitVectorUtil {
     // we use the original variable name here, not the substitute -> less code
     String name =
         SeqNameUtil.buildSparseBitVectorNameByAccessType(
-            pOptions, pThread.id, pMemoryLocation, pAccessType);
+            pOptions, pIsDirect, pThread.id, pMemoryLocation, pAccessType);
     // always initialize with 0, the actual bit vectors are set inside main()
     CSimpleDeclaration declaration =
         SeqDeclarationBuilder.buildVariableDeclaration(

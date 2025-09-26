@@ -175,15 +175,23 @@ public class SeqNameUtil {
 
   public static String buildSparseBitVectorNameByAccessType(
       MPOROptions pOptions,
+      boolean pIsDirect,
       int pThreadId,
       MemoryLocation pMemoryLocation,
       MemoryAccessType pAccessType) {
 
     String variableName = pMemoryLocation.getName();
     return pOptions.shortVariableNames
-        ? SeqToken.b + pAccessType.shortName + pThreadId + SeqSyntax.UNDERSCORE + variableName
+        ? SeqToken.b
+            + (pIsDirect ? SeqToken.d : SeqToken.r)
+            + pAccessType.shortName
+            + pThreadId
+            + SeqSyntax.UNDERSCORE
+            + variableName
         : buildThreadPrefix(pOptions, pThreadId)
             + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + (pIsDirect ? SeqToken.DIRECT : SeqToken.REACHABLE)
             + SeqSyntax.UNDERSCORE
             + pAccessType.longName
             + SeqSyntax.UNDERSCORE
