@@ -239,13 +239,13 @@ public class SMGMergeTest extends SMGCPATest0 {
 
   // ############################# Nested List Tests Below This Point #############################
 
-  // Tests merge for DLL with each nested list element having an identical nondet value with a
-  // pointer from a stack variable towards the beginning of the top list and a single pointer
+  // Tests merge for DLL with a top-list with exactly 1 element having a nested list of length 1 to
+  // minimal abstraction length + 2. Each nested list element having an identical nondet value with
+  // a pointer from a stack variable towards the beginning of the top list and a single pointer
   // towards the beginning of the nested list that is shared between the top list and a stack
   // variable.
-  // Tests ALL permutations needed to fully subsume a list.
   @Test
-  public void mergeDLLWithNestedListWithIdenticalNondetValuesAndPointerTowardsBeginnings()
+  public void mergeDLLWithSingleNestedListWithIdenticalNondetValuesAndPointerTowardsBeginnings()
       throws CPAException, InterruptedException {
     Map<String, Integer> variableAndPointerLocationInList =
         ImmutableMap.of(TOP_LIST_STACK_VARIABLE_1, 0);
@@ -254,7 +254,7 @@ public class SMGMergeTest extends SMGCPATest0 {
     BiFunction<Integer, Map<String, Integer>, ListSpec> nestedSpec =
         ListSpec::getDllWithSingleIdenticalNondetIntValueBeforeNfoAndPfo;
 
-    generateListsWithNestedListsAndAssertMergeability(
+    generateListsWithSingleNestedListsAndAssertMergeability(
         true,
         true,
         smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 2,
@@ -275,8 +275,7 @@ public class SMGMergeTest extends SMGCPATest0 {
    *
    * @param nestedListStackVariable name of the var pointing to the nested list.
    */
-  @SuppressWarnings({"UnusedVariable", "unused"})
-  private void generateListsWithNestedListsAndAssertMergeability(
+  private void generateListsWithSingleNestedListsAndAssertMergeability(
       boolean dll,
       boolean nestedListHasStackPointerAtTheEnd,
       int maxListLength,
@@ -294,37 +293,33 @@ public class SMGMergeTest extends SMGCPATest0 {
             nestedListHasStackPointerAtTheEnd,
             maxListLength);
 
-    ImmutableList.Builder<List<SMGState>> mergedStatesFromOneNestedListByTopListLengthBuilder =
-        ImmutableList.builder();
+    int topListLength = 1;
     for (List<List<SMGState>> topListsByLength : statesToTestWithOneNestedList) {
-      ImmutableList.Builder<SMGState> mergedStatesFromOneNestedListBuilder =
-          ImmutableList.builder();
+      int indexOfNestedList = 1;
       for (List<SMGState> nestedListsToTest : topListsByLength) {
         // Check that they are not mergeable before abstraction
         assertNotMergeable(nestedListsToTest);
 
         // Abstract (only viable states are abstracted)
         List<SMGState> statesToTestWithAbstraction =
-            abstractAbstractableStates(nestedListsToTest, dll, maxListLength);
+            abstractAbstractableStatesWithSingleNestedLists(
+                nestedListsToTest, dll, maxListLength, topListLength, indexOfNestedList);
+
+        int minAbstrLen = smgPrecOptions.getListAbstractionMinimumLengthThreshold();
+        boolean topListAbstracted =
+            topListLength - indexOfNestedList >= minAbstrLen || indexOfNestedList > minAbstrLen;
 
         // Merge now succeed with the abstracted state(s)
-        mergedStatesFromOneNestedListBuilder.add(
-            assertMergeSucceedsWithAllAbstractedStates(statesToTestWithAbstraction));
+        if (topListAbstracted) {
+          assertMergeOfSingleNestedListsSucceedsWithAllAbstractedStates(
+              statesToTestWithAbstraction, topListAbstracted);
+        } else {
+          assertMergeSucceedsWithAllAbstractedStates(statesToTestWithAbstraction);
+        }
+        indexOfNestedList++;
       }
-      mergedStatesFromOneNestedListByTopListLengthBuilder.add(
-          mergedStatesFromOneNestedListBuilder.build());
+      topListLength++;
     }
-    // Those minimal states should look like this:
-    //  stack var ->  |Top List Element 1| -> |Top List Element 2| -> ...
-    //                        |                        |
-    //                        V                        V
-    // other stack var  -> | 0+ DLL | -> 0             0
-    // SLL should have a concrete element after the 0+ which is pointed to by the stack var.
-    // With there only ever being one nested list per state, but all possible locations in distinct
-    // states.
-    ImmutableList<List<SMGState>> mergedStatesFromOneNestedListByTopListLength =
-        mergedStatesFromOneNestedListByTopListLengthBuilder.build();
-    // TODO: extend with merging intermediate states
   }
 
   /**
@@ -369,6 +364,44 @@ public class SMGMergeTest extends SMGCPATest0 {
       List<SMGState> statesToTestWithAbstraction) throws CPAException, InterruptedException {
     // Assert mergeability of abstracted states with abstracted states
     SMGState abstractedState = assertSuccessfulMergeOfAbstractedStates(statesToTestWithAbstraction);
+
+    List<SMGState> allNonAbstractedStates =
+        statesToTestWithAbstraction.stream()
+            .filter(s -> s.getMemoryModel().getSmg().getNumberOfAbstractedLists() == 0)
+            .collect(ImmutableList.toImmutableList());
+
+    // All non-abstracted states should be mergeable with abstracted states.
+    // They should also be mergeable with the previously merged state.
+    SMGState smallestAbstractedState = abstractedState;
+    for (int i = allNonAbstractedStates.size() - 1; i >= 0; i--) {
+      SMGState stateToMerge = allNonAbstractedStates.get(i);
+      boolean twoStackVarsPointToTheSameObj =
+          twoStackVariablesPointToTheSameConcreteListSegment(stateToMerge);
+      // Skip states if there is 2 stack variables with pointers pointing to the same
+      //  non-abstracted list segment, as they can't be abstracted currently.
+      if (smallestAbstractedState != abstractedState && !twoStackVarsPointToTheSameObj) {
+        // All non-abstracted states should be mergeable with abstracted states.
+        Optional<MergedSMGStateAndMergeStatus> mergeResult =
+            mergeOp.mergeForTests(abstractedState, stateToMerge);
+
+        assertThat(mergeResult).isPresent();
+        assertThat(mergeResult.orElseThrow().getMergeStatus())
+            .isEqualTo(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
+        assertThat(abstractedState.isLessOrEqual(mergeResult.orElseThrow().getMergedSMGState()))
+            .isTrue();
+        smallestAbstractedState = mergeResult.orElseThrow().getMergedSMGState();
+      }
+    }
+    return smallestAbstractedState;
+  }
+
+  private SMGState assertMergeOfSingleNestedListsSucceedsWithAllAbstractedStates(
+      List<SMGState> statesToTestWithAbstraction, boolean topListAbstracted)
+      throws CPAException, InterruptedException {
+    // Assert mergeability of abstracted states with abstracted states
+    SMGState abstractedState =
+        assertSuccessfulMergeOfAbstractedStatesWithSingleNestedList(
+            statesToTestWithAbstraction, topListAbstracted);
 
     List<SMGState> allNonAbstractedStates =
         statesToTestWithAbstraction.stream()
@@ -469,85 +502,224 @@ public class SMGMergeTest extends SMGCPATest0 {
   }
 
   /**
-   * Abstracts all viable states, i.e. all elements that are comparable and of min subsequent
-   * length. All other states are returned as is. listHasTwoStackPointers is true for lists with a
-   * pointer at the beginning and end, which changes the abstraction for singly linked lists (as the
-   * last element is not part of the abstraction).
+   * Asserts the mergeablity of all states with list abstractions in input list and returns the
+   * state with the abstracted list that is the largest (i.e. smallest min length).
    */
-  private List<SMGState> abstractAbstractableStates(
-      List<SMGState> statesToTest, boolean dll, int maxListLength) throws CPAException {
-    ImmutableList.Builder<SMGState> statesToTestWithAbstractionBuilder = ImmutableList.builder();
+  private static SMGState assertSuccessfulMergeOfAbstractedStatesWithSingleNestedList(
+      List<SMGState> statesToTestWithAbstraction, boolean topListAbstracted)
+      throws CPAException, InterruptedException {
+    List<SMGState> allAbstractedStates =
+        statesToTestWithAbstraction.stream()
+            .filter(
+                s ->
+                    s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
+                        > (topListAbstracted ? 1 : 0))
+            .collect(ImmutableList.toImmutableList());
+    assertThat(allAbstractedStates.size()).isGreaterThan(1);
+
+    // Assert that they are ordered ascending
+    for (int i = 0; i < allAbstractedStates.size() - 1; i++) {
+      Set<SMGSinglyLinkedListSegment> abstrObjs =
+          allAbstractedStates.get(i).getMemoryModel().getSmg().getAllValidAbstractedObjects();
+      Set<SMGSinglyLinkedListSegment> abstrObjsNext =
+          allAbstractedStates.get(i + 1).getMemoryModel().getSmg().getAllValidAbstractedObjects();
+      assertThat(abstrObjs).hasSize((topListAbstracted ? 2 : 1));
+      assertThat(abstrObjsNext).hasSize((topListAbstracted ? 2 : 1));
+      assertThat(abstrObjsNext.stream().mapToInt(SMGSinglyLinkedListSegment::getMinLength).sum())
+          .isGreaterThan(
+              abstrObjs.stream().mapToInt(SMGSinglyLinkedListSegment::getMinLength).sum());
+    }
+
+    SMGState smallestAbstractedState = allAbstractedStates.get(allAbstractedStates.size() - 1);
+    for (int i = allAbstractedStates.size() - 2; i >= 0; i--) {
+      SMGState stateToMergeRight = allAbstractedStates.get(i);
+      Optional<MergedSMGStateAndMergeStatus> mergeRes =
+          mergeOp.mergeForTests(smallestAbstractedState, stateToMergeRight);
+      assertThat(mergeRes).isPresent();
+      // Right is bigger (by having a smaller min length), hence it entails
+      assertThat(mergeRes.orElseThrow().getMergeStatus())
+          .isEqualTo(SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT);
+
+      assertThat(smallestAbstractedState.isLessOrEqual(mergeRes.orElseThrow().getMergedSMGState()))
+          .isTrue();
+    }
+    return allAbstractedStates.get(0);
+  }
+
+  /**
+   * Abstracts all viable states, i.e. all elements that are comparable and of min subsequent
+   * length. All other states are returned as is. There is a "top" list with 1 to maxListLength
+   * elements. One of those has a nested list with 1 to maxListLength elements. The others point to
+   * 0 where the nested list pointer is located. Note: a top list might be partially abstracted if
+   * the space surrounding the nested list source allows it!
+   */
+  private List<SMGState> abstractAbstractableStatesWithSingleNestedLists(
+      List<SMGState> statesToTest,
+      boolean dll,
+      int maxListLength,
+      int topListLength,
+      int indexOfNestedListStartingFrom1)
+      throws CPAException {
+    ImmutableList.Builder<SMGState> statesToTestIncludingAbstractedStatesBuilder =
+        ImmutableList.builder();
+
+    // We can only abstract the top list if the nested (distinct) list element leaves enough room
+    int marginLeft = topListLength - indexOfNestedListStartingFrom1;
+    int minAbstrLen = smgPrecOptions.getListAbstractionMinimumLengthThreshold();
+    boolean topListAbstracted =
+        marginLeft >= minAbstrLen || indexOfNestedListStartingFrom1 > minAbstrLen;
+
     for (int numOfState = 0; numOfState < statesToTest.size(); numOfState++) {
-      SMGState stateToAbstract = statesToTest.get(numOfState);
+      SMGState stateToBeAbstracted = statesToTest.get(numOfState);
 
-      SMGState resultState =
-          new SMGCPAAbstractionManager(
-                  stateToAbstract,
-                  smgPrecOptions.getListAbstractionMinimumLengthThreshold(),
-                  new SMGCPAStatistics())
-              .findAndAbstractLists();
-      statesToTestWithAbstractionBuilder.add(resultState);
+      SMGState resultState = abstractListsWithDefaultOptions(stateToBeAbstracted);
+      statesToTestIncludingAbstractedStatesBuilder.add(resultState);
 
-      int firstAbstractedState = maxListLength - 1;
-
-      if (numOfState + 1 >= firstAbstractedState) {
+      int numOfAbstrLists = topListAbstracted ? 1 : 0;
+      if (numOfState + 1 >= maxListLength - 1) {
+        numOfAbstrLists++;
         // Abstraction should only succeed for states with a list long enough
-        assertThat(resultState == stateToAbstract).isFalse();
-        assertThat(stateToAbstract.getMemoryModel().getSmg().getNumberOfAbstractedLists())
-            .isEqualTo(0);
-        assertThat(resultState.getMemoryModel().getSmg().getNumberOfAbstractedLists()).isEqualTo(1);
-        if (dll) {
-          assertThat(
-                  resultState
-                      .getMemoryModel()
-                      .getSmg()
-                      .getAllValidAbstractedObjects()
-                      .iterator()
-                      .next())
-              .isInstanceOf(SMGSinglyLinkedListSegment.class);
-          assertThat(
-                  resultState
-                      .getMemoryModel()
-                      .getSmg()
-                      .getAllValidAbstractedObjects()
-                      .iterator()
-                      .next())
-              .isInstanceOf(SMGDoublyLinkedListSegment.class);
-        } else {
-          assertThat(
-                  resultState
-                      .getMemoryModel()
-                      .getSmg()
-                      .getAllValidAbstractedObjects()
-                      .iterator()
-                      .next())
-              .isInstanceOf(SMGSinglyLinkedListSegment.class);
-          assertThat(
-                  resultState
-                      .getMemoryModel()
-                      .getSmg()
-                      .getAllValidAbstractedObjects()
-                      .iterator()
-                      .next())
-              .isNotInstanceOf(SMGDoublyLinkedListSegment.class);
-        }
+        assertSuccessfulAbstractionOf(dll, 4, resultState, stateToBeAbstracted, numOfAbstrLists);
 
       } else {
-        // Not abstractable, list too short
-        assertThat(resultState == stateToAbstract).isTrue();
-        assertThat(stateToAbstract.getMemoryModel().getSmg().getNumberOfAbstractedLists())
-            .isEqualTo(0);
-        assertThat(resultState.getMemoryModel().getSmg().getNumberOfAbstractedLists()).isEqualTo(0);
+        if (topListAbstracted) {
+          assertSuccessfulAbstractionOf(dll, 4, resultState, stateToBeAbstracted, numOfAbstrLists);
+        } else {
+          // Not abstractable, list too short
+          assertNoAbstraction(resultState, stateToBeAbstracted);
+        }
       }
     }
 
-    List<SMGState> statesToTestWithAbstraction = statesToTestWithAbstractionBuilder.build();
+    List<SMGState> statesToTestWithAbstraction =
+        statesToTestIncludingAbstractedStatesBuilder.build();
+    // At least 2 abstracted states should be present so that we can test merging of abstracted with
+    // abstracted. But also non-abstracted states must be present!
+    assertAtLeastTwoAbstractedAndThreeNonAbstractedNestedListsIn(
+        statesToTestWithAbstraction, topListAbstracted);
+    return statesToTestWithAbstraction;
+  }
+
+  /**
+   * Abstracts all viable states, i.e. all elements that are comparable and of min subsequent
+   * length. All other states are returned as is.
+   */
+  private List<SMGState> abstractAbstractableStates(
+      List<SMGState> statesToTest, boolean dll, int maxListLength) throws CPAException {
+    ImmutableList.Builder<SMGState> statesToTestIncludingAbstractedStatesBuilder =
+        ImmutableList.builder();
+    for (int numOfState = 0; numOfState < statesToTest.size(); numOfState++) {
+      SMGState stateToBeAbstracted = statesToTest.get(numOfState);
+
+      SMGState resultState = abstractListsWithDefaultOptions(stateToBeAbstracted);
+      statesToTestIncludingAbstractedStatesBuilder.add(resultState);
+
+      if (numOfState + 1 >= maxListLength - 1) {
+        int minimalAbstractionLen = numOfState + 1;
+        if (resultState.getMemoryModel().getStackFrames().peek().getVariables().size() == 2) {
+          // Elements w pointers from outside are not abstracted
+          minimalAbstractionLen--;
+        }
+        // Abstraction should only succeed for states with a list long enough
+        assertSuccessfulAbstractionOf(
+            dll, minimalAbstractionLen, resultState, stateToBeAbstracted, 1);
+
+      } else {
+        // Not abstractable, list too short
+        assertNoAbstraction(resultState, stateToBeAbstracted);
+      }
+    }
+
+    List<SMGState> statesToTestWithAbstraction =
+        statesToTestIncludingAbstractedStatesBuilder.build();
+    // At least 2 abstracted states should be present so that we can test merging of abstracted with
+    // abstracted. But also non-abstracted states must be present!
+    assertAtLeastTwoAbstractedAndThreeNonAbstractedListsIn(statesToTestWithAbstraction);
+    return statesToTestWithAbstraction;
+  }
+
+  private static void assertAtLeastTwoAbstractedAndThreeNonAbstractedListsIn(
+      List<SMGState> statesToTestWithAbstraction) {
+    assertThat(
+            statesToTestWithAbstraction.stream()
+                .filter(s -> s.getMemoryModel().getSmg().getNumberOfAbstractedLists() == 0)
+                .count())
+        .isAtLeast(3);
     assertThat(
             statesToTestWithAbstraction.stream()
                 .filter(s -> s.getMemoryModel().getSmg().getNumberOfAbstractedLists() > 0)
                 .count())
         .isAtLeast(2);
-    return statesToTestWithAbstraction;
+  }
+
+  private static void assertAtLeastTwoAbstractedAndThreeNonAbstractedNestedListsIn(
+      List<SMGState> statesToTestWithAbstraction, boolean topListAbstracted) {
+    // Top list abstraction matters
+    int minAmountOfAbstrElements = (topListAbstracted ? 1 : 0);
+    assertThat(
+            statesToTestWithAbstraction.stream()
+                .filter(
+                    s ->
+                        s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
+                            < minAmountOfAbstrElements)
+                .count())
+        .isEqualTo(0);
+    assertThat(
+            statesToTestWithAbstraction.stream()
+                .filter(
+                    s ->
+                        s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
+                            == minAmountOfAbstrElements)
+                .count())
+        .isAtLeast(3);
+    assertThat(
+            statesToTestWithAbstraction.stream()
+                .filter(
+                    s ->
+                        s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
+                            > minAmountOfAbstrElements)
+                .count())
+        .isAtLeast(2);
+  }
+
+  private SMGState abstractListsWithDefaultOptions(SMGState stateToBeAbstracted)
+      throws SMGException {
+    return new SMGCPAAbstractionManager(
+            stateToBeAbstracted,
+            smgPrecOptions.getListAbstractionMinimumLengthThreshold(),
+            new SMGCPAStatistics())
+        .findAndAbstractLists();
+  }
+
+  private static void assertNoAbstraction(SMGState resultState, SMGState stateToBeAbstracted) {
+    assertThat(resultState == stateToBeAbstracted).isTrue();
+    assertThat(stateToBeAbstracted.getMemoryModel().getSmg().getNumberOfAbstractedLists())
+        .isEqualTo(0);
+    assertThat(resultState.getMemoryModel().getSmg().getNumberOfAbstractedLists()).isEqualTo(0);
+  }
+
+  private static void assertSuccessfulAbstractionOf(
+      boolean dll,
+      int expectedMinimalMinLength,
+      SMGState abstractedState,
+      SMGState stateToBeAbstracted,
+      int expectedAmountOfAbstractedLists) {
+    assertThat(abstractedState == stateToBeAbstracted).isFalse();
+    assertThat(stateToBeAbstracted.getMemoryModel().getSmg().getNumberOfAbstractedLists())
+        .isEqualTo(0);
+    assertThat(abstractedState.getMemoryModel().getSmg().getNumberOfAbstractedLists())
+        .isEqualTo(expectedAmountOfAbstractedLists);
+    for (SMGObject abstrObj :
+        abstractedState.getMemoryModel().getSmg().getAllValidAbstractedObjects()) {
+      assertThat(abstrObj.getMinLength()).isAtLeast(expectedMinimalMinLength);
+      if (dll) {
+        assertThat(abstrObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
+        assertThat(abstrObj).isInstanceOf(SMGDoublyLinkedListSegment.class);
+      } else {
+        assertThat(abstrObj).isInstanceOf(SMGSinglyLinkedListSegment.class);
+        assertThat(abstrObj).isNotInstanceOf(SMGDoublyLinkedListSegment.class);
+      }
+    }
   }
 
   private void assertNotMergeable(List<SMGState> statesToTest) throws CPAException {
@@ -595,7 +767,6 @@ public class SMGMergeTest extends SMGCPATest0 {
     for (int topListLength = 1; topListLength <= maxListLength; topListLength++) {
 
       ImmutableList.Builder<List<SMGState>> listOfNestedLists = ImmutableList.builder();
-
       for (int walker = 0; walker < topListLength; walker++) {
         ImmutableList.Builder<SMGState> nestedListBuilder = ImmutableList.builder();
         // Generate the nested list only for the most recent top-list-element
@@ -714,7 +885,7 @@ public class SMGMergeTest extends SMGCPATest0 {
     // list a map.
     assertThat(sharedValuesInListSpec.isEmpty() || (valuesToFill == null || valuesToFill.isEmpty()))
         .isTrue();
-    if (valuesToFill.isEmpty()) {
+    if (valuesToFill == null || valuesToFill.isEmpty()) {
       valuesToFill = sharedValuesInListSpec;
     }
     BigInteger nextOffset = listToBuild.getNextOffset();
