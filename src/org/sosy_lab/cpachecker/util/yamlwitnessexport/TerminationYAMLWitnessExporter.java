@@ -41,9 +41,9 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter {
-  private final String LONG_LONG_CAST = "((long long)";
-  private final String AT_KEYWORD = "\\at(";
-  private final String ANY_PREV_KEYWORD = ", AnyPrev)";
+  private static String LONG_LONG_CAST = "((long long)";
+  private static String AT_KEYWORD = "\\at(";
+  private static String ANY_PREV_KEYWORD = ", AnyPrev)";
 
   public TerminationYAMLWitnessExporter(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
