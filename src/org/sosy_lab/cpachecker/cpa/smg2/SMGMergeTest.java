@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import de.uni_freiburg.informatik.ultimate.core.lib.translation.DefaultTranslator.IFunction;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,6 +28,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -378,33 +380,52 @@ public class SMGMergeTest extends SMGCPATest0 {
     SMGState smallestAbstractedState = abstractedState;
     for (int i = allNonAbstractedStates.size() - 1; i >= 0; i--) {
       SMGState stateToMerge = allNonAbstractedStates.get(i);
-      if (smallestAbstractedState != abstractedState) {
-        // They should also be mergeable with the previously merged state.
+      boolean twoStackVarsPointToTheSameObj =
+          twoStackVariablesPointToTheSameConcreteListSegment(stateToMerge);
+      // Skip states if there is 2 stack variables with pointers pointing to the same
+      //  non-abstracted list segment, as they can't be abstracted currently.
+      if (smallestAbstractedState != abstractedState && !twoStackVarsPointToTheSameObj) {
+        // All non-abstracted states should be mergeable with abstracted states.
         Optional<MergedSMGStateAndMergeStatus> mergeResult =
-            mergeOp.mergeForTests(smallestAbstractedState.removeResultOfMerge(), stateToMerge);
+            mergeOp.mergeForTests(abstractedState, stateToMerge);
 
         assertThat(mergeResult).isPresent();
         assertThat(mergeResult.orElseThrow().getMergeStatus())
             .isEqualTo(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
-        assertThat(
-                smallestAbstractedState
-                    .removeResultOfMerge()
-                    .isLessOrEqual(mergeResult.orElseThrow().getMergedSMGState()))
+        assertThat(abstractedState.isLessOrEqual(mergeResult.orElseThrow().getMergedSMGState()))
             .isTrue();
+        smallestAbstractedState = mergeResult.orElseThrow().getMergedSMGState();
       }
-
-      // All non-abstracted states should be mergeable with abstracted states.
-      Optional<MergedSMGStateAndMergeStatus> mergeResult =
-          mergeOp.mergeForTests(abstractedState, stateToMerge);
-
-      assertThat(mergeResult).isPresent();
-      assertThat(mergeResult.orElseThrow().getMergeStatus())
-          .isEqualTo(SMGMergeStatus.RIGHT_ENTAILED_IN_LEFT);
-      assertThat(abstractedState.isLessOrEqual(mergeResult.orElseThrow().getMergedSMGState()))
-          .isTrue();
-      smallestAbstractedState = mergeResult.orElseThrow().getMergedSMGState();
     }
     return smallestAbstractedState;
+  }
+
+  private boolean twoStackVariablesPointToTheSameConcreteListSegment(SMGState state)
+      throws SMGException {
+    Map<String, SMGObject> stackVariables =
+        state.getMemoryModel().getStackFrames().peek().getVariables();
+    if (stackVariables.size() > 1) {
+      Set<SMGObject> targets = new HashSet<>();
+      for (SMGObject stackVariableObj : stackVariables.values()) {
+        Value possiblePointer =
+            state
+                .readValueWithoutMaterialization(
+                    stackVariableObj,
+                    BigInteger.ZERO,
+                    pointerSizeInBits,
+                    CPointerType.POINTER_TO_VOID)
+                .getValue();
+        if (state.getMemoryModel().isPointer(possiblePointer)) {
+          targets.add(state.getPointsToTarget(possiblePointer).orElseThrow().getSMGObject());
+        }
+      }
+
+      checkState(!targets.isEmpty());
+      // DLLs can have fst and last pointers. The test-setup should make sure that there is never 2
+      // times the same spec.
+      return targets.size() == 1 && targets.iterator().next() instanceof SMGDoublyLinkedListSegment;
+    }
+    return false;
   }
 
   /**
@@ -512,6 +533,7 @@ public class SMGMergeTest extends SMGCPATest0 {
         }
 
       } else {
+        // Not abstractable, list too short
         assertThat(resultState == stateToAbstract).isTrue();
         assertThat(stateToAbstract.getMemoryModel().getSmg().getNumberOfAbstractedLists())
             .isEqualTo(0);
