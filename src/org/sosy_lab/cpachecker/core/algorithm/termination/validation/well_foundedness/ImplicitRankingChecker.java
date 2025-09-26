@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness;
 
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -160,9 +162,12 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       CFA overapproximatingCFA = cfaCreator.parseSourceAndCreateCFA(overapproximatingProgam);
       CFANode mainEntryNode = overapproximatingCFA.getMainFunction();
       // CPA
+      Path lassoRankerConfigPath =
+          Classes.getCodeLocation(ImplicitRankingChecker.class)
+              .resolveSibling("config/lassoRankerAnalysis.properties");
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(
-              Configuration.builder().loadFromFile("config/lassoRankerAnalysis.properties").build(),
+              Configuration.builder().loadFromFile(lassoRankerConfigPath).build(),
               logger,
               shutdownNotifier,
               AggregatedReachedSets.empty());

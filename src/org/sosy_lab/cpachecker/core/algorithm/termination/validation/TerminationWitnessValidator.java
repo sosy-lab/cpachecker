@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
@@ -219,22 +220,27 @@ public class TerminationWitnessValidator implements Algorithm {
 
   private ReachedSet checkSupportingInvariants() throws CPAException {
     try {
-      String invariantsSpecPath = "config/properties/no-overflow.prp";
+      Path invariantsSpecPath =
+          Classes.getCodeLocation(TerminationWitnessValidator.class)
+              .resolveSibling("config/properties/no-overflow.prp");
+      Path validationConfigPath =
+          Classes.getCodeLocation(TerminationWitnessValidator.class)
+              .resolveSibling("config/witnessValidation.properties");
       Configuration generationConfig =
           CPAMain.createConfiguration(
                   new String[] {
                     "--witness",
                     witnessPath.toString(),
                     "--spec",
-                    invariantsSpecPath,
+                    invariantsSpecPath.toString(),
                     "--config",
-                    "config/witnessValidation.properties",
+                    validationConfigPath.toString(),
                     "--no-output-files",
                   })
               .configuration();
       Specification invariantSpec =
           Specification.fromFiles(
-              Arrays.asList(Path.of(invariantsSpecPath), witnessPath),
+              Arrays.asList(Path.of(invariantsSpecPath.toString()), witnessPath),
               cfa,
               generationConfig,
               logger,
