@@ -109,7 +109,7 @@ public class BitVectorReadWriteAssignmentBuilder {
     } else {
       if (pOptions.kIgnoreZeroReduction) {
         rStatements.add(
-            BitVectorAssignmentUtil.buildDenseBitVectorAssignmentStatementByAccessType(
+            BitVectorAssignmentUtil.buildDenseDirectBitVectorAssignmentByAccessType(
                 pOptions,
                 pThread,
                 pBitVectorVariables,
@@ -117,7 +117,7 @@ public class BitVectorReadWriteAssignmentBuilder {
                 pDirectReadMemoryLocations,
                 MemoryAccessType.READ));
         rStatements.add(
-            BitVectorAssignmentUtil.buildDenseBitVectorAssignmentStatementByAccessType(
+            BitVectorAssignmentUtil.buildDenseDirectBitVectorAssignmentByAccessType(
                 pOptions,
                 pThread,
                 pBitVectorVariables,
@@ -126,7 +126,7 @@ public class BitVectorReadWriteAssignmentBuilder {
                 MemoryAccessType.WRITE));
       }
       rStatements.add(
-          BitVectorAssignmentUtil.buildDenseBitVectorAssignmentStatementByAccessType(
+          BitVectorAssignmentUtil.buildDenseReachableBitVectorAssignmentByAccessType(
               pOptions,
               pThread,
               pBitVectorVariables,
@@ -134,7 +134,7 @@ public class BitVectorReadWriteAssignmentBuilder {
               pReachableAccessMemoryLocations,
               MemoryAccessType.ACCESS));
       rStatements.add(
-          BitVectorAssignmentUtil.buildDenseBitVectorAssignmentStatementByAccessType(
+          BitVectorAssignmentUtil.buildDenseReachableBitVectorAssignmentByAccessType(
               pOptions,
               pThread,
               pBitVectorVariables,

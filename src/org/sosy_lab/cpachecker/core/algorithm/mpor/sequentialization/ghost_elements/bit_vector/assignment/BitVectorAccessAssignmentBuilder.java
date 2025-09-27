@@ -78,7 +78,7 @@ public class BitVectorAccessAssignmentBuilder {
     } else {
       if (pOptions.kIgnoreZeroReduction) {
         rStatements.add(
-            BitVectorAssignmentUtil.buildDenseBitVectorAssignmentStatementByAccessType(
+            BitVectorAssignmentUtil.buildDenseDirectBitVectorAssignmentByAccessType(
                 pOptions,
                 pThread,
                 pBitVectorVariables,
@@ -87,7 +87,7 @@ public class BitVectorAccessAssignmentBuilder {
                 MemoryAccessType.ACCESS));
       }
       rStatements.add(
-          BitVectorAssignmentUtil.buildDenseBitVectorAssignmentStatementByAccessType(
+          BitVectorAssignmentUtil.buildDenseReachableBitVectorAssignmentByAccessType(
               pOptions,
               pThread,
               pBitVectorVariables,
