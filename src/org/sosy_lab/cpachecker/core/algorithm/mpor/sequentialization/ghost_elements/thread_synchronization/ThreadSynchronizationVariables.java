@@ -12,21 +12,35 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class ThreadSynchronizationVariables {
 
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
 
-  ThreadSynchronizationVariables(ImmutableMap<CIdExpression, MutexLocked> pLocked) {
+  /**
+   * The map of {@link MPORThread}s to their {@code sync} flag that indicates whether a thread is at
+   * a location that synchronizes threads, e.g. {@code pthread_join}.
+   */
+  public final ImmutableMap<MPORThread, CIdExpression> sync;
+
+  ThreadSynchronizationVariables(
+      ImmutableMap<CIdExpression, MutexLocked> pLocked,
+      ImmutableMap<MPORThread, CIdExpression> pSync) {
+
     locked = pLocked;
+    sync = pSync;
   }
 
-  /** Returns all CIdExpressions of the vars in the order locked - locks - joins. */
+  /** Returns all declarations of the thread synchronization variables. */
   public ImmutableList<CSimpleDeclaration> getDeclarations() {
     ImmutableList.Builder<CSimpleDeclaration> rDeclarations = ImmutableList.builder();
     for (MutexLocked mutexLockedVariable : locked.values()) {
       rDeclarations.add(mutexLockedVariable.idExpression.getDeclaration());
+    }
+    for (CIdExpression syncVariable : sync.values()) {
+      rDeclarations.add(syncVariable.getDeclaration());
     }
     return rDeclarations.build();
   }

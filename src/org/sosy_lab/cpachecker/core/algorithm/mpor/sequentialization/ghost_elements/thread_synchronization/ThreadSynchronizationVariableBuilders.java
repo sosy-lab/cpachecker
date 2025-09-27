@@ -44,7 +44,8 @@ public class ThreadSynchronizationVariableBuilders {
       throws UnrecognizedCodeException {
 
     return new ThreadSynchronizationVariables(
-        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder));
+        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
+        buildSyncVariables(pOptions, pThreads));
   }
 
   private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
@@ -54,7 +55,7 @@ public class ThreadSynchronizationVariableBuilders {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<CIdExpression, MutexLocked> rVars = ImmutableMap.builder();
+    ImmutableMap.Builder<CIdExpression, MutexLocked> rLockedVariables = ImmutableMap.builder();
     Set<CIdExpression> lockedVariables = new HashSet<>();
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
@@ -74,12 +75,28 @@ public class ThreadSynchronizationVariableBuilders {
               CBinaryExpression notLockedExpression =
                   pBinaryExpressionBuilder.buildBinaryExpression(
                       mutexLocked, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
-              rVars.put(pthreadMutexT, new MutexLocked(mutexLocked, notLockedExpression));
+              rLockedVariables.put(
+                  pthreadMutexT, new MutexLocked(mutexLocked, notLockedExpression));
             }
           }
         }
       }
     }
-    return rVars.buildOrThrow();
+    return rLockedVariables.buildOrThrow();
+  }
+
+  private static ImmutableMap<MPORThread, CIdExpression> buildSyncVariables(
+      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
+
+    ImmutableMap.Builder<MPORThread, CIdExpression> rSyncVariables = ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      String name = SeqNameUtil.buildSyncName(pOptions, thread.id);
+      // use unsigned char (8 bit), we only need values 0 and 1
+      CIdExpression sync =
+          SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
+              true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
+      rSyncVariables.put(thread, sync);
+    }
+    return rSyncVariables.buildOrThrow();
   }
 }

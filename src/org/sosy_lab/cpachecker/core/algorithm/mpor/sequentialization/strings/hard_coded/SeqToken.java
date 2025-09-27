@@ -160,6 +160,8 @@ public class SeqToken {
 
   public static final String STRING_0 = "\"0\"";
 
+  public static final String SYNC = "SYNC";
+
   public static final String T = "T";
 
   public static final String _t = "_t";

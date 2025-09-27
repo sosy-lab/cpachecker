@@ -220,7 +220,7 @@ public class SeqNameUtil {
             + pVariableName;
   }
 
-  // Mutex =========================================================================================
+  // Thread Synchronization ========================================================================
 
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */
   public static String buildMutexLockedName(MPOROptions pOptions, String pMutexName) {
@@ -228,6 +228,12 @@ public class SeqNameUtil {
         + SeqSyntax.UNDERSCORE
         + SeqToken.LOCKED;
   }
+
+  public static String buildSyncName(MPOROptions pOptions, int pThreadId) {
+    return buildThreadPrefix(pOptions, pThreadId) + SeqSyntax.UNDERSCORE + SeqToken.SYNC;
+  }
+
+  // Other
 
   public static String buildQualifiedName(String pVarName) {
     // TODO the qualified names are not relevant in the seq, so we just use dummy::
