@@ -135,7 +135,7 @@ public class BitVectorVariables {
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type last dense bit vector");
       case ACCESS -> lastSparseAccessBitVector;
-      case READ -> throw new IllegalArgumentException("no READ access type last dense bit vector");
+      case READ -> Optional.empty();
       case WRITE -> lastSparseWriteBitVector;
     };
   }

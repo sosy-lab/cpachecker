@@ -331,6 +331,22 @@ public class BitVectorAssignmentInjector {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
+      if (pOptions.kIgnoreZeroReduction) {
+        rStatements.addAll(
+            buildSparseDirectBitVectorAssignmentsByAccessType(
+                pOptions,
+                pThread,
+                pBitVectorVariables,
+                pDirectReadMemoryLocations,
+                MemoryAccessType.READ));
+        rStatements.addAll(
+            buildSparseDirectBitVectorAssignmentsByAccessType(
+                pOptions,
+                pThread,
+                pBitVectorVariables,
+                pDirectWriteMemoryLocations,
+                MemoryAccessType.WRITE));
+      }
       rStatements.addAll(
           buildSparseReachableBitVectorAssignmentsByAccessType(
               pOptions,

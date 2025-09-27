@@ -195,11 +195,13 @@ public class SeqBitVectorDeclarationBuilder {
           buildSparseBitVectorDeclarations(
               pMemoryModel, pBitVectorVariables, pClauses, MemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
-          // TODO add direct READ here for K == 0 reduction
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
                   buildSparseBitVectorDeclarations(
                       pMemoryModel, pBitVectorVariables, pClauses, MemoryAccessType.ACCESS))
+              .addAll(
+                  buildSparseBitVectorDeclarations(
+                      pMemoryModel, pBitVectorVariables, pClauses, MemoryAccessType.READ))
               .addAll(
                   buildSparseBitVectorDeclarations(
                       pMemoryModel, pBitVectorVariables, pClauses, MemoryAccessType.WRITE))
