@@ -16,6 +16,7 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -267,8 +268,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     if (pSingleConfigFileName.annotation().isPresent()) {
       // separate each annotation by the delimiter ':'
       // a workaround to handle multiple annotations
-      List<String> annotations =
-          ImmutableList.copyOf(pSingleConfigFileName.annotation().orElseThrow().split(":"));
+      Iterable<String> annotations =
+          Splitter.on(':')
+              .trimResults() // remove whitespace
+              .omitEmptyStrings() // skip empty entries
+              .split(pSingleConfigFileName.annotation().orElseThrow());
       for (String annotation : annotations) {
         switch (annotation) {
           case "refinable" -> {
