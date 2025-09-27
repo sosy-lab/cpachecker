@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -83,8 +84,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
         "pStatementB.cfaEdge must be CStatementEdge");
 
     CStatement bStatement = ((CStatementEdge) pStatementB.cfaEdge).getStatement();
-    if (bStatement instanceof CExpressionStatement expressionStatement) {
-      CIdExpression idExpressionB = extractIdExpressionB(expressionStatement.getExpression());
+    if (bStatement instanceof CExpressionStatement bExpressionStatement) {
+      CIdExpression idExpressionB = extractIdExpressionB(bExpressionStatement.getExpression());
       CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
       checkArgument(
           pVariableDeclaration.equals(declarationB),
@@ -92,15 +93,29 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
               + " pStatementB is a CExpressionStatement");
 
     } else if (bStatement instanceof CExpressionAssignmentStatement bAssignment) {
-      // this happens e.g. in ldv-races/race-2_2-container_of:
-      // CPA_TMP_0 = {  }; CPA_TMP_1 = (struct my_data *)(((char *)mptr) - 40); data = CPA_TMP_1;
-      // check if the middle statement LHS matches the last statements RHS (CPA_TMP_1)
       CStatement aStatement = ((CStatementEdge) pStatementA.cfaEdge).getStatement();
       checkArgument(
           aStatement instanceof CExpressionAssignmentStatement,
           "pStatementA must be CExpressionAssignmentStatement when pStatementB is a"
               + " CExpressionAssignmentStatement");
       CExpressionAssignmentStatement aAssignment = (CExpressionAssignmentStatement) aStatement;
+      if (pVariableDeclaration.getInitializer()
+          instanceof CInitializerExpression initializerExpression) {
+        if (initializerExpression.getExpression().equals(aAssignment.getLeftHandSide())) {
+          if (bAssignment.getRightHandSide() instanceof CIdExpression bIdExpression) {
+            // this happens e.g. in weaver/parallel-ticket-6.wvr.c
+            // _Atomic int CPA_TMP_0 = t; t = t + 1; m1 = CPA_TMP_0;
+            // we want to ensure that the declaration is equal to the RHS in the last statement
+            checkArgument(
+                pVariableDeclaration.equals(bIdExpression.getDeclaration()),
+                "pVariableDeclaration must equal pStatementB RHS");
+            return;
+          }
+        }
+      }
+      // this happens e.g. in ldv-races/race-2_2-container_of:
+      // CPA_TMP_0 = {  }; CPA_TMP_1 = (struct my_data *)(((char *)mptr) - 40); data = CPA_TMP_1;
+      // check if the middle statement LHS matches the last statements RHS (CPA_TMP_1)
       checkArgument(
           aAssignment.getLeftHandSide().equals(bAssignment.getRightHandSide()),
           "pStatementA LHS must equal pStatementB RHS when pStatementB is a"
