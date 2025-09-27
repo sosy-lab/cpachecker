@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 public class NodeMapping {
 
   private final Map<SMGObject, SMGObject> objectMap;
+  // We use REGION as default for non-pointers for now
   private final Map<SMGValue, Map<SMGTargetSpecifier, SMGValue>> valueMap;
 
   public NodeMapping() {
@@ -166,7 +167,10 @@ public class NodeMapping {
       return copyAndAddMapping(vOld, vNew, newPTE.targetSpecifier());
 
     } else {
-      checkArgument(!spcOld.getSmg().isPointer(vOld) || spcNew.getSmg().isPointer(vNew));
+      // Non-pointers only (and 0 is never mapped!)
+      checkArgument(
+          !spcOld.getSmg().isPointer(vOld) || spcNew.getSmg().isPointer(vNew),
+          "You can't map a pointer to a non-pointer. Did you forget to make the new value a pointer?");
       // Use region as default for non-pointers for now
       return copyAndAddMapping(vOld, vNew, IS_REGION);
     }
