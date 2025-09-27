@@ -90,6 +90,7 @@ HASH_CODE_CACHE_PATH = os.path.join(
 
 VALID_RUN_ID = re.compile("^[A-Za-z0-9-]+$")
 
+DEFAULT_TOOL_NAME = "CPAchecker"
 
 class WebClientError(Exception):
     def _init_(self, value):
@@ -430,8 +431,28 @@ class WebInterface:
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
-        self._revision = self._request_tool_revision(revision)
-        self._tool_name = self._request_tool_name()
+        tool_information = self._request_tool_information(revision)
+        self._revision = tool_information.get("commitHash", revision)
+        self._tool_version = tool_information.get("toolVersion", self._revision)
+        self._tool_name = tool_information.get("toolName", DEFAULT_TOOL_NAME)
+
+        if "commitHash" not in tool_information:
+            logging.warning(
+                "Could not retrieve commit hash. Using fallback value: %s",
+                revision,
+            )
+
+        if "toolVersion" not in tool_information:
+            logging.warning(
+                "Could not retrieve the tool version. Using fallback value: %s",
+                self._revision,
+            )
+
+        if "toolName" not in tool_information:
+            logging.warning(
+                "Could not retrieve the tool name. Using fallback value: %s",
+                DEFAULT_TOOL_NAME,
+            )
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -502,10 +523,19 @@ class WebInterface:
                 e.strerror,
             )
 
-    def _request_tool_revision(self, revision):
-        path = "tool/version_string?revision=" + revision
-        (resolved_svn_revision, _) = self._request("GET", path)
-        return resolved_svn_revision.decode("UTF-8")
+    def _request_tool_information(self, revision):
+        tool_info = {}
+
+        (name_bytes, _) = self._request("GET", "tool/name")
+        tool_info['toolName'] = name_bytes.decode("UTF-8").strip()
+
+        (rev_bytes, _) = self._request("GET", f"tool/version_string?revision={revision}")
+        tool_info['commitHash'] = rev_bytes.decode("UTF-8").strip()
+
+        (version_bytes, _) = self._request("GET", f"runs/toolversion?revision={revision}")
+        tool_info['toolVersion'] = version_bytes.decode("UTF-8").strip()
+
+        return tool_info
 
     def _request_tool_name(self):
         path = "tool/name"
@@ -517,6 +547,9 @@ class WebInterface:
 
     def tool_name(self):
         return self._tool_name
+
+    def tool_version(self):
+        return self._tool_version
 
     def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
