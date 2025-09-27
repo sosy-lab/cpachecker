@@ -836,7 +836,7 @@ class WebInterface:
 
         # TODO use code from CPAchecker module, it add --stats and sets --timelimit,
         # instead of doing it here manually, too
-        if self._tool_name == "CPAchecker":
+        if self._tool_name == DEFAULT_TOOL_NAME:
             params.append(("option", "statistics.print=true"))
 
             if "softtimelimit" in rlimits:
