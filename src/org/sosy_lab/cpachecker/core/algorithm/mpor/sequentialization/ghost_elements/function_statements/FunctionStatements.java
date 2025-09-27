@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class FunctionStatements {
@@ -34,11 +35,12 @@ public class FunctionStatements {
     startRoutineExitAssignments = pStartRoutineExitAssignments;
   }
 
-  public FunctionParameterAssignment getStartRoutineArgAssignmentByThreadEdge(
+  public Optional<FunctionParameterAssignment> tryGetStartRoutineArgAssignmentByThreadEdge(
       ThreadEdge pThreadEdge) {
 
-    assert startRoutineArgAssignments.containsKey(pThreadEdge)
-        : "startRoutineArgAssignments does not contain pThreadEdge";
-    return startRoutineArgAssignments.get(pThreadEdge);
+    if (startRoutineArgAssignments.containsKey(pThreadEdge)) {
+      return Optional.ofNullable(startRoutineArgAssignments.get(pThreadEdge));
+    }
+    return Optional.empty();
   }
 }

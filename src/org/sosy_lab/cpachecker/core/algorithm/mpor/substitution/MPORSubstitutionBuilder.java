@@ -283,20 +283,23 @@ public class MPORSubstitutionBuilder {
                 (CFunctionDeclaration) createdThread.cfa.entryNode.getFunction();
             // start_routine matches
             if (startRoutineDeclaration.getType().equals(startRoutineType)) {
-              // start_routines only have one parameter
-              CParameterDeclaration parameterDeclaration =
-                  startRoutineDeclaration.getParameters().getFirst();
-              String varName =
-                  SeqNameUtil.buildStartRoutineArgName(
-                      pOptions,
-                      parameterDeclaration,
-                      createdThread.id,
-                      startRoutineDeclaration.getOrigName());
-              CParameterDeclaration substituteParameterDeclaration =
-                  substituteParameterDeclaration(parameterDeclaration, varName);
-              CIdExpression substitute =
-                  SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration);
-              rArgSubstitutes.put(threadEdge, parameterDeclaration, substitute);
+              if (!startRoutineDeclaration.getParameters().isEmpty()) {
+                assert startRoutineDeclaration.getParameters().size() == 1
+                    : "start_routines can have either 0 or 1 arguments";
+                CParameterDeclaration parameterDeclaration =
+                    startRoutineDeclaration.getParameters().getFirst();
+                String varName =
+                    SeqNameUtil.buildStartRoutineArgName(
+                        pOptions,
+                        parameterDeclaration,
+                        createdThread.id,
+                        startRoutineDeclaration.getOrigName());
+                CParameterDeclaration substituteParameterDeclaration =
+                    substituteParameterDeclaration(parameterDeclaration, varName);
+                CIdExpression substitute =
+                    SeqExpressionBuilder.buildIdExpression(substituteParameterDeclaration);
+                rArgSubstitutes.put(threadEdge, parameterDeclaration, substitute);
+              }
             }
           }
         }

@@ -35,10 +35,10 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   private final MPOROptions options;
 
   /**
-   * The assignment of the parameter given in the {@code pthread_create} call. This is always
-   * present, even if the parameter is not actually used.
+   * The assignment of the parameter given in the {@code pthread_create} call. This is present if
+   * the start_routine has exactly one parameter, even if the parameter is not used.
    */
-  private final FunctionParameterAssignment startRoutineArgAssignment;
+  private final Optional<FunctionParameterAssignment> startRoutineArgAssignment;
 
   public final MPORThread createdThread;
 
@@ -58,7 +58,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
 
   SeqThreadCreationStatement(
       MPOROptions pOptions,
-      FunctionParameterAssignment pStartRoutineArgAssignment,
+      Optional<FunctionParameterAssignment> pStartRoutineArgAssignment,
       MPORThread pCreatedThread,
       MPORThread pCreatingThread,
       ProgramCounterVariables pPcVariables,
@@ -79,7 +79,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
 
   private SeqThreadCreationStatement(
       MPOROptions pOptions,
-      FunctionParameterAssignment pParameterAssignment,
+      Optional<FunctionParameterAssignment> pStartRoutineArgAssignment,
       MPORThread pCreatedThread,
       MPORThread pCreatingThread,
       Optional<ImmutableList<SeqBitVectorAssignmentStatement>> pBitVectorInitializations,
@@ -90,7 +90,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     options = pOptions;
-    startRoutineArgAssignment = pParameterAssignment;
+    startRoutineArgAssignment = pStartRoutineArgAssignment;
     createdThread = pCreatedThread;
     creatingThread = pCreatingThread;
     bitVectorInitializations = pBitVectorInitializations;
@@ -120,12 +120,14 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
             targetPc,
             targetGoto,
             injectedStatements);
-    return startRoutineArgAssignment.toExpressionAssignmentStatement().toASTString()
-        + SeqSyntax.SPACE
-        + bitVectors
-        + createdPcWrite.toASTString()
-        + SeqSyntax.SPACE
-        + injected;
+    return startRoutineArgAssignment.isPresent()
+        ? startRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement().toASTString()
+        : SeqSyntax.EMPTY_STRING
+            + SeqSyntax.SPACE
+            + bitVectors
+            + createdPcWrite.toASTString()
+            + SeqSyntax.SPACE
+            + injected;
   }
 
   @Override
@@ -225,9 +227,5 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   @Override
   public boolean onlyWritesPc() {
     return false;
-  }
-
-  public FunctionParameterAssignment getStartRoutineArgAssignment() {
-    return startRoutineArgAssignment;
   }
 }
