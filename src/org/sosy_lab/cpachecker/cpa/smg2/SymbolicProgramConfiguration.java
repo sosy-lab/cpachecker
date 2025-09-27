@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.SMGRecoverableFailureType.DELAYED_MERGE;
@@ -20,7 +21,6 @@ import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.rightL
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
@@ -529,7 +529,7 @@ public class SymbolicProgramConfiguration {
       NodeMapping mapping2,
       int nestingDiff)
       throws SMGException {
-    Preconditions.checkNotNull(initialStatus);
+    checkNotNull(initialStatus);
     // 1. Let res := joinFields(G1 , G2 , o1 , o2 ). If res = ⊥, return ⊥.
     // Otherwise, let (s0 , G1 , G2 ) := res and s := updateJoinStatus(s, s0).
     Optional<MergingSPCsAndMergeStatus> maybeMergedFields =
@@ -667,7 +667,7 @@ public class SymbolicProgramConfiguration {
       SMGMergeStatus initialJoinStatus,
       int nestingDiff)
       throws SMGException {
-    Preconditions.checkNotNull(initialJoinStatus);
+    checkNotNull(initialJoinStatus);
 
     // 1. if v1 == v2, return
     Value v1v = pSpc1.getValueFromSMGValue(v1).orElseThrow();
@@ -1209,7 +1209,7 @@ public class SymbolicProgramConfiguration {
     if (targetSpec1.equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
       workingOffset = sll1.getNextOffset().intValue(); // nf
     } else if (targetSpec1.equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
-      Preconditions.checkNotNull(dll1);
+      checkNotNull(dll1);
       workingOffset = dll1.getPrevOffset().intValue();
     } else {
       checkArgument(targetSpec1.equals(SMGTargetSpecifier.IS_ALL_POINTER));
@@ -1264,7 +1264,7 @@ public class SymbolicProgramConfiguration {
       if (!mapping1.hasMapping(v1)) {
         Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
         CType type1 = spc1.valueToTypeMap.get(v1);
-        Preconditions.checkNotNull(type1);
+        checkNotNull(type1);
         // Note: Pointer nesting level is based on the target object
         newSPC =
             newSPC.copyAndAddPointerFromAddressToMemory(
@@ -1360,7 +1360,7 @@ public class SymbolicProgramConfiguration {
     if (maybeAddressValue.isEmpty()) {
       Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
       CType type1 = spc1.valueToTypeMap.get(v1);
-      Preconditions.checkNotNull(type1);
+      checkNotNull(type1);
       int nestingLevel = spc1.getNestingLevel(v1);
       newSPC =
           newSPC.copyAndAddPointerFromAddressToMemory(
@@ -1458,7 +1458,7 @@ public class SymbolicProgramConfiguration {
     if (targetSpec2.equals(SMGTargetSpecifier.IS_FIRST_POINTER)) {
       workingOffset = sll2.getNextOffset().intValue(); // nf
     } else if (targetSpec2.equals(SMGTargetSpecifier.IS_LAST_POINTER)) {
-      Preconditions.checkNotNull(dll2);
+      checkNotNull(dll2);
       workingOffset = dll2.getPrevOffset().intValue();
     } else {
       checkArgument(targetSpec2.equals(SMGTargetSpecifier.IS_ALL_POINTER));
@@ -1513,7 +1513,7 @@ public class SymbolicProgramConfiguration {
       if (!mapping2.hasMapping(v2)) {
         Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
         CType type2 = spc2.valueToTypeMap.get(v2);
-        Preconditions.checkNotNull(type2);
+        checkNotNull(type2);
         newSPC =
             newSPC.copyAndAddPointerFromAddressToMemory(
                 addressValue, d, type2, pte2.getOffset(), 0, pte2.targetSpecifier());
@@ -1608,7 +1608,7 @@ public class SymbolicProgramConfiguration {
     if (maybeAddressValue.isEmpty()) {
       Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
       CType type2 = spc2.valueToTypeMap.get(v2);
-      Preconditions.checkNotNull(type2);
+      checkNotNull(type2);
       int nestingLevel = spc2.getNestingLevel(v2);
       newSPC =
           newSPC.copyAndAddPointerFromAddressToMemory(
@@ -1908,7 +1908,7 @@ public class SymbolicProgramConfiguration {
           SMGMergeStatus initialJoinStatus,
           int nestingDiff)
           throws SMGException {
-    Preconditions.checkNotNull(initialJoinStatus);
+    checkNotNull(initialJoinStatus);
     checkArgument(pSpc1.smg.isPointer(v1)); // a1
     checkArgument(pSpc2.smg.isPointer(v2)); // a2
 
@@ -2539,7 +2539,7 @@ public class SymbolicProgramConfiguration {
    */
   public CType getTypeForValue(SMGValue value) {
     CType type = valueToTypeMap.get(value);
-    Preconditions.checkNotNull(type);
+    checkNotNull(type);
     return type.getCanonicalType();
   }
 
@@ -2732,7 +2732,7 @@ public class SymbolicProgramConfiguration {
    * @return true for 0+ target. false else.
    */
   public boolean pointsToZeroPlus(Value value) {
-    Preconditions.checkNotNull(value);
+    checkNotNull(value);
     return smg.pointsToZeroPlus(getSMGValueFromValue(value).orElse(null));
   }
 
@@ -3097,11 +3097,12 @@ public class SymbolicProgramConfiguration {
                   smgValueSource, sourceSPC, smgValueInTarget, newTargetState);
         }
       }
+      // Add the mapping if it is not yet existing
       CType typeSource = sourceSPC.valueToTypeMap.get(smgValueSource);
       // Check that the type exists and can be copied
-      Preconditions.checkNotNull(typeSource);
+      checkNotNull(typeSource);
 
-      // This only updates the nesting level if a mapping exists
+      // This only updates the nesting level if a mapping already exists
       newTargetState =
           newTargetState.copyAndPutValue(valueInTarget, smgValueInTarget, nestingLevel, typeSource);
       newTargetState =
@@ -3349,7 +3350,7 @@ public class SymbolicProgramConfiguration {
       SMGValue oldValue = oldNewSMGValue.getKey();
       Value newAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
       CType type = newSPC.valueToTypeMap.get(oldValue);
-      Preconditions.checkNotNull(type);
+      checkNotNull(type);
       newSPC =
           newSPC.copyAndPutValue(
               newAddressValue, newSMGValue, smg.getNestingLevel(pointerToNewObj), type);
@@ -4076,7 +4077,7 @@ public class SymbolicProgramConfiguration {
   SMGTargetSpecifier getPointerSpecifier(Value pointer) {
     SMGValue smgValueAddress = valueMapping.get(valueWrapper.wrap(pointer));
     SMGPointsToEdge ptEdge = smg.getPTEdge(smgValueAddress).orElseThrow();
-    Preconditions.checkNotNull(ptEdge);
+    checkNotNull(ptEdge);
     return ptEdge.targetSpecifier();
   }
 
@@ -4164,7 +4165,7 @@ public class SymbolicProgramConfiguration {
         BigInteger typeSize = valueEdge.getSizeInBits();
         checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
-        Preconditions.checkNotNull(value);
+        checkNotNull(value);
         ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
         map = map.putAndCopy(memLoc, valueAndValueSize);
       }
@@ -4182,7 +4183,7 @@ public class SymbolicProgramConfiguration {
           BigInteger typeSize = valueEdge.getSizeInBits();
           checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
-          Preconditions.checkNotNull(value);
+          checkNotNull(value);
           ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
           map = map.putAndCopy(memLoc, valueAndValueSize);
         }
@@ -4202,7 +4203,7 @@ public class SymbolicProgramConfiguration {
           BigInteger typeSize = valueEdge.getSizeInBits();
           checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
-          Preconditions.checkNotNull(value);
+          checkNotNull(value);
           ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
           map = map.putAndCopy(memLoc, valueAndValueSize);
         }
@@ -4622,7 +4623,7 @@ public class SymbolicProgramConfiguration {
         SMGValue smgValue = valueEdge.hasValue();
         checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
-        Preconditions.checkNotNull(value);
+        checkNotNull(value);
         String pointerInfo = "";
         if (smg.isPointer(smgValue)) {
           pointerInfo = " -> " + smg.getPTEdge(smgValue).orElseThrow();
@@ -4672,7 +4673,7 @@ public class SymbolicProgramConfiguration {
           SMGValue smgValue = valueEdge.hasValue();
           checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
-          Preconditions.checkNotNull(value);
+          checkNotNull(value);
 
           String pointerInfo = "";
           if (smg.isPointer(smgValue)) {
@@ -4717,7 +4718,7 @@ public class SymbolicProgramConfiguration {
           SMGValue smgValue = valueEdge.hasValue();
           checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
-          Preconditions.checkNotNull(value);
+          checkNotNull(value);
           String pointerInfo = "";
           if (smg.isPointer(smgValue)) {
             pointerInfo = " -> " + smg.getPTEdge(smgValue);
