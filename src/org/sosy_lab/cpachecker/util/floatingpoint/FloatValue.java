@@ -2687,13 +2687,13 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       // significand
       significand = significand.setBit(format.sigBits);
     }
-    return new FloatValue(format, pNumber.getMathSign() == Sign.NEGATIVE, exponent, significand);
+    return new FloatValue(format, pNumber.getMathSign().isNegative(), exponent, significand);
   }
 
   /** Convert this {@link FloatValue} to {@link FloatingPointNumber} */
   public FloatingPointNumber toFloatingPointNumber() {
     return FloatingPointNumber.of(
-        sign ? Sign.NEGATIVE : Sign.POSITIVE,
+        Sign.of(sign),
         BigInteger.valueOf(exponent + format.bias()),
         significand.clearBit(format.sigBits()),
         format.expBits(),
