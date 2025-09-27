@@ -3092,6 +3092,16 @@ public class SymbolicProgramConfiguration {
           // Check that the target SPC/SMG does not have a mapping for this value
           checkState(!newTargetState.containsValueInMapping(valueInSource));
           checkState(!newTargetState.containsValueInMapping(smgValueInTarget));
+
+          // TODO: refactor with duplicate code below
+          // Add the value to the target spc
+          CType typeSource = sourceSPC.valueToTypeMap.get(smgValueSource);
+          // Check that the type exists and can be copied
+          checkNotNull(typeSource);
+          newTargetState =
+              newTargetState.copyAndPutValue(
+                  valueInTarget, smgValueInTarget, nestingLevel, typeSource);
+
           mappingBetweenStates =
               mappingBetweenStates.copyAndAddMapping(
                   smgValueSource, sourceSPC, smgValueInTarget, newTargetState);
