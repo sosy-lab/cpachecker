@@ -92,6 +92,7 @@ VALID_RUN_ID = re.compile("^[A-Za-z0-9-]+$")
 
 DEFAULT_TOOL_NAME = "CPAchecker"
 
+
 class WebClientError(Exception):
     def _init_(self, value):
         self.value = value
@@ -527,13 +528,17 @@ class WebInterface:
         tool_info = {}
 
         (name_bytes, _) = self._request("GET", "tool/name")
-        tool_info['toolName'] = name_bytes.decode("UTF-8").strip()
+        tool_info["toolName"] = name_bytes.decode("UTF-8").strip()
 
-        (rev_bytes, _) = self._request("GET", f"tool/version_string?revision={revision}")
-        tool_info['commitHash'] = rev_bytes.decode("UTF-8").strip()
+        (rev_bytes, _) = self._request(
+            "GET", f"tool/version_string?revision={revision}"
+        )
+        tool_info["commitHash"] = rev_bytes.decode("UTF-8").strip()
 
-        (version_bytes, _) = self._request("GET", f"runs/toolversion?revision={revision}")
-        tool_info['toolVersion'] = version_bytes.decode("UTF-8").strip()
+        (version_bytes, _) = self._request(
+            "GET", f"runs/toolversion?revision={revision}"
+        )
+        tool_info["toolVersion"] = version_bytes.decode("UTF-8").strip()
 
         return tool_info
 
