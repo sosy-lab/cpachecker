@@ -46,7 +46,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ReachingDefUtils {
+public final class ReachingDefUtils {
+
+  private ReachingDefUtils() {}
 
   private static List<CFANode> cfaNodes;
 
@@ -137,28 +139,28 @@ public class ReachingDefUtils {
   public static Set<MemoryLocation> possiblePointees(CExpression pExp, PointerState pPointerState) {
     Set<MemoryLocation> possibleOperands;
 
-    if (pExp instanceof CPointerExpression) {
-      possibleOperands = possiblePointees(((CPointerExpression) pExp).getOperand(), pPointerState);
-
-    } else if (pExp instanceof CIdExpression) {
-      return Collections.singleton(
-          MemoryLocation.forDeclaration(((CIdExpression) pExp).getDeclaration()));
-
-    } else if (pExp instanceof CFieldReference) {
-      if (((CFieldReference) pExp).isPointerDereference()) {
-        possibleOperands =
-            possiblePointees(((CFieldReference) pExp).getFieldOwner(), pPointerState);
-      } else {
-        return possiblePointees(((CFieldReference) pExp).getFieldOwner(), pPointerState);
+    switch (pExp) {
+      case CPointerExpression cPointerExpression ->
+          possibleOperands = possiblePointees(cPointerExpression.getOperand(), pPointerState);
+      case CIdExpression cIdExpression -> {
+        return Collections.singleton(MemoryLocation.forDeclaration(cIdExpression.getDeclaration()));
       }
-    } else if (pExp instanceof CArraySubscriptExpression) {
-      return possiblePointees(
-          ((CArraySubscriptExpression) pExp).getArrayExpression(), pPointerState);
-
-    } else if (pExp instanceof CCastExpression) {
-      return possiblePointees(((CCastExpression) pExp).getOperand(), pPointerState);
-    } else {
-      return null;
+      case CFieldReference cFieldReference -> {
+        if (cFieldReference.isPointerDereference()) {
+          possibleOperands = possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
+        } else {
+          return possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
+        }
+      }
+      case CArraySubscriptExpression cArraySubscriptExpression -> {
+        return possiblePointees(cArraySubscriptExpression.getArrayExpression(), pPointerState);
+      }
+      case CCastExpression cCastExpression -> {
+        return possiblePointees(cCastExpression.getOperand(), pPointerState);
+      }
+      case null /*TODO check if null is necessary*/, default -> {
+        return null;
+      }
     }
 
     if (possibleOperands == null) {
@@ -210,6 +212,7 @@ public class ReachingDefUtils {
     protected MemoryLocation visitDefault(CExpression pExp) {
       return null;
     }
+
     // TODO adapt, need more
     @Override
     public MemoryLocation visit(CArraySubscriptExpression pIastArraySubscriptExpression)

@@ -28,6 +28,7 @@ public final class PolicyIntermediateState extends PolicyState {
   private final PolicyAbstractedState startingAbstraction;
 
   private @Nullable transient ImmutableList<ValueAssignment> counterexample = null;
+
   /** Meta-information for determining the coverage. */
   private @Nullable transient PolicyIntermediateState mergedInto = null;
 
@@ -116,11 +117,8 @@ public final class PolicyIntermediateState extends PolicyState {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof PolicyIntermediateState)) {
-      return false;
-    }
-    PolicyIntermediateState that = (PolicyIntermediateState) pO;
-    return Objects.equals(pathFormula, that.pathFormula)
+    return pO instanceof PolicyIntermediateState that
+        && Objects.equals(pathFormula, that.pathFormula)
         && Objects.equals(startingAbstraction, that.startingAbstraction)
         && Objects.equals(mergedInto, that.mergedInto)
         && Objects.equals(getNode(), that.getNode());

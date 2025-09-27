@@ -1,0 +1,24 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# add new commits on top
+b4c108f78988bdec853771d893f35066267f6c44 # reformat with Google Java Format 1.19
+b4c1a2604a4db6df4732aadfa5a9a392a3831661 # reformat with Google Java Format 1.16
+0ff16ae4e008e3eb0af0d5dcb6bd42d429fe9384 # reformat other packages
+d1815aa4c4dbbdfa04797320fc26084403516ed0 # reformat CPAs
+a92990d76590adf111aa9fee64931b2546faa723 # reformat ValueCPA
+b7121ceae0b9728c06160e3ee4f4fd03240e4579 # reformat SMG CPAs
+aa43fc82a8a0b39a1513a0e70bfca336421a71e4 # reformat PredicateCPA
+c4a88b62f1dd3ec54c01cfe7a97ac917aae78671 # reformat InvariantsCPA
+4d3324a16047efa02a1e1f6d9291d1e7a41c3153 # reformat CFA package
+01f8dd9f5f66bd4e858904398747d39a3ead33b1 # reformat core packages
+10cec43c15054f6b90b3866e8bf78b9351bec3bd # reformat Java analysis
+5832ece7e7225c0a4661d1c575362fb0017e1f60 # reformat Python scripts
+4647c749f170e4beb917b58f6290995ef559b47c # reformat ACSL package
+886a31659523247e04595e1eee8b2beee2ed78a3 # reformat LockCPA and related code
+5ba037e0bd452dd8bf7bbf4e04d299a51d00d73f # reformat Java test programs

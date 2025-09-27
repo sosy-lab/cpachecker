@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -70,7 +71,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     private Set<Integer> usedThreadIds;
     private int currentThread;
 
-    public ThreadIterator() {
+    ThreadIterator() {
       usedThreadIds = new HashSet<>();
       currentThread = 0;
     }
@@ -91,11 +92,11 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       return getCurrentThread();
     }
 
-    public int getCurrentThread() {
+    int getCurrentThread() {
       return currentThread;
     }
 
-    public void setCurrentThread(int newVal) {
+    void setCurrentThread(int newVal) {
       currentThread = newVal;
     }
   }
@@ -129,13 +130,11 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
-    List<CFAEdge> firstPath, secondPath;
-
-    firstPath = getPath(firstUsage);
+    @Nullable List<@Nullable CFAEdge> firstPath = getPath(firstUsage);
     if (firstPath == null) {
       return;
     }
-    secondPath = getPath(secondUsage);
+    @Nullable List<@Nullable CFAEdge> secondPath = getPath(secondUsage);
     if (secondPath == null) {
       return;
     }
@@ -263,17 +262,14 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private void dumpCommonInfoForEdge(GraphMlBuilder builder, Element result, CFAEdge pEdge) {
-    if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
+    if (pEdge.getSuccessor() instanceof FunctionEntryNode in) {
       builder.addDataElementChild(result, KeyDef.FUNCTIONENTRY, in.getFunctionName());
     }
-    if (pEdge.getSuccessor() instanceof FunctionExitNode) {
-      FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
+    if (pEdge.getSuccessor() instanceof FunctionExitNode out) {
       builder.addDataElementChild(result, KeyDef.FUNCTIONEXIT, out.getFunctionName());
     }
 
-    if (pEdge instanceof AssumeEdge) {
-      AssumeEdge a = (AssumeEdge) pEdge;
+    if (pEdge instanceof AssumeEdge a) {
       AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
       builder.addDataElementChild(result, KeyDef.CONTROLCASE, assumeCase.toString());
     }
@@ -307,11 +303,10 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private CThreadCreateStatement getThreadCreateStatementIfExists(CFAEdge pEdge) {
-    if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionSummaryEdge sEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();
-      CFunctionCall fCall = sEdge.getExpression();
-      if (fCall instanceof CThreadCreateStatement) {
-        return (CThreadCreateStatement) fCall;
+    if (pEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
+      CFunctionCall fCall = cFunctionCallEdge.getFunctionCall();
+      if (fCall instanceof CThreadCreateStatement cThreadCreateStatement) {
+        return cThreadCreateStatement;
       }
     }
     return null;
@@ -320,9 +315,9 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   private boolean containsId(CFAEdge edge, String pIdName) {
     if (edge.toString().contains(pIdName)) {
       return true;
-    } else if (edge instanceof CFunctionCallEdge) {
+    } else if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
       // if the whole line is 'a = f(b)' the edge contains only 'f(b)'
-      if (((CFunctionCallEdge) edge).getSummaryEdge().getRawStatement().contains(pIdName)) {
+      if (cFunctionCallEdge.getSummaryEdge().getRawStatement().contains(pIdName)) {
         return true;
       }
     }

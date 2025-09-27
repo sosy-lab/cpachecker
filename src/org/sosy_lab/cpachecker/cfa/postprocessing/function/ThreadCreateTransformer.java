@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,17 +89,15 @@ public class ThreadCreateTransformer {
 
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
-      if (pEdge instanceof CStatementEdge) {
-        CStatement statement = ((CStatementEdge) pEdge).getStatement();
-        if (statement instanceof CAssignment) {
-          CRightHandSide rhs = ((CAssignment) statement).getRightHandSide();
-          if (rhs instanceof CFunctionCallExpression) {
-            CFunctionCallExpression exp = ((CFunctionCallExpression) rhs);
+      if (pEdge instanceof CStatementEdge cStatementEdge) {
+        CStatement statement = cStatementEdge.getStatement();
+        if (statement instanceof CAssignment cAssignment) {
+          CRightHandSide rhs = cAssignment.getRightHandSide();
+          if (rhs instanceof CFunctionCallExpression exp) {
             checkFunctionExpression(pEdge, exp);
           }
-        } else if (statement instanceof CFunctionCallStatement) {
-          CFunctionCallExpression exp =
-              ((CFunctionCallStatement) statement).getFunctionCallExpression();
+        } else if (statement instanceof CFunctionCallStatement cFunctionCallStatement) {
+          CFunctionCallExpression exp = cFunctionCallStatement.getFunctionCallExpression();
           checkFunctionExpression(pEdge, exp);
         }
       }
@@ -132,11 +130,11 @@ public class ThreadCreateTransformer {
   public void transform(CFA cfa) {
     ThreadFinder threadVisitor = new ThreadFinder();
 
-    for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode functionStartNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }
 
-    // We need to repeat this loop several times, because we traverse that part cfa, which is
+    // We need to repeat this loop several times, because we traverse that partial CFA, which is
     // reachable from main
     for (Entry<CFAEdge, CFunctionCallExpression> entry : threadVisitor.threadCreates.entrySet()) {
       CFAEdge edge = entry.getKey();
@@ -151,7 +149,7 @@ public class ThreadCreateTransformer {
       CIdExpression varName = getThreadVariableName(fCall);
       CExpression calledFunction = args.get(2);
       CIdExpression functionNameExpression = getFunctionName(calledFunction);
-      List<CExpression> functionParameters = Lists.newArrayList(args.get(3));
+      List<CExpression> functionParameters = ImmutableList.of(args.get(3));
       String newThreadName = functionNameExpression.getName();
       CFunctionEntryNode entryNode = (CFunctionEntryNode) cfa.getFunctionHead(newThreadName);
       if (entryNode == null) {
@@ -175,9 +173,9 @@ public class ThreadCreateTransformer {
           new CThreadCreateStatement(
               pFileLocation, pFunctionCallExpression, isSelfParallel, varName.getName());
 
-      if (edge instanceof CStatementEdge) {
-        CStatement stmnt = ((CStatementEdge) edge).getStatement();
-        if (stmnt instanceof CFunctionCallAssignmentStatement) {
+      if (edge instanceof CStatementEdge cStatementEdge) {
+        CStatement stmnt = cStatementEdge.getStatement();
+        if (stmnt instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
           /* We should replace r = pthread_create(f) into
            *   - r = TMP;
            *   - [r == 0]
@@ -194,11 +192,11 @@ public class ThreadCreateTransformer {
 
           CFACreationUtils.removeEdgeFromNodes(edge);
 
-          CStatement assign = prepareRandomAssignment((CFunctionCallAssignmentStatement) stmnt);
+          CStatement assign = prepareRandomAssignment(cFunctionCallAssignmentStatement);
           CStatementEdge randAssign =
               new CStatementEdge(pRawStatement, assign, pFileLocation, pPredecessor, firstNode);
 
-          CExpression assumption = prepareAssumption((CFunctionCallAssignmentStatement) stmnt, cfa);
+          CExpression assumption = prepareAssumption(cFunctionCallAssignmentStatement, cfa);
           CAssumeEdge trueEdge =
               new CAssumeEdge(
                   pRawStatement, pFileLocation, firstNode, secondNode, assumption, true);
@@ -286,19 +284,18 @@ public class ThreadCreateTransformer {
   }
 
   private CIdExpression getFunctionName(CExpression fName) {
-    if (fName instanceof CIdExpression) {
-      return (CIdExpression) fName;
-    } else if (fName instanceof CUnaryExpression) {
-      return getFunctionName(((CUnaryExpression) fName).getOperand());
-    } else if (fName instanceof CCastExpression) {
-      return getFunctionName(((CCastExpression) fName).getOperand());
-    } else {
-      throw new UnsupportedOperationException("Unsupported expression in pthread_create: " + fName);
-    }
+    return switch (fName) {
+      case CIdExpression cIdExpression -> cIdExpression;
+      case CUnaryExpression cUnaryExpression -> getFunctionName(cUnaryExpression.getOperand());
+      case CCastExpression cCastExpression -> getFunctionName(cCastExpression.getOperand());
+      default ->
+          throw new UnsupportedOperationException(
+              "Unsupported expression in pthread_create: " + fName);
+    };
   }
 
   private CIdExpression getThreadVariableName(CFunctionCallExpression fCall) {
-    CExpression var = fCall.getParameterExpressions().get(0);
+    CExpression var = fCall.getParameterExpressions().getFirst();
 
     while (!(var instanceof CIdExpression)) {
       if (var instanceof CUnaryExpression) {

@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
+
 public abstract class AbstractStatement extends AbstractAstNode implements AStatement {
 
-  private static final long serialVersionUID = -596325723181327583L;
+  @Serial private static final long serialVersionUID = -596325723181327583L;
 
   protected AbstractStatement(FileLocation pFileLocation) {
     super(pFileLocation);
@@ -25,14 +27,10 @@ public abstract class AbstractStatement extends AbstractAstNode implements AStat
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 
-    if (!(obj instanceof AbstractStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof AbstractStatement && super.equals(obj);
   }
 }

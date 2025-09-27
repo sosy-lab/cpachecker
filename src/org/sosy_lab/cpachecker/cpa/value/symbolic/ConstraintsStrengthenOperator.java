@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class ConstraintsStrengthenOperator implements Statistics {
 
   @Option(description = "Whether to simplify symbolic expressions, if possible.")
-  private boolean simplifySymbolics = true;
+  private boolean simplifySymbolics = false;
 
   // statistics
   private final Timer totalTime = new Timer();
@@ -119,11 +119,10 @@ public class ConstraintsStrengthenOperator implements Statistics {
       Value currV = e.getValue().getValue();
       Type valueType = e.getValue().getType();
 
-      if (!(currV instanceof SymbolicValue) || isSimpleSymbolicValue((SymbolicValue) currV)) {
+      if (!(currV instanceof SymbolicValue castVal) || isSimpleSymbolicValue(castVal)) {
         continue;
       }
 
-      SymbolicValue castVal = (SymbolicValue) currV;
       MemoryLocation currLoc = e.getKey();
 
       if (isIndependentInValueState(castVal, currLoc, pValueState)

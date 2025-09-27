@@ -16,8 +16,6 @@ import java.awt.Color;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphLevel;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter;
@@ -38,8 +36,8 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
   private static final Color COLOR_NOTEXPANDED = Color.ORANGE;
   private static final Color COLOR_COVERED = Color.GREEN;
 
-  public ARGToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
-    super(pConfig);
+  public ARGToPixelsWriter(PixelsWriterOptions pOptions) {
+    super(pOptions);
   }
 
   @Override
@@ -113,7 +111,7 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
       return new Builder();
     }
 
-    public static class Builder implements GraphLevel.Builder<ARGState> {
+    static class Builder implements GraphLevel.Builder<ARGState> {
 
       private int width = 0;
       private final ImmutableIntArray.Builder targets = ImmutableIntArray.builder();

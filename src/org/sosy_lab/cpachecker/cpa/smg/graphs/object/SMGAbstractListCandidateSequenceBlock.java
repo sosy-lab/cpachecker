@@ -33,11 +33,10 @@ public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbs
   @Override
   public boolean isBlocked(SMGAbstractionCandidate pCandidate, UnmodifiableCLangSMG smg) {
 
-    if (!(pCandidate instanceof SMGAbstractListCandidateSequence<?>)) {
+    if (!(pCandidate instanceof SMGAbstractListCandidateSequence<?> lcs)) {
       return false;
     }
 
-    SMGAbstractListCandidateSequence<?> lcs = (SMGAbstractListCandidateSequence<?>) pCandidate;
     if (!shape.equals(lcs.getCandidate().getShape())) {
       return false;
     }
@@ -74,11 +73,8 @@ public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbs
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof SMGAbstractListCandidateSequenceBlock<?>)) {
-      return false;
-    }
-    SMGAbstractListCandidateSequenceBlock<?> other = (SMGAbstractListCandidateSequenceBlock<?>) obj;
-    return length == other.length
+    return obj instanceof SMGAbstractListCandidateSequenceBlock<?> other
+        && length == other.length
         && Objects.equals(pointerToStartObject, other.pointerToStartObject)
         && Objects.equals(shape, other.shape);
   }

@@ -10,15 +10,14 @@ package org.sosy_lab.cpachecker.util.testcase;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 
 public class InitializerTestValue extends TestValue {
 
   private final AInitializer value;
 
-  private InitializerTestValue(ImmutableList<AAstNode> pAuxiliaryStatements, AInitializer pValue) {
-    super(pAuxiliaryStatements, pValue);
+  private InitializerTestValue(ImmutableList<AuxiliaryCode> pAuxiliaryCodes, AInitializer pValue) {
+    super(pAuxiliaryCodes, pValue);
     value = pValue;
   }
 
@@ -31,7 +30,7 @@ public class InitializerTestValue extends TestValue {
     return of(ImmutableList.of(), pValue);
   }
 
-  public static InitializerTestValue of(List<AAstNode> pAuxiliaryStatments, AInitializer pValue) {
-    return new InitializerTestValue(ImmutableList.copyOf(pAuxiliaryStatments), pValue);
+  public static InitializerTestValue of(List<AuxiliaryCode> pAuxiliaryCode, AInitializer pValue) {
+    return new InitializerTestValue(ImmutableList.copyOf(pAuxiliaryCode), pValue);
   }
 }

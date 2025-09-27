@@ -51,12 +51,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     BinaryOperator binaryOperator = pExp.getOperator();
 
     switch (binaryOperator) {
-      case EQUALS:
-      case NOT_EQUALS:
-      case LESS_EQUAL:
-      case LESS_THAN:
-      case GREATER_EQUAL:
-      case GREATER_THAN:
+      case EQUALS, NOT_EQUALS, LESS_EQUAL, LESS_THAN, GREATER_EQUAL, GREATER_THAN -> {
         List<SMGValueAndState> result = new ArrayList<>(4);
 
         CExpression leftSideExpression = pExp.getOperand1();
@@ -77,17 +72,13 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
             // if we already know the value, we should use it.
             // TODO why does the visitor above create the symbolic value in the first place?
-            if (leftSideVal instanceof SMGKnownSymbolicValue) {
-              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) leftSideVal;
-              if (newState.isExplicit(expValue)) {
-                leftSideVal = newState.getExplicit(expValue);
-              }
+            if ((leftSideVal instanceof SMGKnownSymbolicValue expValue)
+                && newState.isExplicit(expValue)) {
+              leftSideVal = newState.getExplicit(expValue);
             }
-            if (rightSideVal instanceof SMGKnownSymbolicValue) {
-              SMGKnownSymbolicValue expValue = (SMGKnownSymbolicValue) rightSideVal;
-              if (newState.isExplicit(expValue)) {
-                rightSideVal = newState.getExplicit(expValue);
-              }
+            if ((rightSideVal instanceof SMGKnownSymbolicValue expValue)
+                && newState.isExplicit(expValue)) {
+              rightSideVal = newState.getExplicit(expValue);
             }
 
             for (SMGValueAndState resultValueAndState :
@@ -150,8 +141,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         }
 
         return result;
-      default:
+      }
+      default -> {
         return super.visit(pExp);
+      }
     }
   }
 
@@ -179,22 +172,15 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       long offset1 = pV1.getOffset().getAsLong();
       long offset2 = pV2.getOffset().getAsLong();
 
-      switch (pOp) {
-        case GREATER_EQUAL:
-          return offset1 >= offset2;
-        case GREATER_THAN:
-          return offset1 > offset2;
-        case LESS_EQUAL:
-          return offset1 <= offset2;
-        case LESS_THAN:
-          return offset1 < offset2;
-        case EQUALS:
-          return offset1 == offset2;
-        case NOT_EQUALS:
-          return offset1 != offset2;
-        default:
-          throw new AssertionError("Impossible case thrown");
-      }
+      return switch (pOp) {
+        case GREATER_EQUAL -> offset1 >= offset2;
+        case GREATER_THAN -> offset1 > offset2;
+        case LESS_EQUAL -> offset1 <= offset2;
+        case LESS_THAN -> offset1 < offset2;
+        case EQUALS -> offset1 == offset2;
+        case NOT_EQUALS -> offset1 != offset2;
+        default -> throw new AssertionError("Impossible case thrown");
+      };
     } else if (pOp == BinaryOperator.NOT_EQUALS
         && (getInitialSmgState().getHeap().isObjectValid(object1)
             || SMGNullObject.INSTANCE.equals(object1))
@@ -223,47 +209,35 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     boolean impliesNeqWhenFalse = false;
 
     switch (pOp) {
-      case NOT_EQUALS:
+      case NOT_EQUALS -> {
         isTrue = areNonEqual;
         isFalse = areEqual;
         impliesEqWhenFalse = true;
         impliesNeqWhenTrue = true;
-        break;
-      case EQUALS:
+      }
+      case EQUALS -> {
         isTrue = areEqual;
         isFalse = areNonEqual;
         impliesEqWhenTrue = true;
         impliesNeqWhenFalse = true;
-        break;
-      case GREATER_EQUAL:
-      case LESS_EQUAL:
-      case LESS_THAN:
-      case GREATER_THAN:
-        switch (pOp) {
-          case LESS_EQUAL:
-          case GREATER_EQUAL:
-            if (areEqual) {
-              isTrue = true;
-              impliesEqWhenTrue = true;
-              impliesNeqWhenFalse = true;
-            } else {
-              impliesNeqWhenFalse = true;
-            }
-            break;
-          case GREATER_THAN:
-          case LESS_THAN:
-            if (areEqual) {
-              isFalse = true;
-            }
-
-            impliesNeqWhenTrue = true;
-            break;
-          default:
-            throw new AssertionError("Impossible case thrown");
+      }
+      case LESS_EQUAL, GREATER_EQUAL -> {
+        if (areEqual) {
+          isTrue = true;
+          impliesEqWhenTrue = true;
+          impliesNeqWhenFalse = true;
+        } else {
+          impliesNeqWhenFalse = true;
         }
-        break;
-      default:
-        throw new AssertionError("Binary Relation with non-relational operator: " + pOp);
+      }
+      case GREATER_THAN, LESS_THAN -> {
+        if (areEqual) {
+          isFalse = true;
+        }
+
+        impliesNeqWhenTrue = true;
+      }
+      default -> throw new AssertionError("Binary Relation with non-relational operator: " + pOp);
     }
 
     if (isPointerOp1 && isPointerOp2) {
@@ -404,7 +378,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
      * Creates an object of the BinaryRelationResult. The object is used to determine the relation
      * between two symbolic values in the context of the given smgState and the given binary
      * operator. Note that the given symbolic values, which may also be address values, do not have
-     * to be part of the given Smg. The definition of an smg implies conditions for its values, even
+     * to be part of the given SMG. The definition of an SMG implies conditions for its values, even
      * if they are not part of it.
      *
      * @param pIsTrue boolean expression is true.
@@ -436,12 +410,12 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     }
 
     @SuppressWarnings("unused")
-    public boolean isTrue() {
+    boolean isTrue() {
       return isTrue;
     }
 
     @SuppressWarnings("unused")
-    public boolean isFalse() {
+    boolean isFalse() {
       return isFalse;
     }
 

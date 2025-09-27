@@ -14,8 +14,8 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -97,7 +97,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     private final Collection<Statistics> currentSubStat;
     private int noOfRuns = 0;
 
-    public CompositionAlgorithmStatistics() {
+    CompositionAlgorithmStatistics() {
       totalTimer = new Timer();
       currentSubStat = new ArrayList<>();
     }
@@ -145,11 +145,11 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    public Collection<Statistics> getSubStatistics() {
+    Collection<Statistics> getSubStatistics() {
       return currentSubStat;
     }
 
-    public void resetSubStatistics() {
+    void resetSubStatistics() {
       currentSubStat.clear();
     }
   }
@@ -169,7 +169,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
-  public enum INTERMEDIATESTATSOPT {
+  public enum IntermediateStatistics {
     EXECUTE,
     NONE,
     PRINT
@@ -180,7 +180,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       description =
           "print the statistics of each component of the composition algorithm"
               + " directly after the component's computation is finished")
-  private INTERMEDIATESTATSOPT intermediateStatistics = INTERMEDIATESTATSOPT.NONE;
+  private IntermediateStatistics intermediateStatistics = IntermediateStatistics.NONE;
 
   @Option(
       secure = true,
@@ -193,7 +193,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       secure = true,
       name = "initCondition",
       description =
-          "Whether or not to create an initial condition, that excludes no paths, "
+          "Whether to create an initial condition, that excludes no paths, "
               + "before first analysis is run."
               + "Required when first analysis uses condition from conditional model checking")
   private boolean generateInitialFalseCondition = false;
@@ -259,10 +259,16 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
   private void generateInitialFalseCondition() {
     String condition =
-        "OBSERVER AUTOMATON AssumptionAutomaton\n\n"
-            + "INITIAL STATE __FALSE;\n\n"
-            + "STATE __FALSE :\n    TRUE -> GOTO __FALSE;\n\n"
-            + "END AUTOMATON\n";
+        """
+        OBSERVER AUTOMATON AssumptionAutomaton
+
+        INITIAL STATE __FALSE;
+
+        STATE __FALSE :
+            TRUE -> GOTO __FALSE;
+
+        END AUTOMATON
+        """;
 
     try (Writer w = IO.openOutputFile(initialCondition, Charset.defaultCharset())) {
       w.write(condition);
@@ -337,8 +343,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
             continue;
           }
 
-          if (fReached instanceof HistoryForwardingReachedSet) {
-            ((HistoryForwardingReachedSet) fReached).saveCPA(currentContext.getCPA());
+          if (fReached instanceof HistoryForwardingReachedSet historyForwardingReachedSet) {
+            historyForwardingReachedSet.saveCPA(currentContext.getCPA());
           }
           fReached.setDelegate(currentContext.getReachedSet());
 
@@ -401,6 +407,10 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                   + "in run "
                   + stats.noOfRuns
                   + " not completed.");
+
+          if (e.getMessage().contains("recursion")) {
+            selectionStrategy.setRecursionFound();
+          }
 
         } catch (InterruptedException e) {
           logger.logUserException(
@@ -469,17 +479,18 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   @SuppressForbidden("System.out is correct for statistics")
   private void printIntermediateStatistics(ReachedSet pReached, AlgorithmContext currentContext) {
     switch (intermediateStatistics) {
-      case PRINT:
-        stats.printIntermediateStatistics(
-            System.out, Result.UNKNOWN, currentContext.getReachedSet());
-        break;
-      case EXECUTE:
+      case PRINT ->
+          stats.printIntermediateStatistics(
+              System.out, Result.UNKNOWN, currentContext.getReachedSet());
+      case EXECUTE -> {
         @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
         final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
         stats.printIntermediateStatistics(
             dummyStream, Result.UNKNOWN, currentContext.getReachedSet());
-        break;
-      default: // do nothing
+      }
+      default -> {
+        // do nothing
+      }
     }
 
     if (writeIntermediateOutputFiles) {
@@ -502,7 +513,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     ShutdownManager localShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     List<ResourceLimit> limits = new ArrayList<>();
     try {
-      limits.add(ProcessCpuTimeLimit.fromNowOn(TimeSpan.ofSeconds(pCurrentContext.getTimeLimit())));
+      limits.add(ProcessCpuTimeLimit.create(TimeSpan.ofSeconds(pCurrentContext.getTimeLimit())));
     } catch (JMException e) {
       logger.log(
           Level.SEVERE,
@@ -605,12 +616,12 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         return null;
       }
 
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+      if (algorithm instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
-      if (pCurrentContext.getCPA() instanceof StatisticsProvider) {
-        ((StatisticsProvider) pCurrentContext.getCPA()).collectStatistics(stats.getSubStatistics());
+      if (pCurrentContext.getCPA() instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
       return Pair.of(algorithm, localShutdownManager);
@@ -707,8 +718,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     if (constrPrec != null) {
       try {
         if (!(constrPrec instanceof RefinableConstraintsPrecision)) {
-
-          constrPrec = new RefinableConstraintsPrecision(pConfig);
+          constrPrec = new RefinableConstraintsPrecision(pConfig, cfa, logger);
         }
         ConstraintsPrecision constrPrecInter;
         boolean changed = false;
@@ -737,7 +747,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     LoopBoundPrecision loopPrec =
         Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
-    if (loopPrec != null && pPreviousReachedSets.get(0) != null) {
+    if (loopPrec != null && pPreviousReachedSets.getFirst() != null) {
       resultPrec =
           Precisions.replaceByType(
               resultPrec, loopPrec, Predicates.instanceOf(LoopBoundPrecision.class));
@@ -746,9 +756,9 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     PredicatePrecision predPrec =
         Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
 
-    if (predPrec != null && pPreviousReachedSets.get(0) != null) {
+    if (predPrec != null && pPreviousReachedSets.getFirst() != null) {
       Iterable<Precision> allPrecisions =
-          from(ImmutableList.of(resultPrec)).append(pPreviousReachedSets.get(0).getPrecisions());
+          FluentIterable.of(resultPrec).append(pPreviousReachedSets.getFirst().getPrecisions());
 
       resultPrec =
           Precisions.replaceByType(

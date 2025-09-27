@@ -16,6 +16,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,7 +31,7 @@ public final class DeadLockState extends AbstractLockState {
   @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
   public static class DeadLockTreeNode extends ArrayList<LockIdentifier> implements CompatibleNode {
 
-    private static final long serialVersionUID = 5757759799394605077L;
+    @Serial private static final long serialVersionUID = 5757759799394605077L;
 
     public DeadLockTreeNode(List<LockIdentifier> locks) {
       super(locks);
@@ -136,9 +137,7 @@ public final class DeadLockState extends AbstractLockState {
       mutableToRestore = null;
       int num = getTailNum(mutableLockList, removeCounters, totalRemove);
       if (num < mutableLockList.size() - 1) {
-        for (int i = mutableLockList.size() - 1; i > num; i--) {
-          mutableLockList.remove(i);
-        }
+        mutableLockList.subList(num + 1, mutableLockList.size()).clear();
       }
     }
 
@@ -187,6 +186,7 @@ public final class DeadLockState extends AbstractLockState {
   }
 
   private final List<LockIdentifier> lockList;
+
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
   @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque

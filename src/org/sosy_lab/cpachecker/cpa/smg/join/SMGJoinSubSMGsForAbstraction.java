@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 
 public final class SMGJoinSubSMGsForAbstraction {
 
@@ -63,8 +63,7 @@ public final class SMGJoinSubSMGsForAbstraction {
     SMGEdgeHasValue prevObj2hve = null;
     SMGEdgeHasValue nextObj2hve = null;
 
-    if (pListCandidate instanceof SMGDoublyLinkedListCandidate) {
-      SMGDoublyLinkedListCandidate dllc = (SMGDoublyLinkedListCandidate) pListCandidate;
+    if (pListCandidate instanceof SMGDoublyLinkedListCandidate dllc) {
       nfo = dllc.getShape().getNfo();
       pfo = dllc.getShape().getPfo();
       hfo = dllc.getShape().getHfo();
@@ -155,7 +154,7 @@ public final class SMGJoinSubSMGsForAbstraction {
 
     CLangSMG inputSMG = smg.copyOf();
 
-    /*Every value thats identical will be skipped, the join only iterates over non shared values, thats why we can introduce a
+    /*Every value that's identical will be skipped, the join only iterates over non shared values, that's why we can introduce a
      * level map only for non shared objects*/
     SMGLevelMapping levelMap = new SMGLevelMapping();
     levelMap.put(SMGJoinLevel.valueOf(obj1.getLevel(), obj2.getLevel()), destLevel);
@@ -258,36 +257,26 @@ public final class SMGJoinSubSMGsForAbstraction {
 
   private boolean shouldAbstractionIncreaseLevel(SMGObject pObj1, SMGObject pObj2) {
 
-    switch (pObj1.getKind()) {
-      case REG:
-      case OPTIONAL:
-        switch (pObj2.getKind()) {
-          case REG:
-          case OPTIONAL:
-            return true;
-          default:
-            return false;
-        }
+    return switch (pObj1.getKind()) {
+      case REG, OPTIONAL ->
+          switch (pObj2.getKind()) {
+            case REG, OPTIONAL -> true;
+            default -> false;
+          };
 
-      default:
-        return false;
-    }
+      default -> false;
+    };
   }
 
   private int getMinLength(SMGObject pObj) {
 
-    switch (pObj.getKind()) {
-      case REG:
-        return 1;
-      case DLL:
-        return ((SMGDoublyLinkedList) pObj).getMinimumLength();
-      case SLL:
-        return ((SMGSingleLinkedList) pObj).getMinimumLength();
-      case OPTIONAL:
-        return 0;
-      default:
-        throw new AssertionError();
-    }
+    return switch (pObj.getKind()) {
+      case REG -> 1;
+      case DLL -> ((SMGDoublyLinkedList) pObj).getMinimumLength();
+      case SLL -> ((SMGSingleLinkedList) pObj).getMinimumLength();
+      case OPTIONAL -> 0;
+      default -> throw new AssertionError();
+    };
   }
 
   public boolean isDefined() {

@@ -61,14 +61,13 @@ public class PrecisionDelegatingPrecisionAdjustment implements PrecisionAdjustme
       if (state != wrappedState || precision != wrappedPrecision) {
         // something changed
         finalResult =
-            PrecisionAdjustmentResult.create(
+            new PrecisionAdjustmentResult(
                 state,
                 ((SlicingPrecision) pPrecision).getNew(precision),
                 adjustmentResult.action());
 
       } else { // nothing changed
-        finalResult =
-            PrecisionAdjustmentResult.create(pState, pPrecision, adjustmentResult.action());
+        finalResult = new PrecisionAdjustmentResult(pState, pPrecision, adjustmentResult.action());
       }
 
       return Optional.of(finalResult);

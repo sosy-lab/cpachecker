@@ -60,7 +60,7 @@ public interface PointerTargetSetBuilder {
 
   /**
    * Adds the newly allocated base of the given type for tracking along with all its tracked
-   * (sub)fields (if its a structure/union) or all its elements (if its an array).
+   * (sub)fields (if it's a structure/union) or all its elements (if it's an array).
    */
   void addBase(String name, CType type);
 
@@ -202,7 +202,7 @@ public interface PointerTargetSetBuilder {
 
       // Add base to prevent adding spurious targets when merging.
       // If size is not known, we can use a dummy size because it is only used for the fake base.
-      long size = type.hasKnownConstantSize() ? typeHandler.getSizeof(type) : 0;
+      long size = type.hasKnownConstantSize() ? typeHandler.getExactSizeof(type) : 0;
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size));
     }
 
@@ -218,8 +218,8 @@ public interface PointerTargetSetBuilder {
       // checkArgument(bases.containsKey(name),
       //     "The base should be prepared before with prepareBase()");
 
-      if (type instanceof CElaboratedType) {
-        assert ((CElaboratedType) type).getRealType() == null
+      if (type instanceof CElaboratedType cElaboratedType) {
+        assert cElaboratedType.getRealType() == null
             : "Elaborated type " + type + " that was not simplified but could have been.";
         // This is the declaration of a variable of an incomplete struct type.
         // We can't access the contents of this variable anyway,
@@ -329,16 +329,14 @@ public interface PointerTargetSetBuilder {
       if (cType instanceof CElaboratedType) {
         // unresolved struct type won't have any targets, do nothing
 
-      } else if (cType instanceof CArrayType) {
-        final CArrayType arrayType = (CArrayType) cType;
+      } else if (cType instanceof CArrayType arrayType) {
         final int length = CTypeUtils.getArrayLength(arrayType, options);
         long offset = 0;
         for (int i = 0; i < length; ++i) {
           addTargets(base, arrayType.getType(), offset, containerOffset + properOffset, field);
-          offset += typeHandler.getSizeof(arrayType.getType());
+          offset += typeHandler.getExactSizeof(arrayType.getType());
         }
-      } else if (cType instanceof CCompositeType) {
-        final CCompositeType compositeType = (CCompositeType) cType;
+      } else if (cType instanceof CCompositeType compositeType) {
         assert compositeType.getKind() != ComplexTypeKind.ENUM
             : "Enums are not composite: " + compositeType;
         final boolean isTargetComposite = compositeType.equals(field.getOwnerType());
@@ -433,7 +431,7 @@ public interface PointerTargetSetBuilder {
       if (options.useArraysForHeap()) {
         return;
       }
-      final Predicate<CompositeField> isNewField = (compositeField) -> !tracksField(compositeField);
+      final Predicate<CompositeField> isNewField = compositeField -> !tracksField(compositeField);
 
       final Comparator<CompositeField> simpleTypedFieldsFirst =
           (field1, field2) -> {
@@ -473,7 +471,7 @@ public interface PointerTargetSetBuilder {
                 break;
               }
             }
-          } while (!Objects.equals(current, currentChain.get(currentChain.size() - 1)));
+          } while (!Objects.equals(current, currentChain.getLast()));
 
           boolean useful = false;
           for (int i = currentChain.size() - 1; i >= 0; i--) {
@@ -533,9 +531,9 @@ public interface PointerTargetSetBuilder {
         final String newPointer, final String originalPointer) {
       final Set<Pair<String, DeferredAllocation>> cache = new HashSet<>(deferredAllocations);
       deferredAllocations.stream()
-          .filter((p) -> p.getFirst().equals(originalPointer))
+          .filter(p -> p.getFirst().equals(originalPointer))
           .forEachOrdered(
-              (p) -> {
+              p -> {
                 final Pair<String, DeferredAllocation> pp = Pair.of(newPointer, p.getSecond());
                 if (!cache.contains(pp)) {
                   deferredAllocations = deferredAllocations.with(pp);
@@ -551,14 +549,14 @@ public interface PointerTargetSetBuilder {
     public boolean canRemoveDeferredAllocationPointer(final String pointer) {
       final Set<DeferredAllocation> result =
           deferredAllocations.stream()
-              .filter((p) -> p.getFirst().equals(pointer))
+              .filter(p -> p.getFirst().equals(pointer))
               .map(Pair::getSecond)
               .collect(toCollection(HashSet::new));
       if (result.isEmpty()) {
         return true;
       }
       deferredAllocations.forEach(
-          (p) -> {
+          p -> {
             if (!p.getFirst().equals(pointer)) {
               result.remove(p.getSecond());
             }
@@ -581,14 +579,14 @@ public interface PointerTargetSetBuilder {
     public ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(final String pointer) {
       final Set<DeferredAllocation> result =
           deferredAllocations.stream()
-              .filter((p) -> p.getFirst().equals(pointer))
+              .filter(p -> p.getFirst().equals(pointer))
               .map(Pair::getSecond)
               .collect(toCollection(HashSet::new));
       deferredAllocations =
           deferredAllocations.stream()
-              .filter((p) -> !p.getFirst().equals(pointer))
+              .filter(p -> !p.getFirst().equals(pointer))
               .collect(toPersistentLinkedList());
-      deferredAllocations.forEach((p) -> result.remove(p.getSecond()));
+      deferredAllocations.forEach(p -> result.remove(p.getSecond()));
       return ImmutableSet.copyOf(result);
     }
 
@@ -605,12 +603,12 @@ public interface PointerTargetSetBuilder {
     public ImmutableSet<DeferredAllocation> removeDeferredAllocations(final String pointer) {
       final ImmutableSet<DeferredAllocation> result =
           from(deferredAllocations)
-              .filter((p) -> p.getFirst().equals(pointer))
+              .filter(p -> p.getFirst().equals(pointer))
               .transform(Pair::getSecond)
               .toSet();
       deferredAllocations =
           deferredAllocations.stream()
-              .filter((p) -> !result.contains(p.getSecond()))
+              .filter(p -> !result.contains(p.getSecond()))
               .collect(toPersistentLinkedList());
       return result;
     }
@@ -635,7 +633,7 @@ public interface PointerTargetSetBuilder {
     @Override
     public boolean isTemporaryDeferredAllocationPointer(final String pointer) {
       return deferredAllocations.stream()
-          .anyMatch((p) -> p.getFirst().equals(pointer) && p.getSecond().getBase().equals(pointer));
+          .anyMatch(p -> p.getFirst().equals(pointer) && p.getSecond().getBase().equals(pointer));
     }
 
     /**
@@ -647,7 +645,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public boolean isDeferredAllocationPointer(final String pointer) {
-      return deferredAllocations.stream().anyMatch((p) -> p.getFirst().equals(pointer));
+      return deferredAllocations.stream().anyMatch(p -> p.getFirst().equals(pointer));
     }
 
     /**
@@ -760,7 +758,8 @@ public interface PointerTargetSetBuilder {
     /** Returns a fresh ID that can be used as identifier for a heap allocation. */
     @Override
     public int getFreshAllocationId() {
-      return allocationCount = Math.incrementExact(allocationCount);
+      allocationCount = Math.incrementExact(allocationCount);
+      return allocationCount;
     }
   }
 

@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -122,19 +121,17 @@ public class BDDTransferRelation
     BDDState result = state;
 
     // normal assignment, "a = ..."
-    if (statement instanceof CAssignment) {
-      result = handleAssignment((CAssignment) statement, cfaEdge.getSuccessor(), cfaEdge);
+    if (statement instanceof CAssignment cAssignment) {
+      result = handleAssignment(cAssignment, cfaEdge.getSuccessor(), cfaEdge);
 
       // call of external function, "scanf(...)" without assignment
       // internal functioncalls are handled as FunctionCallEdges
-    } else if (statement instanceof CFunctionCallStatement) {
+    } else if (statement instanceof CFunctionCallStatement cFunctionCallStatement) {
       result =
           handleExternalFunctionCall(
               result,
               cfaEdge.getSuccessor(),
-              ((CFunctionCallStatement) statement)
-                  .getFunctionCallExpression()
-                  .getParameterExpressions());
+              cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions());
     }
 
     assert !result.getRegion().isFalse();
@@ -151,8 +148,8 @@ public class BDDTransferRelation
     CExpression lhs = assignment.getLeftHandSide();
 
     final String varName;
-    if (lhs instanceof CIdExpression) {
-      varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
+    if (lhs instanceof CIdExpression cIdExpression) {
+      varName = cIdExpression.getDeclaration().getQualifiedName();
     } else {
       varName = functionName + "::" + lhs;
     }
@@ -166,8 +163,7 @@ public class BDDTransferRelation
 
     BDDState newState = state;
     CRightHandSide rhs = assignment.getRightHandSide();
-    if (rhs instanceof CExpression) {
-      final CExpression exp = (CExpression) rhs;
+    if (rhs instanceof CExpression exp) {
       final Partition partition = varClass.getPartitionForEdge(edge);
 
       if (isUsedInExpression(varName, exp)) {
@@ -215,11 +211,11 @@ public class BDDTransferRelation
       }
       return newState;
 
-    } else if (rhs instanceof CFunctionCallExpression) {
+    } else if (rhs instanceof CFunctionCallExpression cFunctionCallExpression) {
       // handle params of functionCall, maybe there is a sideeffect
       newState =
           handleExternalFunctionCall(
-              newState, successor, ((CFunctionCallExpression) rhs).getParameterExpressions());
+              newState, successor, cFunctionCallExpression.getParameterExpressions());
 
       // call of external function: we know nothing, so we delete the value of the var
       // TODO can we assume, that malloc returns something !=0?
@@ -242,7 +238,7 @@ public class BDDTransferRelation
   }
 
   /**
-   * This function deletes all vars, that could be modified through a side-effect of the (external)
+   * This function deletes all vars, that could be modified through a side effect of the (external)
    * functionCall.
    */
   private BDDState handleExternalFunctionCall(
@@ -250,7 +246,7 @@ public class BDDTransferRelation
 
     for (final CExpression param : params) {
 
-      /* special case: external functioncall with possible side-effect!
+      /* special case: external functioncall with possible side effect!
        * this is the only statement, where a pointer-operation is allowed
        * and the var can be boolean, intEqual or intAdd,
        * because we know, the variable can have a random (unknown) value after the functioncall.
@@ -290,8 +286,7 @@ public class BDDTransferRelation
   protected BDDState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws UnsupportedCodeException {
 
-    if (decl instanceof CVariableDeclaration) {
-      CVariableDeclaration vdecl = (CVariableDeclaration) decl;
+    if (decl instanceof CVariableDeclaration vdecl) {
       if (vdecl.getType().isIncomplete()) {
         // Variables of such types cannot store values, only their address can be taken.
         // We can ignore them.
@@ -300,8 +295,8 @@ public class BDDTransferRelation
 
       CInitializer initializer = vdecl.getInitializer();
       CExpression init = null;
-      if (initializer instanceof CInitializerExpression) {
-        init = ((CInitializerExpression) initializer).getExpression();
+      if (initializer instanceof CInitializerExpression cInitializerExpression) {
+        init = cInitializerExpression.getExpression();
       }
 
       // make variable (predicate) for LEFT SIDE of declaration,
@@ -332,7 +327,7 @@ public class BDDTransferRelation
   }
 
   /**
-   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore each arg
+   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore, each arg
    * ("x") is transformed into a region and assigned to a param ("int a") of the function. The
    * equalities of all arg-param-pairs are added to the BDDstate to get the next state.
    */
@@ -377,20 +372,17 @@ public class BDDTransferRelation
    */
   @Override
   protected BDDState handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String outerFunctionName) {
+      CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String outerFunctionName) {
     BDDState newState = state;
 
     // set result of function equal to variable on left side
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
 
     // handle assignments like "y = f(x);"
-    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+    if (summaryExpr instanceof CFunctionCallAssignmentStatement cAssignment) {
       final String returnVar =
-          fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName();
-      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
+          cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName();
+
       CExpression lhs = cAssignment.getLeftHandSide();
       final int size = bvComputer.getBitsize(partition, lhs.getExpressionType());
 
@@ -573,8 +565,8 @@ public class BDDTransferRelation
   }
 
   private String scopeVar(final CExpression exp) {
-    if (exp instanceof CIdExpression) {
-      return ((CIdExpression) exp).getDeclaration().getQualifiedName();
+    if (exp instanceof CIdExpression cIdExpression) {
+      return cIdExpression.getDeclaration().getQualifiedName();
     } else {
       return functionName + "::" + exp.toASTString();
     }
@@ -595,8 +587,7 @@ public class BDDTransferRelation
     while (true) {
       if (expr instanceof CIdExpression) {
         return ((CIdExpression) expr).getDeclaration().getQualifiedName() + name;
-      } else if (expr instanceof CFieldReference) {
-        CFieldReference fieldRef = (CFieldReference) expr;
+      } else if (expr instanceof CFieldReference fieldRef) {
         name = (fieldRef.isPointerDereference() ? "->" : ".") + fieldRef.getFieldName() + name;
         expr = fieldRef.getFieldOwner();
       } else {
@@ -612,9 +603,9 @@ public class BDDTransferRelation
     BDDState bddState = (BDDState) pState;
 
     for (AbstractState otherState : states) {
-      if (otherState instanceof PointerState) {
+      if (otherState instanceof PointerState pointerState) {
         super.setInfo(bddState, pPrecision, cfaEdge);
-        bddState = strengthenWithPointerInformation((PointerState) otherState, cfaEdge);
+        bddState = strengthenWithPointerInformation(pointerState, cfaEdge);
         super.resetInfo();
         if (bddState == null) {
           return ImmutableList.of();
@@ -627,8 +618,7 @@ public class BDDTransferRelation
   private BDDState strengthenWithPointerInformation(PointerState pPointerInfo, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
 
-    if (cfaEdge instanceof CAssumeEdge) {
-      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
+    if (cfaEdge instanceof CAssumeEdge assumeEdge) {
       return handleAssumption(
           assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption(), pPointerInfo);
     }
@@ -636,11 +626,10 @@ public class BDDTransferRelation
     // get target for LHS
     MemoryLocation target = null;
     ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(cfaEdge);
-    if (leftHandSide instanceof CIdExpression) {
-      target = MemoryLocation.forDeclaration(((CIdExpression) leftHandSide).getDeclaration());
-    } else if (leftHandSide instanceof CPointerExpression) {
-      ExplicitLocationSet explicitSet =
-          getLocationsForLhs(pPointerInfo, (CPointerExpression) leftHandSide);
+    if (leftHandSide instanceof CIdExpression cIdExpression) {
+      target = MemoryLocation.forDeclaration(cIdExpression.getDeclaration());
+    } else if (leftHandSide instanceof CPointerExpression cPointerExpression) {
+      ExplicitLocationSet explicitSet = getLocationsForLhs(pPointerInfo, cPointerExpression);
       if (explicitSet != null && explicitSet.getSize() == 1) {
         target = Iterables.getOnlyElement(explicitSet);
       }
@@ -655,12 +644,10 @@ public class BDDTransferRelation
     MemoryLocation value = null;
     CType valueType = null;
     ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(cfaEdge);
-    if (rightHandSide instanceof CIdExpression) {
-      CIdExpression idExpr = (CIdExpression) rightHandSide;
+    if (rightHandSide instanceof CIdExpression idExpr) {
       value = MemoryLocation.forDeclaration(idExpr.getDeclaration());
       valueType = idExpr.getDeclaration().getType();
-    } else if (rightHandSide instanceof CPointerExpression) {
-      CPointerExpression ptrExpr = (CPointerExpression) rightHandSide;
+    } else if (rightHandSide instanceof CPointerExpression ptrExpr) {
       value = getLocationForRhs(pPointerInfo, ptrExpr);
       valueType = ptrExpr.getExpressionType().getCanonicalType();
     }
@@ -691,11 +678,9 @@ public class BDDTransferRelation
     if (!(directLocation instanceof ExplicitLocationSet)) {
       LocationSet indirectLocation =
           PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
-      if (indirectLocation instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
-        if (explicitSet.getSize() == 1) {
-          directLocation = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
-        }
+      if ((indirectLocation instanceof ExplicitLocationSet explicitSet)
+          && (explicitSet.getSize() == 1)) {
+        directLocation = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
       }
     }
     if (directLocation instanceof ExplicitLocationSet) {
@@ -707,16 +692,11 @@ public class BDDTransferRelation
   static @Nullable MemoryLocation getLocationForRhs(
       PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCodeException {
     LocationSet fullSet = PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
-    if (fullSet instanceof ExplicitLocationSet) {
-      ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
-      if (explicitSet.getSize() == 1) {
-        LocationSet pointsToSet =
-            pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
-        if (pointsToSet instanceof ExplicitLocationSet) {
-          ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-          if (explicitPointsToSet.getSize() == 1) {
-            return Iterables.getOnlyElement(explicitPointsToSet);
-          }
+    if ((fullSet instanceof ExplicitLocationSet explicitSet) && (explicitSet.getSize() == 1)) {
+      LocationSet pointsToSet = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
+      if (pointsToSet instanceof ExplicitLocationSet explicitPointsToSet) {
+        if (explicitPointsToSet.getSize() == 1) {
+          return Iterables.getOnlyElement(explicitPointsToSet);
         }
       }
     }

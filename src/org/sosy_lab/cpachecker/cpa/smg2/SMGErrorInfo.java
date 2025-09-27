@@ -77,20 +77,11 @@ public class SMGErrorInfo {
     boolean pHasLeaks = hasMemoryLeak;
 
     switch (pProperty) {
-      case INVALID_WRITE:
-        pInvalidWrite = true;
-        break;
-      case INVALID_READ:
-        pInvalidRead = true;
-        break;
-      case INVALID_FREE:
-        pInvalidFree = true;
-        break;
-      case INVALID_HEAP:
-        pHasLeaks = true;
-        break;
-      default:
-        throw new AssertionError();
+      case INVALID_WRITE -> pInvalidWrite = true;
+      case INVALID_READ -> pInvalidRead = true;
+      case INVALID_FREE -> pInvalidFree = true;
+      case INVALID_HEAP -> pHasLeaks = true;
+      default -> throw new AssertionError();
     }
 
     return new SMGErrorInfo(
@@ -126,11 +117,8 @@ public class SMGErrorInfo {
 
   @Override
   public boolean equals(Object pOther) {
-    if (!(pOther instanceof SMGErrorInfo)) {
-      return false;
-    }
-    SMGErrorInfo o = (SMGErrorInfo) pOther;
-    return invalidWrite == o.invalidWrite
+    return pOther instanceof SMGErrorInfo o
+        && invalidWrite == o.invalidWrite
         && invalidRead == o.invalidRead
         && invalidFree == o.invalidFree
         && hasMemoryLeak == o.hasMemoryLeak
@@ -189,5 +177,20 @@ public class SMGErrorInfo {
     }
     // Will not happen
     throw new RuntimeException("Undefined memory error");
+  }
+
+  public PersistentList<Object> getInvalidChain() {
+    if (invalidChain == null) {
+      return PersistentLinkedList.of();
+    }
+    return invalidChain;
+  }
+
+  @SuppressWarnings("unused")
+  public PersistentList<Object> getCurrentChain() {
+    if (currentChain == null) {
+      return PersistentLinkedList.of();
+    }
+    return currentChain;
   }
 }

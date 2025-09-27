@@ -15,8 +15,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -33,23 +31,23 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
  * This class represents the information that is available for exporting a witness. Objects of this
  * class are designed to be immutable.
  */
-public class Witness {
+public final class Witness {
   private final WitnessType witnessType;
   private final String originFile;
   private final CFA cfa;
   private final VerificationTaskMetaData metaData;
   private final String entryStateNodeId;
-  private final Multimap<String, Edge> leavingEdges;
-  private final Multimap<String, Edge> enteringEdges;
+  private final ImmutableListMultimap<String, Edge> leavingEdges;
+  private final ImmutableListMultimap<String, Edge> enteringEdges;
   private final WitnessOptions witnessOptions;
-  private final SetMultimap<String, NodeFlag> nodeFlags;
-  private final Multimap<String, TargetInformation> violatedProperties;
-  private final Map<String, ExpressionTree<Object>> stateInvariants;
-  private final Map<String, ExpressionTree<Object>> stateQuasiInvariants;
-  private final Map<String, String> stateScopes;
-  private final Set<String> invariantExportStates;
-  private final Multimap<String, ARGState> stateToARGStates;
-  private final Multimap<Edge, CFAEdge> edgeToCFAEdges;
+  private final ImmutableSetMultimap<String, NodeFlag> nodeFlags;
+  private final ImmutableListMultimap<String, TargetInformation> violatedProperties;
+  private final ImmutableMap<String, ExpressionTree<Object>> stateInvariants;
+  private final ImmutableMap<String, ExpressionTree<Object>> stateQuasiInvariants;
+  private final ImmutableMap<String, String> stateScopes;
+  private final ImmutableSet<String> invariantExportStates;
+  private final ImmutableListMultimap<String, ARGState> stateToARGStates;
+  private final ImmutableListMultimap<Edge, CFAEdge> edgeToCFAEdges;
 
   public Witness(
       WitnessType pWitnessType,
@@ -109,11 +107,11 @@ public class Witness {
   /**
    * Returns a {@link Multimap} from a state's id {@link String} to its leaving edges {@link Edge}
    */
-  public Multimap<String, Edge> getLeavingEdges() {
+  public ImmutableListMultimap<String, Edge> getLeavingEdges() {
     return leavingEdges;
   }
 
-  public Multimap<String, Edge> getEnteringEdges() {
+  public ImmutableListMultimap<String, Edge> getEnteringEdges() {
     return enteringEdges;
   }
 
@@ -121,11 +119,11 @@ public class Witness {
     return witnessOptions;
   }
 
-  public SetMultimap<String, NodeFlag> getNodeFlags() {
+  public ImmutableSetMultimap<String, NodeFlag> getNodeFlags() {
     return nodeFlags;
   }
 
-  public Multimap<String, TargetInformation> getViolatedProperties() {
+  public ImmutableListMultimap<String, TargetInformation> getViolatedProperties() {
     return violatedProperties;
   }
 
@@ -149,15 +147,15 @@ public class Witness {
     return result;
   }
 
-  public Map<String, String> getStateScopes() {
+  public ImmutableMap<String, String> getStateScopes() {
     return stateScopes;
   }
 
-  public Set<String> getInvariantExportStates() {
+  public ImmutableSet<String> getInvariantExportStates() {
     return invariantExportStates;
   }
 
-  public Collection<ARGState> getARGStatesFor(String id) {
+  public ImmutableList<ARGState> getARGStatesFor(String id) {
     if (stateToARGStates.containsKey(id)) {
       return stateToARGStates.get(id);
     } else {
@@ -165,7 +163,7 @@ public class Witness {
     }
   }
 
-  public List<CFAEdge> getCFAEdgeFor(Edge edge) {
+  public ImmutableList<CFAEdge> getCFAEdgeFor(Edge edge) {
     if (edgeToCFAEdges.containsKey(edge)) {
       return ImmutableList.copyOf(edgeToCFAEdges.get(edge));
     } else {

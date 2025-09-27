@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.util.identifiers;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class GlobalVariableIdentifier extends VariableIdentifier {
+public sealed class GlobalVariableIdentifier extends VariableIdentifier
+    permits GeneralGlobalVariableIdentifier {
 
   public GlobalVariableIdentifier(String nm, CType t, int dereference) {
     super(nm, t, dereference);
@@ -38,6 +39,7 @@ public class GlobalVariableIdentifier extends VariableIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof GlobalVariableIdentifier) {
       return super.compareTo(pO);
     } else {

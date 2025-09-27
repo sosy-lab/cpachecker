@@ -71,7 +71,7 @@ public final class CLangStackFrame {
   }
 
   /**
-   * Adds a SMG object pObj to a stack frame, representing variable pVariableName
+   * Adds an SMG object pObj to a stack frame, representing variable pVariableName
    *
    * <p>Throws {@link IllegalArgumentException} when some object is already present with the name
    * pVariableName
@@ -186,11 +186,8 @@ public final class CLangStackFrame {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof CLangStackFrame)) {
-      return false;
-    }
-    CLangStackFrame other = (CLangStackFrame) o;
-    return Objects.equals(stack_variables, other.stack_variables)
+    return o instanceof CLangStackFrame other
+        && Objects.equals(stack_variables, other.stack_variables)
         && Objects.equals(stack_function, other.stack_function)
         && Objects.equals(returnValueObject, other.returnValueObject);
   }

@@ -38,8 +38,9 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ParseResultWithCommentLocations;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -58,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
 /**
  * Builder to traverse AST.
@@ -70,15 +70,19 @@ import org.sosy_lab.cpachecker.util.Triple;
 class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
-  private final List<Triple<List<IASTFunctionDefinition>, String, GlobalScope>>
-      functionDeclarations = new ArrayList<>();
+  private record FunctionsOfTranslationUnit(
+      List<IASTFunctionDefinition> getFirst, String fileName, GlobalScope scope) {}
+
+  private final List<FunctionsOfTranslationUnit> functionDeclarations = new ArrayList<>();
   private final NavigableMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
   // Data structure for storing global declarations
-  private final List<Triple<ADeclaration, String, GlobalScope>> globalDeclarations =
-      new ArrayList<>();
+  private record GlobalDeclaration(
+      ADeclaration declaration, String rawSignature, GlobalScope scope) {}
+
+  private final List<GlobalDeclaration> globalDeclarations = new ArrayList<>();
   private final List<Pair<ADeclaration, String>> globalDecls = new ArrayList<>();
 
   // Data structure for checking amount of initializations per global variable
@@ -142,6 +146,7 @@ class CFABuilder extends ASTVisitor {
             new HashMap<>(),
             new HashMap<>(),
             new HashMap<>(),
+            parseContext,
             programDeclarations,
             staticVariablePrefix,
             artificialScope);
@@ -155,7 +160,7 @@ class CFABuilder extends ASTVisitor {
             staticVariablePrefix,
             sideAssignmentStack);
     functionDeclarations.add(
-        Triple.of(new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
+        new FunctionsOfTranslationUnit(new ArrayList<>(), staticVariablePrefix, fileScope));
 
     ast.accept(this);
 
@@ -179,63 +184,62 @@ class CFABuilder extends ASTVisitor {
 
     sideAssignmentStack.enterBlock();
 
-    if (declaration instanceof IASTSimpleDeclaration) {
-      return handleSimpleDeclaration((IASTSimpleDeclaration) declaration);
+    return switch (declaration) {
+      case IASTSimpleDeclaration iASTSimpleDeclaration ->
+          handleSimpleDeclaration(iASTSimpleDeclaration);
 
-    } else if (declaration instanceof IASTFunctionDefinition) {
-      IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
-      functionDeclarations.get(functionDeclarations.size() - 1).getFirst().add(fd);
-
-      // add forward declaration to list of global declarations
-      CFunctionDeclaration functionDefinition = astCreator.convert(fd);
-      if (sideAssignmentStack.hasPreSideAssignments()
-          || sideAssignmentStack.hasPostSideAssignments()) {
-        throw parseContext.parseError("Function definition has side effect", fd);
+      case IASTFunctionDefinition fd -> {
+        functionDeclarations.getLast().getFirst().add(fd);
+        // add forward declaration to list of global declarations
+        CFunctionDeclaration functionDefinition = astCreator.convert(fd);
+        if (sideAssignmentStack.hasPreSideAssignments()
+            || sideAssignmentStack.hasPostSideAssignments()) {
+          throw parseContext.parseError("Function definition has side effect", fd);
+        }
+        fileScope.registerFunctionDeclaration(functionDefinition);
+        if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
+          globalDeclarations.add(
+              new GlobalDeclaration(
+                  functionDefinition,
+                  fd.getDeclSpecifier().getRawSignature()
+                      + " "
+                      + fd.getDeclarator().getRawSignature(),
+                  fileScope));
+          globalDecls.add(
+              Pair.of(
+                  functionDefinition,
+                  fd.getDeclSpecifier().getRawSignature()
+                      + " "
+                      + fd.getDeclarator().getRawSignature()));
+          eliminateableDuplicates.add(functionDefinition.toASTString());
+        }
+        sideAssignmentStack.leaveBlock();
+        yield PROCESS_SKIP;
       }
-
-      fileScope.registerFunctionDeclaration(functionDefinition);
-      if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
-        globalDeclarations.add(
-            Triple.of(
-                functionDefinition,
-                fd.getDeclSpecifier().getRawSignature()
-                    + " "
-                    + fd.getDeclarator().getRawSignature(),
-                fileScope));
-        globalDecls.add(
-            Pair.of(
-                functionDefinition,
-                fd.getDeclSpecifier().getRawSignature()
-                    + " "
-                    + fd.getDeclarator().getRawSignature()));
-        eliminateableDuplicates.add(functionDefinition.toASTString());
+      case IASTProblemDeclaration iASTProblemDeclaration -> {
+        visit(iASTProblemDeclaration.getProblem());
+        sideAssignmentStack.leaveBlock();
+        yield PROCESS_SKIP;
       }
-
-      sideAssignmentStack.leaveBlock();
-      return PROCESS_SKIP;
-
-    } else if (declaration instanceof IASTProblemDeclaration) {
-      visit(((IASTProblemDeclaration) declaration).getProblem());
-      sideAssignmentStack.leaveBlock();
-      return PROCESS_SKIP;
-
-    } else if (declaration instanceof IASTASMDeclaration) {
-      // TODO Assembler code is ignored here
-      encounteredAsm = true;
-      @Nullable IASTFileLocation fileloc = declaration.getFileLocation();
-      if (fileloc != null) {
-        logger.log(
-            Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
-      } else {
-        logger.log(Level.FINER, "Ignoring inline assembler code at unknown line.");
+      case IASTASMDeclaration asm -> {
+        // TODO Assembler code is ignored here
+        encounteredAsm = true;
+        @Nullable IASTFileLocation fileloc = declaration.getFileLocation();
+        if (fileloc != null) {
+          logger.log(
+              Level.FINER,
+              "Ignoring inline assembler code at line",
+              fileloc.getStartingLineNumber());
+        } else {
+          logger.log(Level.FINER, "Ignoring inline assembler code at unknown line.");
+        }
+        sideAssignmentStack.leaveBlock();
+        yield PROCESS_SKIP;
       }
-      sideAssignmentStack.leaveBlock();
-      return PROCESS_SKIP;
-
-    } else {
-      throw parseContext.parseError(
-          "Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
-    }
+      default ->
+          throw parseContext.parseError(
+              "Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
+    };
   }
 
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
@@ -260,15 +264,17 @@ class CFABuilder extends ASTVisitor {
     for (CAstNode astNode : sideAssignmentStack.getAndResetPreSideAssignments()) {
       if (astNode instanceof CComplexTypeDeclaration) {
         // already registered
-        globalDeclarations.add(Triple.of((ADeclaration) astNode, rawSignature, fileScope));
+        globalDeclarations.add(
+            new GlobalDeclaration((ADeclaration) astNode, rawSignature, fileScope));
         globalDecls.add(Pair.of((ADeclaration) astNode, rawSignature));
-      } else if (astNode instanceof CVariableDeclaration) {
+      } else if (astNode instanceof CVariableDeclaration cVariableDeclaration) {
         // If the initializer of a global struct contains a type-id expression,
-        // a temporary variable is created and we need to support this.
+        // a temporary variable is created, and we need to support this.
         // We detect this case if the initializer of the temp variable is an initializer list.
-        CInitializer initializer = ((CVariableDeclaration) astNode).getInitializer();
+        CInitializer initializer = cVariableDeclaration.getInitializer();
         if (initializer instanceof CInitializerList) {
-          globalDeclarations.add(Triple.of((ADeclaration) astNode, rawSignature, fileScope));
+          globalDeclarations.add(
+              new GlobalDeclaration((ADeclaration) astNode, rawSignature, fileScope));
           globalDecls.add(Pair.of((ADeclaration) astNode, rawSignature));
         } else {
           throw parseContext.parseError("Initializer of global variable has side effect", sd);
@@ -282,30 +288,31 @@ class CFABuilder extends ASTVisitor {
     for (CDeclaration newD : newDs) {
       boolean used = true;
 
-      if (newD instanceof CVariableDeclaration) {
+      switch (newD) {
+        case CVariableDeclaration cVariableDeclaration -> {
+          CInitializer init = cVariableDeclaration.getInitializer();
+          if (init != null) {
+            init.accept(checkBinding);
 
-        CInitializer init = ((CVariableDeclaration) newD).getInitializer();
-        if (init != null) {
-          init.accept(checkBinding);
-
-          // save global initialized variable in map to check duplicates
-          if (!globalInitializedVariables.add(newD.getName())) {
-            throw parseContext.parseError(
-                "Variable " + newD.getName() + " initialized for the second time", newD);
+            // save global initialized variable in map to check duplicates
+            if (!globalInitializedVariables.add(newD.getName())) {
+              throw parseContext.parseError(
+                  "Variable " + newD.getName() + " initialized for the second time", newD);
+            }
           }
+          fileScope.registerDeclaration(newD);
         }
-
-        fileScope.registerDeclaration(newD);
-      } else if (newD instanceof CFunctionDeclaration) {
-        fileScope.registerFunctionDeclaration((CFunctionDeclaration) newD);
-      } else if (newD instanceof CComplexTypeDeclaration) {
-        used = fileScope.registerTypeDeclaration((CComplexTypeDeclaration) newD);
-      } else if (newD instanceof CTypeDefDeclaration) {
-        used = fileScope.registerTypeDeclaration((CTypeDefDeclaration) newD);
+        case CFunctionDeclaration cFunctionDeclaration ->
+            fileScope.registerFunctionDeclaration(cFunctionDeclaration);
+        case CComplexTypeDeclaration cComplexTypeDeclaration ->
+            used = fileScope.registerTypeDeclaration(cComplexTypeDeclaration);
+        case CTypeDefDeclaration cTypeDefDeclaration ->
+            used = fileScope.registerTypeDeclaration(cTypeDefDeclaration);
+        default -> throw new AssertionError();
       }
 
       if (used && !eliminateableDuplicates.contains(newD.toASTString())) {
-        globalDeclarations.add(Triple.of(newD, rawSignature, fileScope));
+        globalDeclarations.add(new GlobalDeclaration(newD, rawSignature, fileScope));
         globalDecls.add(Pair.of(newD, rawSignature));
         eliminateableDuplicates.add(newD.toASTString());
       }
@@ -331,14 +338,18 @@ class CFABuilder extends ASTVisitor {
       programDeclarations.completeUncompletedElaboratedTypes();
     }
 
-    for (Triple<ADeclaration, String, GlobalScope> decl : globalDeclarations) {
+    for (GlobalDeclaration decl : globalDeclarations) {
       FillInAllBindingsVisitor fillInAllBindingsVisitor =
-          new FillInAllBindingsVisitor(decl.getThird(), programDeclarations);
-      ((CDeclaration) decl.getFirst()).getType().accept(fillInAllBindingsVisitor);
+          new FillInAllBindingsVisitor(decl.scope(), programDeclarations);
+      ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
-    for (Triple<List<IASTFunctionDefinition>, String, GlobalScope> triple : functionDeclarations) {
-      GlobalScope actScope = triple.getThird();
+    ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope =
+        ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope =
+        ImmutableMap.builder();
+    for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
+      GlobalScope actScope = functionDeclaration.scope();
 
       // giving these variables as parameters to the handleFunctionDefinition method
       // increases performance drastically, as there is no need to create the Immutable
@@ -347,15 +358,17 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CComplexTypeDeclaration> actTypes = actScope.getTypes();
       ImmutableMap<String, CTypeDefDeclaration> actTypeDefs = actScope.getTypeDefs();
       ImmutableMap<String, CSimpleDeclaration> actVars = actScope.getGlobalVars();
-      for (IASTFunctionDefinition declaration : triple.getFirst()) {
+      for (IASTFunctionDefinition declaration : functionDeclaration.getFirst()) {
         handleFunctionDefinition(
             actScope,
-            triple.getSecond(),
+            functionDeclaration.fileName(),
             declaration,
             actFunctions,
             actTypes,
             actTypeDefs,
-            actVars);
+            actVars,
+            cfaNodeToAstLocalVariablesInScope,
+            cfaNodeToAstParametersInScope);
       }
     }
 
@@ -368,12 +381,23 @@ class CFABuilder extends ASTVisitor {
           "Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    if (acslCommentPositions.isEmpty()) {
-      return new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
+    ParseResult result;
+
+    if (!acslCommentPositions.isEmpty()) {
+      result =
+          new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
+    } else {
+      result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
     }
 
-    return new ParseResultWithCommentLocations(
-        cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
+    result =
+        result.withInScopeInformation(
+            // We want to explicitly throw an error if a
+            // key was added more than once, since this would be a bug
+            cfaNodeToAstLocalVariablesInScope.buildOrThrow(),
+            cfaNodeToAstParametersInScope.buildOrThrow());
+
+    return result;
   }
 
   private void handleFunctionDefinition(
@@ -383,7 +407,9 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CFunctionDeclaration> functions,
       ImmutableMap<String, CComplexTypeDeclaration> types,
       ImmutableMap<String, CTypeDefDeclaration> typedefs,
-      ImmutableMap<String, CSimpleDeclaration> globalVars)
+      ImmutableMap<String, CSimpleDeclaration> globalVars,
+      ImmutableMap.Builder<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope,
+      ImmutableMap.Builder<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope)
       throws InterruptedException {
 
     FunctionScope localScope =
@@ -398,7 +424,9 @@ class CFABuilder extends ASTVisitor {
             machine,
             fileName,
             sideAssignmentStack,
-            checkBinding);
+            checkBinding,
+            cfaNodeToAstLocalVariablesInScope,
+            cfaNodeToAstParametersInScope);
 
     declaration.accept(functionBuilder);
 
@@ -422,7 +450,7 @@ class CFABuilder extends ASTVisitor {
     globalDeclarations.addAll(
         Collections2.transform(
             functionBuilder.getGlobalDeclarations(),
-            pInput -> Triple.of(pInput.getFirst(), pInput.getSecond(), actScope)));
+            pInput -> new GlobalDeclaration(pInput.getFirst(), pInput.getSecond(), actScope)));
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());
 
     encounteredAsm |= functionBuilder.didEncounterAsm();

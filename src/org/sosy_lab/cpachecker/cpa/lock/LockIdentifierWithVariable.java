@@ -31,11 +31,9 @@ public final class LockIdentifierWithVariable extends LockIdentifier {
 
   @Override
   public boolean equals(Object obj) {
-    if (!super.equals(obj)) {
-      return false;
-    }
-    LockIdentifierWithVariable other = (LockIdentifierWithVariable) obj;
-    return Objects.equals(varName, other.varName);
+    return obj instanceof LockIdentifierWithVariable other
+        && super.equals(obj)
+        && Objects.equals(varName, other.varName);
   }
 
   @Override
@@ -45,12 +43,14 @@ public final class LockIdentifierWithVariable extends LockIdentifier {
 
   @Override
   public int compareTo(LockIdentifier pO) {
+    // FIXME This is broken because compareTo in LockIdentifier behaves incompatibly with this
+    // method.
     int result = super.compareTo(pO);
     if (result != 0) {
       return result;
     }
-    if (pO instanceof LockIdentifierWithVariable) {
-      return varName.compareTo(((LockIdentifierWithVariable) pO).varName);
+    if (pO instanceof LockIdentifierWithVariable other) {
+      return varName.compareTo(other.varName);
     } else {
       return 1;
     }

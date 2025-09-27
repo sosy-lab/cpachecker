@@ -117,7 +117,7 @@ enum GraphBuilder {
             }
 
             // last edge connecting it with the real successor
-            edgeToNextState = allEdgeToNextState.get(allEdgeToNextState.size() - 1);
+            edgeToNextState = allEdgeToNextState.getLast();
           }
 
           Optional<Collection<ARGState>> state = Optional.of(Collections.singleton(s));
@@ -133,8 +133,7 @@ enum GraphBuilder {
                 pValueMap,
                 pAdditionalInfo.get(s));
             // For branchings, it is important to have both branches explicitly in the witness
-            if (edgeToNextState instanceof AssumeEdge) {
-              AssumeEdge assumeEdge = (AssumeEdge) edgeToNextState;
+            if (edgeToNextState instanceof AssumeEdge assumeEdge) {
               AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
               boolean addArtificialSinkEdge = true;
               for (ARGState sibling : s.getChildren()) {

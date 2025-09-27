@@ -16,7 +16,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class StatementBlock implements SyntacticBlock {
@@ -96,11 +95,10 @@ public class StatementBlock implements SyntacticBlock {
         continue;
       }
       visited.add(currentEdge);
-      if (currentEdge instanceof CFunctionCallEdge) {
+      if (currentEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
         // If currentEdge is a function call, then continue with the return edge and skip
         // everything in between
-        CFunctionSummaryEdge summaryEdge = ((CFunctionCallEdge) currentEdge).getSummaryEdge();
-        CFAUtils.enteringEdges(summaryEdge.getSuccessor()).copyInto(waitlist);
+        CFAUtils.enteringEdges(cFunctionCallEdge.getReturnNode()).copyInto(waitlist);
         continue;
       }
       CFANode successor = currentEdge.getSuccessor();

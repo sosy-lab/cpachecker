@@ -104,8 +104,7 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
     if (pElements == this) {
       return this;
     }
-    if (pElements instanceof ExplicitLocationSet) {
-      ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pElements;
+    if (pElements instanceof ExplicitLocationSet explicitLocationSet) {
       return addElements(explicitLocationSet.explicitSet);
     }
     return pElements.addElements((Iterable<MemoryLocation>) this);
@@ -116,8 +115,7 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
     if (pElements == this) {
       return true;
     }
-    if (pElements instanceof ExplicitLocationSet) {
-      ExplicitLocationSet explicitLocationSet = (ExplicitLocationSet) pElements;
+    if (pElements instanceof ExplicitLocationSet explicitLocationSet) {
       return explicitSet.containsAll(explicitLocationSet.explicitSet);
     }
     return pElements.containsAll(this);
@@ -130,19 +128,18 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
 
   @Override
   public boolean equals(Object pO) {
+    // FIXME violates contract because it is not symmetric with LocationSetBot.equals()
     if (this == pO) {
       return true;
     }
-    if (pO instanceof LocationSet) {
-      LocationSet o = (LocationSet) pO;
+    if (pO instanceof LocationSet o) {
       if (o.isTop()) {
         return false;
       }
       if (o.isBot()) {
         return explicitSet.isEmpty();
       }
-      if (o instanceof ExplicitLocationSet) {
-        ExplicitLocationSet other = (ExplicitLocationSet) o;
+      if (o instanceof ExplicitLocationSet other) {
         return explicitSet.equals(other.explicitSet);
       }
     }

@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /*
- * Sometimes we need to return a SMGValue and a Set of SMGObjects.
+ * Sometimes we need to return an SMGValue and a Set of SMGObjects.
  */
 public class ValueAndObjectSet {
 
@@ -31,14 +31,9 @@ public class ValueAndObjectSet {
 
   @Override
   public boolean equals(Object other) {
-    if (other == null) {
-      return false;
-    }
-    if (!(other instanceof ValueAndObjectSet)) {
-      return false;
-    }
-    ValueAndObjectSet otherSMGaV = (ValueAndObjectSet) other;
-    return getObjectSet().equals(otherSMGaV.getObjectSet()) && value.equals(otherSMGaV.getValue());
+    return other instanceof ValueAndObjectSet otherSMGaV
+        && getObjectSet().equals(otherSMGaV.getObjectSet())
+        && value.equals(otherSMGaV.getValue());
   }
 
   @Override

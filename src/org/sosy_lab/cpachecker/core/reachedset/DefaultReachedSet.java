@@ -18,8 +18,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.SequencedCollection;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -37,8 +38,8 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 class DefaultReachedSet implements ReachedSet {
 
   private final ConfigurableProgramAnalysis cpa;
-  private final Map<AbstractState, Precision> reached;
-  private final Set<AbstractState> unmodifiableReached;
+  private final SequencedMap<AbstractState, Precision> reached;
+  private final SequencedSet<AbstractState> unmodifiableReached;
   private @Nullable AbstractState lastState = null;
   private @Nullable AbstractState firstState = null;
   private final Waitlist waitlist;
@@ -46,18 +47,18 @@ class DefaultReachedSet implements ReachedSet {
   DefaultReachedSet(ConfigurableProgramAnalysis pCpa, WaitlistFactory waitlistFactory) {
     cpa = checkNotNull(pCpa);
     reached = new LinkedHashMap<>();
-    unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
+    unmodifiableReached = Collections.unmodifiableSequencedSet(reached.sequencedKeySet());
     waitlist = waitlistFactory.createWaitlistInstance();
   }
 
   @Override
   public void add(AbstractState state, Precision precision) {
-    add(state, precision, /*updateWaitlist=*/ true);
+    add(state, precision, /* updateWaitlist= */ true);
   }
 
   @Override
   public void addNoWaitlist(AbstractState state, Precision precision) {
-    add(state, precision, /*updateWaitlist=*/ false);
+    add(state, precision, /* updateWaitlist= */ false);
   }
 
   private void add(AbstractState state, Precision precision, boolean updateWaitlist) {
@@ -180,7 +181,7 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public Set<AbstractState> asCollection() {
+  public SequencedSet<AbstractState> asCollection() {
     return unmodifiableReached;
   }
 
@@ -195,8 +196,8 @@ class DefaultReachedSet implements ReachedSet {
   }
 
   @Override
-  public Collection<Precision> getPrecisions() {
-    return Collections.unmodifiableCollection(reached.values());
+  public SequencedCollection<Precision> getPrecisions() {
+    return Collections.unmodifiableSequencedCollection(reached.sequencedValues());
   }
 
   @Override
@@ -237,10 +238,7 @@ class DefaultReachedSet implements ReachedSet {
 
       @Override
       public boolean contains(Object obj) {
-        if (!(obj instanceof AbstractState)) {
-          return false;
-        }
-        return waitlist.contains((AbstractState) obj);
+        return obj instanceof AbstractState abstractState && waitlist.contains(abstractState);
       }
 
       @Override

@@ -22,15 +22,14 @@ public interface Targetable {
 
   /**
    * Return more information about why this state is a target state, e.g., the violated property.
-   * Currently this information is used to present a summary of the result to users of CPachecker
+   * Currently, this information is used to present a summary of the result to users of CPachecker
    * and should thus be a human-readable string like "assert statement in line X".
    *
    * @return A set of {@link TargetInformation} instances, may be empty if no information is
    *     available.
    * @throws IllegalStateException if {@link #isTarget()} returns false
    */
-  @NonNull
-  Set<TargetInformation> getTargetInformation() throws IllegalStateException;
+  @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException;
 
   /**
    * This interface represents information about target states.
@@ -41,6 +40,7 @@ public interface Targetable {
    *   <li>MUST override the {@link #toString()} method to provide a human-readable description!
    *   <li>MIGHT override the {@link Object#equals(Object)} method! (and of course {@link
    *       Object#hashCode()})
+   * </ul>
    */
   interface TargetInformation {
 

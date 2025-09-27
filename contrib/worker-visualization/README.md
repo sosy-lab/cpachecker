@@ -32,7 +32,7 @@ e.g., with `pip install -r requirements.txt`.
 ## Options
 
 Run `./log_to_html.py --help` to see a list of the available
-command-line options.
+command-line arguments.
 
 ## Example
 

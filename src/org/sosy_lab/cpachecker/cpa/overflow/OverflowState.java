@@ -101,7 +101,7 @@ public final class OverflowState
 
   private static String getReadableAssumptions(OverflowState s) {
     StringBuilder sb = new StringBuilder();
-    Joiner.on(", ").appendTo(sb, s.assumptions.stream().map(x -> x.toASTString()).iterator());
+    Joiner.on(", ").appendTo(sb, s.assumptions.stream().map(AExpression::toASTString).iterator());
     return sb.toString();
   }
 

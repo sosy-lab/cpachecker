@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class BoundIdentifier implements ACSLTerm {
+public final class BoundIdentifier implements ACSLTerm {
 
   private final String name;
   private final String functionName;
@@ -30,11 +30,7 @@ public class BoundIdentifier implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof BoundIdentifier) {
-      BoundIdentifier other = (BoundIdentifier) o;
-      return name.equals(other.name);
-    }
-    return false;
+    return o instanceof BoundIdentifier other && name.equals(other.name);
   }
 
   @Override

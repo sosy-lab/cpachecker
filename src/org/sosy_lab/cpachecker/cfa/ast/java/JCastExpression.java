@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -24,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public final class JCastExpression extends ACastExpression implements JExpression {
 
-  private static final long serialVersionUID = 5936546055892473701L;
+  @Serial private static final long serialVersionUID = 5936546055892473701L;
 
   public JCastExpression(FileLocation pFileLocation, JType pCastType, JExpression pOperand) {
     super(pFileLocation, pCastType, pOperand);
@@ -63,10 +64,6 @@ public final class JCastExpression extends ACastExpression implements JExpressio
       return true;
     }
 
-    if (!(obj instanceof JCastExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JCastExpression && super.equals(obj);
   }
 }

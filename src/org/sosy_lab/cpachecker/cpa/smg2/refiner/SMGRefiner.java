@@ -28,9 +28,9 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -39,7 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,9 +58,11 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -81,14 +83,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
   @Option(
       secure = true,
-      description = "whether or not to do lazy-abstraction",
+      description = "whether to do lazy-abstraction",
       name = "restart",
       toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
       secure = true,
-      description = "whether or not to use heuristic to avoid similar, repeated refinements")
+      description = "whether to use heuristic to avoid similar, repeated refinements")
   private boolean avoidSimilarRepeatedRefinement = false;
 
   @Option(
@@ -103,7 +105,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
    * 05/2017: An evaluation on sv-benchmark files for ALL, SUBGRAPH, TARGET, and CUTPOINT showed:
    * - overall: SUBGRAPH >= ALL >> CUTPOINT > TARGET
    * - SUBGRAPH and ALL are nearly identical
-   * - CUTPOINT has smallest number of solved files,
+   * - CUTPOINT has the smallest number of solved files,
    *   especially there are many timeouts (900s) on the source files product-lines/email_spec*,
    *   and many solved tasks in ldv-linux-3.14/linux-3.14__complex_emg*
    * - TARGET is slowest and has less score
@@ -144,18 +146,25 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
     smgCpa.injectRefinablePrecision();
 
-    final LogManager logger = smgCpa.getLogger();
+    final LogManagerWithoutDuplicates logger = smgCpa.getLogger();
     final Configuration config = smgCpa.getConfiguration();
     final CFA cfa = smgCpa.getCFA();
 
     final StrongestPostOperator<SMGState> strongestPostOp =
-        new SMGStrongestPostOperator(logger, config, cfa);
+        new SMGStrongestPostOperator(smgCpa.getSolver(), logger, config, cfa);
 
     final SMGFeasibilityChecker checker =
-        new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config);
+        new SMGFeasibilityChecker(
+            strongestPostOp, logger, cfa, config, smgCpa.getEvaluator(), smgCpa.getStatistics());
 
     final GenericPrefixProvider<SMGState> prefixProvider =
-        new SMGPrefixProvider(logger, cfa, config, smgCpa.getShutdownNotifier());
+        new SMGPrefixProvider(
+            smgCpa.getSolver(),
+            logger,
+            cfa,
+            config,
+            smgCpa.getShutdownNotifier(),
+            smgCpa.getStatistics());
 
     return new SMGRefiner(
         checker,
@@ -165,7 +174,9 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         config,
         logger,
         smgCpa.getShutdownNotifier(),
-        cfa);
+        cfa,
+        smgCpa.getEvaluator(),
+        smgCpa.getStatistics());
   }
 
   SMGRefiner(
@@ -174,9 +185,11 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       final PathExtractor pPathExtractor,
       final GenericPrefixProvider<SMGState> pPrefixProvider,
       final Configuration pConfig,
-      final LogManager pLogger,
+      final LogManagerWithoutDuplicates pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa)
+      final CFA pCfa,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
     super(
@@ -188,9 +201,17 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pConfig,
             pLogger,
             pShutdownNotifier,
-            pCfa),
+            pCfa,
+            pEvaluator,
+            pStatistics),
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa),
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety(),
+            pEvaluator,
+            pStatistics),
         pPathExtractor,
         pConfig,
         pLogger);
@@ -211,7 +232,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     final UnmodifiableReachedSet reached = pReached.asReachedSet();
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(reached);
 
-    Map<ARGState, List<Precision>> refinementInformation = new LinkedHashMap<>();
+    SequencedMap<ARGState, List<Precision>> refinementInformation = new LinkedHashMap<>();
     Collection<ARGState> refinementRoots =
         pInterpolationTree.obtainRefinementRoots(restartStrategy);
 
@@ -227,25 +248,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       }
 
       List<Precision> precisions = new ArrayList<>(2);
-      VariableTrackingPrecision basePrecision;
-      switch (basisStrategy) {
-        case ALL:
-          basePrecision =
-              mergeValuePrecisionsForSubgraph((ARGState) reached.getFirstState(), reached);
-          break;
-        case SUBGRAPH:
-          basePrecision = mergeValuePrecisionsForSubgraph(root, reached);
-          break;
-        case TARGET:
-          basePrecision = extractValuePrecision(reached.getPrecision(reached.getLastState()));
-          break;
-        case CUTPOINT:
-          basePrecision = extractValuePrecision(reached.getPrecision(root));
-          break;
-        default:
-          throw new AssertionError("unknown strategy for predicate basis.");
-      }
-
+      VariableTrackingPrecision basePrecision =
+          switch (basisStrategy) {
+            case ALL ->
+                mergeValuePrecisionsForSubgraph((ARGState) reached.getFirstState(), reached);
+            case SUBGRAPH -> mergeValuePrecisionsForSubgraph(root, reached);
+            case TARGET -> extractValuePrecision(reached.getPrecision(reached.getLastState()));
+            case CUTPOINT -> extractValuePrecision(reached.getPrecision(root));
+          };
       // merge the value precisions of the subtree, and refine it
       precisions.add(
           ((SMGPrecision) basePrecision)
@@ -426,7 +436,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
       final ARGState currentState = todo.removeFirst();
 
       if (currentState.getParents().iterator().hasNext()) {
-        ARGState parentState = currentState.getParents().iterator().next();
+        ARGState parentState = currentState.getParents().getFirst();
         todo.add(parentState);
         successorRelation.put(parentState, currentState);
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -18,11 +19,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *
  * <p>e.g. Type a = b;
  */
-public class JVariableDeclaration extends AVariableDeclaration implements JDeclaration {
+public sealed class JVariableDeclaration extends AVariableDeclaration implements JDeclaration
+    permits JFieldDeclaration {
 
   // TODO refactor to be either abstract or final
 
-  private static final long serialVersionUID = -3840765628515703031L;
+  @Serial private static final long serialVersionUID = -3840765628515703031L;
   private static final boolean IS_LOCAL = false;
   private final boolean isFinal;
 
@@ -59,22 +61,22 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
     if (isFinal) {
       lASTString.append("final ");
     }
-
-    if (pQualified) {
-      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
-    } else {
-      lASTString.append(getType().toASTString(getName()));
-    }
+    lASTString.append(
+        switch (pAAstNodeRepresentation) {
+          case DEFAULT -> getType().toASTString(getName());
+          case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
+          case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
+        });
 
     if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString(pQualified));
+      lASTString.append(getInitializer().toASTString(pAAstNodeRepresentation));
     }
 
     lASTString.append(";");
@@ -105,12 +107,8 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
       return true;
     }
 
-    if (!(obj instanceof JVariableDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    JVariableDeclaration other = (JVariableDeclaration) obj;
-
-    return other.isFinal == isFinal;
+    return obj instanceof JVariableDeclaration other
+        && super.equals(obj)
+        && other.isFinal == isFinal;
   }
 }

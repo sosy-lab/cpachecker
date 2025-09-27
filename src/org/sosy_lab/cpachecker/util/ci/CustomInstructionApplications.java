@@ -179,7 +179,9 @@ public class CustomInstructionApplications {
     }
 
     public abstract CustomInstructionApplications identifyCIApplications()
-        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
+        throws AppliedCustomInstructionParsingFailedException,
+            IOException,
+            InterruptedException,
             UnrecognizedCodeException;
 
     public static CustomInstructionApplicationBuilder getBuilder(
@@ -189,17 +191,14 @@ public class CustomInstructionApplications {
         ShutdownNotifier pSdNotifier,
         CFA pCfa)
         throws InvalidConfigurationException {
-      switch (type) {
-        case AUTOMATIC:
-          return new CustomInstructionApplicationsAutomatic(pConfig, pCfa, pLogger, pSdNotifier);
-        case MANUAL:
-          return new CustomInstructionApplicationsFromFile(pConfig, pCfa, pLogger, pSdNotifier);
-        case OPERATOR:
-          return new CustomInstructionsForBinaryOperator(pConfig, pLogger, pSdNotifier, pCfa);
-        default:
-          throw new IllegalArgumentException(
-              "Unknown type of custom instruction applications identifier");
-      }
+      return switch (type) {
+        case AUTOMATIC ->
+            new CustomInstructionApplicationsAutomatic(pConfig, pCfa, pLogger, pSdNotifier);
+        case MANUAL ->
+            new CustomInstructionApplicationsFromFile(pConfig, pCfa, pLogger, pSdNotifier);
+        case OPERATOR ->
+            new CustomInstructionsForBinaryOperator(pConfig, pLogger, pSdNotifier, pCfa);
+      };
     }
   }
 
@@ -214,7 +213,7 @@ public class CustomInstructionApplications {
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
     private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionApplicationsFromFile(
+    CustomInstructionApplicationsFromFile(
         Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
         throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
@@ -254,7 +253,7 @@ public class CustomInstructionApplications {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionApplicationsAutomatic(
+    CustomInstructionApplicationsAutomatic(
         Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
         throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
@@ -277,7 +276,7 @@ public class CustomInstructionApplications {
 
       try (Writer out =
           IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset())) {
-        for (CFANode node : cfa.getAllNodes()) {
+        for (CFANode node : cfa.nodes()) {
           if (!Objects.equals(node, ci.getStartNode()) && pParser.isAppliedCI(ci, node)) {
             shutdownNotifier.shutdownIfNecessary();
             out.append(node.getNodeNumber() + "\n");
@@ -308,7 +307,7 @@ public class CustomInstructionApplications {
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path foundCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionsForBinaryOperator(
+    CustomInstructionsForBinaryOperator(
         Configuration pConfig, LogManager pLogger, ShutdownNotifier pSdNotifier, CFA pCfa)
         throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
@@ -319,23 +318,24 @@ public class CustomInstructionApplications {
     }
 
     private CustomInstructionApplications findSimpleCustomInstructionApplications()
-        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
+        throws AppliedCustomInstructionParsingFailedException,
+            IOException,
+            InterruptedException,
             UnrecognizedCodeException {
       // build simple custom instruction, is of the form r= x pOp y;
       // create variable expressions
       CType type = CNumericTypes.INT;
-      CIdExpression r, x, y;
-      r =
+      CIdExpression r =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
                   FileLocation.DUMMY, true, CStorageClass.AUTO, type, "r", "r", "r", null));
-      x =
+      CIdExpression x =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
                   FileLocation.DUMMY, true, CStorageClass.AUTO, type, "x", "x", "x", null));
-      y =
+      CIdExpression y =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
@@ -377,12 +377,12 @@ public class CustomInstructionApplications {
           IO.openOutputFile(foundCustomInstructionsDefinition, Charset.defaultCharset())) {
 
         // inspect all CFA edges potential candidates
-        for (CFANode node : cfa.getAllNodes()) {
+        for (CFANode node : cfa.nodes()) {
           for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-            if (edge instanceof CStatementEdge
-                && ((CStatementEdge) edge).getStatement()
-                    instanceof CExpressionAssignmentStatement) {
-              stmt = (CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement();
+            if (edge instanceof CStatementEdge cStatementEdge
+                && cStatementEdge.getStatement()
+                    instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+              stmt = cExpressionAssignmentStatement;
               if (stmt.getRightHandSide() instanceof CBinaryExpression
                   && ((CBinaryExpression) stmt.getRightHandSide())
                       .getOperator()
@@ -409,8 +409,10 @@ public class CustomInstructionApplications {
 
     @Override
     public CustomInstructionApplications identifyCIApplications()
-        throws UnrecognizedCodeException, AppliedCustomInstructionParsingFailedException,
-            IOException, InterruptedException {
+        throws UnrecognizedCodeException,
+            AppliedCustomInstructionParsingFailedException,
+            IOException,
+            InterruptedException {
       CustomInstructionApplications cia = findSimpleCustomInstructionApplications();
       logger.log(
           Level.INFO,

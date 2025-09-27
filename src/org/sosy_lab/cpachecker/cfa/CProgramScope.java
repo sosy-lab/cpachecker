@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -77,7 +78,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Used to store the types of the cfa that are lost when only a single or a block of statements of
+ * Used to store the types of the CFA that are lost when only a single or a block of statements of
  * the original program is parsed.
  */
 public class CProgramScope implements Scope {
@@ -93,8 +94,7 @@ public class CProgramScope implements Scope {
                 return Collections.singleton(dcl);
               }
 
-              if (pNode instanceof FunctionEntryNode) {
-                FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
+              if (pNode instanceof FunctionEntryNode entryNode) {
                 return from(entryNode.getFunctionParameters()).filter(CSimpleDeclaration.class);
               }
 
@@ -108,8 +108,7 @@ public class CProgramScope implements Scope {
     }
     if (pDeclaration.getName() == null
         && pDeclaration.getQualifiedName() == null
-        && pDeclaration instanceof CComplexTypeDeclaration) {
-      CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+        && pDeclaration instanceof CComplexTypeDeclaration complexTypeDeclaration) {
       CComplexType complexType = complexTypeDeclaration.getType();
       return complexType != null
           && complexType.getName() != null
@@ -123,8 +122,7 @@ public class CProgramScope implements Scope {
     if (result != null) {
       return result;
     }
-    if (pDeclaration instanceof CComplexTypeDeclaration) {
-      CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+    if (pDeclaration instanceof CComplexTypeDeclaration complexTypeDeclaration) {
       CComplexType complexType = complexTypeDeclaration.getType();
       if (complexType != null
           && complexType.getName() != null
@@ -150,8 +148,8 @@ public class CProgramScope implements Scope {
   }
 
   private static String getComplexDeclarationName(CSimpleDeclaration pDeclaration) {
-    if (pDeclaration instanceof CComplexTypeDeclaration) {
-      CComplexType complexType = ((CComplexTypeDeclaration) pDeclaration).getType();
+    if (pDeclaration instanceof CComplexTypeDeclaration cComplexTypeDeclaration) {
+      CComplexType complexType = cComplexTypeDeclaration.getType();
       if (complexType != null) {
         String name = complexType.getName();
         String originalName = complexType.getOrigName();
@@ -167,6 +165,7 @@ public class CProgramScope implements Scope {
     throw new AssertionError("Cannot extract a name.");
   }
 
+  @SuppressFBWarnings("SS_SHOULD_BE_STATIC") // TODO should this be implemented or removed?
   private final String currentFile = "";
 
   private final Set<String> variableNames;
@@ -229,11 +228,11 @@ public class CProgramScope implements Scope {
   /**
    * Creates an object of this class.
    *
-   * <p>When a single or a block of statements is supposed to be parsed, first a cfa for the whole
+   * <p>When a single or a block of statements is supposed to be parsed, first a CFA for the whole
    * program has to be parsed to generate complex types for the variables. These types and
    * declarations are stored in this scope.
    *
-   * @param pCFA the cfa of the program, where single or block of statements are supposed to be
+   * @param pCFA the CFA of the program, where single or block of statements are supposed to be
    *     parsed
    */
   public CProgramScope(CFA pCFA, LogManager pLogger) {
@@ -246,7 +245,7 @@ public class CProgramScope implements Scope {
     /* Get all nodes, get all edges from nodes, get all declarations from edges,
      * assign every declaration its name.
      */
-    Collection<CFANode> nodes = pCFA.getAllNodes();
+    Collection<CFANode> nodes = pCFA.nodes();
 
     FluentIterable<CSimpleDeclaration> allDcls =
         FluentIterable.from(nodes).transformAndConcat(CProgramScope::toCSimpleDeclarations);
@@ -375,8 +374,8 @@ public class CProgramScope implements Scope {
       return result;
     }
     CType typdefResult = lookupTypedef(pName);
-    if (typdefResult instanceof CComplexType) {
-      return (CComplexType) typdefResult;
+    if (typdefResult instanceof CComplexType cComplexType) {
+      return cComplexType;
     }
     return null;
   }
@@ -500,12 +499,11 @@ public class CProgramScope implements Scope {
     }
 
     // If the types are not composite types, we are done
-    if (!(pA instanceof CCompositeType)) {
+    if (!(pA instanceof CCompositeType aComp)) {
       pResolved.add(ab);
       return true;
     }
 
-    CCompositeType aComp = (CCompositeType) pA;
     CCompositeType bComp = (CCompositeType) pB;
 
     // Check member count
@@ -533,8 +531,7 @@ public class CProgramScope implements Scope {
     return Multimaps.transformValues(
         qualifiedDeclarationsMultiMap,
         v -> {
-          if (v instanceof CVariableDeclaration) {
-            CVariableDeclaration original = (CVariableDeclaration) v;
+          if (v instanceof CVariableDeclaration original) {
             if (original.getInitializer() == null) {
               return v;
             }
@@ -610,11 +607,10 @@ public class CProgramScope implements Scope {
     Iterable<AAstNode> nodes =
         FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(pEdge))
             .transformAndConcat(CFAUtils::traverseRecursively);
-    if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+    if (pEdge instanceof ADeclarationEdge declarationEdge) {
       ADeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof AFunctionDeclaration) {
-        nodes = Iterables.concat(nodes, ((AFunctionDeclaration) declaration).getParameters());
+      if (declaration instanceof AFunctionDeclaration aFunctionDeclaration) {
+        nodes = Iterables.concat(nodes, aFunctionDeclaration.getParameters());
       }
     }
     return nodes;
@@ -632,8 +628,8 @@ public class CProgramScope implements Scope {
                     astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration)
             .filter(
                 astNode -> {
-                  if (astNode instanceof CIdExpression) {
-                    return ((CIdExpression) astNode).getDeclaration() != null;
+                  if (astNode instanceof CIdExpression cIdExpression) {
+                    return cIdExpression.getDeclaration() != null;
                   }
                   return true;
                 });
@@ -642,28 +638,25 @@ public class CProgramScope implements Scope {
         .collect(
             ImmutableSetMultimap.toImmutableSetMultimap(
                 astNode -> {
-                  if (astNode instanceof CSimpleDeclaration) {
-                    CSimpleDeclaration decl = (CSimpleDeclaration) astNode;
-                    if (decl instanceof CVariableDeclaration) {
-                      CVariableDeclaration original = (CVariableDeclaration) decl;
-                      if (original.getInitializer() != null) {
-                        return new CVariableDeclaration(
-                            original.getFileLocation(),
-                            original.isGlobal(),
-                            original.getCStorageClass(),
-                            original.getType(),
-                            original.getName(),
-                            original.getOrigName(),
-                            original.getQualifiedName(),
-                            null);
-                      }
+                  if (astNode instanceof CSimpleDeclaration decl) {
+                    if ((decl instanceof CVariableDeclaration original)
+                        && (original.getInitializer() != null)) {
+                      return new CVariableDeclaration(
+                          original.getFileLocation(),
+                          original.isGlobal(),
+                          original.getCStorageClass(),
+                          original.getType(),
+                          original.getName(),
+                          original.getOrigName(),
+                          original.getQualifiedName(),
+                          null);
                     }
                     return decl;
                   }
                   CIdExpression idExpression = (CIdExpression) astNode;
                   return idExpression.getDeclaration();
                 },
-                astNode -> astNode.getFileLocation()));
+                CAstNode::getFileLocation));
   }
 
   private static <T extends CType> void putIfUnique(
@@ -727,15 +720,15 @@ public class CProgramScope implements Scope {
 
     private final Set<CType> collectedTypes;
 
-    public TypeCollector() {
+    TypeCollector() {
       this(new HashSet<>());
     }
 
-    public TypeCollector(Set<CType> pCollectedTypes) {
+    TypeCollector(Set<CType> pCollectedTypes) {
       collectedTypes = pCollectedTypes;
     }
 
-    public Set<CType> getCollectedTypes() {
+    Set<CType> getCollectedTypes() {
       return Collections.unmodifiableSet(collectedTypes);
     }
 
@@ -849,7 +842,7 @@ public class CProgramScope implements Scope {
     if (parts.size() < 2) {
       return false;
     }
-    return parts.get(1).equals(ARTIFICIAL_RETVAL_NAME + parts.get(0) + "__");
+    return parts.get(1).equals(ARTIFICIAL_RETVAL_NAME + parts.getFirst() + "__");
   }
 
   public static String getFunctionNameOfArtificialReturnVar(CIdExpression pCIdExpression) {

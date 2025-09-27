@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2Parser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
@@ -128,16 +130,11 @@ public final class Specification {
     ImmutableListMultimap.Builder<Path, Automaton> specificationAutomata =
         ImmutableListMultimap.builder();
 
-    Scope scope;
-    switch (cfa.getLanguage()) {
-      case C:
-        scope = new CProgramScope(cfa, logger);
-        break;
-      default:
-        scope = DummyScope.getInstance();
-        break;
-    }
-
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
     // for deduplicating values returned by getAutomatonForProperty()
     Set<Path> handledAutomataForProperties = new HashSet<>();
 
@@ -159,7 +156,7 @@ public final class Specification {
               String.format(
                   "Entry function %s specified in %s is not consistent with configured entry"
                       + " function %s. Please set 'analysis.entryFunction=%s' or pass property file"
-                      + " on command line with '-spec %s'.",
+                      + " on command line with '--spec %s'.",
                   parser.getEntryFunction(),
                   specFile,
                   configuredEntryFunction,
@@ -234,9 +231,13 @@ public final class Specification {
       }
       AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
       assert acslParser.areIsomorphicCFAs(cfa)
-          : "CFAs of task program and annotated program differ, "
+          : "CFAs of task program and annotated progra m differ, "
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
+    } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(specFile)) {
+      AutomatonWitnessV2Parser yamlParser =
+          new AutomatonWitnessV2Parser(config, logger, pShutdownNotifier, cfa);
+      automata = ImmutableList.of(yamlParser.parseAutomatonFile(specFile));
     } else {
       automata =
           AutomatonParser.parseAutomatonFile(
@@ -370,11 +371,8 @@ public final class Specification {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof Specification)) {
-      return false;
-    }
-    Specification other = (Specification) obj;
-    return pathToSpecificationAutomata.equals(other.pathToSpecificationAutomata);
+    return obj instanceof Specification other
+        && pathToSpecificationAutomata.equals(other.pathToSpecificationAutomata);
   }
 
   @Override

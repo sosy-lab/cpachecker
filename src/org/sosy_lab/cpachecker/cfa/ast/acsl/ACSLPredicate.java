@@ -8,7 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public abstract class ACSLPredicate implements ACSLLogicExpression {
+public abstract sealed class ACSLPredicate implements ACSLLogicExpression
+    permits ACSLLogicalPredicate,
+        ACSLSimplePredicate,
+        ACSLTernaryCondition,
+        ACSLPredicate.FALSE,
+        PredicateAt,
+        ACSLPredicate.TRUE {
 
   private final boolean negated;
 
@@ -46,11 +52,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof ACSLPredicate) {
-      ACSLPredicate other = (ACSLPredicate) obj;
-      return negated == other.negated;
-    }
-    return false;
+    return obj instanceof ACSLPredicate other && negated == other.negated;
   }
 
   @Override
@@ -63,7 +65,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
    * is advised to call <code>simplify()</code> on both predicates before calling this method.
    *
    * @param other The predicate that shall be compared with <code>this</code>.
-   * @return true if <code>this</code> is a negation of <code>other</code>, false otherwise.
+   * @return whether <code>this</code> is a negation of <code>other</code>.
    */
   public boolean isNegationOf(ACSLPredicate other) {
     return equals(other.negate());
@@ -71,7 +73,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
 
   public abstract <R, X extends Exception> R accept(ACSLPredicateVisitor<R, X> visitor) throws X;
 
-  private static class TRUE extends ACSLPredicate {
+  static final class TRUE extends ACSLPredicate {
 
     private static final TRUE singleton = new TRUE();
 
@@ -106,6 +108,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
 
     @Override
     public boolean equals(Object obj) {
+      // Sanity check that this is a singleton.
       if (obj instanceof TRUE) {
         assert obj == singleton && this == singleton;
         return true;
@@ -129,7 +132,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
     }
   }
 
-  private static class FALSE extends ACSLPredicate {
+  static final class FALSE extends ACSLPredicate {
 
     private static final FALSE singleton = new FALSE();
 
@@ -164,6 +167,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
 
     @Override
     public boolean equals(Object obj) {
+      // Sanity check that this is a singleton.
       if (obj instanceof FALSE) {
         assert obj == singleton && this == singleton;
         return true;

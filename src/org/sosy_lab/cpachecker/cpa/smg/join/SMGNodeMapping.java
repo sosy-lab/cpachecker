@@ -27,11 +27,8 @@ public class SMGNodeMapping {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SMGNodeMapping)) {
-      return false;
-    }
-    SMGNodeMapping other = (SMGNodeMapping) obj;
-    return Objects.equals(object_map, other.object_map)
+    return obj instanceof SMGNodeMapping other
+        && Objects.equals(object_map, other.object_map)
         && Objects.equals(value_map, other.value_map);
   }
 

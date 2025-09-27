@@ -19,23 +19,20 @@ import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
-class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
+public class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   private final ImmutableList<Precision> precisions;
 
-  CompositePrecision(List<Precision> precisions) {
+  public CompositePrecision(List<Precision> precisions) {
     this.precisions = ImmutableList.copyOf(precisions);
   }
 
   @Override
-  public boolean equals(Object other) {
-    if (other == this) {
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
       return true;
-    } else if (!(other instanceof CompositePrecision)) {
-      return false;
     }
-
-    return precisions.equals(((CompositePrecision) other).precisions);
+    return pObj instanceof CompositePrecision other && precisions.equals(other.precisions);
   }
 
   @Override
@@ -61,8 +58,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
       if (pType.isAssignableFrom(precision.getClass())) {
         return pType.cast(precision);
 
-      } else if (precision instanceof WrapperPrecision) {
-        T result = ((WrapperPrecision) precision).retrieveWrappedPrecision(pType);
+      } else if (precision instanceof WrapperPrecision wrapperPrecision) {
+        T result = wrapperPrecision.retrieveWrappedPrecision(pType);
         if (result != null) {
           return result;
         }
@@ -86,9 +83,9 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
         newPrecisions.add(newPrecision);
         changed = true;
 
-      } else if (precision instanceof WrapperPrecision) {
+      } else if (precision instanceof WrapperPrecision wrapperPrecision) {
         Precision newWrappedPrecision =
-            ((WrapperPrecision) precision).replaceWrappedPrecision(newPrecision, replaceType);
+            wrapperPrecision.replaceWrappedPrecision(newPrecision, replaceType);
         if (newWrappedPrecision != null) {
           newPrecisions.add(newWrappedPrecision);
           changed = true;
@@ -110,12 +107,12 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
-    return adjustPrecisionWith(pOtherPrecision, (a, b) -> a.add(b));
+    return adjustPrecisionWith(pOtherPrecision, AdjustablePrecision::add);
   }
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
-    return adjustPrecisionWith(pOtherPrecision, (a, b) -> a.subtract(b));
+    return adjustPrecisionWith(pOtherPrecision, AdjustablePrecision::subtract);
   }
 
   private AdjustablePrecision adjustPrecisionWith(
@@ -128,8 +125,7 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
       Precision currentPrecision = get(i);
       Precision adjustedPrecision;
 
-      if (pOtherPrecision instanceof CompositePrecision) {
-        CompositePrecision precisionToAdjust = (CompositePrecision) pOtherPrecision;
+      if (pOtherPrecision instanceof CompositePrecision precisionToAdjust) {
         adjustedPrecision = precisionToAdjust.get(i);
       } else if (pOtherPrecision.getClass() == currentPrecision.getClass()) {
         adjustedPrecision = pOtherPrecision;

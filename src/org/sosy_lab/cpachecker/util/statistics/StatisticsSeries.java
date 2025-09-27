@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.util.statistics;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -65,7 +63,7 @@ public class StatisticsSeries<T> {
 
     @Override
     public int compareTo(DataObject<TT> pOther) {
-      return Longs.compare(time, pOther.time);
+      return Long.compare(time, pOther.time);
     }
 
     @Override
@@ -115,7 +113,7 @@ public class StatisticsSeries<T> {
       long currentTime = getStartTime();
       for (StatisticsSeries<Integer>.DataObject<Integer> data : getSeries()) {
         long occurences = data.time - currentTime;
-        stats.insertValue(data.data, Ints.checkedCast(occurences));
+        stats.insertValue(data.data, Math.toIntExact(occurences));
         currentTime = data.time;
       }
       return stats;

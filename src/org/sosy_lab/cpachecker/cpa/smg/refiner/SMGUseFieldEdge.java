@@ -40,11 +40,9 @@ public class SMGUseFieldEdge implements SMGUseGraphEdge<SMGUseFieldVertice> {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof SMGUseFieldEdge)) {
-      return false;
-    }
-    SMGUseFieldEdge other = (SMGUseFieldEdge) obj;
-    return Objects.equals(source, other.source) && Objects.equals(target, other.target);
+    return obj instanceof SMGUseFieldEdge other
+        && Objects.equals(source, other.source)
+        && Objects.equals(target, other.target);
   }
 
   @Override

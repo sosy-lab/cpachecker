@@ -19,7 +19,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * (see {@link JMethodDeclaration}). It is also used stand-alone for the declaration of function
  * parameters.
  */
-public interface JSimpleDeclaration extends ASimpleDeclaration, JAstNode {
+public sealed interface JSimpleDeclaration extends ASimpleDeclaration, JAstNode
+    permits JDeclaration, JParameterDeclaration {
 
   @Override
   JType getType();

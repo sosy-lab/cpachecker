@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AUnaryExpression extends AbstractExpression {
 
-  private static final long serialVersionUID = 8458828004302590886L;
+  @Serial private static final long serialVersionUID = 8458828004302590886L;
   private final AExpression operand;
   private final AUnaryOperator operator;
 
@@ -36,8 +37,8 @@ public abstract class AUnaryExpression extends AbstractExpression {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
-    return operator.getOperator() + operand.toParenthesizedASTString(pQualified);
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return operator.getOperator() + operand.toParenthesizedASTString(pAAstNodeRepresentation);
   }
 
   @Override
@@ -56,13 +57,10 @@ public abstract class AUnaryExpression extends AbstractExpression {
       return true;
     }
 
-    if (!(obj instanceof AUnaryExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AUnaryExpression other = (AUnaryExpression) obj;
-
-    return Objects.equals(other.operand, operand) && Objects.equals(other.operator, operator);
+    return obj instanceof AUnaryExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operand, operand)
+        && Objects.equals(other.operator, operator);
   }
 
   public interface AUnaryOperator {

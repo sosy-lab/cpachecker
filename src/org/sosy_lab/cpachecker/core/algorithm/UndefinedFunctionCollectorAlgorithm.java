@@ -39,8 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 
@@ -137,14 +135,12 @@ public class UndefinedFunctionCollectorAlgorithm
   }
 
   private void collectUndefinedFunctions() throws InterruptedException {
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFAEdge edge : cfa.edges()) {
       shutdownNotifier.shutdownIfNecessary();
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-          final AStatementEdge stmtEdge = (AStatementEdge) edge;
-          if (stmtEdge.getStatement() instanceof AFunctionCall) {
-            collectUndefinedFunction((AFunctionCall) stmtEdge.getStatement());
-          }
+      if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+        final AStatementEdge stmtEdge = (AStatementEdge) edge;
+        if (stmtEdge.getStatement() instanceof AFunctionCall aFunctionCall) {
+          collectUndefinedFunction(aFunctionCall);
         }
       }
     }
@@ -155,9 +151,9 @@ public class UndefinedFunctionCollectorAlgorithm
 
     if (functionDecl == null) {
       AExpression functionName = call.getFunctionCallExpression().getFunctionNameExpression();
-      if (functionName instanceof AIdExpression) {
+      if (functionName instanceof AIdExpression aIdExpression) {
         // no declaration, but regular function call (no function pointer)
-        String name = ((AIdExpression) functionName).getName();
+        String name = aIdExpression.getName();
         logger.log(Level.FINE, "Call to undeclared function", name, "found.");
         undeclaredFunctions.add(name);
       }
@@ -231,7 +227,7 @@ public class UndefinedFunctionCollectorAlgorithm
     }
   }
 
-  private String getSignature(String name, IAFunctionType type) {
+  private String getSignature(String name, AFunctionType type) {
     StringBuilder res = new StringBuilder().append(name).append("(");
     int i = 0;
     for (Type pt : type.getParameters()) {
@@ -261,8 +257,7 @@ public class UndefinedFunctionCollectorAlgorithm
       buf.append(indent + "// Pointer type\n");
       prepend.append(odmFunctionDecl);
       buf.append(indent + "return (" + rt.toASTString("") + ")" + externAllocFunction + "();\n");
-    } else if (rt instanceof CSimpleType) {
-      CSimpleType ct = (CSimpleType) rt;
+    } else if (rt instanceof CSimpleType ct) {
       Pair<String, String> pair = convertType(ct);
       String nondetFunc = NONDET_FUNCTION_PREFIX + pair.getSecond();
       prepend.append(pair.getFirst() + " " + nondetFunc + "(void);\n");
@@ -281,16 +276,16 @@ public class UndefinedFunctionCollectorAlgorithm
       prepend.append(ASSUME_FUNCTION_DECL);
       buf.append(indent + ASSUME_FUNCTION_NAME + "(tmp != 0);\n");
       buf.append(indent + "return *tmp;\n");
-    } else if (rt instanceof CElaboratedType) {
-      CType real = ((CElaboratedType) rt).getRealType();
+    } else if (rt instanceof CElaboratedType cElaboratedType) {
+      CType real = cElaboratedType.getRealType();
       if (real == null) {
         couldBeHandled = false;
       } else {
         couldBeHandled = printType(indent, prepend, buf, real);
       }
-    } else if (rt instanceof CTypedefType) {
+    } else if (rt instanceof CTypedefType tt) {
       buf.append(indent + "// Typedef type\n");
-      CTypedefType tt = (CTypedefType) rt;
+
       CType real = tt.getRealType();
       buf.append(indent + "// Real type: " + real + "\n");
       couldBeHandled = printType(indent, prepend, buf, real);
@@ -307,41 +302,27 @@ public class UndefinedFunctionCollectorAlgorithm
   // size_t, u32, uchar, uint, ulong, unsigned, ushort
   private Pair<String, String> convertType(CSimpleType ct) {
     CBasicType bt = ct.getType();
-    if (bt == CBasicType.BOOL) {
-      return Pair.of("bool", "bool");
-    } else if (bt == CBasicType.CHAR) {
-      if (ct.isUnsigned()) {
-        return Pair.of("unsigned char", "uchar");
-      } else {
-        return Pair.of("char", "char");
-      }
-    } else if (bt == CBasicType.DOUBLE) {
-      return Pair.of("double", "double");
-    } else if (bt == CBasicType.FLOAT) {
-      return Pair.of("float", "float");
-    } else if (bt == CBasicType.INT || bt == CBasicType.UNSPECIFIED) {
-      if (ct.isShort()) {
-        if (ct.isUnsigned()) {
-          return Pair.of("unsigned short", "ushort");
+    return switch (bt) {
+      case BOOL -> Pair.of("bool", "bool");
+      case CHAR ->
+          ct.hasUnsignedSpecifier() ? Pair.of("unsigned char", "uchar") : Pair.of("char", "char");
+      case DOUBLE -> Pair.of("double", "double");
+      case FLOAT -> Pair.of("float", "float");
+      case INT, UNSPECIFIED -> {
+        if (ct.hasShortSpecifier()) {
+          yield ct.hasUnsignedSpecifier()
+              ? Pair.of("unsigned short", "ushort")
+              : Pair.of("short", "short");
+        } else if (ct.hasLongSpecifier() || ct.hasLongLongSpecifier()) {
+          yield ct.hasUnsignedSpecifier()
+              ? Pair.of("unsigned long", "ulong")
+              : Pair.of("long", "long");
         } else {
-          return Pair.of("short", "short");
-        }
-      } else if (ct.isLong() || ct.isLongLong()) {
-        if (ct.isUnsigned()) {
-          return Pair.of("unsigned long", "ulong");
-        } else {
-          return Pair.of("long", "long");
-        }
-      } else {
-        if (ct.isUnsigned()) {
-          return Pair.of("unsigned int", "uint");
-        } else {
-          return Pair.of("int", "int");
+          yield ct.hasUnsignedSpecifier() ? Pair.of("unsigned int", "uint") : Pair.of("int", "int");
         }
       }
-    } else {
-      throw new RuntimeException("Unknown type " + ct);
-    }
+      default -> throw new RuntimeException("Unknown type " + ct);
+    };
   }
 
   @Override

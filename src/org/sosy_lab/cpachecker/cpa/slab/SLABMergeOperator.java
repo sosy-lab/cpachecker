@@ -13,11 +13,11 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class SLABMergeOperator implements MergeOperator {
+class SLABMergeOperator implements MergeOperator {
 
-  private SLABDomain domain;
+  private final SLABDomain domain;
 
-  public SLABMergeOperator(SLABDomain pDomain) {
+  SLABMergeOperator(SLABDomain pDomain) {
     domain = pDomain;
   }
 

@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -31,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -59,7 +59,7 @@ public class ProgramDeclarations {
   /**
    * Register a type in the program wide scope. This does not mean that every other file of the
    * program has access to this type, but it does mean that if the same type is declared in another
-   * file these types will be identical afterwards. (This happens in conjunction to the proper
+   * file these types will be identical afterward. (This happens in conjunction to the proper
    * handling of type declarations in the GlobalScope)
    */
   public void registerTypeDeclaration(CComplexTypeDeclaration declaration) {
@@ -286,12 +286,7 @@ public class ProgramDeclarations {
       handledTypes.add(origName);
       CElaboratedType newType =
           new CElaboratedType(
-              type.isConst(),
-              type.isVolatile(),
-              type.getKind(),
-              type.getOrigName(),
-              type.getOrigName(),
-              null);
+              type.getQualifiers(), type.getKind(), type.getOrigName(), type.getOrigName(), null);
       for (String name : origNamesToQualifiedNames.get(origName)) {
         if (elaboratedTypes.containsKey(name)) {
           CElaboratedType elabType = elaboratedTypes.get(name);
@@ -332,17 +327,17 @@ public class ProgramDeclarations {
 
     // special case complex type is handled here this is necessary because
     // in the equals method of CComplexTypes the members are not compared
-    if (type1 instanceof CComplexType) {
-      boolean isOuterTypeEqual = ((CComplexType) type1).equalsWithOrigName(type2);
+    if (type1 instanceof CComplexType cComplexType) {
+      boolean isOuterTypeEqual = cComplexType.equalsWithOrigName(type2);
 
       // now we need to compare the members of the CComplexTypes
       // due to the checks before we now that at this stage both types
       // have the same class
       if (isOuterTypeEqual) {
-        if (type1 instanceof CCompositeType) {
+        if (type1 instanceof CCompositeType cCompositeType) {
           if (!foundTypes.containsKey(typePair)) {
             boolean areEqual =
-                areEqualCompositeTypes((CCompositeType) type1, (CCompositeType) type2, foundTypes);
+                areEqualCompositeTypes(cCompositeType, (CCompositeType) type2, foundTypes);
             foundTypes.put(typePair, areEqual);
             return areEqual;
 
@@ -351,8 +346,8 @@ public class ProgramDeclarations {
             return foundTypes.get(typePair);
           }
 
-        } else if (type1 instanceof CEnumType) {
-          return areEqualEnumTypes((CEnumType) type1, (CEnumType) type2);
+        } else if (type1 instanceof CEnumType cEnumType) {
+          return areEqualEnumTypes(cEnumType, (CEnumType) type2);
 
           // no more checks necessary as the outer type is equal and the elaborated
           // type does not have any inner type right now
@@ -369,7 +364,7 @@ public class ProgramDeclarations {
         // file specific version this check has to be done on the original type
         // names
       } else if (type1.getClass() != type2.getClass() || type1 instanceof CElaboratedType) {
-        return ((CComplexType) type1).getOrigName().equals(((CComplexType) type2).getOrigName());
+        return cComplexType.getOrigName().equals(((CComplexType) type2).getOrigName());
 
         // the types are not equal
       } else {
@@ -378,28 +373,24 @@ public class ProgramDeclarations {
 
       // a pointer could point to a struct type which needs to be compared
       // with this equality method, thus we have this special case here
-    } else if (type1 instanceof CPointerType
-        && (((CPointerType) type1).getType() instanceof CComplexType
-            || ((CPointerType) type1).getType() instanceof CFunctionType
-            || ((CPointerType) type1).getType() instanceof CPointerType)) {
+    } else if (type1 instanceof CPointerType cPointerType
+        && (cPointerType.getType() instanceof CComplexType
+            || cPointerType.getType() instanceof CFunctionType
+            || cPointerType.getType() instanceof CPointerType)) {
 
-      return areEqualTypes(
-          ((CPointerType) type1).getType(), ((CPointerType) type1).getType(), foundTypes);
+      return areEqualTypes(cPointerType.getType(), cPointerType.getType(), foundTypes);
 
       // handle the same issues we have with pointer types here for arrays
-    } else if (type1 instanceof CArrayType
+    } else if (type1 instanceof CArrayType a1
         && (((CArrayType) type1).getType() instanceof CComplexType
             || ((CArrayType) type1).getType() instanceof CFunctionType
             || ((CArrayType) type1).getType() instanceof CPointerType)) {
 
       // first check if the lengths are matching
-      CArrayType a1 = (CArrayType) type1;
       CArrayType a2 = (CArrayType) type2;
-      if (a1.getLength() instanceof CIntegerLiteralExpression
-          && a2.getLength() instanceof CIntegerLiteralExpression) {
-        if (!((CIntegerLiteralExpression) a1.getLength())
-            .getValue()
-            .equals(((CIntegerLiteralExpression) a2.getLength()).getValue())) {
+      if (a1.getLength() instanceof CIntegerLiteralExpression a1Length
+          && a2.getLength() instanceof CIntegerLiteralExpression a2Length) {
+        if (!a1Length.getValue().equals(a2Length.getValue())) {
           return false;
         }
       } else {
@@ -408,12 +399,12 @@ public class ProgramDeclarations {
         }
       }
 
-      // length is ok, so check the if the types are ok, too
+      // length is ok, so check if the types are ok, too
       return areEqualTypes(
           ((CArrayType) type1).getType(), ((CArrayType) type2).getType(), foundTypes);
 
-    } else if (type1 instanceof CFunctionType) {
-      return areEqualFunctionTypes((CFunctionType) type1, (CFunctionType) type2, foundTypes);
+    } else if (type1 instanceof CFunctionType cFunctionType) {
+      return areEqualFunctionTypes(cFunctionType, (CFunctionType) type2, foundTypes);
 
       // no struct, union or enum we can just use the usual equals method
     } else {
@@ -469,12 +460,7 @@ public class ProgramDeclarations {
       CEnumerator member1 = members1.get(i);
       CEnumerator member2 = members2.get(i);
       areEqual = member1.getName().equals(member2.getName());
-      areEqual =
-          areEqual
-              && ((member1.hasValue()
-                      && member2.hasValue()
-                      && member1.getValue() == member2.getValue())
-                  || (!member1.hasValue() && !member2.hasValue()));
+      areEqual = areEqual && member1.getValue().equals(member2.getValue());
     }
 
     return areEqual;

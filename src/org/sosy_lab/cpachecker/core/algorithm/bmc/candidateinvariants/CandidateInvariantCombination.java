@@ -31,7 +31,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public class CandidateInvariantCombination {
 
-  private interface Combination extends CandidateInvariant {
+  private sealed interface Combination extends CandidateInvariant {
 
     Set<CandidateInvariant> getOperands();
 
@@ -41,7 +41,7 @@ public class CandidateInvariantCombination {
     Iterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates);
   }
 
-  private static class GenericCombination implements Combination {
+  private static final class GenericCombination implements Combination {
 
     private final Set<CandidateInvariant> operands;
 
@@ -116,12 +116,9 @@ public class CandidateInvariantCombination {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof GenericCombination) {
-        GenericCombination other = (GenericCombination) pOther;
-        return conjunction == other.conjunction
-            && operands.equals(((GenericCombination) pOther).operands);
-      }
-      return false;
+      return pOther instanceof GenericCombination other
+          && conjunction == other.conjunction
+          && operands.equals(((GenericCombination) pOther).operands);
     }
 
     @Override
@@ -157,7 +154,7 @@ public class CandidateInvariantCombination {
     }
   }
 
-  private static class SingleLocationCombination extends SingleLocationFormulaInvariant
+  private static final class SingleLocationCombination extends SingleLocationFormulaInvariant
       implements Combination {
 
     private final Combination delegate;
@@ -258,8 +255,8 @@ public class CandidateInvariantCombination {
     return FluentIterable.from(pOperands)
         .transformAndConcat(
             operand -> {
-              if (operand instanceof Combination) {
-                return flatten(((Combination) operand).getOperands());
+              if (operand instanceof Combination combination) {
+                return flatten(combination.getOperands());
               }
               return Collections.singleton(operand);
             });
@@ -267,9 +264,8 @@ public class CandidateInvariantCombination {
 
   public static Iterable<CandidateInvariant> getConjunctiveParts(
       CandidateInvariant pCandidateInvariant) {
-    if (pCandidateInvariant instanceof Combination
-        && ((Combination) pCandidateInvariant).isConjunction()) {
-      return ((Combination) pCandidateInvariant).getOperands();
+    if (pCandidateInvariant instanceof Combination combination && combination.isConjunction()) {
+      return combination.getOperands();
     }
     return Collections.singleton(pCandidateInvariant);
   }
@@ -282,9 +278,8 @@ public class CandidateInvariantCombination {
 
   public static Iterable<CandidateInvariant> getDisjunctiveParts(
       CandidateInvariant pCandidateInvariant) {
-    if (pCandidateInvariant instanceof Combination
-        && !((Combination) pCandidateInvariant).isConjunction()) {
-      return ((Combination) pCandidateInvariant).getOperands();
+    if (pCandidateInvariant instanceof Combination combination && !combination.isConjunction()) {
+      return combination.getOperands();
     }
     return Collections.singleton(pCandidateInvariant);
   }

@@ -29,6 +29,7 @@
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
     "is-docker": "^2.2.1",
+    "is-podman": "^1.0.1",
     "jasmine": "^3.99.0",
     "jasmine-jquery": "^2.1.1",
     "karma": "^6.3.11",

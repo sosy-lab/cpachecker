@@ -67,7 +67,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     boolean allowsStackAbstraction = pPrecision.getAbstractionOptions().allowsStackAbstraction();
 
     if (!allowsFieldAbstraction && !allowsHeapAbstraction && !allowsStackAbstraction) {
-      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
+      return Optional.of(new PrecisionAdjustmentResult(pState, pPrecision, Action.CONTINUE));
     }
 
     statistics.totalAbstraction.start();
@@ -144,6 +144,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     statistics.totalAbstraction.stop();
     statistics.abstractions.inc();
-    return Optional.of(PrecisionAdjustmentResult.create(result, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(result, pPrecision, Action.CONTINUE));
   }
 }

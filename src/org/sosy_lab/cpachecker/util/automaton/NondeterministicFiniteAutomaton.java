@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public final class NondeterministicFiniteAutomaton<T> {
@@ -32,7 +33,7 @@ public final class NondeterministicFiniteAutomaton<T> {
 
       private final NondeterministicFiniteAutomaton<?> mAutomaton;
 
-      public StateIterable(NondeterministicFiniteAutomaton<?> pAutomaton) {
+      StateIterable(NondeterministicFiniteAutomaton<?> pAutomaton) {
         mAutomaton = pAutomaton;
       }
 
@@ -47,7 +48,7 @@ public final class NondeterministicFiniteAutomaton<T> {
       private final int mSize;
       private int mCounter;
 
-      public StateSetIterator(int pSize) {
+      StateSetIterator(int pSize) {
         mSize = pSize;
         mCounter = 0;
       }
@@ -81,7 +82,7 @@ public final class NondeterministicFiniteAutomaton<T> {
       mPool = new ArrayList<>();
     }
 
-    public State get(NondeterministicFiniteAutomaton<?> pAutomaton) {
+    State get(NondeterministicFiniteAutomaton<?> pAutomaton) {
       State lState;
 
       if (pAutomaton.mStatesCounter == mPool.size()) {
@@ -133,27 +134,10 @@ public final class NondeterministicFiniteAutomaton<T> {
       if (this == pOther) {
         return true;
       }
-
-      if (pOther == null) {
-        return false;
-      }
-
-      if (!(pOther instanceof NondeterministicFiniteAutomaton.Edge)) {
-        return false;
-      }
-
-      @SuppressWarnings("unchecked")
-      Edge lEdge = (Edge) pOther;
-
-      if (lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget)) {
-        if (mLabel == null) {
-          return lEdge.mLabel == null;
-        } else {
-          return mLabel.equals(lEdge.mLabel);
-        }
-      }
-
-      return false;
+      return pOther instanceof NondeterministicFiniteAutomaton<?>.Edge lEdge
+          && lEdge.mSource.equals(mSource)
+          && lEdge.mTarget.equals(mTarget)
+          && Objects.equals(mLabel, lEdge.mLabel);
     }
   }
 

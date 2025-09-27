@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -21,10 +23,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/** Visitor that get's the interval from an expression, */
+/** Visitor that gets the interval from an expression, */
 class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Interval, UnrecognizedCodeException> {
 
@@ -62,7 +63,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   private static Interval getLogicInterval(
       BinaryOperator operator, Interval interval1, Interval interval2) {
     switch (operator) {
-      case EQUALS:
+      case EQUALS -> {
         if (!interval1.intersects(interval2)) {
           return Interval.ZERO;
         } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
@@ -71,8 +72,8 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
         } else {
           return Interval.BOOLEAN_INTERVAL;
         }
-
-      case NOT_EQUALS:
+      }
+      case NOT_EQUALS -> {
         if (!interval1.intersects(interval2)) {
           return Interval.ONE;
         } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
@@ -81,8 +82,8 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
         } else {
           return Interval.BOOLEAN_INTERVAL;
         }
-
-      case GREATER_THAN:
+      }
+      case GREATER_THAN -> {
         if (interval1.isGreaterThan(interval2)) {
           return Interval.ONE;
         } else if (interval2.isGreaterOrEqualThan(interval1)) {
@@ -90,47 +91,38 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
         } else {
           return Interval.BOOLEAN_INTERVAL;
         }
-
-      case GREATER_EQUAL: // a>=b == a+1>b, works only for integers
+      }
+      case GREATER_EQUAL -> {
+        // a>=b == a+1>b, works only for integers
         return getLogicInterval(
             BinaryOperator.GREATER_THAN, interval1.plus(Interval.ONE), interval2);
-
-      case LESS_THAN: // a<b == b>a
+      }
+      case LESS_THAN -> {
+        // a<b == b>a
         return getLogicInterval(BinaryOperator.GREATER_THAN, interval2, interval1);
-
-      case LESS_EQUAL: // a<=b == b+1>a, works only for integers
+      }
+      case LESS_EQUAL -> {
+        // a<=b == b+1>a, works only for integers
         return getLogicInterval(
             BinaryOperator.GREATER_THAN, interval2.plus(Interval.ONE), interval1);
-
-      default:
-        throw new AssertionError("unknown binary operator: " + operator);
+      }
+      default -> throw new AssertionError("unknown binary operator: " + operator);
     }
   }
 
   private static Interval getArithmeticInterval(
       BinaryOperator operator, Interval interval1, Interval interval2) {
-    switch (operator) {
-      case PLUS:
-        return interval1.plus(interval2);
-      case MINUS:
-        return interval1.minus(interval2);
-      case MULTIPLY:
-        return interval1.times(interval2);
-      case DIVIDE:
-        return interval1.divide(interval2);
-      case SHIFT_LEFT:
-        return interval1.shiftLeft(interval2);
-      case SHIFT_RIGHT:
-        return interval1.shiftRight(interval2);
-      case MODULO:
-        return interval1.modulo(interval2);
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        return Interval.UNBOUND;
-      default:
-        throw new AssertionError("unknown binary operator: " + operator);
-    }
+    return switch (operator) {
+      case PLUS -> interval1.plus(interval2);
+      case MINUS -> interval1.minus(interval2);
+      case MULTIPLY -> interval1.times(interval2);
+      case DIVIDE -> interval1.divide(interval2);
+      case SHIFT_LEFT -> interval1.shiftLeft(interval2);
+      case SHIFT_RIGHT -> interval1.shiftRight(interval2);
+      case MODULO -> interval1.modulo(interval2);
+      case BINARY_AND, BINARY_OR, BINARY_XOR -> Interval.UNBOUND;
+      default -> throw new AssertionError("unknown binary operator: " + operator);
+    };
   }
 
   @Override
@@ -155,13 +147,15 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
   @Override
   public Interval visit(CIntegerLiteralExpression integerLiteral) {
-    return new Interval(integerLiteral.asLong());
+    BigInteger value = integerLiteral.getValue();
+    return getIntervalFor(value);
   }
 
   @Override
   public Interval visit(CIdExpression identifier) {
-    if (identifier.getDeclaration() instanceof CEnumerator) {
-      return new Interval(((CEnumerator) identifier.getDeclaration()).getValue());
+    if (identifier.getDeclaration() instanceof CEnumerator cEnumerator) {
+      BigInteger enumConstant = cEnumerator.getValue();
+      return getIntervalFor(enumConstant);
     }
 
     final String variableName = identifier.getDeclaration().getQualifiedName();
@@ -175,16 +169,21 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   @Override
   public Interval visit(CUnaryExpression unaryExpression) throws UnrecognizedCodeException {
     Interval interval = unaryExpression.getOperand().accept(this);
-    switch (unaryExpression.getOperator()) {
-      case MINUS:
-        return interval.negate();
+    return switch (unaryExpression.getOperator()) {
+      case MINUS -> interval.negate();
+      case AMPER, TILDE -> Interval.UNBOUND;
+      default ->
+          throw new UnrecognizedCodeException("unknown unary operator", cfaEdge, unaryExpression);
+    };
+  }
 
-      case AMPER:
-      case TILDE:
-        return Interval.UNBOUND; // valid expression, but it's a pointer value
-
-      default:
-        throw new UnrecognizedCodeException("unknown unary operator", cfaEdge, unaryExpression);
+  private Interval getIntervalFor(BigInteger value) {
+    // TODO handle values that are bigger than MAX_LONG.
+    try {
+      long longValue = value.longValueExact();
+      return new Interval(longValue);
+    } catch (ArithmeticException e) {
+      return Interval.UNBOUND;
     }
   }
 }

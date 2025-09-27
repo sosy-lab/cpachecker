@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -98,10 +97,8 @@ public class NonRecursiveEnvironment
 
   private boolean isConstantAndContainsAllPossibleValues(
       NumeralFormula<CompoundInterval> pFormula) {
-    if (pFormula instanceof Constant) {
-      return ((Constant<CompoundInterval>) pFormula).getValue().containsAllPossibleValues();
-    }
-    return false;
+    return pFormula instanceof Constant
+        && ((Constant<CompoundInterval>) pFormula).getValue().containsAllPossibleValues();
   }
 
   private PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>>
@@ -213,7 +210,7 @@ public class NonRecursiveEnvironment
 
   @Override
   public Collection<NumeralFormula<CompoundInterval>> values() {
-    return Collections.unmodifiableCollection(inner.values());
+    return inner.values();
   }
 
   @Override
@@ -257,10 +254,10 @@ public class NonRecursiveEnvironment
   public static NonRecursiveEnvironment copyOf(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       Map<MemoryLocation, NumeralFormula<CompoundInterval>> pInner) {
-    if (pInner instanceof NonRecursiveEnvironment
-        && ((NonRecursiveEnvironment) pInner)
-            .compoundIntervalManagerFactory.equals(pCompoundIntervalManagerFactory)) {
-      return (NonRecursiveEnvironment) pInner;
+    if (pInner instanceof NonRecursiveEnvironment nonRecursiveEnvironment
+        && nonRecursiveEnvironment.compoundIntervalManagerFactory.equals(
+            pCompoundIntervalManagerFactory)) {
+      return nonRecursiveEnvironment;
     }
     return new NonRecursiveEnvironment(pCompoundIntervalManagerFactory, pInner);
   }
@@ -363,10 +360,7 @@ public class NonRecursiveEnvironment
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof Map) {
-        return current.equals(pOther);
-      }
-      return false;
+      return pOther instanceof Map && current.equals(pOther);
     }
 
     @Override
@@ -377,10 +371,10 @@ public class NonRecursiveEnvironment
     public static Builder of(
         CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
         Map<MemoryLocation, NumeralFormula<CompoundInterval>> pTmpEnvironment) {
-      if (pTmpEnvironment instanceof Builder
-          && ((Builder) pTmpEnvironment)
-              .current.compoundIntervalManagerFactory.equals(pCompoundIntervalManagerFactory)) {
-        return (Builder) pTmpEnvironment;
+      if (pTmpEnvironment instanceof Builder builder
+          && builder.current.compoundIntervalManagerFactory.equals(
+              pCompoundIntervalManagerFactory)) {
+        return builder;
       }
       return new Builder(pCompoundIntervalManagerFactory, pTmpEnvironment);
     }

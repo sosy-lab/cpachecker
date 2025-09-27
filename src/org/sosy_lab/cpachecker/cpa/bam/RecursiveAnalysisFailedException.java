@@ -8,20 +8,20 @@
 
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RecursiveAnalysisFailedException extends CPATransferException {
 
-  private static final long serialVersionUID = 3822584071233172171L;
+  @Serial private static final long serialVersionUID = 3822584071233172171L;
 
   private final int depth;
 
   public RecursiveAnalysisFailedException(CPAException e) {
     super(createMessage(e));
 
-    if (e instanceof RecursiveAnalysisFailedException) {
-      RecursiveAnalysisFailedException recursiveException = (RecursiveAnalysisFailedException) e;
+    if (e instanceof RecursiveAnalysisFailedException recursiveException) {
       initCause(recursiveException.getCause());
       depth = recursiveException.depth + 1;
     } else {
@@ -31,8 +31,7 @@ class RecursiveAnalysisFailedException extends CPATransferException {
   }
 
   private static String createMessage(CPAException e) {
-    if (e instanceof RecursiveAnalysisFailedException) {
-      RecursiveAnalysisFailedException r = (RecursiveAnalysisFailedException) e;
+    if (e instanceof RecursiveAnalysisFailedException r) {
       return "Error in recursive analysis at depth " + r.depth + ": " + r.getCause().getMessage();
     } else {
       return "Error in recursive analysis at depth 1: " + e.getMessage();

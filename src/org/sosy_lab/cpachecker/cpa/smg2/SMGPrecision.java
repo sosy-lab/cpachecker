@@ -139,19 +139,16 @@ public class SMGPrecision extends RefinablePrecision {
 
   @Override
   public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
-    if (pOtherPrecision.getClass().equals(getClass())
+    return pOtherPrecision.getClass().equals(getClass())
         && super.getBaseline().equals(((SMGPrecision) pOtherPrecision).getBaseline())
-        && rawPrecision.equals(((SMGPrecision) pOtherPrecision).rawPrecision)) {
-      return true;
-    }
-    return false;
+        && rawPrecision.equals(((SMGPrecision) pOtherPrecision).rawPrecision);
   }
 
   @Override
-  public boolean equals(Object other) {
-    return super.equals(other)
-        && other instanceof SMGPrecision
-        && rawPrecision.equals(((SMGPrecision) other).rawPrecision);
+  public boolean equals(Object pObj) {
+    return super.equals(pObj)
+        && pObj instanceof SMGPrecision other
+        && rawPrecision.equals(other.rawPrecision);
   }
 
   @Override

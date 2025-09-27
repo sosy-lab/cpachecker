@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -29,13 +30,14 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
  * <p>Not all node arragements will represent legal Java constructs. In particular, it is nonsense
  * if the functionname does not contain a {@link JIdExpression}.
  */
-public class JClassInstanceCreation extends JMethodInvocationExpression implements JRightHandSide {
+public sealed class JClassInstanceCreation extends JMethodInvocationExpression
+    permits JSuperConstructorInvocation {
 
   // TODO refactor to be either abstract or final
 
   // TODO Type Variables , AnonymousClassDeclaration
 
-  private static final long serialVersionUID = -8480398251628288918L;
+  @Serial private static final long serialVersionUID = -8480398251628288918L;
 
   public JClassInstanceCreation(
       FileLocation pFileLocation,
@@ -64,9 +66,10 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "new "
-        + getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified));
+        + getExpressionType()
+            .toASTString(getFunctionNameExpression().toASTString(pAAstNodeRepresentation));
   }
 
   @Override
@@ -82,10 +85,6 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
       return true;
     }
 
-    if (!(obj instanceof JClassInstanceCreation)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JClassInstanceCreation && super.equals(obj);
   }
 }

@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.Node;
@@ -165,7 +164,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       ShutdownManager conversionShutdownManager =
           ShutdownManager.createWithParent(shutdownNotifier);
       conversionShutdownNotifier = conversionShutdownManager.getNotifier();
-      ResourceLimit limit = WalltimeLimit.fromNowOn(adaptionLimit);
+      ResourceLimit limit = WalltimeLimit.create(adaptionLimit);
       limitChecker = new ResourceLimitChecker(conversionShutdownManager, ImmutableList.of(limit));
       limitChecker.start();
     } else {
@@ -227,7 +226,6 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                     new ControlDependenceVisitor(inspectedVars, toProcess, result));
             MemoryLocation var;
             Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
-            boolean allUsesTracked, oneUseTracked;
             ImmutableSet<MemoryLocation> defs;
             while (!toProcess.isEmpty()) {
               conversionShutdownNotifier.shutdownIfNecessary();
@@ -256,8 +254,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                 for (CSystemDependenceGraph.Node relVarUse : relevantGraphNodes) {
                   defs = depGraph.getDefs(relVarUse);
                   if (!defs.isEmpty()) {
-                    allUsesTracked = true;
-                    oneUseTracked = false;
+                    boolean allUsesTracked = true;
+                    boolean oneUseTracked = false;
 
                     for (MemoryLocation varDep : depGraph.getUses(relVarUse)) {
                       if (inspectedVars.contains(varDep)) {
@@ -418,9 +416,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
         logger.logException(Level.SEVERE, e, "Failed to determine relevant edges");
       }
     }
-    return FluentIterable.from(cfa.getAllNodes())
-        .transformAndConcat(node -> CFAUtils.leavingEdges(node))
-        .toSet();
+    return ImmutableSet.copyOf(cfa.edges());
   }
 
   private Collection<Node> getRelevantGraphUsing(
@@ -484,7 +480,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
     private final AssumptionVisitor assumeVisitor;
 
-    public ControlDependenceVisitor(
+    ControlDependenceVisitor(
         final Collection<MemoryLocation> pInspectedVars,
         final Deque<MemoryLocation> pToProcess,
         final Multimap<CFANode, MemoryLocation> pResult) {
@@ -501,8 +497,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
         final EdgeType pType, final Node pPredecessor, final Node pSuccessor) {
       if (pType == EdgeType.CONTROL_DEPENDENCY) {
         CFAEdge edge = pSuccessor.getStatement().orElse(null);
-        if (edge instanceof CAssumeEdge) {
-          ((CAssumeEdge) edge).getExpression().accept(assumeVisitor);
+        if (edge instanceof CAssumeEdge cAssumeEdge) {
+          cAssumeEdge.getExpression().accept(assumeVisitor);
         }
         return VisitResult.CONTINUE;
       }
@@ -516,7 +512,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     private final Deque<MemoryLocation> toProcess;
     private final Multimap<CFANode, MemoryLocation> result;
 
-    public AssumptionVisitor(
+    AssumptionVisitor(
         final Collection<MemoryLocation> pInspectedVars,
         final Deque<MemoryLocation> pToProcess,
         final Multimap<CFANode, MemoryLocation> pResult) {
@@ -568,10 +564,10 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     }
 
     private Optional<MemoryLocation> getVariable(final CExpression exp) {
-      if (exp instanceof CIdExpression) {
+      if (exp instanceof CIdExpression cIdExpression) {
         return Optional.of(
             MemoryLocation.parseExtendedQualifiedName(
-                ((CIdExpression) exp).getDeclaration().getQualifiedName()));
+                cIdExpression.getDeclaration().getQualifiedName()));
       }
       return Optional.empty();
     }

@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -22,38 +23,34 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class CCompositeType implements CComplexType {
 
-  private static final long serialVersionUID = -839957929135012583L;
+  @Serial private static final long serialVersionUID = -839957929135012583L;
   private final CComplexType.ComplexTypeKind kind;
   private @Nullable List<CCompositeTypeMemberDeclaration> members = null;
   private final String name;
   private final String origName;
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
 
   public CCompositeType(
-      final boolean pConst,
-      final boolean pVolatile,
+      final CTypeQualifiers pQualifiers,
       final CComplexType.ComplexTypeKind pKind,
       final String pName,
       final String pOrigName) {
 
     checkNotNull(pKind);
     checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
-    isConst = pConst;
-    isVolatile = pVolatile;
+    qualifiers = checkNotNull(pQualifiers);
     kind = pKind;
     name = pName.intern();
     origName = pOrigName.intern();
   }
 
   public CCompositeType(
-      final boolean pConst,
-      final boolean pVolatile,
+      final CTypeQualifiers pQualifiers,
       final CComplexType.ComplexTypeKind pKind,
       final List<CCompositeTypeMemberDeclaration> pMembers,
       final String pName,
       final String pOrigName) {
-    this(pConst, pVolatile, pKind, pName, pOrigName);
+    this(pQualifiers, pKind, pName, pOrigName);
     checkMembers(pMembers);
     members = ImmutableList.copyOf(pMembers);
   }
@@ -66,7 +63,7 @@ public final class CCompositeType implements CComplexType {
         checkArgument(
             !it.hasNext(), "incomplete member %s in non-last position of %s", member, this);
         checkArgument(
-            member.getType().getCanonicalType() instanceof CArrayType,
+            member.isFlexibleArrayMember(),
             "incomplete non-array member %s in last position of %s",
             member,
             this);
@@ -118,7 +115,7 @@ public final class CCompositeType implements CComplexType {
       CCompositeTypeMemberDeclaration member = it.next();
       if (!member.getType().hasKnownConstantSize()) {
         // special case: if this is a "flexible array member" as last member, then size is known
-        if (it.hasNext() || !isFlexibleArray(member.getType())) {
+        if (it.hasNext() || !member.isFlexibleArrayMember()) {
           return false;
         }
       }
@@ -127,22 +124,10 @@ public final class CCompositeType implements CComplexType {
     return true;
   }
 
-  private static boolean isFlexibleArray(CType type) {
-    type = type.getCanonicalType();
-    return type instanceof CArrayType && ((CArrayType) type).getLength() == null;
-  }
-
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
-
-    if (isConst()) {
-      result.append("const ");
-    }
-    if (isVolatile()) {
-      result.append("volatile ");
-    }
-
+    result.append(qualifiers.toASTStringPrefix());
     result.append(kind.toASTString());
     result.append(' ');
     result.append(name);
@@ -154,14 +139,7 @@ public final class CCompositeType implements CComplexType {
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
+    lASTString.append(qualifiers.toASTStringPrefix());
     lASTString.append(kind.toASTString());
     lASTString.append(' ');
     lASTString.append(name);
@@ -188,7 +166,7 @@ public final class CCompositeType implements CComplexType {
    */
   public static final class CCompositeTypeMemberDeclaration implements Serializable {
 
-    private static final long serialVersionUID = 8647666228796784933L;
+    @Serial private static final long serialVersionUID = 8647666228796784933L;
     private final CType type;
     private final String name;
 
@@ -212,10 +190,7 @@ public final class CCompositeType implements CComplexType {
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
       CCompositeTypeMemberDeclaration other = (CCompositeTypeMemberDeclaration) obj;
@@ -231,6 +206,15 @@ public final class CCompositeType implements CComplexType {
       return name;
     }
 
+    /**
+     * Whether this is a flexible array member as defined by § 6.7.2.1 (18). Such members are only
+     * allowed as last members of a struct.
+     */
+    public boolean isFlexibleArrayMember() {
+      return type.getCanonicalType() instanceof CArrayType arrayType
+          && arrayType.getLength() == null;
+    }
+
     public String toASTString() {
       return getType().toASTString(Strings.nullToEmpty(getName())) + ";";
     }
@@ -242,13 +226,8 @@ public final class CCompositeType implements CComplexType {
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   @Override
@@ -258,13 +237,17 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public int hashCode() {
-    return Objects.hash(isConst, isVolatile, kind, name);
+    return Objects.hash(qualifiers, kind, name);
   }
 
   /**
    * Be careful, this method compares the CType as it is to the given object, typedefs won't be
    * resolved. If you want to compare the type without having typedefs in it use
    * #getCanonicalType().equals()
+   *
+   * <p>Note that this ignores the members of the struct/union. This should usually be fine because
+   * we make type names unique by renaming while parsing the program. (This differs from {@link
+   * CEnumType#equals(Object)} currently, cf. #1376.)
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -272,14 +255,8 @@ public final class CCompositeType implements CComplexType {
       return true;
     }
 
-    if (!(obj instanceof CCompositeType)) {
-      return false;
-    }
-
-    CCompositeType other = (CCompositeType) obj;
-
-    return isConst == other.isConst
-        && isVolatile == other.isVolatile
+    return obj instanceof CCompositeType other
+        && qualifiers.equals(other.qualifiers)
         && kind == other.kind
         && Objects.equals(name, other.name);
   }
@@ -290,34 +267,45 @@ public final class CCompositeType implements CComplexType {
       return true;
     }
 
-    if (!(obj instanceof CCompositeType)) {
-      return false;
-    }
-
-    CCompositeType other = (CCompositeType) obj;
-
-    return isConst == other.isConst
-        && isVolatile == other.isVolatile
+    return obj instanceof CCompositeType other
+        && qualifiers.equals(other.qualifiers)
         && kind == other.kind
         && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()));
   }
 
   @Override
   public CCompositeType getCanonicalType() {
-    return getCanonicalType(false, false);
+    return this;
   }
 
   @Override
-  public CCompositeType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
+  public CCompositeType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    // Here we keep the same set of members, including with their non-canonicalized types.
+    // We need a canonical representation of types mostly for easier type comparisons,
+    // but composite types should be declared exactly once anyway, so their CCompositeType instance
+    // should already be canonical in the sense that if we refer to the same type we already have
+    // an equal instance (modulo qualifiers).
+    CTypeQualifiers newQualifiers = CTypeQualifiers.union(qualifiers, pQualifiersToAdd);
+    if (qualifiers.equals(newQualifiers)) {
       return this;
     }
-    CCompositeType result =
-        new CCompositeType(
-            isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName);
+    CCompositeType result = new CCompositeType(newQualifiers, kind, name, origName);
     if (members != null) {
       result.setMembers(members);
     }
     return result;
+  }
+
+  @Override
+  public CCompositeType withoutQualifiers() {
+    return withQualifiersSetTo(CTypeQualifiers.NONE);
+  }
+
+  @Override
+  public CCompositeType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
+      return this;
+    }
+    return new CCompositeType(pNewQualifiers, getKind(), getMembers(), getName(), getOrigName());
   }
 }

@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class RHSCSizeOfVisitor extends CSizeOfVisitor {
 
@@ -31,7 +32,8 @@ class RHSCSizeOfVisitor extends CSizeOfVisitor {
   }
 
   @Override
-  protected BigInteger handleUnkownArrayLengthValue(CArrayType pArrayType) {
+  protected BigInteger handleUnkownArrayLengthValue(CArrayType pArrayType)
+      throws UnrecognizedCodeException {
     if (kind == SMGTransferRelationKind.REFINEMENT) {
       return BigInteger.ZERO;
     } else {

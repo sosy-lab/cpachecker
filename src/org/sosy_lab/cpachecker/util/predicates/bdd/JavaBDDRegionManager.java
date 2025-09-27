@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.base.Ascii;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.ImmutableIntArray;
@@ -31,6 +32,7 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
+import net.sf.javabdd.BDDFactory.ReorderMethod;
 import net.sf.javabdd.BDDPairing;
 import net.sf.javabdd.JFactory;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -42,7 +44,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -137,7 +138,7 @@ class JavaBDDRegionManager implements RegionManager {
     if (cacheSize == 0) {
       cacheSize = (int) (initTableSize * cacheRatio);
     }
-    factory = BDDFactory.init(bddPackage.toLowerCase(), initTableSize, cacheSize);
+    factory = BDDFactory.init(Ascii.toLowerCase(bddPackage), initTableSize, cacheSize);
 
     // register callbacks for logging
     try {
@@ -184,14 +185,9 @@ class JavaBDDRegionManager implements RegionManager {
   private void gcCallback(Integer pre, BDDFactory.GCStats stats) {
     if (logger.wouldBeLogged(LOG_LEVEL)) {
       switch (pre) {
-        case 1:
-          logger.log(LOG_LEVEL, "Starting BDD Garbage Collection");
-          break;
-        case 0:
-          logger.log(LOG_LEVEL, "Finished BDD", stats);
-          break;
-        default:
-          logger.log(LOG_LEVEL, stats);
+        case 1 -> logger.log(LOG_LEVEL, "Starting BDD Garbage Collection");
+        case 0 -> logger.log(LOG_LEVEL, "Finished BDD", stats);
+        default -> logger.log(LOG_LEVEL, stats);
       }
     }
   }
@@ -205,14 +201,9 @@ class JavaBDDRegionManager implements RegionManager {
   private void reorderCallback(Integer pre, BDDFactory.ReorderStats stats) {
     if (logger.wouldBeLogged(LOG_LEVEL)) {
       switch (pre) {
-        case 1:
-          logger.log(LOG_LEVEL, "Starting BDD Reordering");
-          break;
-        case 0:
-          logger.log(LOG_LEVEL, "Finished BDD Reordering:", stats);
-          break;
-        default:
-          logger.log(LOG_LEVEL, stats);
+        case 1 -> logger.log(LOG_LEVEL, "Starting BDD Reordering");
+        case 0 -> logger.log(LOG_LEVEL, "Finished BDD Reordering:", stats);
+        default -> logger.log(LOG_LEVEL, stats);
       }
     }
   }
@@ -256,8 +247,8 @@ class JavaBDDRegionManager implements RegionManager {
           Field tableField = cache.getClass().getDeclaredField("table");
           tableField.setAccessible(true);
           Object table = tableField.get(cache);
-          if (table instanceof Object[]) {
-            return ((Object[]) table).length;
+          if (table instanceof Object[] array) {
+            return array.length;
           }
         }
       } catch (ReflectiveOperationException | SecurityException e) {
@@ -402,7 +393,7 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+  public IfThenElseParts getIfThenElse(Region pF) {
     cleanupReferences();
 
     BDD f = unwrap(pF);
@@ -411,7 +402,7 @@ class JavaBDDRegionManager implements RegionManager {
     Region fThen = wrap(f.high());
     Region fElse = wrap(f.low());
 
-    return Triple.of(predicate, fThen, fElse);
+    return new IfThenElseParts(predicate, fThen, fElse);
   }
 
   @Override
@@ -477,31 +468,17 @@ class JavaBDDRegionManager implements RegionManager {
 
   @Override
   public void reorder(VariableOrderingStrategy strategy) {
-    switch (strategy) {
-      case RANDOM:
-        factory.reorder(BDDFactory.REORDER_RANDOM);
-        break;
-      case SIFT:
-        factory.reorder(BDDFactory.REORDER_SIFT);
-        break;
-      case SIFTITE:
-        factory.reorder(BDDFactory.REORDER_SIFTITE);
-        break;
-      case WIN2:
-        factory.reorder(BDDFactory.REORDER_WIN2);
-        break;
-      case WIN2ITE:
-        factory.reorder(BDDFactory.REORDER_WIN2ITE);
-        break;
-      case WIN3:
-        factory.reorder(BDDFactory.REORDER_WIN3);
-        break;
-      case WIN3ITE:
-        factory.reorder(BDDFactory.REORDER_WIN3ITE);
-        break;
-      default:
-        throw new UnsupportedOperationException("Reorder strategy " + strategy + " not supported");
-    }
+    ReorderMethod reorderMethod =
+        switch (strategy) {
+          case RANDOM -> BDDFactory.REORDER_RANDOM;
+          case SIFT -> BDDFactory.REORDER_SIFT;
+          case SIFTITE -> BDDFactory.REORDER_SIFTITE;
+          case WIN2 -> BDDFactory.REORDER_WIN2;
+          case WIN2ITE -> BDDFactory.REORDER_WIN2ITE;
+          case WIN3 -> BDDFactory.REORDER_WIN3;
+          case WIN3ITE -> BDDFactory.REORDER_WIN3ITE;
+        };
+    factory.reorder(reorderMethod);
   }
 
   @Override
@@ -693,7 +670,7 @@ class JavaBDDRegionManager implements RegionManager {
     private BDD visitMulti(BDDFactory.BDDOp operator, List<BooleanFormula> pOperands) {
       checkArgument(pOperands.size() >= 2);
 
-      BDD result = convert(pOperands.get(0));
+      BDD result = convert(pOperands.getFirst());
       for (int i = 1; i < pOperands.size(); i++) {
         // optimization: applyWith() destroys arg0 and arg1,
         // but this is ok, because we would free them otherwise anyway

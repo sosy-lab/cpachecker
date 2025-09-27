@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -187,7 +188,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     terminationInformation = terminationCpa.getTerminationInformation();
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
-    for (CFANode function : cfa.getAllFunctionHeads()) {
+    for (CFANode function : cfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
     }
     localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
@@ -393,8 +394,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         return Result.UNKNOWN;
       } else {
         for (CFAEdge edge : pLoop.getOutgoingEdges()) {
-          if (edge instanceof CAssumeEdge
-              && possiblyNotEqualsNullPointer(((CAssumeEdge) edge).getExpression())) {
+          if (edge instanceof CAssumeEdge cAssumeEdge
+              && possiblyNotEqualsNullPointer(cAssumeEdge.getExpression())) {
             return Result.UNKNOWN;
           }
         }
@@ -426,8 +427,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean containsBinaryOperation(CRightHandSide expression) {
-    if (expression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExp = (CBinaryExpression) expression;
+    if (expression instanceof CBinaryExpression binaryExp) {
       BinaryOperator operator = binaryExp.getOperator();
 
       if (isBitwiseBinaryOperation(operator)
@@ -438,8 +438,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       return containsBinaryOperation(binaryExp.getOperand1())
           || containsBinaryOperation(binaryExp.getOperand2());
     }
-    if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExp = (CUnaryExpression) expression;
+    if (expression instanceof CUnaryExpression unaryExp) {
       UnaryOperator operator = unaryExp.getOperator();
 
       if (operator.equals(UnaryOperator.TILDE)) {
@@ -451,14 +450,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean isBitwiseBinaryOperation(BinaryOperator pOperator) {
-    switch (pOperator) {
-      case BINARY_AND:
-      case BINARY_XOR:
-      case BINARY_OR:
-        return true;
-      default:
-        return false;
-    }
+    return switch (pOperator) {
+      case BINARY_AND, BINARY_XOR, BINARY_OR -> true;
+      default -> false;
+    };
   }
 
   /**
@@ -481,21 +476,18 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean containsEqualFactors(CRightHandSide pExpression, Set<CIdExpression> pFactors) {
-    if (pExpression instanceof CIdExpression) {
-      if (!pFactors.add((CIdExpression) pExpression)) {
+    if (pExpression instanceof CIdExpression cIdExpression) {
+      if (!pFactors.add(cIdExpression)) {
         // The expression was not added to the set because there is already one that is equal
         return true;
       }
     }
 
     boolean equalFactorsFound = false;
-    if (pExpression instanceof CBinaryExpression) {
-
-      CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
-      if (binaryExpression.getOperator() == BinaryOperator.MULTIPLY) {
-        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand1(), pFactors);
-        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand2(), pFactors);
-      }
+    if ((pExpression instanceof CBinaryExpression binaryExpression)
+        && (binaryExpression.getOperator() == BinaryOperator.MULTIPLY)) {
+      equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand1(), pFactors);
+      equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand2(), pFactors);
     }
 
     return equalFactorsFound;
@@ -516,12 +508,11 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean possiblyNotEqualsNullPointer(final CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      CBinaryExpression binExpr = (CBinaryExpression) expr;
+    if (expr instanceof CBinaryExpression binExpr) {
       if (binExpr.getOperator() == BinaryOperator.NOT_EQUALS
-          && binExpr.getOperand2() instanceof CCastExpression
+          && binExpr.getOperand2() instanceof CCastExpression cCastExpression
           && binExpr.getOperand2().getExpressionType() instanceof CPointerType
-          && ((CCastExpression) binExpr.getOperand2()).getOperand() instanceof CLiteralExpression) {
+          && cCastExpression.getOperand() instanceof CLiteralExpression) {
         return true;
       }
     }
@@ -555,7 +546,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     private final FormulaManagerView fmgr;
     private final BooleanFormula invariant;
 
-    public TerminationInvariantSupplierState(
+    TerminationInvariantSupplierState(
         CFANode pLocation, BooleanFormula pInvariant, FormulaManagerView pFmgr) {
       location = checkNotNull(pLocation);
       invariant = checkNotNull(pInvariant);
@@ -565,6 +556,37 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     @Override
     public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
       return pManager.translateFrom(invariant, fmgr);
+    }
+
+    @Override
+    public BooleanFormula getScopedFormulaApproximation(
+        FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
+      try {
+        return pManager.renameFreeVariablesAndUFs(
+            pManager.translateFrom(
+                fmgr.filterLiterals(
+                    invariant,
+                    literal -> {
+                      for (String name : fmgr.extractVariableNames(literal)) {
+                        if (name.contains("::")
+                            && !name.startsWith(pFunctionScope.getFunctionName())) {
+                          return false;
+                        }
+                      }
+                      return true;
+                    }),
+                fmgr),
+            name -> {
+              int separatorIndex = name.indexOf("::");
+              if (separatorIndex >= 0) {
+                return name.substring(separatorIndex + 2);
+              } else {
+                return name;
+              }
+            });
+      } catch (InterruptedException e) {
+        return pManager.getBooleanFormulaManager().makeTrue();
+      }
     }
 
     @Override
@@ -601,7 +623,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private void removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
     Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
-    Preconditions.checkArgument(!cfa.getAllNodes().contains(extractLocation(pTargetState)));
+    Preconditions.checkArgument(!cfa.nodes().contains(extractLocation(pTargetState)));
     ARGState targetState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
     Preconditions.checkArgument(targetState.getCounterexampleInformation().isPresent());
     CounterexampleInfo counterexample = targetState.getCounterexampleInformation().orElseThrow();
@@ -653,7 +675,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         CFANode location = outgoingEdge.getPredecessor();
         CFANode nextLocation = outgoingEdge.getSuccessor();
 
-        if (cfa.getAllNodes().contains(location) && cfa.getAllNodes().contains(nextLocation)) {
+        if (cfa.nodes().contains(location) && cfa.nodes().contains(nextLocation)) {
 
           if (targetPathIt.isPositionWithState() || lastStateInCfa.isPresent()) {
             ARGState state = lastStateInCfa.orElseGet(targetPathIt::getAbstractState);
@@ -669,7 +691,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
           lastStateInCfa = Optional.empty();
 
-        } else if (cfa.getAllNodes().contains(location) && targetPathIt.isPositionWithState()) {
+        } else if (cfa.nodes().contains(location) && targetPathIt.isPositionWithState()) {
           lastStateInCfa = Optional.of(targetPathIt.getAbstractState());
         }
       }
@@ -701,21 +723,12 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       throws InterruptedException {
 
     switch (resetReachedSetStrategy) {
-      case REMOVE_TARGET_STATE:
+      case REMOVE_TARGET_STATE -> {
         pTargetState.getParents().forEach(pReachedSet::reAddToWaitlist);
         removeTargetState(pReachedSet, pTargetState);
-        break;
-
-      case REMOVE_LOOP:
-        removeLoop(pReachedSet, pTargetState);
-        break;
-
-      case RESET:
-        resetReachedSet(pReachedSet, pInitialLocation);
-        break;
-
-      default:
-        throw new AssertionError(resetReachedSetStrategy);
+      }
+      case REMOVE_LOOP -> removeLoop(pReachedSet, pTargetState);
+      case RESET -> resetReachedSet(pReachedSet, pInitialLocation);
     }
   }
 
@@ -785,7 +798,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
 
-    private final Set<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
+    private final SequencedSet<CVariableDeclaration> globalDeclarations = new LinkedHashSet<>();
 
     private final Multimap<String, CVariableDeclaration> localDeclarations =
         MultimapBuilder.hashKeys().linkedHashSetValues().build();
@@ -793,10 +806,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
 
-      if (pNode instanceof CFunctionEntryNode) {
+      if (pNode instanceof CFunctionEntryNode cFunctionEntryNode) {
         String functionName = pNode.getFunctionName();
-        List<CParameterDeclaration> parameters =
-            ((CFunctionEntryNode) pNode).getFunctionParameters();
+        List<CParameterDeclaration> parameters = cFunctionEntryNode.getFunctionParameters();
         parameters.stream()
             .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(localDeclarations.get(functionName)::add);
@@ -807,11 +819,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
 
-      if (pEdge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
-        if (declaration instanceof CVariableDeclaration) {
-          CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-
+      if (pEdge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
+        if (declaration instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.isGlobal()) {
             globalDeclarations.add(variableDeclaration);
 

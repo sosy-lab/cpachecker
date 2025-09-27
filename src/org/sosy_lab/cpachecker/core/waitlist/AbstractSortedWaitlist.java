@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 /**
  * Default implementation of a sorted waitlist. The key that is used for sorting is defined by
- * sub-classes (it's type is the type parameter of this class).
+ * subclasses (it's type is the type parameter of this class).
  *
  * <p>There may be several abstract states with the same key, so this class delegates the decision
  * which of those should be chosen to a second waitlist implementation. A factory for this
@@ -149,7 +149,7 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
    * of the returned Map are the names of the waitlists, the values are the existing delegations.
    */
   public Map<String, StatInt> getDelegationCounts() {
-    String waitlistName = this.getClass().getSimpleName();
+    String waitlistName = getClass().getSimpleName();
     StatInt directDelegations = new StatInt(StatKind.AVG, waitlistName);
     assert delegationCount.getValue() <= Integer.MAX_VALUE;
     directDelegations.setNextValue((int) delegationCount.getValue());

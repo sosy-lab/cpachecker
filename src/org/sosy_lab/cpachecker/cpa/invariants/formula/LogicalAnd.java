@@ -25,8 +25,8 @@ public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
    */
   private LogicalAnd(
       BooleanFormula<ConstantType> pOperand1, BooleanFormula<ConstantType> pOperand2) {
-    this.operand1 = pOperand1;
-    this.operand2 = pOperand2;
+    operand1 = pOperand1;
+    operand2 = pOperand2;
   }
 
   public BooleanFormula<ConstantType> getOperand1() {
@@ -42,8 +42,8 @@ public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
     if (this == o) {
       return true;
     }
-    if (o instanceof LogicalAnd) {
-      LogicalAnd<?> other = (LogicalAnd<?>) o;
+    if (o instanceof LogicalAnd<?> other) {
+      // And is commutative.
       return (getOperand1().equals(other.getOperand1())
               && getOperand2().equals(other.getOperand2()))
           || (getOperand1().equals(other.getOperand2())

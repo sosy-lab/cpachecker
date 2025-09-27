@@ -57,7 +57,7 @@ public class CounterexampleCheckAlgorithm
   enum CounterexampleCheckerType {
     CBMC,
     CPACHECKER,
-    CONCRETE_EXECUTION;
+    CONCRETE_EXECUTION,
   }
 
   private final Algorithm algorithm;
@@ -73,9 +73,11 @@ public class CounterexampleCheckAlgorithm
       secure = true,
       name = "checker",
       description =
-          "Which model checker to use for verifying counterexamples as a second check.\n"
-              + "Currently CBMC or CPAchecker with a different config or the concrete execution \n"
-              + "checker can be used.")
+          """
+          Which model checker to use for verifying counterexamples as a second check.
+          Currently CBMC or CPAchecker with a different config or the concrete execution\s
+          checker can be used.\
+          """)
   private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;
 
   @Option(
@@ -114,15 +116,13 @@ public class CounterexampleCheckAlgorithm
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
 
-    switch (checkerType) {
-      case CBMC:
-        checker = new CBMCChecker(config, logger, cfa);
-        break;
-      case CPACHECKER:
-        AssumptionToEdgeAllocator assumptionToEdgeAllocator =
-            AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
-        checker =
-            new CounterexampleCPAchecker(
+    checker =
+        switch (checkerType) {
+          case CBMC -> new CBMCChecker(config, logger, cfa);
+          case CPACHECKER -> {
+            AssumptionToEdgeAllocator assumptionToEdgeAllocator =
+                AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
+            yield new CounterexampleCPAchecker(
                 config,
                 pSpecification,
                 logger,
@@ -131,13 +131,9 @@ public class CounterexampleCheckAlgorithm
                 s ->
                     ARGUtils.tryGetOrCreateCounterexampleInformation(
                         s, pCpa, assumptionToEdgeAllocator));
-        break;
-      case CONCRETE_EXECUTION:
-        checker = new ConcretePathExecutionChecker(config, logger, cfa);
-        break;
-      default:
-        throw new AssertionError("Unhandled case statement: " + checkerType);
-    }
+          }
+          case CONCRETE_EXECUTION -> new ConcretePathExecutionChecker(config, logger, cfa);
+        };
   }
 
   @Override
@@ -255,12 +251,12 @@ public class CounterexampleCheckAlgorithm
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(this);
-    if (checker instanceof StatisticsProvider) {
-      ((StatisticsProvider) checker).collectStatistics(pStatsCollection);
+    if (checker instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 
@@ -286,15 +282,15 @@ public class CounterexampleCheckAlgorithm
 
   @Override
   public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).register(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.register(pReachedSetUpdateListener);
     }
   }
 
   @Override
   public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).unregister(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.unregister(pReachedSetUpdateListener);
     }
   }
 }

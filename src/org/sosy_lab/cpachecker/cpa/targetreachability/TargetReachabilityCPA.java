@@ -88,7 +88,7 @@ public class TargetReachabilityCPA extends AbstractCPA implements StatisticsProv
       }
       return builder.build();
     } else {
-      return ImmutableSet.copyOf(pCfa.getAllNodes());
+      return ImmutableSet.copyOf(pCfa.nodes());
     }
   }
 

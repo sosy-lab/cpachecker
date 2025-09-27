@@ -16,6 +16,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -121,10 +122,17 @@ public class TestCaseExporter {
   private final CFA cfa;
   private final HarnessExporter harnessExporter;
   private final String producerString;
+  private final boolean parallelMode;
 
   private final LogManager logger;
 
   public TestCaseExporter(CFA pCfa, LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
+    this(pCfa, pLogger, pConfig, false);
+  }
+
+  public TestCaseExporter(
+      CFA pCfa, LogManager pLogger, Configuration pConfig, boolean pRunInParallel)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     Preconditions.checkState(
@@ -136,6 +144,7 @@ public class TestCaseExporter {
     harnessExporter = new HarnessExporter(pConfig, logger, pCfa);
     producerString = CPAchecker.getVersion(pConfig);
     randomGen = new Random(mutationSeed);
+    parallelMode = pRunInParallel;
   }
 
   private static String printLineSeparated(List<String> pValues) {
@@ -148,6 +157,7 @@ public class TestCaseExporter {
       if (testHarnessFile != null) {
         // TODO writeTestCase(getTestCaseFiles(testHarnessFile, 1), targetPath, pCex,
         // FormatType.HARNESS, pSpec);
+        // if not use the writeTestCase method increasing written tests need increase here
       }
 
       if (testValueFile != null) {
@@ -156,13 +166,8 @@ public class TestCaseExporter {
 
       if (testXMLFile != null) {
         Path testCaseFile = testXMLFile.getPath(id.getFreshId());
-        if (isFirstTest()) {
-          writeTestCase(
-              testCaseFile.resolveSibling("metadata.xml"), pInputs, FormatType.METADATA, pSpec);
-        }
         writeTestCase(testCaseFile, pInputs, FormatType.XML, pSpec);
       }
-      increaseTestsWritten();
     }
   }
 
@@ -172,7 +177,6 @@ public class TestCaseExporter {
 
   public void writeTestCaseFilesAndMutations(
       final CounterexampleInfo pCex, final Optional<Property> pSpec, final int numMutations) {
-    // TODO check if this and openZipFS(), closeZipFS() are thread-safe
     if (areTestsEnabled()) {
       ARGPath targetPath = pCex.getTargetPath();
       final int numPaths = Math.max(1, numMutations + 1);
@@ -180,23 +184,24 @@ public class TestCaseExporter {
       if (testHarnessFile != null) {
         writeTestCase(
             getTestCaseFiles(testHarnessFile, 1), targetPath, pCex, FormatType.HARNESS, pSpec);
+        increaseTestsWritten(parallelMode);
       }
 
       if (testValueFile != null) {
         writeTestCase(
             getTestCaseFiles(testValueFile, numPaths), targetPath, pCex, FormatType.PLAIN, pSpec);
+        increaseTestsWritten(parallelMode);
       }
 
       if (testXMLFile != null) {
         List<Path> testCaseFiles = getTestCaseFiles(testXMLFile, numPaths);
-        if (isFirstTest()) {
+        writeTestCase(testCaseFiles, targetPath, pCex, FormatType.XML, pSpec);
+        if (getAndIncreaseTestsWritten(parallelMode) == 0 && testXMLFile != null) {
           List<Path> metadataFile = new ArrayList<>();
-          metadataFile.add(testCaseFiles.get(0).resolveSibling("metadata.xml"));
+          metadataFile.add(testCaseFiles.getFirst().resolveSibling("metadata.xml"));
           writeTestCase(metadataFile, targetPath, pCex, FormatType.METADATA, pSpec);
         }
-        writeTestCase(testCaseFiles, targetPath, pCex, FormatType.XML, pSpec);
       }
-      increaseTestsWritten();
     }
   }
 
@@ -209,12 +214,32 @@ public class TestCaseExporter {
     return testCaseFiles;
   }
 
-  private static void increaseTestsWritten() {
-    testsWritten++;
+  @SuppressFBWarnings(
+      value = "AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE",
+      justification =
+          "for efficiency, only synchronize if may execute in parallel (i.e., input flag true)")
+  private static void increaseTestsWritten(final boolean pInParallelMode) {
+    if (pInParallelMode) {
+      synchronized (TestCaseExporter.class) {
+        testsWritten++;
+      }
+    } else {
+      testsWritten++;
+    }
   }
 
-  private static boolean isFirstTest() {
-    return testsWritten == 0;
+  private static int getAndIncreaseTestsWritten(final boolean pInParallelMode) {
+    int retVal;
+    if (pInParallelMode) {
+      synchronized (TestCaseExporter.class) {
+        retVal = testsWritten;
+        increaseTestsWritten(pInParallelMode);
+      }
+    } else {
+      retVal = testsWritten;
+      increaseTestsWritten(pInParallelMode);
+    }
+    return retVal;
   }
 
   private void writeTestCase(
@@ -241,8 +266,9 @@ public class TestCaseExporter {
         Preconditions.checkNotNull(pTestCaseFiles);
         Preconditions.checkArgument(!pTestCaseFiles.isEmpty());
         if (zipTestCases) {
+          Preconditions.checkState(!parallelMode);
           try (FileSystem zipFS = openZipFS()) {
-            Path fileName = pTestCaseFiles.get(0).getFileName();
+            Path fileName = pTestCaseFiles.getFirst().getFileName();
             Path testFile =
                 zipFS.getPath(
                     fileName != null ? fileName.toString() : id.getFreshId() + "test.txt");
@@ -255,30 +281,31 @@ public class TestCaseExporter {
                     Charset.defaultCharset())) {
 
               switch (type) {
-                case HARNESS:
-                  harnessExporter.writeHarness(
-                      writer, rootState, relevantStates, relevantEdges, pCexInfo);
-                  break;
-                default:
-                  throw new AssertionError("Unknown test case format.");
+                case HARNESS -> {
+                  Optional<String> harness =
+                      harnessExporter.writeHarness(
+                          rootState, relevantStates, relevantEdges, pCexInfo);
+                  if (harness.isPresent()) {
+                    writer.write(harness.orElseThrow());
+                  }
+                }
+                default -> throw new AssertionError("Unknown test case format.");
               }
             }
           }
         } else {
-          Object content = null;
+          Object content =
+              switch (type) {
+                case HARNESS ->
+                    harnessExporter
+                        .writeHarness(rootState, relevantStates, relevantEdges, pCexInfo)
+                        .orElse(null);
+                default -> throw new AssertionError("Unknown test case format.");
+              };
 
-          switch (type) {
-            case HARNESS:
-              content =
-                  (Appender)
-                      appendable ->
-                          harnessExporter.writeHarness(
-                              appendable, rootState, relevantStates, relevantEdges, pCexInfo);
-              break;
-            default:
-              throw new AssertionError("Unknown test case format.");
+          if (content != null) {
+            IO.writeFile(pTestCaseFiles.getFirst(), Charset.defaultCharset(), content);
           }
-          IO.writeFile(pTestCaseFiles.get(0), Charset.defaultCharset(), content);
         }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write test case to file");
@@ -291,15 +318,14 @@ public class TestCaseExporter {
       final List<String> pInputs,
       final FormatType pType,
       final Optional<Property> pSpec) {
-    if (isFirstTest() && pType.equals(FormatType.XML)) {
+    List<Path> testCaseList = new ArrayList<>();
+    testCaseList.add(testCase);
+    writeTestCase(testCaseList, pInputs, pType, pSpec);
+    if (getAndIncreaseTestsWritten(parallelMode) == 0 && pType.equals(FormatType.XML)) {
       List<Path> metadataFile = new ArrayList<>();
       metadataFile.add(testCase.resolveSibling("metadata.xml"));
       writeTestCase(metadataFile, new ArrayList<>(), FormatType.METADATA, pSpec);
     }
-    List<Path> testCaseList = new ArrayList<>();
-    testCaseList.add(testCase);
-    writeTestCase(testCaseList, pInputs, pType, pSpec);
-    increaseTestsWritten();
   }
 
   private void writeTestCase(
@@ -315,6 +341,7 @@ public class TestCaseExporter {
       List<String> nextInputs = pOrigInputs;
 
       if (zipTestCases) {
+        Preconditions.checkState(!parallelMode);
         try (FileSystem zipFS = openZipFS()) {
           for (Path pFile : pTestCaseFiles) {
             Path fileName = pFile.getFileName();
@@ -330,20 +357,17 @@ public class TestCaseExporter {
                     Charset.defaultCharset())) {
 
               switch (pType) {
-                case PLAIN:
-                  writer.write(
-                      inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated));
-                  break;
-                case METADATA:
-                  XMLTestCaseExport.writeXMLMetadata(
-                      writer, cfa, pSpec.orElse(null), producerString);
-                  break;
-                case XML:
-                  writer.write(
-                      inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE));
-                  break;
-                default:
-                  throw new AssertionError("Unknown test case format.");
+                case PLAIN ->
+                    writer.write(
+                        inputListToFormattedString(
+                            nextInputs, TestCaseExporter::printLineSeparated));
+                case METADATA ->
+                    XMLTestCaseExport.writeXMLMetadata(
+                        writer, cfa, pSpec.orElse(null), producerString);
+                case XML ->
+                    writer.write(
+                        inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE));
+                default -> throw new AssertionError("Unknown test case format.");
               }
             }
             nextInputs = mutateInputValues(pOrigInputs);
@@ -351,29 +375,26 @@ public class TestCaseExporter {
         }
       } else {
         for (Path pFile : pTestCaseFiles) {
-          Object content = null;
+          Object content =
+              switch (pType) {
+                case PLAIN -> {
+                  String plainOutput =
+                      inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
+                  yield (Appender) appendable -> appendable.append(plainOutput);
+                }
+                case METADATA ->
+                    (Appender)
+                        appendable ->
+                            XMLTestCaseExport.writeXMLMetadata(
+                                appendable, cfa, pSpec.orElse(null), producerString);
+                case XML -> {
+                  String xmlOutput =
+                      inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE);
+                  yield (Appender) appendable -> appendable.append(xmlOutput);
+                }
+                default -> throw new AssertionError("Unknown test case format.");
+              };
 
-          switch (pType) {
-            case PLAIN:
-              String plainOutput =
-                  inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
-              content = (Appender) appendable -> appendable.append(plainOutput);
-              break;
-            case METADATA:
-              content =
-                  (Appender)
-                      appendable ->
-                          XMLTestCaseExport.writeXMLMetadata(
-                              appendable, cfa, pSpec.orElse(null), producerString);
-              break;
-            case XML:
-              String xmlOutput =
-                  inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE);
-              content = (Appender) appendable -> appendable.append(xmlOutput);
-              break;
-            default:
-              throw new AssertionError("Unknown test case format.");
-          }
           IO.writeFile(pFile, Charset.defaultCharset(), content);
           nextInputs = mutateInputValues(pOrigInputs);
         }
@@ -406,11 +427,11 @@ public class TestCaseExporter {
   }
 
   private String unpack(final AAstNode pInputValue) {
-    if (pInputValue instanceof CCastExpression) {
-      return unpack(((CCastExpression) pInputValue).getOperand());
+    if (pInputValue instanceof CCastExpression cCastExpression) {
+      return unpack(cCastExpression.getOperand());
     } else {
-      if (plainLiteralValue && pInputValue instanceof ALiteralExpression) {
-        return String.valueOf(((ALiteralExpression) pInputValue).getValue());
+      if (plainLiteralValue && pInputValue instanceof ALiteralExpression aLiteralExpression) {
+        return String.valueOf(aLiteralExpression.getValue());
       }
       return pInputValue.toASTString();
     }
@@ -441,12 +462,11 @@ public class TestCaseExporter {
 
   private List<String> mutateInputValues(final List<String> origInputs) {
     List<String> newInput = new ArrayList<>(origInputs);
-    double prob, origVal;
     int val;
     for (int i = 0; i < newInput.size(); i++) {
       try {
-        origVal = Double.parseDouble(newInput.get(i));
-        prob = randomGen.nextDouble();
+        double origVal = Double.parseDouble(newInput.get(i));
+        double prob = randomGen.nextDouble();
         if (prob < 0.02) {
           val = Integer.MIN_VALUE; // MIN
         } else if (prob < 0.04) {
@@ -461,8 +481,8 @@ public class TestCaseExporter {
           continue;
         }
         newInput.set(i, String.valueOf(val));
-      } catch (NumberFormatException e) {
-        continue;
+      } catch (NumberFormatException ignored) {
+        // ignore
       }
     }
     return newInput;

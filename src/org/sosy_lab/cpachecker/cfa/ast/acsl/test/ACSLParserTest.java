@@ -88,8 +88,7 @@ public class ACSLParserTest {
   public void annotationParsingProducesExpectedNumberOfAnnotations() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
     CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-    if (cfa instanceof CFAWithACSLAnnotations) {
-      CFAWithACSLAnnotations cfaWithLocs = (CFAWithACSLAnnotations) cfa;
+    if (cfa instanceof CFAWithACSLAnnotations cfaWithLocs) {
       Set<ACSLAnnotation> annotations =
           ImmutableSet.copyOf(cfaWithLocs.getEdgesToAnnotations().values());
       assertThat(annotations).hasSize(expectedAnnotations);

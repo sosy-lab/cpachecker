@@ -194,56 +194,33 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public FluentIterable<LockEffect> getLockEffects(CFAEdge cfaEdge) {
-    try {
-      return from(determineOperations(cfaEdge)).filter(LockEffect.class);
-    } catch (UnrecognizedCodeException e) {
-      logger.log(Level.WARNING, "The code " + cfaEdge + " is not recognized");
-      return FluentIterable.of();
-    }
+    return from(determineOperations(cfaEdge)).filter(LockEffect.class);
   }
 
-  public List<AbstractLockEffect> determineOperations(CFAEdge cfaEdge)
-      throws UnrecognizedCodeException {
-
-    switch (cfaEdge.getEdgeType()) {
-      case FunctionCallEdge:
-        return handleFunctionCall((CFunctionCallEdge) cfaEdge);
-
-      case FunctionReturnEdge:
-        return handleFunctionReturnEdge((CFunctionReturnEdge) cfaEdge);
-
-      case StatementEdge:
-        return handleStatement((CStatementEdge) cfaEdge);
-      case AssumeEdge:
-        return handleAssumption((CAssumeEdge) cfaEdge);
-
-      case BlankEdge:
-      case ReturnStatementEdge:
-      case DeclarationEdge:
-      case CallToReturnEdge:
-        break;
-
-      default:
-        throw new UnrecognizedCodeException("Unknown edge type", cfaEdge);
-    }
-    return ImmutableList.of();
+  public List<AbstractLockEffect> determineOperations(CFAEdge cfaEdge) {
+    return switch (cfaEdge.getEdgeType()) {
+      case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) cfaEdge);
+      case FunctionReturnEdge -> handleFunctionReturnEdge((CFunctionReturnEdge) cfaEdge);
+      case StatementEdge -> handleStatement((CStatementEdge) cfaEdge);
+      case AssumeEdge -> handleAssumption((CAssumeEdge) cfaEdge);
+      case BlankEdge, ReturnStatementEdge, DeclarationEdge, CallToReturnEdge -> ImmutableList.of();
+    };
   }
 
   private List<AbstractLockEffect> handleAssumption(CAssumeEdge cfaEdge) {
     CExpression assumption = cfaEdge.getExpression();
 
-    if (assumption instanceof CBinaryExpression) {
-      CBinaryExpression binExpression = (CBinaryExpression) assumption;
+    if (assumption instanceof CBinaryExpression binExpression) {
       IdentifierCreator creator = new IdentifierCreator(cfaEdge.getSuccessor().getFunctionName());
       AbstractIdentifier varId = creator.createIdentifier(binExpression.getOperand1(), 0);
-      if (varId instanceof SingleIdentifier) {
-        String varName = ((SingleIdentifier) varId).getName();
+      if (varId instanceof SingleIdentifier singleIdentifier) {
+        String varName = singleIdentifier.getName();
         if (lockDescription.getVariableEffectDescription().containsKey(varName)) {
           CExpression val = binExpression.getOperand2();
-          if (val instanceof CIntegerLiteralExpression) {
+          if (val instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
             if (binExpression.getOperator() == BinaryOperator.EQUALS) {
               LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
-              int level = ((CIntegerLiteralExpression) val).getValue().intValue();
+              int level = cIntegerLiteralExpression.getValue().intValue();
               AbstractLockEffect e =
                   CheckLockEffect.createEffectForId(level, cfaEdge.getTruthAssumption(), id);
               return Collections.singletonList(e);
@@ -268,8 +245,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     // CFANode tmpNode = cfaEdge.getSummaryEdge().getPredecessor();
     String fName =
         cfaEdge
-            .getSummaryEdge()
-            .getExpression()
+            .getFunctionCall()
             .getFunctionCallExpression()
             .getFunctionNameExpression()
             .toASTString();
@@ -326,10 +302,10 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     ImmutableList.Builder<AbstractLockEffect> result = ImmutableList.builder();
 
     if (effect == SetLockEffect.getInstance()) {
-      CExpression expression = function.getParameterExpressions().get(0);
+      CExpression expression = function.getParameterExpressions().getFirst();
       // Replace it by parametrical one
-      if (expression instanceof CIntegerLiteralExpression) {
-        int newValue = ((CIntegerLiteralExpression) expression).getValue().intValue();
+      if (expression instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        int newValue = cIntegerLiteralExpression.getValue().intValue();
         int max = lockDescription.getMaxLevel(uId.getName());
         if (max < newValue) {
           newValue = max;
@@ -356,30 +332,29 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   private List<AbstractLockEffect> handleStatement(CStatementEdge statementEdge) {
 
     CStatement statement = statementEdge.getStatement();
-    if (statement instanceof CAssignment) {
+    if (statement instanceof CAssignment cAssignment) {
       /*
        * level = intLock();
        */
-      CRightHandSide op2 = ((CAssignment) statement).getRightHandSide();
+      CRightHandSide op2 = cAssignment.getRightHandSide();
 
-      if (op2 instanceof CFunctionCallExpression) {
-        CFunctionCallExpression function = (CFunctionCallExpression) op2;
+      if (op2 instanceof CFunctionCallExpression function) {
         return handleFunctionCallExpression(function);
       } else {
         /*
          * threadDispatchLevel = 1;
          */
-        CLeftHandSide leftSide = ((CAssignment) statement).getLeftHandSide();
-        CRightHandSide rightSide = ((CAssignment) statement).getRightHandSide();
+        CLeftHandSide leftSide = cAssignment.getLeftHandSide();
+        CRightHandSide rightSide = cAssignment.getRightHandSide();
         IdentifierCreator creator =
             new IdentifierCreator(statementEdge.getSuccessor().getFunctionName());
         AbstractIdentifier varId = creator.createIdentifier(leftSide, 0);
-        if (varId instanceof SingleIdentifier) {
-          String varName = ((SingleIdentifier) varId).getName();
+        if (varId instanceof SingleIdentifier singleIdentifier) {
+          String varName = singleIdentifier.getName();
           if (lockDescription.getVariableEffectDescription().containsKey(varName)) {
-            if (rightSide instanceof CIntegerLiteralExpression) {
+            if (rightSide instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
               LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
-              int level = ((CIntegerLiteralExpression) rightSide).getValue().intValue();
+              int level = cIntegerLiteralExpression.getValue().intValue();
               AbstractLockEffect e = SetLockEffect.createEffectForId(level, id);
               return Collections.singletonList(e);
             }
@@ -387,11 +362,10 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         }
       }
 
-    } else if (statement instanceof CFunctionCallStatement) {
+    } else if (statement instanceof CFunctionCallStatement funcStatement) {
       /*
        * queLock(que);
        */
-      CFunctionCallStatement funcStatement = (CFunctionCallStatement) statement;
       return handleFunctionCallExpression(funcStatement.getFunctionCallExpression());
     }
     // No lock-relating operations
@@ -405,8 +379,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       result.add(saveState);
     }
     result.addAll(
-        handleFunctionCallExpression(
-            callEdge.getSummaryEdge().getExpression().getFunctionCallExpression()));
+        handleFunctionCallExpression(callEdge.getFunctionCall().getFunctionCallExpression()));
     return result;
   }
 

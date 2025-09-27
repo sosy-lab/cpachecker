@@ -12,13 +12,14 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AFunctionCallExpression extends AbstractRightHandSide {
 
-  private static final long serialVersionUID = -6120400526327639887L;
+  @Serial private static final long serialVersionUID = -6120400526327639887L;
   private final AExpression functionName;
   private final List<? extends AExpression> parameters;
   private final AFunctionDeclaration declaration;
@@ -56,13 +57,14 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
   }
 
   @Override
-  public String toASTString(final boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(functionName.toParenthesizedASTString(pQualified));
+    lASTString.append(functionName.toParenthesizedASTString(pAAstNodeRepresentation));
     lASTString.append("(");
     Joiner.on(", ")
-        .appendTo(lASTString, transform(parameters, aexpr -> aexpr.toASTString(pQualified)));
+        .appendTo(
+            lASTString, transform(parameters, aexpr -> aexpr.toASTString(pAAstNodeRepresentation)));
     lASTString.append(")");
 
     return lASTString.toString();
@@ -85,13 +87,9 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
       return true;
     }
 
-    if (!(obj instanceof AFunctionCallExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    AFunctionCallExpression other = (AFunctionCallExpression) obj;
-
-    return Objects.equals(other.declaration, declaration)
+    return obj instanceof AFunctionCallExpression other
+        && super.equals(obj)
+        && Objects.equals(other.declaration, declaration)
         && Objects.equals(other.functionName, functionName)
         && Objects.equals(other.parameters, parameters);
   }

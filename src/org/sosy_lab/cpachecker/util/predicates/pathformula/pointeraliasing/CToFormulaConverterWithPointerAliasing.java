@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -33,6 +35,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -53,6 +56,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -70,6 +75,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -79,12 +86,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeRes
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.SliceAssignment;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentOptions.ConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -415,7 +425,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     CType type = typeHandler.getSimplifiedType(declaration);
     CType decayedType = typeHandler.getSimplifiedType(originalDeclaration);
     if (originalDeclaration instanceof CParameterDeclaration && decayedType instanceof CArrayType) {
-      decayedType = new CPointerType(false, false, ((CArrayType) decayedType).getType());
+      decayedType = new CPointerType(CTypeQualifiers.NONE, ((CArrayType) decayedType).getType());
     }
     Formula size;
     if (decayedType.isIncomplete()) {
@@ -440,7 +450,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
   }
 
-  private Formula getSizeExpression(
+  Formula getSizeExpression(
       final CType type,
       final CFAEdge edge,
       final String function,
@@ -449,27 +459,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
-    if (type instanceof CArrayType) {
-      CArrayType arrayType = (CArrayType) type;
 
-      Formula elementSize =
-          getSizeExpression(
-              arrayType.getType(), edge, function, ssa, pts, constraints, errorConditions);
-
-      Formula elementCount =
-          buildTerm(arrayType.getLength(), edge, function, ssa, pts, constraints, errorConditions);
-      elementCount =
-          makeCast(
-              arrayType.getLength().getExpressionType(),
-              CPointerType.POINTER_TO_VOID,
-              elementCount,
-              constraints,
-              edge);
-
-      return fmgr.makeMultiply(elementSize, elementCount);
-
+    if (type.hasKnownConstantSize()) {
+      // shortcut for common case instead of using visitor in else branch
+      return fmgr.makeNumber(voidPointerFormulaType, typeHandler.getExactSizeof(type));
     } else {
-      return fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(type));
+      return buildTerm(
+          new CTypeIdExpression(
+              FileLocation.DUMMY, CNumericTypes.SIZE_T, TypeIdOperator.SIZEOF, type),
+          edge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
     }
   }
 
@@ -495,8 +498,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     assert !CTypeUtils.containsArrayOutsideFunctionParameter(baseType)
         : "Array access can't be encoded as a variable";
 
-    if (baseType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) baseType;
+    if (baseType instanceof CCompositeType compositeType) {
       assert compositeType.getKind() != ComplexTypeKind.ENUM
           : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
@@ -552,22 +554,22 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final List<CExpressionAssignmentStatement> result = new ArrayList<>();
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CExpression rhs = assignment.getRightHandSide();
-      if (rhs instanceof CStringLiteralExpression) {
+      if (rhs instanceof CStringLiteralExpression cStringLiteralExpression) {
         final CExpression lhs = assignment.getLeftHandSide();
         final CType lhsType = lhs.getExpressionType();
         final CArrayType lhsArrayType;
-        if (lhsType instanceof CArrayType) {
-          lhsArrayType = (CArrayType) lhsType;
-        } else if (lhsType instanceof CPointerType) {
+        if (lhsType instanceof CArrayType cArrayType) {
+          lhsArrayType = cArrayType;
+        } else if (lhsType instanceof CPointerType cPointerType) {
           // TODO someone has to check if length must be fixed to string size here if yes replace
           // with stringExp.tranformTypeToArrayType
-          lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
+          lhsArrayType = new CArrayType(CTypeQualifiers.NONE, cPointerType.getType());
         } else {
           throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }
 
         List<CCharLiteralExpression> chars =
-            ((CStringLiteralExpression) rhs).expandStringLiteral(lhsArrayType);
+            cStringLiteralExpression.expandStringLiteral(lhsArrayType);
 
         int offset = 0;
         for (CCharLiteralExpression e : chars) {
@@ -632,8 +634,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     checkIsSimplified(type);
-    if (type instanceof CArrayType) {
-      final CArrayType arrayType = (CArrayType) type;
+    if (type instanceof CArrayType arrayType) {
       final CType elementType = checkIsSimplified(arrayType.getType());
       final OptionalInt length = arrayType.getLengthAsInt();
       if (length.isPresent()) {
@@ -649,8 +650,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           expandAssignmentList(elementType, newLhs, alreadyAssigned, defaultAssignments);
         }
       }
-    } else if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
+    } else if (type instanceof CCompositeType compositeType) {
       if (compositeType.getKind() == ComplexTypeKind.UNION) {
         // If it is a union, we must make sure that the first member is initialized,
         // but only if none of the members appear in alreadyAssigned.
@@ -674,7 +674,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         return;
       }
       CExpression initExp =
-          ((CInitializerExpression) CDefaults.forType(type, lhs.getFileLocation())).getExpression();
+          ((CInitializerExpression) CDefaults.forType(machineModel, type, lhs.getFileLocation()))
+              .getExpression();
       defaultAssignments.add(
           new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, initExp));
     }
@@ -810,6 +811,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
+    checkNotNull(lhs);
+    checkNotNull(lhsForChecking);
+    checkNotNull(rhs);
+
     // This corresponds to an argument passed as function parameter of array type
     // (this is the only case when arrays can be "assigned" explicitly, not as structure members)
     // In this case the parameter is treated as pointer
@@ -821,26 +826,50 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     // converts the RHS to make it compatible with the LHS, but in this case *both* sides should
     // be converted to pointers
     CType lhsType = typeHandler.getSimplifiedType(lhs);
+    boolean forcePointerAssignment = false;
     if (isArrayAssignment(lhs, lhsType)) {
-      lhsType =
-          new CPointerType(
-              lhsType.isConst(), lhsType.isVolatile(), ((CArrayType) lhsType).getType());
+      forcePointerAssignment = true;
+      // note that it is necessary to make the new pointer lhsType here because of the possible rhs
+      // cast to lhsType immediately after
+      lhsType = new CPointerType(lhsType.getQualifiers(), ((CArrayType) lhsType).getType());
     }
 
     if (rhs instanceof CExpression) {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
+    // perform as slice assignment from LHS to RHS
+    SliceExpression assignmentLhs = new SliceExpression(lhs);
+    SliceExpression assignmentRhs = new SliceExpression(rhs);
+    SliceAssignment assignment =
+        new SliceAssignment(assignmentLhs, Optional.of(lhsForChecking), Optional.of(assignmentRhs));
+
+    // use normal assignment options with cast conversion, force pointer assignment if necessary,
+    // leave everything else as-is
+    AssignmentOptions assignmentOptions =
+        new AssignmentOptions.Builder(ConversionType.CAST)
+            .setForcePointerAssignment(forcePointerAssignment)
+            .build();
+
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
-            this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
+            this,
+            edge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr,
+            assignmentOptions);
+
+    return assignmentHandler.assign(ImmutableList.of(assignment));
   }
 
   /** Is the left-hand-side an array and do we allow to assign a value to it? */
   private boolean isArrayAssignment(final CLeftHandSide lhs, final CType lhsType) {
-    if (lhs instanceof CIdExpression && lhsType instanceof CArrayType) {
-      CSimpleDeclaration declaration = ((CIdExpression) lhs).getDeclaration();
+    if (lhs instanceof CIdExpression cIdExpression && lhsType instanceof CArrayType) {
+      CSimpleDeclaration declaration = cIdExpression.getDeclaration();
 
       // in function-calls we allow LHS to be of array-type.
       if (declaration instanceof CParameterDeclaration) {
@@ -849,8 +878,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
       // when encoding global variables (maybe of array-type), we also allow re-assignments.
       if (options.useParameterVariablesForGlobals()
-          && declaration instanceof CVariableDeclaration
-          && ((CVariableDeclaration) declaration).isGlobal()) {
+          && declaration instanceof CVariableDeclaration cVariableDeclaration
+          && cVariableDeclaration.isGlobal()) {
         return true;
       }
     }
@@ -903,13 +932,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     // TODO merge with super-class method
 
-    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration declaration)) {
       // function declaration, typedef etc.
       logDebug("Ignoring declaration", declarationEdge);
       return bfmgr.makeTrue();
     }
-
-    CVariableDeclaration declaration = (CVariableDeclaration) declarationEdge.getDeclaration();
 
     // makeFreshIndex(variableName, declaration.getType(), ssa); // TODO: Make sure about
     // correctness of SSA indices without this trick!
@@ -934,19 +961,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final CInitializer initializer = declaration.getInitializer();
 
     // Fixing unsized array declarations
-    if (declarationType instanceof CArrayType
-        && ((CArrayType) declarationType).getLength() == null) {
+    if (declarationType instanceof CArrayType arrayType && arrayType.getLength() == null) {
       final Integer actualLength;
-      if (initializer instanceof CInitializerList) {
-        actualLength = ((CInitializerList) initializer).getInitializers().size();
-      } else if (initializer instanceof CInitializerExpression
-          && ((CInitializerExpression) initializer).getExpression()
-              instanceof CStringLiteralExpression) {
-        actualLength =
-            ((CStringLiteralExpression) ((CInitializerExpression) initializer).getExpression())
-                    .getContentString()
-                    .length()
-                + 1;
+      if (initializer instanceof CInitializerList initList) {
+        actualLength = initList.getInitializers().size();
+      } else if (initializer instanceof CInitializerExpression initExp
+          && initExp.getExpression() instanceof CStringLiteralExpression initStringLiteral) {
+        actualLength = initStringLiteral.getSize();
       } else {
         actualLength = null;
       }
@@ -954,12 +975,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       if (actualLength != null) {
         declarationType =
             new CArrayType(
-                declarationType.isConst(),
-                declarationType.isVolatile(),
-                ((CArrayType) declarationType).getType(),
+                declarationType.getQualifiers(),
+                arrayType.getType(),
                 new CIntegerLiteralExpression(
                     declaration.getFileLocation(),
-                    machineModel.getPointerDiffType(),
+                    machineModel.getSizeType(),
                     BigInteger.valueOf(actualLength)));
 
         declaration =
@@ -990,11 +1010,52 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     final CIdExpression lhs = new CIdExpression(declaration.getFileLocation(), declaration);
+
+    CType lhsType = typeHandler.getSimplifiedType(declaration);
+
+    // special case: force array attachment if all of these are true:
+    // 1. we are currently handling a declaration with string initializer
+    // 3. the declaration is of an array
+    // 2. we do not handle string literal initializers explicitly, just using the __string__
+    // approximation
+    // in this special case, instead of copying all elements of __string__, we just force
+    // attachment of the array location to the __string__; this skips exhaustive __string__ reads
+    // and writes, and circumvents problems with differently-sized arrays as well
+    final boolean forceArrayAttachment;
+    if (initializer instanceof CInitializerExpression initializerExpression) {
+      CExpression rhs = initializerExpression.getExpression();
+      forceArrayAttachment =
+          rhs instanceof CStringLiteralExpression
+              && lhsType instanceof CArrayType
+              && !options.handleStringLiteralInitializers();
+    } else {
+      forceArrayAttachment = false;
+    }
+
+    // use normal assignment options with cast conversion, use old SSA indices if aliased as this is
+    // an initialization assignment, force array attachment according to the special case, leave
+    // everything else as-is
+    AssignmentOptions assignmentOptions =
+        new AssignmentOptions.Builder(ConversionType.CAST)
+            .setUseOldSSAIndicesIfAliased(true)
+            .setForceArrayAttachment(forceArrayAttachment)
+            .build();
     final AssignmentHandler assignmentHandler =
         new AssignmentHandler(
-            this, declarationEdge, function, ssa, pts, constraints, errorConditions, regionMgr);
+            this,
+            declarationEdge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr,
+            assignmentOptions);
+
     final BooleanFormula result;
     if (initializer instanceof CInitializerExpression || initializer == null) {
+
+      final SliceExpression lhsSlice = new SliceExpression(lhs);
 
       if (initializer != null) {
         if (options.handleStringLiteralInitializers()) {
@@ -1005,14 +1066,26 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
               CInitializers.convertToAssignments(declaration, declarationEdge);
           // Special handling for string literal initializers -- convert them into character arrays
           assignments = expandStringLiterals(assignments);
-          return assignmentHandler.handleInitializationAssignments(
-              lhs, declarationType, assignments);
+          return assignmentHandler.initializationAssign(lhs, declarationType, assignments);
         }
-        result =
-            assignmentHandler.handleAssignment(
-                lhs, lhs, ((CInitializerExpression) initializer).getExpression(), true);
+
+        CExpression rhs = ((CInitializerExpression) initializer).getExpression();
+        if (forceArrayAttachment) {
+          // we are forcing array attachment, cast RHS to pointer type
+          CType lhsPointerType = CTypes.adjustFunctionOrArrayType(lhsType);
+          rhs = makeCastFromArrayToPointerIfNecessary(rhs, lhsPointerType);
+        }
+        SliceExpression rhsSlice = new SliceExpression(rhs);
+        SliceAssignment assignment =
+            new SliceAssignment(lhsSlice, Optional.of(lhs), Optional.of(rhsSlice));
+        // perform a slice assignment to lhs from rhs
+        result = assignmentHandler.assign(ImmutableList.of(assignment));
+
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
-        result = assignmentHandler.handleAssignment(lhs, lhs, null, true);
+        // perform a slice assignment of nondet value to lhs
+        SliceAssignment assignment =
+            new SliceAssignment(lhsSlice, Optional.of(lhs), Optional.empty());
+        result = assignmentHandler.assign(ImmutableList.of(assignment));
       } else {
         result = bfmgr.makeTrue();
       }
@@ -1028,7 +1101,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       if (options.handleImplicitInitialization()) {
         assignments = expandAssignmentList(declaration, assignments);
       }
-      result = assignmentHandler.handleInitializationAssignments(lhs, declarationType, assignments);
+      result = assignmentHandler.initializationAssign(lhs, declarationType, assignments);
 
     } else {
       throw new UnrecognizedCodeException("Unrecognized initializer", declarationEdge, initializer);
@@ -1071,7 +1144,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler =
-          new DynamicMemoryHandler(this, edge, ssa, pts, constraints, errorConditions, regionMgr);
+          new DynamicMemoryHandler(
+              this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       memoryHandler.handleDeferredAllocationsInAssume(e, ev.getLearnedPointerTypes());
     }
 
@@ -1175,7 +1249,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (options.revealAllocationTypeFromLHS() || options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler =
           new DynamicMemoryHandler(
-              this, summaryEdge, ssa, pts, constraints, errorConditions, regionMgr);
+              this, summaryEdge, calledFunction, ssa, pts, constraints, errorConditions, regionMgr);
       memoryHandler.handleDeferredAllocationInFunctionExit(calledFunction);
     }
 
@@ -1235,6 +1309,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
+  protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
+      CType pFromType, Formula pFormula) {
+    return super.makeValueReinterpretationToBitvector(pFromType, pFormula);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected @Nullable Formula makeValueReinterpretationFromBitvector(
+      CType pToType, BitvectorFormula pFormula) {
+    return super.makeValueReinterpretationFromBitvector(pToType, pFormula);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   protected Formula makeConstant(String pName, CType pType) {
     return super.makeConstant(pName, pType);
   }
@@ -1242,7 +1330,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
-    return super.makeVariable(pName, pType, pSsa);
+    return super.makeVariable(pName, typeHandler.simplifyType(pType), pSsa);
   }
 
   /** {@inheritDoc} */
@@ -1355,18 +1443,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.makeFreshIndex(pName, pType, pSsa);
   }
 
-  /** {@inheritDoc} */
-  @Override
-  protected long getSizeof(CType pType) {
-    return super.getSizeof(pType);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected long getBitSizeof(CType pType) {
-    return super.getBitSizeof(pType);
-  }
-
   /**
    * Checks, whether a left hand side is relevant for the analysis.
    *
@@ -1374,8 +1450,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether a left hand side is relevant for the analysis.
    */
   @Override
-  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs) {
-    return super.isRelevantLeftHandSide(pLhs);
+  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs, Optional<CRightHandSide> pRhs) {
+    return super.isRelevantLeftHandSide(pLhs, pRhs);
   }
 
   protected boolean isRelevantField(

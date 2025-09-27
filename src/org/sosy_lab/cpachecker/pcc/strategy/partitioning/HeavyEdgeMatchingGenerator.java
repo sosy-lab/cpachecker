@@ -61,19 +61,19 @@ public class HeavyEdgeMatchingGenerator implements MatchingGenerator {
           matching.put(maxNeighbor, currentSuperNode);
           alreadyMatched.set(nodeNum);
           alreadyMatched.set(maxNeighbor);
-          logger.log(
+          logger.logf(
               Level.FINE,
-              String.format(
-                  "[Multilevel] Node %d and %d matched to supernode %d- matched heaviest edge"
-                      + " weight %d",
-                  nodeNum, maxNeighbor, currentSuperNode, maxWeight));
+              "[Multilevel] Node %d and %d matched to supernode %d- matched heaviest edge weight"
+                  + " %d",
+              nodeNum,
+              maxNeighbor,
+              currentSuperNode,
+              maxWeight);
         } else { // no neighbor found
           matching.put(nodeNum, currentSuperNode);
           alreadyMatched.set(nodeNum);
-          logger.log(
-              Level.FINE,
-              String.format(
-                  "[Multilevel] Node %d lonely: Supernode %d", nodeNum, currentSuperNode));
+          logger.logf(
+              Level.FINE, "[Multilevel] Node %d lonely: Supernode %d", nodeNum, currentSuperNode);
         }
         currentSuperNode++;
       }

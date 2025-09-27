@@ -79,8 +79,8 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pCfa,
             lockCPA != null ? (LockTransferRelation) lockCPA.getTransferRelation() : null);
     precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
-    if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
+    if (pCpa instanceof ConfigurableProgramAnalysisWithBAM configurableProgramAnalysisWithBAM) {
+      Reducer wrappedReducer = configurableProgramAnalysisWithBAM.getReducer();
       reducer = new UsageReducer(wrappedReducer);
     } else {
       reducer = null;
@@ -118,7 +118,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition p)
       throws InterruptedException {
-    PresisionParser parser = new PresisionParser(cfa, logger);
+    PrecisionParser parser = new PrecisionParser(cfa, logger);
     return UsagePrecision.create(
         getWrappedCpa().getInitialPrecision(pNode, p), parser.parse(outputFileName));
   }

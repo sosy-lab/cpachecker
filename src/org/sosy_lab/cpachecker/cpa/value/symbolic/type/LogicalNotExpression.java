@@ -8,14 +8,16 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.UnaryConstraint;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** {@link UnarySymbolicExpression} representing the 'logical not' operation. */
 public final class LogicalNotExpression extends UnarySymbolicExpression implements UnaryConstraint {
 
-  private static final long serialVersionUID = 1538819641715577876L;
+  @Serial private static final long serialVersionUID = 1538819641715577876L;
 
   LogicalNotExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
@@ -28,9 +30,19 @@ public final class LogicalNotExpression extends UnarySymbolicExpression implemen
     super(pOperand, pType, pRepresentedLocation);
   }
 
+  private LogicalNotExpression(
+      final SymbolicExpression pOperand, final Type pType, final AbstractState pAbstractState) {
+    super(pOperand, pType, pAbstractState);
+  }
+
   @Override
   public LogicalNotExpression copyForLocation(MemoryLocation pRepresentedLocation) {
     return new LogicalNotExpression(getOperand(), getType(), pRepresentedLocation);
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new LogicalNotExpression(getOperand(), getType(), pCurrentState);
   }
 
   @Override

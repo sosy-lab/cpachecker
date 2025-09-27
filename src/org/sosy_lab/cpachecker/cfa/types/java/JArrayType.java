@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.types.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 /** Description of a Java array through its element type and number of dimensions. */
-public class JArrayType extends AArrayType implements JReferenceType {
+public final class JArrayType extends AArrayType implements JReferenceType {
 
-  private static final long serialVersionUID = -120299232751433551L;
+  @Serial private static final long serialVersionUID = -120299232751433551L;
 
   private final int dimension;
 
@@ -76,13 +77,7 @@ public class JArrayType extends AArrayType implements JReferenceType {
       return true;
     }
 
-    if (!(obj instanceof JArrayType) && !super.equals(obj)) {
-      return false;
-    }
-
-    JArrayType other = (JArrayType) obj;
-
-    return dimension == other.dimension;
+    return obj instanceof JArrayType other && super.equals(obj) && dimension == other.dimension;
   }
 
   @Override

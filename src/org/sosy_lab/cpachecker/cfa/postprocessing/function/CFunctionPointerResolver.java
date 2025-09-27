@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -123,14 +121,15 @@ public class CFunctionPointerResolver implements StatisticsProvider {
           FunctionSet.USED_IN_CODE, FunctionSet.RETURN_VALUE, FunctionSet.EQ_PARAM_TYPES);
 
   private static class CFunctionPointerResolverStatistics implements Statistics {
-    private StatInt totalFPs = new StatInt(StatKind.SUM, "Function calls via function pointers");
-    private StatInt instrumentedFPs =
+    private final StatInt totalFPs =
+        new StatInt(StatKind.SUM, "Function calls via function pointers");
+    private final StatInt instrumentedFPs =
         new StatInt(StatKind.SUM, "Instrumented function pointer calls");
-    private StatInt totalFPsWithParameter =
+    private final StatInt totalFPsWithParameter =
         new StatInt(StatKind.SUM, "Function calls with function pointer arguments");
-    private StatInt instrumentedFPsWithParameter =
+    private final StatInt instrumentedFPsWithParameter =
         new StatInt(StatKind.SUM, "Instrumented function pointer arguments");
-    private StatTimer totalTimer = new StatTimer("Time for function pointers resolving");
+    private final StatTimer totalTimer = new StatTimer("Time for function pointers resolving");
 
     @Override
     public String getName() {
@@ -185,14 +184,9 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       } else {
         varCollector = new CReferencedFunctionsCollector();
       }
-      for (CFANode node : cfa.getAllNodes()) {
-        for (CFAEdge edge : leavingEdges(node)) {
-          varCollector.visitEdge(edge);
-        }
-      }
+      cfa.edges().forEach(varCollector::visitEdge);
       for (Pair<ADeclaration, String> decl : pGlobalVars) {
-        if (decl.getFirst() instanceof CVariableDeclaration) {
-          CVariableDeclaration varDecl = (CVariableDeclaration) decl.getFirst();
+        if (decl.getFirst() instanceof CVariableDeclaration varDecl) {
           varCollector.visitDeclaration(varDecl);
         }
       }
@@ -223,7 +217,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       }
     } else {
       return new TargetFunctionsProvider(
-          cfa.getMachineModel(), logger, pFunctionSets, cfa.getAllFunctionHeads());
+          cfa.getMachineModel(), logger, pFunctionSets, cfa.entryNodes());
     }
   }
 
@@ -236,7 +230,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     stats.totalTimer.start();
     // 1.Step: get all function calls
     final FunctionPointerCallCollector visitor = new FunctionPointerCallCollector();
-    for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode functionStartNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, visitor);
     }
 
@@ -287,10 +281,10 @@ public class CFunctionPointerResolver implements StatisticsProvider {
 
   private @Nullable CExpression getParameter(CFunctionCall call) {
     for (CExpression param : call.getFunctionCallExpression().getParameterExpressions()) {
-      if (param.getExpressionType() instanceof CPointerType
-          && ((CPointerType) param.getExpressionType()).getType() instanceof CFunctionTypeWithNames
-          && ((param instanceof CIdExpression
-                  && ((CIdExpression) param).getDeclaration().getType() instanceof CPointerType)
+      if (param.getExpressionType() instanceof CPointerType cPointerType
+          && cPointerType.getType() instanceof CFunctionTypeWithNames
+          && ((param instanceof CIdExpression cIdExpression
+                  && cIdExpression.getDeclaration().getType() instanceof CPointerType)
               || (param instanceof CFieldReference))) {
         return param;
       }
@@ -306,7 +300,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     }
 
     CExpression nameExpr = callExpr.getFunctionNameExpression();
-    if (nameExpr instanceof CIdExpression && ((CIdExpression) nameExpr).getDeclaration() == null) {
+    if (nameExpr instanceof CIdExpression cIdExpression && cIdExpression.getDeclaration() == null) {
       // "f()" where "f" is an undefined identifier
       // Someone calls an undeclared function.
       return false;
@@ -377,8 +371,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
 
     @Override
     public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
-      if (pEdge instanceof CStatementEdge) {
-        final CStatementEdge edge = (CStatementEdge) pEdge;
+      if (pEdge instanceof CStatementEdge edge) {
         final AStatement stmt = edge.getStatement();
         if (checkEdge(stmt)) {
           functionPointerCalls.add(edge);
@@ -391,19 +384,13 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     }
 
     private boolean checkEdge(AStatement stmt) {
-      if (stmt instanceof CFunctionCall && isFunctionPointerCall((CFunctionCall) stmt)) {
-        return true;
-      }
-      return false;
+      return stmt instanceof CFunctionCall call && isFunctionPointerCall(call);
     }
 
     private boolean checkParameterEdge(AStatement stmt) {
-      if (stmt instanceof CFunctionCall
-          && !isFunctionPointerCall((CFunctionCall) stmt)
-          && getParameter((CFunctionCall) stmt) != null) {
-        return true;
-      }
-      return false;
+      return stmt instanceof CFunctionCall cFunctionCall
+          && !isFunctionPointerCall(cFunctionCall)
+          && getParameter(cFunctionCall) != null;
     }
   }
 

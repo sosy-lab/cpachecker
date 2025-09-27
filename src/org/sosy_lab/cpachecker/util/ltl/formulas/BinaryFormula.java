@@ -40,14 +40,8 @@ public abstract class BinaryFormula implements LtlFormula {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (!(obj instanceof BinaryFormula)) {
-      return false;
-    }
-    BinaryFormula other = (BinaryFormula) obj;
-    return getSymbol().equals(other.getSymbol())
+    return obj instanceof BinaryFormula other
+        && getSymbol().equals(other.getSymbol())
         && left.equals(other.left)
         && right.equals(other.right);
   }

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 
 /**
- * Compute a matching in a random fashion, i.e. take a node: If there is a unmatched neighbor, add
+ * Compute a matching in a random fashion, i.e. take a node: If there is an unmatched neighbor, add
  * it to the matching.
  */
 public class RandomMatchingGenerator implements MatchingGenerator {
@@ -57,21 +57,21 @@ public class RandomMatchingGenerator implements MatchingGenerator {
             alreadyMatched.set(nodeNum);
             alreadyMatched.set(succNum);
             nodeMatched = true;
-            logger.log(
+            logger.logf(
                 Level.FINEST,
-                String.format(
-                    "[Multilevel] Node %d and %d matched to supernode %d- matched weight %d",
-                    nodeNum, succNum, currentSuperNode, succEdge.getWeight()));
+                "[Multilevel] Node %d and %d matched to supernode %d- matched weight %d",
+                nodeNum,
+                succNum,
+                currentSuperNode,
+                succEdge.getWeight());
             break;
           }
         }
         if (!nodeMatched) {
           matching.put(nodeNum, currentSuperNode);
           alreadyMatched.set(nodeNum);
-          logger.log(
-              Level.FINEST,
-              String.format(
-                  "[Multilevel] Node %d lonely: Supernode %d", nodeNum, currentSuperNode));
+          logger.logf(
+              Level.FINEST, "[Multilevel] Node %d lonely: Supernode %d", nodeNum, currentSuperNode);
         }
         currentSuperNode++;
       }

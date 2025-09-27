@@ -42,11 +42,12 @@ public class FailedCase {
   /**
    * Checks whether there is a false paths in the ARG or not.
    *
-   * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
+   * @return <code>true</code> if the path exists otherwise returns <code>false</code>
    */
   public boolean existsErrorPath() {
     return !getErrorPaths().isEmpty();
   }
+
   /**
    * Checks whether the path is a failed path or not.
    *

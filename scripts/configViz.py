@@ -245,6 +245,11 @@ def writeRSF(nodes, out, showChildDependencies=True, showParentDependencies=True
                 )
 
 
+def writeList(nodes):
+    for filename, _ in sorted(nodes.items()):
+        out.write(f"{filename}\n")
+
+
 def normPath(f):
     return os.path.relpath(f, args.dir[0])
 
@@ -405,6 +410,11 @@ Examples:
         help="output in Relational Standard Format (RSF) instead of graphviz",
     )
     parser.add_argument(
+        "--plain",
+        action="store_true",
+        help="output the matched config files as a list line by line (e.g. for use in shell scripts)",
+    )
+    parser.add_argument(
         "--showChildren", action="store_true", help="Show children of selected nodes"
     )
     parser.add_argument(
@@ -466,6 +476,15 @@ def componentsSanityCheck(nodes):
                 log("Component file %s is unmaintained!" % name, 2)
             if "includes/" in name:
                 log("Include file %s is unmaintained!" % name, 2)
+
+        if "unmaintained/" in name:
+            maintained_parents = [p for p in node.parents if "unmaintained/" not in p]
+            if maintained_parents:
+                log(
+                    "Unmaintained file '%s' is referenced by maintained files '%s'"
+                    % (name, "', '".join(maintained_parents)),
+                    1,
+                )
 
 
 def transitiveReductionCheck(nodes):
@@ -568,9 +587,13 @@ if __name__ == "__main__":
             k: v for k, v in nodes.items() if not any(f in k for f in args.exclude)
         }
 
-    # write dot-output
+    # write output
     out = sys.stdout  # open("configViz.dot","w")
-    if not args.rsf:
+    if args.rsf:
+        writeRSF(nodes, out, args.showChildren, args.showParents)
+    elif args.plain:
+        writeList(nodes)
+    else:
         writeDot(
             nodes,
             out,
@@ -580,7 +603,5 @@ if __name__ == "__main__":
             args.clusterNodes,
             args.clusterKeywords,
         )
-    else:
-        writeRSF(nodes, out, args.showChildren, args.showParents)
 
     exit(errorFound)

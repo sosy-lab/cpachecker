@@ -67,7 +67,7 @@ public class UCBRefinementManager {
     List<ARGState> trace = new ArrayList<>(abstractionStatesTrace);
     // Add root to the trace in order to compute WPs correctly as 'abstractionStatesTrace'
     // does not contain the root element.
-    trace.add(0, allStatesTrace.getFirstState());
+    trace.addFirst(allStatesTrace.getFirstState());
 
     // Compute weakest preconditions on the error trace
     // If the list is empty then the trace is feasible,
@@ -186,19 +186,18 @@ public class UCBRefinementManager {
     logger.log(Level.FINEST, "Calculate UCB predicates for the spurious trace suffix.");
 
     // We transform every wp into ucb in-place
-    List<BooleanFormula> ucbs = new ArrayList<>(wpres);
-    Collections.reverse(ucbs);
+    List<BooleanFormula> ucbs = new ArrayList<>(wpres.reversed());
 
     // WPs list does not contain the first (= false) and the last (= true) nodes,
     // while the pTrace contains the whole path, i.e. from the root to the error node
     int startStateIdx = pTrace.size() - ucbs.size() - 2;
 
     BooleanFormula pred = null;
-    PredicateAbstractState curState, nextState;
 
     for (int i = startStateIdx; i < pTrace.size() - 2; i++) {
-      curState = AbstractStates.extractStateByType(pTrace.get(i), PredicateAbstractState.class);
-      nextState =
+      PredicateAbstractState curState =
+          AbstractStates.extractStateByType(pTrace.get(i), PredicateAbstractState.class);
+      PredicateAbstractState nextState =
           AbstractStates.extractStateByType(pTrace.get(i + 1), PredicateAbstractState.class);
 
       if (pred == null) {

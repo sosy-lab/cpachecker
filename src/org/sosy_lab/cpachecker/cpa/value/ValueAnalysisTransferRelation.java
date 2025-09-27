@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -84,19 +83,16 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -128,6 +124,8 @@ import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.RoundingMode;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.xml.sax.SAXException;
@@ -252,7 +250,7 @@ public class ValueAnalysisTransferRelation
   private boolean missingAssumeInformation;
 
   /**
-   * This class assigns symbolic values, if they are enabled. Otherwise it forgets the memory
+   * This class assigns symbolic values, if they are enabled. Otherwise, it forgets the memory
    * location.
    */
   private MemoryLocationValueHandler unknownValueHandler;
@@ -303,6 +301,22 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
+  public Collection<ValueAnalysisState> getAbstractSuccessorsForEdge(
+      final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
+    if (stats != null) {
+      stats.transferTime.start();
+    }
+    try {
+      return super.getAbstractSuccessorsForEdge(abstractState, abstractPrecision, cfaEdge);
+    } finally {
+      if (stats != null) {
+        stats.transferTime.stop();
+      }
+    }
+  }
+
+  @Override
   protected Collection<ValueAnalysisState> postProcessing(
       ValueAnalysisState successor, CFAEdge edge) {
     // always return a new state (requirement for strengthening states with interpolants)
@@ -349,10 +363,10 @@ public class ValueAnalysisTransferRelation
       Value value;
       AExpression exp = arguments.get(i);
 
-      if (exp instanceof JExpression) {
-        value = ((JExpression) exp).accept(visitor);
-      } else if (exp instanceof CExpression) {
-        value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
+      if (exp instanceof JExpression jExpression) {
+        value = jExpression.accept(visitor);
+      } else if (exp instanceof CExpression cExpression) {
+        value = visitor.evaluate(cExpression, (CType) parameters.get(i).getType());
       } else {
         throw new AssertionError("Unknown expression: " + exp);
       }
@@ -441,10 +455,7 @@ public class ValueAnalysisTransferRelation
    */
   @Override
   protected ValueAnalysisState handleFunctionReturnEdge(
-      FunctionReturnEdge functionReturnEdge,
-      FunctionSummaryEdge summaryEdge,
-      AFunctionCall exprOnSummary,
-      String callerFunctionName)
+      FunctionReturnEdge functionReturnEdge, AFunctionCall exprOnSummary, String callerFunctionName)
       throws UnrecognizedCodeException {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
@@ -457,9 +468,7 @@ public class ValueAnalysisTransferRelation
     }
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignExp =
-          ((AFunctionCallAssignmentStatement) exprOnSummary);
+    if (exprOnSummary instanceof AFunctionCallAssignmentStatement assignExp) {
       AExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
@@ -474,9 +483,7 @@ public class ValueAnalysisTransferRelation
 
       // We have to handle Java arrays in a special way, because they are stored as ArrayValue
       // objects
-      if (op1 instanceof JArraySubscriptExpression) {
-        JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
-
+      if (op1 instanceof JArraySubscriptExpression arraySubscriptExpression) {
         ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
         OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
@@ -494,28 +501,29 @@ public class ValueAnalysisTransferRelation
         Optional<MemoryLocation> memLoc = Optional.empty();
 
         // get memory location for left hand side
-        if (op1 instanceof CLeftHandSide) {
+        if (op1 instanceof CLeftHandSide cLeftHandSide) {
           if (valueExists) {
-            memLoc = getMemoryLocation((CLeftHandSide) op1, newValue, v);
+            memLoc = getMemoryLocation(cLeftHandSide, newValue, v);
           } else {
-            memLoc = getMemoryLocation((CLeftHandSide) op1, UnknownValue.getInstance(), v);
+            memLoc = getMemoryLocation(cLeftHandSide, UnknownValue.getInstance(), v);
           }
 
-        } else if (op1 instanceof AIdExpression) {
-          if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1) && valueExists) {
+        } else if (op1 instanceof AIdExpression aIdExpression) {
+          if (op1 instanceof JIdExpression jIdExpression
+              && isDynamicField(jIdExpression)
+              && valueExists) {
             missingScopedFieldName = true;
-            notScopedField = (JIdExpression) op1;
+            notScopedField = jIdExpression;
             notScopedFieldValue = newValue;
           } else {
-            memLoc =
-                Optional.of(MemoryLocation.forDeclaration(((AIdExpression) op1).getDeclaration()));
+            memLoc = Optional.of(MemoryLocation.forDeclaration(aIdExpression.getDeclaration()));
           }
 
         } else if (op1 instanceof APointerExpression) {
           // a* = b(); TODO: for now, nothing is done here, but cloning the current element
 
         } else {
-          throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
+          throw new UnrecognizedCodeException("on function return", functionReturnEdge, op1);
         }
 
         // assign the value if a memory location was successfully computed
@@ -561,8 +569,8 @@ public class ValueAnalysisTransferRelation
   private boolean isDynamicField(JIdExpression pIdentifier) {
     final JSimpleDeclaration declaration = pIdentifier.getDeclaration();
 
-    return (declaration instanceof JFieldDeclaration)
-        && !((JFieldDeclaration) declaration).isStatic();
+    return (declaration instanceof JFieldDeclaration jFieldDeclaration)
+        && !jFieldDeclaration.isStatic();
   }
 
   private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
@@ -582,14 +590,11 @@ public class ValueAnalysisTransferRelation
     ValueAnalysisState newState = ValueAnalysisState.copyOf(state);
     AFunctionCall functionCall = cfaEdge.getExpression();
 
-    if (functionCall instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignment =
-          ((AFunctionCallAssignmentStatement) functionCall);
+    if (functionCall instanceof AFunctionCallAssignmentStatement assignment) {
       AExpression leftHandSide = assignment.getLeftHandSide();
 
-      if (leftHandSide instanceof CLeftHandSide) {
-        MemoryLocation assignedMemoryLocation =
-            getVisitor().evaluateMemoryLocation((CLeftHandSide) leftHandSide);
+      if (leftHandSide instanceof CLeftHandSide cLeftHandSide) {
+        MemoryLocation assignedMemoryLocation = getVisitor().evaluateMemoryLocation(cLeftHandSide);
 
         if (newState.contains(assignedMemoryLocation)) {
           newState.forget(assignedMemoryLocation);
@@ -676,7 +681,7 @@ public class ValueAnalysisTransferRelation
 
   private Type getBooleanType(AExpression pExpression) {
     if (pExpression instanceof JExpression) {
-      return JSimpleType.getBoolean();
+      return JSimpleType.BOOLEAN;
     } else if (pExpression instanceof CExpression) {
       return CNumericTypes.INT;
 
@@ -699,8 +704,8 @@ public class ValueAnalysisTransferRelation
    *
    */
   private boolean representsBoolean(Value value, boolean bool) {
-    if (value instanceof BooleanValue) {
-      return ((BooleanValue) value).isTrue() == bool;
+    if (value instanceof BooleanValue booleanValue) {
+      return booleanValue.isTrue() == bool;
 
     } else if (value.isNumericValue()) {
       return value.equals(new NumericValue(bool ? 1L : 0L));
@@ -714,13 +719,14 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleDeclarationEdge(
       ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
 
-    if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
+    if (!(declaration instanceof AVariableDeclaration decl)
+        || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
       return state;
     }
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-    AVariableDeclaration decl = (AVariableDeclaration) declaration;
+
     Type declarationType = decl.getType();
 
     // get the variable name in the declarator
@@ -733,7 +739,7 @@ public class ValueAnalysisTransferRelation
 
     // handle global variables
     if (decl.isGlobal()) {
-      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()) {
+      if (decl instanceof JFieldDeclaration jFieldDeclaration && !jFieldDeclaration.isStatic()) {
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
       }
@@ -752,9 +758,9 @@ public class ValueAnalysisTransferRelation
       ValueAnalysisState.addToBlacklist(memoryLocation);
     }
 
-    if (init instanceof AInitializerExpression) {
+    if (init instanceof AInitializerExpression aInitializerExpression) {
       ExpressionValueVisitor evv = getVisitor();
-      AExpression exp = ((AInitializerExpression) init).getExpression();
+      AExpression exp = aInitializerExpression.getExpression();
       initialValue = getExpressionValue(exp, declarationType, evv);
 
       if (isMissingCExpressionInformation(evv, exp)) {
@@ -793,25 +799,13 @@ public class ValueAnalysisTransferRelation
       if (isComplexJavaType(declarationType)) {
         return NullValue.getInstance();
 
-      } else if (declarationType instanceof JSimpleType) {
-        JBasicType basicType = ((JSimpleType) declarationType).getType();
-
-        switch (basicType) {
-          case BOOLEAN:
-            return BooleanValue.valueOf(defaultBooleanValue);
-          case BYTE:
-          case CHAR:
-          case SHORT:
-          case INT:
-          case LONG:
-          case FLOAT:
-          case DOUBLE:
-            return new NumericValue(defaultNumericValue);
-          case UNSPECIFIED:
-            return UnknownValue.getInstance();
-          default:
-            throw new AssertionError("Impossible type for declaration: " + basicType);
-        }
+      } else if (declarationType instanceof JSimpleType simpleType) {
+        return switch (simpleType) {
+          case BOOLEAN -> BooleanValue.valueOf(defaultBooleanValue);
+          case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(defaultNumericValue);
+          case UNSPECIFIED -> UnknownValue.getInstance();
+          default -> throw new AssertionError("Impossible type for declaration: " + simpleType);
+        };
       }
     }
 
@@ -832,13 +826,12 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
       throws UnrecognizedCodeException {
 
-    if (expression instanceof CFunctionCall) {
-      CFunctionCall functionCall = (CFunctionCall) expression;
+    if (expression instanceof CFunctionCall functionCall) {
       CFunctionCallExpression functionCallExp = functionCall.getFunctionCallExpression();
       CExpression fn = functionCallExp.getFunctionNameExpression();
 
-      if (fn instanceof CIdExpression) {
-        String func = ((CIdExpression) fn).getName();
+      if (fn instanceof CIdExpression cIdExpression) {
+        String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           if (!options.isAllowedUnsupportedOption(func)) {
             throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
@@ -853,17 +846,18 @@ public class ValueAnalysisTransferRelation
               throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
             }
           }
-        } else if (expression instanceof CFunctionCallAssignmentStatement) {
+        } else if (expression
+            instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
 
-          return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
+          return handleFunctionAssignment(cFunctionCallAssignmentStatement);
         }
       }
     }
 
     // expression is a binary operation, e.g. a = b;
 
-    if (expression instanceof AAssignment) {
-      return handleAssignment((AAssignment) expression, cfaEdge);
+    if (expression instanceof AAssignment aAssignment) {
+      return handleAssignment(aAssignment, cfaEdge);
 
     } else if (expression instanceof AFunctionCallStatement) {
       // external function call - do nothing
@@ -921,18 +915,18 @@ public class ValueAnalysisTransferRelation
       return state;
     }
 
-    if (op1 instanceof AIdExpression) {
+    if (op1 instanceof AIdExpression aIdExpression) {
       /*
        * Assignment of the form
        *  a = ...
        */
 
-      if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1)) {
+      if (op1 instanceof JIdExpression jIdExpression && isDynamicField(jIdExpression)) {
         missingScopedFieldName = true;
-        notScopedField = (JIdExpression) op1;
+        notScopedField = jIdExpression;
       }
 
-      MemoryLocation memloc = getMemoryLocation((AIdExpression) op1);
+      MemoryLocation memloc = getMemoryLocation(aIdExpression);
 
       return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
     } else if (op1 instanceof APointerExpression) {
@@ -942,11 +936,11 @@ public class ValueAnalysisTransferRelation
         missingInformationList.add(new MissingInformation(op1, op2));
       }
 
-    } else if (op1 instanceof CFieldReference) {
+    } else if (op1 instanceof CFieldReference cFieldReference) {
 
       ExpressionValueVisitor v = getVisitor();
 
-      MemoryLocation memLoc = v.evaluateMemoryLocation((CFieldReference) op1);
+      MemoryLocation memLoc = v.evaluateMemoryLocation(cFieldReference);
 
       if (v.hasMissingPointer() && isRelevant(op1, op2)) {
         missingInformationList.add(new MissingInformation(op1, op2));
@@ -971,8 +965,7 @@ public class ValueAnalysisTransferRelation
         if (memLoc != null) {
           return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
         }
-      } else if (op1 instanceof JArraySubscriptExpression) {
-        JArraySubscriptExpression arrayExpression = (JArraySubscriptExpression) op1;
+      } else if (op1 instanceof JArraySubscriptExpression arrayExpression) {
         ExpressionValueVisitor evv = getVisitor();
 
         ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
@@ -1060,22 +1053,22 @@ public class ValueAnalysisTransferRelation
 
     // c structs have to be handled seperatly, because we do not have a value object representing
     // structs
-    if (lType instanceof CType) {
-      CType canonicaltype = ((CType) lType).getCanonicalType();
-      if (canonicaltype instanceof CCompositeType
-          && ((CCompositeType) canonicaltype).getKind() == ComplexTypeKind.STRUCT
+    if (lType instanceof CType cType) {
+      CType canonicaltype = cType.getCanonicalType();
+      if (canonicaltype instanceof CCompositeType cCompositeType
+          && cCompositeType.getKind() == ComplexTypeKind.STRUCT
           && exp instanceof CLeftHandSide) {
         handleAssignmentToStruct(
-            newElement, assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
+            newElement, assignedVar, cCompositeType, (CExpression) exp, visitor);
         return;
       }
     }
 
     Value value;
-    if (exp instanceof JRightHandSide) {
-      value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
-    } else if (exp instanceof CRightHandSide) {
-      value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
+    if (exp instanceof JRightHandSide jRightHandSide) {
+      value = visitor.evaluate(jRightHandSide, (JType) lType);
+    } else if (exp instanceof CRightHandSide cRightHandSide) {
+      value = visitor.evaluate(cRightHandSide, (CType) lType);
     } else {
       throw new AssertionError("unknown righthandside-expression: " + exp);
     }
@@ -1156,9 +1149,9 @@ public class ValueAnalysisTransferRelation
   }
 
   private void addMissingInformation(MemoryLocation pMemLoc, ARightHandSide pExp) {
-    if (pExp instanceof CExpression) {
+    if (pExp instanceof CExpression cExpression) {
 
-      missingInformationList.add(new MissingInformation(pMemLoc, (CExpression) pExp));
+      missingInformationList.add(new MissingInformation(pMemLoc, cExpression));
     }
   }
 
@@ -1179,8 +1172,8 @@ public class ValueAnalysisTransferRelation
       JArraySubscriptExpression pArraySubscriptExpression) {
     JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
 
-    if (arrayExpression instanceof JIdExpression) {
-      JSimpleDeclaration arrayDeclaration = ((JIdExpression) arrayExpression).getDeclaration();
+    if (arrayExpression instanceof JIdExpression jIdExpression) {
+      JSimpleDeclaration arrayDeclaration = jIdExpression.getDeclaration();
 
       if (arrayDeclaration != null) {
         MemoryLocation idName = MemoryLocation.forDeclaration(arrayDeclaration);
@@ -1230,12 +1223,11 @@ public class ValueAnalysisTransferRelation
 
     JExpression enclosingExpression = pArraySubscriptExpression.getArrayExpression();
 
-    if (enclosingExpression instanceof JIdExpression) {
-      JIdExpression idExpression = (JIdExpression) enclosingExpression;
+    if (enclosingExpression instanceof JIdExpression idExpression) {
       MemoryLocation memLoc = getMemoryLocation(idExpression);
       Value unknownValue = UnknownValue.getInstance();
 
-      state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
+      state.assignConstant(memLoc, unknownValue, JSimpleType.UNSPECIFIED);
 
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression =
@@ -1246,11 +1238,9 @@ public class ValueAnalysisTransferRelation
       if (maybeIndex.isPresent() && enclosingArray != null) {
         enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.orElseThrow());
 
-      }
-      // if the index of unknown array in the enclosing array is also unknown, we assign unknown at
-      // this array's
-      // position in the enclosing array
-      else {
+      } else {
+        // if the index of unknown array in the enclosing array is also unknown, we assign unknown
+        // at this array's position in the enclosing array
         assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
       }
     }
@@ -1259,7 +1249,7 @@ public class ValueAnalysisTransferRelation
   private class FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
 
-    public FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
+    FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
       super(pState, functionName, machineModel, logger);
       jortState = pJortState;
     }
@@ -1303,18 +1293,18 @@ public class ValueAnalysisTransferRelation
       return UnknownValue.getInstance();
     }
 
-    if (expression instanceof JRightHandSide) {
+    if (expression instanceof JRightHandSide jRightHandSide) {
 
-      final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
+      final Value value = evv.evaluate(jRightHandSide, (JType) type);
 
       if (evv.hasMissingFieldAccessInformation()) {
-        missingInformationRightJExpression = (JRightHandSide) expression;
+        missingInformationRightJExpression = jRightHandSide;
         return Value.UnknownValue.getInstance();
       } else {
         return value;
       }
-    } else if (expression instanceof CRightHandSide) {
-      return evv.evaluate((CRightHandSide) expression, (CType) type);
+    } else if (expression instanceof CRightHandSide cRightHandSide) {
+      return evv.evaluate(cRightHandSide, (CType) type);
     } else {
       throw new AssertionError("unhandled righthandside-expression: " + expression);
     }
@@ -1335,84 +1325,85 @@ public class ValueAnalysisTransferRelation
     result.add((ValueAnalysisState) pElement);
 
     for (AbstractState ae : pElements) {
-      if (ae instanceof RTTState) {
-        result.clear();
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          Collection<ValueAnalysisState> ret = strengthen((RTTState) ae, pCfaEdge);
-          if (ret == null) {
-            result.add(stateToStrengthen);
-          } else {
-            result.addAll(ret);
+      switch (ae) {
+        case RTTState rTTState -> {
+          result.clear();
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            Collection<ValueAnalysisState> ret = strengthen(rTTState, pCfaEdge);
+            if (ret == null) {
+              result.add(stateToStrengthen);
+            } else {
+              result.addAll(ret);
+            }
           }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
         }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof AbstractStateWithAssumptions) {
-        result.clear();
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
-          result.addAll(
-              strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof ThreadingState) {
-        result.clear();
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          result.add(strengthenWithThreads((ThreadingState) ae, stateToStrengthen));
-        }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof ConstraintsState) {
-        result.clear();
+        case AbstractStateWithAssumptions stateWithAssumptions -> {
+          result.clear();
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
 
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          Collection<ValueAnalysisState> ret =
-              constraintsStrengthenOperator.strengthen(
-                  (ValueAnalysisState) pElement, (ConstraintsState) ae, pCfaEdge);
-
-          if (ret == null) {
-            result.add(stateToStrengthen);
-          } else {
-            result.addAll(ret);
+            result.addAll(
+                strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
           }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
         }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
-      } else if (ae instanceof PointerState) {
-
-        CFAEdge edge = pCfaEdge;
-
-        ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
-        ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
-        Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
-        String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
-        PointerState pointerState = (PointerState) ae;
-
-        result.clear();
-
-        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
-          super.setInfo(pElement, pPrecision, pCfaEdge);
-          ValueAnalysisState newState =
-              strengthenWithPointerInformation(
-                  stateToStrengthen,
-                  pointerState,
-                  rightHandSide,
-                  leftHandType,
-                  leftHandSide,
-                  leftHandVariable,
-                  UnknownValue.getInstance());
-
-          newState = handleModf(rightHandSide, pointerState, newState);
-
-          result.add(newState);
+        case ThreadingState threadingState -> {
+          result.clear();
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            result.add(strengthenWithThreads(threadingState, stateToStrengthen));
+          }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
         }
-        toStrengthen.clear();
-        toStrengthen.addAll(result);
+        case ConstraintsState constraintsState -> {
+          result.clear();
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            Collection<ValueAnalysisState> ret =
+                constraintsStrengthenOperator.strengthen(
+                    (ValueAnalysisState) pElement, constraintsState, pCfaEdge);
+
+            if (ret == null) {
+              result.add(stateToStrengthen);
+            } else {
+              result.addAll(ret);
+            }
+          }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
+        }
+        case PointerState pointerState -> {
+          CFAEdge edge = pCfaEdge;
+          ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
+          ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
+          Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
+          String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
+          result.clear();
+          for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+            super.setInfo(pElement, pPrecision, pCfaEdge);
+            ValueAnalysisState newState =
+                strengthenWithPointerInformation(
+                    stateToStrengthen,
+                    pointerState,
+                    rightHandSide,
+                    leftHandType,
+                    leftHandSide,
+                    leftHandVariable,
+                    UnknownValue.getInstance());
+
+            newState = handleModf(rightHandSide, pointerState, newState);
+
+            result.add(newState);
+          }
+          toStrengthen.clear();
+          toStrengthen.addAll(result);
+        }
+        default -> {}
       }
     }
 
@@ -1447,16 +1438,15 @@ public class ValueAnalysisTransferRelation
       ARightHandSide pRightHandSide, PointerState pPointerState, ValueAnalysisState pState)
       throws UnrecognizedCodeException, AssertionError {
     ValueAnalysisState newState = pState;
-    if (pRightHandSide instanceof AFunctionCallExpression) {
-      AFunctionCallExpression functionCallExpression = (AFunctionCallExpression) pRightHandSide;
+    if (pRightHandSide instanceof AFunctionCallExpression functionCallExpression) {
       AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
-      if (nameExpressionOfCalledFunc instanceof AIdExpression) {
-        String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
+      if (nameExpressionOfCalledFunc instanceof AIdExpression aIdExpression) {
+        String nameOfCalledFunc = aIdExpression.getName();
         if (BuiltinFloatFunctions.matchesModf(nameOfCalledFunc)) {
           List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
-          if (parameters.size() == 2 && parameters.get(1) instanceof CExpression) {
+          if (parameters.size() == 2 && parameters.get(1) instanceof CExpression targetPointer) {
             AExpression exp = parameters.get(0);
-            CExpression targetPointer = (CExpression) parameters.get(1);
+
             CLeftHandSide target =
                 new CPointerExpression(
                     targetPointer.getFileLocation(),
@@ -1464,10 +1454,10 @@ public class ValueAnalysisTransferRelation
                     targetPointer);
             ExpressionValueVisitor evv = getVisitor();
             Value value;
-            if (exp instanceof JRightHandSide) {
-              value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
-            } else if (exp instanceof CRightHandSide) {
-              value = evv.evaluate((CRightHandSide) exp, (CType) exp.getExpressionType());
+            if (exp instanceof JRightHandSide jRightHandSide) {
+              value = evv.evaluate(jRightHandSide, (JType) exp.getExpressionType());
+            } else if (exp instanceof CRightHandSide cRightHandSide) {
+              value = evv.evaluate(cRightHandSide, (CType) exp.getExpressionType());
             } else {
               throw new AssertionError("unknown righthandside-expression: " + exp);
             }
@@ -1475,24 +1465,16 @@ public class ValueAnalysisTransferRelation
               NumericValue numericValue = value.asNumericValue();
               CSimpleType paramType =
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
-              if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
-                  .contains(paramType.getType())) {
-                final BigDecimal integralPartValue;
-                switch (paramType.getType()) {
-                  case FLOAT:
-                    integralPartValue =
-                        BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
-                    break;
-                  case DOUBLE:
-                    integralPartValue =
-                        BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
-                    break;
-                  default:
-                    throw new AssertionError("Unsupported float type: " + paramType);
-                }
+              if (paramType.getType().isFloatingPointType()) {
+                FloatValue.Format format = FloatValue.Format.fromCType(machineModel, paramType);
+                FloatValue integralPartValue =
+                    numericValue.floatingPointValue(format).round(RoundingMode.TRUNCATE);
                 CFloatLiteralExpression integralPart =
                     new CFloatLiteralExpression(
-                        functionCallExpression.getFileLocation(), paramType, integralPartValue);
+                        functionCallExpression.getFileLocation(),
+                        machineModel,
+                        paramType,
+                        integralPartValue);
                 newState =
                     strengthenWithPointerInformation(
                         newState,
@@ -1531,9 +1513,7 @@ public class ValueAnalysisTransferRelation
     Type type = pTargetType;
     boolean shouldAssign = false;
 
-    if (target == null && pLeftHandSide instanceof CPointerExpression) {
-      CPointerExpression pointerExpression = (CPointerExpression) pLeftHandSide;
-
+    if (target == null && pLeftHandSide instanceof CPointerExpression pointerExpression) {
       LocationSet directLocation =
           PointerTransferRelation.asLocations(pointerExpression, pPointerInfo);
 
@@ -1541,16 +1521,13 @@ public class ValueAnalysisTransferRelation
         CExpression addressExpression = pointerExpression.getOperand();
         LocationSet indirectLocation =
             PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
-        if (indirectLocation instanceof ExplicitLocationSet) {
-          ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
-          if (explicitSet.getSize() == 1) {
-            MemoryLocation variable = explicitSet.iterator().next();
-            directLocation = pPointerInfo.getPointsToSet(variable);
-          }
+        if ((indirectLocation instanceof ExplicitLocationSet explicitSet)
+            && (explicitSet.getSize() == 1)) {
+          MemoryLocation variable = explicitSet.iterator().next();
+          directLocation = pPointerInfo.getPointsToSet(variable);
         }
       }
-      if (directLocation instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitDirectLocation = (ExplicitLocationSet) directLocation;
+      if (directLocation instanceof ExplicitLocationSet explicitDirectLocation) {
         Iterator<MemoryLocation> locationIterator = explicitDirectLocation.iterator();
         MemoryLocation otherVariable = locationIterator.next();
         if (!locationIterator.hasNext()) {
@@ -1563,43 +1540,38 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    if (!value.isExplicitlyKnown() && pRightHandSide instanceof CPointerExpression) {
+    if (!value.isExplicitlyKnown() && pRightHandSide instanceof CPointerExpression rhs) {
       if (target == null) {
         return pValueState;
       }
 
-      CPointerExpression rhs = (CPointerExpression) pRightHandSide;
       CExpression addressExpression = rhs.getOperand();
 
       LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
 
-      if (fullSet instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
-        if (explicitSet.getSize() == 1) {
-          MemoryLocation variable = explicitSet.iterator().next();
-          CType variableType = rhs.getExpressionType().getCanonicalType();
-          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
+      if ((fullSet instanceof ExplicitLocationSet explicitSet) && (explicitSet.getSize() == 1)) {
+        MemoryLocation variable = explicitSet.iterator().next();
+        CType variableType = rhs.getExpressionType().getCanonicalType();
+        LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
 
-          if (pointsToSet instanceof ExplicitLocationSet) {
-            ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-            Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
-            MemoryLocation otherVariableLocation = pointsToIterator.next();
-            if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {
+        if (pointsToSet instanceof ExplicitLocationSet explicitPointsToSet) {
+          Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
+          MemoryLocation otherVariableLocation = pointsToIterator.next();
+          if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {
 
-              ValueAndType valueAndType = pValueState.getValueAndTypeFor(otherVariableLocation);
-              Type otherVariableType = valueAndType.getType();
-              if (otherVariableType != null) {
-                Value otherVariableValue = valueAndType.getValue();
-                if (otherVariableValue != null) {
-                  if (variableType.equals(otherVariableType)
-                      || (variableType.equals(CNumericTypes.FLOAT)
-                          && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
-                          && otherVariableValue.isExplicitlyKnown()
-                          && Long.valueOf(0)
-                              .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
-                    value = otherVariableValue;
-                    shouldAssign = true;
-                  }
+            ValueAndType valueAndType = pValueState.getValueAndTypeFor(otherVariableLocation);
+            Type otherVariableType = valueAndType.getType();
+            if (otherVariableType != null) {
+              Value otherVariableValue = valueAndType.getValue();
+              if (otherVariableValue != null) {
+                if (variableType.equals(otherVariableType)
+                    || (variableType.equals(CNumericTypes.FLOAT)
+                        && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
+                        && otherVariableValue.isExplicitlyKnown()
+                        && Long.valueOf(0)
+                            .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
+                  value = otherVariableValue;
+                  shouldAssign = true;
                 }
               }
             }
@@ -1760,11 +1732,10 @@ public class ValueAnalysisTransferRelation
     } catch (ParserConfigurationException | SAXException | IOException e) {
       // Nothing to do here, as we are not able to lead the additional information, hence ignoring
       // the file
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
-              options.getFunctionValuesForRandom()));
+          "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
+          options.getFunctionValuesForRandom());
     }
   }
 

@@ -31,10 +31,7 @@ public class PJBDDRegion implements Region {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof PJBDDRegion) {
-      return bddRep.equals(((PJBDDRegion) o).bddRep);
-    }
-    return false;
+    return o instanceof PJBDDRegion other && bddRep.equals(other.bddRep);
   }
 
   @Override
@@ -52,8 +49,8 @@ public class PJBDDRegion implements Region {
   }
 
   public static DD unwrap(Region pRegion) {
-    if (pRegion instanceof PJBDDRegion) {
-      return ((PJBDDRegion) pRegion).bddRep;
+    if (pRegion instanceof PJBDDRegion pJBDDRegion) {
+      return pJBDDRegion.bddRep;
     }
     throw new IllegalArgumentException("Wrong region type: " + pRegion.getClass());
   }

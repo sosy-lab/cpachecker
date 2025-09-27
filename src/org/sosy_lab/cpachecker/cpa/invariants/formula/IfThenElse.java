@@ -27,21 +27,21 @@ class IfThenElse<ConstantType> extends AbstractFormula<ConstantType> {
     Preconditions.checkNotNull(pCondition);
     Preconditions.checkNotNull(pNegativeCase);
     Preconditions.checkArgument(pPositiveCase.getTypeInfo().equals(pNegativeCase.getTypeInfo()));
-    this.condition = pCondition;
-    this.positiveCase = pPositiveCase;
-    this.negativeCase = pNegativeCase;
+    condition = pCondition;
+    positiveCase = pPositiveCase;
+    negativeCase = pNegativeCase;
   }
 
   public BooleanFormula<ConstantType> getCondition() {
-    return this.condition;
+    return condition;
   }
 
   public NumeralFormula<ConstantType> getPositiveCase() {
-    return this.positiveCase;
+    return positiveCase;
   }
 
   public NumeralFormula<ConstantType> getNegativeCase() {
-    return this.negativeCase;
+    return negativeCase;
   }
 
   @Override
@@ -59,13 +59,10 @@ class IfThenElse<ConstantType> extends AbstractFormula<ConstantType> {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof IfThenElse) {
-      IfThenElse<?> other = (IfThenElse<?>) pOther;
-      return getCondition().equals(other.getCondition())
-          && getPositiveCase().equals(other.getPositiveCase())
-          && getNegativeCase().equals(other.getNegativeCase());
-    }
-    return false;
+    return pOther instanceof IfThenElse<?> other
+        && getCondition().equals(other.getCondition())
+        && getPositiveCase().equals(other.getPositiveCase())
+        && getNegativeCase().equals(other.getNegativeCase());
   }
 
   @Override

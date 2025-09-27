@@ -43,14 +43,14 @@ public class LocationStateFactory {
     locationType = checkNotNull(pLocationType);
 
     ImmutableSortedSet<CFANode> allNodes;
-    Collection<CFANode> tmpNodes = pCfa.getAllNodes();
+    Collection<CFANode> tmpNodes = pCfa.nodes();
     if (tmpNodes instanceof ImmutableSortedSet) {
       allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
     } else {
       allNodes = ImmutableSortedSet.copyOf(tmpNodes);
     }
 
-    int maxNodeNumber = allNodes.last().getNodeNumber();
+    int maxNodeNumber = allNodes.getLast().getNodeNumber();
     states = new LocationState[maxNodeNumber + 1];
     for (CFANode node : allNodes) {
       LocationState state = createLocationState(node);

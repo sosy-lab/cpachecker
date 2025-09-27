@@ -52,13 +52,12 @@ import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JNullType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -84,31 +83,21 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
   protected RTTState handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration declaration)
       throws UnrecognizedCodeException {
 
-    if (!(declaration instanceof JVariableDeclaration)) {
+    if (!(declaration instanceof JVariableDeclaration decl)) {
       // nothing interesting to see here, please move along
       return state;
     }
 
-    JVariableDeclaration decl = (JVariableDeclaration) declaration;
-
-    if (decl.getType() instanceof JSimpleType) {
-      JBasicType simpleType = ((JSimpleType) decl.getType()).getType();
-
+    if (decl.getType() instanceof JSimpleType simpleType) {
       switch (simpleType) {
-        case BOOLEAN:
-        case BYTE:
-        case CHAR:
-        case FLOAT:
-        case DOUBLE:
-        case INT:
-        case LONG:
-        case SHORT:
-        case UNSPECIFIED:
+        case BOOLEAN, BYTE, CHAR, FLOAT, DOUBLE, INT, LONG, SHORT, UNSPECIFIED -> {
           // TODO Change with inclusion of Boxing, Unboxing
           // Unnecessary to track Primitive types.
           return state;
-        default:
+        }
+        default -> {
           // nothing to do here, TODO perhaps throw exceptions in other cases?
+        }
       }
     }
 
@@ -119,9 +108,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     String initialValue = RTTState.NULL_REFERENCE;
 
     // handle field variables
-    if (decl instanceof JFieldDeclaration) {
-
-      JFieldDeclaration fieldVariable = (JFieldDeclaration) decl;
+    if (decl instanceof JFieldDeclaration fieldVariable) {
 
       // if this is a  field, add to the list of field variables
       newState.addFieldVariable(fieldVariable);
@@ -130,8 +117,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     // get initial value
     AInitializer init = decl.getInitializer();
 
-    if (init instanceof JInitializerExpression) {
-      JExpression exp = ((JInitializerExpression) init).getExpression();
+    if (init instanceof JInitializerExpression jInitializerExpression) {
+      JExpression exp = jInitializerExpression.getExpression();
 
       initialValue = getExpressionValue(newState, exp, functionName, cfaEdge);
     }
@@ -192,8 +179,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       throws UnrecognizedCodeException {
 
     // expression is a binary operation, e.g. a = b;
-    if (statement instanceof JAssignment) {
-      return handleAssignment((JAssignment) statement, cfaEdge);
+    if (statement instanceof JAssignment jAssignment) {
+      return handleAssignment(jAssignment, cfaEdge);
 
     } else if (statement instanceof JMethodOrConstructorInvocation) {
       // external function call - do nothing
@@ -214,23 +201,23 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     JExpression op1 = assignExpression.getLeftHandSide();
     JRightHandSide op2 = assignExpression.getRightHandSide();
 
-    if (op1 instanceof JIdExpression) {
+    if (op1 instanceof JIdExpression jIdExpression) {
       // a = ...
 
-      JSimpleDeclaration declaration = ((JIdExpression) op1).getDeclaration();
+      JSimpleDeclaration declaration = jIdExpression.getDeclaration();
 
       // If declaration could not be resolve, forget variable
       if (declaration == null) {
 
         String scopedName =
             nameProvider.getScopedVariableName(
-                ((JIdExpression) op1).getName(), functionName, state.getClassObjectScope(), state);
+                jIdExpression.getName(), functionName, state.getClassObjectScope(), state);
 
         RTTState newState = RTTState.copyOf(state);
         newState.forget(scopedName);
         return newState;
       } else {
-        return handleAssignmentToVariable((JIdExpression) op1, op2, edge);
+        return handleAssignmentToVariable(jIdExpression, op2, edge);
       }
     }
 
@@ -267,7 +254,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
   @Override
   protected RTTState handleFunctionReturnEdge(
       JMethodReturnEdge cfaEdge,
-      JMethodSummaryEdge fnkCall,
       JMethodOrConstructorInvocation summaryExpr,
       String callerFunctionName)
       throws UnrecognizedCodeException {
@@ -276,14 +262,12 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     // expression is an assignment operation, e.g. a = g(b);
 
-    if (summaryExpr instanceof JMethodInvocationAssignmentStatement) {
-      JMethodInvocationAssignmentStatement assignExp =
-          ((JMethodInvocationAssignmentStatement) summaryExpr);
+    if (summaryExpr instanceof JMethodInvocationAssignmentStatement assignExp) {
       JExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
 
-      if ((op1 instanceof JIdExpression)) {
+      if ((op1 instanceof JIdExpression jIdExpression)) {
 
         String returnVarName =
             nameProvider.getScopedVariableName(
@@ -291,11 +275,11 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
         String assignedVarName =
             nameProvider.getScopedVariableName(
-                ((JIdExpression) op1).getDeclaration(),
+                jIdExpression.getDeclaration(),
                 callerFunctionName,
                 newState.getClassObjectStack().peek());
 
-        JSimpleDeclaration decl = ((JIdExpression) op1).getDeclaration();
+        JSimpleDeclaration decl = jIdExpression.getDeclaration();
 
         // Ignore not reference Types
         if (state.contains(returnVarName) && (decl.getType() instanceof JReferenceType)) {
@@ -308,7 +292,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         // a[x] = b(); TODO: for now, nothing is done here, but cloning the current state
 
       } else {
-        throw new UnrecognizedCodeException("on function return", fnkCall, op1);
+        throw new UnrecognizedCodeException("on function return", cfaEdge, op1);
       }
     }
 
@@ -353,11 +337,11 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     }
 
     JMethodInvocationExpression functionCall =
-        cfaEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
+        cfaEdge.getFunctionCall().getFunctionCallExpression();
 
     // There are five possibilities when assigning this and the new object Scope.
 
-    // A Object calls its super Constructor
+    // An Object calls its super Constructor
     if (functionCall instanceof JSuperConstructorInvocation) {
 
       newState.assignThisAndNewObjectScope(state.getUniqueObjectFor(RTTState.KEYWORD_THIS));
@@ -378,9 +362,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
       // A Referenced Method Invocation, the new scope is the unique Object
       // of its reference variable
-    } else if (functionCall instanceof JReferencedMethodInvocationExpression) {
-      JReferencedMethodInvocationExpression objectMethodInvocation =
-          (JReferencedMethodInvocationExpression) functionCall;
+    } else if (functionCall
+        instanceof JReferencedMethodInvocationExpression objectMethodInvocation) {
       JSimpleDeclaration variableReference =
           objectMethodInvocation.getReferencedVariable().getDeclaration();
 
@@ -394,7 +377,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         // When the object of the variable can't be found
         newState.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       }
-      //  a unreferenced Method Invocation
+      //  an unreferenced Method Invocation
     } else {
 
       JMethodDeclaration decl = functionCall.getDeclaration();
@@ -442,7 +425,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
   private static class FunctionExitValueVisitor extends ExpressionValueVisitor {
 
-    public FunctionExitValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
+    FunctionExitValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
       super(pEdge, pState, pFunctionName);
     }
 
@@ -459,7 +442,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     private final RTTState newState; // this state will be changed!
     private final String methodName;
 
-    public AssigningValueVisitor(RTTState pNewState, boolean pTruthAssumption, String pMethodName) {
+    AssigningValueVisitor(RTTState pNewState, boolean pTruthAssumption, String pMethodName) {
       truthAssumption = pTruthAssumption;
       newState = pNewState;
       methodName = pMethodName;
@@ -495,8 +478,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       }
 
       if (truthAssumption) {
-        if (assignableType instanceof JClassOrInterfaceType) {
-          newState.assignAssumptionType(reference, (JClassOrInterfaceType) assignableType);
+        if (assignableType instanceof JClassOrInterfaceType jClassOrInterfaceType) {
+          newState.assignAssumptionType(reference, jClassOrInterfaceType);
         } else {
           // TODO
         }
@@ -511,11 +494,11 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       extends DefaultJExpressionVisitor<String, UnrecognizedCodeException>
       implements JRightHandSideVisitor<String, UnrecognizedCodeException> {
 
-    protected final CFAEdge edge;
-    protected final RTTState state; // only for read-access, do never change this state!
-    protected final String functionName;
+    final CFAEdge edge;
+    final RTTState state; // only for read-access, do never change this state!
+    final String functionName;
 
-    public ExpressionValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
+    ExpressionValueVisitor(CFAEdge pEdge, RTTState pState, String pFunctionName) {
       edge = pEdge;
       state = pState;
       functionName = pFunctionName;
@@ -566,8 +549,25 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
           return handleObjectComparison(leftOperand, rightOperand, binaryExpression.getOperator());
         }
       }
+      if (isNullComparison(binaryExpression)) {
+        return handleNullComparison(leftOperand, rightOperand, binaryExpression.getOperator());
+      }
 
       return null;
+    }
+
+    private boolean isNullComparison(JBinaryExpression pExpression) {
+      final BinaryOperator operator = pExpression.getOperator();
+
+      if (operator != BinaryOperator.EQUALS && operator != BinaryOperator.NOT_EQUALS) {
+        return false;
+      }
+
+      final JExpression leftOperand = pExpression.getOperand1();
+      final JExpression rightOperand = pExpression.getOperand2();
+
+      return leftOperand.getExpressionType() instanceof JNullType
+          || rightOperand.getExpressionType() instanceof JNullType;
     }
 
     private boolean isObjectComparison(JBinaryExpression pExpression) {
@@ -616,14 +616,28 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       boolean result = value1.equals(value2);
 
       switch (operator) {
-        case EQUALS:
-          break;
-        case NOT_EQUALS:
-          result = !result;
-          break;
-        default:
-          throw new UnrecognizedCodeException("unexpected enum comparison", edge);
+        case EQUALS -> {}
+        case NOT_EQUALS -> result = !result;
+        default -> throw new UnrecognizedCodeException("unexpected enum comparison", edge);
       }
+
+      return Boolean.toString(result);
+    }
+
+    private String handleNullComparison(
+        final JExpression pLeftOperand,
+        final JExpression pRightOperand,
+        final BinaryOperator pOperator)
+        throws UnrecognizedCodeException {
+      String value1 = pLeftOperand.accept(this);
+      String value2 = pRightOperand.accept(this);
+
+      value1 = (value1 == null) ? RTTState.NULL_REFERENCE : value1;
+      value2 = (value2 == null) ? RTTState.NULL_REFERENCE : value2;
+
+      boolean result =
+          pOperator == BinaryOperator.NOT_EQUALS
+              ^ (value1.equals(value2) && value2.equals(RTTState.NULL_REFERENCE));
 
       return Boolean.toString(result);
     }
@@ -676,9 +690,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
       JSimpleDeclaration declaration = idExpression.getDeclaration();
 
-      if (idExpression instanceof JFieldAccess) {
-
-        JFieldAccess fiExpr = (JFieldAccess) idExpression;
+      if (idExpression instanceof JFieldAccess fiExpr) {
 
         JType type = fiExpr.getExpressionType();
 
@@ -720,8 +732,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
       final JReferenceType typeDef = jRunTimeTypeEqualsType.getTypeDef();
       String name;
-      if (typeDef instanceof JClassOrInterfaceType) {
-        name = ((JClassOrInterfaceType) typeDef).getName();
+      if (typeDef instanceof JClassOrInterfaceType jClassOrInterfaceType) {
+        name = jClassOrInterfaceType.getName();
       } else {
         // TODO is probably wrongly implemented
         name = ((JArrayType) typeDef).toString();

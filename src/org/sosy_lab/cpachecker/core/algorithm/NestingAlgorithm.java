@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -39,12 +40,13 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 /** abstract algorithm for executing other nested algorithms. */
 public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider {
+
+  protected record NestedAnalysis(
+      Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -62,7 +64,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     logger = Objects.requireNonNull(pLogger);
   }
 
-  protected Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
+  protected NestedAnalysis createAlgorithm(
       Path singleConfigFileName,
       CFANode initialNode,
       CFA pCfa,
@@ -83,18 +85,17 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
         new CoreComponentsFactory(
             singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(pCfa, specification);
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, specification);
     ReachedSet reached = createInitialReachedSet(cpa, initialNode, coreComponents, singleLogger);
 
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) cpa).collectStatistics(stats);
+    if (cpa instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(stats);
     }
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(stats);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(stats);
     }
 
-    return Triple.of(algorithm, cpa, reached);
+    return new NestedAnalysis(algorithm, cpa, reached);
   }
 
   private Configuration buildSubConfig(Path singleConfigFileName, Collection<String> ignoreOptions)
@@ -176,11 +177,11 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
 
   /** get an iterable data structure from configuration options. Sadly there is no nicer way. */
   private static Map<String, String> configToMap(Configuration config) {
-    Map<String, String> mp = new LinkedHashMap<>();
+    SequencedMap<String, String> mp = new LinkedHashMap<>();
     for (String option : Splitter.on("\n").omitEmptyStrings().split(config.asPropertiesString())) {
       List<String> split = Splitter.on(" = ").splitToList(option);
       checkArgument(split.size() == 2, "unexpected option format: %s", option);
-      mp.put(split.get(0), split.get(1));
+      mp.put(split.getFirst(), split.get(1));
     }
     return mp;
   }

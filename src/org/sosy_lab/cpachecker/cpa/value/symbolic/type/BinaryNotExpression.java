@@ -8,13 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** {@link UnarySymbolicExpression} representing the 'binary not' operation. */
 public final class BinaryNotExpression extends UnarySymbolicExpression {
 
-  private static final long serialVersionUID = -84948336461412258L;
+  @Serial private static final long serialVersionUID = -84948336461412258L;
 
   BinaryNotExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
@@ -27,9 +29,19 @@ public final class BinaryNotExpression extends UnarySymbolicExpression {
     super(pOperand, pType, pRepresentedLocation);
   }
 
+  BinaryNotExpression(
+      final SymbolicExpression pOperand, final Type pType, final AbstractState pAbstractState) {
+    super(pOperand, pType, pAbstractState);
+  }
+
   @Override
   public BinaryNotExpression copyForLocation(MemoryLocation pRepresentedLocation) {
     return new BinaryNotExpression(getOperand(), getType(), pRepresentedLocation);
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new BinaryNotExpression(getOperand(), getType(), pCurrentState);
   }
 
   @Override

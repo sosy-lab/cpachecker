@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -20,11 +21,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  *   return [ Expression ] ;
  * </pre>
  */
-public class JReturnStatement extends AbstractReturnStatement implements JAstNode {
+public sealed class JReturnStatement extends AbstractReturnStatement implements JAstNode
+    permits JObjectReferenceReturn {
 
   // TODO refactor to be either abstract or final
 
-  private static final long serialVersionUID = -7073556363348785665L;
+  @Serial private static final long serialVersionUID = -7073556363348785665L;
 
   public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
     // TODO We absolutely need a correct assignment here that assigns pExpression to a special
@@ -62,10 +64,6 @@ public class JReturnStatement extends AbstractReturnStatement implements JAstNod
       return true;
     }
 
-    if (!(obj instanceof JReturnStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JReturnStatement && super.equals(obj);
   }
 }

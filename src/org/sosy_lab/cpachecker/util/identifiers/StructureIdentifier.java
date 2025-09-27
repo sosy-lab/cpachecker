@@ -15,8 +15,9 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 @SuppressWarnings("EqualsGetClass") // should be refactored
-public class StructureIdentifier extends SingleIdentifier {
-  protected AbstractIdentifier owner;
+public sealed class StructureIdentifier extends SingleIdentifier permits StructureFieldIdentifier {
+
+  protected final AbstractIdentifier owner;
 
   public StructureIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
     super(pNm, pTp, dereference);
@@ -82,8 +83,8 @@ public class StructureIdentifier extends SingleIdentifier {
   }
 
   public StructureFieldIdentifier toStructureFieldIdentifier() {
-    if (owner instanceof SingleIdentifier) {
-      return new StructureFieldIdentifier(name, ((SingleIdentifier) owner).type, dereference, null);
+    if (owner instanceof SingleIdentifier singleIdentifier) {
+      return new StructureFieldIdentifier(name, singleIdentifier.type, dereference, null);
     } else {
       return new StructureFieldIdentifier(name, type, dereference, null);
     }

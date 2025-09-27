@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerator;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 public class ARG_CMCStrategy extends AbstractStrategy {
 
@@ -50,6 +50,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
   private final AssumptionAutomatonGenerator automatonWriter;
+  private final CFA cfa;
 
   private ARGState[] roots;
   private boolean proofKnown = false;
@@ -66,6 +67,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     // pConfig.inject(this);
     globalConfig = pConfig;
     shutdown = pShutdownNotifier;
+    cfa = pCfa;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
   }
@@ -74,14 +76,14 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   public void constructInternalProofRepresentation(
       UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
-    if (!(pReached instanceof HistoryForwardingReachedSet)) {
+    if (!(pReached instanceof HistoryForwardingReachedSet historyForwardingReachedSet)) {
       throw new InvalidConfigurationException(
           "Reached sets used by restart algorithm are not memorized. Please enable option"
               + " analysis.memorizeReachedAfterRestart");
     }
 
     Collection<ReachedSet> partialReachedSets =
-        ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
+        historyForwardingReachedSet.getAllReachedSetsUsedAsDelegates();
     roots = new ARGState[partialReachedSets.size()];
 
     if (roots.length <= 0) {
@@ -91,7 +93,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     int index = 0;
     for (ReachedSet partialReached : partialReachedSets) {
-      if (!(partialReached.getFirstState() instanceof ARGState)
+      if (!(partialReached.getFirstState() instanceof ARGState aRGState)
           || (extractLocation(partialReached.getFirstState()) == null)) {
         logger.log(
             Level.SEVERE,
@@ -101,7 +103,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         return;
       } else {
         stats.increaseProofSize(1);
-        roots[index++] = (ARGState) partialReached.getFirstState();
+        roots[index++] = aRGState;
       }
     }
 
@@ -126,8 +128,13 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       pOut.writeInt(roots.length);
 
       for (int i = 0; i < historyReached.getCPAs().size(); i++) {
-        GlobalInfo.getInstance().setUpInfoFromCPA(historyReached.getCPAs().get(i));
-        pOut.writeObject(roots[i]);
+        SerializationInfoStorage.storeSerializationInformation(
+            historyReached.getCPAs().get(i), cfa);
+        try {
+          pOut.writeObject(roots[i]);
+        } finally {
+          SerializationInfoStorage.clear();
+        }
       }
     }
   }
@@ -161,8 +168,12 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         for (int i = 0; i < roots.length; i++) {
           logger.log(Level.FINEST, "Build CPA for reading and checking partial ARG", i);
           cpa = cpaBuilder.buildPartialCPA(i, factory);
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-          readARG = o.readObject();
+          SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
+          try {
+            readARG = o.readObject();
+          } finally {
+            SerializationInfoStorage.clear();
+          }
           if (!(readARG instanceof ARGState)) {
             return false;
           }
@@ -234,8 +245,12 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                     for (int i = 0; i < roots.length && checkResult.get(); i++) {
                       logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
                       cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
-                      GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
-                      readARG = o.readObject();
+                      SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+                      try {
+                        readARG = o.readObject();
+                      } finally {
+                        SerializationInfoStorage.clear();
+                      }
                       if (!(readARG instanceof ARGState)) {
                         abortPreparation();
                       }

@@ -84,11 +84,8 @@ public class CustomInstruction {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof CustomInstruction)) {
-      return false;
-    }
-    CustomInstruction other = (CustomInstruction) obj;
-    return Objects.equals(ciEndNodes, other.ciEndNodes)
+    return obj instanceof CustomInstruction other
+        && Objects.equals(ciEndNodes, other.ciEndNodes)
         && Objects.equals(ciStartNode, other.ciStartNode)
         && Objects.equals(inputVariables, other.inputVariables)
         && Objects.equals(outputVariables, other.outputVariables);
@@ -164,7 +161,7 @@ public class CustomInstruction {
     int BracketCounter = 0;
 
     if (!inputVariables.isEmpty()) {
-      String last = inputVariables.get(inputVariables.size() - 1);
+      String last = inputVariables.getLast();
       for (String variable : inputVariables) {
         if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(variable, false));
@@ -180,7 +177,7 @@ public class CustomInstruction {
     }
 
     if (!outputVariables.isEmpty()) {
-      String last = outputVariables.get(outputVariables.size() - 1);
+      String last = outputVariables.getLast();
       for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");
@@ -256,7 +253,7 @@ public class CustomInstruction {
    * @return the resulting AppliedCustomInstruction
    * @throws InterruptedException due to the shutdownNotifier
    * @throws AppliedCustomInstructionParsingFailedException if the matching of the variables of ci
-   *     and aci is not clear, or their structure dosen't fit.
+   *     and aci is not clear, or their structure doesn't fit.
    */
   public AppliedCustomInstruction inspectAppliedCustomInstruction(final CFANode aciStartNode)
       throws InterruptedException, AppliedCustomInstructionParsingFailedException {
@@ -300,15 +297,15 @@ public class CustomInstruction {
 
         computeMappingOfCiAndAci(ciEdge, aciEdge, mapping, outVariables);
 
-        if (ciEdge instanceof FunctionCallEdge) {
+        if (ciEdge instanceof FunctionCallEdge functionCallEdge) {
           computeMappingOfCiAndAci(
-              ((FunctionCallEdge) ciEdge).getSummaryEdge(),
+              functionCallEdge.getSummaryEdge(),
               ((FunctionCallEdge) aciEdge).getSummaryEdge(),
               mapping,
               outVariables);
           next =
               Pair.of(
-                  ((FunctionCallEdge) ciEdge).getSummaryEdge().getSuccessor(),
+                  functionCallEdge.getSummaryEdge().getSuccessor(),
                   ((FunctionCallEdge) aciEdge).getSummaryEdge().getSuccessor());
         } else {
           next = Pair.of(ciSucc, aciSucc);
@@ -385,7 +382,7 @@ public class CustomInstruction {
     int BracketCounter = 0;
 
     if (!inputVariables.isEmpty()) {
-      String last = inputVariables.get(inputVariables.size() - 1);
+      String last = inputVariables.getLast();
       for (String variable : inputVariables) {
         if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(map.get(variable), false));
@@ -398,7 +395,7 @@ public class CustomInstruction {
     }
 
     if (!outputVariables.isEmpty()) {
-      String last = outputVariables.get(outputVariables.size() - 1);
+      String last = outputVariables.getLast();
       for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");
@@ -457,40 +454,32 @@ public class CustomInstruction {
     }
 
     switch (ciEdge.getEdgeType()) {
-      case BlankEdge:
+      case BlankEdge -> {
         // no additional check needed.
-        break;
-      case AssumeEdge:
-        compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar);
-        break;
-      case StatementEdge:
-        compareStatementEdge(
-            (CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, outVariables);
-        break;
-      case DeclarationEdge:
-        compareDeclarationEdge(
-            (CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, outVariables);
-        break;
-      case ReturnStatementEdge:
-        compareReturnStatementEdge(
-            (CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar);
-        break;
-      case FunctionCallEdge:
-        compareFunctionCallEdge(
-            (CFunctionCallEdge) ciEdge, (CFunctionCallEdge) aciEdge, ciVarToAciVar);
-        break;
-      case FunctionReturnEdge:
+      }
+      case AssumeEdge ->
+          compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar);
+      case StatementEdge ->
+          compareStatementEdge(
+              (CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, outVariables);
+      case DeclarationEdge ->
+          compareDeclarationEdge(
+              (CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, outVariables);
+      case ReturnStatementEdge ->
+          compareReturnStatementEdge(
+              (CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar);
+      case FunctionCallEdge ->
+          compareFunctionCallEdge(
+              (CFunctionCallEdge) ciEdge, (CFunctionCallEdge) aciEdge, ciVarToAciVar);
+      case FunctionReturnEdge -> {
         // no additional check needed.
-        break;
-      case CallToReturnEdge:
-        compareStatementsOfStatementEdge(
-            ((CFunctionSummaryEdge) ciEdge).getExpression(),
-            ((CFunctionSummaryEdge) aciEdge).getExpression(),
-            ciVarToAciVar,
-            outVariables);
-        break;
-      default:
-        throw new AssertionError("Unhandeled enum value in switch: " + ciEdge.getEdgeType());
+      }
+      case CallToReturnEdge ->
+          compareStatementsOfStatementEdge(
+              ((CFunctionSummaryEdge) ciEdge).getExpression(),
+              ((CFunctionSummaryEdge) aciEdge).getExpression(),
+              ciVarToAciVar,
+              outVariables);
     }
   }
 
@@ -518,11 +507,8 @@ public class CustomInstruction {
       final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
-    if (ciEdge instanceof CFunctionSummaryStatementEdge
-        && aciEdge instanceof CFunctionSummaryStatementEdge) {
-      CFunctionSummaryStatementEdge ciStmt = (CFunctionSummaryStatementEdge) ciEdge;
-      CFunctionSummaryStatementEdge aciStmt = (CFunctionSummaryStatementEdge) aciEdge;
-
+    if (ciEdge instanceof CFunctionSummaryStatementEdge ciStmt
+        && aciEdge instanceof CFunctionSummaryStatementEdge aciStmt) {
       if (!ciStmt.getFunctionName().equals(aciStmt.getFunctionName())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The functionName of the CFunctionSummaryStatementEdges "
@@ -546,11 +532,8 @@ public class CustomInstruction {
       final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
-    if (ci instanceof CExpressionAssignmentStatement
-        && aci instanceof CExpressionAssignmentStatement) {
-      CExpressionAssignmentStatement ciStmt = (CExpressionAssignmentStatement) ci;
-      CExpressionAssignmentStatement aciStmt = (CExpressionAssignmentStatement) aci;
-
+    if (ci instanceof CExpressionAssignmentStatement ciStmt
+        && aci instanceof CExpressionAssignmentStatement aciStmt) {
       // left side => output variables
       Map<String, String> currentCiVarToAciVar = new HashMap<>();
       ciStmt
@@ -566,17 +549,13 @@ public class CustomInstruction {
           .accept(
               new StructureExtendedComparisonVisitor(
                   aciStmt.getRightHandSide(), ciVarToAciVar, currentCiVarToAciVar));
-    } else if (ci instanceof CExpressionStatement && aci instanceof CExpressionStatement) {
-      CExpressionStatement ciStmt = (CExpressionStatement) ci;
-      CExpressionStatement aciStmt = (CExpressionStatement) aci;
+    } else if (ci instanceof CExpressionStatement ciStmt
+        && aci instanceof CExpressionStatement aciStmt) {
       ciStmt
           .getExpression()
           .accept(new StructureComparisonVisitor(aciStmt.getExpression(), ciVarToAciVar));
-    } else if (ci instanceof CFunctionCallAssignmentStatement
-        && aci instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement ciStmt = (CFunctionCallAssignmentStatement) ci;
-      CFunctionCallAssignmentStatement aciStmt = (CFunctionCallAssignmentStatement) aci;
-
+    } else if (ci instanceof CFunctionCallAssignmentStatement ciStmt
+        && aci instanceof CFunctionCallAssignmentStatement aciStmt) {
       // left side => output variables
       Map<String, String> currentCiVarToAciVar = new HashMap<>();
       ciStmt
@@ -588,10 +567,8 @@ public class CustomInstruction {
 
       compareFunctionCallExpressions(
           ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
-    } else if (ci instanceof CFunctionCallStatement && aci instanceof CFunctionCallStatement) {
-      CFunctionCallStatement ciStmt = (CFunctionCallStatement) ci;
-      CFunctionCallStatement aciStmt = (CFunctionCallStatement) aci;
-
+    } else if (ci instanceof CFunctionCallStatement ciStmt
+        && aci instanceof CFunctionCallStatement aciStmt) {
       compareFunctionCallExpressions(
           ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
     } else {
@@ -611,9 +588,7 @@ public class CustomInstruction {
     }
 
     exp.getFunctionNameExpression()
-        .accept(
-            new StructureComparisonVisitor(
-                aexp.getFunctionNameExpression(), new HashMap<String, String>()));
+        .accept(new StructureComparisonVisitor(aexp.getFunctionNameExpression(), new HashMap<>()));
 
     List<CExpression> ciList = exp.getParameterExpressions();
     List<CExpression> aciList = aexp.getParameterExpressions();
@@ -632,10 +607,8 @@ public class CustomInstruction {
     CDeclaration ciDec = ciEdge.getDeclaration();
     CDeclaration aciDec = aciEdge.getDeclaration();
 
-    if (ciDec instanceof CVariableDeclaration && aciDec instanceof CVariableDeclaration) {
-      CVariableDeclaration ciVarDec = (CVariableDeclaration) ciDec;
-      CVariableDeclaration aciVarDec = (CVariableDeclaration) aciDec;
-
+    if (ciDec instanceof CVariableDeclaration ciVarDec
+        && aciDec instanceof CVariableDeclaration aciVarDec) {
       if (!ciVarDec.getCStorageClass().equals(aciVarDec.getCStorageClass())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The CVariableDeclaration of ci "
@@ -711,18 +684,18 @@ public class CustomInstruction {
     } else if (ciI != null && aciI == null) {
       throw new AppliedCustomInstructionParsingFailedException(
           "The ci has an initializer but not the aci.");
-    } else if (ciI instanceof CInitializerExpression && aciI instanceof CInitializerExpression) {
-      ((CInitializerExpression) ciI)
+    } else if (ciI instanceof CInitializerExpression ciIExp
+        && aciI instanceof CInitializerExpression aciIExp) {
+      ciIExp
           .getExpression()
-          .accept(
-              new StructureComparisonVisitor(
-                  ((CInitializerExpression) aciI).getExpression(), ciVarToAciVar));
+          .accept(new StructureComparisonVisitor(aciIExp.getExpression(), ciVarToAciVar));
     } else if (ciI instanceof CDesignatedInitializer && aciI instanceof CDesignatedInitializer) {
       throw new AppliedCustomInstructionParsingFailedException(
           "The code contains a CDesignatedInitializer, which is unsupported.");
-    } else if (ciI instanceof CInitializerList && aciI instanceof CInitializerList) {
-      List<CInitializer> ciList = ((CInitializerList) ciI).getInitializers();
-      List<CInitializer> aciList = ((CInitializerList) aciI).getInitializers();
+    } else if (ciI instanceof CInitializerList ciIList
+        && aciI instanceof CInitializerList aciIList) {
+      List<CInitializer> ciList = ciIList.getInitializers();
+      List<CInitializer> aciList = aciIList.getInitializers();
 
       if (ciList.size() != aciList.size()) {
         throw new AppliedCustomInstructionParsingFailedException(
@@ -812,10 +785,10 @@ public class CustomInstruction {
   private static class StructureComparisonVisitor
       implements CExpressionVisitor<Void, AppliedCustomInstructionParsingFailedException> {
 
-    protected CExpression aciExp;
-    protected final Map<String, String> ciVarToAciVar;
+    CExpression aciExp;
+    final Map<String, String> ciVarToAciVar;
 
-    public StructureComparisonVisitor(
+    StructureComparisonVisitor(
         final CExpression pAciExp, final Map<String, String> pCiVarToAciVar) {
       aciExp = pAciExp;
       ciVarToAciVar = pCiVarToAciVar;
@@ -824,13 +797,12 @@ public class CustomInstruction {
     @Override
     public Void visit(final CArraySubscriptExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CArraySubscriptExpression)) {
+      if (!(aciExp instanceof CArraySubscriptExpression aciAExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression "
                 + aciExp
                 + " is not from the type CArraySubscriptExpression, but ci is.");
       }
-      CArraySubscriptExpression aciAExp = (CArraySubscriptExpression) aciExp;
       if (!ciExp.getExpressionType().equals(aciExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of ci " + ciExp + " and aci " + aciExp + " are different.");
@@ -847,11 +819,10 @@ public class CustomInstruction {
     @Override
     public Void visit(final CFieldReference ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CFieldReference)) {
+      if (!(aciExp instanceof CFieldReference aciFieldRefExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression " + aciExp + " is not from the type CFieldReference, but ci is.");
       }
-      CFieldReference aciFieldRefExp = (CFieldReference) aciExp;
       if (!ciExp.getExpressionType().equals(aciFieldRefExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of the FieldReference of ci "
@@ -880,8 +851,7 @@ public class CustomInstruction {
     @Override
     public Void visit(final CIdExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (aciExp instanceof CIdExpression) {
-        CIdExpression aciIdExp = (CIdExpression) aciExp;
+      if (aciExp instanceof CIdExpression aciIdExp) {
         if (!ciExp.getExpressionType().equals(aciIdExp.getExpressionType())) {
           throw new AppliedCustomInstructionParsingFailedException(
               "The expression type of the IdExpression of ci "
@@ -937,15 +907,14 @@ public class CustomInstruction {
       return null;
     }
 
-    protected void computeMapping(final String ciString, final String aciString) {
+    void computeMapping(final String ciString, final String aciString) {
       ciVarToAciVar.put(ciString, aciString);
     }
 
     private void compareSimpleTypes(
         final CIdExpression ciExp, final Number aciExpValue, final CSimpleType aciType)
         throws AppliedCustomInstructionParsingFailedException {
-      if (ciExp.getExpressionType() instanceof CSimpleType) {
-        CSimpleType ciST = (CSimpleType) ciExp.getExpressionType();
+      if (ciExp.getExpressionType() instanceof CSimpleType ciST) {
 
         if (isValidSimpleType(ciST, aciType)) {
           if (!ciVarToAciVar.containsKey(ciExp.getDeclaration().getQualifiedName())) {
@@ -973,37 +942,32 @@ public class CustomInstruction {
     }
 
     private boolean isValidSimpleType(final CSimpleType ciST, final CSimpleType pAciType) {
-      if (ciST.isComplex() == pAciType.isComplex()
-          && ciST.isConst() == pAciType.isConst()
-          && ciST.isImaginary() == pAciType.isImaginary()
-          && ciST.isLong() == pAciType.isLong()
-          && ciST.isLongLong() == pAciType.isLongLong()
-          && ciST.isShort() == pAciType.isShort()
-          && ciST.isSigned() == pAciType.isSigned()
-          && ciST.isUnsigned() == pAciType.isUnsigned()
-          && ciST.isVolatile() == pAciType.isVolatile()
+      return ciST.hasComplexSpecifier() == pAciType.hasComplexSpecifier()
+          && ciST.getQualifiers().equals(pAciType.getQualifiers())
+          && ciST.hasImaginarySpecifier() == pAciType.hasImaginarySpecifier()
+          && ciST.hasLongSpecifier() == pAciType.hasLongSpecifier()
+          && ciST.hasLongLongSpecifier() == pAciType.hasLongLongSpecifier()
+          && ciST.hasShortSpecifier() == pAciType.hasShortSpecifier()
+          && ciST.hasSignedSpecifier() == pAciType.hasSignedSpecifier()
+          && ciST.hasUnsignedSpecifier() == pAciType.hasUnsignedSpecifier()
           && (ciST.getType().isIntegerType() || ciST.getType().isFloatingPointType())
-          && ciST.isComplex() == ciST.isImaginary()
-          && ciST.isImaginary() == ciST.isLong()
-          && ciST.isLong() == ciST.isLongLong()
-          && ciST.isLongLong() == ciST.isShort()
-          && ciST.isShort() == ciST.isSigned()
-          && ciST.isSigned() == ciST.isUnsigned()) {
-        return true;
-      }
-      return false;
+          && ciST.hasComplexSpecifier() == ciST.hasImaginarySpecifier()
+          && ciST.hasImaginarySpecifier() == ciST.hasLongSpecifier()
+          && ciST.hasLongSpecifier() == ciST.hasLongLongSpecifier()
+          && ciST.hasLongLongSpecifier() == ciST.hasShortSpecifier()
+          && ciST.hasShortSpecifier() == ciST.hasSignedSpecifier()
+          && ciST.hasSignedSpecifier() == ciST.hasUnsignedSpecifier();
     }
 
     @Override
     public Void visit(final CPointerExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CPointerExpression)) {
+      if (!(aciExp instanceof CPointerExpression aciPExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression "
                 + aciExp
                 + " is not from the type CPointerExpression, but ci is.");
       }
-      CPointerExpression aciPExp = (CPointerExpression) aciExp;
       if (!ciExp.getExpressionType().equals(aciPExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of the CPointerExpression of ci "
@@ -1024,13 +988,12 @@ public class CustomInstruction {
     @Override
     public Void visit(final CComplexCastExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CComplexCastExpression)) {
+      if (!(aciExp instanceof CComplexCastExpression aciCExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression "
                 + aciExp
                 + " is not from the type CComplexCastExpression, but ci is.");
       }
-      CComplexCastExpression aciCExp = (CComplexCastExpression) aciExp;
       if (ciExp.isImaginaryCast() != aciCExp.isImaginaryCast()) {
         throw new AppliedCustomInstructionParsingFailedException(
             "One of the ci "
@@ -1080,9 +1043,7 @@ public class CustomInstruction {
     public Void visit(final CBinaryExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
 
-      if (aciExp instanceof CBinaryExpression) {
-        CBinaryExpression aciBinExp = (CBinaryExpression) aciExp;
-
+      if (aciExp instanceof CBinaryExpression aciBinExp) {
         // expression types are different
         if (!ciExp.getExpressionType().equals(aciBinExp.getExpressionType())) {
           throw new AppliedCustomInstructionParsingFailedException(
@@ -1129,11 +1090,10 @@ public class CustomInstruction {
     @Override
     public Void visit(final CCastExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CCastExpression)) {
+      if (!(aciExp instanceof CCastExpression aciPExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression " + aciExp + " is not from the type CCastExpression, but ci is.");
       }
-      CCastExpression aciPExp = (CCastExpression) aciExp;
       if (!ciExp.getExpressionType().equals(aciPExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of the CCastExpression of ci "
@@ -1154,13 +1114,12 @@ public class CustomInstruction {
     @Override
     public Void visit(final CCharLiteralExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CCharLiteralExpression)) {
+      if (!(aciExp instanceof CCharLiteralExpression aciCharExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression "
                 + aciExp
                 + " is not from the type CCharLiteralExpression, but ci is.");
       }
-      CCharLiteralExpression aciCharExp = (CCharLiteralExpression) aciExp;
       if (!ciExp.getExpressionType().equals(aciCharExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of the CharLiteralExpression of ci "
@@ -1187,13 +1146,12 @@ public class CustomInstruction {
     @Override
     public Void visit(final CFloatLiteralExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CFloatLiteralExpression)) {
+      if (!(aciExp instanceof CFloatLiteralExpression aciFloatExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression "
                 + aciExp
                 + " is not from the type CFloatLiteralExpression, but ci is.");
       }
-      CFloatLiteralExpression aciFloatExp = (CFloatLiteralExpression) aciExp;
       if (!ciExp.getExpressionType().equals(aciFloatExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of the FloatLiteralExpression of ci "
@@ -1206,9 +1164,9 @@ public class CustomInstruction {
                 + aciFloatExp.getExpressionType()
                 + ").");
       }
-      if (ciExp.getValue().compareTo(aciFloatExp.getValue()) != 0) {
+      if (!ciExp.getValue().equals(aciFloatExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException(
-            "The value of the CCharLiteralExpression of ci "
+            "The value of the FloatLiteralExpression of ci "
                 + ciExp
                 + " and aci "
                 + aciFloatExp
@@ -1220,13 +1178,12 @@ public class CustomInstruction {
     @Override
     public Void visit(final CIntegerLiteralExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CIntegerLiteralExpression)) {
+      if (!(aciExp instanceof CIntegerLiteralExpression aciIntegerLiteralExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression "
                 + aciExp
                 + " is not from the type CIntegerLiteralExpression, but ci is.");
       }
-      CIntegerLiteralExpression aciIntegerLiteralExp = (CIntegerLiteralExpression) aciExp;
       if (!ciExp.getExpressionType().equals(aciIntegerLiteralExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of the IntegerLiteralExpression of ci "
@@ -1253,13 +1210,12 @@ public class CustomInstruction {
     @Override
     public Void visit(final CStringLiteralExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CStringLiteralExpression)) {
+      if (!(aciExp instanceof CStringLiteralExpression aciStringLiteralExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression "
                 + aciExp
                 + " is not from the type CStringLiteralExpression, but ci is.");
       }
-      CStringLiteralExpression aciStringLiteralExp = (CStringLiteralExpression) aciExp;
       if (!ciExp.getExpressionType().equals(aciStringLiteralExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of the StringLiteralExpression of ci "
@@ -1272,7 +1228,9 @@ public class CustomInstruction {
                 + aciStringLiteralExp.getExpressionType()
                 + ").");
       }
-      if (!ciExp.getValue().equals(aciStringLiteralExp.getValue())) {
+      if (!ciExp
+          .getContentWithNullTerminator()
+          .equals(aciStringLiteralExp.getContentWithNullTerminator())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The value of the CIntegerLiteralExpression of ci "
                 + ciExp
@@ -1286,11 +1244,10 @@ public class CustomInstruction {
     @Override
     public Void visit(final CTypeIdExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CTypeIdExpression)) {
+      if (!(aciExp instanceof CTypeIdExpression aciIdExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression " + aciExp + " is not from the type CTypeIdExpression, but ci is.");
       }
-      CTypeIdExpression aciIdExp = (CTypeIdExpression) aciExp;
       if (!ciExp.getExpressionType().equals(aciIdExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of the CTypeIdExpression of ci "
@@ -1334,9 +1291,7 @@ public class CustomInstruction {
     public Void visit(final CUnaryExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
 
-      if (aciExp instanceof CUnaryExpression) {
-        CUnaryExpression aciUnExp = (CUnaryExpression) aciExp;
-
+      if (aciExp instanceof CUnaryExpression aciUnExp) {
         // expression types are different
         if (!ciExp.getExpressionType().equals(aciUnExp.getExpressionType())) {
           throw new AppliedCustomInstructionParsingFailedException(
@@ -1382,13 +1337,12 @@ public class CustomInstruction {
     @Override
     public Void visit(final CAddressOfLabelExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CAddressOfLabelExpression)) {
+      if (!(aciExp instanceof CAddressOfLabelExpression aciAExp)) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The aci expression "
                 + aciExp
                 + " is not from the type CAddressOfLabelExpression, but ci is.");
       }
-      CAddressOfLabelExpression aciAExp = (CAddressOfLabelExpression) aciExp;
       if (!ciExp.getExpressionType().equals(aciAExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The expression type of the CAddressOfLabelExpression of ci "
@@ -1417,7 +1371,7 @@ public class CustomInstruction {
 
     private final Map<String, String> currentCiVarToAciVar;
 
-    public StructureExtendedComparisonVisitor(
+    StructureExtendedComparisonVisitor(
         final CExpression pAciExp,
         final Map<String, String> pCiVarToAciVar,
         Map<String, String> pCurrentCiVarToAciVar) {

@@ -2,8 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// Copyright (C) 2007-2020  Dirk Beyer
-// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -17,7 +16,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
@@ -32,17 +30,17 @@ public class ASTConverterTest {
   @Test
   public void testGetClassOfJType() {
     Optional<Class<?>> optionalOfPrimitiveType =
-        ASTConverter.getClassOfJType(JSimpleType.getBoolean(), ImmutableSet.of());
+        ASTConverter.getClassOfJType(JSimpleType.BOOLEAN, ImmutableSet.of());
     assertThat(optionalOfPrimitiveType.orElseThrow()).isEqualTo(boolean.class);
   }
 
   @Test
   public void testGetClassOfPrimitiveType() {
-    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.getInt())).isEqualTo(int.class);
+    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.INT)).isEqualTo(int.class);
 
-    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.getLong())).isEqualTo(long.class);
+    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.LONG)).isEqualTo(long.class);
 
-    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.getVoid())).isEqualTo(void.class);
+    assertThat(ASTConverter.getClassOfPrimitiveType(JSimpleType.VOID)).isEqualTo(void.class);
   }
 
   @Test
@@ -70,7 +68,7 @@ public class ASTConverterTest {
         true,
         false,
         false,
-        JClassType.getTypeOfObject(),
+        JClassType.createObjectType(),
         ImmutableSet.of());
   }
 
@@ -78,6 +76,6 @@ public class ASTConverterTest {
   public void testUnboxing() {
     JClassType jClassTypeOfInteger = createStringJClassType("java.lang.Integer", "Integer");
     assertThat(ASTConverter.unboxJClassType(jClassTypeOfInteger).orElseThrow())
-        .isEqualTo(JBasicType.INT);
+        .isEqualTo(JSimpleType.INT);
   }
 }

@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -44,6 +45,9 @@ final class CollectingLHSVisitor
     return Pair.of(
         r.getFirst(),
         r.getSecond()
+            .withDependencies(
+                e.getArrayExpression()
+                    .accept(CollectingRHSVisitor.create(cfa, VariableOrField.unknown())))
             .withDependencies(
                 e.getSubscriptExpression().accept(CollectingRHSVisitor.create(cfa, r.getFirst()))));
   }
@@ -83,11 +87,18 @@ final class CollectingLHSVisitor
   }
 
   @Override
+  public Pair<VariableOrField, VarFieldDependencies> visit(CIntegerLiteralExpression pE) {
+    checkNotNull(pE);
+    // Something like ((char *)0)* = ...
+    return Pair.of(VariableOrField.unknown(), VarFieldDependencies.emptyDependencies());
+  }
+
+  @Override
   protected Pair<VariableOrField, VarFieldDependencies> visitDefault(final CExpression e) {
-    if (e instanceof CUnaryExpression
-        && UnaryOperator.AMPER == ((CUnaryExpression) e).getOperator()) {
+    if (e instanceof CUnaryExpression cUnaryExpression
+        && UnaryOperator.AMPER == cUnaryExpression.getOperator()) {
       // TODO dependency between address and variable?
-      return ((CUnaryExpression) e).getOperand().accept(this);
+      return cUnaryExpression.getOperand().accept(this);
     }
 
     throw new AssertionError(

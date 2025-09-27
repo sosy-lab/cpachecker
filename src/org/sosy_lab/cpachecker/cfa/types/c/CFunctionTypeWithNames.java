@@ -12,7 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -25,9 +25,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
  */
 public final class CFunctionTypeWithNames extends CFunctionType implements CType {
 
-  private static final long serialVersionUID = -3585082910610497708L;
+  @Serial private static final long serialVersionUID = -3585082910610497708L;
 
-  @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "writeReplace() takes care of this")
   private final List<CParameterDeclaration> parameters;
 
   public CFunctionTypeWithNames(
@@ -76,17 +75,14 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
       return true;
     }
 
-    if (!(obj instanceof CFunctionTypeWithNames) || !super.equals(obj)) {
-      return false;
-    }
-
-    CFunctionTypeWithNames other = (CFunctionTypeWithNames) obj;
-
-    return Objects.equals(parameters, other.parameters);
+    return obj instanceof CFunctionTypeWithNames other
+        && super.equals(obj)
+        && Objects.equals(parameters, other.parameters);
   }
 
+  @Serial
   private Object writeReplace() {
-    // Cannot serialize parameter names, but typically this is not necessary anyway.
+    // Cannot serialize parameter names, but this is not necessary anyway.
     return new CFunctionType(getReturnType(), getParameters(), takesVarArgs());
   }
 }

@@ -153,20 +153,20 @@ public final class TemplateToFormulaConversionManager {
       } catch (UnrecognizedCodeException e) {
         throw new UnsupportedOperationException();
       }
-      if (!(item instanceof BitvectorFormula)) {
+      if (!(item instanceof BitvectorFormula b)) {
         continue;
       }
-      BitvectorFormula b = (BitvectorFormula) item;
+
       length = Math.max(fmgr.getBitvectorFormulaManager().getLength(b), length);
     }
     return length;
   }
 
   private Formula normalizeLength(Formula f, int maxBitvectorSize, FormulaManagerView fmgr) {
-    if (!(f instanceof BitvectorFormula)) {
+    if (!(f instanceof BitvectorFormula bv)) {
       return f;
     }
-    BitvectorFormula bv = (BitvectorFormula) f;
+
     return fmgr.getBitvectorFormulaManager()
         .extend(
             bv,
@@ -196,11 +196,8 @@ public final class TemplateToFormulaConversionManager {
       if (this == pO) {
         return true;
       }
-      if (!(pO instanceof ToFormulaCacheKey)) {
-        return false;
-      }
-      ToFormulaCacheKey that = (ToFormulaCacheKey) pO;
-      return pathFormulaManager == that.pathFormulaManager
+      return pO instanceof ToFormulaCacheKey that
+          && pathFormulaManager == that.pathFormulaManager
           && formulaManagerView == that.formulaManagerView
           && Objects.equals(template, that.template)
           && Objects.equals(contextFormula, that.contextFormula);

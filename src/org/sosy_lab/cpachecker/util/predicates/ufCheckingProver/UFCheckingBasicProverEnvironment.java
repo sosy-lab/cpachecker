@@ -52,7 +52,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
     /**
      * For some UFs we can compute the correct result for the given parameters, but then the solver
      * chooses new parameters and we have to compute a new result. Again, and again. Example: we try
-     * to solve "a=2 & UF_multiply(a,b)=5" and try b=[1,2,3,...]. Thus we abort after some
+     * to solve "a=2 & UF_multiply(a,b)=5" and try b=[1,2,3,...]. Thus, we abort after some
      * iterations and ignore the invalid result of the UF. This procedure should be sound.
      */
     @Option(description = "How often should we try to get a better evaluation?")
@@ -74,12 +74,12 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
       LogManager pLogger,
       BasicProverEnvironment<T> bpe,
       FormulaManagerView pFmgr,
-      UFCheckingProverOptions options) {
-    this.delegate = bpe;
-    this.logger = pLogger;
-    this.bfmgr = pFmgr.getBooleanFormulaManager();
-    this.faMgr = new FunctionApplicationManager(pFmgr, pLogger, options);
-    this.options = options;
+      UFCheckingProverOptions pOptions) {
+    delegate = bpe;
+    logger = pLogger;
+    bfmgr = pFmgr.getBooleanFormulaManager();
+    faMgr = new FunctionApplicationManager(pFmgr, pLogger, pOptions);
+    options = pOptions;
   }
 
   @Override
@@ -112,7 +112,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   }
 
   @Override
-  public void push() {
+  public void push() throws InterruptedException {
 
     // add new level
     pushedConstraints.addLast(0);

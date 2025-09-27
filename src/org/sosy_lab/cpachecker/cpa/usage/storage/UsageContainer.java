@@ -68,10 +68,10 @@ public class UsageContainer {
 
   public UsageContainer(UsageConfiguration config, LogManager l, UnsafeDetector unsafeDetector) {
     this(
-        new TreeMap<SingleIdentifier, UnrefinedUsagePointSet>(),
-        new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeSet<SingleIdentifier>(),
+        new TreeMap<>(),
+        new TreeMap<>(),
+        new TreeMap<>(),
+        new TreeSet<>(),
         l,
         config,
         unsafeDetector);
@@ -169,13 +169,13 @@ public class UsageContainer {
         }
         UnrefinedUsagePointSet uset = getSet(id);
 
-        LockState locks, expandedLocks;
         for (UsageInfo uinfo : entry.getValue()) {
           if (uinfo.getKeyState() == null) {
             // TODO what should we do?
             continue;
           }
-          locks = (LockState) uinfo.getLockState();
+          LockState locks = (LockState) uinfo.getLockState();
+          LockState expandedLocks;
           if (reduceToExpand.containsKey(locks)) {
             expandedLocks = reduceToExpand.get(locks);
           } else {

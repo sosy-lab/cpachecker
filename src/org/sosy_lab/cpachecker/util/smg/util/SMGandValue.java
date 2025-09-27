@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /*
- * Sometimes we need to return a SMG and a SMGValue.
+ * Sometimes we need to return an SMG and an SMGValue.
  */
 public class SMGandValue {
 
@@ -34,14 +34,9 @@ public class SMGandValue {
 
   @Override
   public boolean equals(Object other) {
-    if (other == null) {
-      return false;
-    }
-    if (!(other instanceof SMGandValue)) {
-      return false;
-    }
-    SMGandValue otherSMGaV = (SMGandValue) other;
-    return smg.equals(otherSMGaV.getSMG()) && value.equals(otherSMGaV.getValue());
+    return other instanceof SMGandValue otherSMGaV
+        && smg.equals(otherSMGaV.getSMG())
+        && value.equals(otherSMGaV.getValue());
   }
 
   @Override

@@ -26,7 +26,9 @@ import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 /** Detects Byte Order Mark (BOM) in a C file and decodes the file accordingly */
-public class BOMParser {
+public final class BOMParser {
+
+  private BOMParser() {}
 
   private enum ByteOrderMark {
     NO_BOM(Charset.defaultCharset(), ImmutableList.of()),
@@ -65,7 +67,7 @@ public class BOMParser {
    *
    * @param pFilename - the file name as string
    * @return String - the code as string
-   * @throws CParserException - if we have a unknown BOM or a BOM file with non ascii characters in
+   * @throws CParserException - if we have an unknown BOM or a BOM file with non ascii characters in
    *     the code
    */
   public static String filterAndDecode(Path pFilename) throws IOException, CParserException {
@@ -85,14 +87,11 @@ public class BOMParser {
         }
       }
       switch (bom) {
-        case NO_BOM:
-          // Reset the stream to read the file from the beginning again
-          in.reset();
-          break;
-        case UNKNOWN_BOM:
-          throw new CParserException("Byte Order Mark is unknown");
-        default:
-          break;
+        case NO_BOM ->
+            // Reset the stream to read the file from the beginning again
+            in.reset();
+        case UNKNOWN_BOM -> throw new CParserException("Byte Order Mark is unknown");
+        default -> {}
       }
       String code;
       try (InputStreamReader reader = new InputStreamReader(in, bom.charset)) {

@@ -31,8 +31,8 @@ public class Equal<ConstantType> implements BooleanFormula<ConstantType> {
    */
   private Equal(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     Preconditions.checkArgument(pOperand1.getTypeInfo().equals(pOperand2.getTypeInfo()));
-    this.operand1 = pOperand1;
-    this.operand2 = pOperand2;
+    operand1 = pOperand1;
+    operand2 = pOperand2;
   }
 
   public NumeralFormula<ConstantType> getOperand1() {
@@ -48,8 +48,8 @@ public class Equal<ConstantType> implements BooleanFormula<ConstantType> {
     if (this == o) {
       return true;
     }
-    if (o instanceof Equal) {
-      Equal<?> other = (Equal<?>) o;
+    if (o instanceof Equal<?> other) {
+      // Equal is commutative.
       return (getOperand1().equals(other.getOperand1())
               && getOperand2().equals(other.getOperand2()))
           || (getOperand1().equals(other.getOperand2())

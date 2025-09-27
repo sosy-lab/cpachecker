@@ -13,17 +13,13 @@ import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
@@ -34,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
@@ -107,82 +102,62 @@ public class MemoryLocationExtractor {
     environment = pEnvironment;
   }
 
-  public MemoryLocation getMemoryLocation(AParameterDeclaration pParameterDeclaration) {
-    String varName = pParameterDeclaration.getName();
-    if (pParameterDeclaration instanceof CSimpleDeclaration) {
-      CSimpleDeclaration decl = (CSimpleDeclaration) pParameterDeclaration;
-
-      if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
-          || decl instanceof CEnumerator)) {
-        return scope(varName);
-      }
-    }
-    return MemoryLocation.parseExtendedQualifiedName(varName);
-  }
-
   public MemoryLocation getMemoryLocation(AExpression pLhs) throws UnrecognizedCodeException {
-    if (pLhs instanceof AIdExpression) {
-      return getMemoryLocation((AIdExpression) pLhs);
-    } else if (pLhs instanceof CFieldReference) {
-      CFieldReference fieldRef = (CFieldReference) pLhs;
-      String varName = fieldRef.getFieldName();
-      CExpression owner = fieldRef.getFieldOwner();
-      return getFieldReferenceMemoryLocation(varName, owner, fieldRef.isPointerDereference());
-    } else if (pLhs instanceof JFieldAccess) {
-      JFieldAccess fieldRef = (JFieldAccess) pLhs;
-      String varName = fieldRef.getName();
-      JIdExpression owner = fieldRef.getReferencedVariable();
-      return getFieldReferenceMemoryLocation(varName, owner, false);
-    } else if (pLhs instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) pLhs;
-      CExpression subscript = arraySubscript.getSubscriptExpression();
-      CExpression owner = arraySubscript.getArrayExpression();
-      return getArraySubscriptMemoryLocation(owner, subscript);
-    } else if (pLhs instanceof JArraySubscriptExpression) {
-      JArraySubscriptExpression arraySubscript = (JArraySubscriptExpression) pLhs;
-      JExpression subscript = arraySubscript.getSubscriptExpression();
-      JExpression owner = arraySubscript.getArrayExpression();
-      return getArraySubscriptMemoryLocation(owner, subscript);
-    } else if (pLhs instanceof CPointerExpression) {
-      CPointerExpression pe = (CPointerExpression) pLhs;
-      if (pe.getOperand() instanceof CLeftHandSide) {
-        // TODO
-        return MemoryLocation.parseExtendedQualifiedName(
-            String.format("*(%s)", getMemoryLocation(pe.getOperand())));
+    return switch (pLhs) {
+      case CFieldReference fieldRef -> {
+        String varName = fieldRef.getFieldName();
+        CExpression owner = fieldRef.getFieldOwner();
+        yield getFieldReferenceMemoryLocation(varName, owner, fieldRef.isPointerDereference());
       }
-      // TODO
-      return scope(pLhs.toString());
-    } else if (pLhs instanceof CCastExpression) {
-      CCastExpression cast = (CCastExpression) pLhs;
-      return getMemoryLocation(cast.getOperand());
-    } else if (pLhs instanceof JCastExpression) {
-      JCastExpression cast = (JCastExpression) pLhs;
-      return getMemoryLocation(cast.getOperand());
-    } else if (pLhs instanceof CUnaryExpression
-        && ((CUnaryExpression) pLhs).getOperator() == UnaryOperator.AMPER) {
-      // TODO
-      return MemoryLocation.parseExtendedQualifiedName(
-          String.format("&(%s)", getMemoryLocation(((CUnaryExpression) pLhs).getOperand())));
-    } else {
-      // TODO
-      // This actually seems wrong but is currently the only way to deal with some cases of pointer
-      // arithmetics
-      return scope(pLhs.toString());
-    }
+      case JFieldAccess fieldRef -> {
+        String varName = fieldRef.getName();
+        JIdExpression owner = fieldRef.getReferencedVariable();
+        yield getFieldReferenceMemoryLocation(varName, owner, false);
+      }
+      case AIdExpression aIdExpression -> getMemoryLocation(aIdExpression);
+
+      case CArraySubscriptExpression arraySubscript -> {
+        CExpression subscript = arraySubscript.getSubscriptExpression();
+        CExpression owner = arraySubscript.getArrayExpression();
+        yield getArraySubscriptMemoryLocation(owner, subscript);
+      }
+      case JArraySubscriptExpression arraySubscript -> {
+        JExpression subscript = arraySubscript.getSubscriptExpression();
+        JExpression owner = arraySubscript.getArrayExpression();
+        yield getArraySubscriptMemoryLocation(owner, subscript);
+      }
+      case CPointerExpression pe when pe.getOperand() instanceof CLeftHandSide ->
+          // TODO
+          MemoryLocation.parseExtendedQualifiedName(
+              String.format("*(%s)", getMemoryLocation(pe.getOperand())));
+
+      case CPointerExpression pe ->
+          // TODO
+          MemoryLocation.forLocalVariable(functionName, pLhs.toString());
+
+      case CCastExpression cast -> getMemoryLocation(cast.getOperand());
+
+      case JCastExpression cast -> getMemoryLocation(cast.getOperand());
+
+      case CUnaryExpression cUnaryExpression
+          when cUnaryExpression.getOperator() == UnaryOperator.AMPER ->
+          // TODO
+          MemoryLocation.parseExtendedQualifiedName(
+              String.format("&(%s)", getMemoryLocation(cUnaryExpression.getOperand())));
+
+      default ->
+          // TODO
+          // This actually seems wrong but is currently the only way to deal with some cases of
+          // pointer arithmetics
+          MemoryLocation.forLocalVariable(functionName, pLhs.toString());
+    };
   }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
-    CIdExpression var = (CIdExpression) pIdExpression;
-    String varName = var.getName();
-    if (var.getDeclaration() != null) {
-      CSimpleDeclaration decl = var.getDeclaration();
-
-      if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
-          || decl instanceof CEnumerator)) {
-        return scope(varName);
-      }
+    if (pIdExpression.getDeclaration() != null) {
+      return MemoryLocation.forDeclaration(pIdExpression.getDeclaration());
     }
-    return MemoryLocation.parseExtendedQualifiedName(varName);
+    return MemoryLocation.forIdentifier(pIdExpression.getName());
   }
 
   private MemoryLocation getFieldReferenceMemoryLocation(
@@ -200,8 +175,7 @@ public class MemoryLocationExtractor {
 
     // TODO: calculate correct memory locations
 
-    if (pSubscript instanceof CIntegerLiteralExpression) {
-      CIntegerLiteralExpression literal = (CIntegerLiteralExpression) pSubscript;
+    if (pSubscript instanceof CIntegerLiteralExpression literal) {
       return MemoryLocation.parseExtendedQualifiedName(
           String.format("%s[%d]", getMemoryLocation(pOwner), literal.asLong()));
     }
@@ -209,10 +183,10 @@ public class MemoryLocationExtractor {
     ExpressionToFormulaVisitor expressionToFormulaVisitor =
         new ExpressionToFormulaVisitor(
             compoundIntervalManagerFactory, machineModel, this, environment);
-    if (pSubscript instanceof CExpression) {
-      subscriptValue = evaluate(((CExpression) pSubscript).accept(expressionToFormulaVisitor));
-    } else if (pSubscript instanceof JExpression) {
-      subscriptValue = evaluate(((JExpression) pSubscript).accept(expressionToFormulaVisitor));
+    if (pSubscript instanceof CExpression cExpression) {
+      subscriptValue = evaluate(cExpression.accept(expressionToFormulaVisitor));
+    } else if (pSubscript instanceof JExpression jExpression) {
+      subscriptValue = evaluate(jExpression.accept(expressionToFormulaVisitor));
     } else {
       subscriptValue =
           compoundIntervalManagerFactory
@@ -231,14 +205,6 @@ public class MemoryLocationExtractor {
     return pFormula.accept(
         new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory, false),
         environment);
-  }
-
-  private MemoryLocation scope(String pVar) {
-    return scope(pVar, functionName);
-  }
-
-  public static MemoryLocation scope(String pVar, String pFunction) {
-    return MemoryLocation.forLocalVariable(pFunction, pVar);
   }
 
   public boolean isFunctionScoped(String pScopedVariableName) {

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -59,18 +60,15 @@ public final class PointerTarget implements Serializable {
   public boolean equals(Object other) {
     if (this == other) {
       return true;
-    } else if (!(other instanceof PointerTarget)) {
-      return false;
-    } else {
-      final PointerTarget o = (PointerTarget) other;
-      return properOffset == o.properOffset
-          && containerOffset == o.containerOffset
-          && base.equals(o.base)
-          && (containerType != null
-              ? o.containerType != null
-                  && containerType.getCanonicalType().equals(o.containerType.getCanonicalType())
-              : o.containerType == null);
     }
+    return other instanceof PointerTarget o
+        && properOffset == o.properOffset
+        && containerOffset == o.containerOffset
+        && base.equals(o.base)
+        && (containerType != null
+            ? o.containerType != null
+                && containerType.getCanonicalType().equals(o.containerType.getCanonicalType())
+            : o.containerType == null);
   }
 
   @Override
@@ -90,5 +88,5 @@ public final class PointerTarget implements Serializable {
   final long properOffset;
   final long containerOffset;
 
-  private static final long serialVersionUID = -1258065871533686442L;
+  @Serial private static final long serialVersionUID = -1258065871533686442L;
 }

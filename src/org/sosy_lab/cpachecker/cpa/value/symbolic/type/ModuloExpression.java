@@ -8,13 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** {@link BinarySymbolicExpression} representing modulo. */
 public final class ModuloExpression extends BinarySymbolicExpression {
 
-  private static final long serialVersionUID = -3811685505186438010L;
+  @Serial private static final long serialVersionUID = -3811685505186438010L;
 
   ModuloExpression(
       SymbolicExpression pOperand1,
@@ -33,10 +35,25 @@ public final class ModuloExpression extends BinarySymbolicExpression {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 
+  private ModuloExpression(
+      final SymbolicExpression pOperand1,
+      final SymbolicExpression pOperand2,
+      final Type pExpressionType,
+      final Type pCalculationType,
+      final AbstractState pAbstractState) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
+  }
+
   @Override
   public ModuloExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new ModuloExpression(
         getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new ModuloExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pCurrentState);
   }
 
   @Override

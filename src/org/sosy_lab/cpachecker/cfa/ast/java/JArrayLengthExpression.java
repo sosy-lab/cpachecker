@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -22,21 +23,21 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
  *    int b = a.length;
  *  </pre>
  */
-public abstract class JArrayLengthExpression extends AbstractExpression
-    implements JExpression, JAstNode, JRightHandSide {
+public abstract sealed class JArrayLengthExpression extends AbstractExpression
+    implements JExpression {
 
-  private static final long serialVersionUID = 7278006181009822118L;
+  @Serial private static final long serialVersionUID = 7278006181009822118L;
 
   private JArrayLengthExpression(FileLocation pFileLocation) {
-    super(pFileLocation, JSimpleType.getInt());
+    super(pFileLocation, JSimpleType.INT);
   }
 
   public static JArrayLengthExpression getInstance(JExpression pQualifier, FileLocation pLocation) {
-    if (pQualifier instanceof JArraySubscriptExpression) {
-      return new JSubArrayLengthExpression(pLocation, (JArraySubscriptExpression) pQualifier);
+    if (pQualifier instanceof JArraySubscriptExpression jArraySubscriptExpression) {
+      return new JSubArrayLengthExpression(pLocation, jArraySubscriptExpression);
 
-    } else if (pQualifier instanceof JIdExpression) {
-      return new JTopArrayLengthExpression(pLocation, (JIdExpression) pQualifier);
+    } else if (pQualifier instanceof JIdExpression jIdExpression) {
+      return new JTopArrayLengthExpression(pLocation, jIdExpression);
 
     } else {
       throw new AssertionError("Unexpected expression " + pQualifier);
@@ -55,18 +56,17 @@ public abstract class JArrayLengthExpression extends AbstractExpression
     return v.visit(this);
   }
 
-  private static class JSubArrayLengthExpression extends JArrayLengthExpression {
-    private static final long serialVersionUID = 7488687702133599086L;
+  private static final class JSubArrayLengthExpression extends JArrayLengthExpression {
+    @Serial private static final long serialVersionUID = 7488687702133599086L;
     private final JArraySubscriptExpression qualifier;
 
-    public JSubArrayLengthExpression(
-        FileLocation pFileLocation, JArraySubscriptExpression pQualifier) {
+    JSubArrayLengthExpression(FileLocation pFileLocation, JArraySubscriptExpression pQualifier) {
       super(pFileLocation);
       qualifier = pQualifier;
     }
 
     @Override
-    public String toASTString(boolean pQualified) {
+    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
       return toASTString();
     }
 
@@ -81,9 +81,9 @@ public abstract class JArrayLengthExpression extends AbstractExpression
     }
   }
 
-  private static class JTopArrayLengthExpression extends JArrayLengthExpression {
+  private static final class JTopArrayLengthExpression extends JArrayLengthExpression {
 
-    private static final long serialVersionUID = -2662310110400103416L;
+    @Serial private static final long serialVersionUID = -2662310110400103416L;
     private final JIdExpression qualifier;
 
     private JTopArrayLengthExpression(FileLocation pFileLocation, JIdExpression pQualifier) {
@@ -92,7 +92,7 @@ public abstract class JArrayLengthExpression extends AbstractExpression
     }
 
     @Override
-    public String toASTString(boolean pQualified) {
+    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
       return toASTString();
     }
 

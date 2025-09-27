@@ -12,8 +12,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -22,23 +22,22 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
 public class SignState
     implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
 
-  private static final long serialVersionUID = -2507059869178203119L;
+  @Serial private static final long serialVersionUID = -2507059869178203119L;
 
   private static final boolean DEBUG = false;
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
-  private PersistentMap<String, SIGN> signMap;
+  private final PersistentMap<String, Sign> signMap;
 
   public static final SignState TOP = new SignState();
   private static final SerialProxySign proxy = new SerialProxySign();
 
-  private SignState(PersistentMap<String, SIGN> pSignMap) {
+  private SignState(PersistentMap<String, Sign> pSignMap) {
     signMap = pSignMap;
   }
 
@@ -61,8 +60,8 @@ public class SignState
     }
 
     SignState result = SignState.TOP;
-    PersistentMap<String, SIGN> newMap = PathCopyingPersistentTreeMap.of();
-    SIGN combined;
+    PersistentMap<String, Sign> newMap = PathCopyingPersistentTreeMap.of();
+    Sign combined;
     for (String varIdent : pToJoin.signMap.keySet()) {
       // only add those variables that are contained in both states (otherwise one has value ALL
       // (not saved))
@@ -95,12 +94,12 @@ public class SignState
     return true;
   }
 
-  public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
-    PersistentMap<String, SIGN> newMap = signMap;
+  public SignState enterFunction(ImmutableMap<String, Sign> pArguments) {
+    PersistentMap<String, Sign> newMap = signMap;
 
-    for (Map.Entry<String, SIGN> entry : pArguments.entrySet()) {
+    for (Map.Entry<String, Sign> entry : pArguments.entrySet()) {
       String var = entry.getKey();
-      if (!entry.getValue().equals(SIGN.ALL)) {
+      if (!entry.getValue().equals(Sign.ALL)) {
         newMap = newMap.putAndCopy(var, entry.getValue());
       }
     }
@@ -109,7 +108,7 @@ public class SignState
   }
 
   public SignState leaveFunction(String pFunctionName) {
-    PersistentMap<String, SIGN> newMap = signMap;
+    PersistentMap<String, Sign> newMap = signMap;
 
     for (String var : signMap.keySet()) {
       if (var.startsWith(pFunctionName + "::")) {
@@ -120,7 +119,7 @@ public class SignState
     return newMap == signMap ? this : new SignState(newMap);
   }
 
-  public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
+  public SignState assignSignToVariable(String pVarIdent, Sign sign) {
     if (sign.isAll()) {
       return signMap.containsKey(pVarIdent)
           ? new SignState(signMap.removeAndCopy(pVarIdent))
@@ -132,11 +131,11 @@ public class SignState
   }
 
   public SignState removeSignAssumptionOfVariable(String pVarIdent) {
-    return assignSignToVariable(pVarIdent, SIGN.ALL);
+    return assignSignToVariable(pVarIdent, Sign.ALL);
   }
 
-  public SIGN getSignForVariable(String pVarIdent) {
-    return signMap.containsKey(pVarIdent) ? signMap.get(pVarIdent) : SIGN.ALL;
+  public Sign getSignForVariable(String pVarIdent) {
+    return signMap.containsKey(pVarIdent) ? signMap.get(pVarIdent) : Sign.ALL;
   }
 
   @Override
@@ -161,10 +160,7 @@ public class SignState
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof SignState)) {
-      return false;
-    }
-    return ((SignState) pObj).signMap.equals(signMap);
+    return pObj instanceof SignState other && other.signMap.equals(signMap);
   }
 
   @Override
@@ -172,6 +168,7 @@ public class SignState
     return signMap.hashCode();
   }
 
+  @Serial
   private Object writeReplace() {
     if (equals(TOP)) {
       return proxy;
@@ -180,20 +177,23 @@ public class SignState
     }
   }
 
+  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
   }
 
+  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
   }
 
   private static class SerialProxySign implements Serializable {
 
-    private static final long serialVersionUID = 2843708585446089623L;
+    @Serial private static final long serialVersionUID = 2843708585446089623L;
 
-    public SerialProxySign() {}
+    SerialProxySign() {}
 
+    @Serial
     private Object readResolve() {
       return TOP;
     }
@@ -204,30 +204,37 @@ public class SignState
     return "SignAnalysis";
   }
 
+  private static boolean isSIGN(String s) {
+    try {
+      Sign.valueOf(s);
+    } catch (IllegalArgumentException ex) {
+      return false;
+    }
+    return true;
+  }
+
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     List<String> parts = propertySplitter.splitToList(pProperty);
 
     if (parts.size() == 2) {
 
-      // pProperty = value <= varName
-      if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
-        SIGN value = SIGN.valueOf(parts.get(0));
-        SIGN varName = getSignForVariable(parts.get(1));
+      if (isSIGN(parts.getFirst())) {
+        // pProperty = value <= varName
+        Sign value = Sign.valueOf(parts.getFirst());
+        Sign varName = getSignForVariable(parts.get(1));
         return varName.covers(value);
-      }
 
-      // pProperty = varName <= value
-      else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
-        SIGN varName = getSignForVariable(parts.get(0));
-        SIGN value = SIGN.valueOf(parts.get(1));
+      } else if (isSIGN(parts.get(1))) {
+        // pProperty = varName <= value
+        Sign varName = getSignForVariable(parts.getFirst());
+        Sign value = Sign.valueOf(parts.get(1));
         return value.covers(varName);
-      }
 
-      // pProperty = varName1 <= varName2
-      else {
-        SIGN varName1 = getSignForVariable(parts.get(0));
-        SIGN varName2 = getSignForVariable(parts.get(1));
+      } else {
+        // pProperty = varName1 <= varName2
+        Sign varName1 = getSignForVariable(parts.getFirst());
+        Sign varName2 = getSignForVariable(parts.get(1));
         return varName2.covers(varName1);
       }
     }
@@ -251,7 +258,7 @@ public class SignState
     return false;
   }
 
-  public Map<String, SIGN> getSignMapView() {
-    return Collections.unmodifiableMap(signMap);
+  public PersistentMap<String, Sign> getSignMapView() {
+    return signMap;
   }
 }

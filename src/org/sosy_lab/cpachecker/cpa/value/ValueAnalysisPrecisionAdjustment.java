@@ -107,9 +107,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     /**
-     * This method determines whether or not to abstract at each location.
+     * This method determines whether to abstract at each location.
      *
-     * @return true, if an abstraction should be computed at each location, else false
+     * @return whether an abstraction should be computed at each location
      */
     private boolean abstractAtEachLocation() {
       return !alwaysAtBranch && !alwaysAtJoin && !alwaysAtFunction && !alwaysAtLoop;
@@ -235,15 +235,15 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
 
     resultState = resultState.equals(pState) ? pState : resultState;
 
-    return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
   }
 
   /**
-   * This method decides whether or not to perform abstraction computations. These are computed if
-   * the iteration threshold is deactivated, or if the level of determinism ever gets below the
+   * This method decides whether to perform abstraction computations. These are computed if the
+   * iteration threshold is deactivated, or if the level of determinism ever gets below the
    * threshold for the level of determinism.
    *
-   * @return true, if abstractions should be computed, else false
+   * @return whether abstractions should be computed
    */
   private boolean performPrecisionBasedAbstraction() {
     // always compute abstraction if option is disabled

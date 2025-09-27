@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -125,12 +126,11 @@ public class CPABuilder {
     if (rootCpaConfig.cpaClass == CompositeCPA.class
         && rootCpaConfig.getAllChildren().isEmpty()
         && allAutomata.isEmpty()) {
-      // By default there is a top-level CompositeCPA, and if it has no children, this means that
+      // By default, there is a top-level CompositeCPA, and if it has no children, this means that
       // the user did not specify any meaningful configuration.
       throw new InvalidConfigurationException(
-          "Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' "
-              + "(for example, '-default', '-predicateAnalysis', or '-valueAnalysis'). "
-              + "See README.md for more details.");
+          "Please specify a configuration with at least one CPA or specification automaton. "
+              + "See doc/Configuration.md for more details.");
     }
 
     checkAliasUniqueness(allCpaConfigs, allAutomata);
@@ -141,6 +141,10 @@ public class CPABuilder {
           "Placeholder "
               + SPECIFICATION_PLACEHOLDER.name
               + " must occur at most once in CPA configuration!");
+    } else if (placeholderCount == 1 && allAutomata.isEmpty()) {
+      throw new InvalidConfigurationException(
+          "Configuration requires a specification, but none was given. "
+              + "Please provide one with '--spec'.");
     }
 
     // 3. Find place to add CPAs for automata and instantiate them upfront
@@ -167,12 +171,12 @@ public class CPABuilder {
 
       if (insertionPoint.children.isEmpty()) { // implies cpa.cpaClass == CompositeCPA.class
         // If a specification was given, but no CPAs, insert a LocationCPA.
-        // This allows to run CPAchecker with just "-spec ..." and no other config.
+        // This allows to run CPAchecker with just "--spec ..." and no other config.
         insertionPoint.children =
             ImmutableList.of(CPAConfig.forClass(LocationCPA.class), SPECIFICATION_PLACEHOLDER);
       } else {
         insertionPoint.children =
-            from(insertionPoint.children).append(SPECIFICATION_PLACEHOLDER).toList();
+            listAndElement(insertionPoint.children, SPECIFICATION_PLACEHOLDER);
       }
       placeholderCount++;
     }
@@ -226,7 +230,7 @@ public class CPABuilder {
     }
 
     List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue);
-    String cpaNameFromOption = optionParts.get(0);
+    String cpaNameFromOption = optionParts.getFirst();
     String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaNameFromOption);
     Class<?> cpaClass = getCPAClass(optionName, cpaNameFromOption);
 
@@ -304,7 +308,7 @@ public class CPABuilder {
    * Instantiate CPA(s) according to given config, including any necessary children.
    *
    * @param cpas Additional list of CPAs to inject at first possible place. Will be cleared
-   *     afterwards.
+   *     afterward.
    */
   private ConfigurableProgramAnalysis instantiateCPAandChildren(
       final CPAConfig cpaConfig,
@@ -317,7 +321,7 @@ public class CPABuilder {
     if (cpaConfig.isPlaceholder) {
       if (cpaConfig.equals(SPECIFICATION_PLACEHOLDER)) {
         if (cpas.size() == 1) {
-          return cpas.get(0);
+          return cpas.getFirst();
         } else {
           String count = cpas.isEmpty() ? "none" : Integer.toString(cpas.size());
           throw new InvalidConfigurationException(
@@ -447,17 +451,17 @@ public class CPABuilder {
 
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
-      Throwables.propagateIfPossible(cause, CPAException.class);
-
+      Throwables.throwIfInstanceOf(cause, CPAException.class);
+      Throwables.throwIfUnchecked(cause);
       throw new UnexpectedCheckedException("instantiation of CPA " + pCpaName, cause);
     }
 
-    if (!(factoryObj instanceof CPAFactory)) {
+    if (!(factoryObj instanceof CPAFactory cPAFactory)) {
       throw new InvalidComponentException(
           cpaClass, "CPA", "Factory method did not return a CPAFactory instance.");
     }
 
-    return (CPAFactory) factoryObj;
+    return cPAFactory;
   }
 
   private void createAndSetChildrenCPAs(
@@ -518,12 +522,16 @@ public class CPABuilder {
      * cpa.location.LocationCPA)
      */
     final String name;
+
     /** The alias for this CPA instance as given by the user or inferred */
     final String alias;
+
     /** The class of this CPA (null if placeholder instance). */
     final @Nullable Class<?> cpaClass;
+
     /** Config for child CPA if the "alias.cpa" option was given. */
     final @Nullable CPAConfig child;
+
     /** Config for children CPA if the "alias.cpas" option was given. */
     ImmutableList<CPAConfig> children;
 

@@ -8,4 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-public interface CLiteralExpression extends CExpression {}
+public sealed interface CLiteralExpression extends CExpression
+    permits CCharLiteralExpression,
+        CFloatLiteralExpression,
+        CImaginaryLiteralExpression,
+        CIntegerLiteralExpression,
+        CStringLiteralExpression {}

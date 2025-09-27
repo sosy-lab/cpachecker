@@ -60,22 +60,19 @@ abstract class AbstractSlice implements Slice {
 
     for (CFAEdge relevantEdge : pRelevantEdges) {
 
-      if (relevantEdge instanceof CDeclarationEdge) {
-        ((CDeclarationEdge) relevantEdge)
-            .getDeclaration()
-            .accept(relevantDeclarationCollectingVisitor);
+      if (relevantEdge instanceof CDeclarationEdge cDeclarationEdge) {
+        cDeclarationEdge.getDeclaration().accept(relevantDeclarationCollectingVisitor);
       }
 
       for (CFANode relevantNode :
           ImmutableList.of(relevantEdge.getPredecessor(), relevantEdge.getSuccessor())) {
-        if (relevantNode instanceof FunctionEntryNode) {
+        if (relevantNode instanceof FunctionEntryNode relevantFunctionEntryNode) {
 
-          FunctionEntryNode relevantFunctionEntryNode = (FunctionEntryNode) relevantNode;
           Optional<? extends ASimpleDeclaration> optionalReturnVariable =
               relevantFunctionEntryNode.getReturnVariable();
 
           optionalReturnVariable
-              .filter(returnVariable -> returnVariable instanceof CVariableDeclaration)
+              .filter(CVariableDeclaration.class::isInstance)
               .map(returnVariable -> (CVariableDeclaration) returnVariable)
               .ifPresent(
                   returnVariable -> returnVariable.accept(relevantDeclarationCollectingVisitor));

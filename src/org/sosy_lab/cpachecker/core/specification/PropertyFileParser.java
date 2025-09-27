@@ -18,6 +18,7 @@ import com.google.common.io.CharSource;
 import com.google.common.io.MoreFiles;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.Serial;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -39,7 +40,7 @@ public class PropertyFileParser {
 
   public static class InvalidPropertyFileException extends Exception {
 
-    private static final long serialVersionUID = -5880923544560903123L;
+    @Serial private static final long serialVersionUID = -5880923544560903123L;
 
     public InvalidPropertyFileException(String msg) {
       super(msg);

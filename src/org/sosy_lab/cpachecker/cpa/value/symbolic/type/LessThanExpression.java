@@ -8,14 +8,16 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** {@link BinarySymbolicExpression} representing the 'less than' operation. */
 public final class LessThanExpression extends BinarySymbolicExpression implements BinaryConstraint {
 
-  private static final long serialVersionUID = -711307360731984235L;
+  @Serial private static final long serialVersionUID = -711307360731984235L;
 
   LessThanExpression(
       SymbolicExpression pOperand1,
@@ -34,10 +36,25 @@ public final class LessThanExpression extends BinarySymbolicExpression implement
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 
+  private LessThanExpression(
+      final SymbolicExpression pOperand1,
+      final SymbolicExpression pOperand2,
+      final Type pExpressionType,
+      final Type pCalculationType,
+      final AbstractState pAbstractState) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
+  }
+
   @Override
   public LessThanExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new LessThanExpression(
         getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new LessThanExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pCurrentState);
   }
 
   @Override

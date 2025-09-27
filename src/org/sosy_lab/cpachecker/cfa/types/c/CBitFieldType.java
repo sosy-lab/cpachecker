@@ -9,12 +9,13 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import com.google.common.base.Preconditions;
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 /** Instances of this class represent C bit-field types. */
-public class CBitFieldType implements CType {
+public final class CBitFieldType implements CType {
 
-  private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
 
   private final CType type;
 
@@ -45,24 +46,19 @@ public class CBitFieldType implements CType {
 
   private CType checkType(CType pBitFieldType) {
     CType canonicalType = pBitFieldType.getCanonicalType();
-    if (canonicalType instanceof CSimpleType) {
-      CSimpleType simpleType = (CSimpleType) canonicalType;
+    if (canonicalType instanceof CSimpleType simpleType) {
       CBasicType basicType = simpleType.getType();
       switch (basicType) {
-        case BOOL:
-        case CHAR:
-        case INT:
+        case BOOL, CHAR, INT -> {
           return pBitFieldType;
-        default:
-          break;
+        }
+        default -> {}
       }
     } else if (canonicalType instanceof CEnumType) {
       return pBitFieldType;
-    } else if (canonicalType instanceof CElaboratedType) {
-      CElaboratedType elaboratedType = (CElaboratedType) canonicalType;
-      if (elaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        return pBitFieldType;
-      }
+    } else if ((canonicalType instanceof CElaboratedType elaboratedType)
+        && (elaboratedType.getKind() == ComplexTypeKind.ENUM)) {
+      return pBitFieldType;
     }
     throw new IllegalArgumentException("Not a valid bit-field type: " + pBitFieldType);
   }
@@ -77,13 +73,8 @@ public class CBitFieldType implements CType {
   }
 
   @Override
-  public boolean isConst() {
-    return type.isConst();
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return type.isVolatile();
+  public CTypeQualifiers getQualifiers() {
+    return type.getQualifiers();
   }
 
   @Override
@@ -102,13 +93,13 @@ public class CBitFieldType implements CType {
   }
 
   @Override
-  public CType getCanonicalType() {
-    return getCanonicalType(false, false);
+  public CBitFieldType getCanonicalType() {
+    return getCanonicalType(CTypeQualifiers.NONE);
   }
 
   @Override
-  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    CType canonicalBitFieldType = type.getCanonicalType(pForceConst, pForceVolatile);
+  public CBitFieldType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    CType canonicalBitFieldType = type.getCanonicalType(pQualifiersToAdd);
     if (type == canonicalBitFieldType) {
       return this;
     }
@@ -145,13 +136,19 @@ public class CBitFieldType implements CType {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     }
-    if (pObj instanceof CBitFieldType) {
-      CBitFieldType other = (CBitFieldType) pObj;
-      return bitFieldSize == other.bitFieldSize && type.equals(other.type);
+    return pObj instanceof CBitFieldType other
+        && bitFieldSize == other.bitFieldSize
+        && type.equals(other.type);
+  }
+
+  @Override
+  public CBitFieldType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (getQualifiers().equals(pNewQualifiers)) {
+      return this;
     }
-    return false;
+    return new CBitFieldType(type.withQualifiersSetTo(pNewQualifiers), bitFieldSize);
   }
 }

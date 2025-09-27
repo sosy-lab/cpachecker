@@ -73,20 +73,10 @@ class SMGErrorInfo {
     boolean pHasLeaks = hasMemoryLeak;
 
     switch (pProperty) {
-      case INVALID_WRITE:
-        pInvalidWrite = true;
-        break;
-      case INVALID_READ:
-        pInvalidRead = true;
-        break;
-      case INVALID_FREE:
-        pInvalidFree = true;
-        break;
-      case INVALID_HEAP:
-        pHasLeaks = true;
-        break;
-      default:
-        throw new AssertionError();
+      case INVALID_WRITE -> pInvalidWrite = true;
+      case INVALID_READ -> pInvalidRead = true;
+      case INVALID_FREE -> pInvalidFree = true;
+      case INVALID_HEAP -> pHasLeaks = true;
     }
 
     return new SMGErrorInfo(
@@ -170,11 +160,8 @@ class SMGErrorInfo {
 
   @Override
   public boolean equals(Object pOther) {
-    if (!(pOther instanceof SMGErrorInfo)) {
-      return false;
-    }
-    SMGErrorInfo o = (SMGErrorInfo) pOther;
-    return invalidWrite == o.invalidWrite
+    return pOther instanceof SMGErrorInfo o
+        && invalidWrite == o.invalidWrite
         && invalidRead == o.invalidRead
         && invalidFree == o.invalidFree
         && hasMemoryLeak == o.hasMemoryLeak

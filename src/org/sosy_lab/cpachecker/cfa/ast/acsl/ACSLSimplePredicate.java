@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Preconditions;
 
-public class ACSLSimplePredicate extends ACSLPredicate {
+public final class ACSLSimplePredicate extends ACSLPredicate {
 
   private final ACSLTerm term;
 
@@ -21,8 +21,8 @@ public class ACSLSimplePredicate extends ACSLPredicate {
   public ACSLSimplePredicate(ACSLTerm pTerm, boolean negated) {
     super(negated);
     Preconditions.checkArgument(
-        pTerm instanceof ACSLBinaryTerm
-            && ACSLBinaryOperator.isComparisonOperator(((ACSLBinaryTerm) pTerm).getOperator()),
+        pTerm instanceof ACSLBinaryTerm aCSLBinaryTerm
+            && ACSLBinaryOperator.isComparisonOperator(aCSLBinaryTerm.getOperator()),
         "Simple predicate should hold comparison term.");
     term = pTerm;
   }
@@ -50,11 +50,7 @@ public class ACSLSimplePredicate extends ACSLPredicate {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLSimplePredicate) {
-      ACSLSimplePredicate other = (ACSLSimplePredicate) o;
-      return super.equals(o) && term.equals(other.term);
-    }
-    return false;
+    return o instanceof ACSLSimplePredicate other && super.equals(o) && term.equals(other.term);
   }
 
   @Override

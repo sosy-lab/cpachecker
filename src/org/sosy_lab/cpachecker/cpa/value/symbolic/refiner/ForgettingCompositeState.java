@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public final class ForgettingCompositeState implements ForgetfulState<ValueAnalysisInformation> {
 
   private final ValueAnalysisState values;
-  private final ConstraintsState constraints;
+  private ConstraintsState constraints;
 
   public static ForgettingCompositeState getInitialState(MachineModel pMachineModel) {
     return new ForgettingCompositeState(
@@ -41,7 +41,7 @@ public final class ForgettingCompositeState implements ForgetfulState<ValueAnaly
   public ForgettingCompositeState(
       final ValueAnalysisState pValues, final ConstraintsState pConstraints) {
     values = ValueAnalysisState.copyOf(pValues);
-    constraints = pConstraints.copyOf();
+    constraints = pConstraints;
   }
 
   public ValueAnalysisState getValueState() {
@@ -59,11 +59,14 @@ public final class ForgettingCompositeState implements ForgetfulState<ValueAnaly
 
   public void forget(final Constraint pConstraint) {
     assert constraints.contains(pConstraint);
-    constraints.remove(pConstraint);
+    Set<Constraint> withoutConstraint = new HashSet<>(constraints);
+    withoutConstraint.remove(pConstraint);
+    constraints =
+        new ConstraintsState(withoutConstraint).copyWithSatisfyingModel(constraints.getModel());
   }
 
   public void remember(final Constraint pConstraint) {
-    constraints.add(pConstraint);
+    constraints = constraints.copyWithNew(pConstraint);
   }
 
   @Override
@@ -103,14 +106,7 @@ public final class ForgettingCompositeState implements ForgetfulState<ValueAnaly
 
     ForgettingCompositeState that = (ForgettingCompositeState) o;
 
-    if (!constraints.equals(that.constraints)) {
-      return false;
-    }
-    if (!values.equals(that.values)) {
-      return false;
-    }
-
-    return true;
+    return constraints.equals(that.constraints) && values.equals(that.values);
   }
 
   @Override

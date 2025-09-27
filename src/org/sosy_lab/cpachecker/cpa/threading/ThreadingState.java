@@ -21,6 +21,7 @@ import com.google.common.collect.FluentIterable;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -157,7 +158,7 @@ public class ThreadingState
   }
 
   Set<Integer> getThreadNums() {
-    Set<Integer> result = new LinkedHashSet<>();
+    SequencedSet<Integer> result = new LinkedHashSet<>();
     for (ThreadState ts : threads.values()) {
       result.add(ts.getNum());
     }
@@ -234,11 +235,8 @@ public class ThreadingState
 
   @Override
   public boolean equals(Object other) {
-    if (!(other instanceof ThreadingState)) {
-      return false;
-    }
-    ThreadingState ts = (ThreadingState) other;
-    return threads.equals(ts.threads)
+    return other instanceof ThreadingState ts
+        && threads.equals(ts.threads)
         && locks.equals(ts.locks)
         && Objects.equals(activeThread, ts.activeThread)
         && threadIdsForWitness.equals(ts.threadIdsForWitness);
@@ -265,8 +263,8 @@ public class ThreadingState
   }
 
   @Override
-  public Iterable<CFAEdge> getIngoingEdges() {
-    return getLocations().transformAndConcat(AbstractStateWithLocations::getIngoingEdges);
+  public Iterable<CFAEdge> getIncomingEdges() {
+    return getLocations().transformAndConcat(AbstractStateWithLocations::getIncomingEdges);
   }
 
   @Override
@@ -308,7 +306,7 @@ public class ThreadingState
   }
 
   /**
-   * check, whether one of the outgoing edges can be visited without requiring a already used lock.
+   * check, whether one of the outgoing edges can be visited without requiring an already used lock.
    */
   private boolean hasDeadlock() throws UnrecognizedCodeException {
     FluentIterable<CFAEdge> edges = FluentIterable.from(getOutgoingEdges());
@@ -352,11 +350,11 @@ public class ThreadingState
   private boolean isWaitingForOtherThread(CFAEdge edge) throws UnrecognizedCodeException {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       AStatement statement = ((AStatementEdge) edge).getStatement();
-      if (statement instanceof AFunctionCall) {
+      if (statement instanceof AFunctionCall aFunctionCall) {
         AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          final String functionName = aIdExpression.getName();
           if (THREAD_JOIN.equals(functionName)) {
             final String joiningThread = extractParamName(statement, 0);
             // check whether other thread is running and has at least one outgoing edge,
@@ -390,15 +388,15 @@ public class ThreadingState
       num = pNum;
     }
 
-    public AbstractState getLocation() {
+    AbstractState getLocation() {
       return location;
     }
 
-    public AbstractState getCallstack() {
+    AbstractState getCallstack() {
       return callstack.getState();
     }
 
-    public int getNum() {
+    int getNum() {
       return num;
     }
 
@@ -409,11 +407,8 @@ public class ThreadingState
 
     @Override
     public boolean equals(Object o) {
-      if (!(o instanceof ThreadState)) {
-        return false;
-      }
-      ThreadState other = (ThreadState) o;
-      return location.equals(other.location)
+      return o instanceof ThreadState other
+          && location.equals(other.location)
           && callstack.equals(other.callstack)
           && num == other.num;
     }

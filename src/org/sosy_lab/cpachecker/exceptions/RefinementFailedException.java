@@ -11,11 +11,16 @@ package org.sosy_lab.cpachecker.exceptions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
+import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /** Exception raised when the refinement procedure fails, or was abandoned. */
 public class RefinementFailedException extends CPAException {
+
+  private static final String MSG_PREFIX = "Refinement failed: ";
 
   public enum Reason {
     InterpolationFailed("Interpolation failed"),
@@ -41,7 +46,7 @@ public class RefinementFailedException extends CPAException {
     }
   }
 
-  private static final long serialVersionUID = 2353178323706458175L;
+  @Serial private static final long serialVersionUID = 2353178323706458175L;
 
   @SuppressWarnings("checkstyle:MutableException")
   private @Nullable ARGPath path;
@@ -60,9 +65,36 @@ public class RefinementFailedException extends CPAException {
     path = p;
   }
 
+  private RefinementFailedException(
+      Reason r, @Nullable ARGPath p, String message, @Nullable Throwable cause) {
+    super(checkNotNull(message), cause);
+    reason = checkNotNull(r);
+    path = p;
+  }
+
+  public static RefinementFailedException forInterpolationFailureInSolver(
+      SolverException e, Solver solver) {
+    StringBuilder msg = new StringBuilder();
+    msg.append(MSG_PREFIX);
+    msg.append(Reason.InterpolationFailed);
+    msg.append(" in solver ");
+    msg.append(solver.getInterpolatingSolver());
+    if (e != null) {
+      String solverMessage = Strings.nullToEmpty(e.getMessage());
+      if (solverMessage.isEmpty()) {
+        msg.append(" without explanation.");
+      } else {
+        msg.append(" with message '");
+        msg.append(solverMessage);
+        msg.append("'.");
+      }
+    }
+    return new RefinementFailedException(Reason.InterpolationFailed, null, msg.toString(), e);
+  }
+
   private static String getMessage(Reason r, @Nullable Throwable t) {
     StringBuilder sb = new StringBuilder();
-    sb.append("Refinement failed: ");
+    sb.append(MSG_PREFIX);
     sb.append(r.toString());
     if (t != null) {
       String msg = Strings.nullToEmpty(t.getMessage());

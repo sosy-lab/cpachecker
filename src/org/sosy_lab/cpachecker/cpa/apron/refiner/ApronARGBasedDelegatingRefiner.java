@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
-import apron.ApronException;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -43,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctagonAnalysisFeasibilityChecker;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -57,7 +55,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}, and if this
- * fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * fails, optionally delegates also to another refiner.
  */
 @Options(prefix = "cpa.apron.refiner")
 class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
@@ -134,12 +132,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     // if the path is infeasible, try to refine the precision, this time
     // only with apron states, this is more precise than only using the value analysis
     // refinement
-    OctagonAnalysisFeasibilityChecker apronChecker;
-    try {
-      apronChecker = createApronFeasibilityChecker(pErrorPath);
-    } catch (ApronException e) {
-      throw new RuntimeException("An error occurred while operating with the apron library", e);
-    }
+    OctagonAnalysisFeasibilityChecker apronChecker = createApronFeasibilityChecker(pErrorPath);
     if (!apronChecker.isFeasible()) {
       if (performApronAnalysisRefinement(reached, apronChecker)) {
         existsExplicitApronRefinement = true;
@@ -153,11 +146,11 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
   }
 
   /**
-   * This method performs an value-analysis refinement.
+   * This method performs a value-analysis refinement.
    *
    * @param reached the current reached set
    * @param errorPath the current error path
-   * @return true, if the value-analysis refinement was successful, else false
+   * @return whether the value-analysis refinement was successful
    * @throws CPAException when value-analysis interpolation fails
    */
   private boolean performValueAnalysisRefinement(
@@ -219,7 +212,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     }
 
     reached.removeSubtree(
-        ((ARGState) reachedSet.getFirstState()).getChildren().iterator().next(),
+        ((ARGState) reachedSet.getFirstState()).getChildren().getFirst(),
         apronPrecision.withIncrement(increment),
         VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
 
@@ -283,7 +276,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    * This method checks if the given path is feasible, when doing a full-precision check.
    *
    * @param path the path to check
-   * @return true, if the path is feasible, else false
+   * @return whether the path is feasible
    * @throws CPAException if the path check gets interrupted
    */
   boolean isPathFeasible(ARGPath path) throws CPAException, InterruptedException {
@@ -292,7 +285,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
   /** Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision. */
   private OctagonAnalysisFeasibilityChecker createApronFeasibilityChecker(ARGPath path)
-      throws CPAException, ApronException, InterruptedException {
+      throws CPAException, InterruptedException {
     try {
       OctagonAnalysisFeasibilityChecker checker;
 
@@ -310,7 +303,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForApronFeasibilityCheck);
+        WalltimeLimit l = WalltimeLimit.create(timeForApronFeasibilityCheck);
         ResourceLimitChecker limits =
             new ResourceLimitChecker(shutdown, Collections.singletonList(l));
 

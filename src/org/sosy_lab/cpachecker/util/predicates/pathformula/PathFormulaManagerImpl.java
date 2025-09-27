@@ -12,9 +12,9 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
+import java.io.Serial;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -220,18 +220,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               + " exist.");
     }
 
-    switch (pathFormulaBuilderVariant) {
-      case DEFAULT:
-        pfbFactory = new DefaultPathFormulaBuilder.Factory();
-        break;
-      case SYMBOLICLOCATIONS:
-        pfbFactory =
-            new SymbolicLocationPathFormulaBuilder.Factory(
-                new CBinaryExpressionBuilder(pMachineModel, pLogger));
-        break;
-      default:
-        throw new InvalidConfigurationException("Invalid type of path formula builder specified!");
-    }
+    pfbFactory =
+        switch (pathFormulaBuilderVariant) {
+          case DEFAULT -> new DefaultPathFormulaBuilder.Factory();
+          case SYMBOLICLOCATIONS ->
+              new SymbolicLocationPathFormulaBuilder.Factory(
+                  new CBinaryExpressionBuilder(pMachineModel, pLogger));
+        };
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
   }
@@ -248,7 +243,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private PathFormula makeAnd(
       PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     PathFormula pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
 
     if (useNondetFlags) {
@@ -313,7 +308,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
     BooleanFormula conjunction = bfmgr.and(Lists.transform(pPathFormulas, PathFormula::getFormula));
     int lengthSum = pPathFormulas.stream().mapToInt(PathFormula::getLength).sum();
-    PathFormula last = Iterables.getLast(pPathFormulas);
+    PathFormula last = pPathFormulas.getLast();
     return new PathFormula(conjunction, last.getSsa(), last.getPointerTargetSet(), lengthSum);
   }
 
@@ -349,7 +344,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMapMerger merger =
         new SSAMapMerger(useNondetFlags, fmgr, converter, shutdownNotifier, NONDET_FORMULA_TYPE);
     final MergeResult<SSAMap> mergeSSAResult = merger.mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMapBuilder newSSA = mergeSSAResult.getResult().builder();
+    final SSAMapBuilder newSSA = mergeSSAResult.result().builder();
 
     final MergeResult<PointerTargetSet> mergePtsResult =
         converter.mergePointerTargetSets(pts1, pts2, newSSA);
@@ -357,17 +352,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 =
         bfmgr.and(
-            formula1,
-            bfmgr.and(mergeSSAResult.getLeftConjunct(), mergePtsResult.getLeftConjunct()));
+            formula1, bfmgr.and(mergeSSAResult.leftConjunct(), mergePtsResult.leftConjunct()));
     final BooleanFormula newFormula2 =
         bfmgr.and(
-            formula2,
-            bfmgr.and(mergeSSAResult.getRightConjunct(), mergePtsResult.getRightConjunct()));
+            formula2, bfmgr.and(mergeSSAResult.rightConjunct(), mergePtsResult.rightConjunct()));
     final BooleanFormula newFormula =
         bfmgr.and(
             bfmgr.or(newFormula1, newFormula2),
-            bfmgr.and(mergeSSAResult.getFinalConjunct(), mergePtsResult.getFinalConjunct()));
-    final PointerTargetSet newPTS = mergePtsResult.getResult();
+            bfmgr.and(mergeSSAResult.finalConjunct(), mergePtsResult.finalConjunct()));
+    final PointerTargetSet newPTS = mergePtsResult.result();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
     PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
@@ -381,7 +374,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public PointerTargetSet mergePts(
       PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pSSA)
       throws InterruptedException {
-    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).getResult();
+    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).result();
   }
 
   @Override
@@ -443,7 +436,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       throws CPATransferException, InterruptedException {
 
     final class WrappingException extends RuntimeException {
-      private static final long serialVersionUID = 7106377117314217226L;
+      @Serial private static final long serialVersionUID = 7106377117314217226L;
 
       WrappingException(Throwable cause) {
         super(cause);

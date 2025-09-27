@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JNullType;
@@ -15,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JNullType;
 /** This class represents the null literal AST node type. */
 public final class JNullLiteralExpression extends ALiteralExpression implements JLiteralExpression {
 
-  private static final long serialVersionUID = 6233269754214609854L;
+  @Serial private static final long serialVersionUID = 6233269754214609854L;
 
   public JNullLiteralExpression(FileLocation pFileLocation) {
     super(pFileLocation, new JNullType());
@@ -54,10 +55,6 @@ public final class JNullLiteralExpression extends ALiteralExpression implements 
       return true;
     }
 
-    if (!(obj instanceof JNullLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JNullLiteralExpression && super.equals(obj);
   }
 }

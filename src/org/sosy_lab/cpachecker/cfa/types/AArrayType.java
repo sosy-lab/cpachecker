@@ -10,11 +10,12 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Objects;
 
 public abstract class AArrayType implements Type {
 
-  private static final long serialVersionUID = -2838888440949947901L;
+  @Serial private static final long serialVersionUID = -2838888440949947901L;
 
   private final Type elementType;
 
@@ -40,12 +41,6 @@ public abstract class AArrayType implements Type {
       return true;
     }
 
-    if (!(obj instanceof AArrayType)) {
-      return false;
-    }
-
-    AArrayType other = (AArrayType) obj;
-
-    return Objects.equals(elementType, other.elementType);
+    return obj instanceof AArrayType other && Objects.equals(elementType, other.elementType);
   }
 }

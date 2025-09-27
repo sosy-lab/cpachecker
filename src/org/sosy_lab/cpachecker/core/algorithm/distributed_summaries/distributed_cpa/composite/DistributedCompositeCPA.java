@@ -8,54 +8,68 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
-import java.util.Map;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 
-public class DistributedCompositeCPA implements DistributedConfigurableProgramAnalysis {
+public class DistributedCompositeCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
   private final CompositeCPA compositeCPA;
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
-  private final CombineOperator combine;
-  private final ProceedOperator proceed;
+  private final ProceedCompositeStateOperator proceed;
+
+  private final DssBlockAnalysisStatistics statistics;
+
+  private final DeserializeCompositePrecisionOperator deserializePrecisionOperator;
+  private final SerializeCompositePrecisionOperator serializePrecisionOperator;
+  private final ViolationConditionOperator verificationConditionOperator;
+
+  private final ImmutableMap<
+          Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
+      analyses;
 
   public DistributedCompositeCPA(
       CompositeCPA pCompositeCPA,
       BlockNode pNode,
-      AnalysisDirection pDirection,
-      Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
+      ImmutableMap<
+              Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           registered) {
+    statistics = new DssBlockAnalysisStatistics("DCPA-" + pNode.getId());
     compositeCPA = pCompositeCPA;
-    serialize = new SerializeCompositeStateOperator(registered);
-    deserialize = new DeserializeCompositeStateOperator(compositeCPA, pNode, registered);
-    combine = new CombineCompositeStateOperator(registered);
-    proceed = new ProceedCompositeStateOperator(registered, pDirection);
+    serialize = new SerializeCompositeStateOperator(registered, statistics);
+    deserialize =
+        new DeserializeCompositeStateOperator(
+            compositeCPA, registered, pIntegerCFANodeMap, statistics);
+    proceed = new ProceedCompositeStateOperator(registered, statistics);
+    serializePrecisionOperator = new SerializeCompositePrecisionOperator(registered);
+    deserializePrecisionOperator =
+        new DeserializeCompositePrecisionOperator(registered, compositeCPA, pIntegerCFANodeMap);
+    analyses = registered;
+    verificationConditionOperator = new CompositeViolationConditionOperator(compositeCPA, analyses);
   }
 
   @Override
   public SerializeOperator getSerializeOperator() {
     return serialize;
-  }
-
-  @Override
-  public CombineOperator getCombineOperator() {
-    return combine;
   }
 
   @Override
@@ -74,28 +88,58 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return compositeCPA.getAbstractDomain();
+  public ConfigurableProgramAnalysis getCPA() {
+    return compositeCPA;
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return compositeCPA.getTransferRelation();
+  public boolean isTop(AbstractState pAbstractState) {
+    CompositeState co = (CompositeState) pAbstractState;
+    for (AbstractState wrappedState : co.getWrappedStates()) {
+      for (DistributedConfigurableProgramAnalysis value : analyses.values()) {
+        if (value.doesOperateOn(wrappedState.getClass())) {
+          if (!value.isTop(wrappedState)) {
+            return false;
+          }
+          break;
+        }
+      }
+    }
+    return true;
   }
 
   @Override
-  public MergeOperator getMergeOperator() {
-    return compositeCPA.getMergeOperator();
+  public ViolationConditionOperator getViolationConditionOperator() {
+    return verificationConditionOperator;
   }
 
   @Override
-  public StopOperator getStopOperator() {
-    return compositeCPA.getStopOperator();
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return serializePrecisionOperator;
+  }
+
+  @Override
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return deserializePrecisionOperator;
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return compositeCPA.getInitialState(node, partition);
+    Preconditions.checkNotNull(node);
+    ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : compositeCPA.getWrappedCPAs()) {
+      if (analyses.containsKey(cpa.getClass())) {
+        initialStates.add(
+            Objects.requireNonNull(analyses.get(cpa.getClass())).getInitialState(node, partition));
+      } else {
+        initialStates.add(cpa.getInitialState(node, partition));
+      }
+    }
+    return new CompositeState(initialStates.build());
+  }
+
+  public DssBlockAnalysisStatistics getStatistics() {
+    return statistics;
   }
 }

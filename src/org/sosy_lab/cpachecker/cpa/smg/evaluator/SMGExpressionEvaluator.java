@@ -79,18 +79,18 @@ public class SMGExpressionEvaluator {
    * Get the size of the given type in bits.
    *
    * <p>When handling variable array type length, additionally to the type itself, we also need the
-   * cfa edge to determine the location of the program we currently handle, the smg state to
+   * CFA edge to determine the location of the program we currently handle, the SMG state to
    * determine the values of the variables at the current location, and the expression with the
-   * given type to determine the smg object that represents the array of the given type.
+   * given type to determine the SMG object that represents the array of the given type.
    *
-   * @param pEdge The cfa edge that determines the location in the program.
+   * @param pEdge The CFA edge that determines the location in the program.
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
    * @param pExpression The expression, which evaluates to the value with the given type.
    * @return The size of the given type in bits.
    */
   public long getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState, CExpression pExpression)
-      throws UnrecognizedCodeException {
+      throws CPATransferException {
     return getBitSizeof(pEdge, pType, pState, Optional.of(pExpression));
   }
 
@@ -98,41 +98,35 @@ public class SMGExpressionEvaluator {
    * Get the size of the given type in bits.
    *
    * <p>When handling variable array type length, additionally to the type itself, we also need the
-   * cfa edge to determine the location of the program we currently handle, and the smg state to
+   * CFA edge to determine the location of the program we currently handle, and the SMG state to
    * determine the values of the variables at the current location..
    *
    * <p>This method can't calculate variable array type length for arrays that are not declared in
-   * the cfa edge.
+   * the CFA edge.
    *
-   * @param pEdge The cfa edge that determines the location in the program.
+   * @param pEdge The CFA edge that determines the location in the program.
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
    * @return The size of the given type in bits.
    */
   public long getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState)
-      throws UnrecognizedCodeException {
+      throws CPATransferException {
     return getBitSizeof(pEdge, pType, pState, Optional.empty());
   }
 
   private long getBitSizeof(
       CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression)
-      throws UnrecognizedCodeException {
+      throws CPATransferException {
 
-    if (pType instanceof CBitFieldType) {
-      return ((CBitFieldType) pType).getBitFieldSize();
+    if (pType instanceof CBitFieldType cBitFieldType) {
+      return cBitFieldType.getBitFieldSize();
     }
 
     CSizeOfVisitor v = getSizeOfVisitor(edge, pState, pExpression);
-
-    try {
-      return pType
-          .accept(v)
-          .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()))
-          .longValueExact();
-    } catch (IllegalArgumentException e) {
-      logger.logDebugException(e);
-      throw new UnrecognizedCodeException("Could not resolve type.", edge);
-    }
+    return pType
+        .accept(v)
+        .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()))
+        .longValueExact();
   }
 
   List<SMGAddressAndState> getAddressOfField(
@@ -178,7 +172,7 @@ public class SMGExpressionEvaluator {
 
   public SMGValueAndState readValue(
       SMGState pSmgState, SMGObject pObject, SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCodeException {
+      throws CPATransferException {
 
     if (pOffset.isUnknown() || pObject == null) {
       return SMGValueAndState.withUnknownValue(pSmgState);
@@ -218,32 +212,22 @@ public class SMGExpressionEvaluator {
   }
 
   private SMGField getField(CType pOwnerType, String pFieldName) {
-
-    if (pOwnerType instanceof CElaboratedType) {
-
-      CType realType = ((CElaboratedType) pOwnerType).getRealType();
-
-      if (realType == null) {
-        return SMGField.getUnknownInstance();
+    return switch (pOwnerType) {
+      case CElaboratedType cElaboratedType -> {
+        CType realType = cElaboratedType.getRealType();
+        if (realType == null) {
+          yield SMGField.getUnknownInstance();
+        }
+        yield getField(realType, pFieldName);
       }
+      case CCompositeType cCompositeType -> getField(cCompositeType, pFieldName);
 
-      return getField(realType, pFieldName);
-    } else if (pOwnerType instanceof CCompositeType) {
-      return getField((CCompositeType) pOwnerType, pFieldName);
-    } else if (pOwnerType instanceof CPointerType) {
-
-      /* We do not explicitly transform x->b,
-      so when we try to get the field b the ownerType of x
-      is a pointer type.*/
-
-      CType type = ((CPointerType) pOwnerType).getType();
-
-      type = TypeUtils.getRealExpressionType(type);
-
-      return getField(type, pFieldName);
-    }
-
-    throw new AssertionError();
+      case CPointerType cPointerType -> {
+        CType type = TypeUtils.getRealExpressionType(cPointerType.getType());
+        yield getField(type, pFieldName);
+      }
+      default -> throw new AssertionError();
+    };
   }
 
   private SMGField getField(CCompositeType pOwnerType, String pFieldName) {
@@ -269,17 +253,12 @@ public class SMGExpressionEvaluator {
 
   public static boolean isStructOrUnionType(CType rValueType) {
 
-    if (rValueType instanceof CElaboratedType) {
-      CElaboratedType type = (CElaboratedType) rValueType;
+    if (rValueType instanceof CElaboratedType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CCompositeType) {
-      CCompositeType type = (CCompositeType) rValueType;
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-
-    return false;
+    return rValueType instanceof CCompositeType type
+        && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
   }
 
   public SMGExplicitValue evaluateExplicitValueV2(
@@ -288,7 +267,7 @@ public class SMGExpressionEvaluator {
     List<SMGExplicitValueAndState> result = evaluateExplicitValue(smgState, cfaEdge, rValue);
 
     if (result.size() == 1) {
-      return result.get(0).getObject();
+      return result.getFirst().getObject();
     } else {
       return SMGUnknownValue.INSTANCE;
     }
@@ -315,7 +294,7 @@ public class SMGExpressionEvaluator {
         result.add(deriveExplicitValueFromSymbolicValue(symbolicValueAndState));
       }
     } else {
-      BigInteger bigInteger = value.asNumericValue().bigInteger();
+      BigInteger bigInteger = value.asNumericValue().bigIntegerValue();
       result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(bigInteger)));
     }
 
@@ -337,15 +316,12 @@ public class SMGExpressionEvaluator {
         return SMGExplicitValueAndState.of(newState, SMGZeroValue.INSTANCE);
       }
 
-      if (symbolicValue instanceof SMGAddressValue) {
-        SMGAddressValue address = (SMGAddressValue) symbolicValue;
-
-        if (address.getObject() == SMGNullObject.INSTANCE) {
-          return SMGExplicitValueAndState.of(
-              newState,
-              SMGKnownExpValue.valueOf(
-                  address.getOffset().getAsLong() / machineModel.getSizeofCharInBits()));
-        }
+      if ((symbolicValue instanceof SMGAddressValue address)
+          && (address.getObject() == SMGNullObject.INSTANCE)) {
+        return SMGExplicitValueAndState.of(
+            newState,
+            SMGKnownExpValue.valueOf(
+                address.getOffset().getAsLong() / machineModel.getSizeofCharInBits()));
       }
     }
 
@@ -422,9 +398,9 @@ public class SMGExpressionEvaluator {
 
     if (expressionType instanceof CPointerType
         || (expressionType instanceof CFunctionType
-            && rValue instanceof CUnaryExpression
-            && ((CUnaryExpression) rValue).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
-      // Cfa treats &foo as CFunctionType
+            && rValue instanceof CUnaryExpression cUnaryExpression
+            && cUnaryExpression.getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
+      // CFA treats &foo as CFunctionType
 
       PointerVisitor visitor = getPointerVisitor(cfaEdge, pState);
       return getAddressFromSymbolicValues(rValue.accept(visitor));
@@ -460,90 +436,69 @@ public class SMGExpressionEvaluator {
 
     BinaryOperator binaryOperator = binaryExp.getOperator();
 
-    switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-        {
-          ImmutableList.Builder<SMGAddressValueAndState> result =
-              ImmutableList.builderWithExpectedSize(4);
+    return switch (binaryOperator) {
+      case PLUS, MINUS -> {
+        ImmutableList.Builder<SMGAddressValueAndState> result =
+            ImmutableList.builderWithExpectedSize(4);
 
-          for (SMGAddressValueAndState addressValueAndState :
-              evaluateAddress(initialSmgState, cfaEdge, address)) {
+        for (SMGAddressValueAndState addressValueAndState :
+            evaluateAddress(initialSmgState, cfaEdge, address)) {
 
-            SMGAddressValue addressValue = addressValueAndState.getObject();
-            SMGState newState = addressValueAndState.getSmgState();
-            for (SMGExplicitValueAndState offsetValueAndState :
-                evaluateExplicitValue(newState, cfaEdge, pointerOffset)) {
+          SMGAddressValue addressValue = addressValueAndState.getObject();
+          SMGState newState = addressValueAndState.getSmgState();
+          for (SMGExplicitValueAndState offsetValueAndState :
+              evaluateExplicitValue(newState, cfaEdge, pointerOffset)) {
 
-              SMGExplicitValue offsetValue = offsetValueAndState.getObject();
-              newState = offsetValueAndState.getSmgState();
+            SMGExplicitValue offsetValue = offsetValueAndState.getObject();
+            newState = offsetValueAndState.getSmgState();
 
-              if (addressValue.isUnknown() || offsetValue.isUnknown()) {
-                result.add(SMGAddressValueAndState.of(newState));
-                continue;
-              }
-
-              SMGExplicitValue typeSize =
-                  SMGKnownExpValue.valueOf(getBitSizeof(cfaEdge, typeOfPointer, newState, address));
-              SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
-              SMGObject target = addressValue.getObject();
-              SMGExplicitValue addressOffset = addressValue.getOffset();
-
-              SMGExplicitValue newAddressOffset;
-              switch (binaryOperator) {
-                case PLUS:
-                  newAddressOffset = addressOffset.add(pointerOffsetValue);
-                  break;
-                case MINUS:
-                  if (lVarIsAddress) {
-                    newAddressOffset = addressOffset.subtract(pointerOffsetValue);
-                    break;
-                  } else {
-                    throw new UnrecognizedCodeException(
-                        "Expected pointer arithmetic "
-                            + " with + or - but found "
-                            + binaryExp.toASTString(),
-                        binaryExp);
-                  }
-                default:
-                  throw new AssertionError();
-              }
-              result.addAll(createAddress(newState, target, newAddressOffset));
+            if (addressValue.isUnknown() || offsetValue.isUnknown()) {
+              result.add(SMGAddressValueAndState.of(newState));
+              continue;
             }
+
+            SMGExplicitValue typeSize =
+                SMGKnownExpValue.valueOf(getBitSizeof(cfaEdge, typeOfPointer, newState, address));
+            SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
+            SMGObject target = addressValue.getObject();
+            SMGExplicitValue addressOffset = addressValue.getOffset();
+
+            SMGExplicitValue newAddressOffset =
+                switch (binaryOperator) {
+                  case PLUS -> addressOffset.add(pointerOffsetValue);
+                  case MINUS -> {
+                    if (lVarIsAddress) {
+                      yield addressOffset.subtract(pointerOffsetValue);
+                    } else {
+                      throw new UnrecognizedCodeException(
+                          "Expected pointer arithmetic "
+                              + " with + or - but found "
+                              + binaryExp.toASTString(),
+                          binaryExp);
+                    }
+                  }
+                  default -> throw new AssertionError();
+                };
+            result.addAll(createAddress(newState, target, newAddressOffset));
           }
-          return result.build();
         }
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-        throw new UnrecognizedCodeException(
-            "Misinterpreted the expression type of " + binaryExp + " as pointer type",
-            cfaEdge,
-            binaryExp);
-      case DIVIDE:
-      case MULTIPLY:
-      case MODULO:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        throw new UnrecognizedCodeException(
-            "The operands of binary Expression "
-                + binaryExp.toASTString()
-                + " must have arithmetic types. "
-                + address.toASTString()
-                + " has a non arithmetic type",
-            cfaEdge,
-            binaryExp);
-
-      default:
-        return singletonList(SMGAddressValueAndState.of(initialSmgState));
-    }
+        yield result.build();
+      }
+      case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL ->
+          throw new UnrecognizedCodeException(
+              "Misinterpreted the expression type of " + binaryExp + " as pointer type",
+              cfaEdge,
+              binaryExp);
+      case DIVIDE, MULTIPLY, MODULO, SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+          throw new UnrecognizedCodeException(
+              "The operands of binary Expression "
+                  + binaryExp.toASTString()
+                  + " must have arithmetic types. "
+                  + address.toASTString()
+                  + " has a non arithmetic type",
+              cfaEdge,
+              binaryExp);
+    };
   }
 
   List<SMGAddressAndState> evaluateArraySubscriptAddress(
@@ -577,8 +532,7 @@ public class SMGExpressionEvaluator {
                 SMGType subscriptSMGType =
                     SMGType.constructSMGType(subscriptType, newState, cfaEdge, this);
 
-                if (subscriptExpression instanceof CCastExpression) {
-                  CCastExpression castExpression = (CCastExpression) subscriptExpression;
+                if (subscriptExpression instanceof CCastExpression castExpression) {
                   SMGType subscriptOriginSMGType =
                       SMGType.constructSMGType(
                           castExpression.getOperand().getExpressionType(), newState, cfaEdge, this);
@@ -647,12 +601,12 @@ public class SMGExpressionEvaluator {
   }
 
   /**
-   * Is given a symbolic Value, looks into the smg to determine if the symbolic value represents a
+   * Is given a symbolic Value, looks into the SMG to determine if the symbolic value represents a
    * pointer, and transforms it into a {@link SMGAddressValue} containing the symbolic value that
    * represents the pointer as well as the address the pointer is pointing to.
    *
    * <p>Because all values in C represent an address, and can e cast to a pointer, the method
-   * returns a instance of {@link SMGUnknownValue} if the symbolic value does not represent a
+   * returns an instance of {@link SMGUnknownValue} if the symbolic value does not represent a
    * pointer in the smg.
    *
    * @param pAddressValueAndState This contains the SMG.
@@ -662,15 +616,15 @@ public class SMGExpressionEvaluator {
   List<SMGAddressValueAndState> getAddressFromSymbolicValue(SMGValueAndState pAddressValueAndState)
       throws SMGInconsistentException {
 
-    if (pAddressValueAndState instanceof SMGAddressValueAndState) {
-      return singletonList((SMGAddressValueAndState) pAddressValueAndState);
+    if (pAddressValueAndState instanceof SMGAddressValueAndState sMGAddressValueAndState) {
+      return singletonList(sMGAddressValueAndState);
     }
 
     SMGValue pAddressValue = pAddressValueAndState.getObject();
     SMGState smgState = pAddressValueAndState.getSmgState();
 
-    if (pAddressValue instanceof SMGAddressValue) {
-      return singletonList(SMGAddressValueAndState.of(smgState, (SMGAddressValue) pAddressValue));
+    if (pAddressValue instanceof SMGAddressValue sMGAddressValue) {
+      return singletonList(SMGAddressValueAndState.of(smgState, sMGAddressValue));
     }
 
     if (pAddressValue.isUnknown()) {
@@ -702,7 +656,7 @@ public class SMGExpressionEvaluator {
 
   /*
    * These Methods are designed to be overwritten to enable
-   * sub classes to, for example, change the smgState while
+   * subclasses to, for example, change the smgState while
    * evaluating expressions.
    *
    */

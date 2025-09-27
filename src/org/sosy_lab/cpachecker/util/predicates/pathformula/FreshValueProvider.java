@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
+import java.io.Serial;
 import java.io.Serializable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -19,7 +20,7 @@ import org.sosy_lab.common.collect.PersistentSortedMaps;
 @Immutable
 public final class FreshValueProvider implements Serializable {
 
-  private static final long serialVersionUID = 12359384095345L;
+  @Serial private static final long serialVersionUID = 12359384095345L;
 
   // Default difference for two SSA-indexes of the same name.
   @VisibleForTesting static final int DEFAULT_INCREMENT = 1;
@@ -58,9 +59,11 @@ public final class FreshValueProvider implements Serializable {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return other instanceof FreshValueProvider
-        && ((other == this) || vars.equals(((FreshValueProvider) other).vars));
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof FreshValueProvider other && vars.equals(other.vars);
   }
 
   @Override

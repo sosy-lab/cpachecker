@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
-import org.sosy_lab.cpachecker.cpa.sign.SIGN;
+import org.sosy_lab.cpachecker.cpa.sign.Sign;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -104,12 +104,12 @@ public class TranslatorTest {
   @Test
   public void testSignTranslator() {
     SignState sStateTest = SignState.TOP;
-    sStateTest = sStateTest.assignSignToVariable("var1", SIGN.PLUS);
-    sStateTest = sStateTest.assignSignToVariable("var2", SIGN.MINUS);
-    sStateTest = sStateTest.assignSignToVariable("var3", SIGN.ZERO);
-    sStateTest = sStateTest.assignSignToVariable("fun::var1", SIGN.PLUSMINUS);
-    sStateTest = sStateTest.assignSignToVariable("fun::varB", SIGN.PLUS0);
-    sStateTest = sStateTest.assignSignToVariable("fun::varC", SIGN.MINUS0);
+    sStateTest = sStateTest.assignSignToVariable("var1", Sign.PLUS);
+    sStateTest = sStateTest.assignSignToVariable("var2", Sign.MINUS);
+    sStateTest = sStateTest.assignSignToVariable("var3", Sign.ZERO);
+    sStateTest = sStateTest.assignSignToVariable("fun::var1", Sign.PLUSMINUS);
+    sStateTest = sStateTest.assignSignToVariable("fun::varB", Sign.PLUS0);
+    sStateTest = sStateTest.assignSignToVariable("fun::varC", Sign.MINUS0);
     SignRequirementsTranslator sReqTransTest =
         new SignRequirementsTranslator(LogManager.createTestLogManager());
 
@@ -152,12 +152,12 @@ public class TranslatorTest {
     PersistentMap<String, Interval> intervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> referenceMap = PathCopyingPersistentTreeMap.of();
 
-    intervals = intervals.putAndCopy("var1", new Interval(Long.MIN_VALUE, (long) 5));
-    intervals = intervals.putAndCopy("var2", new Interval((long) -7, Long.MAX_VALUE));
-    intervals = intervals.putAndCopy("var3", new Interval(Long.MIN_VALUE, (long) -2));
-    intervals = intervals.putAndCopy("fun::var1", new Interval((long) 0, (long) 10));
-    intervals = intervals.putAndCopy("fun::varB", new Interval((long) 8, Long.MAX_VALUE));
-    intervals = intervals.putAndCopy("fun::varC", new Interval((long) -15, (long) -3));
+    intervals = intervals.putAndCopy("var1", new Interval(Long.MIN_VALUE, 5L));
+    intervals = intervals.putAndCopy("var2", new Interval(-7L, Long.MAX_VALUE));
+    intervals = intervals.putAndCopy("var3", new Interval(Long.MIN_VALUE, -2L));
+    intervals = intervals.putAndCopy("fun::var1", new Interval(0L, 10L));
+    intervals = intervals.putAndCopy("fun::varB", new Interval(8L, Long.MAX_VALUE));
+    intervals = intervals.putAndCopy("fun::varC", new Interval(-15L, -3L));
 
     IntervalAnalysisState iStateTest = new IntervalAnalysisState(intervals, referenceMap);
     IntervalRequirementsTranslator iReqTransTest =
@@ -241,7 +241,7 @@ public class TranslatorTest {
     // Test method convertToFormula() with another IntervalAnalysisState
     intervals = PathCopyingPersistentTreeMap.of();
     referenceMap = PathCopyingPersistentTreeMap.of();
-    intervals = intervals.putAndCopy("var1", new Interval((long) 0, Long.MAX_VALUE));
+    intervals = intervals.putAndCopy("var1", new Interval(0L, Long.MAX_VALUE));
     IntervalAnalysisState anotherIStateTest = new IntervalAnalysisState(intervals, referenceMap);
 
     convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest, null);

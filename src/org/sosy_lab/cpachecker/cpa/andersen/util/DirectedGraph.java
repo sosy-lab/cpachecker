@@ -180,14 +180,10 @@ public class DirectedGraph {
 
     @Override
     public boolean equals(Object other) {
-      if (other == this) {
+      if (this == other) {
         return true;
       }
-      if (!(other instanceof DirectedGraph.Edge)) {
-        return false;
-      }
-      DirectedGraph.Edge o = (DirectedGraph.Edge) other;
-      return src.equals(o.src) && dest.equals(o.dest);
+      return other instanceof DirectedGraph.Edge o && src.equals(o.src) && dest.equals(o.dest);
     }
 
     @Override
@@ -329,7 +325,8 @@ public class DirectedGraph {
 
     Node n = nameMapping.get(var);
     if (n == null) {
-      nameMapping.put(var, n = new Node());
+      n = new Node();
+      nameMapping.put(var, n);
     } else if (!n.isValid()) {
 
       do {
@@ -354,7 +351,8 @@ public class DirectedGraph {
     for (Map.Entry<String, Node> entry : entrySet) {
       DirectedGraph.Node val = entry.getValue();
       while (!val.isValid()) {
-        entry.setValue(val = val.getReplacement());
+        val = val.getReplacement();
+        entry.setValue(val);
       }
     }
 

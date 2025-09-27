@@ -14,9 +14,9 @@ import java.util.Objects;
 import java.util.Set;
 
 public final class BinaryIdentifier implements AbstractIdentifier {
-  final AbstractIdentifier id1;
-  final AbstractIdentifier id2;
-  final int dereference;
+  private final AbstractIdentifier id1;
+  private final AbstractIdentifier id2;
+  private final int dereference;
 
   public BinaryIdentifier(AbstractIdentifier i1, AbstractIdentifier i2, int deref) {
     id1 = i1;
@@ -88,11 +88,12 @@ public final class BinaryIdentifier implements AbstractIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof SingleIdentifier) {
       return -1;
-    } else if (pO instanceof BinaryIdentifier) {
-      int result = id1.compareTo(((BinaryIdentifier) pO).id1);
-      return (result != 0 ? result : id2.compareTo(((BinaryIdentifier) pO).id2));
+    } else if (pO instanceof BinaryIdentifier other) {
+      int result = id1.compareTo(other.id1);
+      return (result != 0 ? result : id2.compareTo(other.id2));
     } else {
       return 1;
     }

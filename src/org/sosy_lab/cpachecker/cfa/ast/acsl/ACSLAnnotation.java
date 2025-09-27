@@ -10,7 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.util.List;
 
-public interface ACSLAnnotation {
+public sealed interface ACSLAnnotation
+    permits ACSLAssertion,
+        ACSLLoopAnnotation,
+        FunctionContract,
+        InvalidAnnotation,
+        StatementContract {
 
   /**
    * Returns a predicate that represents the semantics of the annotation as they could be used in an
@@ -21,7 +26,7 @@ public interface ACSLAnnotation {
   /**
    * Returns a predicate representation of the completeness clauses of the annotation.
    *
-   * <p>The returned predicate should be logically equivalent to true if all of the completeness
+   * <p>The returned predicate should be logically equivalent to true if all the completeness
    * clauses are fulfilled.
    */
   ACSLPredicate getCompletenessPredicate();

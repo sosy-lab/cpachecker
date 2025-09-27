@@ -171,11 +171,8 @@ class InterpolationSequence {
     if (this == pObj) {
       return true;
     }
-    if (!(pObj instanceof InterpolationSequence)) {
-      return false;
-    }
-    InterpolationSequence other = (InterpolationSequence) pObj;
-    return Objects.equals(orderedPredicates, other.orderedPredicates)
+    return pObj instanceof InterpolationSequence other
+        && Objects.equals(orderedPredicates, other.orderedPredicates)
         && Objects.equals(localPredicates, other.localPredicates);
   }
 

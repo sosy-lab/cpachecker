@@ -80,9 +80,9 @@ public class CallstackTest {
           .isEmpty();
 
       List<ARGState> coveredStates =
-          argStates.transformAndConcat(s -> s.getCoveredByThis()).toList();
+          argStates.transformAndConcat(ARGState::getCoveredByThis).toList();
       assert_().withMessage("exactly one covered state expected").that(coveredStates).hasSize(1);
-      CFANode coverageLocation = AbstractStates.extractLocation(coveredStates.get(0));
+      CFANode coverageLocation = AbstractStates.extractLocation(coveredStates.getFirst());
       assert_()
           .withMessage("expected coverage only in main")
           .that(coverageLocation.getFunctionName())

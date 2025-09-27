@@ -11,9 +11,10 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import java.util.Iterator;
+import com.google.common.collect.Ordering;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -31,7 +32,7 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   public enum Access {
     WRITE,
-    READ;
+    READ,
   }
 
   private static class UsageCore {
@@ -77,15 +78,15 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   public static UsageInfo createUsageInfo(
       @NonNull Access atype, @NonNull AbstractState state, AbstractIdentifier ident) {
-    if (ident instanceof SingleIdentifier) {
+    if (ident instanceof SingleIdentifier singleIdentifier) {
       FluentIterable<CompatibleState> states =
           AbstractStates.asIterable(state).filter(CompatibleState.class);
-      if (states.allMatch(s -> s.isRelevantFor((SingleIdentifier) ident))) {
+      if (states.allMatch(s -> s.isRelevantFor(singleIdentifier))) {
         UsageInfo result =
             new UsageInfo(
                 atype,
                 AbstractStates.extractLocation(state),
-                (SingleIdentifier) ident,
+                singleIdentifier,
                 states.transform(CompatibleState::prepareToStore).toList());
         return result;
       }
@@ -176,51 +177,33 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   @Override
   public int compareTo(UsageInfo pO) {
-    int result;
-
     if (this == pO) {
       return 0;
     }
     Preconditions.checkArgument(
         compatibleStates.size() == pO.compatibleStates.size(),
         "Different compatible states in usages are not supported");
-    Iterator<CompatibleState> iterator = compatibleStates.iterator();
-    Iterator<CompatibleState> otherIterator = pO.compatibleStates.iterator();
+    return ComparisonChain.start()
+        .compare(
+            // Revert order to negate the result:
+            // Usages without locks are more convenient to analyze
+            compatibleStates, pO.compatibleStates, Ordering.natural().reverse().lexicographical())
+        .compare(core.node, pO.core.node)
+        .compare(core.accessType, pO.core.accessType)
 
-    while (iterator.hasNext()) {
-      CompatibleState currentState = iterator.next();
-      CompatibleState otherState = otherIterator.next();
-      Preconditions.checkArgument(
-          currentState.getClass() == otherState.getClass(),
-          "Different compatible states in usages are not supported");
-      // Revert order to negate the result:
-      // Usages without locks are more convenient to analyze
-      result = otherState.compareTo(currentState);
-      if (result != 0) {
-        return result;
-      }
-    }
+        /* We can't use key states for ordering, because the treeSets can't understand,
+         * that old refined usage with zero key state is the same as new one
 
-    result = core.node.compareTo(pO.core.node);
-    if (result != 0) {
-      return result;
-    }
-    result = core.accessType.compareTo(pO.core.accessType);
-    if (result != 0) {
-      return result;
-    }
-    /* We can't use key states for ordering, because the treeSets can't understand,
-     * that old refined usage with zero key state is the same as new one
-     */
-    if (core.id != null && pO.core.id != null) {
-      // Identifiers may not be equal here:
-      // if (a.b > c.b)
-      // FieldIdentifiers are the same (when we add to container),
-      // but full identifiers (here) are not equal
-      // TODO should we distinguish them?
+        if (core.id != null && pO.core.id != null) {
+          // Identifiers may not be equal here:
+          // if (a.b > c.b)
+          // FieldIdentifiers are the same (when we add to container),
+          // but full identifiers (here) are not equal
+          // TODO should we distinguish them?
 
-    }
-    return 0;
+        }
+        */
+        .result();
   }
 
   public UsageInfo copy() {
@@ -246,8 +229,8 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   public AbstractLockState getLockState() {
     for (CompatibleState state : compatibleStates) {
-      if (state instanceof AbstractLockState) {
-        return (AbstractLockState) state;
+      if (state instanceof AbstractLockState abstractLockState) {
+        return abstractLockState;
       }
     }
     return null;

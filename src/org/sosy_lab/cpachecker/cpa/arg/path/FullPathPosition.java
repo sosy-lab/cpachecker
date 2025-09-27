@@ -47,11 +47,6 @@ class FullPathPosition extends PathPosition {
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof FullPathPosition)) {
-      return false;
-    }
-    FullPathPosition other = (FullPathPosition) pObj;
-
-    return super.equals(pObj) && other.offset == offset;
+    return pObj instanceof FullPathPosition other && super.equals(pObj) && other.offset == offset;
   }
 }

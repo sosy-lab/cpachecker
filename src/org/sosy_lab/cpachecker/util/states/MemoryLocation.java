@@ -15,6 +15,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import com.google.errorprone.annotations.Immutable;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
@@ -25,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 @Immutable
 public final class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
-  private static final long serialVersionUID = -8910967707373729034L;
+  @Serial private static final long serialVersionUID = -8910967707373729034L;
   private final @Nullable String functionName;
   private final String identifier;
   private final @Nullable Long offset;
@@ -46,13 +47,8 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       return true;
     }
 
-    if (!(other instanceof MemoryLocation)) {
-      return false;
-    }
-
-    MemoryLocation otherLocation = (MemoryLocation) other;
-
-    return Objects.equals(functionName, otherLocation.functionName)
+    return other instanceof MemoryLocation otherLocation
+        && Objects.equals(functionName, otherLocation.functionName)
         && Objects.equals(identifier, otherLocation.identifier)
         && Objects.equals(offset, otherLocation.offset);
   }
@@ -69,7 +65,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   }
 
   /**
-   * Create an instance for the given identifier without function name and offset. Typically this
+   * Create an instance for the given identifier without function name and offset. Typically, this
    * should be used for global variables.
    */
   public static MemoryLocation forIdentifier(String pIdentifier) {
@@ -77,8 +73,8 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   }
 
   /**
-   * Create an instance for the given identifier without function name but with an offset. Typically
-   * this should be used for global variables.
+   * Create an instance for the given identifier without function name but with an offset.
+   * Typically, this should be used for global variables.
    */
   public static MemoryLocation forIdentifier(String pIdentifier, long pOffset) {
     return new MemoryLocation(null, pIdentifier, pOffset);
@@ -136,7 +132,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     @Nullable Long offset = hasOffset ? Long.parseLong(offsetParts.get(1)) : null;
 
     if (isScoped) {
-      String functionName = nameParts.get(0);
+      String functionName = nameParts.getFirst();
       String varName = nameParts.get(1);
       if (hasOffset) {
         varName = varName.replace("/" + offset, "");
@@ -144,7 +140,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       return new MemoryLocation(functionName, varName, offset);
 
     } else {
-      String varName = nameParts.get(0);
+      String varName = nameParts.getFirst();
       if (hasOffset) {
         varName = varName.replace("/" + offset, "");
       }

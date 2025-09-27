@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -52,7 +53,7 @@ public class ToCodeFormulaVisitor
     CNumericTypes.LONG_INT,
     CNumericTypes.UNSIGNED_LONG_INT,
     CNumericTypes.LONG_LONG_INT,
-    CNumericTypes.UNSIGNED_LONG_LONG_INT
+    CNumericTypes.UNSIGNED_LONG_LONG_INT,
   };
 
   /**
@@ -63,6 +64,8 @@ public class ToCodeFormulaVisitor
 
   private final MachineModel machineModel;
 
+  private final Function<String, String> variableNameConverter;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to bit vector formulae
    * by using the given formula manager, and evaluation visitor.
@@ -72,14 +75,16 @@ public class ToCodeFormulaVisitor
    * @param pMachineModel the machine model used to find the cast types.
    */
   public ToCodeFormulaVisitor(
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
+      MachineModel pMachineModel,
+      Function<String, String> pVariableNameConverter) {
     evaluationVisitor = pEvaluationVisitor;
     machineModel = pMachineModel;
+    variableNameConverter = pVariableNameConverter;
   }
 
   private CSimpleType determineType(TypeInfo pTypeInfo) {
-    if (pTypeInfo instanceof BitVectorInfo) {
-      BitVectorInfo bitVectorInfo = (BitVectorInfo) pTypeInfo;
+    if (pTypeInfo instanceof BitVectorInfo bitVectorInfo) {
       int sizeOfChar = machineModel.getSizeofCharInBits();
       int size = bitVectorInfo.getSize();
       boolean isSigned = bitVectorInfo.isSigned();
@@ -90,17 +95,11 @@ public class ToCodeFormulaVisitor
         }
       }
       return CNumericTypes.INT;
-    } else if (pTypeInfo instanceof FloatingPointTypeInfo) {
-      FloatingPointTypeInfo fpTypeInfo = (FloatingPointTypeInfo) pTypeInfo;
-      switch (fpTypeInfo) {
-        case FLOAT:
-          return CNumericTypes.FLOAT;
-        case DOUBLE:
-          return CNumericTypes.DOUBLE;
-        default:
-          // do nothing and throw the AssertionError below
-          break;
-      }
+    } else if (pTypeInfo instanceof FloatingPointTypeInfo fpTypeInfo) {
+      return switch (fpTypeInfo) {
+        case FLOAT -> CNumericTypes.FLOAT;
+        case DOUBLE -> CNumericTypes.DOUBLE;
+      };
     }
     throw new AssertionError("Unsupported type: " + pTypeInfo);
   }
@@ -136,10 +135,9 @@ public class ToCodeFormulaVisitor
    * @return a bit vector formula representing the given value as a bit vector with the given size.
    */
   private String asFormulaString(TypeInfo pInfo, Number pValue) {
-    if (pInfo instanceof BitVectorInfo && pValue instanceof BigInteger) {
-      BitVectorInfo bitVectorInfo = (BitVectorInfo) pInfo;
+    if (pInfo instanceof BitVectorInfo bitVectorInfo && pValue instanceof BigInteger value) {
       int size = bitVectorInfo.getSize();
-      BigInteger value = (BigInteger) pValue;
+
       // Get only the [size] least significant bits
       BigInteger upperExclusive = BigInteger.valueOf(2).pow(size - 1);
       boolean negative = value.signum() < 0;
@@ -323,7 +321,7 @@ public class ToCodeFormulaVisitor
   public String visit(
       Variable<CompoundInterval> pVariable,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return pVariable.getMemoryLocation().getIdentifier();
+    return variableNameConverter.apply(pVariable.getMemoryLocation().getIdentifier());
   }
 
   @Override
@@ -333,10 +331,10 @@ public class ToCodeFormulaVisitor
     TypeInfo targetInfo = pCast.getTypeInfo();
     String sourceFormula = pCast.getCasted().accept(this, pEnvironment);
     TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
-    if (targetInfo instanceof BitVectorInfo && sourceInfo instanceof BitVectorInfo) {
-      BitVectorInfo sourceBitVectorInfo = (BitVectorInfo) sourceInfo;
+    if (targetInfo instanceof BitVectorInfo bitVectorInfo
+        && sourceInfo instanceof BitVectorInfo sourceBitVectorInfo) {
       int sourceSize = sourceBitVectorInfo.getSize();
-      int targetSize = ((BitVectorInfo) targetInfo).getSize();
+      int targetSize = bitVectorInfo.getSize();
       if ((sourceSize == targetSize && sourceBitVectorInfo.isSigned() == targetInfo.isSigned())
           || sourceFormula == null) {
         return sourceFormula;
@@ -385,17 +383,21 @@ public class ToCodeFormulaVisitor
 
     // Check not equals
     ExpressionTree<String> inversion = ExpressionTrees.getTrue();
-    CompoundInterval op1EvalInvert =
-        pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
+    CompoundInterval op1Eval = pEqual.getOperand1().accept(evaluationVisitor, pEnvironment);
+    CompoundInterval op1EvalInvert = op1Eval.invert();
     // TODO check changes, possibly have to be reverted
-    if (op1EvalInvert.isSingleton() && pEqual.getOperand2() instanceof Variable) {
+    if (op1EvalInvert.isSingleton()
+        && !op1Eval.isSingleton()
+        && pEqual.getOperand2() instanceof Variable) {
       return not(
           Equal.of(Constant.of(typeInfo, op1EvalInvert), pEqual.getOperand2())
               .accept(this, pEnvironment));
     }
-    CompoundInterval op2EvalInvert =
-        pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
-    if (op2EvalInvert.isSingleton() && pEqual.getOperand1() instanceof Variable) {
+    CompoundInterval op2Eval = pEqual.getOperand2().accept(evaluationVisitor, pEnvironment);
+    CompoundInterval op2EvalInvert = op2Eval.invert();
+    if (op2EvalInvert.isSingleton()
+        && !op2Eval.isSingleton()
+        && pEqual.getOperand1() instanceof Variable) {
       return not(
           Equal.of(pEqual.getOperand1(), Constant.of(typeInfo, op2EvalInvert))
               .accept(this, pEnvironment));

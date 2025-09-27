@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;
 
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -131,14 +131,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
   @Override
   public Set<Fault> run(FormulaContext context, TraceFormula tf)
-      throws CPAException, InterruptedException, SolverException, VerifyException,
-          InvalidConfigurationException {
+      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
     errorTrace = tf;
-    maps =
-        ImmutableList.<SSAMap>builder()
-            .add(tf.getTrace().getInitialSsaMap())
-            .addAll(tf.getTrace().toSSAMapList())
-            .build();
+    maps = elementAndList(tf.getTrace().getInitialSsaMap(), tf.getTrace().toSSAMapList());
     totalTime.start();
 
     List<BooleanFormula> interpolants = getInterpolants(context);
@@ -158,7 +153,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     // sort the intervals and calculate abstract error trace
     sortedIntervals.sort(Comparator.comparingInt(Interval::getStart));
     ImmutableList<TraceAtom> selectors = ImmutableList.copyOf(errorTrace.getTrace());
-    Interval maxInterval = sortedIntervals.get(0);
+    Interval maxInterval = sortedIntervals.getFirst();
     int prevEnd = 0;
     List<AbstractTraceElement> abstractTrace = new ArrayList<>();
     for (Interval currInterval : sortedIntervals) {
@@ -234,15 +229,15 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     TraceAtom lastSelector = null;
 
     for (AbstractTraceElement abstractTraceElement : abstractTrace) {
-      if (abstractTraceElement instanceof TraceAtom) {
+      if (abstractTraceElement instanceof TraceAtom traceAtom) {
         if (abstractTraceElement.equals(lastSelector)) {
           Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
-          Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
+          Interval lastInterval = (Interval) summarizedList.removeLast();
           Interval merged = Interval.merge(toMerge, lastInterval, bmgr);
           summarizedList.add(summarizedList.size() - 1, merged);
         } else {
           summarizedList.add(abstractTraceElement);
-          lastSelector = (TraceAtom) abstractTraceElement;
+          lastSelector = traceAtom;
         }
       } else {
         summarizedList.add(abstractTraceElement);
@@ -262,24 +257,23 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   private Set<Fault> createFaults(List<AbstractTraceElement> abstractTrace) {
     // Stores description of last interval
     ImmutableList<TraceAtom> allSelectors = ImmutableList.copyOf(errorTrace.getTrace());
-    TraceAtom prev = allSelectors.get(0);
+    TraceAtom prev = allSelectors.getFirst();
     Set<Fault> faults = new HashSet<>();
     for (int i = 0; i < abstractTrace.size(); i++) {
       AbstractTraceElement errorInvariant = abstractTrace.get(i);
-      if (errorInvariant instanceof TraceAtom) {
-        prev = (TraceAtom) errorInvariant;
+      if (errorInvariant instanceof TraceAtom traceAtom) {
+        prev = traceAtom;
         Fault singleton = new Fault(prev);
         singleton.setIntendedIndex(i);
         faults.add(singleton);
-      } else if (errorInvariant instanceof Interval) {
-        Interval curr = (Interval) errorInvariant;
+      } else if (errorInvariant instanceof Interval curr) {
         // curr.invariant =
         // formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
         TraceAtom next;
         if (i + 1 < abstractTrace.size()) {
           next = (TraceAtom) abstractTrace.get(i + 1);
         } else {
-          next = allSelectors.get(allSelectors.size() - 1);
+          next = allSelectors.getLast();
         }
         Set<FaultContribution> contributions = new HashSet<>();
         for (int j = allSelectors.indexOf(prev); j < allSelectors.indexOf(next); j++) {
@@ -346,9 +340,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /**
    * Return if interpolant is inductive on position i.
    *
-   * @param interpolant A interpolant
+   * @param interpolant An interpolant
    * @param slicePosition where to slice the trace formula
-   * @return true if interpolant is inductive at i, false else
+   * @return whether interpolant is inductive at i
    */
   private boolean isErrInv(Solver solver, BooleanFormula interpolant, int slicePosition)
       throws SolverException, InterruptedException {
@@ -372,7 +366,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     SSAMap shift =
         SSAMap.merge(
             maps.get(slicePosition),
-            maps.get(0),
+            maps.getFirst(),
             MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
@@ -403,7 +397,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
    * unsatisfiable.
    *
    * @param formula check if formula is a tautology
-   * @return true if formula is a tautology, false else
+   * @return whether formula is a tautology
    */
   private boolean isValid(Solver solver, BooleanFormula formula)
       throws SolverException, InterruptedException {
@@ -462,14 +456,11 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
     @Override
     public boolean equals(Object q) {
-      if (q instanceof Interval) {
-        Interval compare = (Interval) q;
-        return compare.start == start
-            && compare.end == end
-            && invariant.equals(compare.invariant)
-            && super.equals(q);
-      }
-      return false;
+      return q instanceof Interval compare
+          && compare.start == start
+          && compare.end == end
+          && invariant.equals(compare.invariant)
+          && super.equals(q);
     }
 
     public BooleanFormula getInvariant() {

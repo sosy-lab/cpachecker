@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -18,7 +20,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public final class PointerExpression extends UnarySymbolicExpression {
 
-  private static final long serialVersionUID = -7348176261979912313L;
+  @Serial private static final long serialVersionUID = -7348176261979912313L;
 
   PointerExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
@@ -29,6 +31,11 @@ public final class PointerExpression extends UnarySymbolicExpression {
       final Type pType,
       final MemoryLocation pRepresentedLocation) {
     super(pOperand, pType, pRepresentedLocation);
+  }
+
+  private PointerExpression(
+      final SymbolicExpression pOperand, final Type pType, final AbstractState pAbstractState) {
+    super(pOperand, pType, pAbstractState);
   }
 
   @Override
@@ -44,5 +51,10 @@ public final class PointerExpression extends UnarySymbolicExpression {
   @Override
   public String getOperationString() {
     return "*";
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new PointerExpression(getOperand(), getType(), pCurrentState);
   }
 }

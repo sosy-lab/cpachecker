@@ -23,7 +23,7 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
    */
   private LogicalNot(BooleanFormula<ConstantType> pToNegate) {
     Preconditions.checkNotNull(pToNegate);
-    this.negatedFormula = pToNegate;
+    negatedFormula = pToNegate;
   }
 
   /**
@@ -32,40 +32,38 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
    * @return the formula logically negated by this formula.
    */
   public BooleanFormula<ConstantType> getNegated() {
-    return this.negatedFormula;
+    return negatedFormula;
   }
 
   @Override
   public String toString() {
     BooleanFormula<ConstantType> negated = getNegated();
-    if (negated instanceof LogicalNot) {
-      return ((LogicalNot<?>) negated).getNegated().toString();
-    }
-    if (negated instanceof Equal<?>) {
-      Equal<?> equation = (Equal<?>) negated;
-      return String.format("(%s != %s)", equation.getOperand1(), equation.getOperand2());
-    }
-    if (negated instanceof LessThan<?>) {
-      LessThan<?> lessThan = (LessThan<?>) negated;
-      return String.format("(%s >= %s)", lessThan.getOperand1(), lessThan.getOperand2());
-    }
-    if (negated instanceof LogicalAnd<?>) {
-      LogicalAnd<?> and = (LogicalAnd<?>) negated;
-      final String left;
-      if (and.getOperand1() instanceof LogicalNot) {
-        left = ((LogicalNot<?>) and.getOperand1()).getNegated().toString();
-      } else {
-        left = String.format("(!%s)", and.getOperand1());
+    return switch (negated) {
+      case LogicalNot<?> not -> not.getNegated().toString();
+
+      case Equal<?> equation ->
+          String.format("(%s != %s)", equation.getOperand1(), equation.getOperand2());
+
+      case LessThan<?> lessThan ->
+          String.format("(%s >= %s)", lessThan.getOperand1(), lessThan.getOperand2());
+
+      case LogicalAnd<?> and -> {
+        final String left;
+        if (and.getOperand1() instanceof LogicalNot) {
+          left = ((LogicalNot<?>) and.getOperand1()).getNegated().toString();
+        } else {
+          left = String.format("(!%s)", and.getOperand1());
+        }
+        final String right;
+        if (and.getOperand2() instanceof LogicalNot) {
+          right = ((LogicalNot<?>) and.getOperand2()).getNegated().toString();
+        } else {
+          right = String.format("(!%s)", and.getOperand2());
+        }
+        yield String.format("(%s || %s)", left, right);
       }
-      final String right;
-      if (and.getOperand2() instanceof LogicalNot) {
-        right = ((LogicalNot<?>) and.getOperand2()).getNegated().toString();
-      } else {
-        right = String.format("(!%s)", and.getOperand2());
-      }
-      return String.format("(%s || %s)", left, right);
-    }
-    return String.format("(!%s)", negated);
+      default -> String.format("(!%s)", negated);
+    };
   }
 
   @Override
@@ -73,10 +71,7 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
     if (this == o) {
       return true;
     }
-    if (o instanceof LogicalNot) {
-      return getNegated().equals(((LogicalNot<?>) o).getNegated());
-    }
-    return false;
+    return o instanceof LogicalNot && getNegated().equals(((LogicalNot<?>) o).getNegated());
   }
 
   @Override

@@ -85,13 +85,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
       return true;
     }
 
-    if (!(obj instanceof LiveVariablesState)) {
-      return false;
-    }
-
-    LiveVariablesState other = (LiveVariablesState) obj;
-
-    return Objects.equals(liveVars, other.liveVars);
+    return obj instanceof LiveVariablesState other && Objects.equals(liveVars, other.liveVars);
   }
 
   @Override

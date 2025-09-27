@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -461,7 +462,7 @@ class KInductionProver implements AutoCloseable {
         }
       } else {
         AssertCandidate assertSuccessorViolation =
-            (candidate) -> {
+            candidate -> {
               Multimap<BooleanFormula, BooleanFormula> succViolationAssertions =
                   getSuccessorViolationAssertions(
                       pCandidateInvariant, pK + 1, inductionHypothesis, pLifting.canLift());
@@ -632,7 +633,7 @@ class KInductionProver implements AutoCloseable {
     }
     Multimap<String, Integer> inputs = extractInputs(inputStates, types);
 
-    Map<CounterexampleToInductivity, BooleanFormula> ctis = new LinkedHashMap<>();
+    SequencedMap<CounterexampleToInductivity, BooleanFormula> ctis = new LinkedHashMap<>();
     for (CFANode loopHead : loopHeads) {
       // We compute the CTI state "at the start of the second loop iteration",
       // because that is where we will later apply it (or its negation) as a candidate invariant.

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -16,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CImaginaryLiteralExpression extends ALiteralExpression
     implements CLiteralExpression {
 
-  private static final long serialVersionUID = -3248391757986816857L;
+  @Serial private static final long serialVersionUID = -3248391757986816857L;
   private final CLiteralExpression value;
 
   public CImaginaryLiteralExpression(
@@ -61,13 +62,9 @@ public final class CImaginaryLiteralExpression extends ALiteralExpression
       return true;
     }
 
-    if (!(obj instanceof CImaginaryLiteralExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    CImaginaryLiteralExpression other = (CImaginaryLiteralExpression) obj;
-
-    return Objects.equals(other.value, value);
+    return obj instanceof CImaginaryLiteralExpression other
+        && super.equals(obj)
+        && Objects.equals(other.value, value);
   }
 
   @Override

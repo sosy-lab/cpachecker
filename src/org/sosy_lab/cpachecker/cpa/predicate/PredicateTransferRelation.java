@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkInfeasibleDummyState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import com.google.common.collect.ImmutableSet;
@@ -18,6 +17,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -42,15 +44,49 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes the strongest post for
- * the given CFA edge. Afterwards it optionally computes an abstraction.
+ * the given CFA edge. Afterward, it optionally computes an abstraction.
  */
+@Options(prefix = "cpa.predicate")
 public final class PredicateTransferRelation extends SingleEdgeTransferRelation {
+
+  @Option(
+      secure = true,
+      name = "satCheck",
+      description =
+          "maximum blocksize before a satisfiability check is done\n"
+              + "(non-negative number, 0 means never, if positive should be smaller than"
+              + " blocksize)")
+  private int satCheckBlockSize = 0;
+
+  @Option(
+      secure = true,
+      description =
+          "Enables sat checks at abstraction location.\n"
+              + "Infeasible paths are already excluded by transfer relation and not later by"
+              + " precision adjustment. This property is required in proof checking.")
+  private boolean satCheckAtAbstraction = false;
+
+  @Option(secure = true, description = "check satisfiability when a target state has been found")
+  private boolean targetStateSatCheck = false;
+
+  @Option(
+      secure = true,
+      description = "do not include assumptions of states into path formula during strengthening")
+  private boolean ignoreStateAssumptions = false;
+
+  @Option(secure = true, description = "Use formula reporting states for strengthening.")
+  private boolean strengthenWithFormulaReportingStates = false;
+
+  @Option(
+      secure = true,
+      description = "Check satisfiability for plain conjunction of edge and assumptions.")
+  private boolean assumptionStrengtheningSatCheck = false;
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
@@ -60,40 +96,33 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private final FormulaManagerView fmgr;
 
   private final AnalysisDirection direction;
-  private final PredicateStatistics statistics;
-  private final PredicateCpaOptions options;
 
-  private final TimerWrapper postTimer;
-  private final TimerWrapper satCheckTimer;
-  private final TimerWrapper pathFormulaTimer;
-  private final TimerWrapper strengthenTimer;
-  private final TimerWrapper strengthenCheckTimer;
-  private final TimerWrapper abstractionCheckTimer;
+  // Statistics
+  final StatTimer postTimer = new StatTimer("Time for post operator");
+  final StatTimer satCheckTimer = new StatTimer("Time for satisfiability checks");
+  final StatTimer pathFormulaTimer = new StatTimer("Time for path formula creation");
+  final StatTimer strengthenTimer = new StatTimer("Time for strengthen operator");
+  final StatTimer strengthenCheckTimer = new StatTimer("Time for strengthen sat checks");
+  final StatTimer abstractionCheckTimer = new StatTimer("Time for abstraction checks");
+  int numSatChecksFalse = 0;
+  int numStrengthenChecksFalse = 0;
 
-  public PredicateTransferRelation(
+  PredicateTransferRelation(
+      Configuration config,
       LogManager pLogger,
       AnalysisDirection pDirection,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
-      PredicateAbstractionManager pPredAbsManager,
-      PredicateStatistics pStatistics,
-      PredicateCpaOptions pOptions) {
+      PredicateAbstractionManager pPredAbsManager)
+      throws InvalidConfigurationException {
+    config.inject(this);
     logger = pLogger;
     formulaManager = pPredAbsManager;
     pathFormulaManager = pPfmgr;
     fmgr = pFmgr;
     blk = pBlk;
     direction = pDirection;
-    statistics = pStatistics;
-    options = pOptions;
-
-    postTimer = statistics.postTimer.getNewTimer();
-    satCheckTimer = statistics.satCheckTimer.getNewTimer();
-    pathFormulaTimer = statistics.pathFormulaTimer.getNewTimer();
-    strengthenTimer = statistics.strengthenTimer.getNewTimer();
-    strengthenCheckTimer = statistics.strengthenCheckTimer.getNewTimer();
-    abstractionCheckTimer = statistics.abstractionCheckTimer.getNewTimer();
   }
 
   @Override
@@ -146,11 +175,10 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private boolean shouldDoSatCheck(CFAEdge edge, PathFormula pathFormula) {
-    if ((options.getSatCheckBlockSize() > 0)
-        && (pathFormula.getLength() >= options.getSatCheckBlockSize())) {
+    if ((satCheckBlockSize > 0) && (pathFormula.getLength() >= satCheckBlockSize)) {
       return true;
     }
-    if (options.satCheckAtAbstraction()) {
+    if (satCheckAtAbstraction) {
       CFANode loc = getAnalysisSuccessor(edge);
       if (blk.isBlockEnd(loc, pathFormula.getLength())) {
         return true;
@@ -181,7 +209,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     satCheckTimer.stop();
 
     if (unsat) {
-      statistics.numSatChecksFalse.inc();
+      numSatChecksFalse++;
       logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
     }
 
@@ -216,7 +244,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   * since specifications should not be hard-coded in analysis,
   * but instead given as automata.
   * Furthermore, these checks were too expensive to be usable.
-  * Thus this code is disabled now.
+  * Thus, this code is disabled now.
   * If it is one day desired to re-add these checks,
   * the checks should get executed on request of the AutomatonCPA,
   * possibly via the AbstractQueryableState interface or strengthen.
@@ -299,27 +327,25 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       boolean errorFound = false;
       for (AbstractState lElement : otherElements) {
-        if (lElement instanceof AssumptionStorageState) {
-          element = strengthen(element, (AssumptionStorageState) lElement);
+        if (lElement instanceof AssumptionStorageState assumptionStorageState) {
+          element = strengthen(element, assumptionStorageState);
         }
 
-        if (lElement instanceof ThreadingState) {
-          element = strengthen(element, (ThreadingState) lElement);
+        if (lElement instanceof ThreadingState threadingState) {
+          element = strengthen(element, threadingState);
         }
 
         /*
          * Add additional assumptions from an automaton state.
          */
-        if (!options.ignoreStateAssumptions() && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(element, (AbstractStateWithAssumptions) lElement, edge);
-          if (element instanceof InfeasibleDummyState) {
-            return ImmutableSet.of(element);
-          }
+        if (!ignoreStateAssumptions
+            && lElement instanceof AbstractStateWithAssumptions abstractStateWithAssumptions) {
+          element = strengthen(element, abstractStateWithAssumptions, edge);
         }
 
-        if (options.strengthenWithFormulaReportingStates()
-            && lElement instanceof FormulaReportingState) {
-          element = strengthen(element, (FormulaReportingState) lElement);
+        if (strengthenWithFormulaReportingStates
+            && lElement instanceof FormulaReportingState formulaReportingState) {
+          element = strengthen(element, formulaReportingState);
         }
 
         if (AbstractStates.isTargetState(lElement)) {
@@ -329,7 +355,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
-      if (errorFound && options.targetStateSatCheck()) {
+      if (errorFound && targetStateSatCheck) {
         element = strengthenSatCheck(element, currentLocation);
         if (element == null) {
           // successor not reachable
@@ -352,7 +378,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
     PathFormula pf = pElement.getPathFormula();
 
-    if (options.assumptionStrengtheningSatCheck()) {
+    if (assumptionStrengtheningSatCheck) {
       PathFormula f = pathFormulaManager.makeFormulaForPath(Collections.singletonList(pEdge));
       for (CExpression assumption :
           from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
@@ -360,9 +386,10 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
       AbstractionFormula dummy = formulaManager.makeTrueAbstractionFormula(f);
       if (formulaManager.unsat(dummy, f)) {
-        // if automaton has conflict with edge, return a dummy-successor that can be used to further
-        // elaborate on it at a later stage
-        return mkInfeasibleDummyState(f, dummy, pElement.getAbstractionLocationsOnPath());
+        // The automaton has a conflict with the edge. The formula-manager has just proven that the
+        // abstraction formula at this point represents false.
+        return PredicateAbstractState.mkAbstractionState(
+            f, dummy, pElement.getAbstractionLocationsOnPath());
       }
     }
 
@@ -452,7 +479,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     strengthenCheckTimer.stop();
 
     if (unsat) {
-      statistics.numStrengthenChecksFalse.inc();
+      numStrengthenChecksFalse++;
       logger.log(Level.FINEST, "Path is infeasible.");
       return null;
     } else {

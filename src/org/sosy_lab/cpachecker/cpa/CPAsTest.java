@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -70,6 +71,7 @@ import org.sosy_lab.cpachecker.cpa.slicing.SlicingCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.traceabstraction.TraceAbstractionCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
+import org.sosy_lab.cpachecker.cpa.witnessjoiner.WitnessJoinerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -105,6 +107,7 @@ public class CPAsTest {
     cpas.remove(FlowDependenceCPA.class);
     cpas.remove(SlicingCPA.class);
     cpas.remove(SLABCPA.class);
+    cpas.remove(WitnessJoinerCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
@@ -136,7 +139,7 @@ public class CPAsTest {
                 .build());
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
 
-    String cProgram = TestDataTools.getEmptyProgram(tempFolder, false);
+    String cProgram = TestDataTools.getEmptyProgram(tempFolder, Language.C);
 
     config =
         Configuration.builder()

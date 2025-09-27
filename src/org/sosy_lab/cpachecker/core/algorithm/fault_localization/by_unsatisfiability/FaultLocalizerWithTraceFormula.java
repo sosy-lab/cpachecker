@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability;
 
-import com.google.common.base.VerifyException;
 import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
@@ -21,6 +20,5 @@ import org.sosy_lab.java_smt.api.SolverException;
 public interface FaultLocalizerWithTraceFormula {
 
   Set<Fault> run(FormulaContext context, TraceFormula tf)
-      throws CPAException, InterruptedException, SolverException, VerifyException,
-          InvalidConfigurationException;
+      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException;
 }

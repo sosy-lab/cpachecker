@@ -18,6 +18,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -177,6 +178,18 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
+    if (unsatisfiedRankingRelation == null) {
+      return pManager.getBooleanFormulaManager().makeTrue();
+    } else {
+      return pManager.makeNot(
+          unsatisfiedRankingRelation.asApproximatedScopedFormula(
+              pFunctionScope.getFunctionName(), pManager));
+    }
+  }
+
+  @Override
   public boolean isTarget() {
     return targetInformation != null || super.isTarget();
   }
@@ -199,9 +212,9 @@ public class TerminationState extends AbstractSingleWrapperState
       sb.append("loop");
     }
 
-    if (getWrappedState() instanceof Graphable) {
+    if (getWrappedState() instanceof Graphable graphable) {
       sb.append("\n");
-      sb.append(((Graphable) getWrappedState()).toDOTLabel());
+      sb.append(graphable.toDOTLabel());
     }
 
     return sb.toString();
@@ -209,8 +222,8 @@ public class TerminationState extends AbstractSingleWrapperState
 
   @Override
   public boolean shouldBeHighlighted() {
-    if (getWrappedState() instanceof Graphable) {
-      return ((Graphable) getWrappedState()).shouldBeHighlighted();
+    if (getWrappedState() instanceof Graphable graphable) {
+      return graphable.shouldBeHighlighted();
     }
     return false;
   }

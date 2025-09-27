@@ -163,10 +163,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                         CFANode newSucc = enteringEdge.getPredecessor();
                         if (visited.add(newSucc)) {
                           if (enteringEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-                            successors.add(
-                                ((FunctionReturnEdge) enteringEdge)
-                                    .getSummaryEdge()
-                                    .getPredecessor());
+                            successors.add(((FunctionReturnEdge) enteringEdge).getCallNode());
                           } else {
                             successors.offer(newSucc);
                           }
@@ -180,10 +177,9 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
                   FunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
                   if (summaryEdge != null) {
-                    AFunctionCall functionCall = summaryEdge.getExpression();
-                    if (functionCall instanceof AFunctionCallAssignmentStatement) {
-                      AFunctionCallAssignmentStatement assignmentStatement =
-                          (AFunctionCallAssignmentStatement) functionCall;
+                    AFunctionCall functionCall = functionReturnEdge.getFunctionCall();
+                    if (functionCall
+                        instanceof AFunctionCallAssignmentStatement assignmentStatement) {
                       wideningTargetsBuilder.addAll(
                           edgeAnalyzer
                               .getInvolvedVariableTypes(
@@ -195,9 +191,8 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                 }
                 if (lastEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
                   AStatementEdge edge = (AStatementEdge) lastEdge;
-                  if (edge.getStatement() instanceof AExpressionStatement) {
-                    AExpressionStatement expressionStatement =
-                        (AExpressionStatement) edge.getStatement();
+                  if (edge.getStatement() instanceof AExpressionStatement expressionStatement) {
+
                     AExpression expression = expressionStatement.getExpression();
                     if (expression instanceof ALiteralExpression) {
                       continue;
@@ -205,9 +200,9 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                     if (expression instanceof ALeftHandSide) {
                       continue;
                     }
-                  } else if (edge.getStatement() instanceof AExpressionAssignmentStatement) {
-                    AExpressionAssignmentStatement expressionAssignmentStatement =
-                        (AExpressionAssignmentStatement) edge.getStatement();
+                  } else if (edge.getStatement()
+                      instanceof AExpressionAssignmentStatement expressionAssignmentStatement) {
+
                     AExpression expression = expressionAssignmentStatement.getRightHandSide();
                     if (expression instanceof ALiteralExpression) {
                       continue;
@@ -223,15 +218,13 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                 if (lastEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
                   ADeclarationEdge edge = (ADeclarationEdge) lastEdge;
                   ADeclaration declaration = edge.getDeclaration();
-                  if (declaration instanceof AVariableDeclaration) {
-                    AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
+                  if (declaration instanceof AVariableDeclaration variableDeclaration) {
                     AInitializer initializer = variableDeclaration.getInitializer();
                     if (initializer == null) {
                       continue;
                     }
-                    if (initializer instanceof AInitializerExpression) {
-                      AExpression expression =
-                          ((AInitializerExpression) initializer).getExpression();
+                    if (initializer instanceof AInitializerExpression aInitializerExpression) {
+                      AExpression expression = aInitializerExpression.getExpression();
                       if (expression instanceof ALiteralExpression) {
                         continue;
                       }
@@ -249,9 +242,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
             @Override
             public Set<MemoryLocation> determineWideningTargets(AbstractionState pOther) {
-              if (pOther instanceof EnteringEdgesBasedAbstractionState) {
-                EnteringEdgesBasedAbstractionState other =
-                    (EnteringEdgesBasedAbstractionState) pOther;
+              if (pOther instanceof EnteringEdgesBasedAbstractionState other) {
                 if (!visitedEdges.containsAll(other.visitedEdges)) {
                   return Sets.intersection(wideningTargets, other.wideningTargets);
                 }
@@ -292,10 +283,10 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                               pEdge,
                               pWithEnteringEdges,
                               ImmutableMap.of()));
-                  if (expression instanceof CExpression) {
-                    wideningHint = ((CExpression) expression).accept(expressionToFormulaVisitor);
-                  } else if (expression instanceof JExpression) {
-                    wideningHint = ((JExpression) expression).accept(expressionToFormulaVisitor);
+                  if (expression instanceof CExpression cExpression) {
+                    wideningHint = cExpression.accept(expressionToFormulaVisitor);
+                  } else if (expression instanceof JExpression jExpression) {
+                    wideningHint = jExpression.accept(expressionToFormulaVisitor);
                   } else {
                     return ImmutableSet.of();
                   }
@@ -370,9 +361,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
               if (pOther == BasicAbstractionStates.NEVER_STATE || pOther == this) {
                 return this;
               }
-              if (pOther instanceof EnteringEdgesBasedAbstractionState) {
-                EnteringEdgesBasedAbstractionState other =
-                    (EnteringEdgesBasedAbstractionState) pOther;
+              if (pOther instanceof EnteringEdgesBasedAbstractionState other) {
                 if ((visitedEdges == other.visitedEdges
                         || other.visitedEdges.containsAll(visitedEdges))
                     && (wideningTargets == other.wideningTargets
@@ -399,13 +388,10 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
               if (this == pO) {
                 return true;
               }
-              if (pO instanceof EnteringEdgesBasedAbstractionState) {
-                EnteringEdgesBasedAbstractionState other = (EnteringEdgesBasedAbstractionState) pO;
-                return wideningTargets.equals(other.wideningTargets)
-                    && visitedEdges.equals(other.visitedEdges)
-                    && wideningHints.equals(other.wideningHints);
-              }
-              return false;
+              return pO instanceof EnteringEdgesBasedAbstractionState other
+                  && wideningTargets.equals(other.wideningTargets)
+                  && visitedEdges.equals(other.visitedEdges)
+                  && wideningHints.equals(other.wideningHints);
             }
 
             @Override
@@ -422,9 +408,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
             @Override
             public boolean isLessThanOrEqualTo(AbstractionState pOther) {
-              if (pOther instanceof EnteringEdgesBasedAbstractionState) {
-                EnteringEdgesBasedAbstractionState other =
-                    (EnteringEdgesBasedAbstractionState) pOther;
+              if (pOther instanceof EnteringEdgesBasedAbstractionState other) {
                 return other.visitedEdges.containsAll(visitedEdges);
               }
               return !pOther.isLessThanOrEqualTo(this);
@@ -440,10 +424,10 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
           }
           final Set<MemoryLocation> previousWideningTargets;
           final Set<BooleanFormula<CompoundInterval>> previousWideningHints;
-          if (pPrevious instanceof EnteringEdgesBasedAbstractionState) {
-            previousWideningTargets =
-                ((EnteringEdgesBasedAbstractionState) pPrevious).wideningTargets;
-            previousWideningHints = ((EnteringEdgesBasedAbstractionState) pPrevious).wideningHints;
+          if (pPrevious
+              instanceof EnteringEdgesBasedAbstractionState enteringEdgesBasedAbstractionState) {
+            previousWideningTargets = enteringEdgesBasedAbstractionState.wideningTargets;
+            previousWideningHints = enteringEdgesBasedAbstractionState.wideningHints;
           } else {
             previousWideningTargets = ImmutableSet.of();
             previousWideningHints = ImmutableSet.of();

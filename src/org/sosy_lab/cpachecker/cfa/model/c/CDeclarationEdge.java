@@ -13,9 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class CDeclarationEdge extends ADeclarationEdge implements CCfaEdge {
-
-  private static final long serialVersionUID = 1085083084922071042L;
+public final class CDeclarationEdge extends ADeclarationEdge implements CCfaEdge {
 
   public CDeclarationEdge(
       final String pRawSignature,

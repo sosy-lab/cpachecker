@@ -16,9 +16,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.smg.SMG;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGNode;
@@ -104,7 +104,7 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     // step 7
     if (isRegion(pObj1) && isRegion(pObj2)) {
       relabelPTEdges(newObject);
-      increaseLevelOfMapped();
+      // increaseLevelOfMapped();
     }
     // step 8
     dropTempZeroEdges(tempEdgeMapping);
@@ -120,10 +120,10 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
         tmpObjectsMappedinSMG1, mapping1.getMappedObjects(), destSMG.getObjects());
     fillWithIntersectingNodes(
         tmpObjectsMappedinSMG2, mapping2.getMappedObjects(), destSMG.getObjects());
-    fillWithIntersectingNodes(
-        tmpSMGValuesMappedinSMG1, mapping1.getMappedValues(), destSMG.getValues());
-    fillWithIntersectingNodes(
-        tmpSMGValuesMappedinSMG2, mapping2.getMappedValues(), destSMG.getValues());
+    // fillWithIntersectingNodes(
+    //     tmpSMGValuesMappedinSMG1, mapping1.getMappedValues(), destSMG.getValues().keySet());
+    // fillWithIntersectingNodes(
+    //    tmpSMGValuesMappedinSMG2, mapping2.getMappedValues(), destSMG.getValues().keySet());
     smgObjectsMappedinSMG1 = PersistentSet.copyOf(tmpObjectsMappedinSMG1);
     smgObjectsMappedinSMG2 = PersistentSet.copyOf(tmpObjectsMappedinSMG2);
     smgValuesMappedinSMG1 = PersistentSet.copyOf(tmpSMGValuesMappedinSMG1);
@@ -158,30 +158,30 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     pTempEdgeMapping
         .entrySet()
         .forEach(
-            entry -> {
-              destSMG =
-                  destSMG.copyAndReplaceHVEdge(
-                      entry.getKey().getFirst(), entry.getValue(), entry.getKey().getSecond());
-            });
+            entry ->
+                destSMG =
+                    destSMG.copyAndReplaceHVEdge(
+                        entry.getKey().getFirst(), entry.getValue(), entry.getKey().getSecond()));
   }
 
   /** Utility function for step 7. Increase the level of all mapped nodes by 1. */
+  @SuppressWarnings("unused")
   private void increaseLevelOfMapped() {
     for (SMGObject mappedObj : mapping1.getMappedObjects()) {
       mapping1.replaceObjectMapping(
           mappedObj, mappedObj.withNestingLevelAndCopy(mappedObj.getNestingLevel() + 1));
     }
     for (SMGValue mappedVal : mapping1.getMappedValues()) {
-      mapping1.replaceValueMapping(
-          mappedVal, mappedVal.withNestingLevelAndCopy(mappedVal.getNestingLevel() + 1));
+      // mapping1.replaceValueMapping(
+      //    mappedVal, mappedVal.withNestingLevelAndCopy(mappedVal.getNestingLevel() + 1));
     }
     for (SMGObject mappedObj : mapping2.getMappedObjects()) {
       mapping2.replaceObjectMapping(
           mappedObj, mappedObj.withNestingLevelAndCopy(mappedObj.getNestingLevel() + 1));
     }
     for (SMGValue mappedVal : mapping2.getMappedValues()) {
-      mapping2.replaceValueMapping(
-          mappedVal, mappedVal.withNestingLevelAndCopy(mappedVal.getNestingLevel() + 1));
+      // mapping2.replaceValueMapping(
+      //     mappedVal, mappedVal.withNestingLevelAndCopy(mappedVal.getNestingLevel() + 1));
     }
   }
 
@@ -195,11 +195,9 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     destSMG
         .getPTEdgesByTarget(pNewObject)
         .forEach(
-            ptEdge -> {
-              // TODO this modifies nodes, maybe it would be better to replace existing with
-              // modified copy
-              ptEdge.setTargetSpecifier(SMGTargetSpecifier.IS_ALL_POINTER);
-            });
+            // TODO this modifies nodes, maybe it would be better to replace existing with
+            // modified copy
+            ptEdge -> ptEdge.setTargetSpecifier(SMGTargetSpecifier.IS_ALL_POINTER));
   }
 
   /**
@@ -282,7 +280,9 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
             pObj1.getOffset(),
             pHeadOffset,
             pNextOffset,
+            null,
             pPrevOffset,
+            null,
             minLength);
     destSMG = destSMG.copyAndAddObject(dls);
     return dls;

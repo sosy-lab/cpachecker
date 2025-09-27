@@ -49,10 +49,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -81,6 +81,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 @ReturnValuesAreNonnullByDefault
 @FieldsAreNonnullByDefault
 final class VariableAndFieldRelevancyComputer {
+
+  private VariableAndFieldRelevancyComputer() {}
 
   public static final class VarFieldDependencies {
     @SuppressWarnings("unchecked") // Cloning here should work faster than adding all elements
@@ -200,7 +202,7 @@ final class VariableAndFieldRelevancyComputer {
         if (rhs.isVariable()) {
           final VarFieldDependencies singleVariable =
               new VarFieldDependencies(
-                  ImmutableSet.of(rhs.asVariable().getScopedName()),
+                  ImmutableSet.of(rhs.asVariable().scopedName()),
                   ImmutableListMultimap.of(),
                   ImmutableListMultimap.of(),
                   ImmutableSet.of(),
@@ -222,7 +224,7 @@ final class VariableAndFieldRelevancyComputer {
           final VarFieldDependencies singleField =
               new VarFieldDependencies(
                   ImmutableSet.of(),
-                  ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
+                  ImmutableListMultimap.of(field.compositeType(), field.name()),
                   ImmutableListMultimap.of(),
                   ImmutableSet.of(),
                   ImmutableListMultimap.of(),
@@ -252,7 +254,7 @@ final class VariableAndFieldRelevancyComputer {
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
               ImmutableListMultimap.of(),
-              ImmutableSet.of(variable.getScopedName()),
+              ImmutableSet.of(variable.scopedName()),
               ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
               1,
@@ -273,7 +275,7 @@ final class VariableAndFieldRelevancyComputer {
           new VarFieldDependencies(
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
-              ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
+              ImmutableListMultimap.of(field.compositeType(), field.name()),
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
@@ -378,12 +380,12 @@ final class VariableAndFieldRelevancyComputer {
               : "Match failure: neither variable nor field!";
           if (variableOrField.isVariable()) {
             final VariableOrField.Variable variable = variableOrField.asVariable();
-            if (currentRelevantVariables.add(variable.getScopedName())) {
+            if (currentRelevantVariables.add(variable.scopedName())) {
               queue.add(variable);
             }
           } else { // Field
             final VariableOrField.Field field = variableOrField.asField();
-            if (currentRelevantFields.put(field.getCompositeType(), field.getName())) {
+            if (currentRelevantFields.put(field.compositeType(), field.name())) {
               queue.add(field);
             }
           }
@@ -401,7 +403,8 @@ final class VariableAndFieldRelevancyComputer {
     private final Set<String> addressedVariables;
     private final Multimap<VariableOrField, VariableOrField> dependencies;
     private final PersistentList<VarFieldDependencies> pendingMerges;
-    private final int currentSize, pendingSize;
+    private final int currentSize;
+    private final int pendingSize;
     private @Nullable VarFieldDependencies squashed = null;
 
     private static final int INITIAL_SIZE = 500;
@@ -434,18 +437,8 @@ final class VariableAndFieldRelevancyComputer {
             + fieldOwnerType.getClass().getSimpleName()
             + ".";
     final CCompositeType compositeType = (CCompositeType) fieldOwnerType;
-    // Currently we don't pay attention to possible const and volatile modifiers
-    if (compositeType.isConst() || compositeType.isVolatile()) {
-      return new CCompositeType(
-          false,
-          false,
-          compositeType.getKind(),
-          compositeType.getMembers(),
-          compositeType.getName(),
-          compositeType.getOrigName());
-    } else {
-      return compositeType;
-    }
+    // Currently, we don't pay attention to possible qualifiers (e.g., const/volatile)
+    return compositeType.withoutQualifiers();
   }
 
   public static VarFieldDependencies handleEdge(CFA pCfa, CFAEdge edge)
@@ -454,147 +447,116 @@ final class VariableAndFieldRelevancyComputer {
     VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
 
     switch (edge.getEdgeType()) {
-      case AssumeEdge:
-        {
-          final CExpression exp = ((CAssumeEdge) edge).getExpression();
-          result =
-              result.withDependencies(
-                  exp.accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
+      case AssumeEdge -> {
+        final CExpression exp = ((CAssumeEdge) edge).getExpression();
+        result =
+            result.withDependencies(
+                exp.accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
+      }
+      case DeclarationEdge -> {
+        final CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
+        if (!(decl instanceof CVariableDeclaration cVariableDeclaration)) {
           break;
         }
+        for (CExpression exp : CTypes.getArrayLengthExpressions(decl.getType())) {
+          result =
+              result.withDependencies(
+                  exp.accept(
+                      CollectingRHSVisitor.create(
+                          pCfa, VariableOrField.newVariable(decl.getQualifiedName()))));
+        }
 
-      case DeclarationEdge:
-        {
-          final CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-          if (!(decl instanceof CVariableDeclaration)) {
-            break;
-          }
-          CType declType = decl.getType().getCanonicalType();
-          if (declType instanceof CArrayType) {
-            CExpression length = ((CArrayType) declType).getLength();
-            if (length != null) {
-              result =
-                  result.withDependencies(
-                      length.accept(
-                          CollectingRHSVisitor.create(
-                              pCfa, VariableOrField.newVariable(decl.getQualifiedName()))));
-            }
-          }
-          CollectingLHSVisitor collectingLHSVisitor = CollectingLHSVisitor.create(pCfa);
-          for (CExpressionAssignmentStatement init :
-              CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
-            Pair<VariableOrField, VarFieldDependencies> r =
-                init.getLeftHandSide().accept(collectingLHSVisitor);
+        CollectingLHSVisitor collectingLHSVisitor = CollectingLHSVisitor.create(pCfa);
+        for (CExpressionAssignmentStatement init :
+            CInitializers.convertToAssignments(cVariableDeclaration, edge)) {
+          Pair<VariableOrField, VarFieldDependencies> r =
+              init.getLeftHandSide().accept(collectingLHSVisitor);
+          result =
+              result.withDependencies(
+                  r.getSecond()
+                      .withDependencies(
+                          init.getRightHandSide()
+                              .accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
+        }
+      }
+      case StatementEdge -> {
+        final CStatement statement = ((CStatementEdge) edge).getStatement();
+        // Heuristic: for external function calls
+        // r = f(a); // r depends on f and a, BUT
+        // f(a); // f and a are always relevant
+        if (statement instanceof CAssignment assignment) {
+          final CRightHandSide rhs = assignment.getRightHandSide();
+          final Pair<VariableOrField, VarFieldDependencies> r =
+              assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
+          if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {
             result =
                 result.withDependencies(
                     r.getSecond()
                         .withDependencies(
-                            init.getRightHandSide()
-                                .accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
+                            rhs.accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
+          } else {
+            throw new UnrecognizedCodeException("Unhandled assignment", edge, assignment);
           }
-          break;
+        } else if (statement instanceof CFunctionCallStatement cFunctionCallStatement) {
+          result =
+              result.withDependencies(
+                  cFunctionCallStatement
+                      .getFunctionCallExpression()
+                      .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
         }
-
-      case StatementEdge:
-        {
-          final CStatement statement = ((CStatementEdge) edge).getStatement();
-          // Heuristic: for external function calls
-          // r = f(a); // r depends on f and a, BUT
-          // f(a); // f and a are always relevant
-          if (statement instanceof CAssignment) {
-            final CAssignment assignment = (CAssignment) statement;
-            final CRightHandSide rhs = assignment.getRightHandSide();
+      }
+      case FunctionCallEdge -> {
+        final CFunctionCallEdge call = (CFunctionCallEdge) edge;
+        final List<CExpression> args = call.getArguments();
+        final List<CParameterDeclaration> params = call.getSuccessor().getFunctionParameters();
+        for (int i = 0; i < params.size(); i++) {
+          result =
+              result.withDependencies(
+                  args.get(i)
+                      .accept(
+                          CollectingRHSVisitor.create(
+                              pCfa,
+                              VariableOrField.newVariable(params.get(i).getQualifiedName()))));
+        }
+        CFunctionCall statement = call.getFunctionCall();
+        Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
+        if (returnVar.isPresent()) {
+          String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
+          if (statement
+              instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
             final Pair<VariableOrField, VarFieldDependencies> r =
-                assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
-            if (rhs instanceof CExpression || rhs instanceof CFunctionCallExpression) {
-              result =
-                  result.withDependencies(
-                      r.getSecond()
-                          .withDependencies(
-                              rhs.accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
-            } else {
-              throw new UnrecognizedCodeException("Unhandled assignment", edge, assignment);
-            }
-          } else if (statement instanceof CFunctionCallStatement) {
-            result =
-                result.withDependencies(
-                    ((CFunctionCallStatement) statement)
-                        .getFunctionCallExpression()
-                        .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
-          }
-          break;
-        }
-
-      case FunctionCallEdge:
-        {
-          final CFunctionCallEdge call = (CFunctionCallEdge) edge;
-          final List<CExpression> args = call.getArguments();
-          final List<CParameterDeclaration> params = call.getSuccessor().getFunctionParameters();
-          for (int i = 0; i < params.size(); i++) {
-            result =
-                result.withDependencies(
-                    args.get(i)
-                        .accept(
-                            CollectingRHSVisitor.create(
-                                pCfa,
-                                VariableOrField.newVariable(params.get(i).getQualifiedName()))));
-          }
-          CFunctionCall statement = call.getSummaryEdge().getExpression();
-          Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
-          if (returnVar.isPresent()) {
-            String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
-            if (statement instanceof CFunctionCallAssignmentStatement) {
-              final Pair<VariableOrField, VarFieldDependencies> r =
-                  ((CFunctionCallAssignmentStatement) statement)
-                      .getLeftHandSide()
-                      .accept(CollectingLHSVisitor.create(pCfa));
-              result =
-                  result
-                      .withDependencies(r.getSecond())
-                      .withDependency(r.getFirst(), VariableOrField.newVariable(scopedRetVal));
-            }
-          }
-          break;
-        }
-
-      case FunctionReturnEdge:
-        {
-          break;
-        }
-
-      case ReturnStatementEdge:
-        {
-          // this is the 'x' from 'return (x);
-          // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
-          final CReturnStatementEdge ret = (CReturnStatementEdge) edge;
-          if (ret.asAssignment().isPresent()) {
-            final Pair<VariableOrField, VarFieldDependencies> r =
-                ret.asAssignment()
-                    .orElseThrow()
+                cFunctionCallAssignmentStatement
                     .getLeftHandSide()
                     .accept(CollectingLHSVisitor.create(pCfa));
             result =
-                result.withDependencies(
-                    r.getSecond()
-                        .withDependencies(
-                            ret.asAssignment()
-                                .orElseThrow()
-                                .getRightHandSide()
-                                .accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
+                result
+                    .withDependencies(r.getSecond())
+                    .withDependency(r.getFirst(), VariableOrField.newVariable(scopedRetVal));
           }
-          break;
         }
-
-      case BlankEdge:
-      case CallToReturnEdge:
-        {
-          break;
+      }
+      case FunctionReturnEdge -> {}
+      case ReturnStatementEdge -> {
+        // this is the 'x' from 'return (x);
+        // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
+        final CReturnStatementEdge ret = (CReturnStatementEdge) edge;
+        if (ret.asAssignment().isPresent()) {
+          final Pair<VariableOrField, VarFieldDependencies> r =
+              ret.asAssignment()
+                  .orElseThrow()
+                  .getLeftHandSide()
+                  .accept(CollectingLHSVisitor.create(pCfa));
+          result =
+              result.withDependencies(
+                  r.getSecond()
+                      .withDependencies(
+                          ret.asAssignment()
+                              .orElseThrow()
+                              .getRightHandSide()
+                              .accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
         }
-
-      default:
-        {
-          throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
-        }
+      }
+      case BlankEdge, CallToReturnEdge -> {}
     }
 
     return result;

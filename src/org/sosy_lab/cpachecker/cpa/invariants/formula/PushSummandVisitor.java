@@ -38,7 +38,7 @@ class PushSummandVisitor<T>
   /** The evaluation visitor used to evaluate the addition and negation of constants. */
   private final FormulaEvaluationVisitor<T> evaluationVisitor;
 
-  /** This flag indicates whether or not this visitor managed to get a summand consumed. */
+  /** This flag indicates whether this visitor managed to get a summand consumed. */
   private boolean consumed = false;
 
   /**
@@ -49,7 +49,7 @@ class PushSummandVisitor<T>
    *     constants.
    */
   public PushSummandVisitor(FormulaEvaluationVisitor<T> pEvaluationVisitor) {
-    this.evaluationVisitor = pEvaluationVisitor;
+    evaluationVisitor = pEvaluationVisitor;
   }
 
   /**
@@ -101,7 +101,7 @@ class PushSummandVisitor<T>
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
     NumeralFormula<T> toPush = ifm.asConstant(pConstant.getTypeInfo(), pToPush);
     NumeralFormula<T> sum = ifm.add(pConstant, toPush);
-    this.consumed = true;
+    consumed = true;
     T sumValue = sum.accept(evaluationVisitor, EMPTY_ENVIRONMENT);
     return InvariantsFormulaManager.INSTANCE.asConstant(pConstant.getTypeInfo(), sumValue);
   }

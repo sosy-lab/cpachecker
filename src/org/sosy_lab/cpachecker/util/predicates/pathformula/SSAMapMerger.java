@@ -185,54 +185,30 @@ public class SSAMapMerger {
   /**
    * Class representing the result of the operation of merging (disjuncting) additional parts of
    * {@link PathFormula}s beyond the actual formula.
+   *
+   * @param leftConjunct This is a formula that needs to be conjuncted to the left formula before it
+   *     is used in the disjunction.
+   * @param rightConjunct This is a formula that needs to be conjuncted to the right formula before
+   *     it is used in the disjunction.
+   * @param finalConjunct This is a formula that needs to be conjuncted to the result of the
+   *     disjunction.
    */
-  public static class MergeResult<T> {
+  public record MergeResult<T>(
+      T result,
+      BooleanFormula leftConjunct,
+      BooleanFormula rightConjunct,
+      BooleanFormula finalConjunct) {
 
-    private final BooleanFormula leftConjunct;
-    private final BooleanFormula rightConjunct;
-    private final BooleanFormula finalConjunct;
-
-    private final T result;
-
-    public MergeResult(
-        T pResult,
-        BooleanFormula pLeftConjunct,
-        BooleanFormula pRightConjunct,
-        BooleanFormula pFinalConjunct) {
-      result = checkNotNull(pResult);
-      leftConjunct = checkNotNull(pLeftConjunct);
-      rightConjunct = checkNotNull(pRightConjunct);
-      finalConjunct = checkNotNull(pFinalConjunct);
+    public MergeResult {
+      checkNotNull(result);
+      checkNotNull(leftConjunct);
+      checkNotNull(rightConjunct);
+      checkNotNull(finalConjunct);
     }
 
     public static <T> MergeResult<T> trivial(T result, BooleanFormulaManagerView bfmgr) {
       BooleanFormula trueFormula = bfmgr.makeTrue();
       return new MergeResult<>(result, trueFormula, trueFormula, trueFormula);
-    }
-
-    /**
-     * This is a formula that needs to be conjuncted to the left formula before it is used in the
-     * disjunction.
-     */
-    BooleanFormula getLeftConjunct() {
-      return leftConjunct;
-    }
-
-    /**
-     * This is a formula that needs to be conjuncted to the right formula before it is used in the
-     * disjunction.
-     */
-    BooleanFormula getRightConjunct() {
-      return rightConjunct;
-    }
-
-    /** This is a formula that needs to be conjuncted to the result of the disjunction. */
-    BooleanFormula getFinalConjunct() {
-      return finalConjunct;
-    }
-
-    T getResult() {
-      return result;
     }
   }
 }

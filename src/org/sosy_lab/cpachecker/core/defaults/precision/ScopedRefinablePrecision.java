@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ScopedRefinablePrecision extends RefinablePrecision {
+
   /** the collection that determines which variables are tracked within a specific scope */
   private final ImmutableSortedSet<MemoryLocation> rawPrecision;
 
@@ -109,19 +110,16 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
-    if (pOtherPrecision.getClass().equals(getClass())
+    return pOtherPrecision.getClass().equals(getClass())
         && super.getBaseline().equals(((ScopedRefinablePrecision) pOtherPrecision).getBaseline())
-        && rawPrecision.equals(((ScopedRefinablePrecision) pOtherPrecision).rawPrecision)) {
-      return true;
-    }
-    return false;
+        && rawPrecision.equals(((ScopedRefinablePrecision) pOtherPrecision).rawPrecision);
   }
 
   @Override
-  public boolean equals(Object other) {
-    return super.equals(other)
-        && other instanceof ScopedRefinablePrecision
-        && rawPrecision.equals(((ScopedRefinablePrecision) other).rawPrecision);
+  public boolean equals(Object pObj) {
+    return super.equals(pObj)
+        && pObj instanceof ScopedRefinablePrecision other
+        && rawPrecision.equals(other.rawPrecision);
   }
 
   @Override

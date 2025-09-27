@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -33,16 +33,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -54,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
@@ -72,25 +68,18 @@ public class GlobalAccessChecker {
    * the thread.
    */
   boolean hasGlobalAccess(CFAEdge edge) {
-    switch (edge.getEdgeType()) {
-      case BlankEdge:
-        return false;
-      case AssumeEdge:
-        return hasGlobalAccess(((CAssumeEdge) edge).getExpression());
-      case StatementEdge:
-        return hasGlobalAccess(((CStatementEdge) edge).getStatement());
-      case DeclarationEdge:
-        return hasGlobalAccess(((CDeclarationEdge) edge).getDeclaration());
-      case ReturnStatementEdge:
-        return ((CReturnStatementEdge) edge).getExpression().isPresent()
-            && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().orElseThrow());
-      case FunctionCallEdge:
-        return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
-      case FunctionReturnEdge:
-        return hasGlobalAccess(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
-      default:
-        throw new AssertionError("unexpected edge: " + edge);
-    }
+    return switch (edge.getEdgeType()) {
+      case BlankEdge -> false;
+      case AssumeEdge -> hasGlobalAccess(((CAssumeEdge) edge).getExpression());
+      case StatementEdge -> hasGlobalAccess(((CStatementEdge) edge).getStatement());
+      case DeclarationEdge -> hasGlobalAccess(((CDeclarationEdge) edge).getDeclaration());
+      case ReturnStatementEdge ->
+          ((CReturnStatementEdge) edge).getExpression().isPresent()
+              && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().orElseThrow());
+      case FunctionCallEdge -> hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
+      case FunctionReturnEdge -> hasGlobalAccess(((FunctionReturnEdge) edge).getFunctionCall());
+      default -> throw new AssertionError("unexpected edge: " + edge);
+    };
   }
 
   private <T extends AAstNode> boolean hasGlobalAccess(final T ast) {
@@ -121,93 +110,54 @@ public class GlobalAccessChecker {
 
   // TODO check each line, code is just written, but not tested.
   private Boolean hasGlobalAccessDirect(AAstNode ast) {
+    return switch (ast) {
+      // CRightHandSide
+      case CExpression cExpression -> cExpression.accept(GlobalAccessVisitor.INSTANCE);
+      case CFunctionCallExpression func -> anyHasGlobalAccess(func.getParameterExpressions());
 
-    if (ast instanceof CRightHandSide) {
+      // CInitializer
+      case CInitializerExpression cInitializerExpression ->
+          hasGlobalAccess(cInitializerExpression.getExpression());
+      case CInitializerList cInitializerList ->
+          anyHasGlobalAccess(cInitializerList.getInitializers());
+      case CDesignatedInitializer di ->
+          anyHasGlobalAccess(di.getDesignators()) || hasGlobalAccess(di.getRightHandSide());
 
-      if (ast instanceof CExpression) {
-        return ((CExpression) ast).accept(GlobalAccessVisitor.INSTANCE);
+      // CSimpleDeclaration
+      case CVariableDeclaration decl -> decl.isGlobal() || hasGlobalAccess(decl.getInitializer());
+      case CFunctionDeclaration decl -> anyHasGlobalAccess(decl.getParameters());
+      case CComplexTypeDeclaration decl -> decl.isGlobal();
+      case CTypeDefDeclaration decl -> decl.isGlobal();
+      case CParameterDeclaration param -> false;
+      case CEnumerator enumerator -> false;
 
-      } else if (ast instanceof CFunctionCallExpression) {
-        CFunctionCallExpression func = (CFunctionCallExpression) ast;
-        return anyHasGlobalAccess(func.getParameterExpressions());
+      // CStatement
+      case CFunctionCallAssignmentStatement stat ->
+          hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
+      case CExpressionAssignmentStatement stat ->
+          hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
+      case CFunctionCallStatement cFunctionCallStatement ->
+          hasGlobalAccess(cFunctionCallStatement.getFunctionCallExpression());
+      case CExpressionStatement cExpressionStatement ->
+          hasGlobalAccess(cExpressionStatement.getExpression());
+
+      case CReturnStatement cReturnStatement -> {
+        Optional<CExpression> returnExp = cReturnStatement.getReturnValue();
+        Optional<CAssignment> returnAssignment = cReturnStatement.asAssignment();
+        yield (returnExp.isPresent() && hasGlobalAccess(returnExp.orElseThrow()))
+            || (returnAssignment.isPresent() && hasGlobalAccess(returnAssignment.orElseThrow()));
       }
 
-    } else if (ast instanceof CInitializer) {
+      // CDesignator
+      case CArrayDesignator cArrayDesignator ->
+          hasGlobalAccess(cArrayDesignator.getSubscriptExpression());
+      case CArrayRangeDesignator cArrayRangeDesignator ->
+          hasGlobalAccess(cArrayRangeDesignator.getFloorExpression())
+              || hasGlobalAccess(cArrayRangeDesignator.getCeilExpression());
+      case CFieldDesignator fieldDesignator -> false;
 
-      if (ast instanceof CInitializerExpression) {
-        return hasGlobalAccess(((CInitializerExpression) ast).getExpression());
-
-      } else if (ast instanceof CInitializerList) {
-        return anyHasGlobalAccess(((CInitializerList) ast).getInitializers());
-
-      } else if (ast instanceof CDesignatedInitializer) {
-        CDesignatedInitializer di = (CDesignatedInitializer) ast;
-        return anyHasGlobalAccess(di.getDesignators()) || hasGlobalAccess(di.getRightHandSide());
-      }
-
-    } else if (ast instanceof CSimpleDeclaration) {
-
-      if (ast instanceof CVariableDeclaration) {
-        CVariableDeclaration decl = (CVariableDeclaration) ast;
-        return decl.isGlobal() || hasGlobalAccess(decl.getInitializer());
-
-      } else if (ast instanceof CFunctionDeclaration) {
-        CFunctionDeclaration decl = (CFunctionDeclaration) ast;
-        return anyHasGlobalAccess(decl.getParameters());
-
-      } else if (ast instanceof CComplexTypeDeclaration) {
-        CComplexTypeDeclaration decl = (CComplexTypeDeclaration) ast;
-        return decl.isGlobal();
-
-      } else if (ast instanceof CTypeDefDeclaration) {
-        CTypeDefDeclaration decl = (CTypeDefDeclaration) ast;
-        return decl.isGlobal();
-
-      } else if (ast instanceof CParameterDeclaration) {
-        return false;
-
-      } else if (ast instanceof CEnumType.CEnumerator) {
-        return false;
-      }
-
-    } else if (ast instanceof CStatement) {
-
-      if (ast instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement stat = (CFunctionCallAssignmentStatement) ast;
-        return hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
-
-      } else if (ast instanceof CExpressionAssignmentStatement) {
-        CExpressionAssignmentStatement stat = (CExpressionAssignmentStatement) ast;
-        return hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
-
-      } else if (ast instanceof CFunctionCallStatement) {
-        return hasGlobalAccess(((CFunctionCallStatement) ast).getFunctionCallExpression());
-
-      } else if (ast instanceof CExpressionStatement) {
-        return hasGlobalAccess(((CExpressionStatement) ast).getExpression());
-      }
-
-    } else if (ast instanceof CReturnStatement) {
-      Optional<CExpression> returnExp = ((CReturnStatement) ast).getReturnValue();
-      Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
-      return (returnExp.isPresent() && hasGlobalAccess(returnExp.orElseThrow()))
-          || (returnAssignment.isPresent() && hasGlobalAccess(returnAssignment.orElseThrow()));
-
-    } else if (ast instanceof CDesignator) {
-
-      if (ast instanceof CArrayDesignator) {
-        return hasGlobalAccess(((CArrayDesignator) ast).getSubscriptExpression());
-
-      } else if (ast instanceof CArrayRangeDesignator) {
-        return hasGlobalAccess(((CArrayRangeDesignator) ast).getFloorExpression())
-            || hasGlobalAccess(((CArrayRangeDesignator) ast).getCeilExpression());
-
-      } else if (ast instanceof CFieldDesignator) {
-        return false;
-      }
-    }
-
-    throw new AssertionError("unhandled ASTNode " + ast + " of " + ast.getClass());
+      default -> throw new AssertionError("unhandled ASTNode " + ast + " of " + ast.getClass());
+    };
   }
 
   /** returns whether there might be a read- or write-access to global variables. */
@@ -220,7 +170,8 @@ public class GlobalAccessChecker {
     @Override
     public Boolean visit(CIdExpression pE) {
       CSimpleDeclaration decl = pE.getDeclaration();
-      return decl instanceof AbstractDeclaration && ((AbstractDeclaration) decl).isGlobal();
+      return decl instanceof AbstractDeclaration abstractDeclaration
+          && abstractDeclaration.isGlobal();
     }
 
     @Override

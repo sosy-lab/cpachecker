@@ -77,17 +77,13 @@ public final class SMGListAbstractionTestHelpers {
     checkArgument(pCount >= 1, "Count must be at least 1.");
     SMGObject[] lists = new SMGObject[pCount];
     for (int i = 0; i < pCount; i++) {
-      SMGObject list = null;
-      switch (pLinkage) {
-        case SINGLE_LINKED:
-          list = new SMGSingleLinkedList(pSize, pHfo, pNfo, pMinLengths[i], pLevel);
-          break;
-        case DOUBLY_LINKED:
-          list = new SMGDoublyLinkedList(pSize, pHfo, pNfo, pPfo, pMinLengths[i], pLevel);
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported linkage type: " + pLinkage);
-      }
+      SMGObject list =
+          switch (pLinkage) {
+            case SINGLE_LINKED ->
+                new SMGSingleLinkedList(pSize, pHfo, pNfo, pMinLengths[i], pLevel);
+            case DOUBLY_LINKED ->
+                new SMGDoublyLinkedList(pSize, pHfo, pNfo, pPfo, pMinLengths[i], pLevel);
+          };
       pSmg.addHeapObject(list);
       lists[i] = list;
     }
@@ -162,7 +158,7 @@ public final class SMGListAbstractionTestHelpers {
       int pPfo,
       SMGListCircularity pCircularity,
       SMGListLinkage pLinkage) {
-    checkArgument(pSmg != null, "The smg was null.");
+    checkArgument(pSmg != null, "The SMG was null.");
     checkArgument(
         pAddresses != null && pAddresses.length >= 1,
         "The provided array must not be null or empty.");

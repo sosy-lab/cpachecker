@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLLogicalPredicate extends ACSLPredicate {
+public final class ACSLLogicalPredicate extends ACSLPredicate {
 
   private final ACSLPredicate left;
   private final ACSLPredicate right;
@@ -24,29 +24,27 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     assert ACSLBinaryOperator.isLogicalOperator(op)
         : "ACSLLogicalPredicate may only hold logical operator";
     switch (op) {
-      case AND:
-      case OR:
+      case AND, OR -> {
         left = pLeft;
         right = pRight;
         operator = op;
-        break;
-      case XOR:
+      }
+      case XOR -> {
         left = new ACSLLogicalPredicate(pLeft, pRight.negate(), ACSLBinaryOperator.AND);
         right = new ACSLLogicalPredicate(pLeft.negate(), pRight, ACSLBinaryOperator.AND);
         operator = ACSLBinaryOperator.OR;
-        break;
-      case IMP:
+      }
+      case IMP -> {
         left = pLeft.negate();
         right = pRight;
         operator = ACSLBinaryOperator.OR;
-        break;
-      case EQV:
+      }
+      case EQV -> {
         left = new ACSLLogicalPredicate(pLeft, pRight, ACSLBinaryOperator.AND);
         right = new ACSLLogicalPredicate(pLeft.negate(), pRight.negate(), ACSLBinaryOperator.AND);
         operator = ACSLBinaryOperator.OR;
-        break;
-      default:
-        throw new AssertionError("Unknown logical operator: " + op);
+      }
+      default -> throw new AssertionError("Unknown logical operator: " + op);
     }
   }
 
@@ -70,7 +68,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     ACSLPredicate simpleRight = right.simplify();
     ACSLPredicate simpleRightNegated = simpleRight.negate();
     switch (operator) {
-      case AND:
+      case AND -> {
         if (simpleLeft.equals(getFalse())
             || simpleRight.equals(getFalse())
             || simpleLeft.isNegationOf(simpleRight)) {
@@ -85,8 +83,8 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
           return new ACSLLogicalPredicate(
               simpleLeftNegated, simpleRightNegated, ACSLBinaryOperator.OR);
         }
-        break;
-      case OR:
+      }
+      case OR -> {
         if (simpleLeft.equals(getTrue())
             || simpleRight.equals(getTrue())
             || simpleLeft.isNegationOf(simpleRight)) {
@@ -101,9 +99,8 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
           return new ACSLLogicalPredicate(
               simpleLeftNegated, simpleRightNegated, ACSLBinaryOperator.AND);
         }
-        break;
-      default:
-        throw new AssertionError("Unknown C logical operator: " + operator);
+      }
+      default -> throw new AssertionError("Unknown C logical operator: " + operator);
     }
     assert !isNegated();
     return new ACSLLogicalPredicate(simpleLeft, simpleRight, operator);
@@ -111,14 +108,14 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLLogicalPredicate) {
-      ACSLLogicalPredicate other = (ACSLLogicalPredicate) o;
-      if (super.equals(o) && operator.equals(other.operator)) {
-        return (left.equals(other.left) && right.equals(other.right))
-            || (ACSLBinaryOperator.isCommutative(operator)
-                && left.equals(other.right)
-                && right.equals(other.left));
-      }
+    if (o instanceof ACSLLogicalPredicate other
+        && super.equals(o)
+        && operator.equals(other.operator)) {
+      // Some operators are commutative.
+      return (left.equals(other.left) && right.equals(other.right))
+          || (ACSLBinaryOperator.isCommutative(operator)
+              && left.equals(other.right)
+              && right.equals(other.left));
     }
     return false;
   }

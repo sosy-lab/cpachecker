@@ -89,13 +89,10 @@ interface LoopIterationState {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof UndeterminedLoopIterationState) {
-        UndeterminedLoopIterationState other = (UndeterminedLoopIterationState) pObj;
-        return loopCounterAbstracted == other.loopCounterAbstracted
-            && maxLoopIteration == other.maxLoopIteration
-            && iterations.equals(other.iterations);
-      }
-      return false;
+      return pObj instanceof UndeterminedLoopIterationState other
+          && loopCounterAbstracted == other.loopCounterAbstracted
+          && maxLoopIteration == other.maxLoopIteration
+          && iterations.equals(other.iterations);
     }
 
     @Override
@@ -169,21 +166,21 @@ interface LoopIterationState {
 
       private final int iteration;
 
-      public LoopIteration(Loop pLoop, int pIteration) {
+      LoopIteration(Loop pLoop, int pIteration) {
         loop = Objects.requireNonNull(pLoop);
         Preconditions.checkArgument(pIteration >= 0);
         iteration = pIteration;
       }
 
-      public Loop getLoop() {
+      Loop getLoop() {
         return loop;
       }
 
-      public int getCount() {
+      int getCount() {
         return iteration;
       }
 
-      public LoopIteration increment() {
+      LoopIteration increment() {
         return new LoopIteration(loop, getCount() + 1);
       }
 
@@ -202,11 +199,9 @@ interface LoopIterationState {
         if (this == pObj) {
           return true;
         }
-        if (pObj instanceof LoopIteration) {
-          LoopIteration other = (LoopIteration) pObj;
-          return iteration == other.iteration && loop.equals(other.loop);
-        }
-        return false;
+        return pObj instanceof LoopIteration other
+            && iteration == other.iteration
+            && loop.equals(other.loop);
       }
     }
   }
@@ -241,13 +236,10 @@ interface LoopIterationState {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof DeterminedLoopIterationState) {
-        DeterminedLoopIterationState other = (DeterminedLoopIterationState) pObj;
-        return loopCounterAbstracted == other.loopCounterAbstracted
-            && iteration == other.iteration
-            && loop.equals(other.loop);
-      }
-      return false;
+      return pObj instanceof DeterminedLoopIterationState other
+          && loopCounterAbstracted == other.loopCounterAbstracted
+          && iteration == other.iteration
+          && loop.equals(other.loop);
     }
 
     @Override

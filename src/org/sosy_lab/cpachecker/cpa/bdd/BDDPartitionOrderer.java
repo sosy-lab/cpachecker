@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -91,8 +92,7 @@ public class BDDPartitionOrderer {
     // edges, that are reachable from both branches, are independent from the assumption
     SetView<CFAEdge> distinctEdges = Sets.symmetricDifference(reachable1, reachable2);
     for (CFAEdge edge : distinctEdges) {
-      if (edge instanceof FunctionCallEdge) {
-        final FunctionCallEdge funcCall = (FunctionCallEdge) edge;
+      if (edge instanceof FunctionCallEdge funcCall) {
         for (int i = 0; i < funcCall.getArguments().size(); i++) {
           final Partition part = varClass.getPartitionForParameterOfEdge(funcCall, i);
           if (part != null) {
@@ -108,7 +108,7 @@ public class BDDPartitionOrderer {
     }
   }
 
-  /** returns a ordered list of partitions, so that the BDD stays small. */
+  /** returns an ordered list of partitions, so that the BDD stays small. */
   public List<Partition> getOrderedPartitions() {
 
     // TODO use some "Minimum Linear Arrangement Algorithm"?
@@ -125,7 +125,7 @@ public class BDDPartitionOrderer {
     // add partitions, that are not dependent, in front of all other partitions
     for (Partition p : varClass.getPartitions()) {
       if (!partitions.contains(p)) {
-        orderedPartitions.add(0, p);
+        orderedPartitions.addFirst(p);
       }
     }
     return orderedPartitions;
@@ -147,9 +147,9 @@ public class BDDPartitionOrderer {
    */
   private static class CFAUntilSplitCollector implements CFAVisitor {
 
-    private Set<CFAEdge> edges = new LinkedHashSet<>();
+    private SequencedSet<CFAEdge> edges = new LinkedHashSet<>();
 
-    public Set<CFAEdge> getEdges() {
+    Set<CFAEdge> getEdges() {
       return edges;
     }
 
@@ -180,7 +180,7 @@ public class BDDPartitionOrderer {
 
     private Collection<CAssumeEdge> assumptions = new ArrayList<>();
 
-    public Collection<CAssumeEdge> getAssumptions() {
+    Collection<CAssumeEdge> getAssumptions() {
       return assumptions;
     }
 

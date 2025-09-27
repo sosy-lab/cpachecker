@@ -100,11 +100,8 @@ public class SMGMemoryPath {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof SMGMemoryPath)) {
-      return false;
-    }
-    SMGMemoryPath other = (SMGMemoryPath) obj;
-    return globalStart == other.globalStart
+    return obj instanceof SMGMemoryPath other
+        && globalStart == other.globalStart
         && Objects.equals(locationOnStack, other.locationOnStack)
         && Objects.equals(functionName, other.functionName)
         && Objects.equals(pathOffsets, other.pathOffsets)

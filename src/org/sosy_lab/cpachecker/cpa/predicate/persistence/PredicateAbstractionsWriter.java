@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.LINE_JOINER;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
@@ -24,21 +24,27 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class PredicateAbstractionsWriter {
+public final class PredicateAbstractionsWriter {
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -53,14 +59,24 @@ public class PredicateAbstractionsWriter {
   }
 
   public void writeAbstractions(Path abstractionsFile, UnmodifiableReachedSet reached) {
+    writeAbstractions0(abstractionsFile, reached, /* asExpression= */ false);
+  }
+
+  public void writeAbstractionsAsExpressions(
+      Path abstractionsFile, UnmodifiableReachedSet reached) {
+    writeAbstractions0(abstractionsFile, reached, /* asExpression= */ true);
+  }
+
+  private void writeAbstractions0(
+      Path abstractionsFile, UnmodifiableReachedSet reached, boolean asExpression) {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
-    Set<String> definitions = new LinkedHashSet<>();
+    SequencedSet<String> definitions = new LinkedHashSet<>();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)
-    Map<ARGState, String> stateToAssert = new LinkedHashMap<>();
+    SequencedMap<ARGState, String> stateToAssert = new LinkedHashMap<>();
 
     // Get list of all abstraction states in the set reached
     Deque<ARGState> worklist = new ArrayDeque<>();
@@ -96,6 +112,21 @@ public class PredicateAbstractionsWriter {
         // Abstraction formula
         PredicateAbstractState predicateState = PredicateAbstractState.getPredicateState(state);
         BooleanFormula formula = predicateState.getAbstractionFormula().asFormula();
+        if (asExpression) {
+          ExpressionTree<Object> expressionTree;
+          try {
+            expressionTree =
+                ExpressionTrees.fromFormula(
+                    formula, fmgr, AbstractStates.extractLocation(state), Function.identity());
+          } catch (TranslationToExpressionTreeFailedException e) {
+            // Keep consistency with the previous implementation
+            logger.logDebugException(e, "Translation to expression tree failed");
+            expressionTree = ExpressionTrees.getTrue();
+          }
+          stateToAssert.put(state, expressionTree.toString());
+          done.add(state);
+          continue;
+        }
 
         Pair<String, List<String>> p = splitFormula(fmgr, formula);
         String formulaString = p.getFirst();
@@ -108,7 +139,7 @@ public class PredicateAbstractionsWriter {
 
       // Write it to the file
       // -- first the definitions
-      LINE_JOINER.appendTo(writer, definitions);
+      Joiner.on('\n').appendTo(writer, definitions);
       writer.append("\n\n");
 
       // -- then the assertions
@@ -140,6 +171,9 @@ public class PredicateAbstractionsWriter {
 
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write abstractions to file");
+    } catch (InterruptedException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Received interrupt while writing abstractions to file");
     }
   }
 }

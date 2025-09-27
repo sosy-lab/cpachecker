@@ -47,7 +47,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
               + " precision")
   private Pattern variableWhitelist = Pattern.compile("");
 
-  @Option(secure = true, description = "If this option is used, booleans from the cfa are tracked.")
+  @Option(secure = true, description = "If this option is used, booleans from the CFA are tracked.")
   private boolean trackBooleanVariables = true;
 
   @Option(
@@ -118,10 +118,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     if (trackFloatVariables) {
       return isTracking(pVariable);
     } else {
-      return !((pType instanceof CSimpleType
-                  && ((CSimpleType) pType).getType().isFloatingPointType())
-              || (pType instanceof JSimpleType
-                  && ((JSimpleType) pType).getType().isFloatingPointType()))
+      return !((pType instanceof CSimpleType cSimpleType
+                  && cSimpleType.getType().isFloatingPointType())
+              || (pType instanceof JSimpleType jSimpleType && jSimpleType.isFloatingPointType()))
           && isTracking(pVariable);
     }
   }
@@ -155,9 +154,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   private boolean isInTrackedVarClass(final String variableName) {
     // when there is no variable classification we cannot make any assumptions
     // about the tracking of variables and say that all variables are tracked
-    if (!vc.isPresent()) {
+    if (vc.isEmpty()) {
       return true;
     }
+
     VariableClassification varClass = vc.orElseThrow();
 
     final boolean varIsAddressed = varClass.getAddressedVariables().contains(variableName);
@@ -231,11 +231,11 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     if (!variableWhitelist.toString().isEmpty()) {
       return false;
     }
-    if (!vc.isPresent()) {
+    if (vc.isEmpty()) {
       return true;
     }
-    VariableClassification varClass = vc.orElseThrow();
 
+    VariableClassification varClass = vc.orElseThrow();
     boolean trackSomeIntBools = trackBooleanVariables && !varClass.getIntBoolVars().isEmpty();
     boolean trackSomeIntEquals = trackIntEqualVariables && !varClass.getIntEqualVars().isEmpty();
     boolean trackSomeIntAdds = trackIntAddVariables && !varClass.getIntAddVars().isEmpty();
@@ -273,9 +273,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return other instanceof ConfigurablePrecision
-        && tracksTheSameVariablesAs((ConfigurablePrecision) other);
+  public boolean equals(Object pObj) {
+    return pObj instanceof ConfigurablePrecision other && tracksTheSameVariablesAs(other);
   }
 
   @Override

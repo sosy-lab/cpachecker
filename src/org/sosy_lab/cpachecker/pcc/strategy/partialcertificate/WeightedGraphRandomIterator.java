@@ -33,10 +33,7 @@ public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
 
   @Override
   public boolean hasNext() {
-    if (current < size) {
-      return true;
-    }
-    return false;
+    return current < size;
   }
 
   @Nullable
@@ -50,6 +47,7 @@ public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
   public void remove() {
     throw new UnsupportedOperationException();
   }
+
   /**
    * Compute permutation of 0..n-1 to randomly iterate over an array
    *

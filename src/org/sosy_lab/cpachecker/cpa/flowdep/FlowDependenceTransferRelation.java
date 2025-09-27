@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -71,11 +72,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -154,10 +153,10 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
     CInitializer maybeInitializer = pDecl.getInitializer();
 
-    if (maybeInitializer instanceof CInitializerExpression) {
+    if (maybeInitializer instanceof CInitializerExpression cInitializerExpression) {
       // If the declaration contains an initializer, create the corresponding flow dependences
       // for its variable uses
-      CExpression initializerExp = ((CInitializerExpression) maybeInitializer).getExpression();
+      CExpression initializerExp = cInitializerExpression.getExpression();
       MemoryLocation def = MemoryLocation.forDeclaration(pDecl);
       return handleOperation(
           pCfaEdge,
@@ -252,12 +251,11 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException {
     Set<MemoryLocation> decls;
     UsesCollector collector = new UsesCollector(pPointerState, varClassification);
-    if (pLeftHandSide instanceof CPointerExpression) {
-      return getPossibePointees(
-          (CPointerExpression) pLeftHandSide, pPointerState, varClassification);
+    if (pLeftHandSide instanceof CPointerExpression cPointerExpression) {
+      return getPossibePointees(cPointerExpression, pPointerState, varClassification);
 
-    } else if (pLeftHandSide instanceof CArraySubscriptExpression) {
-      decls = ((CArraySubscriptExpression) pLeftHandSide).getArrayExpression().accept(collector);
+    } else if (pLeftHandSide instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      decls = cArraySubscriptExpression.getArrayExpression().accept(collector);
     } else {
       decls = pLeftHandSide.accept(collector);
     }
@@ -343,8 +341,8 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
     FlowDependenceState nextState = pNextState;
     Set<MemoryLocation> possibleDefs;
-    if (pStatement instanceof CAssignment) {
-      possibleDefs = getDef(((CAssignment) pStatement).getLeftHandSide(), pPointerState);
+    if (pStatement instanceof CAssignment cAssignment) {
+      possibleDefs = getDef(cAssignment.getLeftHandSide(), pPointerState);
 
       if (possibleDefs != null) {
         for (MemoryLocation def : possibleDefs) {
@@ -391,26 +389,24 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
       FlowDependenceState nextState = new FlowDependenceState(newReachDefState);
       switch (pCfaEdge.getEdgeType()) {
-        case DeclarationEdge:
+        case DeclarationEdge -> {
           CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
-          if (declEdge.getDeclaration() instanceof CVariableDeclaration) {
-            CVariableDeclaration declaration = (CVariableDeclaration) declEdge.getDeclaration();
+          if (declEdge.getDeclaration() instanceof CVariableDeclaration declaration) {
             nextState =
                 handleDeclarationEdge(
                     declEdge, declaration, nextState, oldReachDefState, oldPointerState);
-          } // else {
+          }
+          // else {
           // Function declarations don't introduce any flow dependencies
           // }
-          break;
-
-        case StatementEdge:
+        }
+        case StatementEdge -> {
           CStatementEdge stmtEdge = (CStatementEdge) pCfaEdge;
           nextState =
               handleStatementEdge(
                   stmtEdge, stmtEdge.getStatement(), nextState, oldReachDefState, oldPointerState);
-          break;
-
-        case AssumeEdge:
+        }
+        case AssumeEdge -> {
           CAssumeEdge assumeEdge = (CAssumeEdge) pCfaEdge;
           nextState =
               handleAssumption(
@@ -419,30 +415,25 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
                   nextState,
                   oldReachDefState,
                   oldPointerState);
-          break;
-
-        case ReturnStatementEdge:
+        }
+        case ReturnStatementEdge -> {
           CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pCfaEdge;
           nextState =
               handleReturnStatementEdge(
                   returnStatementEdge, nextState, oldReachDefState, oldPointerState);
-          break;
-
-        case FunctionCallEdge:
+        }
+        case FunctionCallEdge -> {
           CFunctionCallEdge callEdge = (CFunctionCallEdge) pCfaEdge;
           nextState =
               handleFunctionCallEdge(
                   callEdge, callEdge.getArguments(), nextState, oldReachDefState, oldPointerState);
-          break;
-
-        case FunctionReturnEdge:
+        }
+        case FunctionReturnEdge -> {
           CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) pCfaEdge;
           nextState =
               handleFunctionReturnEdge(returnEdge, nextState, oldReachDefState, oldPointerState);
-          break;
-
-        default:
-          break;
+        }
+        default -> {}
       }
 
       assert nextState != null;
@@ -461,8 +452,8 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException {
 
     FlowDependenceState nextState = pNewState;
-    CFunctionSummaryEdge summaryEdge = pReturnEdge.getSummaryEdge();
-    CFunctionCallExpression functionCall = summaryEdge.getExpression().getFunctionCallExpression();
+    CFunctionCallExpression functionCall =
+        pReturnEdge.getFunctionCall().getFunctionCallExpression();
 
     List<CExpression> outFunctionParams = functionCall.getParameterExpressions();
     List<CParameterDeclaration> inFunctionParams = functionCall.getDeclaration().getParameters();
@@ -475,8 +466,8 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       if (parameterType instanceof CArrayType) {
         CExpression outParam = outFunctionParams.get(i);
         Set<MemoryLocation> possibleDefs;
-        if (outParam instanceof CLeftHandSide) {
-          possibleDefs = getDef((CLeftHandSide) outParam, pPointerState);
+        if (outParam instanceof CLeftHandSide cLeftHandSide) {
+          possibleDefs = getDef(cLeftHandSide, pPointerState);
         } else {
           throw new AssertionError("Unhandled: " + outParam);
         }
@@ -504,13 +495,12 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
     }
 
     Optional<CVariableDeclaration> maybeReturnVar =
-        summaryEdge.getFunctionEntry().getReturnVariable();
+        pReturnEdge.getFunctionEntry().getReturnVariable();
     if (maybeReturnVar.isPresent()) {
       Set<MemoryLocation> possibleDefs = null;
-      CFunctionCall call = summaryEdge.getExpression();
-      if (call instanceof CFunctionCallAssignmentStatement) {
-        possibleDefs =
-            getDef(((CFunctionCallAssignmentStatement) call).getLeftHandSide(), pPointerState);
+      CFunctionCall call = pReturnEdge.getFunctionCall();
+      if (call instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
+        possibleDefs = getDef(cFunctionCallAssignmentStatement.getLeftHandSide(), pPointerState);
       }
       if (possibleDefs != null) {
         for (MemoryLocation def : possibleDefs) {
@@ -544,8 +534,8 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       computedReachDefStates =
           delegate.getAbstractSuccessorsForEdge(pOldState, pPrecision, pCfaEdge);
 
-    } catch (InterruptedException pE) {
-      throw new CPATransferException("Exception in reaching definitions transfer", pE);
+    } catch (InterruptedException e) {
+      throw new CPATransferException("Exception in reaching definitions transfer", e);
     }
 
     if (computedReachDefStates.isEmpty()) {
@@ -567,7 +557,7 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
     private final Optional<VariableClassification> varClassification;
 
-    public UsesCollector(
+    UsesCollector(
         final PointerState pPointerState,
         final Optional<VariableClassification> pVarClassification) {
       pointerState = pPointerState;
@@ -610,10 +600,10 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
     private Set<MemoryLocation> handleLeftHandSide(final CLeftHandSide pLhs)
         throws CPATransferException {
-      if (pLhs instanceof CPointerExpression) {
-        return ((CPointerExpression) pLhs).getOperand().accept(this);
-      } else if (pLhs instanceof CArraySubscriptExpression) {
-        return ((CArraySubscriptExpression) pLhs).getSubscriptExpression().accept(this);
+      if (pLhs instanceof CPointerExpression cPointerExpression) {
+        return cPointerExpression.getOperand().accept(this);
+      } else if (pLhs instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+        return cArraySubscriptExpression.getSubscriptExpression().accept(this);
       } else {
         return ImmutableSet.of();
       }

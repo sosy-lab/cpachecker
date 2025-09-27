@@ -34,7 +34,7 @@ public class ClassVariables {
   private ClassVariables(DeclarationCollectionCFAVisitor visitor, CFA pCfa) {
     this.visitor = visitor;
 
-    for (CFANode function : pCfa.getAllFunctionHeads()) {
+    for (CFANode function : pCfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
     }
   }
@@ -74,10 +74,9 @@ public class ClassVariables {
 
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
-      if (pNode instanceof CFunctionEntryNode) {
+      if (pNode instanceof CFunctionEntryNode cFunctionEntryNode) {
         String functionName = pNode.getFunctionName();
-        List<CParameterDeclaration> parameters =
-            ((CFunctionEntryNode) pNode).getFunctionParameters();
+        List<CParameterDeclaration> parameters = cFunctionEntryNode.getFunctionParameters();
         parameters.stream()
             .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(decl -> localDeclarations.put(functionName, decl));
@@ -88,11 +87,9 @@ public class ClassVariables {
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
 
-      if (pEdge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
-        if (declaration instanceof CVariableDeclaration) {
-          CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-
+      if (pEdge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
+        if (declaration instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.isGlobal()) {
             globalDeclarations.add(variableDeclaration);
 

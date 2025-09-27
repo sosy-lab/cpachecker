@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.unwrap;
 import static org.sosy_lab.cpachecker.util.predicates.bdd.PJBDDRegion.wrap;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.logging.Level;
 import java.util.stream.IntStream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -27,7 +29,7 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -51,8 +53,19 @@ public class PJBDDRegionManager implements RegionManager {
   private final Region falseFormula;
   private final Creator bddCreator;
 
-  public PJBDDRegionManager(Configuration pConfig) throws InvalidConfigurationException {
+  private final LogManager logger;
+
+  public PJBDDRegionManager(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
+    logger = pLogger;
     BuildFromConfig buildFromConfig = new BuildFromConfig(pConfig);
+    if (!buildFromConfig.getAllValidBDDTypes().contains(buildFromConfig.getUseBDDType())) {
+      logger.log(
+          Level.INFO,
+          "Could not find PJBDD BDD type "
+              + buildFromConfig.getUseBDDType()
+              + ", PJBDD will use default type BDD.");
+    }
     bddCreator = buildFromConfig.makeCreator();
     trueFormula = wrap(bddCreator.makeTrue());
     falseFormula = wrap(bddCreator.makeFalse());
@@ -85,9 +98,9 @@ public class PJBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region f) {
+  public IfThenElseParts getIfThenElse(Region f) {
     DD bdd = unwrap(f);
-    return Triple.of(
+    return new IfThenElseParts(
         wrap(bddCreator.makeIthVar(bdd.getVariable())), wrap(bdd.getHigh()), wrap(bdd.getLow()));
   }
 
@@ -221,17 +234,32 @@ public class PJBDDRegionManager implements RegionManager {
                 + " cache size).")
     private double cacheRatio = 0.1;
 
-    @Option(secure = true, description = "Use internal a int based bdd representation.")
+    @Option(secure = true, description = "Use internal an int based bdd representation.")
     private boolean useInts = false;
 
-    @Option(secure = true, description = "Use bdd chaining.")
-    private boolean useChainedBDD = false;
+    // All usable BDD types in PJBDD. Keep synchronous with possible useBDDType parameters.
+    private static final List<String> ALL_BDD_TYPES = ImmutableList.of("BDD", "ChainedBDD");
+
+    @Option(
+        secure = true,
+        description = "Type of BDD used in PJBDD.",
+        values = {"BDD", "ChainedBDD"},
+        toUppercase = true)
+    private String useBDDType = "BDD";
 
     @Option(secure = true, description = "Disable thread safe bdd operations.")
     private boolean disableThreadSafety = false;
 
     private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
+    }
+
+    String getUseBDDType() {
+      return useBDDType;
+    }
+
+    List<String> getAllValidBDDTypes() {
+      return ALL_BDD_TYPES;
     }
 
     private Creator makeCreator() {
@@ -242,7 +270,7 @@ public class PJBDDRegionManager implements RegionManager {
       }
 
       CreatorBuilder builder;
-      if (useChainedBDD) {
+      if (useBDDType.equals("ChainedBDD")) {
         builder = Builders.cbddBuilder();
       } else {
         builder = Builders.bddBuilder();
@@ -453,12 +481,12 @@ public class PJBDDRegionManager implements RegionManager {
         return falseFormula;
       } else {
 
-        DD[] clauses = cubes.stream().filter(bdd -> bdd != null).toArray(DD[]::new);
-
         DD result = bddCreator.makeFalse();
 
-        for (DD bdd : clauses) {
-          result = bddCreator.makeOr(result, bdd);
+        for (DD bdd : cubes) {
+          if (bdd != null) {
+            result = bddCreator.makeOr(result, bdd);
+          }
         }
 
         cubes.clear();

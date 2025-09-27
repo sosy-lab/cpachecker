@@ -78,11 +78,9 @@ public final class SMGAddress {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof SMGAddress)) {
-      return false;
-    }
-    SMGAddress other = (SMGAddress) o;
-    return Objects.equals(object, other.object) && Objects.equals(offset, other.offset);
+    return o instanceof SMGAddress other
+        && Objects.equals(object, other.object)
+        && Objects.equals(offset, other.offset);
   }
 
   public static SMGAddress valueOf(SMGObject pObj, int pOffset) {

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
@@ -108,7 +109,7 @@ public class InvariantsCPA
     @Option(
         secure = true,
         description =
-            "determine variables relevant to the decision whether or not a target path assume edge"
+            "determine variables relevant to the decision whether a target path assume edge"
                 + " is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
 
@@ -208,7 +209,7 @@ public class InvariantsCPA
   private final ConditionAdjuster conditionAdjuster;
 
   @GuardedBy("itself")
-  private final Set<MemoryLocation> currentInterestingVariables = new LinkedHashSet<>();
+  private final SequencedSet<MemoryLocation> currentInterestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
   private final AbstractDomain abstractDomain;
@@ -216,7 +217,7 @@ public class InvariantsCPA
   private final StateToFormulaWriter writer;
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory =
-      CompoundBitVectorIntervalManagerFactory.FORBID_SIGNED_WRAP_AROUND;
+      CompoundBitVectorIntervalManagerFactory.forbidSignedWrapAround();
 
   private final EdgeAnalyzer edgeAnalyzer;
 
@@ -297,7 +298,7 @@ public class InvariantsCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    Set<CFANode> relevantLocations = new LinkedHashSet<>();
+    SequencedSet<CFANode> relevantLocations = new LinkedHashSet<>();
     Set<CFANode> targetLocations = new LinkedHashSet<>();
 
     int interestingVariableLimit = options.interestingVariableLimit;
@@ -326,11 +327,11 @@ public class InvariantsCPA
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
     } else {
-      relevantLocations.addAll(cfa.getAllNodes());
+      relevantLocations.addAll(cfa.nodes());
     }
 
     // Collect relevant edges and guess that information might be interesting
-    Set<CFAEdge> relevantEdges = new LinkedHashSet<>();
+    SequencedSet<CFAEdge> relevantEdges = new LinkedHashSet<>();
     Set<MemoryLocation> interestingVariables;
     synchronized (currentInterestingVariables) {
       interestingVariables = new LinkedHashSet<>(currentInterestingVariables);
@@ -359,7 +360,7 @@ public class InvariantsCPA
     }
 
     // Try to specify all relevant variables
-    Set<MemoryLocation> relevantVariables = new LinkedHashSet<>();
+    SequencedSet<MemoryLocation> relevantVariables = new LinkedHashSet<>();
     boolean specifyRelevantVariables = options.analyzeRelevantVariablesOnly;
 
     final VariableSelection<CompoundInterval> variableSelection;
@@ -432,8 +433,7 @@ public class InvariantsCPA
 
   public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption)
       throws UnrecognizedCodeException {
-    if (pAssumption instanceof CAssumeEdge) {
-      CAssumeEdge assumeEdge = (CAssumeEdge) pAssumption;
+    if (pAssumption instanceof CAssumeEdge assumeEdge) {
       MemoryLocationExtractor vne =
           new MemoryLocationExtractor(compoundIntervalManagerFactory, machineModel, pAssumption);
       ExpressionToFormulaVisitor etfv =
@@ -506,7 +506,7 @@ public class InvariantsCPA
     int prevSize = -1;
     while (pRelevantVariables.size() > prevSize && !reachesLimit(pRelevantVariables, pLimit)) {
       // we cannot throw an interrupted exception during #getInitialState, but the analysis
-      // will be shutdown afterwards by another notifier so we can safely end computation here
+      // will be shut down afterward by another notifier so we can safely end computation here
       shutdownNotifier.shutdownIfNecessary();
       prevSize = pRelevantVariables.size();
       expandOnce(pRelevantVariables, pRelevantLocation, pLimit);
@@ -577,6 +577,8 @@ public class InvariantsCPA
 
   private static boolean mustReach(
       CFANode pStart, final CFANode pTarget, final CFAEdge pForbiddenEdge) {
+    // FIXME: Unclear whether this method does what it should do. Cf.
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/eb3e7ab32fc2e61edabd4d1ec2838fc6be072905
     Set<CFANode> visited = new HashSet<>();
     visited.add(pStart);
     Queue<CFANode> waitlist = new ArrayDeque<>();
@@ -589,7 +591,8 @@ public class InvariantsCPA
         for (CFAEdge leavingEdge : leavingEdges) {
           if (!leavingEdge.equals(pForbiddenEdge)) {
             CFANode successor = leavingEdge.getSuccessor();
-            if (continued |= visited.add(successor)) {
+            continued |= visited.add(successor);
+            if (continued) {
               waitlist.offer(successor);
             }
           }
@@ -662,10 +665,10 @@ public class InvariantsCPA
 
     private Timer timer = new Timer();
 
-    protected TimeSpan lastTimeSpan = null;
-    protected TimeSpan lastLastTimeSpan = null;
+    TimeSpan lastTimeSpan = null;
+    TimeSpan lastLastTimeSpan = null;
 
-    protected ConditionAdjusterWithTimeLimit(Configuration pConfig)
+    ConditionAdjusterWithTimeLimit(Configuration pConfig)
         throws InvalidConfigurationException {
       pConfig.inject(this, ConditionAdjusterWithTimeLimit.class);
     }
@@ -762,7 +765,7 @@ public class InvariantsCPA
 
     private ConditionAdjuster defaultInner;
 
-    public CompoundConditionAdjuster(InvariantsCPA pCPA, Configuration pConfig)
+    CompoundConditionAdjuster(InvariantsCPA pCPA, Configuration pConfig)
         throws InvalidConfigurationException {
       super(pConfig);
       cpa = Objects.requireNonNull(pCPA);
@@ -840,7 +843,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class InterestingVariableLimitAdjuster implements ValueIncreasingAdjuster {
+  private static final class InterestingVariableLimitAdjuster implements ValueIncreasingAdjuster {
 
     private final InvariantsCPA cpa;
 
@@ -883,7 +886,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class FormulaDepthAdjuster implements ValueIncreasingAdjuster {
+  private static final class FormulaDepthAdjuster implements ValueIncreasingAdjuster {
 
     private final InvariantsCPA cpa;
 
@@ -919,11 +922,11 @@ public class InvariantsCPA
     }
   }
 
-  private static class AbstractionStrategyAdjuster implements ConditionAdjuster {
+  private static final class AbstractionStrategyAdjuster implements ConditionAdjuster {
 
     private final InvariantsCPA cpa;
 
-    public AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
+    AbstractionStrategyAdjuster(InvariantsCPA pCPA) {
       cpa = pCPA;
     }
 

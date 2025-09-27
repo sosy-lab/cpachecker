@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
@@ -44,7 +44,7 @@ public class AdditionalInfoExtractor {
     PathIterator rIterator = pPath.reverseFullPathIterator();
     ARGState lastArgState = rIterator.getAbstractState();
     UnmodifiableSMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
-    Set<Object> invalidChain = new LinkedHashSet<>(state.getInvalidChain());
+    SequencedSet<Object> invalidChain = new LinkedHashSet<>(state.getInvalidChain());
     String description = state.getErrorDescription();
     boolean isMemoryLeakError = state.hasMemoryLeaks();
     UnmodifiableSMGState prevSMGState = state;
@@ -65,14 +65,14 @@ public class AdditionalInfoExtractor {
       }
 
       isMemoryLeakError = false;
-      Set<Object> toCheck =
+      SequencedSet<Object> toCheck =
           extractAdditionalInfoFromInvalidChain(
               invalidChain, prevSMGState, visitedElems, smgState, edgeWithAdditionalInfo);
       invalidChain = toCheck;
       prevSMGState = smgState;
       pathWithExtendedInfo.add(edgeWithAdditionalInfo);
     }
-    return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
+    return CFAPathWithAdditionalInfo.of(pathWithExtendedInfo.reversed());
   }
 
   /**
@@ -80,13 +80,13 @@ public class AdditionalInfoExtractor {
    *
    * @return a set of more elements to be checked.
    */
-  private Set<Object> extractAdditionalInfoFromInvalidChain(
+  private SequencedSet<Object> extractAdditionalInfoFromInvalidChain(
       Collection<Object> invalidChain,
       UnmodifiableSMGState prevSMGState,
       Collection<Object> visitedElems,
       UnmodifiableSMGState smgState,
       CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo) {
-    Set<Object> toCheck = new LinkedHashSet<>();
+    SequencedSet<Object> toCheck = new LinkedHashSet<>();
     for (Object elem : invalidChain) {
       if (!visitedElems.contains(elem)) {
         if (!containsInvalidElement(smgState.getHeap(), elem)) {
@@ -110,33 +110,31 @@ public class AdditionalInfoExtractor {
   }
 
   private boolean containsInvalidElement(UnmodifiableCLangSMG smg, Object elem) {
-    if (elem instanceof SMGObject) {
-      SMGObject smgObject = (SMGObject) elem;
-      return smg.isHeapObject(smgObject)
-          || smg.getGlobalObjects().containsValue(smgObject)
-          || isStackObject(smg, smgObject);
-    } else if (elem instanceof SMGEdgeHasValue) {
-      SMGEdgeHasValue edgeHasValue = (SMGEdgeHasValue) elem;
-      SMGEdgeHasValueFilter filter =
-          SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
-              .filterAtOffset(edgeHasValue.getOffset())
-              .filterHavingValue(edgeHasValue.getValue())
-              .filterBySize(edgeHasValue.getSizeInBits());
-      Iterable<SMGEdgeHasValue> edges = smg.getHVEdges(filter);
-      return edges.iterator().hasNext();
-    } else if (elem instanceof SMGEdgePointsTo) {
-      SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
-      SMGEdgePointsToFilter filter =
-          SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
-              .filterAtTargetOffset(edgePointsTo.getOffset())
-              .filterHavingValue(edgePointsTo.getValue());
-      Set<SMGEdgePointsTo> edges = smg.getPtEdges(filter);
-      return !edges.isEmpty();
-    } else if (elem instanceof SMGValue) {
-      SMGValue smgValue = (SMGValue) elem;
-      return smg.getValues().contains(smgValue);
-    }
-    return false;
+    return switch (elem) {
+      case SMGObject smgObject ->
+          smg.isHeapObject(smgObject)
+              || smg.getGlobalObjects().containsValue(smgObject)
+              || isStackObject(smg, smgObject);
+      case SMGEdgeHasValue edgeHasValue -> {
+        SMGEdgeHasValueFilter filter =
+            SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
+                .filterAtOffset(edgeHasValue.getOffset())
+                .filterHavingValue(edgeHasValue.getValue())
+                .filterBySize(edgeHasValue.getSizeInBits());
+        Iterable<SMGEdgeHasValue> edges = smg.getHVEdges(filter);
+        yield edges.iterator().hasNext();
+      }
+      case SMGEdgePointsTo edgePointsTo -> {
+        SMGEdgePointsToFilter filter =
+            SMGEdgePointsToFilter.targetObjectFilter(edgePointsTo.getObject())
+                .filterAtTargetOffset(edgePointsTo.getOffset())
+                .filterHavingValue(edgePointsTo.getValue());
+        Set<SMGEdgePointsTo> edges = smg.getPtEdges(filter);
+        yield !edges.isEmpty();
+      }
+      case SMGValue smgValue -> smg.getValues().contains(smgValue);
+      case null /*TODO check if null is necessary*/, default -> false;
+    };
   }
 
   private boolean isStackObject(UnmodifiableCLangSMG smg, SMGObject pObject) {
@@ -156,8 +154,7 @@ public class AdditionalInfoExtractor {
       return "Assign edge";
     } else if (elem instanceof Integer || elem instanceof SMGValue) {
       return "Assign value";
-    } else if (elem instanceof SMGObject) {
-      SMGObject smgObject = (SMGObject) elem;
+    } else if (elem instanceof SMGObject smgObject) {
       if (isFunctionParameter(smg, smgObject)) {
         return "Function parameter";
       }

@@ -8,7 +8,7 @@
 
 /**
  * Representation of concrete counterexamples, produced by analyses after a target state has been
- * found and written to disk afterwards.
+ * found and written to disk afterward.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.counterexample;

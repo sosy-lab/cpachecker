@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -102,7 +102,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
   SMGState withViolationsOf(SMGState pOther);
 
   /**
-   * Stores a error-message in the state.
+   * Stores an error-message in the state.
    *
    * @return a new state with the corresponding error description.
    */

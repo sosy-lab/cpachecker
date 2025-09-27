@@ -202,7 +202,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
     if (shouldPerformAbstraction) {
       return Optional.of(clientManager.performAbstraction(iState, pPrecision, pStates, pFullState));
     }
-    return Optional.of(PrecisionAdjustmentResult.create(iState, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(iState, pPrecision, Action.CONTINUE));
   }
 
   private boolean isUnreachable(ABEIntermediateState<A> pIState, BooleanFormula pExtraInvariant)
@@ -229,20 +229,18 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
    */
   private boolean shouldPerformAbstraction(CFANode node, AbstractState totalState) {
 
-    switch (abstractionLocations) {
-      case ALL:
-        return true;
-      case LOOPHEAD:
+    return switch (abstractionLocations) {
+      case ALL -> true;
+
+      case LOOPHEAD -> {
         LoopBoundState loopState =
             AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
-        return (cfa.getAllLoopHeads().orElseThrow().contains(node)
+        yield (cfa.getAllLoopHeads().orElseThrow().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
-      case MERGE:
-        return node.getNumEnteringEdges() > 1;
-      default:
-        throw new UnsupportedOperationException("Unexpected state");
-    }
+      }
+      case MERGE -> node.getNumEnteringEdges() > 1;
+    };
   }
 
   private BooleanFormula extractFormula(AbstractState pFormulaState) {

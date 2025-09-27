@@ -51,7 +51,7 @@ public class WitnessOptions {
 
   @Option(
       secure = true,
-      description = "Verification witness: Include an thread-identifier within the file?")
+      description = "Verification witness: Include a thread-identifier within the file?")
   private boolean exportThreadId = false;
 
   @Option(secure = true, description = "Some redundant transitions will be removed")
@@ -81,6 +81,23 @@ public class WitnessOptions {
               + " when constructing the disjunction. This may be unsound in some situations, so be"
               + " careful when using this option.")
   private boolean produceInvariantWitnesses = false;
+
+  @Option(
+      secure = true,
+      description = "Export invariants in correctness witness also if location was not explored")
+  private boolean exportInvariantsForNonExploredStates = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Export witness that is a combination of multiple (partial) correctness witnesses, do not"
+              + " export default invariants")
+  private boolean exportJointWitnesses = false;
+
+  @Option(
+      secure = true,
+      description = "Shrink ARG graph into a smaller witness graph by merging edges")
+  private boolean minimizeARG = true;
 
   boolean exportFunctionCallsAndReturns() {
     return exportFunctionCallsAndReturns;
@@ -132,5 +149,17 @@ public class WitnessOptions {
 
   public boolean produceInvariantWitnesses() {
     return produceInvariantWitnesses;
+  }
+
+  boolean exportInvariantsForNonExploredStates() {
+    return exportInvariantsForNonExploredStates;
+  }
+
+  boolean exportJointWitnesses() {
+    return exportJointWitnesses;
+  }
+
+  boolean minimizeARG() {
+    return minimizeARG;
   }
 }

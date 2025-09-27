@@ -33,7 +33,7 @@ public class SlicerFactory implements StatisticsProvider {
   private enum ExtractorType {
     ALL,
     REDUCER,
-    SYNTAX;
+    SYNTAX,
   }
 
   private enum SlicingType {
@@ -49,7 +49,7 @@ public class SlicerFactory implements StatisticsProvider {
      *
      * @see IdentitySlicer
      */
-    IDENTITY
+    IDENTITY,
   }
 
   @Options(prefix = "slicing")
@@ -116,37 +116,28 @@ public class SlicerFactory implements StatisticsProvider {
 
     final SlicingCriteriaExtractor extractor;
     final ExtractorType extractorType = options.getExtractorType();
-    switch (extractorType) {
-      case ALL:
-        extractor = new AllTargetsExtractor();
-        break;
-      case REDUCER:
-        extractor = new ReducerExtractor(pConfig);
-        break;
-      case SYNTAX:
-        extractor = new SyntaxExtractor(pConfig, pCfa, pLogger, pShutdownNotifier);
-        break;
-      default:
-        throw new AssertionError("Unhandled criterion extractor type " + extractorType);
-    }
+    extractor =
+        switch (extractorType) {
+          case ALL -> new AllTargetsExtractor();
+          case REDUCER -> new ReducerExtractor(pConfig);
+          case SYNTAX -> new SyntaxExtractor(pConfig, pCfa, pLogger, pShutdownNotifier);
+        };
 
     final SlicingType slicingType = options.getSlicingType();
-    switch (slicingType) {
-      case STATIC:
+    return switch (slicingType) {
+      case STATIC -> {
         CSystemDependenceGraph dependenceGraph =
             createDependenceGraph(pLogger, pShutdownNotifier, pConfig, pCfa);
-        return new StaticSlicer(
+        yield new StaticSlicer(
             extractor,
             pLogger,
             pShutdownNotifier,
             pConfig,
             dependenceGraph,
             options.partiallyRelevantEdges);
-      case IDENTITY:
-        return new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
-      default:
-        throw new AssertionError("Unhandled slicing type " + slicingType);
-    }
+      }
+      case IDENTITY -> new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
+    };
   }
 
   @Override

@@ -145,8 +145,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
             new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
         logger.log(Level.FINE, "Build configurable program analysis");
-        ConfigurableProgramAnalysis cpa;
-        cpa = coreComponents.createCPA(cfa, spec);
+        ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Instantiate residual program construction algorithm");
@@ -222,15 +221,14 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
                 .parseFileAndCreateCFA(Collections.singletonList(pResidProgPath));
 
         stats.residParse.stop();
-        stats.numResidLoc = cfaResidProg.getAllNodes().size();
+        stats.numResidLoc = cfaResidProg.nodes().size();
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
             new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
 
         logger.log(Level.FINE, "Build configurable program analysis");
-        ConfigurableProgramAnalysis cpa;
-        cpa = coreComponents.createCPA(cfaResidProg, spec);
+        ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfaResidProg, spec);
         collectStatistics(cpa);
         shutdown.shutdownIfNecessary();
 
@@ -275,8 +273,8 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private void collectStatistics(final Object pStatisticsProviderCandidate) {
-    if (pStatisticsProviderCandidate instanceof StatisticsProvider) {
-      ((StatisticsProvider) pStatisticsProviderCandidate).collectStatistics(stats.substats);
+    if (pStatisticsProviderCandidate instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(stats.substats);
     }
   }
 
@@ -303,7 +301,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
       statWriter.put("Time for residual program verification", residVerif);
       statWriter.put("Time for residual program parsing", residParse);
       statWriter.put("Time for residual program analysis", residAnalysis);
-      statWriter.put("Size of original program", cfa.getAllNodes().size());
+      statWriter.put("Size of original program", cfa.nodes().size());
       statWriter.put("Size of residual program", numResidLoc);
       statWriter.spacer();
 

@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,18 +27,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
-public class CFANode implements Comparable<CFANode>, Serializable {
-
-  private static final long serialVersionUID = 5168350921309486536L;
+public sealed class CFANode implements Comparable<CFANode>
+    permits CFALabelNode, CFATerminationNode, FunctionEntryNode, FunctionExitNode {
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   private final int nodeNumber;
 
-  // do not serialize edges, recursive traversal of the CFA causes a stack-overflow.
-  // edge-list is final, except for serialization
-  private transient List<CFAEdge> leavingEdges = new ArrayList<>(1);
-  private transient List<CFAEdge> enteringEdges = new ArrayList<>(1);
+  private final List<CFAEdge> leavingEdges = new ArrayList<>(1);
+  private final List<CFAEdge> enteringEdges = new ArrayList<>(1);
 
   // is start node of a loop?
   private boolean isLoopStart = false;
@@ -252,19 +248,19 @@ public class CFANode implements Comparable<CFANode>, Serializable {
    * locations of edges instead.
    */
   public String describeFileLocation() {
-    if (this instanceof FunctionEntryNode) {
+    if (this instanceof FunctionEntryNode functionEntryNode) {
       return "entry of function "
           + getFunctionName()
           + " in "
-          + ((FunctionEntryNode) this).getFileLocation();
+          + functionEntryNode.getFileLocation();
     }
 
-    if (this instanceof FunctionExitNode) {
+    if (this instanceof FunctionExitNode functionExitNode) {
       // these nodes do not belong to a location
       return "exit of function "
           + getFunctionName()
           + " in "
-          + ((FunctionExitNode) this).getEntryNode().getFileLocation();
+          + functionExitNode.getEntryNode().getFileLocation();
     }
 
     if (getNumLeavingEdges() > 0) {
@@ -286,15 +282,6 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     return "";
   }
 
-  private void readObject(java.io.ObjectInputStream s)
-      throws java.io.IOException, ClassNotFoundException {
-    s.defaultReadObject();
-
-    // leaving and entering edges have to be updated explicitly after reading a node
-    leavingEdges = new ArrayList<>(1);
-    enteringEdges = new ArrayList<>(1);
-  }
-
   public void addOutOfScopeVariables(Collection<CSimpleDeclaration> pOutOfScopeVariables) {
     if (outOfScopeVariables == null) { // lazy
       outOfScopeVariables = new LinkedHashSet<>();
@@ -303,8 +290,8 @@ public class CFANode implements Comparable<CFANode>, Serializable {
         pOutOfScopeVariables.stream()
             .filter(
                 decl ->
-                    !(decl instanceof CVariableDeclaration)
-                        || !((CVariableDeclaration) decl).isGlobal())
+                    !(decl instanceof CVariableDeclaration cVariableDeclaration)
+                        || !cVariableDeclaration.isGlobal())
             .collect(ImmutableSet.toImmutableSet()));
   }
 
@@ -317,7 +304,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
    * Variables can come into scope again, e.g. when iterating through a loop or calling a function
    * twice.
    *
-   * <p>We currently do not return function parameters for function exit nodes. Additionally we do
+   * <p>We currently do not return function parameters for function exit nodes. Additionally, we do
    * not report any analysis-specific variables for encoding the return value of a function. Those
    * variables can be retrieved separately via {@link FunctionExitNode#getEntryNode()} or directly
    * in the analysis.

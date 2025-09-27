@@ -17,6 +17,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 public interface PreConditionComposer {
 
   PreCondition extractPreCondition(List<CFAEdge> pCounterexample)
-      throws SolverException, InterruptedException, CPATransferException,
+      throws SolverException,
+          InterruptedException,
+          CPATransferException,
           InvalidCounterexampleException;
 }

@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import java.io.Serial;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -175,7 +176,7 @@ public class BAMSubgraphComputer {
         }
 
       } else {
-        // children are a normal successors -> create an connection from parent to children
+        // children are a normal successors -> create a connection from parent to children
         for (final BackwardARGState newChild : childrenInSubgraph) {
           // assert !currentState.getEdgesToChild(newChild.getARGState()).isEmpty()
           // : String.format(
@@ -319,7 +320,7 @@ public class BAMSubgraphComputer {
    */
   static class BackwardARGState extends ARGState {
 
-    private static final long serialVersionUID = -3279533907385516993L;
+    @Serial private static final long serialVersionUID = -3279533907385516993L;
 
     public BackwardARGState(ARGState originalState) {
       super(originalState, null);
@@ -342,7 +343,7 @@ public class BAMSubgraphComputer {
   /** A class to signal a deleted block for re-computation. */
   static class MissingBlockException extends CPAException {
 
-    private static final long serialVersionUID = 123L;
+    @Serial private static final long serialVersionUID = 123L;
 
     private final AbstractState initialState;
     private final AbstractState exitState;

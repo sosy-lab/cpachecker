@@ -19,12 +19,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.graph.Traverser;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedCollection;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -42,14 +44,14 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class ARGState extends AbstractSerializableSingleWrapperState
     implements Comparable<ARGState>, Graphable, Splitable {
 
-  private static final long serialVersionUID = 2608287648397165040L;
+  @Serial private static final long serialVersionUID = 2608287648397165040L;
 
-  // We use a List here although we would like to have a Set
+  // We use a List here, although we would like to have a Set
   // because ArrayList is much more memory efficient than e.g. LinkedHashSet.
-  // Also these collections are small and so a slow contains() method won't hurt.
+  // Also, these collections are small and so a slow contains() method won't hurt.
   // To enforce set semantics, do not add elements except through addparent()!
-  private final Collection<ARGState> children = new ArrayList<>(1);
-  private final Collection<ARGState> parents = new ArrayList<>(1);
+  private final SequencedCollection<ARGState> children = new ArrayList<>(1);
+  private final SequencedCollection<ARGState> parents = new ArrayList<>(1);
 
   private ARGState mCoveredBy = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
@@ -82,10 +84,10 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   /**
    * Get the parent elements of this state.
    *
-   * @return A unmodifiable collection of ARGStates without duplicates.
+   * @return An unmodifiable collection of ARGStates without duplicates.
    */
-  public Collection<ARGState> getParents() {
-    return Collections.unmodifiableCollection(parents);
+  public SequencedCollection<ARGState> getParents() {
+    return Collections.unmodifiableSequencedCollection(parents);
   }
 
   public void addParent(ARGState pOtherParent) {
@@ -107,9 +109,9 @@ public class ARGState extends AbstractSerializableSingleWrapperState
    *
    * @return An unmodifiable collection of ARGStates without duplicates.
    */
-  public Collection<ARGState> getChildren() {
+  public SequencedCollection<ARGState> getChildren() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    return Collections.unmodifiableCollection(children);
+    return Collections.unmodifiableSequencedCollection(children);
   }
 
   /**
@@ -135,9 +137,9 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     if (currentLocs != null && childLocs != null) {
       // first try to get a normal edge
       // consider only the actual analysis direction
-      Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
+      Collection<CFAEdge> incomingEdgesOfChild = Sets.newHashSet(childLocs.getIncomingEdges());
       for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
-        if (ingoingEdgesOfChild.contains(edge)) {
+        if (incomingEdgesOfChild.contains(edge)) {
           return edge;
         }
       }
@@ -414,16 +416,16 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   @Override
   public String toDOTLabel() {
-    if (getWrappedState() instanceof Graphable) {
-      return ((Graphable) getWrappedState()).toDOTLabel();
+    if (getWrappedState() instanceof Graphable graphable) {
+      return graphable.toDOTLabel();
     }
     return "";
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    if (getWrappedState() instanceof Graphable) {
-      return ((Graphable) getWrappedState()).shouldBeHighlighted();
+    if (getWrappedState() instanceof Graphable graphable) {
+      return graphable.shouldBeHighlighted();
     }
     return false;
   }
@@ -548,8 +550,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates) {
     AbstractState wrappedState = getWrappedState();
     AbstractState newWrappedState = null;
-    if (wrappedState instanceof Splitable) {
-      newWrappedState = ((Splitable) wrappedState).forkWithReplacements(pReplacementStates);
+    if (wrappedState instanceof Splitable splitable) {
+      newWrappedState = splitable.forkWithReplacements(pReplacementStates);
     } else {
       newWrappedState = wrappedState;
     }

@@ -63,7 +63,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       AbstractState adjustedSate = topState;
       Precision adjustedPrecision = pPrecision;
       return Optional.of(
-          PrecisionAdjustmentResult.create(adjustedSate, adjustedPrecision, Action.CONTINUE));
+          new PrecisionAdjustmentResult(adjustedSate, adjustedPrecision, Action.CONTINUE));
     }
 
     return wrappedPrecResult;

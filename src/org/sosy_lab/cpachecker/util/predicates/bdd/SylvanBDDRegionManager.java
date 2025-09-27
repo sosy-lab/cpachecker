@@ -41,7 +41,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -264,14 +263,14 @@ class SylvanBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+  public IfThenElseParts getIfThenElse(Region pF) {
     long f = unwrap(pF);
 
     Region predicate = wrap(JSylvan.getIf(f));
     Region fThen = wrap(JSylvan.getThen(f));
     Region fElse = wrap(JSylvan.getElse(f));
 
-    return Triple.of(predicate, fThen, fElse);
+    return new IfThenElseParts(predicate, fThen, fElse);
   }
 
   @Override

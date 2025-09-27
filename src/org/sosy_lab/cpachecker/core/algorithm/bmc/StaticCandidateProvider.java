@@ -19,7 +19,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.TreeSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -30,11 +30,11 @@ public class StaticCandidateProvider implements CandidateGenerator {
 
   private final Map<CandidateInvariant, Integer> order = new HashMap<>();
 
-  private final Set<CandidateInvariant> allCandidates;
+  private final ImmutableSet<CandidateInvariant> allCandidates;
 
-  private final Set<CandidateInvariant> confirmedInvariants = new LinkedHashSet<>();
+  private final SequencedSet<CandidateInvariant> confirmedInvariants = new LinkedHashSet<>();
 
-  private final Set<CandidateInvariant> refutedInvariants = new LinkedHashSet<>();
+  private final SequencedSet<CandidateInvariant> refutedInvariants = new LinkedHashSet<>();
 
   private final NavigableSet<CandidateInvariant> candidates =
       new TreeSet<>(Comparator.comparingInt(order::get));
@@ -113,7 +113,8 @@ public class StaticCandidateProvider implements CandidateGenerator {
 
       @Override
       public CandidateInvariant next() {
-        return candidate = iterator.next();
+        candidate = iterator.next();
+        return candidate;
       }
 
       @Override
@@ -128,8 +129,8 @@ public class StaticCandidateProvider implements CandidateGenerator {
   }
 
   @Override
-  public Set<CandidateInvariant> getConfirmedCandidates() {
-    return Collections.unmodifiableSet(confirmedInvariants);
+  public SequencedSet<CandidateInvariant> getConfirmedCandidates() {
+    return Collections.unmodifiableSequencedSet(confirmedInvariants);
   }
 
   @Override
@@ -137,7 +138,7 @@ public class StaticCandidateProvider implements CandidateGenerator {
     return addAllCandidates(pCandidates);
   }
 
-  public Set<CandidateInvariant> getAllCandidates() {
+  public ImmutableSet<CandidateInvariant> getAllCandidates() {
     return allCandidates;
   }
 }

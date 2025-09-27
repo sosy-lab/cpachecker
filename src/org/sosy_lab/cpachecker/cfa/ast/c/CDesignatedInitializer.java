@@ -12,14 +12,15 @@ import static com.google.common.collect.Lists.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
+public final class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
 
-  private static final long serialVersionUID = -2567254248669651550L;
+  @Serial private static final long serialVersionUID = -2567254248669651550L;
   private final List<CDesignator> designators;
   private final CInitializer right;
 
@@ -31,12 +32,15 @@ public class CDesignatedInitializer extends AbstractInitializer implements CInit
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder sb = new StringBuilder();
     Joiner.on("")
-        .appendTo(sb, transform(designators, cdesignator -> cdesignator.toASTString(pQualified)));
+        .appendTo(
+            sb,
+            transform(
+                designators, cdesignator -> cdesignator.toASTString(pAAstNodeRepresentation)));
     sb.append(" = ");
-    sb.append(right.toASTString(pQualified));
+    sb.append(right.toASTString(pAAstNodeRepresentation));
     return sb.toString();
   }
 
@@ -74,12 +78,9 @@ public class CDesignatedInitializer extends AbstractInitializer implements CInit
       return true;
     }
 
-    if (!(obj instanceof CDesignatedInitializer) || !super.equals(obj)) {
-      return false;
-    }
-
-    CDesignatedInitializer other = (CDesignatedInitializer) obj;
-
-    return Objects.equals(other.designators, designators) && Objects.equals(other.right, right);
+    return obj instanceof CDesignatedInitializer other
+        && super.equals(obj)
+        && Objects.equals(other.designators, designators)
+        && Objects.equals(other.right, right);
   }
 }

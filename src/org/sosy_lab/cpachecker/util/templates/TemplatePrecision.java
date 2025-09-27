@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -75,7 +76,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 public class TemplatePrecision implements Precision {
 
   private static final Comparator<Template> TEMPLATE_COMPARATOR =
-      Comparator.<Template>comparingInt((template) -> template.getLinearExpression().size())
+      Comparator.<Template>comparingInt(template -> template.getLinearExpression().size())
           .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
           .thenComparing(Template::toString);
 
@@ -206,11 +207,11 @@ public class TemplatePrecision implements Precision {
     ImmutableSetMultimap.Builder<String, ASimpleDeclaration> builder =
         ImmutableSetMultimap.builder();
     if (includeFunctionParameters) {
-      for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
+      for (FunctionEntryNode node : cfa.entryNodes()) {
         CFunctionEntryNode casted = (CFunctionEntryNode) node;
 
         casted.getFunctionParameters().stream()
-            .map(p -> p.asVariableDeclaration())
+            .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(qualifiedName -> builder.put(node.getFunctionName(), qualifiedName));
       }
     }
@@ -328,7 +329,7 @@ public class TemplatePrecision implements Precision {
   private static final Equivalence<CIdExpression> BASIC_TYPE_EQUIVALENCE =
       Equivalence.equals().onResultOf(x -> ((CSimpleType) x.getDeclaration().getType()).getType());
 
-  /** Check whether all variables inside a expression have the same type. */
+  /** Check whether all variables inside an expression have the same type. */
   private boolean hasSameType(LinearExpression<CIdExpression> expr) {
     return expr.getMap().keySet().stream()
         .allMatch(x -> BASIC_TYPE_EQUIVALENCE.equivalent(x, expr.iterator().next().getKey()));
@@ -345,7 +346,7 @@ public class TemplatePrecision implements Precision {
   private Set<Template> templatesFromAsserts() {
     Set<Template> templates = new HashSet<>();
 
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.nodes()) {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         String statement = edge.getRawStatement();
         Optional<LinearExpression<CIdExpression>> template = Optional.empty();
@@ -355,21 +356,20 @@ public class TemplatePrecision implements Precision {
         if (statement.contains(ASSERT_H_FUNC_NAME) && edge instanceof CStatementEdge) {
 
           for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
-            if (enteringEdge instanceof CAssumeEdge) {
-              CAssumeEdge assumeEdge = (CAssumeEdge) enteringEdge;
+            if (enteringEdge instanceof CAssumeEdge assumeEdge) {
               CExpression expression = assumeEdge.getExpression();
 
               template = expressionToSingleTemplate(expression);
             }
           }
 
-        } else if (statement.contains(ASSERT_FUNC_NAME) && edge instanceof CFunctionCallEdge) {
+        } else if (statement.contains(ASSERT_FUNC_NAME)
+            && edge instanceof CFunctionCallEdge callEdge) {
 
-          CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
           if (callEdge.getArguments().isEmpty()) {
             continue;
           }
-          CExpression expression = callEdge.getArguments().get(0);
+          CExpression expression = callEdge.getArguments().getFirst();
           template = expressionToSingleTemplate(expression);
         }
 
@@ -413,8 +413,7 @@ public class TemplatePrecision implements Precision {
   }
 
   private ImmutableSet<Template> extractTemplates() {
-    return cfa.getAllNodes().stream()
-        .flatMap(node -> CFAUtils.allEnteringEdges(node).stream())
+    return CFAUtils.allEdges(cfa).stream()
         .flatMap(edge -> extractTemplatesFromEdge(edge).stream())
         .filter(t -> t.size() >= 1)
         .map(Template::of)
@@ -423,22 +422,26 @@ public class TemplatePrecision implements Precision {
 
   private Collection<LinearExpression<CIdExpression>> extractTemplatesFromEdge(CFAEdge edge) {
     switch (edge.getEdgeType()) {
-      case ReturnStatementEdge:
+      case ReturnStatementEdge -> {
         CReturnStatementEdge e = (CReturnStatementEdge) edge;
         if (e.getExpression().isPresent()) {
           return expressionToTemplate(e.getExpression().orElseThrow());
         }
-        break;
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
         return from(callEdge.getArguments()).transformAndConcat(this::expressionToTemplate).toSet();
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
         return expressionToTemplate(assumeEdge.getExpression());
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         return extractTemplatesFromStatementEdge((CStatementEdge) edge);
-      default:
+      }
+      default -> {
         // nothing to do here
+      }
     }
     return ImmutableSet.of();
   }
@@ -446,14 +449,13 @@ public class TemplatePrecision implements Precision {
   private Collection<LinearExpression<CIdExpression>> extractTemplatesFromStatementEdge(
       CStatementEdge edge) {
     CStatement statement = edge.getStatement();
-    if (statement instanceof CExpressionStatement) {
-      return expressionToTemplate(((CExpressionStatement) statement).getExpression());
-    } else if (statement instanceof CExpressionAssignmentStatement) {
+    if (statement instanceof CExpressionStatement cExpressionStatement) {
+      return expressionToTemplate(cExpressionStatement.getExpression());
+    } else if (statement instanceof CExpressionAssignmentStatement assignment) {
       Set<LinearExpression<CIdExpression>> out = new HashSet<>();
-      CExpressionAssignmentStatement assignment = (CExpressionAssignmentStatement) statement;
+
       CLeftHandSide lhs = assignment.getLeftHandSide();
-      if (lhs instanceof CIdExpression) {
-        CIdExpression id = (CIdExpression) lhs;
+      if (lhs instanceof CIdExpression id) {
         out.addAll(expressionToTemplate(assignment.getRightHandSide()));
         if (!shouldProcessVariable(id.getDeclaration())) {
           return out;
@@ -481,8 +483,7 @@ public class TemplatePrecision implements Precision {
 
   private Optional<LinearExpression<CIdExpression>> recExpressionToTemplate(
       CExpression expression) {
-    if (expression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExpression = (CBinaryExpression) expression;
+    if (expression instanceof CBinaryExpression binaryExpression) {
       CExpression operand1 = binaryExpression.getOperand1();
       CExpression operand2 = binaryExpression.getOperand2();
 
@@ -493,14 +494,14 @@ public class TemplatePrecision implements Precision {
       // Special handling for constants and multiplication.
       if (operator == BinaryOperator.MULTIPLY && (templateA.isPresent() || templateB.isPresent())) {
 
-        if (operand1 instanceof CIntegerLiteralExpression && templateB.isPresent()) {
+        if (operand1 instanceof CIntegerLiteralExpression cIntegerLiteralExpression
+            && templateB.isPresent()) {
 
-          return Optional.of(
-              useCoeff((CIntegerLiteralExpression) operand1, templateB.orElseThrow()));
-        } else if (operand2 instanceof CIntegerLiteralExpression && templateA.isPresent()) {
+          return Optional.of(useCoeff(cIntegerLiteralExpression, templateB.orElseThrow()));
+        } else if (operand2 instanceof CIntegerLiteralExpression cIntegerLiteralExpression
+            && templateA.isPresent()) {
 
-          return Optional.of(
-              useCoeff((CIntegerLiteralExpression) operand2, templateA.orElseThrow()));
+          return Optional.of(useCoeff(cIntegerLiteralExpression, templateA.orElseThrow()));
         } else {
           return Optional.empty();
         }
@@ -528,9 +529,8 @@ public class TemplatePrecision implements Precision {
     } else if (expression instanceof CLiteralExpression
         && expression.getExpressionType() instanceof CSimpleType) {
       return Optional.of(LinearExpression.empty());
-    } else if (expression instanceof CIdExpression
+    } else if (expression instanceof CIdExpression idExpression
         && expression.getExpressionType() instanceof CSimpleType) {
-      CIdExpression idExpression = (CIdExpression) expression;
       return Optional.of(LinearExpression.ofVariable(idExpression));
     } else {
       return Optional.empty();

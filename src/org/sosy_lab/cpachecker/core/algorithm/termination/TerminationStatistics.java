@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -106,6 +107,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "termination")
@@ -153,18 +155,26 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private final Multiset<Loop> safetyAnalysisRunsPerLoop = ConcurrentHashMultiset.create();
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  private final WitnessExporter witnessExporter;
+  protected final WitnessExporter witnessExporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
+
+  private final MachineModel machineModel;
+
+  public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
+      throws InvalidConfigurationException {
+    this(pConfig, pLogger, 0, pCFA);
+  }
 
   public TerminationStatistics(
       Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
+    machineModel = pCFA.getMachineModel();
 
     witnessExporter =
         new WitnessExporter(
@@ -361,7 +371,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + format(lassoTerminationTime.getMaxTime()));
     pOut.println();
 
-    int totoalTerminationArguments = terminationArguments.size();
+    int totalTerminationArguments = terminationArguments.size();
     int maxTerminationArgumentsPerLoop =
         terminationArguments.asMap().values().stream().mapToInt(Collection::size).max().orElse(0);
     String loopsWithMaxTerminationArguments =
@@ -371,12 +381,11 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             .map(l -> l.getLoopHeads().toString())
             .collect(Collectors.joining(", "));
     pOut.println(
-        "Total number of termination arguments:              "
-            + format(totoalTerminationArguments));
+        "Total number of termination arguments:              " + format(totalTerminationArguments));
     if (loops > 0) {
       pOut.println(
           "  Avg termination arguments per loop:               "
-              + div(totoalTerminationArguments, loops));
+              + div(totalTerminationArguments, loops));
     }
     pOut.println(
         "  Max termination arguments per loop:               "
@@ -385,13 +394,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             + loopsWithMaxTerminationArguments);
 
     pOut.println();
-    Map<String, Integer> terminationArguementTypes = new HashMap<>();
+    Map<String, Integer> terminationArgumentTypes = new HashMap<>();
     for (TerminationArgument terminationArgument : terminationArguments.values()) {
       String name = terminationArgument.getRankingFunction().getName();
-      terminationArguementTypes.merge(name, 1, Integer::sum);
+      terminationArgumentTypes.merge(name, 1, Integer::sum);
     }
 
-    for (Entry<String, Integer> terminationArgument : terminationArguementTypes.entrySet()) {
+    for (Entry<String, Integer> terminationArgument : terminationArgumentTypes.entrySet()) {
       String name = terminationArgument.getKey();
       String whiteSpaces = " ".repeat(49 - name.length());
       pOut.println("  " + name + ":" + whiteSpaces + format(terminationArgument.getValue()));
@@ -465,7 +474,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
           return ExpressionTrees.getTrue();
         };
 
-    cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX));
+    cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX, nonterminatingLoop));
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
@@ -499,14 +508,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     }
   }
 
-  private Collection<ARGState> copyStem(
+  protected Collection<ARGState> copyStem(
       final ARGPath pStem,
       final ARGState newRoot,
       final ARGState loopStart,
       final ARGState newLoopStart) {
     Collection<ARGState> newStates = new HashSet<>();
     boolean first = true;
-    ARGState child, parent = newRoot;
+    ARGState parent = newRoot;
     newStates.add(newRoot);
 
     for (ARGState state : pStem.asStatesList()) {
@@ -521,7 +530,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         break;
       }
 
-      child = new ARGState(state.getWrappedState(), parent);
+      ARGState child = new ARGState(state.getWrappedState(), parent);
       parent = child;
       newStates.add(parent);
     }
@@ -529,34 +538,26 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     return newStates;
   }
 
-  private Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry) {
+  protected Collection<ARGState> addCEXLoopingPartToARG(final ARGState pLoopEntry, Loop pLoop) {
     CFANode loc = AbstractStates.extractLocation(pLoopEntry);
-    Preconditions.checkState(nonterminatingLoop.getLoopHeads().contains(loc));
+    Preconditions.checkState(pLoop.getLoopHeads().contains(loc));
 
     Collection<ARGState> relevantARGStates = new HashSet<>();
 
     Map<CFANode, ARGState> nodeToARGState =
-        Maps.newHashMapWithExpectedSize(nonterminatingLoop.getLoopNodes().size());
+        Maps.newHashMapWithExpectedSize(pLoop.getLoopNodes().size());
     nodeToARGState.put(loc, pLoopEntry);
     Deque<CFANode> waitlist = new ArrayDeque<>();
     waitlist.push(loc);
 
-    ARGState pred, succ;
-
-    CFANode locContinueLoop;
-    Pair<CFANode, CallstackState> context, newContext;
-    ARGState predFun, succFun;
-    Deque<Pair<CFANode, CallstackState>> waitlistFun;
-    Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState;
-
     while (!waitlist.isEmpty()) {
       loc = waitlist.pop();
-      pred = nodeToARGState.get(loc);
+      ARGState pred = nodeToARGState.get(loc);
       assert pred != null;
 
       for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
-        if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
-          succ = nodeToARGState.get(leave.getSuccessor());
+        if (pLoop.getLoopNodes().contains(leave.getSuccessor())) {
+          ARGState succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
             succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
             nodeToARGState.put(leave.getSuccessor(), succ);
@@ -565,36 +566,35 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
           succ.addParent(pred);
 
-        } else if (leave instanceof FunctionCallEdge && pred.getChildren().isEmpty()) {
+        } else if (leave instanceof FunctionCallEdge functionCallEdge
+            && pred.getChildren().isEmpty()) {
           // function calls are not considered to be part of the loop
-          locContinueLoop = ((FunctionCallEdge) leave).getSummaryEdge().getSuccessor();
-          contextToARGState = new HashMap<>();
-          context =
+          CFANode locContinueLoop = functionCallEdge.getReturnNode();
+          Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState = new HashMap<>();
+          Pair<CFANode, CallstackState> context =
               Pair.of(
                   leave.getSuccessor(),
                   new CallstackState(
                       null, leave.getSuccessor().getFunctionName(), leave.getPredecessor()));
-          waitlistFun = new ArrayDeque<>();
+          Deque<Pair<CFANode, CallstackState>> waitlistFun = new ArrayDeque<>();
           waitlistFun.push(context);
 
-          succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
+          ARGState succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
           contextToARGState.put(context, succFun);
 
           succFun.addParent(pred);
 
           while (!waitlistFun.isEmpty()) {
             context = waitlistFun.pop();
-            predFun = contextToARGState.get(context);
+            ARGState predFun = contextToARGState.get(context);
             assert predFun != null;
 
             for (CFAEdge leaveFun : CFAUtils.leavingEdges(context.getFirst())) {
-              newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());
+              Pair<CFANode, CallstackState> newContext =
+                  Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
-              if (leaveFun instanceof FunctionReturnEdge) {
-                if (!context
-                    .getSecond()
-                    .getCallNode()
-                    .equals(((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
+              if (leaveFun instanceof FunctionReturnEdge functionReturnEdge) {
+                if (!context.getSecond().getCallNode().equals(functionReturnEdge.getCallNode())) {
                   continue; // false context
                 }
                 newContext =
@@ -643,10 +643,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private ExpressionTree<Object> buildInvariantFrom(NonTerminationArgument pArg) {
     ExpressionTree<Object> computedQuasiInvariant = ExpressionTrees.getTrue();
-    if (pArg instanceof GeometricNonTerminationArgument) {
-      computedQuasiInvariant = buildInvariantFrom((GeometricNonTerminationArgument) pArg);
-    } else if (pArg instanceof InfiniteFixpointRepetition) {
-      computedQuasiInvariant = buildInvaraintFrom((InfiniteFixpointRepetition) pArg);
+    if (pArg instanceof GeometricNonTerminationArgument geometricNonTerminationArgument) {
+      computedQuasiInvariant = buildInvariantFrom(geometricNonTerminationArgument);
+    } else if (pArg instanceof InfiniteFixpointRepetition infiniteFixpointRepetition) {
+      computedQuasiInvariant = buildInvaraintFrom(infiniteFixpointRepetition);
     }
     return computedQuasiInvariant;
   }
@@ -660,8 +660,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
       for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
         RankVar rankVar = (RankVar) entry.getKey();
-        if (rankVar.getTerm() instanceof ApplicationTerm
-            && ((ApplicationTerm) rankVar.getTerm()).getParameters().length != 0) {
+        if (rankVar.getTerm() instanceof ApplicationTerm applicationTerm
+            && applicationTerm.getParameters().length != 0) {
           // ignore UFs
           continue;
         }
@@ -700,14 +700,19 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     Object termVal;
 
     for (Entry<Term, Term> entry : arg.getValuesAtHonda().entrySet()) {
-      if (entry.getKey() instanceof TermVariable && entry.getValue() instanceof ConstantTerm) {
-        varName = toOrigName((TermVariable) entry.getKey());
-        termVal = ((ConstantTerm) entry.getValue()).getValue();
+      if (entry.getKey() instanceof TermVariable termVariable
+          && entry.getValue() instanceof ConstantTerm constantTerm) {
+        varName = toOrigName(termVariable);
+        termVal = constantTerm.getValue();
 
         if (termVal instanceof BigDecimal) {
+          // FIXME: Conversion from BigDecimal to FloatValue is lossy and may cause rounding issues
           litexpr =
               new CFloatLiteralExpression(
-                  FileLocation.DUMMY, CNumericTypes.FLOAT, (BigDecimal) termVal);
+                  FileLocation.DUMMY,
+                  machineModel,
+                  CNumericTypes.FLOAT,
+                  FloatValue.fromString(FloatValue.Format.Float32, termVal.toString()));
         } else if (termVal instanceof BigInteger) {
           litexpr =
               CIntegerLiteralExpression.createDummyLiteral(
@@ -730,10 +735,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       return CIntegerLiteralExpression.createDummyLiteral(
           rat.numerator().divide(rat.denominator()).longValue(), CNumericTypes.INT);
     } else {
+      FloatValue n = FloatValue.fromInteger(FloatValue.Format.Float32, rat.numerator());
+      FloatValue d = FloatValue.fromInteger(FloatValue.Format.Float32, rat.numerator());
       return new CFloatLiteralExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.FLOAT,
-          new BigDecimal(rat.numerator()).divide(new BigDecimal(rat.denominator())));
+          FileLocation.DUMMY, machineModel, CNumericTypes.FLOAT, n.divide(d));
     }
   }
 
@@ -776,7 +781,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       result = result.substring(1, result.length() - 1);
       List<String> t = extractArgs(result);
 
-      if (t.get(0).startsWith("*")) {
+      if (t.getFirst().startsWith("*")) {
         if (t.size() == 2) {
           return "*(" + expressionVarName(t.get(1)) + ")";
         } else if (t.size() == 3) {
@@ -784,7 +789,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         }
       }
 
-      if (t.get(0).startsWith("+")) {
+      if (t.getFirst().startsWith("+")) {
         if (t.size() == 3) {
           return "(" + expressionVarName(t.get(1)) + ")+(" + expressionVarName(t.get(2)) + ")";
         }
@@ -820,13 +825,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     for (int i = 0; i < extendedInput.length(); i++) {
       c = extendedInput.charAt(i);
       switch (c) {
-        case '(':
-          openBrackets++;
-          break;
-        case ')':
-          openBrackets--;
-          break;
-        case ' ':
+        case '(' -> openBrackets++;
+        case ')' -> openBrackets--;
+        case ' ' -> {
           if (openBrackets == 0) {
             if (bd.length() != 0) {
               args.add(bd.toString());
@@ -835,8 +836,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
             continue;
           }
-          break;
-        default:
+        }
+        default -> {}
       }
       bd.append(c);
     }

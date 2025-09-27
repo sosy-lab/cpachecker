@@ -77,6 +77,34 @@ public class RankingRelation {
     return formulaManagerView.getBooleanFormulaManager().or(rankingRelationFormulas);
   }
 
+  public BooleanFormula asApproximatedScopedFormula(
+      final String pFunctionScope, final FormulaManagerView pFormulaManagerView) {
+    Collection<BooleanFormula> filteredRankingRelationFormulae =
+        rankingRelationFormulas.stream()
+            .filter(
+                rankF ->
+                    formulaManagerView.extractVariableNames(rankF).stream()
+                        .allMatch(
+                            name -> !name.contains("::") || name.startsWith(pFunctionScope + "::")))
+            .toList();
+    if (filteredRankingRelationFormulae.isEmpty()) {
+      return pFormulaManagerView.getBooleanFormulaManager().makeTrue();
+    }
+
+    return pFormulaManagerView.translateFrom(
+        formulaManagerView.renameFreeVariablesAndUFs(
+            formulaManagerView.getBooleanFormulaManager().or(filteredRankingRelationFormulae),
+            name -> {
+              int separatorIndex = name.indexOf("::");
+              if (separatorIndex >= 0) {
+                return name.substring(separatorIndex + 2);
+              } else {
+                return name;
+              }
+            }),
+        formulaManagerView);
+  }
+
   public BooleanFormula asFormulaFromOtherSolver(FormulaManagerView pFormulaManagerView) {
     return pFormulaManagerView.translateFrom(asFormula(), formulaManagerView);
   }
@@ -144,12 +172,8 @@ public class RankingRelation {
     if (this == pObj) {
       return true;
     }
-    if (!(pObj instanceof RankingRelation)) {
-      return false;
-    }
-
-    RankingRelation that = (RankingRelation) pObj;
-    return rankingRelationFormulas.equals(that.rankingRelationFormulas);
+    return pObj instanceof RankingRelation that
+        && rankingRelationFormulas.equals(that.rankingRelationFormulas);
   }
 
   @Override

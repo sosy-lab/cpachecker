@@ -89,7 +89,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
             oldElement,
             oldPrecision,
             pElements,
-            Functions.compose((state) -> ((ARGState) state).getWrappedState(), projection),
+            Functions.compose(state -> ((ARGState) state).getWrappedState(), projection),
             fullState);
 
     if (!optionalUnwrappedResult.isPresent()) {
@@ -111,14 +111,14 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return Optional.of(PrecisionAdjustmentResult.create(element, oldPrecision, action));
+      return Optional.of(new PrecisionAdjustmentResult(element, oldPrecision, action));
     }
 
     ARGState resultElement = new ARGState(newElement, null);
 
     element.replaceInARGWith(resultElement); // this completely eliminates element
 
-    return Optional.of(PrecisionAdjustmentResult.create(resultElement, newPrecision, action));
+    return Optional.of(new PrecisionAdjustmentResult(resultElement, newPrecision, action));
   }
 
   /**
@@ -153,7 +153,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
    * This method checks if the given element has a sibling in the ARG.
    *
    * @param element the element to check
-   * @return true, if the element has a sibling in the ARG
+   * @return whether the element has a sibling in the ARG
    */
   private boolean elementHasSiblings(ARGState element) {
     return Iterables.getOnlyElement(element.getParents()).getChildren().size() > 1;

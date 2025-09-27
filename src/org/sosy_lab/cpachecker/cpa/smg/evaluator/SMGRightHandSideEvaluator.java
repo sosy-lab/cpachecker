@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGExportDotOption;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
@@ -49,8 +48,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * The class {@link SMGExpressionEvaluator} is meant to evaluate a expression using an arbitrary
- * SMGState. Thats why it does not permit semantic changes of the state it uses. This class
+ * The class {@link SMGExpressionEvaluator} is meant to evaluate an expression using an arbitrary
+ * SMGState. That's why it does not permit semantic changes of the state it uses. This class
  * implements additionally the changes that occur while calculating the next smgState in the
  * Transfer Relation. These mainly include changes when evaluating functions. They also contain code
  * that should only be executed during the calculation of the next SMG State, e.g. logging.
@@ -102,7 +101,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   @Override
   public SMGValueAndState readValue(
       SMGState pSmgState, SMGObject pObject, SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCodeException {
+      throws CPATransferException {
 
     if (pOffset.isUnknown() || pObject == null) {
       SMGState errState =
@@ -176,7 +175,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType pRValueType,
       SMGValue pValue,
       CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCodeException {
+      throws CPATransferException {
 
     // FIXME Does not work with variable array length.
     // TODO: write value with bit precise size
@@ -215,15 +214,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       return pState;
     }
 
-    if (pRValueType instanceof CPointerType
-        && !(pValue instanceof SMGAddressValue)
-        && pValue instanceof SMGKnownSymbolicValue) {
-      SMGKnownSymbolicValue knownValue = (SMGKnownSymbolicValue) pValue;
-      if (pState.isExplicit(knownValue)) {
-        SMGKnownExpValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
-        pValue = SMGKnownAddressValue.valueOf(knownValue, SMGNullObject.INSTANCE, explicit);
-        pState.addPointsToEdge(SMGNullObject.INSTANCE, explicit.getAsLong(), pValue);
-      }
+    if ((pRValueType instanceof CPointerType
+            && !(pValue instanceof SMGAddressValue)
+            && pValue instanceof SMGKnownSymbolicValue knownValue)
+        && pState.isExplicit(knownValue)) {
+      SMGKnownExpValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
+      pValue = SMGKnownAddressValue.valueOf(knownValue, SMGNullObject.INSTANCE, explicit);
+      pState.addPointsToEdge(SMGNullObject.INSTANCE, explicit.getAsLong(), pValue);
     }
     return pState
         .writeValue(
@@ -241,7 +238,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       long fieldOffset,
       SMGValue value,
       CType rValueType)
-      throws UnrecognizedCodeException, SMGInconsistentException {
+      throws CPATransferException {
 
     long sizeOfField = getBitSizeof(cfaEdge, rValueType, newState);
 
@@ -273,11 +270,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType pRValueType,
       SMGValue pValue,
       CFAEdge pCfaEdge)
-      throws SMGInconsistentException, UnrecognizedCodeException {
+      throws CPATransferException {
 
-    if (pValue instanceof SMGKnownAddressValue) {
-      SMGKnownAddressValue structAddress = (SMGKnownAddressValue) pValue;
-
+    if (pValue instanceof SMGKnownAddressValue structAddress) {
       SMGObject source = structAddress.getObject();
       long structOffset = structAddress.getOffset().getAsLong();
 

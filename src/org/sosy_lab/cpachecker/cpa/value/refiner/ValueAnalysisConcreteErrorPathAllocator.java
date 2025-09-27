@@ -12,7 +12,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.math.BigInteger;
@@ -90,7 +89,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
         List<SingleConcreteState> intermediateStates = new ArrayList<>();
         Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
         boolean isFirstIteration = true;
-        for (CFAEdge innerEdge : Lists.reverse(edges)) {
+        for (CFAEdge innerEdge : edges.reversed()) {
           ConcreteState state =
               createConcreteStateForMultiEdge(valueState, alreadyAssigned, innerEdge);
 
@@ -104,7 +103,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
             intermediateStates.add(new IntermediateConcreteState(innerEdge, state));
           }
         }
-        result.addAll(Lists.reverse(intermediateStates));
+        result.addAll(intermediateStates.reversed());
 
         // a normal edge, no special handling required
       } else {
@@ -138,8 +137,8 @@ public class ValueAnalysisConcreteErrorPathAllocator
     if (innerEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatement stmt = ((CStatementEdge) innerEdge).getStatement();
 
-      if (stmt instanceof CAssignment) {
-        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+      if (stmt instanceof CAssignment cAssignment) {
+        CLeftHandSide lhs = cAssignment.getLeftHandSide();
         alreadyAssigned.add(lhs);
       }
     }
@@ -151,7 +150,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
       ValueAnalysisState pValueState, MachineModel pMachineModel) {
     Map<LeftHandSide, Address> variableAddresses =
         generateVariableAddresses(Collections.singleton(pValueState));
-    // We assign every variable to the heap, thats why the variable map is empty.
+    // We assign every variable to the heap, that's why the variable map is empty.
     return new ConcreteState(
         ImmutableMap.of(),
         allocateAddresses(pValueState, variableAddresses),
@@ -176,8 +175,8 @@ public class ValueAnalysisConcreteErrorPathAllocator
 
     CStatement stmt = pCfaEdge.getStatement();
 
-    if (stmt instanceof CAssignment) {
-      CLeftHandSide leftHandSide = ((CAssignment) stmt).getLeftHandSide();
+    if (stmt instanceof CAssignment cAssignment) {
+      CLeftHandSide leftHandSide = cAssignment.getLeftHandSide();
 
       return isLeftHandSideValueKnown(leftHandSide, pAlreadyAssigned);
     }

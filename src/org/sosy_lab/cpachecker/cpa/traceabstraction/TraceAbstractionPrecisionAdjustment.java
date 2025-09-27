@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -61,9 +60,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * PrecisionAdjustment of the {@link TraceAbstractionCPA}. It delegates the wrapped {@link
- * PredicateAbstractState} to the {@link PredicatePrecisionAdjustment} and uses the result to
- * compute the actual successor of the TraceAbstractionState afterwards.
+ * PrecisionAdjustment of the {@link TraceAbstractionCPA}. It uses the result of the abstraction
+ * computation of {@link PredicateAbstractionManager} to compute the actual successor of the
+ * TraceAbstractionState afterward.
  */
 class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -145,7 +144,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     return Optional.of(
-        PrecisionAdjustmentResult.create(result, pPrecision, precisionAdjustmentResult.action()));
+        new PrecisionAdjustmentResult(result, pPrecision, precisionAdjustmentResult.action()));
   }
 
   private boolean checkEmptyPredicatePrecision(Precision pPrecision) {
@@ -356,7 +355,6 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
               Level.FINEST,
               "Abstraction is contradictory to current input predicates. The node is not"
                   + " reachable");
-          continue;
         }
 
       } else if (nextPreds.isPresent()
@@ -527,7 +525,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
         MoreStrings.lazyString(
             () ->
                 FluentIterable.from(pPredicates)
-                    .transform(x -> x.getSymbolicAtom())
+                    .transform(AbstractionPredicate::getSymbolicAtom)
                     .join(Joiner.on(", ")));
     logger.logf(
         Level.FINER,

@@ -81,11 +81,10 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
 
   @Override
   public OctagonNumericValue subtract(OctagonNumericValue pVal) {
-    if (pVal instanceof OctagonIntValue) {
-      return OctagonIntValue.of(value.longValue() - ((OctagonIntValue) pVal).value.longValue());
-    } else if (pVal instanceof OctagonDoubleValue) {
-      return new OctagonDoubleValue(
-          value.longValue() - ((OctagonDoubleValue) pVal).value.doubleValue());
+    if (pVal instanceof OctagonIntValue octagonIntValue) {
+      return OctagonIntValue.of(value.longValue() - octagonIntValue.value.longValue());
+    } else if (pVal instanceof OctagonDoubleValue octagonDoubleValue) {
+      return new OctagonDoubleValue(value.longValue() - octagonDoubleValue.value.doubleValue());
     }
     throw new AssertionError("unknown subtype of octnumericvalue");
   }
@@ -121,11 +120,10 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
 
   @Override
   public OctagonNumericValue div(OctagonNumericValue pDivisor) {
-    if (pDivisor instanceof OctagonIntValue) {
-      return OctagonIntValue.of(value.longValue() / ((OctagonIntValue) pDivisor).value.longValue());
-    } else if (pDivisor instanceof OctagonDoubleValue) {
-      return new OctagonDoubleValue(
-          value.longValue() / ((OctagonDoubleValue) pDivisor).value.doubleValue());
+    if (pDivisor instanceof OctagonIntValue octagonIntValue) {
+      return OctagonIntValue.of(value.longValue() / octagonIntValue.value.longValue());
+    } else if (pDivisor instanceof OctagonDoubleValue octagonDoubleValue) {
+      return new OctagonDoubleValue(value.longValue() / octagonDoubleValue.value.doubleValue());
     }
     throw new AssertionError("unknown subtype of octnumericvalue");
   }
@@ -139,6 +137,11 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
   public OctagonNumericValue div(double pDivisor) {
     return new OctagonDoubleValue(value.longValue() / pDivisor);
   }
+
+  // FIXME Several of these methods seem wrong, because for example greaterEqual delegates to
+  // inverted lessEqual, but it should be inverted less.
+  // Furthermore, comparing long and double in this way has rounding errors and can give wrong
+  // results.
 
   @Override
   public boolean greaterEqual(OctagonNumericValue pVal) {
@@ -217,13 +220,7 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof OctagonIntValue)) {
-      return false;
-    }
-
-    OctagonIntValue other = (OctagonIntValue) obj;
-
-    return value.equals(other.value);
+    return obj instanceof OctagonIntValue other && value.equals(other.value);
   }
 
   @Override
@@ -236,6 +233,7 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
 
   @Override
   public int compareTo(OctagonNumericValue val) {
+    // Delegate to existing methods
     if (val.isEqual(value)) {
       return 0;
     } else if (val.lessThan(value)) {

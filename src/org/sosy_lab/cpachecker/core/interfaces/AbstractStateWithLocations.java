@@ -47,6 +47,6 @@ public interface AbstractStateWithLocations extends AbstractState {
    */
   Iterable<CFAEdge> getOutgoingEdges();
 
-  /** same as {@link #getOutgoingEdges()}, but swap "ingoing" and "outgoing" */
-  Iterable<CFAEdge> getIngoingEdges();
+  /** same as {@link #getOutgoingEdges()}, but swap "incoming" and "outgoing" */
+  Iterable<CFAEdge> getIncomingEdges();
 }

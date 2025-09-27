@@ -35,6 +35,7 @@ public class StatementWriterWithMetadata extends StatementWriter
 
   final AppendableWithLineCounter countingAppendable;
   private final Writer metadataOutput;
+
   /** Whether the current metadata has already written an entry. True if yes, false otherwise. */
   private boolean entryWritten = false;
 
@@ -151,11 +152,11 @@ public class StatementWriterWithMetadata extends StatementWriter
     private final Appendable delegate;
     private int lineCount = 1; // we start in line 1
 
-    public AppendableWithLineCounter(final Appendable pDelegate) {
+    AppendableWithLineCounter(final Appendable pDelegate) {
       delegate = pDelegate;
     }
 
-    public int getLineCount() {
+    int getLineCount() {
       return lineCount;
     }
 

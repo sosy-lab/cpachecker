@@ -46,7 +46,7 @@ public class FunctionBlock implements SyntacticBlock {
 
   @Override
   public FluentIterable<CFAEdge> getEnteringEdges() {
-    return CFAUtils.enteringEdges(function);
+    return CFAUtils.enteringEdges((CFANode) function);
   }
 
   @Override

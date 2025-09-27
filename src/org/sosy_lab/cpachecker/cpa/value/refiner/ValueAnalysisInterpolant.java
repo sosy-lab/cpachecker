@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,7 +63,7 @@ public final class ValueAnalysisInterpolant
 
   @Override
   public Set<MemoryLocation> getMemoryLocations() {
-    return isFalse() ? ImmutableSet.of() : Collections.unmodifiableSet(assignment.keySet());
+    return isFalse() ? ImmutableSet.of() : assignment.keySet();
   }
 
   /**
@@ -109,12 +108,7 @@ public final class ValueAnalysisInterpolant
     if (this == obj) {
       return true;
     }
-
-    if (obj == null) {
-      return false;
-    }
-
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
 
@@ -125,7 +119,7 @@ public final class ValueAnalysisInterpolant
   /**
    * The method checks for trueness of the interpolant.
    *
-   * @return true, if the interpolant represents "true", else false
+   * @return whether the interpolant represents "true"
    */
   @Override
   public boolean isTrue() {

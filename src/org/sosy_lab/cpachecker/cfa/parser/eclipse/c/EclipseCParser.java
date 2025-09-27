@@ -16,6 +16,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
@@ -46,11 +47,13 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /** Parser based on Eclipse CDT */
 class EclipseCParser implements CParser {
@@ -76,7 +79,7 @@ class EclipseCParser implements CParser {
     options = pOptions;
     shutdownNotifier = pShutdownNotifier;
 
-    eclipseCdt = new EclipseCdtWrapper(pOptions, pShutdownNotifier);
+    eclipseCdt = new EclipseCdtWrapper(pOptions, pMachine, pShutdownNotifier);
   }
 
   /**
@@ -90,6 +93,7 @@ class EclipseCParser implements CParser {
     return path;
   }
 
+  @FunctionalInterface
   private interface FileParseWrapper {
     FileContent wrap(Path pFileName, FileToParse pContent) throws IOException;
   }
@@ -126,7 +130,7 @@ class EclipseCParser implements CParser {
       }
     }
 
-    return buildCFA(astUnits, parseContext, scope);
+    return buildCFA(astUnits, parseContext, scope, pSourceOriginMapping);
   }
 
   @Override
@@ -164,7 +168,7 @@ class EclipseCParser implements CParser {
     return parseSomething(
         ImmutableList.of(new FileContentToParse(pFileName, pCode)),
         sourceOriginMapping,
-        pScope instanceof CProgramScope ? ((CProgramScope) pScope) : CProgramScope.empty(),
+        pScope instanceof CProgramScope cProgramScope ? cProgramScope : CProgramScope.empty(),
         (fileName, content) -> {
           Preconditions.checkArgument(content instanceof FileContentToParse);
           return wrapCode(fileName, ((FileContentToParse) content).getFileContent());
@@ -180,13 +184,12 @@ class EclipseCParser implements CParser {
     IASTDeclaration[] declarations = ast.getDeclarations();
     if (declarations == null
         || declarations.length != 1
-        || !(declarations[0] instanceof IASTFunctionDefinition)) {
+        || !(declarations[0] instanceof IASTFunctionDefinition func)) {
       throw new CParserException("Not a single function: " + ast.getRawSignature());
     }
 
-    IASTFunctionDefinition func = (IASTFunctionDefinition) declarations[0];
     IASTStatement body = func.getBody();
-    if (!(body instanceof IASTCompoundStatement)) {
+    if (!(body instanceof IASTCompoundStatement iASTCompoundStatement)) {
       throw new CParserException(
           "Function has an unexpected "
               + body.getClass().getSimpleName()
@@ -194,7 +197,7 @@ class EclipseCParser implements CParser {
               + func.getRawSignature());
     }
 
-    return ((IASTCompoundStatement) body).getStatements();
+    return iASTCompoundStatement.getStatements();
   }
 
   private ASTConverter prepareTemporaryConverter(Scope scope) {
@@ -268,7 +271,7 @@ class EclipseCParser implements CParser {
           if (include.isSystemInclude()) {
             throw new CFAGenerationRuntimeException(
                 "File includes system headers, either preprocess it manually or specify"
-                    + " -preprocess.");
+                    + " --preprocess.");
           } else {
             throw parseContext.parseError(
                 "Included file " + include.getName() + " is missing", include);
@@ -300,14 +303,17 @@ class EclipseCParser implements CParser {
           .precomputed();
 
   /**
-   * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for
+   * Builds the CFA out of a list of pairs of translation units and their appropriate prefixes for
    * static variables
    *
    * @param asts a List of Pairs of translation units and the appropriate prefix for static
    *     variables
    */
   private ParseResult buildCFA(
-      List<IASTTranslationUnit> asts, ParseContext parseContext, Scope pScope)
+      List<IASTTranslationUnit> asts,
+      ParseContext parseContext,
+      Scope pScope,
+      CSourceOriginMapping pSourceOriginMapping)
       throws CParserException, InterruptedException {
 
     checkArgument(!asts.isEmpty());
@@ -318,7 +324,7 @@ class EclipseCParser implements CParser {
 
       // we don't need any file prefix if we only have one file
       if (asts.size() == 1) {
-        builder.analyzeTranslationUnit(asts.get(0), "", pScope);
+        builder.analyzeTranslationUnit(asts.getFirst(), "", pScope);
 
         // in case of several files we need to add a file prefix to global variables
         // as there could be several equally named files in different directories
@@ -334,8 +340,21 @@ class EclipseCParser implements CParser {
         }
       }
 
-      return builder.createCFA();
+      ParseResult result = builder.createCFA();
 
+      result =
+          result.withASTStructure(
+              AstCfaRelationBuilder.getASTCFARelation(
+                  pSourceOriginMapping,
+                  result.getCFAEdges(),
+                  asts,
+                  result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
+                  result.cfaNodeToAstParametersInScope().orElseThrow(),
+                  FluentIterable.from(result.globalDeclarations())
+                      .transform(Pair::getFirst)
+                      .filter(AVariableDeclaration.class)
+                      .toSet()));
+      return result;
     } catch (CFAGenerationRuntimeException e) {
       throw new CParserException(e);
     } finally {
@@ -433,6 +452,11 @@ class EclipseCParser implements CParser {
     @Override
     public boolean isMappingToIdenticalLineNumbers() {
       return delegate.isMappingToIdenticalLineNumbers();
+    }
+
+    @Override
+    public int getStartColumn(Path pAnalysisFileName, int pAnalysisCodeLine, int pOffset) {
+      return delegate.getStartColumn(pAnalysisFileName, pAnalysisCodeLine, pOffset);
     }
   }
 }

@@ -110,77 +110,63 @@ public class ReferencedVariablesCollector {
   private void collectVars(final CFAEdge edge) {
 
     switch (edge.getEdgeType()) {
-      case AssumeEdge:
-        {
-          CAssumeEdge assumeEdge = (CAssumeEdge) edge;
-          Set<String> vars = collectVars(assumeEdge.getExpression());
-          varsInConditions.addAll(vars);
+      case AssumeEdge -> {
+        CAssumeEdge assumeEdge = (CAssumeEdge) edge;
+        Set<String> vars = collectVars(assumeEdge.getExpression());
+        varsInConditions.addAll(vars);
+        allVars.addAll(vars);
+      }
+      case DeclarationEdge -> {
+        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+        String lhsVarName = declaration.getQualifiedName();
+        if (declaration instanceof CVariableDeclaration cVariableDeclaration) {
+          allVars.add(lhsVarName);
+          CInitializer init = cVariableDeclaration.getInitializer();
+          if (init instanceof CInitializerExpression cInitializerExpression) {
+            Set<String> vars = collectVars(cInitializerExpression.getExpression());
+            varsToRHS.putAll(lhsVarName, vars);
+            allVars.addAll(vars);
+          }
+        }
+      }
+      case FunctionCallEdge -> {
+        CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) edge;
+        for (CExpression argument : functionCallEdge.getArguments()) {
+          Set<String> vars = collectVars(argument);
           allVars.addAll(vars);
-          break;
         }
-      case DeclarationEdge:
-        {
-          CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-          String lhsVarName = declaration.getQualifiedName();
-          if (declaration instanceof CVariableDeclaration) {
-            allVars.add(lhsVarName);
-            CInitializer init = ((CVariableDeclaration) declaration).getInitializer();
-            if (init instanceof CInitializerExpression) {
-              Set<String> vars = collectVars(((CInitializerExpression) init).getExpression());
-              varsToRHS.putAll(lhsVarName, vars);
-              allVars.addAll(vars);
-            }
-          }
-          break;
+        for (CExpression parameter :
+            functionCallEdge
+                .getFunctionCall()
+                .getFunctionCallExpression()
+                .getParameterExpressions()) {
+          Set<String> vars = collectVars(parameter);
+          allVars.addAll(vars);
         }
-      case FunctionCallEdge:
-        {
-          CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) edge;
-          for (CExpression argument : functionCallEdge.getArguments()) {
-            Set<String> vars = collectVars(argument);
-            allVars.addAll(vars);
-          }
-          for (CExpression parameter :
-              functionCallEdge
-                  .getSummaryEdge()
-                  .getExpression()
-                  .getFunctionCallExpression()
-                  .getParameterExpressions()) {
-            Set<String> vars = collectVars(parameter);
-            allVars.addAll(vars);
-          }
-          break;
+      }
+      case StatementEdge -> {
+        CStatement statement = ((CStatementEdge) edge).getStatement();
+        if (statement instanceof CAssignment assignment) {
+          handleAssignment(assignment);
+        } else {
+          // other statements are considered side-effect free, ignore variable occurrences in them
         }
-      case StatementEdge:
-        {
-          CStatement statement = ((CStatementEdge) edge).getStatement();
-          if (statement instanceof CAssignment) {
-            CAssignment assignment = (CAssignment) statement;
-            handleAssignment(assignment);
-          } else {
-            // other statements are considered side-effect free, ignore variable occurrences in them
-          }
-          break;
-        }
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         Optional<CAssignment> returnExprAssignment = ((CReturnStatementEdge) edge).asAssignment();
         if (returnExprAssignment.isPresent()) {
           handleAssignment(returnExprAssignment.orElseThrow());
         }
-        break;
-      case CallToReturnEdge:
+      }
+      case CallToReturnEdge -> {
         CFunctionCall funcCall = ((CFunctionSummaryEdge) edge).getExpression();
-        if (funcCall instanceof CFunctionCallAssignmentStatement) {
-          CFunctionCallAssignmentStatement assignment = (CFunctionCallAssignmentStatement) funcCall;
+        if (funcCall instanceof CFunctionCallAssignmentStatement assignment) {
           handleAssignment(assignment);
         }
-        break;
-      case BlankEdge:
-      case FunctionReturnEdge:
+      }
+      case BlankEdge, FunctionReturnEdge -> {
         // nothing to do
-        break;
-      default:
-        throw new AssertionError("unhandled type of edge: " + edge.getEdgeType());
+      }
     }
   }
 
@@ -201,22 +187,22 @@ public class ReferencedVariablesCollector {
   }
 
   private String getVarname(CLeftHandSide pNode) {
-    if (pNode instanceof CIdExpression) {
-      return ((CIdExpression) pNode).getDeclaration().getQualifiedName();
+    if (pNode instanceof CIdExpression cIdExpression) {
+      return cIdExpression.getDeclaration().getQualifiedName();
     }
 
     CExpression expr;
-    if (pNode instanceof CArraySubscriptExpression) {
-      expr = ((CArraySubscriptExpression) pNode).getArrayExpression();
-    } else if (pNode instanceof CPointerExpression) {
-      expr = ((CPointerExpression) pNode).getOperand();
+    if (pNode instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      expr = cArraySubscriptExpression.getArrayExpression();
+    } else if (pNode instanceof CPointerExpression cPointerExpression) {
+      expr = cPointerExpression.getOperand();
     } else {
       // TODO implement retrieval of deeper nested varnames, or use visitor?
       return pNode.toASTString();
     }
 
-    if (expr instanceof CLeftHandSide) {
-      return getVarname((CLeftHandSide) expr);
+    if (expr instanceof CLeftHandSide cLeftHandSide) {
+      return getVarname(cLeftHandSide);
     } else {
       return expr.toASTString();
     }

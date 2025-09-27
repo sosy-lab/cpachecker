@@ -67,6 +67,7 @@ public class AutomatonStateARGCombiningHelper {
           nameToAutomaton.get(toReplace.getOwningAutomatonName()),
           toReplace.getAssumptions(),
           toReplace.getCandidateInvariants(),
+          toReplace.hasDefaultCandidateInvariants(),
           toReplace.getMatches(),
           toReplace.getFailedMatches(),
           targetInformation,
@@ -91,9 +92,7 @@ public class AutomatonStateARGCombiningHelper {
     try {
       for (AutomatonTransition transition : pPredecessor.getInternalState().getTransitions()) {
         exprArgs.clearTransitionVariables();
-        ResultValue<Boolean> match;
-
-        match = transition.getTrigger().eval(exprArgs);
+        ResultValue<Boolean> match = transition.getTrigger().eval(exprArgs);
         if (match.canNotEvaluate()) {
           return false;
         }

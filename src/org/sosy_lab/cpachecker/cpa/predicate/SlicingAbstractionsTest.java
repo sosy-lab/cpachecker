@@ -12,7 +12,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -69,34 +68,33 @@ public class SlicingAbstractionsTest {
   private Map<String, String> extraOptions;
 
   @Parameters(name = "{3}: {0}")
-  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public static Collection<Object[]> data() {
     File taskfolder = new File(TEST_DIR_PATH);
     List<Object> files =
         FluentIterable.from(taskfolder.listFiles())
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .filter(x -> ((String) x).contains("unreach"))
             .toList();
     List<Object> overflowFiles =
         FluentIterable.from(taskfolder.listFiles())
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .filter(x -> ((String) x).contains("overflow"))
             .toList();
 
     File configfolder = new File(CONFIG_DIR_PATH);
     List<Object> configs =
         FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isConfig))
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .toList();
 
     List<Object> slabConfigs =
         FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isSlabConfig))
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .toList();
 
     List<Object> overflowConfigs =
         FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isOverflowConfig))
-            .<Object>transform(x -> x.getName())
+            .<Object>transform(File::getName)
             .toList();
 
     List<Object> solverModes = ImmutableList.of(EMPTY_OPTIONS, LINEAR_OPTIONS);
@@ -108,15 +106,15 @@ public class SlicingAbstractionsTest {
     FluentIterable<Object[]> firstIterable =
         FluentIterable.from(
                 Lists.cartesianProduct(files, configs, solverModes, optimizeModes, minimalModes))
-            .transform(x -> repack(x))
-            .filter(x -> filter(x));
+            .transform(SlicingAbstractionsTest::repack)
+            .filter(SlicingAbstractionsTest::filter);
 
     FluentIterable<Object[]> secondIterable =
         FluentIterable.from(Lists.cartesianProduct(files, slabConfigs))
             .transform(
                 x -> {
                   Object[] result = new Object[4];
-                  result[0] = x.get(0);
+                  result[0] = x.getFirst();
                   result[1] = x.get(1);
                   result[2] = new HashMap<String, String>();
                   result[3] =
@@ -131,7 +129,7 @@ public class SlicingAbstractionsTest {
             .transform(
                 x -> {
                   Object[] result = new Object[4];
-                  result[0] = x.get(0);
+                  result[0] = x.getFirst();
                   result[1] = x.get(1);
                   result[2] = new HashMap<String, String>();
                   result[3] =
@@ -148,7 +146,7 @@ public class SlicingAbstractionsTest {
   private static Object[] repack(List<Object> x) {
     Object[] result = new Object[4];
 
-    result[0] = x.get(0); // file to test
+    result[0] = x.getFirst(); // file to test
     result[1] = x.get(1); // config to test file with
 
     // result[2] will contain a map of extra options taken from x at positions 2-4
@@ -163,10 +161,10 @@ public class SlicingAbstractionsTest {
 
     // result[3] will contain a suitable name for the test to display
     String modeString =
-        ((String) x.get(1)).replace("predicateAnalysis-", "").replace(".properties", "");
-    modeString += (solverMode == EMPTY_OPTIONS) ? "-bitvector" : "-linear";
-    modeString += (optimizeMode == EMPTY_OPTIONS) ? "-optimized" : "-unoptimized";
-    modeString += (minimalMode == EMPTY_OPTIONS) ? "-maximal" : "-minimal";
+        ((String) x.get(1)).replace("predicateAnalysis-", "").replace(".properties", "")
+            + (solverMode == EMPTY_OPTIONS ? "-bitvector" : "-linear")
+            + (optimizeMode == EMPTY_OPTIONS ? "-optimized" : "-unoptimized")
+            + (minimalMode == EMPTY_OPTIONS ? "-maximal" : "-minimal");
     result[3] = modeString;
 
     return result;

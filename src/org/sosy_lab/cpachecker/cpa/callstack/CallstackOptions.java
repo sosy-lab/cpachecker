@@ -25,6 +25,7 @@ class CallstackOptions {
       ImmutableSet.of(
           "pthread_create",
           "pthread_key_create",
+          "_longjmp",
           "longjmp",
           "siglongjmp",
           "__builtin_va_arg",
@@ -51,7 +52,8 @@ class CallstackOptions {
   @Option(
       secure = true,
       description =
-          "Skip recursion if it happens only by going via a void function (this is unsound).")
+          "Skip recursion if it happens only by going via a void function with no pointers passed "
+              + "as parameters. This is unsound if the function modifies global variables.")
   private boolean skipVoidRecursion = false;
 
   @Option(description = "analyse the CFA backwards", secure = true)

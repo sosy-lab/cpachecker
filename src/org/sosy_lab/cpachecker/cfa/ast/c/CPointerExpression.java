@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CPointerExpression extends APointerExpression implements CLeftHandSide {
+public final class CPointerExpression extends APointerExpression implements CLeftHandSide {
 
-  private static final long serialVersionUID = -3958623972429247982L;
+  @Serial private static final long serialVersionUID = -3958623972429247982L;
 
   public CPointerExpression(
       final FileLocation pFileLocation, final CType pType, final CExpression pOperand) {
@@ -62,10 +63,6 @@ public class CPointerExpression extends APointerExpression implements CLeftHandS
       return true;
     }
 
-    if (!(obj instanceof CPointerExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CPointerExpression && super.equals(obj);
   }
 }

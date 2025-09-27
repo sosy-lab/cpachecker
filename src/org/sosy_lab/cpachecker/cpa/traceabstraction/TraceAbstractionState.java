@@ -68,11 +68,8 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof TraceAbstractionState)) {
-      return false;
-    }
-    TraceAbstractionState other = (TraceAbstractionState) obj;
-    return Objects.equals(activePredicates, other.activePredicates);
+    return obj instanceof TraceAbstractionState other
+        && Objects.equals(activePredicates, other.activePredicates);
   }
 
   @Override
@@ -93,8 +90,8 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
     StringBuilder sb = new StringBuilder();
 
     AbstractState wrappedState = getWrappedState();
-    if (wrappedState instanceof Graphable) {
-      sb.append(((Graphable) wrappedState).toDOTLabel());
+    if (wrappedState instanceof Graphable graphable) {
+      sb.append(graphable.toDOTLabel());
       sb.append("\n");
     }
 
@@ -108,8 +105,6 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
   @Override
   public boolean shouldBeHighlighted() {
     AbstractState wrappedState = getWrappedState();
-    return (wrappedState instanceof Graphable)
-        ? ((Graphable) wrappedState).shouldBeHighlighted()
-        : false;
+    return (wrappedState instanceof Graphable graphable) ? graphable.shouldBeHighlighted() : false;
   }
 }

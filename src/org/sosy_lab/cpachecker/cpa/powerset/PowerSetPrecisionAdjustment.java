@@ -44,7 +44,8 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
     Set<AbstractState> newStates =
         Sets.newHashSetWithExpectedSize(states.getWrappedStates().size());
 
-    boolean present = false, changed = false;
+    boolean present = false;
+    boolean changed = false;
     Optional<PrecisionAdjustmentResult> wrappedRes;
 
     for (AbstractState state : states.getWrappedStates()) {
@@ -76,6 +77,6 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     PowerSetState newState = changed ? new PowerSetState(newStates) : states;
-    return Optional.of(PrecisionAdjustmentResult.create(newState, pPrecision, action));
+    return Optional.of(new PrecisionAdjustmentResult(newState, pPrecision, action));
   }
 }

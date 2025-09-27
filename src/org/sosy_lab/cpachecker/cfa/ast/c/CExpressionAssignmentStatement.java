@@ -8,14 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /** AST node for the expression "a = b". */
-public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement
+public final class CExpressionAssignmentStatement extends AExpressionAssignmentStatement
     implements CAssignment, CStatement {
 
-  private static final long serialVersionUID = -5024636179305930137L;
+  @Serial private static final long serialVersionUID = -5024636179305930137L;
 
   public CExpressionAssignmentStatement(
       FileLocation pFileLocation, CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {
@@ -55,10 +56,6 @@ public class CExpressionAssignmentStatement extends AExpressionAssignmentStateme
       return true;
     }
 
-    if (!(obj instanceof CExpressionAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CExpressionAssignmentStatement && super.equals(obj);
   }
 }

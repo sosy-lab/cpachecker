@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -105,10 +107,7 @@ public class ConstraintsTransferRelation
 
   @Override
   protected ConstraintsState handleFunctionReturnEdge(
-      FunctionReturnEdge pCfaEdge,
-      FunctionSummaryEdge pFunctionCallEdge,
-      AFunctionCall pSummaryExpression,
-      String pCallerFunctionName) {
+      FunctionReturnEdge pCfaEdge, AFunctionCall pSummaryExpression, String pCallerFunctionName) {
     return state;
   }
 
@@ -168,18 +167,17 @@ public class ConstraintsTransferRelation
     Optional<Constraint> oNewConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
 
     if (oNewConstraint.isPresent()) {
-      ConstraintsState newState = pOldState.copyOf();
       final Constraint newConstraint = oNewConstraint.orElseThrow();
 
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (newConstraint.isTrivial()) {
-        if (solver.isUnsat(newConstraint, ImmutableList.of(), functionName)) {
+        if (solver.checkUnsatWithOptionDefinedSolverReuse(newConstraint, functionName)
+            == Satisfiability.UNSAT) {
           return null;
         }
       } else {
-        newState.add(newConstraint);
-        return newState;
+        return pOldState.copyWithNew(newConstraint);
       }
     }
 
@@ -190,23 +188,18 @@ public class ConstraintsTransferRelation
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
       throws UnrecognizedCodeException {
 
-    if (pExpression instanceof JBinaryExpression) {
-      return createConstraint((JBinaryExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof JUnaryExpression) {
-      return createConstraint((JUnaryExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof CBinaryExpression) {
-      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
-
-    }
-    // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-    else if (pExpression instanceof AIdExpression) {
-      return createConstraint((AIdExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else {
-      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
-    }
+    return switch (pExpression) {
+      case JBinaryExpression jBinaryExpression ->
+          createConstraint(jBinaryExpression, pFactory, pTruthAssumption);
+      case JUnaryExpression jUnaryExpression ->
+          createConstraint(jUnaryExpression, pFactory, pTruthAssumption);
+      case CBinaryExpression cBinaryExpression ->
+          createConstraint(cBinaryExpression, pFactory, pTruthAssumption);
+      // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
+      case AIdExpression aIdExpression ->
+          createConstraint(aIdExpression, pFactory, pTruthAssumption);
+      default -> throw new AssertionError("Unhandled expression type " + pExpression.getClass());
+    };
   }
 
   private Optional<Constraint> createConstraint(
@@ -292,7 +285,7 @@ public class ConstraintsTransferRelation
     boolean nothingChanged = true;
 
     for (AbstractState currStrengtheningState : pStrengtheningStates) {
-      ConstraintsState currStateToStrengthen = newStates.get(0);
+      ConstraintsState currStateToStrengthen = newStates.getFirst();
       StrengthenOperator strengthenOperator = null;
 
       if (currStrengtheningState instanceof ValueAnalysisState) {
@@ -333,7 +326,27 @@ public class ConstraintsTransferRelation
     }
   }
 
-  private class ValueAnalysisStrengthenOperator implements StrengthenOperator {
+  private static ConstraintsState getIfSatisfiable(
+      ConstraintsState pStateToCheck, String functionName, ConstraintsSolver solver)
+      throws UnrecognizedCodeException, SolverException, InterruptedException {
+    SolverResult solverResult =
+        solver.checkUnsatWithOptionDefinedSolverReuse(pStateToCheck, functionName);
+    if (solverResult.satisfiability() == Satisfiability.SAT) {
+      ConstraintsState newState = pStateToCheck;
+      if (solverResult.model().isPresent()) {
+        newState = pStateToCheck.copyWithSatisfyingModel(solverResult.model().orElseThrow());
+      }
+      if (solverResult.definiteAssignments().isPresent()) {
+        newState =
+            pStateToCheck.copyWithDefiniteAssignment(
+                solverResult.definiteAssignments().orElseThrow());
+      }
+      return newState;
+    }
+    return null;
+  }
+
+  private final class ValueAnalysisStrengthenOperator implements StrengthenOperator {
 
     @Override
     public Optional<Collection<ConstraintsState>> strengthen(
@@ -345,14 +358,12 @@ public class ConstraintsTransferRelation
 
       assert pValueState instanceof ValueAnalysisState;
 
-      if (!(pCfaEdge instanceof AssumeEdge)) {
+      if (!(pCfaEdge instanceof AssumeEdge assume)) {
         return Optional.empty();
       }
 
       final ValueAnalysisState valueState = (ValueAnalysisState) pValueState;
-      final AssumeEdge assume = (AssumeEdge) pCfaEdge;
 
-      Collection<ConstraintsState> newStates = new ArrayList<>();
       final boolean truthAssumption = assume.getTruthAssumption();
       final AExpression edgeExpression = assume.getExpression();
 
@@ -368,15 +379,21 @@ public class ConstraintsTransferRelation
         // (which represents the bottom element for strengthen methods)
         if (newState != null) {
           newState = simplify(newState, valueState);
-          if (checkStrategy != CheckStrategy.AT_ASSUME || !solver.isUnsat(newState, functionName)) {
-            newStates.add(newState);
+          if (checkStrategy == CheckStrategy.AT_ASSUME) {
+            newState = getIfSatisfiable(newState, functionName, solver);
           }
-
-          if (newState.equals(pStateToStrengthen)) {
-            return Optional.empty();
+          if (newState != null) {
+            if (newState.equals(pStateToStrengthen)) {
+              // return of empty optional means state is unchanged
+              return Optional.empty();
+            } else {
+              return Optional.of(ImmutableList.of(newState));
+            }
           }
         }
-        return Optional.of(newStates);
+        assert newState == null : "newState must be null if empty list is returned";
+        // return of an empty list means state is unreachable
+        return Optional.of(ImmutableList.of());
 
       } catch (SolverException e) {
         throw new CPATransferException(
@@ -385,7 +402,7 @@ public class ConstraintsTransferRelation
     }
   }
 
-  private class AutomatonStrengthenOperator implements StrengthenOperator {
+  private final class AutomatonStrengthenOperator implements StrengthenOperator {
 
     @Override
     public Optional<Collection<ConstraintsState>> strengthen(
@@ -403,7 +420,8 @@ public class ConstraintsTransferRelation
       final AutomatonState automatonState = (AutomatonState) pStrengtheningState;
 
       try {
-        if (automatonState.isTarget() && solver.isUnsat(pStateToStrengthen, functionName)) {
+        if (automatonState.isTarget()
+            && getIfSatisfiable(pStateToStrengthen, functionName, solver) == null) {
 
           return Optional.of(ImmutableSet.of());
 

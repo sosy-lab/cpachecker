@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -221,7 +223,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         //        exceptionStates.add(state.getStatetId());
 
         // remove state
-        // remove it's parents from waitlist (CPAAlgorithm re-added them)
+        // remove its parents from waitlist (CPAAlgorithm re-added them)
         // and create assumptions for the parents
 
         // we have to do this for the parents and not for the errorState itself,
@@ -381,7 +383,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               + " The CPA can only handle ONE Automaton!");
     }
 
-    return lst.get(0);
+    return lst.getFirst();
   }
 
   private void writeAutomatonToDot(Automaton automaton) {
@@ -402,10 +404,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               .getAbstractSuccessors(state, pReached.getPrecision(state))
               .isEmpty()) {
             falseAssumptionStates.add(state);
-            if (state instanceof ARGState) {
-              ARGState argState = (ARGState) state;
+            if (state instanceof ARGState argState) {
               while (!argState.getChildren().isEmpty()) {
-                argState.getChildren().iterator().next().removeFromARG();
+                argState.getChildren().getFirst().removeFromARG();
               }
             }
           }
@@ -503,8 +504,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       if (automatonOrderedTransitions && children.size() > 1) {
         children =
             FluentIterable.from(children)
-                .toSortedList(
-                    Comparator.<ARGState>comparingInt(child -> child.getStateId()).reversed());
+                .toSortedList(Comparator.<ARGState>comparingInt(ARGState::getStateId).reversed());
       }
       for (final ARGState child : children) {
         assert !child.isCovered();
@@ -513,7 +513,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         if (edges.size() > 1) {
           sb.append("    MATCH \"");
-          escape(edges.get(0).getRawStatement(), sb);
+          escape(edges.getFirst().getRawStatement(), sb);
           sb.append("\" -> ");
           sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
 
@@ -594,8 +594,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
       if (!bmgr.isTrue(assumption)) {
         try {
-          ExpressionTree<Object> assumptionTree =
-              ExpressionTrees.fromFormula(assumption, fmgr, pCFANode);
+          ExpressionTree<Object> assumptionTree;
+          try {
+            assumptionTree =
+                ExpressionTrees.fromFormula(assumption, fmgr, pCFANode, Function.identity());
+          } catch (TranslationToExpressionTreeFailedException e) {
+            // Keep consistency with the previous implementation
+            assumptionTree = ExpressionTrees.getTrue();
+          }
+
           // At this point, we know that the InterruptedException is not thrown,
           // hence, we can continue
           writer.append("ASSUME {");
@@ -661,31 +668,20 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
-        case '\r':
-          appendTo.append("\\r");
-          break;
-        case '\n':
-          appendTo.append("\\n");
-          break;
-        case '\"':
-          appendTo.append("\\\"");
-          break;
-        case '\\':
-          appendTo.append("\\\\");
-          break;
-        case '`':
-          break;
-        default:
-          appendTo.append(c);
-          break;
+        case '\r' -> appendTo.append("\\r");
+        case '\n' -> appendTo.append("\\n");
+        case '\"' -> appendTo.append("\\\"");
+        case '\\' -> appendTo.append("\\\\");
+        case '`' -> {}
+        default -> appendTo.append(c);
       }
     }
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (innerAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) innerAlgorithm).collectStatistics(pStatsCollection);
+    if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }

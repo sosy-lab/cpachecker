@@ -316,16 +316,15 @@ public class PartitioningIOHelper {
     }
 
     private void computeAndPrintDetailedPartitioningStats(PrintStream pOut) {
-      int maxP = 0,
-          maxO = 0,
-          minP = Integer.MAX_VALUE,
-          minO = Integer.MAX_VALUE,
-          totalO = 0,
-          totalS = 0,
-          current;
+      int maxP = 0;
+      int maxO = 0;
+      int minP = Integer.MAX_VALUE;
+      int minO = Integer.MAX_VALUE;
+      int totalO = 0;
+      int totalS = 0;
 
       for (Pair<AbstractState[], AbstractState[]> partition : partitions) {
-        current = partition.getSecond().length;
+        int current = partition.getSecond().length;
         maxO = Math.max(maxO, current);
         minO = Math.min(minO, current);
         totalO += current;

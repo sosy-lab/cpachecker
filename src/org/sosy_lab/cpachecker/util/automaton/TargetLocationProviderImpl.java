@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.automaton;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Ascii;
 import com.google.common.collect.ImmutableSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -44,7 +45,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     shutdownNotifier = pShutdownNotifier;
     logManager = pLogManager.withComponentName("TargetLocationProvider");
     cfa = pCfa;
-    allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
+    allNodes = ImmutableSet.copyOf(cfa.nodes());
   }
 
   @Override
@@ -98,7 +99,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       return allNodes;
 
     } catch (CPAException e) {
-      if (!e.toString().toLowerCase().contains("recursion")) {
+      if (!Ascii.toLowerCase(e.toString()).contains("recursion")) {
         logManager.logUserException(
             Level.WARNING,
             e,

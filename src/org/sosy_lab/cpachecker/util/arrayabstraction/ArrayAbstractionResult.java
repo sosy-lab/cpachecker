@@ -31,7 +31,7 @@ public final class ArrayAbstractionResult {
      * It' wasn't possible to apply the array abstraction to the original CFA, so the transformed
      * CFA is equal to the original CFA.
      */
-    UNCHANGED;
+    UNCHANGED,
   }
 
   private final Status status;

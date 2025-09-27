@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessGenerator;
 import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -75,7 +74,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
   public enum InvariantGeneratorFactory {
     INDUCTION {
       @Override
-      public InvariantGenerator createInvariantGenerator(
+      InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
           LogManager pLogger,
           ReachedSetFactory pReachedSetFactory,
@@ -99,7 +98,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
 
     REACHED_SET {
       @Override
-      public InvariantGenerator createInvariantGenerator(
+      InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
           LogManager pLogger,
           ReachedSetFactory pReachedSetFactory,
@@ -143,7 +142,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
 
     DO_NOTHING {
       @Override
-      public InvariantGenerator createInvariantGenerator(
+      InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
           LogManager pLogger,
           ReachedSetFactory pReachedSetFactory,
@@ -154,30 +153,9 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
           TargetLocationProvider pTargetLocationProvider) {
         return new DoNothingInvariantGenerator();
       }
-    },
-
-    INVARIANT_STORE {
-      @Override
-      public InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider)
-          throws InvalidConfigurationException, CPAException, InterruptedException {
-        try {
-          return InvariantWitnessGenerator.getNewFromDiskInvariantGenerator(
-              pConfig, pCFA, pLogger, pShutdownManager.getNotifier());
-        } catch (IOException e) {
-          throw new CPAException("Could not create from disk generator", e);
-        }
-      }
     };
 
-    public abstract InvariantGenerator createInvariantGenerator(
+    abstract InvariantGenerator createInvariantGenerator(
         Configuration pConfig,
         LogManager pLogger,
         ReachedSetFactory pReachedSetFactory,
@@ -197,7 +175,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
   private enum InvariantGeneratorHeadStartFactories {
     NONE {
       @Override
-      public InvariantGeneratorHeadStart createFor(
+      InvariantGeneratorHeadStart createFor(
           InvariantGeneratorForBMC pInvariantGeneratorForBMC) {
         return new InvariantGeneratorHeadStart() {
 
@@ -211,7 +189,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
 
     AWAIT_TERMINATION {
       @Override
-      public InvariantGeneratorHeadStart createFor(
+      InvariantGeneratorHeadStart createFor(
           InvariantGeneratorForBMC pInvariantGeneratorForBMC) {
         CountDownLatch latch = new CountDownLatch(1);
         pInvariantGeneratorForBMC.conditionAdjustmentEventSubscribers.add(
@@ -279,7 +257,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
             }
           };
 
-      public HeadStartWithLatch(
+      HeadStartWithLatch(
           InvariantGeneratorForBMC pInvariantGeneratorForBMC, CountDownLatch pLatch) {
         latch = Objects.requireNonNull(pLatch);
         pInvariantGeneratorForBMC.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
@@ -393,9 +371,9 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
             pSpecification,
             pAggregatedReachedSets,
             pTargetLocationProvider);
-    if (invariantGenerator instanceof ConditionAdjustmentEventSubscriber) {
-      conditionAdjustmentEventSubscribers.add(
-          (ConditionAdjustmentEventSubscriber) invariantGenerator);
+    if (invariantGenerator
+        instanceof ConditionAdjustmentEventSubscriber conditionAdjustmentEventSubscriber) {
+      conditionAdjustmentEventSubscribers.add(conditionAdjustmentEventSubscriber);
     }
     invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
   }
@@ -555,8 +533,8 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (invariantGenerator instanceof StatisticsProvider) {
-      ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
+    if (invariantGenerator instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 }

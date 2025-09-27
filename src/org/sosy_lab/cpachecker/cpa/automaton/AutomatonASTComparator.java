@@ -97,11 +97,13 @@ class AutomatonASTComparator {
   }
 
   /** The interface for a pre-compiled AST pattern. */
+  @FunctionalInterface
   interface ASTMatcher {
 
     boolean matches(CAstNode pSource, AutomatonExpressionArguments pArgs);
   }
 
+  @FunctionalInterface
   private interface CheckedASTMatcher<T extends CAstNode> {
 
     boolean matches(T pSource, AutomatonExpressionArguments pArg);
@@ -218,7 +220,7 @@ class AutomatonASTComparator {
       return createMatcher(
           CStringLiteralExpression.class,
           exp,
-          compareField(exp, CStringLiteralExpression::getValue));
+          compareField(exp, CStringLiteralExpression::getContentWithNullTerminator));
     }
 
     @Override
@@ -260,7 +262,8 @@ class AutomatonASTComparator {
         parameterPatterns.add(parameter.accept(this));
       }
 
-      if ((parameterPatterns.size() == 1) && (parameterPatterns.get(0) == JokerMatcher.INSTANCE)) {
+      if ((parameterPatterns.size() == 1)
+          && (parameterPatterns.getFirst() == JokerMatcher.INSTANCE)) {
         // pattern is something like foo($?), this should match all calls of foo(),
         // regardless of the number of parameters
         return createMatcher(
@@ -409,7 +412,7 @@ class AutomatonASTComparator {
 
     private final int number;
 
-    public NumberedJokerMatcher(int pNumber) {
+    NumberedJokerMatcher(int pNumber) {
       number = pNumber;
     }
 

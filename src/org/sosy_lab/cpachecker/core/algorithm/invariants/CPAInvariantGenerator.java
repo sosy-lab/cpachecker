@@ -115,13 +115,9 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator
 
   @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener =
-      new ShutdownRequestListener() {
-
-        @Override
-        public void shutdownRequested(String pReason) {
-          if (!invariantGenerationFuture.isDone() && !programIsSafe) {
-            invariantGenerationFuture.cancel(true);
-          }
+      pReason -> {
+        if (!invariantGenerationFuture.isDone() && !programIsSafe) {
+          invariantGenerationFuture.cancel(true);
         }
       };
 
@@ -132,7 +128,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator
    *
    * @param pConfig the configuration options.
    * @param pLogger the logger to be used.
-   * @param pShutdownManager shutdown notifier to shutdown the invariant generator.
+   * @param pShutdownManager shutdown notifier to shut down the invariant generator.
    * @param pShutdownOnSafeManager optional shutdown notifier that will be notified if the invariant
    *     generator proves safety.
    * @param pCFA the CFA to run the CPA on.
@@ -248,7 +244,9 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator
     try {
       return invariantGenerationFuture.get();
     } catch (ExecutionException e) {
-      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), CPAException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+      Throwables.throwIfUnchecked(e.getCause());
       throw new UnexpectedCheckedException("invariant generation", e.getCause());
     } catch (CancellationException e) {
       shutdownManager.getNotifier().shutdownIfNecessary();
@@ -275,8 +273,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) cpa).collectStatistics(pStatsCollection);
+    if (cpa instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     algorithm.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);

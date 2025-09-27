@@ -27,7 +27,7 @@ public class AbstractionPredicate {
   }
 
   /**
-   * Returns an formula representing this predicate.
+   * Returns a formula representing this predicate.
    *
    * @return an abstract formula
    */
@@ -45,14 +45,11 @@ public class AbstractionPredicate {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
-    } else if (!(pObj instanceof AbstractionPredicate)) {
-      return false;
-    } else {
-      AbstractionPredicate other = (AbstractionPredicate) pObj;
-      return abstractVariable.equals(other.abstractVariable);
     }
+    return pObj instanceof AbstractionPredicate other
+        && abstractVariable.equals(other.abstractVariable);
   }
 
   @Override

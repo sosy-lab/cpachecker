@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -18,7 +20,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public final class ShiftRightExpression extends BinarySymbolicExpression {
 
-  private static final long serialVersionUID = -9068365554036095329L;
+  @Serial private static final long serialVersionUID = -9068365554036095329L;
 
   public enum ShiftType {
     SIGNED,
@@ -48,6 +50,17 @@ public final class ShiftRightExpression extends BinarySymbolicExpression {
     shiftType = pShiftType;
   }
 
+  private ShiftRightExpression(
+      final ShiftType pShiftType,
+      final SymbolicExpression pOperand1,
+      final SymbolicExpression pOperand2,
+      final Type pExpressionType,
+      final Type pCalculationType,
+      final AbstractState pAbstractState) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
+    shiftType = pShiftType;
+  }
+
   @Override
   public ShiftRightExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new ShiftRightExpression(
@@ -57,6 +70,12 @@ public final class ShiftRightExpression extends BinarySymbolicExpression {
         getType(),
         getCalculationType(),
         pRepresentedLocation);
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new ShiftRightExpression(
+        shiftType, getOperand1(), getOperand2(), getType(), getCalculationType(), pCurrentState);
   }
 
   public boolean isSigned() {

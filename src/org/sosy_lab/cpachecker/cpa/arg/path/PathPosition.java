@@ -35,12 +35,7 @@ public class PathPosition {
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof PathPosition)) {
-      return false;
-    }
-    PathPosition other = (PathPosition) pObj;
-
-    return ((pos == other.pos) && path.equals(other.path));
+    return pObj instanceof PathPosition other && ((pos == other.pos) && path.equals(other.path));
   }
 
   /**

@@ -13,8 +13,9 @@ import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.io.Serial;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -46,15 +47,15 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public class SymbolEncoding {
 
-  private Set<CSimpleDeclaration> decls = new HashSet<>();
-  private MachineModel machineModel = null;
+  private final Set<CSimpleDeclaration> decls;
+  private final MachineModel machineModel;
 
   /**
    * This set contains function symbols that have a (maybe) unknown, but valid type. We do not care
    * about the type, because it is automatically determined.
    */
-  private static final Set<String> functionSymbols =
-      Sets.newHashSet(
+  private static final ImmutableSet<String> FUNCTION_SYMBOLS =
+      ImmutableSet.of(
           "and",
           "or",
           "not",
@@ -107,22 +108,19 @@ public class SymbolEncoding {
           "_",
           "divisible");
 
-  /** create an empty symbol encoding */
-  public SymbolEncoding() {}
-
   /** create symbol encoding with information about symbol from variables of the CFA */
   public SymbolEncoding(CFA pCfa) {
-    decls = getAllDeclarations(pCfa.getAllNodes());
+    decls = getAllDeclarations(pCfa.nodes());
     machineModel = pCfa.getMachineModel();
 
-    encodedSymbols.put("true", new Type<FormulaType<?>>(FormulaType.BooleanType));
-    encodedSymbols.put("false", new Type<FormulaType<?>>(FormulaType.BooleanType));
+    encodedSymbols.put("true", new Type<>(FormulaType.BooleanType));
+    encodedSymbols.put("false", new Type<>(FormulaType.BooleanType));
   }
 
   private final Map<String, Type<FormulaType<?>>> encodedSymbols = new HashMap<>();
 
   public void put(String symbol, int length) {
-    put(symbol, new Type<FormulaType<?>>(getBitvectorTypeWithSize(length)));
+    put(symbol, new Type<>(getBitvectorTypeWithSize(length)));
   }
 
   public void put(String symbol, FormulaType<?> pReturnType, ImmutableList<FormulaType<?>> pArgs) {
@@ -148,7 +146,7 @@ public class SymbolEncoding {
 
   public Type<FormulaType<?>> getType(String symbol) throws UnknownFormulaSymbolException {
 
-    if (functionSymbols.contains(symbol)) {
+    if (FUNCTION_SYMBOLS.contains(symbol)) {
       return null;
     }
 
@@ -172,15 +170,15 @@ public class SymbolEncoding {
 
   private Type<FormulaType<?>> getType(CType cType) {
     final FormulaType<?> fType;
-    if (cType instanceof CSimpleType && ((CSimpleType) cType).getType().isFloatingPointType()) {
+    if (cType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType()) {
       fType = FormulaType.RationalType;
     } else {
       int length = machineModel.getSizeofInBits(cType).intValueExact();
       fType = FormulaType.getBitvectorTypeWithSize(length);
     }
     Type<FormulaType<?>> type = new Type<>(fType);
-    if (cType instanceof CSimpleType) {
-      type.setSigness(!((CSimpleType) cType).isUnsigned());
+    if (cType instanceof CSimpleType cSimpleType) {
+      type.setSigness(!cSimpleType.hasUnsignedSpecifier());
     }
     return type;
   }
@@ -190,9 +188,8 @@ public class SymbolEncoding {
     final Set<CSimpleDeclaration> sd = new HashSet<>();
     for (CFANode node : nodes) {
 
-      if (node instanceof CFunctionEntryNode) {
-        Optional<? extends CVariableDeclaration> retVar =
-            ((CFunctionEntryNode) node).getReturnVariable();
+      if (node instanceof CFunctionEntryNode cFunctionEntryNode) {
+        Optional<? extends CVariableDeclaration> retVar = cFunctionEntryNode.getReturnVariable();
         if (retVar.isPresent()) {
           sd.add(retVar.get());
         }
@@ -250,13 +247,13 @@ public class SymbolEncoding {
     private final ImmutableList<T> parameterTypes;
 
     public Type(T pReturnType, ImmutableList<T> pParameterTypes) {
-      this.returnType = pReturnType;
-      this.parameterTypes = pParameterTypes;
+      returnType = pReturnType;
+      parameterTypes = pParameterTypes;
     }
 
     public Type(T pReturnType) {
-      this.returnType = pReturnType;
-      this.parameterTypes = ImmutableList.of();
+      returnType = pReturnType;
+      parameterTypes = ImmutableList.of();
     }
 
     public T getReturnType() {
@@ -268,7 +265,7 @@ public class SymbolEncoding {
     }
 
     public void setSigness(boolean pSigned) {
-      this.signed = pSigned;
+      signed = pSigned;
     }
 
     public boolean isSigned() {
@@ -280,14 +277,11 @@ public class SymbolEncoding {
       return returnType + " " + parameterTypes;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean equals(Object other) {
-      if (other instanceof Type) {
-        Type<T> t = (Type<T>) other;
-        return returnType.equals(t.returnType) && parameterTypes.equals(t.parameterTypes);
-      }
-      return false;
+      return other instanceof Type<?> t
+          && returnType.equals(t.returnType)
+          && parameterTypes.equals(t.parameterTypes);
     }
 
     @Override
@@ -298,7 +292,7 @@ public class SymbolEncoding {
 
   public static class UnknownFormulaSymbolException extends CPAException {
 
-    private static final long serialVersionUID = 150615L;
+    @Serial private static final long serialVersionUID = 150615L;
 
     public UnknownFormulaSymbolException(String symbol) {
       super("unknown symbol in formula: " + symbol);

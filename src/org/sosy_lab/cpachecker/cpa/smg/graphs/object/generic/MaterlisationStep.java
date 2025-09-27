@@ -29,7 +29,7 @@ public class MaterlisationStep {
   private final boolean stop;
 
   /**
-   * These addresses templates represent concrete target addresses of pointers from outside of the
+   * These addresses templates represent concrete target addresses of pointers from outside the
    * abstraction, that point to a region in this abstraction. They are used to create the concrete
    * addresses while materializing a concrete region from this step using existing pointer in the
    * smg.
@@ -278,7 +278,7 @@ public class MaterlisationStep {
 
   public Set<SMGRegion> getEntryRegions() {
     return FluentIterable.from(targetAdressTemplateOfPointer)
-        .transform(edge -> edge.getObjectTemplate())
+        .transform(SMGEdgePointsToTemplate::getObjectTemplate)
         .filter(SMGRegion.class)
         .toSet();
   }

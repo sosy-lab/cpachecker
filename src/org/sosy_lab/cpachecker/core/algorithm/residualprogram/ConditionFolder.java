@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public abstract class ConditionFolder {
 
-  public enum FOLDER_TYPE {
+  public enum FolderType {
     CFA,
     FOLD_EXCEPT_LOOPS,
     LOOP_ALWAYS,
@@ -54,6 +54,7 @@ public abstract class ConditionFolder {
     LOOP_SAME_CONTEXT
   }
 
+  @FunctionalInterface
   private interface MergeUpdateFunction {
     void updateAfterMerging(ARGState merged, ARGState mergedInto);
   }
@@ -63,28 +64,26 @@ public abstract class ConditionFolder {
     private final CFA cfa;
     private final Map<CFANode, Loop> loopMap;
 
-    public LoopInfo(final CFA pCfa) {
+    LoopInfo(final CFA pCfa) {
       cfa = pCfa;
       loopMap = buildLoopMap();
     }
 
     private Map<CFANode, Loop> buildLoopMap() {
-      Map<CFANode, Loop> loopMapResult = Maps.newHashMapWithExpectedSize(cfa.getAllNodes().size());
+      Map<CFANode, Loop> loopMapResult = Maps.newHashMapWithExpectedSize(cfa.nodes().size());
 
       Deque<Pair<CFANode, List<Loop>>> toVisit = new ArrayDeque<>();
       toVisit.push(Pair.of(cfa.getMainFunction(), ImmutableList.of()));
       loopMapResult.put(cfa.getMainFunction(), null);
-      List<Loop> loopStack, succLoopStack;
-      CFANode node;
-      Loop l, lsucc;
 
       while (!toVisit.isEmpty()) {
-        node = toVisit.peek().getFirst();
-        loopStack = toVisit.pop().getSecond();
+        CFANode node = toVisit.peek().getFirst();
+        List<Loop> loopStack = toVisit.pop().getSecond();
+        Loop l;
         if (loopStack.isEmpty()) {
           l = null;
         } else {
-          l = loopStack.get(loopStack.size() - 1);
+          l = loopStack.getLast();
         }
 
         for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
@@ -92,8 +91,8 @@ public abstract class ConditionFolder {
             continue;
           }
 
-          succLoopStack = loopStack;
-          lsucc = l;
+          List<Loop> succLoopStack = loopStack;
+          Loop lsucc = l;
 
           if (edge instanceof CFunctionReturnEdge) {
             continue; // successor treated by FunctionSummaryEdge
@@ -107,11 +106,11 @@ public abstract class ConditionFolder {
           while (lsucc != null && lsucc.getOutgoingEdges().contains(edge)) {
             // leave edge
             succLoopStack = new ArrayList<>(succLoopStack);
-            succLoopStack.remove(succLoopStack.size() - 1);
+            succLoopStack.removeLast();
             if (succLoopStack.isEmpty()) {
               lsucc = null;
             } else {
-              lsucc = succLoopStack.get(succLoopStack.size() - 1);
+              lsucc = succLoopStack.getLast();
             }
           }
 
@@ -134,7 +133,7 @@ public abstract class ConditionFolder {
       return loopMapResult;
     }
 
-    public boolean leaveLoop(final CFAEdge pEdge) {
+    boolean leaveLoop(final CFAEdge pEdge) {
       Loop l = loopMap.get(pEdge.getPredecessor());
       return l != null
           && !(pEdge instanceof CFunctionCallEdge)
@@ -143,7 +142,7 @@ public abstract class ConditionFolder {
           && !l.getLoopNodes().contains(pEdge.getSuccessor());
     }
 
-    public boolean startNewLoopIteation(final CFAEdge pEdge) {
+    boolean startNewLoopIteation(final CFAEdge pEdge) {
       if (cfa.getAllLoopHeads().orElseThrow().contains(pEdge.getSuccessor())) {
         if (loopMap.get(pEdge.getPredecessor()) == loopMap.get(pEdge.getSuccessor())) {
           return true;
@@ -161,7 +160,7 @@ public abstract class ConditionFolder {
         description =
             "Define kind of folder to use when combining condition with folding approach in"
                 + " residual program generation")
-    private FOLDER_TYPE folderType = FOLDER_TYPE.CFA;
+    private FolderType folderType = FolderType.CFA;
   }
 
   public static ConditionFolder createFolder(Configuration pConfig, CFA pCfa)
@@ -169,33 +168,25 @@ public abstract class ConditionFolder {
     FolderOptions opt = new FolderOptions();
     pConfig.inject(opt);
 
-    switch (opt.folderType) {
-      case CFA:
-        return new CFAFolder();
-      case FOLD_EXCEPT_LOOPS:
-        return new ExceptLoopFolder(pCfa);
-      case LOOP_ALWAYS:
-        return new LoopAlwaysFolder(pCfa);
-      case LOOP_BOUND:
-        return new BoundUnrollingLoopFolder(pCfa, pConfig);
-      case LOOP_BOUND_SAME_CONTEXT:
-        return new BoundUnrollingContextLoopFolder(pCfa, pConfig);
-      case LOOP_SAME_CONTEXT:
-        return new ContextLoopFolder(pCfa);
-      default:
-        throw new AssertionError("Unknown condition folder.");
-    }
+    return switch (opt.folderType) {
+      case CFA -> new CFAFolder();
+      case FOLD_EXCEPT_LOOPS -> new ExceptLoopFolder(pCfa);
+      case LOOP_ALWAYS -> new LoopAlwaysFolder(pCfa);
+      case LOOP_BOUND -> new BoundUnrollingLoopFolder(pCfa, pConfig);
+      case LOOP_BOUND_SAME_CONTEXT -> new BoundUnrollingContextLoopFolder(pCfa, pConfig);
+      case LOOP_SAME_CONTEXT -> new ContextLoopFolder(pCfa);
+    };
   }
 
-  private final FOLDER_TYPE type;
+  private final FolderType type;
 
-  protected ConditionFolder(final FOLDER_TYPE pType) {
+  protected ConditionFolder(final FolderType pType) {
     type = pType;
   }
 
   public abstract ARGState foldARG(final ARGState pARGRoot);
 
-  public FOLDER_TYPE getType() {
+  public FolderType getType() {
     return type;
   }
 
@@ -213,14 +204,13 @@ public abstract class ConditionFolder {
     Map<ARGState, ARGState> mergedInto = new HashMap<>();
     Deque<Pair<ARGState, ARGState>> toMerge = new ArrayDeque<>();
     toMerge.push(Pair.of(newState1, newState2));
-    ARGState merge, mergeInto;
 
     while (!toMerge.isEmpty()) {
-      merge = toMerge.peek().getFirst();
+      ARGState merge = toMerge.peek().getFirst();
       while (mergedInto.containsKey(merge)) {
         merge = mergedInto.get(merge);
       }
-      mergeInto = toMerge.pop().getSecond();
+      ARGState mergeInto = toMerge.pop().getSecond();
       while (mergedInto.containsKey(mergeInto)) {
         mergeInto = mergedInto.get(mergeInto);
       }
@@ -247,23 +237,20 @@ public abstract class ConditionFolder {
 
   private static class CFAFolder extends ConditionFolder {
 
-    public CFAFolder() {
-      super(FOLDER_TYPE.CFA);
+    CFAFolder() {
+      super(FolderType.CFA);
     }
 
     @Override
     public ARGState foldARG(ARGState pARGRoot) {
-      ARGState newRoot;
       Map<Pair<LocationState, CallstackStateEqualsWrapper>, ARGState> foldedNodesToNewARGNode =
           new HashMap<>();
 
       Set<ARGState> seen = new HashSet<>();
       Deque<Pair<ARGState, Pair<LocationState, CallstackStateEqualsWrapper>>> toProcess =
           new ArrayDeque<>();
-      ARGState currentARGState, newChild;
-      Pair<LocationState, CallstackStateEqualsWrapper> foldedNode, foldedChild;
 
-      foldedNode =
+      Pair<LocationState, CallstackStateEqualsWrapper> foldedNode =
           Pair.of(
               AbstractStates.extractStateByType(pARGRoot, LocationState.class),
               new CallstackStateEqualsWrapper(
@@ -271,23 +258,23 @@ public abstract class ConditionFolder {
       seen.add(pARGRoot);
       toProcess.add(Pair.of(pARGRoot, foldedNode));
 
-      newRoot = new ARGState(foldedNode.getFirst(), null);
+      ARGState newRoot = new ARGState(foldedNode.getFirst(), null);
       foldedNodesToNewARGNode.put(foldedNode, newRoot);
 
       while (!toProcess.isEmpty()) {
-        currentARGState = toProcess.peek().getFirst();
+        ARGState currentARGState = toProcess.peek().getFirst();
         foldedNode = toProcess.pop().getSecond();
 
         for (ARGState child : currentARGState.getChildren()) {
           if (seen.add(child)) {
-            foldedChild =
+            Pair<LocationState, CallstackStateEqualsWrapper> foldedChild =
                 Pair.of(
                     AbstractStates.extractStateByType(child, LocationState.class),
                     new CallstackStateEqualsWrapper(
                         AbstractStates.extractStateByType(child, CallstackState.class)));
             toProcess.add(Pair.of(child, foldedChild));
 
-            newChild = foldedNodesToNewARGNode.get(foldedChild);
+            ARGState newChild = foldedNodesToNewARGNode.get(foldedChild);
 
             if (newChild == null) {
               newChild =
@@ -307,21 +294,21 @@ public abstract class ConditionFolder {
   }
 
   private abstract static class StructureFolder<T> extends ConditionFolder {
-    protected final CFA cfa;
-    protected final Set<CFANode> loopHeads;
+    final CFA cfa;
+    final Set<CFANode> loopHeads;
 
-    protected StructureFolder(final CFA pCfa, final FOLDER_TYPE type) {
+    StructureFolder(final CFA pCfa, final FolderType type) {
       super(type);
       cfa = pCfa;
       Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
       loopHeads = cfa.getAllLoopHeads().orElseThrow();
     }
 
-    protected abstract T getRootFoldId(final ARGState pRoot);
+    abstract T getRootFoldId(final ARGState pRoot);
 
-    protected abstract T adaptID(CFAEdge pEdge, T pFoldID, ARGState pChild);
+    abstract T adaptID(CFAEdge pEdge, T pFoldID, ARGState pChild);
 
-    protected abstract boolean shouldFold(CFANode loc);
+    abstract boolean shouldFold(CFANode loc);
 
     @Override
     public ARGState foldARG(final ARGState pRoot) {
@@ -348,40 +335,32 @@ public abstract class ConditionFolder {
           };
 
       Deque<Pair<ARGState, T>> waitlist = new ArrayDeque<>();
-      ARGState foldedNode;
-      Set<ARGState> foldedStates;
-      Set<T> loopContexts;
-      ARGState oldState, newState, newChild;
-      CFANode loc, locChild;
-      CFAEdge edge;
-      T foldID, foldIDChild;
-
-      foldedNode = new ARGState(pRoot.getWrappedState(), null);
+      ARGState foldedNode = new ARGState(pRoot.getWrappedState(), null);
       oldARGToFoldedState.put(pRoot, foldedNode);
-      foldedStates = new HashSet<>();
+      Set<ARGState> foldedStates = new HashSet<>();
       foldedStates.add(pRoot);
       newARGToFoldedStates.put(foldedNode, foldedStates);
-      loc = AbstractStates.extractLocation(pRoot);
+      CFANode loc = AbstractStates.extractLocation(pRoot);
       T id = getRootFoldId(pRoot);
       if (shouldFold(loc)) {
         folderStatesFoldIDToFoldedARGState.put(id, foldedNode);
-        loopContexts = new HashSet<>();
+        Set<T> loopContexts = new HashSet<>();
         loopContexts.add(id);
         foldedARGStateToFoldIDs.put(foldedNode, loopContexts);
       }
       waitlist.push(Pair.of(pRoot, id));
 
       while (!waitlist.isEmpty()) {
-        oldState = waitlist.peek().getFirst();
-        foldID = waitlist.pop().getSecond();
+        ARGState oldState = waitlist.peek().getFirst();
+        T foldID = waitlist.pop().getSecond();
         loc = AbstractStates.extractLocation(oldState);
 
         for (ARGState child : oldState.getChildren()) {
-          locChild = AbstractStates.extractLocation(child);
-          edge = oldState.getEdgeToChild(child);
+          CFANode locChild = AbstractStates.extractLocation(child);
+          CFAEdge edge = oldState.getEdgeToChild(child);
           child = getUncoveredChild(child);
 
-          foldIDChild = adaptID(edge, foldID, child);
+          T foldIDChild = adaptID(edge, foldID, child);
 
           if (!oldARGToFoldedState.containsKey(child)) {
             if (shouldFold(locChild)
@@ -390,7 +369,7 @@ public abstract class ConditionFolder {
               assert Objects.equals(locChild, AbstractStates.extractLocation(foldedNode));
             } else {
               foldedNode = null;
-              newState = oldARGToFoldedState.get(oldState);
+              ARGState newState = oldARGToFoldedState.get(oldState);
               for (ARGState newARGChild : newState.getChildren()) {
                 if (edge.equals(newState.getEdgeToChild(newARGChild))) {
                   foldedNode = newARGChild;
@@ -419,8 +398,8 @@ public abstract class ConditionFolder {
             waitlist.push(Pair.of(child, foldIDChild));
           }
 
-          newState = oldARGToFoldedState.get(oldState);
-          newChild = null;
+          ARGState newState = oldARGToFoldedState.get(oldState);
+          ARGState newChild = null;
           for (ARGState newARGChild : newState.getChildren()) {
             if (edge.equals(newState.getEdgeToChild(newARGChild))) {
               newChild = newARGChild;
@@ -445,8 +424,8 @@ public abstract class ConditionFolder {
   private static class LoopAlwaysFolder
       extends StructureFolder<Pair<CFANode, CallstackStateEqualsWrapper>> {
 
-    public LoopAlwaysFolder(final CFA pCfa) {
-      super(pCfa, FOLDER_TYPE.LOOP_ALWAYS);
+    LoopAlwaysFolder(final CFA pCfa) {
+      super(pCfa, FolderType.LOOP_ALWAYS);
     }
 
     @Override
@@ -487,7 +466,7 @@ public abstract class ConditionFolder {
     private final LoopInfo loopInfo;
 
     private ContextLoopFolder(final CFA pCfa) {
-      super(pCfa, FOLDER_TYPE.LOOP_SAME_CONTEXT);
+      super(pCfa, FolderType.LOOP_SAME_CONTEXT);
 
       loopInfo = new LoopInfo(cfa);
     }
@@ -516,8 +495,8 @@ public abstract class ConditionFolder {
         newLoopContext += "|L" + pEdge.getSuccessor().getNodeNumber() + "L";
       }
 
-      if (pEdge instanceof AssumeEdge) {
-        if (((AssumeEdge) pEdge).getTruthAssumption()) {
+      if (pEdge instanceof AssumeEdge assumeEdge) {
+        if (assumeEdge.getTruthAssumption()) {
           newLoopContext += "1";
         } else {
           newLoopContext += "0";
@@ -562,7 +541,7 @@ public abstract class ConditionFolder {
 
     private BoundUnrollingLoopFolder(final CFA pCfa, final Configuration pConfig)
         throws InvalidConfigurationException {
-      super(pCfa, FOLDER_TYPE.LOOP_BOUND);
+      super(pCfa, FolderType.LOOP_BOUND);
       pConfig.inject(this);
       loopInfo = new LoopInfo(pCfa);
     }
@@ -629,7 +608,7 @@ public abstract class ConditionFolder {
 
     private BoundUnrollingContextLoopFolder(final CFA pCfa, final Configuration pConfig)
         throws InvalidConfigurationException {
-      super(pCfa, FOLDER_TYPE.LOOP_BOUND_SAME_CONTEXT);
+      super(pCfa, FolderType.LOOP_BOUND_SAME_CONTEXT);
       pConfig.inject(this);
       loopInfo = new LoopInfo(pCfa);
     }
@@ -685,8 +664,8 @@ public abstract class ConditionFolder {
                 + "L";
       }
 
-      if (pEdge instanceof AssumeEdge) {
-        if (((AssumeEdge) pEdge).getTruthAssumption()) {
+      if (pEdge instanceof AssumeEdge assumeEdge) {
+        if (assumeEdge.getTruthAssumption()) {
           newLoopBoundContextID += "1";
         } else {
           newLoopBoundContextID += "0";
@@ -708,7 +687,7 @@ public abstract class ConditionFolder {
     private final LoopInfo loopInfo;
 
     private ExceptLoopFolder(final CFA pCfa) {
-      super(pCfa, FOLDER_TYPE.FOLD_EXCEPT_LOOPS);
+      super(pCfa, FolderType.FOLD_EXCEPT_LOOPS);
       loopInfo = new LoopInfo(pCfa);
     }
 

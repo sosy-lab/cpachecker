@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
@@ -51,7 +52,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   private FaultReportWriter htmlWriter;
 
-  /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. * */
+  /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. */
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
 
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
@@ -114,7 +115,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   private static ImmutableList<Fault> sortFaultsByIndexIfPresent(Collection<Fault> pFaults) {
     // stable sorting algorithm -> noop if intendedIndex is not set.
-    return ImmutableList.sortedCopyOf(Comparator.comparingInt(f -> f.getIntendedIndex()), pFaults);
+    return ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), pFaults);
   }
 
   public static FaultLocalizationInfo withoutCounterexampleInfo(
@@ -157,7 +158,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pErrorIndicators possible candidates for the error
    * @return FaultLocalizationOutputs of the CFAEdges.
    */
-  public static Set<Fault> transform(Set<Set<CFAEdge>> pErrorIndicators) {
+  public static Set<Fault> transform(Set<ImmutableSet<CFAEdge>> pErrorIndicators) {
     Set<Fault> transformed = new HashSet<>();
     for (Set<CFAEdge> errorIndicator : pErrorIndicators) {
       transformed.add(

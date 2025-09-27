@@ -16,6 +16,7 @@ import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.DoNotCall;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,7 +27,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -35,7 +35,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
@@ -60,9 +59,10 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   @Option(
       secure = true,
       description =
-          "Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with"
-              + " Integer or Rational.")
-  private boolean ignoreExtractConcat = true;
+          "Ignore Extract and Extend operations instead of encoding them with a UF when Bitvector"
+              + " theory is replaced with Integer or Rational. This is unsound but sometimes more"
+              + " practical in order to not make casts return nondeterministic values.")
+  private boolean ignoreExtractExtend = true;
 
   ReplaceBitvectorWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
@@ -75,7 +75,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     pConfig.inject(this);
     booleanFormulaManager = pBooleanFormulaManager;
     numericFormulaManager = rawNumericFormulaManager;
-    this.functionManager = rawFunctionManager;
+    functionManager = rawFunctionManager;
 
     formulaType = numericFormulaManager.getFormulaType();
     bitwiseAndUfDecl = createBinaryFunction(BitwiseAndUfName);
@@ -129,17 +129,18 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     Pair<Integer, Integer> hasKey = Pair.of(firstSize, secoundSize);
     FunctionDeclaration<T> value = concatMethods.get(hasKey);
     if (value == null) {
-      value = createUnaryFunction("_concat(" + firstSize + "," + secoundSize + ")_");
+      value = createBinaryFunction("_concat(" + firstSize + "," + secoundSize + ")_");
       concatMethods.put(hasKey, value);
     }
     return value;
   }
 
-  private final Map<Triple<String, Boolean, Integer>, FunctionDeclaration<T>> UFDeclarations =
-      new HashMap<>();
+  private record UFDeclaration(String name, boolean signed, int id) {}
+
+  private final Map<UFDeclaration, FunctionDeclaration<T>> UFDeclarations = new HashMap<>();
 
   private FunctionDeclaration<T> getUFDecl(String name, int id, boolean signed) {
-    Triple<String, Boolean, Integer> key = Triple.of(name, signed, id);
+    UFDeclaration key = new UFDeclaration(name, signed, id);
     FunctionDeclaration<T> value = UFDeclarations.get(key);
     if (value == null) {
       String UFname = String.format("_%s%s(%d)_", name, (signed ? "Signed" : "Unsigned"), id);
@@ -209,16 +210,32 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
         getC99ReplacementForSMTlib2Division(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
+  @DoNotCall
+  @SuppressWarnings({"deprecation", "removal"})
   @Override
-  public BitvectorFormula modulo(
+  public final BitvectorFormula modulo(
       BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
-    assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    if (numericFormulaManager instanceof IntegerFormulaManager) {
+    throw new UnsupportedOperationException(
+        "This operation has been deprecated and replaced by smodulo() and remainder().");
+  }
+
+  @Override
+  public BitvectorFormula smodulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+    // Note: signed bv modulo behaves differently compared to int modulo or bv remainder!
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula remainder(
+      BitvectorFormula numerator, BitvectorFormula denominator, boolean signed) {
+    assert getLength(numerator) == getLength(denominator)
+        : "Expect operators to have the same size";
+    if (numericFormulaManager instanceof IntegerFormulaManagerView imgr) {
       return wrap(
-          getFormulaType(pNumber1),
-          getC99ReplacementForSMTlib2Modulo(unwrap(pNumber1), unwrap(pNumber2)));
+          getFormulaType(numerator),
+          imgr.remainder((IntegerFormula) unwrap(numerator), (IntegerFormula) unwrap(denominator)));
     } else {
-      return makeUf(getFormulaType(pNumber1), moduloUfDecl, pNumber1, pNumber2);
+      return makeUf(getFormulaType(numerator), moduloUfDecl, numerator, denominator);
     }
   }
 
@@ -245,34 +262,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
             numericFormulaManager.equal(numericFormulaManager.multiply(div, f2), f1)),
         div,
         numericFormulaManager.add(div, additionalUnit));
-  }
-
-  /**
-   * @see BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)
-   */
-  @SuppressWarnings("unchecked")
-  private Formula getC99ReplacementForSMTlib2Modulo(final T f1, final T f2) {
-    final T zero = numericFormulaManager.makeNumber(0);
-    final T additionalUnit =
-        booleanFormulaManager.ifThenElse(
-            numericFormulaManager.greaterOrEquals(f2, zero), numericFormulaManager.negate(f2), f2);
-
-    final T mod;
-    mod =
-        (T)
-            ((IntegerFormulaManager) numericFormulaManager)
-                .modulo((IntegerFormula) f1, (IntegerFormula) f2);
-
-    // IF   first operand is positive or mod-result is zero
-    // THEN return plain modulo --> here C99 is equal to SMTlib2
-    // ELSE modulo and add an additional unit towards the nearest infinity.
-
-    return booleanFormulaManager.ifThenElse(
-        booleanFormulaManager.or(
-            numericFormulaManager.greaterOrEquals(f1, zero),
-            numericFormulaManager.equal(mod, zero)),
-        mod,
-        numericFormulaManager.add(mod, additionalUnit));
   }
 
   @Override
@@ -335,14 +324,31 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   }
 
   @Override
+  public BitvectorFormula rotateLeft(BitvectorFormula number, int toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula rotateLeft(BitvectorFormula number, BitvectorFormula toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula rotateRight(BitvectorFormula number, int toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
+  public BitvectorFormula rotateRight(BitvectorFormula number, BitvectorFormula toRotate) {
+    throw new UnsupportedOperationException("not yet implemented for CPAchecker");
+  }
+
+  @Override
   public BitvectorFormula concat(BitvectorFormula pFirst, BitvectorFormula pSecound) {
     int firstLength = getLength(pFirst);
     int secoundLength = getLength(pSecound);
     FormulaType<BitvectorFormula> returnType =
         getBitvectorTypeWithSize(firstLength + secoundLength);
-    if (ignoreExtractConcat) {
-      return wrap(returnType, unwrap(pSecound));
-    }
     FunctionDeclaration<T> concatUfDecl = getConcatDecl(firstLength, secoundLength);
     return makeUf(returnType, concatUfDecl, pFirst, pSecound);
   }
@@ -350,7 +356,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   @Override
   public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb) {
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(pMsb + 1 - pLsb);
-    if (ignoreExtractConcat) {
+    if (ignoreExtractExtend) {
       return wrap(returnType, unwrap(pFirst));
     }
     FunctionDeclaration<T> extractUfDecl = getExtractDecl(pMsb, pLsb);
@@ -361,7 +367,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
     FormulaType<BitvectorFormula> returnType =
         getBitvectorTypeWithSize(getLength(pNumber) + pExtensionBits);
-    if (ignoreExtractConcat) {
+    if (ignoreExtractExtend) {
       return wrap(returnType, unwrap(pNumber));
     }
     FunctionDeclaration<T> extendUfDecl = getUFDecl("extend", pExtensionBits, pSigned);
@@ -412,12 +418,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     if (pBits.isEmpty()) {
       return booleanFormulaManager.makeTrue();
     }
-    int bitsize = getLength(pBits.get(0));
+    int bitsize = getLength(pBits.getFirst());
     pBits.forEach(
-        bit -> {
-          Preconditions.checkArgument(
-              bitsize == getLength(bit), "Expect operators to have the same size");
-        });
+        bit ->
+            Preconditions.checkArgument(
+                bitsize == getLength(bit), "Expect operators to have the same size"));
     return numericFormulaManager.distinct(Lists.transform(pBits, this::unwrap));
   }
 }

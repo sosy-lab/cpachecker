@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-class CLabel implements ACSLLabel {
+final class CLabel implements ACSLLabel {
 
   private String name;
 

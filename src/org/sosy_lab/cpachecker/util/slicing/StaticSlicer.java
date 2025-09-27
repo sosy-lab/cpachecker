@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -36,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -115,9 +115,9 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     slicingTime.start();
 
-    Set<CFAEdge> criteriaEdges = new LinkedHashSet<>(pSlicingCriteria);
+    SequencedSet<CFAEdge> criteriaEdges = new LinkedHashSet<>(pSlicingCriteria);
 
-    Set<CSystemDependenceGraph.Node> startNodes = new LinkedHashSet<>();
+    SequencedSet<CSystemDependenceGraph.Node> startNodes = new LinkedHashSet<>();
     Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>> cfaEdgeToSdgNodes =
         createCfaEdgeToSdgNodesFunction();
 
@@ -127,7 +127,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     Phase1Visitor phase1Visitor = new Phase1Visitor();
     sdg.traverse(startNodes, sdg.createVisitOnceVisitor(phase1Visitor));
-    Set<CFAEdge> relevantEdges = new LinkedHashSet<>(phase1Visitor.getRelevantEdges());
+    SequencedSet<CFAEdge> relevantEdges = new LinkedHashSet<>(phase1Visitor.getRelevantEdges());
 
     startNodes.clear();
     // the second phase depends on the results of the first phase
@@ -159,20 +159,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     sliceEdgesNumber.setNextValue(relevantEdges.size());
     if (programEdgesNumber.getValueCount() == 0) {
-      programEdgesNumber.setNextValue(countProgramEdges(pCfa));
+      programEdgesNumber.setNextValue(CFAUtils.allEdges(pCfa).size());
     }
 
     return slice;
-  }
-
-  private int countProgramEdges(CFA pCfa) {
-
-    int programEdgeCounter = 0;
-    for (CFANode node : pCfa.getAllNodes()) {
-      programEdgeCounter += CFAUtils.allLeavingEdges(node).size();
-    }
-
-    return programEdgeCounter;
   }
 
   private double getSliceProgramRatio() {
@@ -257,7 +247,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       ImmutableSet<MemoryLocation> relevantFormalVariables =
           pRelevantSdgNodes.stream()
               .filter(SdgProgramSlice::isFormalNode)
-              .map(node -> node.getVariable())
+              .map(CSystemDependenceGraph.Node::getVariable)
               .flatMap(Optional::stream)
               .collect(ImmutableSet.toImmutableSet());
 
@@ -319,8 +309,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       checkArgument(
           getRelevantEdges().contains(pEdge), "pEdge is not relevant to this program slice");
 
-      if (pEdge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+      if (pEdge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
         if (declaration instanceof CVariableDeclaration) {
           return isInitializerRelevant(pEdge);
         }
@@ -376,13 +366,9 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           return true;
         }
 
-        if (!(pObject instanceof ActualNode)) {
-          return false;
-        }
-
-        ActualNode other = (ActualNode) pObject;
-
-        return Objects.equals(edge, other.edge) && Objects.equals(variable, other.variable);
+        return pObject instanceof ActualNode other
+            && Objects.equals(edge, other.edge)
+            && Objects.equals(variable, other.variable);
       }
     }
   }

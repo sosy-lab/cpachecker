@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -138,25 +139,20 @@ public class FaultLocalizationByImport implements Algorithm {
 
   private FaultExplanation instantiateExplanations(
       Explanation pExplanation, List<CFAEdge> pEdgeList) {
-    switch (pExplanation) {
-      case NO_CONTEXT:
-        return NoContextExplanation.getInstance();
-      case SUSPICIOUS_CALCULATION:
-        return new SuspiciousCalculationExplanation();
-      case INFORMATION_PROVIDER:
-        return new InformationProvider(pEdgeList);
-      default:
-        throw new IllegalStateException("Unexpected value: " + pExplanation);
-    }
+    return switch (pExplanation) {
+      case NO_CONTEXT -> NoContextExplanation.getInstance();
+      case SUSPICIOUS_CALCULATION -> new SuspiciousCalculationExplanation();
+      case INFORMATION_PROVIDER -> new InformationProvider(pEdgeList);
+    };
   }
 
   private FaultScoring instantiateScoring(Scoring pScoring, CFAEdge pErrorLocation) {
-    switch (pScoring) {
-      case VARIABLE_COUNT:
-        return new VariableCountScoring();
-      case EDGE_TYPE:
-        return new EdgeTypeScoring();
-      case MINIMAL_LINE_DISTANCE:
+    return switch (pScoring) {
+      case VARIABLE_COUNT -> new VariableCountScoring();
+
+      case EDGE_TYPE -> new EdgeTypeScoring();
+
+      case MINIMAL_LINE_DISTANCE -> {
         if (pErrorLocation == null) {
           throw new IllegalArgumentException(
               "Tried to use "
@@ -164,8 +160,9 @@ public class FaultLocalizationByImport implements Algorithm {
                   + " while not providing an error location in "
                   + importFile);
         }
-        return new MinimalLineDistanceScoring(pErrorLocation);
-      case MAXIMAL_LINE_DISTANCE:
+        yield new MinimalLineDistanceScoring(pErrorLocation);
+      }
+      case MAXIMAL_LINE_DISTANCE -> {
         if (pErrorLocation == null) {
           throw new IllegalArgumentException(
               "Tried to use "
@@ -173,14 +170,12 @@ public class FaultLocalizationByImport implements Algorithm {
                   + " while not providing an error location in "
                   + importFile);
         }
-        return new MaximalLineDistanceScoring(pErrorLocation);
-      case OVERALL_OCCURRENCE:
-        return new OverallOccurrenceScoring();
-      case SET_SIZE:
-        return new SetSizeScoring();
-      default:
-        throw new IllegalStateException("Unexpected value: " + pScoring);
-    }
+        yield new MaximalLineDistanceScoring(pErrorLocation);
+      }
+      case OVERALL_OCCURRENCE -> new OverallOccurrenceScoring();
+
+      case SET_SIZE -> new SetSizeScoring();
+    };
   }
 
   @Override
@@ -194,8 +189,8 @@ public class FaultLocalizationByImport implements Algorithm {
       faults = intermediateFaults.getFaults();
       errorEdge = intermediateFaults.getErrorLocation();
       errorLocation = errorEdge == null ? null : errorEdge.getSuccessor();
-    } catch (IOException pE) {
-      throw new CPAException("Could not deserialize faults", pE);
+    } catch (IOException e) {
+      throw new CPAException("Could not deserialize faults", e);
     }
     logger.logf(Level.INFO, "Finished parsing %d faults.", faults.size());
     AlgorithmStatus status;
@@ -212,13 +207,13 @@ public class FaultLocalizationByImport implements Algorithm {
       for (CounterexampleInfo counterExample : counterExamples) {
         CFAPathWithAssumptions assumptions = counterExample.getCFAPathWithAssignments();
         final List<CFAEdge> edgeList =
-            transformedImmutableListCopy(assumptions, assumption -> assumption.getCFAEdge());
+            transformedImmutableListCopy(assumptions, CFAEdgeWithAssumptions::getCFAEdge);
         if (edgeList.isEmpty()) {
           continue;
         }
         FaultScoring[] scoringArray = new FaultScoring[scorings.size()];
         for (int i = 0; i < scorings.size(); i++) {
-          scoringArray[i] = instantiateScoring(scorings.get(i), edgeList.get(edgeList.size() - 1));
+          scoringArray[i] = instantiateScoring(scorings.get(i), edgeList.getLast());
         }
         FaultScoring finalScoring = FaultRankingUtils.concatHeuristics(scoringArray);
 
@@ -242,18 +237,18 @@ public class FaultLocalizationByImport implements Algorithm {
                   FluentIterable.from(reachedSet)
                       .filter(AbstractStates::isTargetState)
                       .toList()
-                      .get(0);
+                      .getFirst();
           errorLocation = AbstractStates.extractLocation(target);
         }
         reachedSet.clear();
         Set<CFAEdge> edges =
-            FluentIterable.concat(faults).transform(f -> f.correspondingEdge()).toSet();
+            FluentIterable.concat(faults).transform(FaultContribution::correspondingEdge).toSet();
         Comparator<List<CFAEdge>> mostIntersections =
             Comparator.comparingInt(
                 path -> Sets.intersection(ImmutableSet.copyOf(path), edges).size());
         List<CFAEdge> bestPath =
             Collections.max(findAllPaths(cfa.getMainFunction(), errorLocation), mostIntersections);
-        errorEdge = bestPath.get(bestPath.size() - 1);
+        errorEdge = bestPath.getLast();
         ARGState currState = null;
         LocationStateFactory factory =
             new LocationStateFactory(cfa, AnalysisDirection.FORWARD, config);
@@ -273,7 +268,7 @@ public class FaultLocalizationByImport implements Algorithm {
                 new CompositeState(
                     ImmutableList.of(
                         new ConfigurableTargetState(true),
-                        factory.getState(bestPath.get(bestPath.size() - 1).getSuccessor()))),
+                        factory.getState(bestPath.getLast().getSuccessor()))),
                 currState);
         reachedSet.addNoWaitlist(target, new Precision() {});
         logger.log(Level.INFO, "Apply rankings/explanations right away...");
@@ -296,8 +291,7 @@ public class FaultLocalizationByImport implements Algorithm {
         }
         if (intendedIndex) {
           faults =
-              ImmutableList.sortedCopyOf(
-                  Comparator.comparingInt(f -> f.getIntendedIndex()), faults);
+              ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), faults);
         }
         for (Fault fault : faults) {
           FaultExplanation.explain(fault, explanationsArray);
@@ -312,16 +306,16 @@ public class FaultLocalizationByImport implements Algorithm {
                         e -> new CFAEdgeWithAssumptions(e, ImmutableList.of(), ""))),
                 errorPath);
         info.apply();
-      } catch (IndexOutOfBoundsException pE) {
-        throw new AssertionError("Could not find a path showing the violation.", pE);
-      } catch (InvalidConfigurationException pE) {
-        throw new AssertionError("Configuration for LocationStateFactory was invalid.", pE);
+      } catch (IndexOutOfBoundsException e) {
+        throw new AssertionError("Could not find a path showing the violation.", e);
+      } catch (InvalidConfigurationException e) {
+        throw new AssertionError("Configuration for LocationStateFactory was invalid.", e);
       }
       try {
         new FaultLocalizationInfoExporter(config).export(faults, errorEdge);
         logger.log(Level.INFO, "Finished exporting faults successfully!");
-      } catch (IOException | InvalidConfigurationException pE) {
-        logger.logUserException(Level.WARNING, pE, "Failed exporting faults...");
+      } catch (IOException | InvalidConfigurationException e) {
+        logger.logUserException(Level.WARNING, e, "Failed exporting faults...");
       }
       return status;
     }
@@ -345,17 +339,15 @@ public class FaultLocalizationByImport implements Algorithm {
     }
   }
 
+  @SuppressWarnings("serial") // class is never serialized
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private static class FaultsDeserializer extends StdDeserializer<IntermediateFaults> {
 
-    private static final long serialVersionUID = -9027432550465230262L;
     private final Set<CFAEdge> edges;
 
-    public FaultsDeserializer(CFA pCFA) {
+    FaultsDeserializer(CFA pCFA) {
       super(IntermediateFaults.class);
-      edges =
-          FluentIterable.from(pCFA.getAllNodes())
-              .transformAndConcat(CFAUtils::allLeavingEdges)
-              .toSet();
+      edges = ImmutableSet.copyOf(CFAUtils.allEdges(pCFA));
     }
 
     @Override
@@ -473,17 +465,13 @@ public class FaultLocalizationByImport implements Algorithm {
     private FaultInfo restoreFaultInfo(JsonNode pNode) {
       InfoType type = FaultInfo.InfoType.valueOf(pNode.get("type").asText());
       String description = pNode.get("description").asText();
-      switch (type) {
-        case REASON:
-          return FaultInfo.justify(description);
-        case FIX:
-          return FaultInfo.fix(description);
-        case RANK_INFO:
-          return FaultInfo.rankInfo(
-              description, pNode.has("score") ? pNode.get("score").asDouble() : .0);
-        default:
-          throw new AssertionError("Unknown " + InfoType.class + ": " + type);
-      }
+      return switch (type) {
+        case REASON -> FaultInfo.justify(description);
+        case FIX -> FaultInfo.fix(description);
+        case RANK_INFO ->
+            FaultInfo.rankInfo(
+                description, pNode.has("score") ? pNode.get("score").asDouble() : .0);
+      };
     }
   }
 
@@ -494,9 +482,9 @@ public class FaultLocalizationByImport implements Algorithm {
       waitlist.add(new ArrayList<>(ImmutableList.of(leavingEdge)));
     }
     while (!waitlist.isEmpty()) {
-      List<CFAEdge> path = waitlist.remove(0);
+      List<CFAEdge> path = waitlist.removeFirst();
       Set<CFAEdge> covered = ImmutableSet.copyOf(path);
-      CFAEdge lastEdge = path.get(path.size() - 1);
+      CFAEdge lastEdge = path.getLast();
       CFANode currentTail = lastEdge.getSuccessor();
       if (currentTail.equals(pEnd)) {
         finished.add(path);

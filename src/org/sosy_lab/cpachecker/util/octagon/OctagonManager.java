@@ -91,10 +91,12 @@ public abstract class OctagonManager {
   public final void num_set_int(NumArray n, int pos, long i) {
     J_num_set_int(n.getArray(), pos, (int) i);
   }
+
   /* set float */
   public final void num_set_float(NumArray n, int pos, double d) {
     J_num_set_float(n.getArray(), pos, d);
   }
+
   /* set infinity */
   public final void num_set_inf(NumArray n, int pos) {
     J_num_set_inf(n.getArray(), pos);

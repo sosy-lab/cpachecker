@@ -33,10 +33,12 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private static class Block {
-    public static final String ENTRY_BLOCK_NAME = "entry_block_main";
+    static final String ENTRY_BLOCK_NAME = "entry_block_main";
+
     // function name which is the basis for the block
     @SuppressWarnings("unused")
     private String name;
+
     // current number of used resources
     private int countResources;
     // saved number of resources when limit is reached
@@ -47,6 +49,7 @@ public class BlockWaitlist implements Waitlist {
     private Waitlist mainWaitlist;
     // is it a block for entry function
     private boolean isEntryBlock;
+
     // previous block in the list
 
     Block(BKey key, WaitlistFactory factory, BlockConfiguration pLimits) {
@@ -56,7 +59,7 @@ public class BlockWaitlist implements Waitlist {
     }
 
     @SuppressWarnings("unused")
-    public int getSavedResources() {
+    int getSavedResources() {
       return savedResources;
     }
 
@@ -69,7 +72,7 @@ public class BlockWaitlist implements Waitlist {
     /**
      * check resource limits
      *
-     * @return true if resource limit has been reached
+     * @return whether resource limit has been reached
      */
     boolean checkResources() {
       if (isEntryBlock) {
@@ -157,10 +160,7 @@ public class BlockWaitlist implements Waitlist {
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
       BKey other = (BKey) obj;
@@ -178,8 +178,8 @@ public class BlockWaitlist implements Waitlist {
   // map of saved empty blocks (to count resources during)
   private final Map<BKey, Block> savedBlocksMap = new TreeMap<>();
 
-  private BlockConfiguration config;
-  private LogManager logger;
+  private final BlockConfiguration config;
+  private final LogManager logger;
 
   /**
    * Constructor that needs a factory for the waitlist implementation that should be used to store
@@ -239,7 +239,7 @@ public class BlockWaitlist implements Waitlist {
    * checks whether function name is a block (for example, starts with emg_control or emg_callback
    * or matches ldv_.*_instance_)
    *
-   * @return true if it is a block entry
+   * @return whether it is a block entry
    */
   private boolean isBlock(String func) {
     for (Pattern p : ldvPattern) {

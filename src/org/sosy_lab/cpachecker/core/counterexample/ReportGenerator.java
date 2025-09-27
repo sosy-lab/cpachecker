@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -123,6 +124,12 @@ public class ReportGenerator {
       description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
+
+  @Option(
+      secure = true,
+      name = "report.addWitness",
+      description = "Add visualization of correctness witnesses to the report (can be costly)")
+  private boolean addWitness = false;
 
   private final @Nullable Path logFile;
   private final ImmutableList<String> sourceFiles;
@@ -229,7 +236,7 @@ public class ReportGenerator {
   }
 
   private void extractWitness(Result pResult, CFA pCfa, UnmodifiableReachedSet pReached) {
-    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+    if (addWitness && EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       ImmutableSet<ARGState> rootStates = ARGUtils.getRootStates(pReached);
       if (rootStates.size() != 1) {
         logger.log(Level.FINER, "Could not determine ARG root for witness view");
@@ -270,7 +277,7 @@ public class ReportGenerator {
         Writer writer = IO.openOutputFile(reportPath, StandardCharsets.UTF_8)) {
 
       String line;
-      while (null != (line = reader.readLine())) {
+      while ((line = reader.readLine()) != null) {
         if (line.contains("CONFIGURATION")) {
           insertConfiguration(writer);
         } else if (line.contains("REPORT_CSS")) {
@@ -305,7 +312,7 @@ public class ReportGenerator {
         Resources.asCharSource(Resources.getResource(getClass(), file), StandardCharsets.UTF_8)
             .openBufferedStream(); ) {
       String line;
-      while (null != (line = reader.readLine())) {
+      while ((line = reader.readLine()) != null) {
         writer.write(line);
         writer.write('\n');
       }
@@ -355,8 +362,7 @@ public class ReportGenerator {
     dotBuilder.writeMergedNodesList(writer);
 
     if (counterExample != null) {
-      if (counterExample instanceof FaultLocalizationInfo) {
-        FaultLocalizationInfo flInfo = (FaultLocalizationInfo) counterExample;
+      if (counterExample instanceof FaultLocalizationInfo flInfo) {
         flInfo.prepare();
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
@@ -380,13 +386,15 @@ public class ReportGenerator {
   }
 
   private String extractPreconditionFromFaultLocalizationInfo(FaultLocalizationInfo fInfo) {
-    if (!(fInfo instanceof FaultLocalizationInfoWithTraceFormula)) {
+    if (!(fInfo
+        instanceof FaultLocalizationInfoWithTraceFormula faultLocalizationInfoWithTraceFormula)) {
       return "";
     }
-    TraceFormula traceFormula = ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula();
+    TraceFormula traceFormula = faultLocalizationInfoWithTraceFormula.getTraceFormula();
     PreCondition preCondition = traceFormula.getPrecondition();
     FormulaContext context = traceFormula.getContext();
-    FormulaToCVisitor visitor = new FormulaToCVisitor(context.getSolver().getFormulaManager());
+    FormulaToCVisitor visitor =
+        new FormulaToCVisitor(context.getSolver().getFormulaManager(), Function.identity());
     context.getSolver().getFormulaManager().visit(preCondition.getPrecondition(), visitor);
     return visitor.getString();
   }
@@ -444,10 +452,11 @@ public class ReportGenerator {
   private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer writer)
       throws IOException {
     if (counterExample == null) {
-      writer.write(sourceFiles.get(0));
+      writer.write(sourceFiles.getFirst());
     } else {
       String title =
-          String.format("%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
+          String.format(
+              "%s (Counterexample %s)", sourceFiles.getFirst(), counterExample.getUniqueId());
       writer.write(title);
     }
   }
@@ -455,10 +464,11 @@ public class ReportGenerator {
   private void insertStatistics(Writer writer, String statistics) throws IOException {
     int counter = 0;
     String insertTableLine =
-        "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\""
-            + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
-            + " scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th><th"
-            + " scope=\"col\">Additional Value</th></tr></thead><tbody>\n";
+        "<table ng-non-bindable id=\"statistics_table\" class=\"display\""
+            + " style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead"
+            + " class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th"
+            + " scope=\"col\">Statistics Value</th><th scope=\"col\">Additional"
+            + " Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
       if (!line.contains(":") && !line.trim().isEmpty() && !line.contains("----------")) {
@@ -483,9 +493,9 @@ public class ReportGenerator {
                 "<tr id=\"statistics-"
                     + counter
                     + "\"><td>"
-                    + htmlEscaper().escape(splitLine.get(0))
+                    + htmlEscaper().escape(splitLine.getFirst())
                     + "</td><td>"
-                    + htmlEscaper().escape(splitLineAnotherValue.get(0))
+                    + htmlEscaper().escape(splitLineAnotherValue.getFirst())
                     + "</td><td>"
                     + htmlEscaper()
                         .escape(CharMatcher.anyOf("()").removeFrom(splitLineAnotherValue.get(1)))
@@ -496,7 +506,7 @@ public class ReportGenerator {
                 "<tr id=\"statistics-"
                     + counter
                     + "\"><td>"
-                    + htmlEscaper().escape(splitLine.get(0))
+                    + htmlEscaper().escape(splitLine.getFirst())
                     + "</td><td>"
                     + htmlEscaper().escape(splitLine.get(1))
                     + "</td><td></td></tr>\n";
@@ -530,9 +540,9 @@ public class ReportGenerator {
         writer.write(
             "<div id=\"source-file\" class=\"sourceContent\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
-                + ")\">\n<table>\n");
+                + ")\">\n<table ng-non-bindable>\n");
         String line;
-        while (null != (line = source.readLine())) {
+        while ((line = source.readLine()) != null) {
           line = "<td><pre class=\"prettyprint\">" + htmlEscaper().escape(line) + "  </pre></td>";
           writer.write(
               "<tr id=\"source-"
@@ -555,8 +565,8 @@ public class ReportGenerator {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
     int iterator = 0;
     String insertTableLine =
-        "<table  id=\"config_table\" class=\"display\" style=\"width:100%;padding: 10px\""
-            + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+        "<table ng-non-bindable id=\"config_table\" class=\"display\" style=\"width:100%;padding:"
+            + " 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
             + " scope=\"col\">#</th><th scope=\"col\">Configuration Name</th><th"
             + " scope=\"col\">Configuration Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
@@ -570,7 +580,7 @@ public class ReportGenerator {
                 + "\"><th scope=\"row\">"
                 + countLineNumber
                 + "</th><td>"
-                + htmlEscaper().escape(splitLine.get(0))
+                + htmlEscaper().escape(splitLine.getFirst())
                 + "</td><td>"
                 + htmlEscaper().escape(splitLine.get(1))
                 + "</td></tr>\n";
@@ -589,8 +599,8 @@ public class ReportGenerator {
       final Splitter logDateSplitter = Splitter.on(' ').limit(2);
 
       String insertTableLine =
-          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\""
-              + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+          "<table ng-non-bindable id=\"log_table\" class=\"display\" style=\"width:100%;padding:"
+              + " 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
               + " scope=\"col\">Date</th><th scope=\"col\">Time</th><th scope=\"col\">Level</th><th"
               + " scope=\"col\">Component</th><th scope=\"col\">Message</th></tr></thead><tbody>\n";
       writer.write(insertTableLine);
@@ -601,11 +611,11 @@ public class ReportGenerator {
         while ((line = log.readLine()) != null && !logLinePattern.matcher(line).matches()) {}
         while (line != null) {
           List<String> splitLine = logLineSplitter.splitToList(line);
-          List<String> dateTime = logDateSplitter.splitToList(splitLine.get(0));
+          List<String> dateTime = logDateSplitter.splitToList(splitLine.getFirst());
 
           writer.write("<tr id=\"log-" + counter + "\">");
           writer.write("<th scope=\"row\">");
-          writer.write(htmlEscaper().escape(dateTime.get(0)));
+          writer.write(htmlEscaper().escape(dateTime.getFirst()));
           writer.write("</th><td>");
           writer.write(htmlEscaper().escape(dateTime.get(1)));
           writer.write("</td><td>");
@@ -653,7 +663,7 @@ public class ReportGenerator {
 
     Set<FileLocation> allLocations =
         FluentIterable.of(cfa.getMainFunction()) // We want this as first element
-            .append(cfa.getAllFunctionHeads())
+            .append(cfa.entryNodes())
             .transform(FunctionEntryNode::getFileLocation)
             .filter(FileLocation::isRealLocation)
             .toSet();
@@ -661,7 +671,7 @@ public class ReportGenerator {
     return FluentIterable.concat(
             Collections2.transform(sourceFiles, Path::of),
             Collections2.transform(allLocations, FileLocation::getFileName))
-        .filter(path -> Files.isReadable(path))
+        .filter(Files::isReadable)
         .filter(path -> !Files.isDirectory(path))
         .toSet();
   }
@@ -809,24 +819,24 @@ public class ReportGenerator {
       edgeLabel.append("dummy edge");
       argEdge.put("type", "dummy type");
     } else {
-      argEdge.put("type", edges.get(0).getEdgeType().toString());
+      argEdge.put("type", edges.getFirst().getEdgeType().toString());
       if (edges.size() > 1) {
         edgeLabel.append("Lines ");
-        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(edges.getFirst().getFileLocation().getStartingLineInOrigin());
         edgeLabel.append(" - ");
-        edgeLabel.append(edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(edges.getLast().getFileLocation().getStartingLineInOrigin());
         edgeLabel.append(":");
         argEdge.put("lines", edgeLabel.substring(6));
       } else {
         edgeLabel.append("Line ");
-        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(edges.getFirst().getFileLocation().getStartingLineInOrigin());
         argEdge.put("line", edgeLabel.substring(5));
       }
       for (CFAEdge edge : edges) {
         if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
           edgeLabel.append("\n");
           List<String> edgeText = Splitter.on(':').limit(2).splitToList(getEdgeText(edge));
-          edgeLabel.append(edgeText.get(0));
+          edgeLabel.append(edgeText.getFirst());
           if (edgeText.size() > 1) {
             edgeLabel.append("\n");
             edgeLabel.append(edgeText.get(1));
@@ -836,7 +846,7 @@ public class ReportGenerator {
           edgeLabel.append(getEdgeText(edge));
         }
       }
-      argEdge.put("file", edges.get(0).getFileLocation().getFileName());
+      argEdge.put("file", edges.getFirst().getFileLocation().getFileName());
     }
     argEdge.put("label", edgeLabel.toString());
     return argEdge;

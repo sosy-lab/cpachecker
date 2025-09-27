@@ -21,7 +21,6 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -92,11 +91,13 @@ public final class Solver implements AutoCloseable {
 
   private final @Nullable UFCheckingProverOptions ufCheckingProverOptions;
 
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
-
   private final SolverContext solvingContext;
   private final SolverContext interpolatingContext;
+
+  private final FormulaManagerView solvingFmgr;
+  private final FormulaManagerView interpolatingFmgr;
+
+  private final BooleanFormulaManagerView solvingBfmgr;
 
   private final Map<BooleanFormula, Boolean> unsatCache = new HashMap<>();
 
@@ -108,14 +109,21 @@ public final class Solver implements AutoCloseable {
    * satisfiable. If a set of constraints is unsatisfiable, any superset of it is also
    * unsatisfiable.
    */
-  private final Map<Object, Map<Set<BooleanFormula>, Boolean>> groupedUnsatCache = new HashMap<>();
+  private final Map<Object, Map<ImmutableSet<BooleanFormula>, Boolean>> groupedUnsatCache =
+      new HashMap<>();
 
   private final LogManager logger;
 
   // stats
   public final Timer solverTime = new Timer();
+
+  @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int satChecks = 0;
+
+  @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int trivialSatChecks = 0;
+
+  @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int cachedSatChecks = 0;
 
   private Solver(Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier)
@@ -138,16 +146,19 @@ public final class Solver implements AutoCloseable {
     }
 
     solvingContext = solverFactory.generateContext(solver);
+    solvingFmgr = new FormulaManagerView(solvingContext.getFormulaManager(), config, logger);
 
     // Instantiate another SMT solver for interpolation if requested.
     if (interpolationSolver != null) {
       interpolatingContext = solverFactory.generateContext(interpolationSolver);
+      interpolatingFmgr =
+          new FormulaManagerView(interpolatingContext.getFormulaManager(), config, logger);
     } else {
       interpolatingContext = solvingContext;
+      interpolatingFmgr = solvingFmgr;
     }
 
-    fmgr = new FormulaManagerView(solvingContext.getFormulaManager(), config, pLogger);
-    bfmgr = fmgr.getBooleanFormulaManager();
+    solvingBfmgr = solvingFmgr.getBooleanFormulaManager();
 
     if (checkUFs) {
       ufCheckingProverOptions = new UFCheckingProverOptions(config);
@@ -182,16 +193,19 @@ public final class Solver implements AutoCloseable {
 
     checkArgument(solver.equals(pSolver), "mismatching configuration");
     solvingContext = pContext;
+    solvingFmgr = new FormulaManagerView(solvingContext.getFormulaManager(), pConfig, pLogger);
 
     // Instantiate another SMT solver for interpolation if requested.
     if (interpolationSolver != null) {
       interpolatingContext = pSolverFactory.generateContext(interpolationSolver);
+      interpolatingFmgr =
+          new FormulaManagerView(interpolatingContext.getFormulaManager(), pConfig, pLogger);
     } else {
       interpolatingContext = solvingContext;
+      interpolatingFmgr = solvingFmgr;
     }
 
-    fmgr = new FormulaManagerView(pContext.getFormulaManager(), pConfig, pLogger);
-    bfmgr = fmgr.getBooleanFormulaManager();
+    solvingBfmgr = solvingFmgr.getBooleanFormulaManager();
     logger = pLogger;
 
     if (checkUFs) {
@@ -255,7 +269,7 @@ public final class Solver implements AutoCloseable {
    * formulas.
    */
   public FormulaManagerView getFormulaManager() {
-    return fmgr;
+    return solvingFmgr;
   }
 
   /**
@@ -263,9 +277,8 @@ public final class Solver implements AutoCloseable {
    * formulas.
    */
   public void printStatistics(PrintStream pOut) {
-    if (solvingContext instanceof StatisticsSolverContext) {
-      final SolverStatistics stats =
-          ((StatisticsSolverContext) solvingContext).getSolverStatistics();
+    if (solvingContext instanceof StatisticsSolverContext statisticsSolverContext) {
+      final SolverStatistics stats = statisticsSolverContext.getSolverStatistics();
       pOut.println();
       writingStatisticsTo(pOut)
           .put("Statistics about operations", "")
@@ -321,10 +334,10 @@ public final class Solver implements AutoCloseable {
     ProverEnvironment pe = solvingContext.newProverEnvironment(options);
 
     if (checkUFs) {
-      pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
+      pe = new UFCheckingProverEnvironment(logger, pe, solvingFmgr, ufCheckingProverOptions);
     }
 
-    pe = new ProverEnvironmentView(pe, fmgr.getFormulaWrappingHandler());
+    pe = new ProverEnvironmentView(pe, solvingFmgr.getFormulaWrappingHandler());
 
     return pe;
   }
@@ -345,18 +358,16 @@ public final class Solver implements AutoCloseable {
       // we use SeparateInterpolatingProverEnvironment
       // which copies formula back and forth using strings.
       // We don't need this if the solvers are the same anyway.
-      ipe =
-          new SeparateInterpolatingProverEnvironment<>(
-              solvingContext.getFormulaManager(), interpolatingContext.getFormulaManager(), ipe);
+      ipe = new SeparateInterpolatingProverEnvironment<>(solvingFmgr, interpolatingFmgr, ipe);
     }
 
     if (checkUFs) {
       ipe =
           new UFCheckingInterpolatingProverEnvironment<>(
-              logger, ipe, fmgr, ufCheckingProverOptions);
+              logger, ipe, solvingFmgr, ufCheckingProverOptions);
     }
 
-    ipe = new InterpolatingProverEnvironmentView<>(ipe, fmgr.getFormulaWrappingHandler());
+    ipe = new InterpolatingProverEnvironmentView<>(ipe, solvingFmgr.getFormulaWrappingHandler());
 
     return ipe;
   }
@@ -370,7 +381,7 @@ public final class Solver implements AutoCloseable {
   public OptimizationProverEnvironment newOptEnvironment() {
     OptimizationProverEnvironment environment =
         solvingContext.newOptimizationProverEnvironment(ProverOptions.GENERATE_MODELS);
-    environment = new OptimizationProverEnvironmentView(environment, fmgr);
+    environment = new OptimizationProverEnvironmentView(environment, solvingFmgr);
     return environment;
   }
 
@@ -378,11 +389,11 @@ public final class Solver implements AutoCloseable {
   public boolean isUnsat(BooleanFormula f) throws SolverException, InterruptedException {
     satChecks++;
 
-    if (bfmgr.isTrue(f)) {
+    if (solvingBfmgr.isTrue(f)) {
       trivialSatChecks++;
       return false;
     }
-    if (bfmgr.isFalse(f)) {
+    if (solvingBfmgr.isFalse(f)) {
       trivialSatChecks++;
       return true;
     }
@@ -425,10 +436,10 @@ public final class Solver implements AutoCloseable {
       throws InterruptedException, SolverException {
     satChecks++;
 
-    Map<Set<BooleanFormula>, Boolean> stored = groupedUnsatCache.get(cacheKey);
+    Map<ImmutableSet<BooleanFormula>, Boolean> stored = groupedUnsatCache.get(cacheKey);
     if (stored != null) {
-      for (Entry<Set<BooleanFormula>, Boolean> isUnsatResults : stored.entrySet()) {
-        Set<BooleanFormula> cachedConstraints = isUnsatResults.getKey();
+      for (var isUnsatResults : stored.entrySet()) {
+        ImmutableSet<BooleanFormula> cachedConstraints = isUnsatResults.getKey();
         boolean cachedIsUnsat = isUnsatResults.getValue();
 
         if (cachedIsUnsat && lemmas.containsAll(cachedConstraints)) {
@@ -471,7 +482,7 @@ public final class Solver implements AutoCloseable {
         }
         return true;
       } else {
-        stored.put(lemmas, false);
+        stored.put(ImmutableSet.copyOf(lemmas), false);
         return false;
       }
     } finally {
@@ -488,7 +499,7 @@ public final class Solver implements AutoCloseable {
   public List<BooleanFormula> unsatCore(BooleanFormula constraints)
       throws SolverException, InterruptedException {
 
-    return unsatCore(bfmgr.toConjunctionArgs(constraints, true));
+    return unsatCore(solvingBfmgr.toConjunctionArgs(constraints, true));
   }
 
   public List<BooleanFormula> unsatCore(Set<BooleanFormula> constraints)
@@ -513,7 +524,7 @@ public final class Solver implements AutoCloseable {
   /** Checks whether a => b. The result is cached. */
   public boolean implies(BooleanFormula a, BooleanFormula b)
       throws SolverException, InterruptedException {
-    if (bfmgr.isFalse(a) || bfmgr.isTrue(b)) {
+    if (solvingBfmgr.isFalse(a) || solvingBfmgr.isTrue(b)) {
       satChecks++;
       trivialSatChecks++;
       return true;
@@ -524,7 +535,7 @@ public final class Solver implements AutoCloseable {
       return true;
     }
 
-    BooleanFormula f = bfmgr.not(bfmgr.implication(a, b));
+    BooleanFormula f = solvingBfmgr.not(solvingBfmgr.implication(a, b));
 
     return isUnsat(f);
   }
@@ -563,6 +574,10 @@ public final class Solver implements AutoCloseable {
 
   public String getVersion() {
     return solvingContext.getVersion();
+  }
+
+  public Solvers getInterpolatingSolver() {
+    return interpolatingContext.getSolverName();
   }
 
   public String getInterpolatingVersion() {

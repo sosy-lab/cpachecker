@@ -90,13 +90,12 @@ public final class ModificationsState
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
-      case "is_modified":
-        return hasModification;
-      default:
-        throw new InvalidQueryException(
-            "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
-    }
+    return switch (pProperty) {
+      case "is_modified" -> hasModification;
+      default ->
+          throw new InvalidQueryException(
+              "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
+    };
   }
 
   @Override

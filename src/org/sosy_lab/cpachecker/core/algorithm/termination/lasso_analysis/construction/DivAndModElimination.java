@@ -54,10 +54,8 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
   /**
    * Replaces division and modulo by linear formulas and auxiliary variables.
    *
-   * <pre>
-   * Note: The remainder will be always non negative as defined in the SMT-LIB standard
-   *       (http://smtlib.cs.uiowa.edu/theories-Ints.shtml)
-   * <pre>
+   * <p>Note: The remainder will be always non negative as defined in the SMT-LIB standard
+   * (http://smtlib.cs.uiowa.edu/theories-Ints.shtml)
    */
   private static class DivAndModTransformation extends DefaultFormulaVisitor<Formula> {
 
@@ -74,7 +72,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
       additionalAxioms = new ArrayList<>();
     }
 
-    public Collection<BooleanFormula> getAdditionalAxioms() {
+    Collection<BooleanFormula> getAdditionalAxioms() {
       return ImmutableList.copyOf(additionalAxioms);
     }
 
@@ -93,12 +91,13 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
           || pFunctionDeclaration.getName().equalsIgnoreCase("div")
           || pFunctionDeclaration.getName().equalsIgnoreCase("Integer__/_")) {
         assert newArgs.size() == 2;
-        return transformDivision(newArgs.get(0), newArgs.get(1), pFunctionDeclaration.getType());
+        return transformDivision(
+            newArgs.getFirst(), newArgs.get(1), pFunctionDeclaration.getType());
 
       } else if (pFunctionDeclaration.getKind().equals(MODULO)
           || pFunctionDeclaration.getName().equalsIgnoreCase("mod")) {
         assert newArgs.size() == 2;
-        return transformModulo(newArgs.get(0), newArgs.get(1), pFunctionDeclaration.getType());
+        return transformModulo(newArgs.getFirst(), newArgs.get(1), pFunctionDeclaration.getType());
 
       } else {
         return fmgr.makeApplication(pFunctionDeclaration, newArgs);

@@ -54,13 +54,13 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
 
       // we can't call prec() in this case because we don't have an element of the CPA
-      return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, Action.CONTINUE));
+      return Optional.of(new PrecisionAdjustmentResult(pElement, oldPrecision, Action.CONTINUE));
     }
 
     UnmodifiableReachedSet elements =
         new UnmodifiableReachedSetView(
             pElements,
-            (state) -> ((MonitorState) state).getWrappedState(),
+            state -> ((MonitorState) state).getWrappedState(),
             Functions.<Precision>identity());
     // TODO we really would have to filter out all TimeoutElements in this view
 
@@ -72,7 +72,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
             oldElement,
             oldPrecision,
             elements,
-            Functions.compose((state) -> ((MonitorState) state).getWrappedState(), projection),
+            Functions.compose(state -> ((MonitorState) state).getWrappedState(), projection),
             fullState);
     totalTimeOfPrecAdj.stop();
     long totalTimeOfExecution = totalTimeOfPrecAdj.getLengthOfLastInterval().asMillis();

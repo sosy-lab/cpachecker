@@ -41,12 +41,9 @@ public class SyntacticBlockStructure {
   }
 
   private boolean ignoreEdge(CFAEdge edge) {
-    if (edge instanceof CFunctionCallEdge
+    return edge instanceof CFunctionCallEdge
         || edge.getFileLocation().equals(FileLocation.DUMMY)
-        || edge.getDescription().contains("__CPAchecker_TMP")) {
-      return true;
-    }
-    return false;
+        || edge.getDescription().contains("__CPAchecker_TMP");
   }
 
   public Iterable<CFAEdge> getPrevEdges(SyntacticBlock pBlock, FileLocation location) {

@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerato
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 // FIXME unsound strategy
 public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends AbstractStrategy {
@@ -51,6 +51,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
   private final AssumptionAutomatonGenerator automatonWriter;
+
+  private final CFA cfa;
   private int numProofs;
 
   public PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy(
@@ -62,6 +64,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       final @Nullable Specification pSpecification)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
+    cfa = pCFA;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCFA, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
     config = pConfig;
@@ -186,21 +189,21 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   protected void writeProofToStream(
       ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws IOException, InvalidConfigurationException, InterruptedException {
-    if (!(pReached instanceof HistoryForwardingReachedSet)) {
+    if (!(pReached instanceof HistoryForwardingReachedSet historyForwardingReachedSet)) {
       throw new InvalidConfigurationException(
           "Reached sets used by restart algorithm are not memorized. Please enable option"
               + " analysis.memorizeReachedAfterRestart");
     }
 
     List<ReachedSet> partialReachedSets =
-        ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
+        historyForwardingReachedSet.getAllReachedSetsUsedAsDelegates();
 
     if (partialReachedSets == null || partialReachedSets.isEmpty()) {
       logger.log(Level.SEVERE, "No proof parts available. Proof cannot be generated.");
       return;
     }
 
-    List<ConfigurableProgramAnalysis> cpas = ((HistoryForwardingReachedSet) pReached).getCPAs();
+    List<ConfigurableProgramAnalysis> cpas = historyForwardingReachedSet.getCPAs();
 
     if (partialReachedSets.size() != cpas.size()) {
       logger.log(Level.SEVERE, "Analysis inconsistent. Proof cannot be generated.");
@@ -215,7 +218,6 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     try {
       ReachedSet reached;
       for (int i = 0; i < partialReachedSets.size(); i++) {
-        GlobalInfo.getInstance().setUpInfoFromCPA(cpas.get(i));
         reached = partialReachedSets.get(i);
 
         unexplored = Sets.newHashSetWithExpectedSize(reached.getWaitlist().size());
@@ -231,7 +233,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
                 automatonWriter.getAllAncestorsFor(unexplored),
                 unexplored,
                 (ARGState) reached.getFirstState());
-        ioHelper.writeProof(pOut, reached, pCpa);
+        SerializationInfoStorage.storeSerializationInformation(cpas.get(i), cfa);
+        try {
+          ioHelper.writeProof(pOut, reached, pCpa);
+        } finally {
+          SerializationInfoStorage.clear();
+        }
       }
     } catch (ClassCastException e) {
       logger.logDebugException(e);
@@ -249,13 +256,14 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   private class ProofPartReader implements Runnable {
 
     private final AtomicBoolean checkResult;
-    private final Semaphore mainSemaphore, startReading;
+    private final Semaphore mainSemaphore;
+    private final Semaphore startReading;
     private final CMCPartitioningIOHelper[] ioHelperPerProofPart;
     private final PropertyCheckerCPA[] cpas;
     private final AbstractState[] roots;
     private final ReachedSetFactory factory;
 
-    public ProofPartReader(
+    ProofPartReader(
         final Semaphore pReadNext,
         Semaphore pPartitionsAvailable,
         final AtomicBoolean pCheckResult,
@@ -299,11 +307,13 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
             break;
           }
           cpas[i] = (PropertyCheckerCPA) cpa;
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
-
           mustReadAndCheckSequentially = CPAs.retrieveCPA(cpa, PredicateCPA.class) != null;
-
-          ioHelper.readMetadata(o, true);
+          SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+          try {
+            ioHelper.readMetadata(o, true);
+          } finally {
+            SerializationInfoStorage.clear();
+          }
           roots[i] = ioHelper.getRoot();
 
           if (roots[i] == null) {
@@ -318,7 +328,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           }
 
           for (int j = 0; j < ioHelper.getNumPartitions() && checkResult.get(); j++) {
-            ioHelper.readPartition(o, stats);
+            SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+            try {
+              ioHelper.readPartition(o, stats);
+            } finally {
+              SerializationInfoStorage.clear();
+            }
 
             if (shutdown.shouldShutdown()) {
               abortPreparation();

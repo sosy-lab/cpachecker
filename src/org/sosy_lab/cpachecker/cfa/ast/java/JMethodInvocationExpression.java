@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
@@ -24,16 +25,18 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *        Identifier ( [ Expression { , Expression } ] )
  * }</pre>
  *
- * Note that in the cfa, all method names are transformed to have unique names. It is therefore
+ * Note that in the CFA, all method names are transformed to have unique names. It is therefore
  * unnecessary to have Qualifiers for methods with the same simple name.
  */
-public class JMethodInvocationExpression extends AFunctionCallExpression implements JRightHandSide {
+public sealed class JMethodInvocationExpression extends AFunctionCallExpression
+    implements JRightHandSide
+    permits JClassInstanceCreation, JReferencedMethodInvocationExpression {
 
   // TODO refactor to be either abstract or final
 
   // TODO Type parameters
 
-  private static final long serialVersionUID = 4603127283599981678L;
+  @Serial private static final long serialVersionUID = 4603127283599981678L;
   // TODO erase these two fields and change the algorithm to find known run time type bindings,
   private boolean hasKnownRunTimeBinding = false;
   private JClassOrInterfaceType runTimeBinding = null;
@@ -107,13 +110,9 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
       return true;
     }
 
-    if (!(obj instanceof JMethodInvocationExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    JMethodInvocationExpression other = (JMethodInvocationExpression) obj;
-
-    return other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
+    return obj instanceof JMethodInvocationExpression other
+        && super.equals(obj)
+        && other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
         && Objects.equals(other.runTimeBinding, runTimeBinding);
   }
 }

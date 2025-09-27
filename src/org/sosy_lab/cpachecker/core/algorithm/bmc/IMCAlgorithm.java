@@ -184,7 +184,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Options(prefix = "imc.loopBound")
   private class LoopBoundManager {
-    private class IndividualCheckInfoWrapper {
+    private static class IndividualCheckInfoWrapper {
       private final String name;
       private final LoopBoundIncrementStrategy strategy;
       private int incrementValue;
@@ -205,28 +205,34 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     @Option(
         secure = true,
         description =
-            "toggle the strategy to determine the next loop iteration\n"
-                + "to execute BMC phase of IMC or ISMC\n"
-                + "CONST: increased by one (to guarantee a shortest counterexample)\n"
-                + "EAGER: skip all iterations where a bug cannot be found")
+            """
+            toggle the strategy to determine the next loop iteration
+            to execute BMC phase of IMC or ISMC
+            CONST: increased by one (to guarantee a shortest counterexample)
+            EAGER: skip all iterations where a bug cannot be found\
+            """)
     private LoopBoundIncrementStrategy incrementStrategyForBMC = LoopBoundIncrementStrategy.CONST;
 
     @Option(
         secure = true,
         description =
-            "toggle the strategy to determine the next loop iteration\n"
-                + "to execute k-inductive check if \"checkPropertyInductiveness\" is enabled\n"
-                + "CONST: increased by by a constant (specified via loopBoundIncrementValueForKI)\n"
-                + "EAGER: skip all iterations where a bug cannot be found")
+            """
+            toggle the strategy to determine the next loop iteration
+            to execute k-inductive check if "checkPropertyInductiveness" is enabled
+            CONST: increased by by a constant (specified via loopBoundIncrementValueForKI)
+            EAGER: skip all iterations where a bug cannot be found\
+            """)
     private LoopBoundIncrementStrategy incrementStrategyForKI = LoopBoundIncrementStrategy.CONST;
 
     @Option(
         secure = true,
         description =
-            "toggle the strategy to determine the next loop iteration\n"
-                + "to execute interpolation phase of IMC\n"
-                + "CONST: increased by a constant (specified via loopBoundIncrementValueForIMC)\n"
-                + "EAGER: skip all iterations where a bug cannot be found")
+            """
+            toggle the strategy to determine the next loop iteration
+            to execute interpolation phase of IMC
+            CONST: increased by a constant (specified via loopBoundIncrementValueForIMC)
+            EAGER: skip all iterations where a bug cannot be found\
+            """)
     private LoopBoundIncrementStrategy incrementStrategyForIMC = LoopBoundIncrementStrategy.CONST;
 
     /** Not configurable by the user to ensure soundness of ISMC */
@@ -436,6 +442,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle Impact-like covering for the ISMC fixed-point check")
   private boolean impactLikeCovering = false;
 
+  @Option(
+      secure = true,
+      description =
+          "toggle whether to compute fixed-point backward by swapping initial-state (prefix) and"
+              + " assertion (target) formulas")
+  private boolean backwardAnalysis = false;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -447,6 +460,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final PredicateAbstractionManager predAbsMgr;
   private final InterpolationManager itpMgr;
   private final CFA cfa;
+
+  /**
+   * A Boolean variable to track whether the initial-state (prefix) formula approximated by
+   * interpolants is precise enough, i.e. whether prefix &hArr; itp-approx.
+   */
+  private boolean isPrefixItpPrecise;
+
   private BooleanFormula finalFixedPoint;
   private BooleanFormula lastInductiveAuxInv;
   private LoopBoundManager loopBoundMgr;
@@ -492,6 +512,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         new InterpolationManager(
             pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
 
+    isPrefixItpPrecise = false;
     finalFixedPoint = bfmgr.makeFalse();
     lastInductiveAuxInv = bfmgr.makeTrue();
     loopBoundMgr = new LoopBoundManager(pConfig);
@@ -502,11 +523,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(
           Level.WARNING,
           "Cannot assert targets at every iteration with current strategy for computing fixed"
-              + " point");
+              + " point. Setting imc.assertTargetsAtEveryIteration to false.");
       assertTargetsAtEveryIteration = false;
     }
-    if (fixedPointComputeStrategy.isIMCEnabled()) {
-      stats.numOfIMCInnerIterations = 0;
+    if (assertTargetsAtEveryIteration && backwardAnalysis) {
+      logger.log(
+          Level.WARNING,
+          "Cannot assert targets at every iteration when performing backward analysis. Setting"
+              + " imc.assertTargetsAtEveryIteration to false.");
+      assertTargetsAtEveryIteration = false;
+    }
+    if (fixedPointComputeStrategy.isIMCEnabled() || fixedPointComputeStrategy.isISMCEnabled()) {
+      stats.numOfInterpolants = 0;
+      stats.numOfInterpolationCalls = 0;
     }
     if (invariantGeneratorForBMC.isRunning()) {
       if (invariantsOptions.injectionStrategy == InvariantsInjectionStrategy.REFINE_ITP
@@ -560,9 +589,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     adjustConfigsAccordingToCFA();
     // Initialize variables for IMC/ISMC
-    List<BooleanFormula> reachVector = new ArrayList<>();
     PartitionedFormulas partitionedFormulas =
-        new PartitionedFormulas(pfmgr, bfmgr, logger, assertTargetsAtEveryIteration);
+        backwardAnalysis
+            ? PartitionedFormulas.createBackwardPartitionedFormulas(bfmgr, logger)
+            : PartitionedFormulas.createForwardPartitionedFormulas(
+                bfmgr, logger, assertTargetsAtEveryIteration);
+    // Store the reachability vector for ISMC and/or prefix formula
+    // approximation for IMC
+    List<BooleanFormula> reachVector = new ArrayList<>();
     logger.log(Level.FINE, "Performing interpolation-based model checking");
     do {
       shutdownNotifier.shutdownIfNecessary();
@@ -606,6 +640,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
+      if (!isPrefixItpPrecise && !reachVector.isEmpty()) {
+        isPrefixItpPrecise =
+            solver.implies(reachVector.getFirst(), partitionedFormulas.getPrefixFormula());
+      }
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
       loopBoundMgr.incrementLoopBoundsToCheck();
     } while (adjustConditions());
@@ -614,30 +652,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /** Check the loop structure of the input program and adjust configurations accordingly */
   private void adjustConfigsAccordingToCFA() throws CPAException {
-    if (!cfa.getAllLoopHeads().isPresent()) {
-      if (isInterpolationEnabled()) {
-        logger.log(
-            Level.WARNING, "Disable interpolation as loop structure could not be determined");
-        fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
-      }
-      if (checkPropertyInductiveness) {
-        logger.log(
-            Level.WARNING, "Disable induction check as loop structure could not be determined");
-        checkPropertyInductiveness = false;
-      }
-    }
-    if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {
-      if (isInterpolationEnabled()) {
-        if (fallBack) {
-          fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
-        } else {
-          throw new CPAException("Multi-loop programs are not supported yet");
-        }
-      }
-      if (checkPropertyInductiveness) {
-        logger.log(
-            Level.WARNING, "Disable induction check because the program contains multiple loops");
-        checkPropertyInductiveness = false;
+    if (!cfa.getAllLoopHeads().isPresent() || cfa.getAllLoopHeads().orElseThrow().size() > 1) {
+      String reason =
+          cfa.getAllLoopHeads().isPresent()
+              ? "Multi-loop programs are not supported"
+              : "Loop structure could not be determined";
+      if (fallBack) {
+        fallBackToBMC(reason);
+      } else {
+        throw new CPAException(reason);
       }
     }
   }
@@ -669,9 +692,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void fallBackToBMC(final String pReason) {
-    logger.log(
-        Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
-    fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
+    if (isInterpolationEnabled()) {
+      logger.log(
+          Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
+      fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
+    }
+    if (checkPropertyInductiveness) {
+      logger.log(
+          Level.WARNING,
+          "Induction check disabled because of " + pReason + ", falling back to BMC");
+      checkPropertyInductiveness = false;
+    }
   }
 
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
@@ -683,11 +714,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void unrollProgram(ReachedSet pReachedSet) throws InterruptedException, CPAException {
-    stats.bmcPreparation.start();
+    stats.bmcUnrolling.start();
     try {
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
     } finally {
-      stats.bmcPreparation.stop();
+      stats.bmcUnrolling.stop();
     }
   }
 
@@ -777,29 +808,31 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try {
       boolean hasReachedFixedPoint = false;
       switch (fixedPointComputeStrategy) {
-        case ITP:
-          hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, loopInv);
-          break;
-        case ITPSEQ:
-          hasReachedFixedPoint =
-              reachFixedPointByInterpolationSequence(formulas, reachVector, loopInv);
-          break;
-        case ITPSEQ_AND_ITP:
+        case ITP ->
+            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector, loopInv);
+        case ITPSEQ ->
+            hasReachedFixedPoint =
+                reachFixedPointByInterpolationSequence(formulas, reachVector, loopInv);
+        case ITPSEQ_AND_ITP -> {
           hasReachedFixedPoint =
               reachFixedPointByInterpolationSequence(formulas, reachVector, loopInv);
           if (!hasReachedFixedPoint) {
-            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, loopInv);
+            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector, loopInv);
           }
-          break;
-        case NONE:
-          break;
-        default:
-          throw new AssertionError("Unknown fixed-point strategy " + fixedPointComputeStrategy);
+        }
+        case NONE -> {}
       }
       if (hasReachedFixedPoint) {
         InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
         InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
             pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
+        finalFixedPoint = fmgr.simplifyBooleanFormula(finalFixedPoint);
+        finalFixedPoint = fmgr.simplify(finalFixedPoint);
+        InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+            pReachedSet,
+            backwardAnalysis ? bfmgr.not(finalFixedPoint) : finalFixedPoint,
+            predAbsMgr,
+            pfmgr);
       } else {
         logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
       }
@@ -825,10 +858,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    */
   private boolean reachFixedPointByInterpolation(
-      final PartitionedFormulas formulas, BooleanFormula loopInv)
+      final PartitionedFormulas formulas, List<BooleanFormula> reachVector, BooleanFormula loopInv)
       throws InterruptedException, CPAException, SolverException {
     if (!loopBoundMgr.performIMCAtCurrentIteration()) {
       return false;
+    }
+
+    assert !(fixedPointComputeStrategy.isISMCEnabled() && reachVector.isEmpty());
+    if (reachVector.isEmpty()) {
+      reachVector.add(bfmgr.makeTrue());
     }
 
     // Examine aux. invariant
@@ -851,9 +889,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     logger.log(Level.FINE, "Computing fixed points by interpolation (IMC)");
     logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
-    BooleanFormula currentImage = formulas.getPrefixFormula();
+    final BooleanFormula prefixFormula = formulas.getPrefixFormula();
+    BooleanFormula accumImage = bfmgr.makeFalse();
 
-    ImmutableList<BooleanFormula> loops = formulas.getLoopFormulas();
+    List<BooleanFormula> loops = formulas.getLoopFormulas();
     // suffix formula: T(S1, S2) && T(S1, S2) && ... && T(Sn-1, Sn)
     BooleanFormula suffixFormula = bfmgr.and(loops.subList(1, formulas.getNumLoops()));
     //  assertion = negated property ~P(Sn)
@@ -866,42 +905,56 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               assertionFormula,
               fmgr.instantiate(
                   bfmgr.not(lastInductiveAuxInv),
-                  formulas.getSsaMapOfLoop(formulas.getNumLoops() - 1)));
+                  formulas.getLoopFormulaSsaMaps().get(formulas.getNumLoops() - 1)));
     }
     suffixFormula = bfmgr.and(suffixFormula, assertionFormula);
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
-        itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
+        itpMgr.interpolate(ImmutableList.of(prefixFormula, loops.getFirst(), suffixFormula));
     assert interpolants.isPresent();
-    final int initialIMCIter = stats.numOfIMCInnerIterations;
+    final int initialIMCIter = stats.numOfInterpolationCalls;
     while (interpolants.isPresent()) {
       shutdownNotifier.shutdownIfNecessary();
-      stats.numOfIMCInnerIterations += 1;
+      stats.numOfInterpolationCalls += 1;
+      stats.numOfInterpolants += 1;
       logger.log(
           Level.ALL,
           "IMC inner loop iteration:",
-          stats.numOfIMCInnerIterations - initialIMCIter,
+          stats.numOfInterpolationCalls - initialIMCIter,
           "[ accumulated:",
-          stats.numOfIMCInnerIterations,
+          stats.numOfInterpolationCalls,
           "]");
-      logger.log(Level.ALL, "The current image is", currentImage);
+      logger.log(Level.ALL, "The current image is", accumImage);
       assert interpolants.orElseThrow().size() == 2;
+      if (!fixedPointComputeStrategy.isISMCEnabled() && !isPrefixItpPrecise) {
+        final BooleanFormula prefixApproximation =
+            bfmgr.and(
+                reachVector.getFirst(), fmgr.uninstantiate(interpolants.orElseThrow().getFirst()));
+        reachVector.set(0, prefixApproximation);
+      }
       BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+      InterpolationHelper.recordInterpolantStats(fmgr, interpolant, stats);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
+
       // Refine the interpolant when possible
       if (!isLoopInvTrivial
           && invariantsOptions.injectionStrategy == InvariantsInjectionStrategy.REFINE_ITP) {
         interpolant =
             bfmgr.and(
-                interpolant, fmgr.instantiate(lastInductiveAuxInv, formulas.getPrefixSsaMap()));
+                interpolant,
+                fmgr.instantiate(
+                    backwardAnalysis ? bfmgr.not(lastInductiveAuxInv) : lastInductiveAuxInv,
+                    formulas.getPrefixSsaMap()));
         logger.log(Level.ALL, "The refined interpolant is", interpolant);
       }
+
       // Step 1: regular IMC fixed point check
-      if (solver.implies(interpolant, currentImage)) {
+      if (solver.implies(interpolant, bfmgr.or(prefixFormula, accumImage))) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
-        finalFixedPoint = fmgr.uninstantiate(currentImage);
+        stats.fixedPointConvergenceLength = stats.numOfInterpolationCalls - initialIMCIter;
+        finalFixedPoint = bfmgr.or(reachVector.getFirst(), fmgr.uninstantiate(accumImage));
         return true;
       }
       // Step 2: IMC fixed point check strengthened by non-trivial external invariant
@@ -910,20 +963,22 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           && solver.implies(
               bfmgr.and(
                   interpolant, fmgr.instantiate(lastInductiveAuxInv, formulas.getPrefixSsaMap())),
-              currentImage)) {
+              bfmgr.or(prefixFormula, accumImage))) {
         logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
-        finalFixedPoint = fmgr.uninstantiate(currentImage);
+        stats.fixedPointConvergenceLength = stats.numOfInterpolationCalls - initialIMCIter;
+        finalFixedPoint = bfmgr.or(reachVector.getFirst(), fmgr.uninstantiate(accumImage));
         return true;
       }
-      currentImage = bfmgr.or(currentImage, interpolant);
-      interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
+      accumImage = bfmgr.or(accumImage, interpolant);
+      interpolants =
+          itpMgr.interpolate(ImmutableList.of(interpolant, loops.getFirst(), suffixFormula));
     }
     logger.log(
         Level.FINE,
         "Attempted to compute fixed point with",
-        stats.numOfIMCInnerIterations - initialIMCIter,
+        stats.numOfInterpolationCalls - initialIMCIter,
         "IMC inner iterations but did not succeed");
-    loopBoundMgr.adjustLoopBoundIncrementValues(stats.numOfIMCInnerIterations - initialIMCIter);
+    loopBoundMgr.adjustLoopBoundIncrementValues(stats.numOfInterpolationCalls - initialIMCIter);
     return false;
   }
 
@@ -956,12 +1011,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Extracting interpolation-sequence");
     ImmutableList<BooleanFormula> formulasToPush =
         new ImmutableList.Builder<BooleanFormula>()
-            .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().get(0)))
-            .addAll(pFormulas.getLoopFormulas().subList(1, pFormulas.getNumLoops()))
+            .add(pFormulas.getPrefixFormula())
+            .addAll(pFormulas.getLoopFormulas().subList(0, pFormulas.getNumLoops()))
             .add(pFormulas.getAssertionFormula())
             .build();
     ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
+    stats.numOfInterpolationCalls += 1;
+    stats.numOfInterpolants += itpSequence.size();
+    InterpolationHelper.recordInterpolantStats(fmgr, itpSequence, stats);
     return itpSequence;
   }
 
@@ -980,9 +1038,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       reachVector.add(bfmgr.makeTrue());
     }
     assert reachVector.size() == itpSequence.size();
-    for (int i = 0; i < reachVector.size(); ++i) {
-      BooleanFormula image = reachVector.get(i);
-      BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
+    final int startIdx = isPrefixItpPrecise ? 1 : 0;
+    for (int i = startIdx; i < reachVector.size(); ++i) {
+      final BooleanFormula image = reachVector.get(i);
+      final BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
       reachVector.set(i, bfmgr.and(image, itp));
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
@@ -1015,7 +1074,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     if (impactLikeCovering) {
-      BooleanFormula lastImage = reachVector.get(reachVector.size() - 1);
+      BooleanFormula lastImage = reachVector.getLast();
       for (int i = 0; i < reachVector.size() - 1; ++i) {
         BooleanFormula imageAtI = reachVector.get(i);
         if (solver.implies(lastImage, imageAtI)) {
@@ -1025,13 +1084,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
     } else {
-      BooleanFormula currentImage = reachVector.get(0);
-      for (int i = 1; i < reachVector.size(); ++i) {
+      BooleanFormula currentImage = reachVector.get(1);
+      for (int i = 2; i < reachVector.size(); ++i) {
         BooleanFormula imageAtI = reachVector.get(i);
         // Step 1: regular ISMC check
         if (solver.implies(imageAtI, currentImage)) {
           logger.log(Level.INFO, "Fixed point reached");
-          finalFixedPoint = currentImage;
+          finalFixedPoint = bfmgr.or(currentImage, reachVector.getFirst());
+          stats.fixedPointConvergenceLength = reachVector.size();
           return true;
         }
         // Step 2: ISMC check strengthened by external invariant
@@ -1039,7 +1099,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             && isLoopInvInductive
             && solver.implies(bfmgr.and(imageAtI, loopInv), currentImage)) {
           logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
-          finalFixedPoint = currentImage;
+          finalFixedPoint = bfmgr.or(currentImage, reachVector.getFirst());
+          stats.fixedPointConvergenceLength = reachVector.size();
           return true;
         }
         currentImage = bfmgr.or(currentImage, imageAtI);

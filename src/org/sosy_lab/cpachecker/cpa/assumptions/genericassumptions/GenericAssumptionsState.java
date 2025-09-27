@@ -37,11 +37,7 @@ public class GenericAssumptionsState implements AbstractState, AssumptionReporti
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj instanceof GenericAssumptionsState) {
-      return assumptions.equals(((GenericAssumptionsState) pObj).assumptions);
-    } else {
-      return false;
-    }
+    return pObj instanceof GenericAssumptionsState other && assumptions.equals(other.assumptions);
   }
 
   @Override

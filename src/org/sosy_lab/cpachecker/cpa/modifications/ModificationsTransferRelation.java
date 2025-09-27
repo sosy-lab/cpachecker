@@ -112,8 +112,8 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
       // only new declarations are added and existing declarations are deleted
       if (ignoreDeclarations) {
 
-        if (pEdgeInGiven instanceof CDeclarationEdge) {
-          if (!declarationNameAlreadyExistsInOtherCFA(true, (CDeclarationEdge) pEdgeInGiven)) {
+        if (pEdgeInGiven instanceof CDeclarationEdge cDeclarationEdge) {
+          if (!declarationNameAlreadyExistsInOtherCFA(true, cDeclarationEdge)) {
             return Optional.of(
                 new ModificationsState(pEdgeInGiven.getSuccessor(), originalEdge.getPredecessor()));
           }
@@ -164,16 +164,14 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private boolean successorsMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
-    CFANode givenSuccessor = pEdgeInGiven.getSuccessor(),
-        originalSuccessor = pEdgeInOriginal.getSuccessor();
+    CFANode givenSuccessor = pEdgeInGiven.getSuccessor();
+    CFANode originalSuccessor = pEdgeInOriginal.getSuccessor();
     if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       nextEdge:
       for (CFAEdge enterBeforeCall :
-          CFAUtils.enteringEdges(
-              ((FunctionReturnEdge) pEdgeInGiven).getSummaryEdge().getPredecessor())) {
+          CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInGiven).getCallNode())) {
         for (CFAEdge enterOriginalBeforeCAll :
-            CFAUtils.enteringEdges(
-                ((FunctionReturnEdge) pEdgeInOriginal).getSummaryEdge().getPredecessor())) {
+            CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInOriginal).getCallNode())) {
           if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
             continue nextEdge;
           }

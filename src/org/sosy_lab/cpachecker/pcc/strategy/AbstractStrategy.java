@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.MustBeClosed;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.NotSerializableException;
@@ -88,11 +87,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   }
 
   @Override
-  @SuppressFBWarnings(
-      value = "OS_OPEN_STREAM",
-      justification =
-          "Do not close stream o because it wraps stream zos/fos which need to remain open and"
-              + " would be closed if o.close() is called.")
   public void writeProof(UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
 
     Path dir = proofFile.getParent();
@@ -123,7 +117,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           ze = new ZipEntry(ADDITIONAL_PROOFINFO_ZIPENTRY_NAME + index);
           zos.putNextEntry(ze);
           o = new ObjectOutputStream(zos);
+
           continueWriting = writeAdditionalProofStream(o);
+
           o.flush();
           zos.closeEntry();
           index++;
@@ -135,10 +131,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           o = new ObjectOutputStream(zos);
           try {
             writeConfiguration(o);
-          } catch (ValidationConfigurationConstructionFailed eIC) {
+          } catch (ValidationConfigurationConstructionFailed e) {
             logger.logUserException(
                 Level.WARNING,
-                eIC,
+                e,
                 "Construction of validation configuration failed. Validation configuration is"
                     + " empty.");
           }
@@ -146,10 +142,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           o.flush();
           zos.closeEntry();
         }
-      } catch (NotSerializableException eS) {
+      } catch (NotSerializableException e) {
         logger.logUserException(
             Level.SEVERE,
-            eS,
+            e,
             "Proof cannot be written. Class does not implement Serializable interface");
       } catch (InvalidConfigurationException e) {
         logger.logUserException(

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition;
 
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -92,17 +91,19 @@ public class FinalAssumeEdgesOnSameLinePostConditionComposer implements PostCond
       throw new AssertionError(
           "Cannot extract post-condition from counterexample: " + pCounterexample);
     }
-    postConditionEdges = Lists.reverse(postConditionEdges);
-    postConditionEdges.forEach(
-        edge ->
-            context
-                .getLogger()
-                .log(
-                    Level.FINEST,
-                    "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
+    postConditionEdges = postConditionEdges.reversed();
+    if (context.getLogger().wouldBeLogged(Level.FINEST)) {
+      postConditionEdges.forEach(
+          edge ->
+              context
+                  .getLogger()
+                  .log(
+                      Level.FINEST,
+                      "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
+    }
     return new PostCondition(
         postConditionEdges,
-        Lists.reverse(irrelevant),
+        irrelevant.reversed(),
         pCounterexample.subList(0, i + 1),
         PostConditionComposer.postConditionFromList(context, postConditionEdges));
   }

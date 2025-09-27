@@ -57,7 +57,7 @@ def init(config, benchmark):
         return
 
     if not config.revision:
-        config.revision = "trunk:HEAD"
+        config.revision = "main:HEAD"
 
     _webclient = WebInterface(
         config.cloudMaster,
@@ -70,7 +70,7 @@ def init(config, benchmark):
     )
 
     benchmark.tool_version = _webclient.tool_revision()
-    benchmark.executable = "scripts/cpa.sh"
+    benchmark.executable = "bin/cpachecker"
 
 
 def get_system_info():
@@ -190,19 +190,11 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
 
             except HTTPError as e:
                 output_handler.set_error("VerifierCloud problem", runSet)
-                body = getattr(e.request, "body", None)
-                if body:
-                    raise WebClientError(
-                        'Could not submit run {}, got error "{}" for request with body "{}"'.format(
-                            run.identifier, e, body[:200]
-                        )
+                raise WebClientError(
+                    'Could not submit run {}, got error "{}"'.format(
+                        run.identifier, e.strerror
                     )
-                else:
-                    raise WebClientError(
-                        'Could not submit run {}, got error "{}"'.format(
-                            run.identifier, e
-                        )
-                    )
+                )
 
             finally:
                 submissonCounter += 1

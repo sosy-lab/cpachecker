@@ -133,7 +133,8 @@ public class ProverEnvironmentWithFallback
     ensureInitialized();
     if (supportsInterpolation()) {
       try {
-        return isUnsat = interpolatingProverEnvironment.isUnsat();
+        isUnsat = interpolatingProverEnvironment.isUnsat();
+        return isUnsat;
       } catch (SolverException solverException) {
         interpolatingProverEnvironment.close();
         interpolatingProverEnvironment = null;
@@ -151,7 +152,8 @@ public class ProverEnvironmentWithFallback
       }
     }
     try {
-      return isUnsat = proverEnvironment.isUnsat();
+      isUnsat = proverEnvironment.isUnsat();
+      return isUnsat;
     } catch (SolverException solverException) {
       if (!supportsUnsatCoreGeneration()) {
         throw solverException;
@@ -257,7 +259,7 @@ public class ProverEnvironmentWithFallback
   }
 
   @Override
-  public void push() {
+  public void push() throws InterruptedException {
     ensureInitialized();
     if (supportsInterpolation()) {
       interpolatingProverEnvironment.push();

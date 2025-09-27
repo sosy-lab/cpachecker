@@ -39,7 +39,7 @@ public abstract class SimplePrecisionAdjustment implements PrecisionAdjustment {
 
     Action action = prec(pState, pPrecision);
 
-    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, action));
+    return Optional.of(new PrecisionAdjustmentResult(pState, pPrecision, action));
   }
 
   public abstract Action prec(AbstractState pState, Precision pPrecision) throws CPAException;

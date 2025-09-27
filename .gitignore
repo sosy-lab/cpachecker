@@ -14,8 +14,9 @@ __pycache__
 a.out
 
 # /
-/bin
+/bin/org
 /build.properties
+/classes
 /output
 /Checkstyle.html
 /Checkstyle.xml
@@ -25,6 +26,7 @@ a.out
 /cpachecker.jar
 /CPAchecker-*.zip
 /CPAchecker-*.tar.*
+/error-prone.patch
 /SpotBugs.html
 /SpotBugs.xml
 /SpotBugs.diff.html
@@ -69,7 +71,9 @@ src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLSymbols.java
 
 # /test/programs/
 /test/programs/benchmarks
+/test/programs/java-benchmarks
 /test/programs/ldv-benchmarks
+/test/programs/ldv-klever-benchmarks
 
 # /test/results/
 /test/results/*
@@ -81,6 +85,12 @@ src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLSymbols.java
 .idea/findbugs-idea.xml
 .idea/junitgenerator-prj-settings.xml
 .idea/vcs.xml
+.idea/ktfmt.xml
 
 /src/org/sosy_lab/cpachecker/core/counterexample/build_tmp/*
 node_modules/
+/.idea/sonarlint.xml
+/.idea/sonarlint/
+
+contrib/worker-visualization/venv/
+contrib/worker-visualization/.idea

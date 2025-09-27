@@ -67,7 +67,7 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
 
     throw new UnsupportedOperationException(
-        "ARGCPA needs to be used as the outer-most CPA,"
+        "ARGCPA needs to be used as the outermost CPA,"
             + " thus it does not support returning successors for a single edge.");
   }
 
@@ -78,8 +78,8 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
       return pType.cast(this);
     } else if (pType.isAssignableFrom(transferRelation.getClass())) {
       return pType.cast(transferRelation);
-    } else if (transferRelation instanceof WrapperTransferRelation) {
-      return ((WrapperTransferRelation) transferRelation).retrieveWrappedTransferRelation(pType);
+    } else if (transferRelation instanceof WrapperTransferRelation wrapperTransferRelation) {
+      return wrapperTransferRelation.retrieveWrappedTransferRelation(pType);
     } else {
       return null;
     }

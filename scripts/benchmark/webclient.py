@@ -107,6 +107,14 @@ class UserAbortError(Exception):
         return repr(self.value)
 
 
+class CommandLineArgumentError(Exception):
+    def _init_(self, value):
+        self.value = value
+
+    def _str_(self):
+        return repr(self.value)
+
+
 class PollingResultDownloader:
     def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
         self._unfinished_runs = set()
@@ -122,7 +130,6 @@ class PollingResultDownloader:
         self._shutdown = threading.Event()
 
     def _poll_run_states(self):
-
         # in every iteration the states of all unfinished runs are requested once
         while not self._shutdown.is_set():
             start = time()
@@ -137,7 +144,6 @@ class PollingResultDownloader:
 
             # Collect states of runs
             for state_future in as_completed(states.keys()):
-
                 run_id = states[state_future]
                 state = state_future.result()
 
@@ -174,7 +180,7 @@ if HAS_SSECLIENT:
             last_id=None,
             retry=3000,
             session=None,
-            **kwargs
+            **kwargs,
         ):
             super().__init__(url, last_id, retry, session, **kwargs)
             self._should_reconnect = should_reconnect
@@ -227,11 +233,9 @@ if HAS_SSECLIENT:
                 logging.debug("Exception in SSE connection: %s", error)
                 return False
             else:
-
                 return True
 
         def _start_sse_connection(self):
-
             while self._new_runs:
                 run_ids = set(self._web_interface._unfinished_runs.keys())
                 self._new_runs = False
@@ -343,14 +347,14 @@ class RunResultFuture(Future):
 
 class WebInterface:
     """
-    The WebInterface is a executor like class for the submission of runs to the VerifierCloud
+    The WebInterface is an executor like class for the submission of runs to the VerifierCloud
     """
 
     def __init__(
         self,
         web_interface_url,
         user_pwd,
-        revision="trunk:HEAD",
+        revision="main:HEAD",
         thread_count=1,
         result_poll_interval=2,
         user_agent=None,
@@ -361,7 +365,7 @@ class WebInterface:
         The given svn revision is resolved (e.g. 'HEAD' -> 17495).
         @param web_interface_url: the base URL of the VerifierCloud's web interface
         @param user_pwd: user name (and password) in the format '<user_name>[:<password>]' or none if no authentification is required
-        @param revision: the svn revision string, defaults to 'trunk:HEAD'
+        @param revision: the svn revision string, defaults to 'main:HEAD'
         @param thread_count: the number of threads for fetching results in parallel
         @param result_poll_interval: the number of seconds to wait between polling results
         """
@@ -476,12 +480,21 @@ class WebInterface:
         directory = os.path.dirname(HASH_CODE_CACHE_PATH)
         try:
             os.makedirs(directory, exist_ok=True)
-            with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
-                for (path, mTime), hashValue in hash_code_cache.items():
-                    line = path + "\t" + mTime + "\t" + hashValue + "\n"
-                    tmpFile.write(line.encode())
+            try:
+                with tempfile.NamedTemporaryFile(
+                    dir=directory, delete=False
+                ) as tmpFile:
+                    for (path, mTime), hashValue in hash_code_cache.items():
+                        line = path + "\t" + mTime + "\t" + hashValue + "\n"
+                        tmpFile.write(line.encode())
 
-                os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
+                os.replace(tmpFile.name, HASH_CODE_CACHE_PATH)
+            except OSError:
+                try:
+                    os.remove(tmpFile.name)
+                except OSError:
+                    pass
+                raise
         except OSError as e:
             logging.warning(
                 "Could not write hash-code cache file to %s: %s",
@@ -606,6 +619,7 @@ class WebInterface:
         @param required_files: list of additional file required to execute the run (optional)
         @raise WebClientError: if the HTTP request could not be created
         @raise UserAbortError: if the user already requested shutdown on this instance
+        @raise CommandLineArgumentError: if no source files are provided by the user
         @raise HTTPError: if the HTTP request was not successful
         """
         if not self.active:
@@ -617,6 +631,8 @@ class WebInterface:
                     "at the same time."
                 )
             result_files_patterns = [result_files_pattern]
+        if not run.sourcefiles:
+            raise CommandLineArgumentError("No source files are provided.")
 
         return self._submit(
             run,
@@ -643,7 +659,6 @@ class WebInterface:
         revision,
         counter=0,
     ):
-
         params = []
         opened_files = []  # open file handles are passed to the request library
 
@@ -791,7 +806,7 @@ class WebInterface:
         opened_files = []
         config = None
 
-        # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
+        # TODO use code from CPAchecker module, it add --stats and sets --timelimit,
         # instead of doing it here manually, too
         if self._tool_name == "CPAchecker":
             params.append(("option", "statistics.print=true"))
@@ -828,36 +843,39 @@ class WebInterface:
                     if len(option) == 0:
                         continue
 
-                    if option == "-heap":
+                    if option in ["--heap", "-heap"]:
                         params.append(("heap", next(i)))
-                    elif option == "-stack":
+                    elif option in ["--stack", "-stack"]:
                         params.append(("stack", next(i)))
 
-                    elif option == "-noout":
+                    elif option in ["--no-output-files", "-noout"]:
                         params.append(("option", "output.disable=true"))
-                    elif option == "-outputpath":
+                    elif option in ["--output-path", "-outputpath"]:
                         params.append(("option", "output.path=" + next(i)))
                     elif option == "-logfile":
                         params.append(("option", "log.file=" + next(i)))
                     elif option == "-nolog":
                         params.append(("option", "log.level=OFF"))
                         params.append(("option", "log.consoleLevel=OFF"))
-                    elif option == "-stats":
+                    elif option in ["--stats", "-stats"]:
                         # ignore, is always set by this script
                         pass
-                    elif option == "-disable-java-assertions":
+                    elif option in [
+                        "--disable-java-assertions",
+                        "-disable-java-assertions",
+                    ]:
                         disableAssertions = True
-                    elif option == "-java":
+                    elif option in ["--java", "-java"]:
                         params.append(("option", "language=JAVA"))
-                    elif option == "-32":
+                    elif option in ["--32", "-32"]:
                         params.append(("option", "analysis.machineModel=Linux32"))
-                    elif option == "-64":
+                    elif option in ["--64", "-64"]:
                         params.append(("option", "analysis.machineModel=Linux64"))
-                    elif option == "-entryfunction":
+                    elif option in ["--entry-function", "-entryfunction"]:
                         params.append(("option", "analysis.entryFunction=" + next(i)))
-                    elif option == "-timelimit":
+                    elif option in ["--timelimit", "-timelimit"]:
                         params.append(("option", "limits.time.cpu=" + next(i)))
-                    elif option == "-skipRecursion":
+                    elif option in ["--skip-recursion", "-skipRecursion"]:
                         params.append(("option", "cpa.callstack.skipRecursion=true"))
                         params.append(("option", "analysis.summaryEdges=true"))
                     elif option == "-cbmc":
@@ -865,23 +883,23 @@ class WebInterface:
                         params.append(("option", "counterexample.checker=CBMC"))
                     elif option == "-clang":
                         params.append(("option", "parser.useClang=true"))
-                    elif option == "-preprocess":
+                    elif option in ["--preprocess", "-preprocess"]:
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":
                         params.append(("generateReport", "true"))
-                    elif option == "-sourcepath":
+                    elif option in ["--source-path", "-sourcepath"]:
                         params.append(("option", "java.sourcepath=" + next(i)))
-                    elif option in ["-cp", "-classpath"]:
+                    elif option in ["--class-path", "-cp", "-classpath"]:
                         params.append(("option", "java.classpath=" + next(i)))
 
-                    elif option == "-spec":
+                    elif option in ["--spec", "-spec"]:
                         spec_path = next(i)
                         spec_file = self._add_file_to_params(
                             params, "specificationText", spec_path
                         )
                         opened_files.append(spec_file)
 
-                    elif option == "-config":
+                    elif option in ["--config", "-c", "-config"]:
                         configPath = next(i)
                         tokens = configPath.split("/")
                         if tokens[0] == "config" and len(tokens) == 2:
@@ -892,14 +910,24 @@ class WebInterface:
                                 ("option", "configuration.file=" + configPath)
                             )
 
-                    elif option == "-setprop":
+                    elif option in ["--option", "-setprop"]:
                         params.append(("option", next(i)))
 
-                    elif option == "-benchmark":
-                        params.append(("option", "coverage.enabled=true"))
+                    elif option in ["--benchmark", "-benchmark"]:
+                        params.append(("option", "coverage.enabled=false"))
                         params.append(("option", "output.disable=true"))
                         params.append(("option", "statistics.memory=false"))
                         disableAssertions = True
+
+                    elif option in ["--witness", "-witness"]:
+                        witness_path = next(i)
+
+                        # upload witness file
+                        witness_file = self._add_file_to_params(
+                            params, "witnessText", witness_path
+                        )
+                        opened_files.append(witness_file)
+
                     elif option[0] == "-":
                         if config:
                             raise WebClientError(
@@ -908,8 +936,11 @@ class WebInterface:
                                 )
                             )
                         else:
-                            params.append(("configuration", option[1:]))
-                            config = option[1:]
+                            if option[1] == "-":
+                                config = option[2:]
+                            else:
+                                config = option[1:]
+                            params.append(("configuration", config))
                     else:
                         return (option, opened_files)
 
@@ -1141,7 +1172,13 @@ class WebInterface:
 
             else:
                 if response.status_code == 401:
-                    message = "Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary."
+                    message = "Permission denied. "
+                    if not self._connection.auth and not user_pwd:
+                        message += (
+                            "Please specify the user information using --cloudUser."
+                        )
+                    else:
+                        message += "Please check the given username and password."
 
                 elif response.status_code == 404:
                     message = "Not found. Please check the URL given to --cloudMaster."
@@ -1158,7 +1195,7 @@ class WebInterface:
                 # HTTPError.request is automatically filled with response.request so no need to pass it.
                 # Also HTTPError extends IOError, so there is a constructor IOError(errno, strerror, filename)
                 raise requests.HTTPError(
-                    response.status_code, message, path, response=response
+                    response.status_code, message, response=response
                 )
 
 
@@ -1268,7 +1305,6 @@ def _handle_result(
     result_files_patterns,
     run_identifier,
 ):
-
     files = set(resultZipFile.namelist())
 
     # extract run info

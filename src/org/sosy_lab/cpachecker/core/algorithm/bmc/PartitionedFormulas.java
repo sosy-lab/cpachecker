@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -33,8 +32,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  * formulas.
  *
  * <ul>
- *   <li>{@link PartitionedFormulas#prefixFormula} (I): the block formula from root to the first
- *       loop head.
+ *   <li>{@link PartitionedFormulas#prefixFormula} (*I): the block formula from root to the first
+ *       loop head along with its SSA indices {@link PartitionedFormulas#prefixSsaMap}.
  *   <li>{@link PartitionedFormulas#loopFormulas} (T1, T2, ..., Tn): the block formulas between each
  *       consecutive pair of loop heads.
  *   <li>{@link PartitionedFormulas#targetAssertion} (&not;P): the block formula from the last to
@@ -48,71 +47,79 @@ class PartitionedFormulas {
       "The partitioned formulas have not been initialized yet, #collectFormulasFromARG must be"
           + " called beforehand.";
 
-  private final PathFormulaManager pfmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final LogManager logger;
   private final boolean assertAllTargets;
+  private final boolean swapPrefixAndTarget;
 
   private boolean isInitialized;
-  private PathFormula prefixFormula;
-  private ImmutableList<PathFormula> loopFormulas;
+  private BooleanFormula prefixFormula;
+  private SSAMap prefixSsaMap;
+  private ImmutableList<BooleanFormula> loopFormulas;
+  private ImmutableList<SSAMap> loopFormulaSsaMaps;
   private BooleanFormula targetAssertion;
 
   PartitionedFormulas(
-      PathFormulaManager pfmgr,
       BooleanFormulaManagerView bfmgr,
       LogManager logger,
-      boolean assertAllTargets) {
-    this.pfmgr = pfmgr;
+      boolean assertAllTargets,
+      boolean swapPrefixAndTarget) {
     this.bfmgr = bfmgr;
     this.logger = logger;
     this.assertAllTargets = assertAllTargets;
+    this.swapPrefixAndTarget = swapPrefixAndTarget;
 
     isInitialized = false;
-    prefixFormula = InterpolationHelper.makeFalsePathFormula(pfmgr, bfmgr);
+    prefixFormula = bfmgr.makeFalse();
+    prefixSsaMap = SSAMap.emptySSAMap();
     loopFormulas = ImmutableList.of();
+    loopFormulaSsaMaps = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
+  }
+
+  static PartitionedFormulas createForwardPartitionedFormulas(
+      BooleanFormulaManagerView bfmgr, LogManager logger, boolean assertAllTargets) {
+    return new PartitionedFormulas(bfmgr, logger, assertAllTargets, false);
+  }
+
+  static PartitionedFormulas createBackwardPartitionedFormulas(
+      BooleanFormulaManagerView bfmgr, LogManager logger) {
+    return new PartitionedFormulas(bfmgr, logger, false, true);
   }
 
   /** Return the number of stored loop formulas. */
   int getNumLoops() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     return loopFormulas.size();
   }
 
   /** Return the SSA map of the prefix path formula. */
   SSAMap getPrefixSsaMap() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
-    return prefixFormula.getSsa();
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
+    return prefixSsaMap;
   }
 
   /** Return the prefix formula (I) that describes the initial state set. */
   BooleanFormula getPrefixFormula() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
-    return prefixFormula.getFormula();
-  }
-
-  /** Return the SSA map of the specified loop. */
-  SSAMap getSsaMapOfLoop(int loopIdx) {
-    checkState(isInitialized, UNINITIALIZED_MSG);
-    return loopFormulas.get(loopIdx).getSsa();
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
+    return prefixFormula;
   }
 
   /** Return the collected loop formulas (T1, T2, ..., Tn). */
-  ImmutableList<BooleanFormula> getLoopFormulas() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
-    return transformedImmutableListCopy(loopFormulas, PathFormula::getFormula);
+  List<BooleanFormula> getLoopFormulas() {
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
+    return loopFormulas;
   }
 
-  /** Return the collected loop formulas (T1, T2, ..., Tn). */
-  BooleanFormula getLoopFormula(int loopIndex) {
-    checkState(isInitialized, UNINITIALIZED_MSG);
-    return loopFormulas.get(loopIndex).getFormula();
+  /** Return the SSA maps of collected loop formulas (T1, T2, ..., Tn). */
+  List<SSAMap> getLoopFormulaSsaMaps() {
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
+    return loopFormulaSsaMaps;
   }
 
   /** Return the target assertion formula (&not;P). */
   BooleanFormula getAssertionFormula() {
-    checkState(isInitialized, UNINITIALIZED_MSG);
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     return targetAssertion;
   }
 
@@ -133,8 +140,10 @@ class PartitionedFormulas {
         InterpolationHelper.getTargetStatesAfterLoop(reachedSet);
     if (targetStatesAfterLoop.isEmpty()) {
       // no target is reachable, which means the program is safe
-      prefixFormula = InterpolationHelper.makeFalsePathFormula(pfmgr, bfmgr);
-      loopFormulas = ImmutableList.of();
+      prefixFormula = bfmgr.makeFalse();
+      prefixSsaMap = SSAMap.emptySSAMap();
+      loopFormulas = ImmutableList.of(bfmgr.makeFalse());
+      loopFormulaSsaMaps = ImmutableList.of(SSAMap.emptySSAMap());
       targetAssertion = bfmgr.makeFalse();
       return;
     }
@@ -146,14 +155,21 @@ class PartitionedFormulas {
     assert abstractionStates.size() > 3;
 
     // collect prefix formula
-    prefixFormula =
+    PathFormula prefixPathFormula =
         InterpolationHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(1));
+    prefixFormula = prefixPathFormula.getFormula();
+    prefixSsaMap = prefixPathFormula.getSsa();
 
     // collect loop formulas: TR(V_k, V_k+1)
     loopFormulas =
         transformedImmutableListCopy(
             abstractionStates.subList(2, abstractionStates.size() - 1),
-            absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState));
+            absState ->
+                InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
+    loopFormulaSsaMaps =
+        transformedImmutableListCopy(
+            abstractionStates.subList(2, abstractionStates.size() - 1),
+            absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
@@ -166,6 +182,19 @@ class PartitionedFormulas {
     }
 
     assert !loopFormulas.isEmpty();
+
+    if (swapPrefixAndTarget) {
+      BooleanFormula tmp = prefixFormula;
+      prefixFormula = targetAssertion;
+      targetAssertion = tmp;
+      loopFormulas = loopFormulas.reverse();
+      loopFormulaSsaMaps = loopFormulaSsaMaps.reverse();
+      prefixSsaMap =
+          InterpolationHelper.getPredicateAbstractionBlockFormula(
+                  abstractionStates.get(abstractionStates.size() - 2))
+              .getSsa();
+    }
+
     logCollectedFormulas();
   }
 
@@ -201,11 +230,11 @@ class PartitionedFormulas {
    */
   boolean checkRelativeInductivenssOf(Solver solver, BooleanFormula f, BooleanFormula g)
       throws SolverException, InterruptedException {
-    checkState(isInitialized, UNINITIALIZED_MSG);
+    Preconditions.checkState(isInitialized, UNINITIALIZED_MSG);
     FormulaManagerView fmgr = solver.getFormulaManager();
     BooleanFormula currentImage =
         bfmgr.and(fmgr.instantiate(f, getPrefixSsaMap()), fmgr.instantiate(g, getPrefixSsaMap()));
-    BooleanFormula nextImage = fmgr.instantiate(f, getSsaMapOfLoop(0));
-    return solver.implies(bfmgr.and(currentImage, getLoopFormula(0)), nextImage);
+    BooleanFormula nextImage = fmgr.instantiate(f, getLoopFormulaSsaMaps().getFirst());
+    return solver.implies(bfmgr.and(currentImage, getLoopFormulas().getFirst()), nextImage);
   }
 }

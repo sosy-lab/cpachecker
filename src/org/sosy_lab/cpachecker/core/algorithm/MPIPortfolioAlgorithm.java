@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MoreCollectors;
+import com.google.common.collect.Streams;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -37,8 +38,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedMap;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
@@ -108,6 +109,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private final String mpiArgs;
 
+  @SuppressWarnings("AddressSelection") // TODO comment below
   public MPIPortfolioAlgorithm(
       Configuration config,
       LogManager pLogger,
@@ -204,7 +206,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     try (StringWriter stringWriter = new StringWriter()) {
-      Map<String, Object> analysisMap = new LinkedHashMap<>();
+      SequencedMap<String, Object> analysisMap = new LinkedHashMap<>();
 
       for (int i = 0; i < configFiles.size(); i++) {
         SubanalysisConfig subanalysis = subanalyses.get(i);
@@ -219,6 +221,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
         String mainNodeIPAddress = null;
         try {
+          // TODO Prefer InetAddress.getAllByName. This call is not even guaranteed to return an
+          // IPv4 address, but it is used later assuming that it does.
+          // Also, why do we perform a lookup for a host name that is equal to the user name?
+          // This seems like a mistake.
           mainNodeIPAddress =
               InetAddress.getByName(System.getProperty("user.name")).getHostAddress();
         } catch (IOException e) {
@@ -285,7 +291,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   private static Path getPathOrThrowError(String pRequiredBin)
       throws InvalidConfigurationException {
     Optional<Path> pathOpt =
-        Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
+        Streams.stream(Splitter.on(File.pathSeparatorChar).split(System.getenv("PATH")))
             .map(Path::of)
             .filter(path -> Files.exists(path.resolve(pRequiredBin)))
             .findFirst();
@@ -520,7 +526,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       String specPath = Joiner.on(", ").join(specification.getFiles());
 
       /*
-       * Hack to setup the desired config options for the child CPAchecker processes. The idea is to
+       * Hack to set up the desired config options for the child CPAchecker processes. The idea is to
        * keep all (user-)configurations except the ones necessary for running this portfolio
        * analysis.
        *
@@ -544,9 +550,9 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
       // Bring the command-line into a format which is executable by a python-script
       ImmutableList.Builder<String> cmdLineBuilder = ImmutableList.builder();
-      cmdLineBuilder.add("scripts/cpa.sh").add("-config").add(configPath.toString());
+      cmdLineBuilder.add("bin/cpachecker").add("--config").add(configPath.toString());
       for (String opt : Splitter.on('\n').omitEmptyStrings().split(config.asPropertiesString())) {
-        cmdLineBuilder.add("-setprop").add(opt);
+        cmdLineBuilder.add("--option").add(opt);
       }
       cmdLine = cmdLineBuilder.build();
     }

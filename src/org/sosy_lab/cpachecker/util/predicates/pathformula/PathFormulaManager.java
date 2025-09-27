@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.util.List;
@@ -136,11 +135,13 @@ public interface PathFormulaManager {
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
+   * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
    * @return A feasible path through the ARG from root, which conforms to the model.
    */
-  default ARGPath getARGPathFromModel(Model model, ARGState root)
+  default ARGPath getARGPathFromModel(
+      Model model, ARGState root, Predicate<? super ARGState> stateFilter)
       throws CPATransferException, InterruptedException {
-    return getARGPathFromModel(model, root, Predicates.alwaysTrue(), ImmutableMap.of());
+    return getARGPathFromModel(model, root, stateFilter, ImmutableMap.of());
   }
 
   /**

@@ -61,11 +61,10 @@ public class SMGEdgePointsTo extends SMGEdge {
      * different value- > different place
      * same value -> same place
      */
-    if (!(edge instanceof SMGEdgePointsTo)) {
+    if (!(edge instanceof SMGEdgePointsTo other)) {
       return false;
     }
 
-    final SMGEdgePointsTo other = (SMGEdgePointsTo) edge;
     if (value == other.value) {
       return getOffset() == other.getOffset() && object == other.object && tg == other.tg;
     } else {
@@ -84,10 +83,6 @@ public class SMGEdgePointsTo extends SMGEdge {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SMGEdgePointsTo)) {
-      return false;
-    }
-    SMGEdgePointsTo other = (SMGEdgePointsTo) obj;
-    return super.equals(obj) && tg == other.tg;
+    return obj instanceof SMGEdgePointsTo other && super.equals(obj) && tg == other.tg;
   }
 }

@@ -45,6 +45,7 @@ public abstract class AbstractTranslationTest {
 
   /** Compiler executable to use in tests. */
   private static final String COMPILER = "gcc";
+
   /** Compile parameter that tells gcc/clang to not perform linking. */
   private static final String PARAM_NO_LINKING = "-c";
 
@@ -144,7 +145,7 @@ public abstract class AbstractTranslationTest {
 
   private static class CompilerExecutor extends ProcessExecutor<IOException> {
 
-    public CompilerExecutor(LogManager pLogger, String... cmd) throws IOException {
+    CompilerExecutor(LogManager pLogger, String... cmd) throws IOException {
       super(pLogger, IOException.class, cmd);
     }
   }

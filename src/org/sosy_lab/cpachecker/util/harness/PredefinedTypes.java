@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
@@ -73,8 +74,8 @@ public final class PredefinedTypes {
   }
 
   public static Type getCanonicalType(Type pType) {
-    if (pType instanceof CType) {
-      return ((CType) pType).getCanonicalType();
+    if (pType instanceof CType cType) {
+      return cType.getCanonicalType();
     }
     return pType;
   }
@@ -102,7 +103,7 @@ public final class PredefinedTypes {
         CPointerType.POINTER_TO_VOID,
         ImmutableList.of(
             Predicate.isEqual(CPointerType.POINTER_TO_VOID),
-            Predicate.isEqual(new CPointerType(false, false, CVoidType.create(true, false))),
+            Predicate.isEqual(new CPointerType(CTypeQualifiers.NONE, CVoidType.CONST_VOID)),
             PredefinedTypes::isIntegerType));
   }
 
@@ -143,18 +144,14 @@ public final class PredefinedTypes {
         "printf",
         CNumericTypes.INT,
         Collections.singletonList(
-            Predicate.isEqual(
-                new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false)))));
+            Predicate.isEqual(new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR))));
   }
 
   private static boolean isSwprintf(@Nullable AFunctionDeclaration pDeclaration) {
     Predicate<Type> isPointerToIntegral =
         t -> {
           Type type = getCanonicalType(t);
-          if (!(type instanceof CPointerType)) {
-            return false;
-          }
-          return isIntegerType(((CPointerType) type).getType());
+          return type instanceof CPointerType cPointerType && isIntegerType(cPointerType.getType());
         };
     return functionMatchesExactType(
         pDeclaration,
@@ -167,10 +164,7 @@ public final class PredefinedTypes {
     Predicate<Type> isPointerToIntegral =
         t -> {
           Type type = getCanonicalType(t);
-          if (!(type instanceof CPointerType)) {
-            return false;
-          }
-          return isIntegerType(((CPointerType) type).getType());
+          return type instanceof CPointerType cPointerType && isIntegerType(cPointerType.getType());
         };
     return functionMatches(
         pDeclaration,
@@ -229,13 +223,10 @@ public final class PredefinedTypes {
 
   private static boolean isIntegerType(Type pType) {
     Type type = getCanonicalType(pType);
-    if (type instanceof JSimpleType) {
-      return ((JSimpleType) type).getType().isIntegerType();
+    if (type instanceof JSimpleType jSimpleType) {
+      return jSimpleType.isIntegerType();
     }
-    if (type instanceof CSimpleType) {
-      return ((CSimpleType) type).getType().isIntegerType();
-    }
-    return false;
+    return type instanceof CSimpleType cSimpleType && cSimpleType.getType().isIntegerType();
   }
 
   private static boolean functionMatchesExactType(

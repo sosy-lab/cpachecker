@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -162,20 +163,19 @@ public class CBinaryExpressionBuilder {
   public CBinaryExpression negateExpressionAndSimplify(final CExpression expr)
       throws UnrecognizedCodeException {
 
-    if (expr instanceof CBinaryExpression) {
-      final CBinaryExpression binExpr = (CBinaryExpression) expr;
+    if (expr instanceof CBinaryExpression binExpr) {
       BinaryOperator binOp = binExpr.getOperator();
       // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
-      if (binExpr.getOperator().isLogicalOperator()) {
+      // But for floats, this is not possible because comparisons with NaN always yield false.
+      if (binOp.isLogicalOperator() && CTypes.isIntegerType(binExpr.getCalculationType())) {
         BinaryOperator inverseOperator = binOp.getOppositLogicalOperator();
         return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
       }
       // others can be negated using De Morgan's law:
       if (binOp.equals(BinaryOperator.BINARY_AND) || binOp.equals(BinaryOperator.BINARY_OR)) {
-        if (binExpr.getOperand1() instanceof CBinaryExpression
-            && binExpr.getOperand2() instanceof CBinaryExpression) {
-          final CBinaryExpression binExpr1 = (CBinaryExpression) binExpr.getOperand1();
-          final CBinaryExpression binExpr2 = (CBinaryExpression) binExpr.getOperand2();
+        if (binExpr.getOperand1() instanceof CBinaryExpression binExpr1
+            && binExpr.getOperand2() instanceof CBinaryExpression binExpr2) {
+
           if (binExpr1.getOperator().isLogicalOperator()
               && binExpr2.getOperator().isLogicalOperator()) {
             BinaryOperator negatedOperator =
@@ -213,11 +213,10 @@ public class CBinaryExpressionBuilder {
      * shall be an integer constant expression, that has a value representable as an int.
      */
     if (pType instanceof CEnumType
-        || (pType instanceof CElaboratedType
-            && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
+        || (pType instanceof CElaboratedType cElaboratedType
+            && cElaboratedType.getKind() == ComplexTypeKind.ENUM)) {
       return CNumericTypes.SIGNED_INT;
-    } else if (pType instanceof CBitFieldType) {
-      CBitFieldType bitFieldType = (CBitFieldType) pType;
+    } else if (pType instanceof CBitFieldType bitFieldType) {
       CType handledInnerType = handleEnum(bitFieldType.getType());
       if (handledInnerType == bitFieldType.getType()) {
         return pType;
@@ -235,7 +234,7 @@ public class CBinaryExpressionBuilder {
    * @return the wrapped type for all bit-field types, and the type itself otherwise.
    */
   private CType unwrapBitFields(CType pType) {
-    return pType instanceof CBitFieldType ? ((CBitFieldType) pType).getType() : pType;
+    return pType instanceof CBitFieldType cBitFieldType ? cBitFieldType.getType() : pType;
   }
 
   /**
@@ -333,11 +332,10 @@ public class CBinaryExpressionBuilder {
     }
 
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
-    if (pType1 instanceof CSimpleType && pType2 instanceof CSimpleType) {
-      // TODO we need an recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
+    if (pType1 instanceof CSimpleType simpleType1 && pType2 instanceof CSimpleType simpleType2) {
+      // TODO we need a recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
 
-      final CType commonType =
-          getCommonSimpleTypeForBinaryOperation((CSimpleType) pType1, (CSimpleType) pType2);
+      final CType commonType = getCommonSimpleTypeForBinaryOperation(simpleType1, simpleType2);
 
       logger.logf(
           Level.ALL,
@@ -376,12 +374,12 @@ public class CBinaryExpressionBuilder {
       }
 
       // we compare function-pointer and function, so return function-pointer
-      if (pType1 instanceof CPointerType && pType2 instanceof CFunctionType) {
-        if (((CPointerType) pType1).getType() instanceof CFunctionType) {
+      if (pType1 instanceof CPointerType cPointerType && pType2 instanceof CFunctionType) {
+        if (cPointerType.getType() instanceof CFunctionType) {
           return pType1;
         }
-      } else if (pType2 instanceof CPointerType && pType1 instanceof CFunctionType) {
-        if (((CPointerType) pType2).getType() instanceof CFunctionType) {
+      } else if (pType2 instanceof CPointerType cPointerType && pType1 instanceof CFunctionType) {
+        if (cPointerType.getType() instanceof CFunctionType) {
           return pType2;
         }
       }
@@ -436,7 +434,7 @@ public class CBinaryExpressionBuilder {
       final CExpression op2)
       throws UnrecognizedCodeException {
 
-    // if one type is an pointer, return the pointer.
+    // if one type is a pointer, return the pointer.
     if (pType instanceof CPointerType) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCodeException(
@@ -447,14 +445,14 @@ public class CBinaryExpressionBuilder {
     }
 
     // if one type is an array, return the pointer-equivalent to the array-type.
-    if (pType instanceof CArrayType) {
+    if (pType instanceof CArrayType at) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCodeException(
             "Operator " + pBinOperator + " cannot be used with array operand",
             getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
-      final CArrayType at = ((CArrayType) pType);
-      return new CPointerType(at.isConst(), at.isVolatile(), at.getType());
+
+      return new CPointerType(at.getQualifiers(), at.getType());
     }
 
     if (pType instanceof CProblemType) {
@@ -493,10 +491,10 @@ public class CBinaryExpressionBuilder {
      * the other operand is converted, without change of type domain,
      * to a type whose corresponding real type is long double. */
 
-    if (t1.getType() == DOUBLE && t1.isLong()) {
+    if (t1.getType() == DOUBLE && t1.hasLongSpecifier()) {
       return t1;
     }
-    if (t2.getType() == DOUBLE && t2.isLong()) {
+    if (t2.getType() == DOUBLE && t2.hasLongSpecifier()) {
       return t2;
     }
 
@@ -529,19 +527,21 @@ public class CBinaryExpressionBuilder {
       return t2;
     }
 
-    /* Otherwise, the integer promotions are performed on both operands. */
+    // Otherwise, the integer promotions are performed on both operands.
 
     return getLongestIntegerPromotion(t1, t2);
   }
 
   private CSimpleType getLongestIntegerPromotion(CSimpleType t1, CSimpleType t2) {
 
-    assert (t1.getType() != INT || (t1.isUnsigned() ^ t1.isSigned()))
+    assert (t1.getType() != INT || (t1.hasUnsignedSpecifier() ^ t1.hasSignedSpecifier()))
         : "INT must be signed xor unsigned: " + t1;
-    assert (t2.getType() != INT || (t2.isUnsigned() ^ t2.isSigned()))
+    assert (t2.getType() != INT || (t2.hasUnsignedSpecifier() ^ t2.hasSignedSpecifier()))
         : "INT must be signed xor unsigned: " + t2;
-    assert !(t1.isLong() && t1.isLongLong()) : "type cannot be long and longlong: " + t1;
-    assert !(t2.isLong() && t2.isLongLong()) : "type cannot be long and longlong: " + t2;
+    assert !(t1.hasLongSpecifier() && t1.hasLongLongSpecifier())
+        : "type cannot be long and longlong: " + t1;
+    assert !(t2.hasLongSpecifier() && t2.hasLongLongSpecifier())
+        : "type cannot be long and longlong: " + t2;
 
     /* see also:
      * https://www.securecoding.cert.org/confluence/display/seccode/INT02-C.+Understand+integer+conversion+rules
@@ -564,15 +564,15 @@ public class CBinaryExpressionBuilder {
     final int rank1 = getConversionRank(t1);
     final int rank2 = getConversionRank(t2);
 
-    /* If both operands have the same type, then no further conversion is needed. */
+    // If both operands have the same type, then no further conversion is needed.
     //      --> this is implicitly handled with next case
 
     /* Otherwise, if both operands have signed integer types or both have
      * unsigned integer types, the operand with the type of lesser integer
      * conversion rank is converted to the type of the operand with greater rank. */
 
-    if (t1.isUnsigned() == t2.isUnsigned()) {
-      assert t1.isSigned() == t2.isSigned();
+    if (t1.hasUnsignedSpecifier() == t2.hasUnsignedSpecifier()) {
+      assert t1.hasSignedSpecifier() == t2.hasSignedSpecifier();
       return (rank1 > rank2) ? t1 : t2;
     }
 
@@ -584,37 +584,53 @@ public class CBinaryExpressionBuilder {
      * then the operand with signed integer type is converted to the
      * type of the operand with unsigned integer type. */
 
-    if (t1.isUnsigned() && rank1 >= rank2) {
+    if (t1.hasUnsignedSpecifier() && rank1 >= rank2) {
       return t1;
     }
-    if (t2.isUnsigned() && rank2 >= rank1) {
+    if (t2.hasUnsignedSpecifier() && rank2 >= rank1) {
       return t2;
     }
 
     /* Otherwise, if the type of the operand with signed integer type
-     * can represent all of the values of the type of the operand with
+     * can represent all the values of the type of the operand with
      * unsigned integer type, then the operand with unsigned integer type
      * is converted to the type of the operand with signed integer type. */
 
     // a full representation of 'unsigned' as 'signed' needs a bigger bitsize
-    if (t1.isSigned() && size1 > size2) {
+    if (t1.hasSignedSpecifier() && size1 > size2) {
       return t1;
     }
-    if (t2.isSigned() && size2 > size1) {
+    if (t2.hasSignedSpecifier() && size2 > size1) {
       return t2;
     }
 
     /* Otherwise, both operands are converted to the unsigned integer type
      * corresponding to the type of the operand with signed integer type. */
 
-    if (t1.isSigned()) {
+    if (t1.hasSignedSpecifier()) {
       return new CSimpleType(
-          false, false, INT, t1.isLong(), false, false, true, false, false, t1.isLongLong());
+          CTypeQualifiers.NONE,
+          INT,
+          t1.hasLongSpecifier(),
+          false,
+          false,
+          true,
+          false,
+          false,
+          t1.hasLongLongSpecifier());
     }
 
-    if (t2.isSigned()) {
+    if (t2.hasSignedSpecifier()) {
       return new CSimpleType(
-          false, false, INT, t2.isLong(), false, false, true, false, false, t2.isLongLong());
+          CTypeQualifiers.NONE,
+          INT,
+          t2.hasLongSpecifier(),
+          false,
+          false,
+          true,
+          false,
+          false,
+          t2.hasLongLongSpecifier());
     }
 
     throw new AssertionError("unhandled type: " + t1 + " or " + t2);
@@ -626,15 +642,15 @@ public class CBinaryExpressionBuilder {
     CBasicType type = t.getType();
 
     switch (type) {
-      case BOOL:
+      case BOOL -> {
         // The rank of _Bool shall be less than the rank of all other standard integer types.
         return 10;
-
-      case CHAR:
+      }
+      case CHAR -> {
         // The rank of char shall equal the rank of signed char and unsigned char.
         return 20;
-
-      case INT:
+      }
+      case INT -> {
         /* The rank of any unsigned integer type shall equal the rank of the
          * corresponding signed integer type, if any.
          * The rank of long long int shall be greater than the rank of long int,
@@ -642,22 +658,21 @@ public class CBinaryExpressionBuilder {
          * which shall be greater than the rank of short int,
          * which shall be greater than the rank of signed char.
          */
-        if (t.isShort()) {
+        if (t.hasShortSpecifier()) {
           return 30;
         }
-        if (t.isLong()) {
+        if (t.hasLongSpecifier()) {
           return 50;
         }
-        if (t.isLongLong()) {
+        if (t.hasLongLongSpecifier()) {
           return 60;
         }
         return 40;
-
-      case INT128:
+      }
+      case INT128 -> {
         return 70;
-
-      default:
-        throw new AssertionError("unhandled CSimpleType: " + t);
+      }
+      default -> throw new AssertionError("unhandled CSimpleType: " + t);
     }
   }
 

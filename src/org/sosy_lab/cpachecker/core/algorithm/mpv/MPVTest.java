@@ -48,7 +48,7 @@ public class MPVTest {
     "test/config/automata/ldv/rwlock.spc",
     "test/config/automata/ldv/spinlock.spc",
     "test/config/automata/ldv/usblock.spc",
-    "test/config/automata/ldv/rculock.spc"
+    "test/config/automata/ldv/rculock.spc",
   };
 
   /*
@@ -86,7 +86,7 @@ public class MPVTest {
     {"linux_spinlock", "FALSE", "true", "true"},
     {"linux_alloc_usblock", "TRUE", "false", "false"},
     {"linux_rculock", "TRUE", "false", "true"},
-    {"linux_rculockbh", "TRUE", "false", "false"}
+    {"linux_rculockbh", "TRUE", "false", "false"},
   };
 
   /*
@@ -102,7 +102,7 @@ public class MPVTest {
     {"rwlock", "TRUE", "false", "false"},
     {"spinlock", "FALSE", "true", "true"},
     {"usblock", "TRUE", "false", "false"},
-    {"rculock", "TRUE", "false", "true"}
+    {"rculock", "TRUE", "false", "true"},
   };
 
   /*
@@ -119,7 +119,7 @@ public class MPVTest {
     {"linux_spinlock", "FALSE", "true", "true"},
     {"linux_alloc_usblock", "TRUE", "false", "false"},
     {"linux_rculock", "FALSE", "false", "true"},
-    {"linux_rculockbh", "TRUE", "false", "false"}
+    {"linux_rculockbh", "TRUE", "false", "false"},
   };
 
   /*
@@ -136,7 +136,7 @@ public class MPVTest {
     {"linux_spinlock", "FALSE", "true", "true"},
     {"linux_alloc_usblock", "TRUE", "false", "false"},
     {"linux_rculock", "UNKNOWN", "false", "true"},
-    {"linux_rculockbh", "TRUE", "false", "false"}
+    {"linux_rculockbh", "TRUE", "false", "false"},
   };
 
   private static final Pattern PROPERTY_RESULT_PATTERN =

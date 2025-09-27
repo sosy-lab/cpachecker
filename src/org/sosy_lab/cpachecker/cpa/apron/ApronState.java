@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.math.DoubleMath;
 import gmp.Mpfr;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,11 +39,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -57,7 +59,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
  */
 public class ApronState implements AbstractState, Serializable, FormulaReportingState {
 
-  private static final long serialVersionUID = -7953805400649927048L;
+  @Serial private static final long serialVersionUID = -7953805400649927048L;
 
   enum Type {
     INT,
@@ -79,7 +81,11 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   // also top element
   public ApronState(LogManager log, ApronManager manager) {
     apronManager = manager;
-    apronState = new Abstract0(apronManager.getManager(), 0, 0);
+    try {
+      apronState = new Abstract0(apronManager.getManager(), 0, 0);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     logger = log;
     logger.log(Level.FINEST, "initial apron state");
 
@@ -124,15 +130,22 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   @Override
   public boolean equals(Object pObj) {
     // TODO loopstack
-    if (!(pObj instanceof ApronState)) {
+    if (!(pObj instanceof ApronState otherApron)) {
       return false;
     }
-    ApronState otherApron = (ApronState) pObj;
+
     logger.log(Level.FINEST, "apron state: isEqual");
-    return Objects.equals(integerToIndexMap, otherApron.integerToIndexMap)
-        && Objects.equals(realToIndexMap, otherApron.realToIndexMap)
-        && apronState.isEqual(apronManager.getManager(), otherApron.apronState)
-        && isLoopHead == otherApron.isLoopHead;
+    boolean result;
+    try {
+      result =
+          Objects.equals(integerToIndexMap, otherApron.integerToIndexMap)
+              && Objects.equals(realToIndexMap, otherApron.realToIndexMap)
+              && apronState.isEqual(apronManager.getManager(), otherApron.apronState)
+              && isLoopHead == otherApron.isLoopHead;
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
+    return result;
   }
 
   @Override
@@ -153,8 +166,14 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
 
     if (Objects.equals(integerToIndexMap, state.integerToIndexMap)
         && Objects.equals(realToIndexMap, state.realToIndexMap)) {
+      boolean isIncluded;
       logger.log(Level.FINEST, "apron state: isIncluded");
-      return apronState.isIncluded(apronManager.getManager(), state.apronState);
+      try {
+        isIncluded = apronState.isIncluded(apronManager.getManager(), state.apronState);
+      } catch (apron.ApronException e) {
+        throw new RuntimeException("An error occured while operating with the apron library", e);
+      }
+      return isIncluded;
     } else {
       logger.log(
           Level.FINEST,
@@ -164,7 +183,13 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       if (integerToIndexMap.containsAll(state.integerToIndexMap)
           && realToIndexMap.containsAll(state.realToIndexMap)) {
         logger.log(Level.FINEST, "apron state: isIncluded");
-        return forgetVars(state).isIncluded(apronManager.getManager(), state.apronState);
+        boolean isIncluded;
+        try {
+          isIncluded = forgetVars(state).isIncluded(apronManager.getManager(), state.apronState);
+        } catch (apron.ApronException e) {
+          throw new RuntimeException("An error occured while operating with the apron library", e);
+        }
+        return isIncluded;
       } else {
         return false;
       }
@@ -203,10 +228,16 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       }
       indexThis++;
     }
-
-    return apronState.removeDimensionsCopy(
-        apronManager.getManager(),
-        new Dimchange(amountInts, removeDim.length - amountInts, removeDim));
+    Abstract0 newApronState;
+    try {
+      newApronState =
+          apronState.removeDimensionsCopy(
+              apronManager.getManager(),
+              new Dimchange(amountInts, removeDim.length - amountInts, removeDim));
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
+    return newApronState;
   }
 
   /**
@@ -257,9 +288,16 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
           Level.FINEST,
           "apron state: removeDimensionCopy: "
               + new Dimchange(amountInts, amountReals, placesRemoved));
-      Abstract0 newApronState1 =
-          apronState.removeDimensionsCopy(
-              apronManager.getManager(), new Dimchange(amountInts, amountReals, placesRemoved));
+
+      Abstract0 newApronState1;
+      try {
+        newApronState1 =
+            apronState.removeDimensionsCopy(
+                apronManager.getManager(), new Dimchange(amountInts, amountReals, placesRemoved));
+      } catch (apron.ApronException e) {
+        throw new RuntimeException("An error occured while operating with the apron library", e);
+      }
+
       newState1 =
           new ApronState(
               newApronState1,
@@ -298,10 +336,17 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
           Level.FINEST,
           "apron state: removeDimensionCopy: "
               + new Dimchange(amountInts, amountReals, placesRemoved));
-      Abstract0 newApronState2 =
-          oldState.apronState.removeDimensionsCopy(
-              oldState.apronManager.getManager(),
-              new Dimchange(amountInts, amountReals, placesRemoved));
+
+      Abstract0 newApronState2;
+      try {
+        newApronState2 =
+            oldState.apronState.removeDimensionsCopy(
+                oldState.apronManager.getManager(),
+                new Dimchange(amountInts, amountReals, placesRemoved));
+      } catch (apron.ApronException e) {
+        throw new RuntimeException("An error occured while operating with the apron library", e);
+      }
+
       newState2 =
           new ApronState(
               newApronState2,
@@ -326,7 +371,13 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
 
   public boolean satisfies(Tcons0 cons) {
     logger.log(Level.FINEST, "apron state: satisfy: " + cons);
-    return apronState.satisfy(apronManager.getManager(), cons);
+    boolean satisfies;
+    try {
+      satisfies = apronState.satisfy(apronManager.getManager(), cons);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
+    return satisfies;
   }
 
   public Abstract0 getApronNativeState() {
@@ -355,7 +406,13 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
 
   public boolean isEmpty() {
     logger.log(Level.FINEST, "apron state: isBottom");
-    return apronState.isBottom(apronManager.getManager());
+    boolean isEmpty;
+    try {
+      isEmpty = apronState.isBottom(apronManager.getManager());
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
+    return isEmpty;
   }
 
   /** This method sets the coefficients/ the value of a variable to undefined. */
@@ -366,8 +423,14 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       return this;
     }
     logger.log(Level.FINEST, "apron state: forgetCopy: " + pVariableName);
+    Abstract0 newApronState;
+    try {
+      newApronState = apronState.forgetCopy(apronManager.getManager(), varIdx, false);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     return new ApronState(
-        apronState.forgetCopy(apronManager.getManager(), varIdx, false),
+        newApronState,
         apronManager,
         new ArrayList<>(integerToIndexMap),
         new ArrayList<>(realToIndexMap),
@@ -425,9 +488,15 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     }
 
     logger.log(Level.FINEST, "apron state: addDimensionCopy: " + varName + " " + dimch);
+    Abstract0 newApronState;
+    try {
+      newApronState = apronState.addDimensionsCopy(apronManager.getManager(), dimch, false);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     ApronState newState =
         new ApronState(
-            apronState.addDimensionsCopy(apronManager.getManager(), dimch, false),
+            newApronState,
             apronManager,
             new ArrayList<>(integerToIndexMap),
             new ArrayList<>(realToIndexMap),
@@ -450,8 +519,15 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     }
     if (assignment != null) {
       logger.log(Level.FINEST, "apron state: assignCopy: " + leftVarName + " = " + assignment);
+      Abstract0 newApronState;
+      try {
+        newApronState =
+            apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null);
+      } catch (apron.ApronException e) {
+        throw new RuntimeException("An error occured while operating with the apron library", e);
+      }
       return new ApronState(
-          apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null),
+          newApronState,
           apronManager,
           integerToIndexMap,
           realToIndexMap,
@@ -474,8 +550,12 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     }
     if (assignment != null) {
       logger.log(Level.FINEST, "apron state: assignCopy: " + leftVarName + " = " + assignment);
-      Abstract0 retState =
-          apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null);
+      Abstract0 retState;
+      try {
+        retState = apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null);
+      } catch (apron.ApronException e) {
+        throw new RuntimeException("An error occured while operating with the apron library", e);
+      }
 
       if (retState == null) {
         logger.log(
@@ -500,8 +580,14 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
 
   public ApronState addConstraint(Lincons0 constraint) {
     logger.log(Level.FINEST, "apron state: meetCopy: " + constraint);
+    Abstract0 newApronState;
+    try {
+      newApronState = apronState.meetCopy(apronManager.getManager(), constraint);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     return new ApronState(
-        apronState.meetCopy(apronManager.getManager(), constraint),
+        newApronState,
         apronManager,
         integerToIndexMap,
         realToIndexMap,
@@ -512,8 +598,14 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
 
   public ApronState addConstraint(Tcons0 constraint) {
     logger.log(Level.FINEST, "apron state: meetCopy: " + constraint);
+    Abstract0 newApronState;
+    try {
+      newApronState = apronState.meetCopy(apronManager.getManager(), constraint);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     return new ApronState(
-        apronState.meetCopy(apronManager.getManager(), constraint),
+        newApronState,
         apronManager,
         integerToIndexMap,
         realToIndexMap,
@@ -530,12 +622,20 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     logger.log(Level.FINEST, "apron state: getBounds");
     Map<MemoryLocation, Interval> vars = new HashMap<>();
     for (MemoryLocation varName : integerToIndexMap) {
-      vars.put(
-          varName, apronState.getBound(apronManager.getManager(), getVariableIndexFor(varName)));
+      try {
+        vars.put(
+            varName, apronState.getBound(apronManager.getManager(), getVariableIndexFor(varName)));
+      } catch (apron.ApronException e) {
+        throw new RuntimeException("An error occured while operating with the apron library", e);
+      }
     }
     for (MemoryLocation varName : realToIndexMap) {
-      vars.put(
-          varName, apronState.getBound(apronManager.getManager(), getVariableIndexFor(varName)));
+      try {
+        vars.put(
+            varName, apronState.getBound(apronManager.getManager(), getVariableIndexFor(varName)));
+      } catch (apron.ApronException e) {
+        throw new RuntimeException("An error occured while operating with the apron library", e);
+      }
     }
     return vars;
   }
@@ -570,90 +670,136 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
         Level.FINEST,
         "apron state: removeDimensionCopy: "
             + new Dimchange(intsRemoved, realsRemoved, placesToRemove));
-    ApronState newState =
-        new ApronState(
-            apronState.removeDimensionsCopy(
-                apronManager.getManager(),
-                new Dimchange(intsRemoved, realsRemoved, placesToRemove)),
-            apronManager,
-            new ArrayList<>(integerToIndexMap),
-            new ArrayList<>(realToIndexMap),
-            new HashMap<>(variableToTypeMap),
-            false,
-            logger);
+
+    ApronState newState;
+    try {
+      newState =
+          new ApronState(
+              apronState.removeDimensionsCopy(
+                  apronManager.getManager(),
+                  new Dimchange(intsRemoved, realsRemoved, placesToRemove)),
+              apronManager,
+              new ArrayList<>(integerToIndexMap),
+              new ArrayList<>(realToIndexMap),
+              new HashMap<>(variableToTypeMap),
+              false,
+              logger);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
+
     newState.integerToIndexMap.removeAll(keysToRemove);
     newState.realToIndexMap.removeAll(keysToRemove);
     newState.variableToTypeMap.keySet().removeAll(keysToRemove);
 
     logger.log(Level.FINEST, "apron state: getDimension");
-    Dimension dim = newState.apronState.getDimension(apronManager.getManager());
+    Dimension dim;
+    try {
+      dim = newState.apronState.getDimension(apronManager.getManager());
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     assert dim.intDim + dim.realDim == newState.sizeOfVariables();
     return newState;
   }
 
+  @Serial
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
-    byte[] serialized = apronState.serialize(apronManager.getManager());
+    byte[] serialized;
+    try {
+      serialized = apronState.serialize(apronManager.getManager());
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     out.writeInt(serialized.length);
     out.write(serialized);
   }
 
+  @Serial
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
-    logger = GlobalInfo.getInstance().getApronLogManager();
-    apronManager = GlobalInfo.getInstance().getApronManager();
+    logger = SerializationInfoStorage.getInstance().getApronLogManager();
+    apronManager = SerializationInfoStorage.getInstance().getApronManager();
 
     byte[] deserialized = new byte[in.readInt()];
     in.readFully(deserialized);
-    apronState = Abstract0.deserialize(apronManager.getManager(), deserialized);
+    try {
+      apronState = Abstract0.deserialize(apronManager.getManager(), deserialized);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
   }
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
     BitvectorFormulaManager bitFmgr = pManager.getBitvectorFormulaManager();
     BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
-    Tcons0[] constraints = apronState.toTcons(apronManager.getManager());
+    Tcons0[] constraints;
+    try {
+      constraints = apronState.toTcons(apronManager.getManager());
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
 
     return bFmgr.and(
-        Lists.transform(Arrays.asList(constraints), cons -> createFormula(bFmgr, bitFmgr, cons)));
+        Lists.transform(
+            Arrays.asList(constraints), cons -> createFormula(bFmgr, bitFmgr, cons, true)));
   }
 
   private BooleanFormula createFormula(
-      BooleanFormulaManager bFmgr, final BitvectorFormulaManager bitFmgr, final Tcons0 constraint) {
+      BooleanFormulaManager bFmgr,
+      final BitvectorFormulaManager bitFmgr,
+      final Tcons0 constraint,
+      final boolean useQualifiedVarNames) {
     Texpr0Node tree = constraint.toTexpr0Node();
-    BitvectorFormula formula = new Texpr0ToFormulaVisitor(bitFmgr).visit(tree);
+    BitvectorFormula formula =
+        new Texpr0ToFormulaVisitor(bitFmgr, useQualifiedVarNames).visit(tree);
 
     // TODO fix size, machinemodel needed?
     BitvectorFormula rightHandside = bitFmgr.makeBitvector(32, 0);
-    switch (constraint.kind) {
-      case Tcons0.DISEQ:
-        return bFmgr.not(bitFmgr.equal(formula, rightHandside));
-      case Tcons0.EQ:
-        return bitFmgr.equal(formula, rightHandside);
-      case Tcons0.SUP:
-        return bitFmgr.greaterThan(formula, rightHandside, true);
-      case Tcons0.SUPEQ:
-        return bitFmgr.greaterOrEquals(formula, rightHandside, true);
-      default:
-        throw new AssertionError("unhandled constraint kind");
+    return switch (constraint.kind) {
+      case Tcons0.DISEQ -> bFmgr.not(bitFmgr.equal(formula, rightHandside));
+      case Tcons0.EQ -> bitFmgr.equal(formula, rightHandside);
+      case Tcons0.SUP -> bitFmgr.greaterThan(formula, rightHandside, true);
+      case Tcons0.SUPEQ -> bitFmgr.greaterOrEquals(formula, rightHandside, true);
+      default -> throw new AssertionError("unhandled constraint kind");
+    };
+  }
+
+  @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      final FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
+    BitvectorFormulaManager bitFmgr = pManager.getBitvectorFormulaManager();
+    BooleanFormulaManager bFmgr = pManager.getBooleanFormulaManager();
+    Tcons0[] constraints;
+    try {
+      constraints = apronState.toTcons(apronManager.getManager());
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
     }
+
+    Texpr0ScopeCheckVisitor scopeChecker =
+        new Texpr0ScopeCheckVisitor(pFunctionScope.getFunctionName());
+    return bFmgr.and(
+        Lists.transform(
+            Arrays.asList(constraints).stream()
+                .filter(constraint -> scopeChecker.visit(constraint.toTexpr0Node()))
+                .toList(),
+            cons -> createFormula(bFmgr, bitFmgr, cons, false)));
   }
 
   abstract static class Texpr0NodeTraversal<T> {
 
     T visit(Texpr0Node node) {
-      if (node instanceof Texpr0BinNode) {
-        return visit((Texpr0BinNode) node);
-      } else if (node instanceof Texpr0CstNode) {
-        return visit((Texpr0CstNode) node);
-      } else if (node instanceof Texpr0DimNode) {
-        return visit((Texpr0DimNode) node);
-      } else if (node instanceof Texpr0UnNode) {
-        return visit((Texpr0UnNode) node);
-      }
-
-      throw new AssertionError("Unhandled Texpr0Node subclass.");
+      return switch (node) {
+        case Texpr0BinNode texpr0BinNode -> visit(texpr0BinNode);
+        case Texpr0CstNode texpr0CstNode -> visit(texpr0CstNode);
+        case Texpr0DimNode texpr0DimNode -> visit(texpr0DimNode);
+        case Texpr0UnNode texpr0UnNode -> visit(texpr0UnNode);
+        default -> throw new AssertionError("Unhandled Texpr0Node subclass.");
+      };
     }
 
     abstract T visit(Texpr0BinNode node);
@@ -668,33 +814,27 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   class Texpr0ToFormulaVisitor extends Texpr0NodeTraversal<BitvectorFormula> {
 
     BitvectorFormulaManager bitFmgr;
+    final boolean useQualifiedNames;
 
-    public Texpr0ToFormulaVisitor(BitvectorFormulaManager pBitFmgr) {
+    public Texpr0ToFormulaVisitor(BitvectorFormulaManager pBitFmgr, boolean pUseQualifiedVarNames) {
       bitFmgr = pBitFmgr;
+      useQualifiedNames = pUseQualifiedVarNames;
     }
 
     @Override
     BitvectorFormula visit(Texpr0BinNode pNode) {
       BitvectorFormula left = visit(pNode.getLeftArgument());
       BitvectorFormula right = visit(pNode.getRightArgument());
-      switch (pNode.getOperation()) {
-
-          // real operations
-        case Texpr0BinNode.OP_ADD:
-          return bitFmgr.add(left, right);
-        case Texpr0BinNode.OP_DIV:
-          return bitFmgr.divide(left, right, true);
-        case Texpr0BinNode.OP_MOD:
-          return bitFmgr.modulo(left, right, true);
-        case Texpr0BinNode.OP_SUB:
-          return bitFmgr.subtract(left, right);
-        case Texpr0BinNode.OP_MUL:
-          return bitFmgr.multiply(left, right);
-        case Texpr0BinNode.OP_POW:
-          throw new AssertionError("Pow not implemented in this visitor");
-        default:
-          throw new AssertionError("Unhandled operator for binary nodes.");
-      }
+      return switch (pNode.getOperation()) {
+        case Texpr0BinNode.OP_ADD -> bitFmgr.add(left, right);
+        case Texpr0BinNode.OP_DIV -> bitFmgr.divide(left, right, true);
+        case Texpr0BinNode.OP_MOD -> bitFmgr.remainder(left, right, true);
+        case Texpr0BinNode.OP_SUB -> bitFmgr.subtract(left, right);
+        case Texpr0BinNode.OP_MUL -> bitFmgr.multiply(left, right);
+        case Texpr0BinNode.OP_POW ->
+            throw new AssertionError("Pow not implemented in this visitor");
+        default -> throw new AssertionError("Unhandled operator for binary nodes.");
+      };
     }
 
     @Override
@@ -702,14 +842,11 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       if (pNode.isScalar()) {
         double value;
         Scalar scalar = pNode.getConstant().inf();
-        if (scalar instanceof DoubleScalar) {
-          value = ((DoubleScalar) scalar).get();
-        } else if (scalar instanceof MpqScalar) {
-          value = ((MpqScalar) scalar).get().doubleValue();
-        } else if (scalar instanceof MpfrScalar) {
-          value = ((MpfrScalar) scalar).get().doubleValue(Mpfr.RNDN);
-        } else {
-          throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
+        switch (scalar) {
+          case DoubleScalar doubleScalar -> value = doubleScalar.get();
+          case MpqScalar mpqScalar -> value = mpqScalar.get().doubleValue();
+          case MpfrScalar mpfrScalar -> value = mpfrScalar.get().doubleValue(Mpfr.RNDN);
+          default -> throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
         }
         if (DoubleMath.isMathematicalInteger(value)) {
           // TODO fix size, machineModel needed?
@@ -731,11 +868,18 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
       // TODO fix size, machinemodel needed?
       if (isInt(pNode.dim)) {
         return bitFmgr.makeVariable(
-            32, integerToIndexMap.get(pNode.dim).getExtendedQualifiedName());
+            32,
+            useQualifiedNames
+                ? integerToIndexMap.get(pNode.dim).getExtendedQualifiedName()
+                : integerToIndexMap.get(pNode.dim).getIdentifier());
       } else {
         return bitFmgr.makeVariable(
             32,
-            realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getExtendedQualifiedName());
+            useQualifiedNames
+                ? realToIndexMap
+                    .get(pNode.dim - integerToIndexMap.size())
+                    .getExtendedQualifiedName()
+                : realToIndexMap.get(pNode.dim - integerToIndexMap.size()).getIdentifier());
       }
     }
 
@@ -743,14 +887,54 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     BitvectorFormula visit(Texpr0UnNode pNode) {
       BitvectorFormula operand = visit(pNode.getArgument());
       switch (pNode.getOperation()) {
-        case Texpr0UnNode.OP_NEG:
+        case Texpr0UnNode.OP_NEG -> {
           return bitFmgr.negate(operand);
-        case Texpr0UnNode.OP_SQRT:
-          throw new AssertionError("sqrt not implemented in this visitor");
-        default:
+        }
+        case Texpr0UnNode.OP_SQRT ->
+            throw new AssertionError("sqrt not implemented in this visitor");
+        default -> {
           // nothing to do here, we ignore casts
+        }
       }
       return operand;
+    }
+  }
+
+  class Texpr0ScopeCheckVisitor extends Texpr0NodeTraversal<Boolean> {
+
+    private String funScope;
+
+    public Texpr0ScopeCheckVisitor(final String pFunScope) {
+      funScope = pFunScope;
+    }
+
+    private boolean isInScope(final MemoryLocation memLoc) {
+      return !memLoc.isReference()
+          && (!memLoc.isOnFunctionStack() || memLoc.isOnFunctionStack(funScope));
+    }
+
+    @Override
+    Boolean visit(Texpr0BinNode pNode) {
+      return visit(pNode.getLeftArgument()) && visit(pNode.getRightArgument());
+    }
+
+    @Override
+    Boolean visit(Texpr0CstNode pNode) {
+      return true;
+    }
+
+    @Override
+    Boolean visit(Texpr0DimNode pNode) {
+      if (isInt(pNode.dim)) {
+        return isInScope(integerToIndexMap.get(pNode.dim));
+      } else {
+        return isInScope(realToIndexMap.get(pNode.dim - integerToIndexMap.size()));
+      }
+    }
+
+    @Override
+    Boolean visit(Texpr0UnNode pNode) {
+      return visit(pNode.getArgument());
     }
   }
 }

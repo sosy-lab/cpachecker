@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Arrays;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -28,9 +28,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * Each of its fields can be assigned a value with the same type, a subtype of the array or an
  * unknown value. No other types can be stored in instances of this class.
  */
-public class ArrayValue implements Value {
+public final class ArrayValue implements Value {
 
-  private static final long serialVersionUID = -3963825961335658001L;
+  @Serial private static final long serialVersionUID = -3963825961335658001L;
 
   // Array type and element type are only used for checking correctness of parameters
   private final JArrayType arrayType;
@@ -110,21 +110,12 @@ public class ArrayValue implements Value {
     if (pType instanceof JClassOrInterfaceType) {
       return NullValue.getInstance();
 
-    } else if (pType instanceof JSimpleType) {
-      switch (((JSimpleType) pType).getType()) {
-        case BOOLEAN:
-          return BooleanValue.valueOf(false);
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
-          return new NumericValue(0L);
-        default:
-          throw new AssertionError("Unhandled type " + pType.getClass());
-      }
+    } else if (pType instanceof JSimpleType jSimpleType) {
+      return switch (jSimpleType) {
+        case BOOLEAN -> BooleanValue.valueOf(false);
+        case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(0L);
+        default -> throw new AssertionError("Unhandled type " + pType.getClass());
+      };
     } else {
       throw new AssertionError("Unhandled type " + pType.getClass());
     }
@@ -141,8 +132,8 @@ public class ArrayValue implements Value {
 
     int counter = 0;
     for (Value v : pArrayValue.values) {
-      if (v instanceof ArrayValue) {
-        newArray.values[counter] = ArrayValue.copyOf((ArrayValue) v);
+      if (v instanceof ArrayValue arrayValue) {
+        newArray.values[counter] = ArrayValue.copyOf(arrayValue);
       } else {
         newArray.values[counter] = v;
       }
@@ -170,34 +161,26 @@ public class ArrayValue implements Value {
     } else if (elementType instanceof JClassOrInterfaceType && !isValidComplexValue(pValue)) {
       throw new IllegalArgumentException(errorMessage);
 
-    } else if (elementType instanceof JSimpleType) {
-      JBasicType concreteType = ((JSimpleType) elementType).getType();
-
+    } else if (elementType instanceof JSimpleType concreteType) {
       switch (concreteType) {
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
+        case BYTE, CHAR, SHORT, INT, LONG -> {
           // check that, if Value is of NumericValue, it contains an integer
-          if (!(pValue instanceof NumericValue)
-              || (((NumericValue) pValue).doubleValue() % 1) != 0) {
+          if (!(pValue instanceof NumericValue numericValue)
+              || (numericValue.doubleValue() % 1) != 0) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        case FLOAT:
-        case DOUBLE:
+        }
+        case FLOAT, DOUBLE -> {
           if (!(pValue instanceof NumericValue)) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        case BOOLEAN:
+        }
+        case BOOLEAN -> {
           if (!(pValue instanceof BooleanValue)) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        default:
-          throw new IllegalArgumentException(errorMessage);
+        }
+        default -> throw new IllegalArgumentException(errorMessage);
       }
     }
   }

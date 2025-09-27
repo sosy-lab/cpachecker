@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -108,7 +108,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
           ImmutableList.of(),
           ImmutableSet.of());
 
-  private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
+  private SequencedSet<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
   private final TerminationLoopInformation terminationInformation;
   private final LogManager logger;
@@ -296,7 +296,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     // node4 - x' = x; y' = y; ... -> node 5
     CFANode node5 = createCfaNode(functionName);
     initializePrimedVariables(node4, node5, statesAtNode4, pPrecision).stream()
-        .map((s) -> s.enterLoop(loopHead)) // pc' = loopHead
+        .map(s -> s.enterLoop(loopHead)) // pc' = loopHead
         .forEach(statesAtNode5::add);
 
     // node3 - [__CPAchecker_termination_temp == 0] -> node 5

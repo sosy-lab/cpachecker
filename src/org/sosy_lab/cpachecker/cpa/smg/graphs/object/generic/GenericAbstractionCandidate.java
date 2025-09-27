@@ -74,7 +74,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     GenericAbstraction genericAbstraction =
         GenericAbstraction.valueOf(machineModel, materlisationStep, abstractToConcretePointerMap);
 
-    /* Second, create the pointer that lead from/to this abstraction. */
+    // Second, create the pointer that lead from/to this abstraction.
     Set<SMGEdgePointsTo> pointsToThisAbstraction = new HashSet<>();
     Set<SMGEdgeHasValue> pointsFromThisAbstraction = new HashSet<>();
 
@@ -105,7 +105,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
       pSMG.markObjectDeletedAndRemoveEdges(obj);
     }
 
-    /*Finally, connect it to the rest of the smg.*/
+    /* Finally, connect it to the rest of the SMG. */
     connect(pSMG, genericAbstraction, pointsToThisAbstraction, pointsFromThisAbstraction);
 
     return pSMG;

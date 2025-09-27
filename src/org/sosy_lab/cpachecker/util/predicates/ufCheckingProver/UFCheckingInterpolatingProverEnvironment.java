@@ -27,7 +27,7 @@ public class UFCheckingInterpolatingProverEnvironment<T> extends UFCheckingBasic
       FormulaManagerView pFmgr,
       UFCheckingProverOptions options) {
     super(pLogger, ipe, pFmgr, options);
-    this.delegate = ipe;
+    delegate = ipe;
   }
 
   @Override

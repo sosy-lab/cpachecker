@@ -10,6 +10,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,6 +19,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -231,15 +233,40 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
+    Collection<BooleanFormula> filteredConstraints =
+        manager.abstractStateToConstraints(pManager, this, false).stream()
+            .filter(
+                constraint ->
+                    pManager.extractVariableNames(constraint).stream()
+                        .allMatch(
+                            name ->
+                                !name.contains("::")
+                                    || name.startsWith(pFunctionScope.getFunctionName() + "::")))
+            .toList();
+    if (filteredConstraints.isEmpty()) {
+      return pManager.getBooleanFormulaManager().makeTrue();
+    }
+    return pManager.renameFreeVariablesAndUFs(
+        pManager.uninstantiate(pManager.getBooleanFormulaManager().and(filteredConstraints)),
+        name -> {
+          int separatorIndex = name.indexOf("::");
+          if (separatorIndex >= 0) {
+            return name.substring(separatorIndex + 2);
+          } else {
+            return name;
+          }
+        });
+  }
+
+  @Override
   public boolean equals(Object pO) {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof PolicyAbstractedState)) {
-      return false;
-    }
-    PolicyAbstractedState entries = (PolicyAbstractedState) pO;
-    return Objects.equals(upperBounds, entries.upperBounds)
+    return pO instanceof PolicyAbstractedState entries
+        && Objects.equals(upperBounds, entries.upperBounds)
         && Objects.equals(ssaMap, entries.ssaMap)
         && Objects.equals(pointerTargetSet, entries.pointerTargetSet)
         && Objects.equals(extraInvariant, entries.extraInvariant)

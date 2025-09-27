@@ -53,7 +53,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
   /*
    * If there is more than one result based on the current
-   * smg State due to abstraction, store the additional smgStates
+   * SMG State due to abstraction, store the additional smgStates
    * that have to be usd to calculate a different result for the current
    * value in this list.
    *
@@ -110,7 +110,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     if (value.isUnknown()) {
       if (binaryExp.getOperator().isLogicalOperator()) {
-        /* We may be able to get an explicit Value from pointer comparisons. */
+        // We may be able to get an explicit Value from pointer comparisons.
 
         List<? extends SMGValueAndState> symValueAndStates;
 
@@ -134,7 +134,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
           return new NumericValue(0);
         }
       } else if (BinaryOperator.MINUS == binaryExp.getOperator()) {
-        /* We may be able to get an explicit Value from pointer comparisons. */
+        // We may be able to get an explicit Value from pointer comparisons.
         // TODO without the redirection to the explicit value visitor above,
         // we could also directly solve this and avoid those special cases.
 
@@ -158,8 +158,9 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
         setState(symValueAndState.getSmgState());
 
         CType type1 = binaryExp.getOperand1().getExpressionType().getCanonicalType();
-        if (symValue instanceof SMGKnownExpValue && type1 instanceof CPointerType) {
-          return new NumericValue(((SMGKnownExpValue) symValue).getValue());
+        if (symValue instanceof SMGKnownExpValue sMGKnownExpValue
+            && type1 instanceof CPointerType) {
+          return new NumericValue(sMGKnownExpValue.getValue());
         }
       }
     }

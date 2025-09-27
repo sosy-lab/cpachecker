@@ -25,7 +25,7 @@ public class CBitFieldTypeTest {
   private final ClassSanityTester tester = new ClassSanityTester();
 
   public CBitFieldTypeTest() {
-    tester.setDefault(CType.class, CNumericTypes.INT);
+    tester.setDistinctValues(CType.class, CNumericTypes.INT, CNumericTypes.CHAR);
   }
 
   @Test
@@ -65,15 +65,14 @@ public class CBitFieldTypeTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testBaseTypePointer() {
-    new CBitFieldType(new CPointerType(false, false, CNumericTypes.INT), 0);
+    new CBitFieldType(new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT), 0);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testBaseTypeElaborateStruct() {
     new CBitFieldType(
         new CElaboratedType(
-            false,
-            false,
+            CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
             "DummyElaborateStruct",
             "DummyElaborateStruct",
@@ -116,14 +115,21 @@ public class CBitFieldTypeTest {
 
   @Test
   public void testBaseTypeEnum() {
-    new CBitFieldType(new CEnumType(false, false, ImmutableList.of(), "DummyEnum", "DummyEnum"), 0);
+    new CBitFieldType(
+        new CEnumType(
+            CTypeQualifiers.NONE, CNumericTypes.INT, ImmutableList.of(), "DummyEnum", "DummyEnum"),
+        0);
   }
 
   @Test
   public void testBaseTypeElaborateEnum() {
     new CBitFieldType(
         new CElaboratedType(
-            false, false, ComplexTypeKind.ENUM, "DummyElaborateEnum", "DummyElaborateEnum", null),
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.ENUM,
+            "DummyElaborateEnum",
+            "DummyElaborateEnum",
+            null),
         0);
   }
 }

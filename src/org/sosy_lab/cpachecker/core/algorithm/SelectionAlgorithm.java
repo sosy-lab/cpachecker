@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -64,7 +63,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "heuristicSelection")
@@ -79,60 +77,48 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
       switch (pEdge.getEdgeType()) {
-        case StatementEdge:
-          {
-            final AStatementEdge edge = (AStatementEdge) pEdge;
-            if (edge.getStatement() instanceof AFunctionCall) {
-              final AFunctionCall call = (AFunctionCall) edge.getStatement();
-              final AExpression exp = call.getFunctionCallExpression().getFunctionNameExpression();
-              if (exp instanceof AIdExpression) {
-                final AIdExpression id = (AIdExpression) exp;
-                functionNames.add(id.getName());
-              }
+        case StatementEdge -> {
+          final AStatementEdge edge = (AStatementEdge) pEdge;
+          if (edge.getStatement() instanceof AFunctionCall call) {
+
+            final AExpression exp = call.getFunctionCallExpression().getFunctionNameExpression();
+            if (exp instanceof AIdExpression id) {
+              functionNames.add(id.getName());
             }
-            break;
           }
-        case DeclarationEdge:
-          {
-            final ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-            ADeclaration declaration = declarationEdge.getDeclaration();
-            Type declType = declaration.getType();
-            Queue<Type> types = new ArrayDeque<>();
-            Set<Type> visitedTypes = new HashSet<>();
-            types.add(declType);
-            while (!types.isEmpty()) {
-              Type type = types.poll();
-              if (type instanceof CType) {
-                type = ((CType) type).getCanonicalType();
-              }
-              if (visitedTypes.add(type)) {
-                if (type instanceof CCompositeType) {
-                  CCompositeType compositeType = (CCompositeType) type;
-                  for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
-                    types.offer(member.getType());
-                  }
-                }
-                if (type instanceof CArrayType || type instanceof JArrayType) {
-                  arrayVariables.add(declaration.getQualifiedName());
-                } else if (type instanceof CSimpleType) {
-                  CSimpleType simpleType = (CSimpleType) type;
-                  if (simpleType.getType().isFloatingPointType()) {
-                    floatVariables.add(declaration.getQualifiedName());
-                  }
-                } else if (type instanceof JSimpleType) {
-                  JSimpleType simpleType = (JSimpleType) type;
-                  if (simpleType.getType().isFloatingPointType()) {
-                    floatVariables.add(declaration.getQualifiedName());
-                  }
+        }
+        case DeclarationEdge -> {
+          final ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+          ADeclaration declaration = declarationEdge.getDeclaration();
+          Type declType = declaration.getType();
+          Queue<Type> types = new ArrayDeque<>();
+          Set<Type> visitedTypes = new HashSet<>();
+          types.add(declType);
+          while (!types.isEmpty()) {
+            Type type = types.poll();
+            if (type instanceof CType) {
+              type = ((CType) type).getCanonicalType();
+            }
+            if (visitedTypes.add(type)) {
+              if (type instanceof CCompositeType compositeType) {
+                for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
+                  types.offer(member.getType());
                 }
               }
+              if (type instanceof CArrayType || type instanceof JArrayType) {
+                arrayVariables.add(declaration.getQualifiedName());
+              } else if (type instanceof CSimpleType simpleType) {
+                if (simpleType.getType().isFloatingPointType()) {
+                  floatVariables.add(declaration.getQualifiedName());
+                }
+              } else if ((type instanceof JSimpleType simpleType)
+                  && simpleType.isFloatingPointType()) {
+                floatVariables.add(declaration.getQualifiedName());
+              }
             }
-            break;
           }
-        case FunctionCallEdge:
-        case FunctionReturnEdge:
-        case CallToReturnEdge:
-        default:
+        }
+        default -> {}
       }
       return TraversalProcess.CONTINUE;
     }
@@ -213,6 +199,13 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path preAnalysisAlgorithmConfig = null;
 
+  @Option(
+      secure = true,
+      description =
+          "If true, the strategy-selection algorithm does not run the selected config, but only"
+              + " produces the statistics that show what config it would run.")
+  private boolean dryRun = false;
+
   @Option(secure = true, description = "Configuration for programs containing recursion.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path recursionConfig;
@@ -283,7 +276,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     String info = "Performing preliminary analysis algorithm ...";
     logger.log(Level.INFO, info);
 
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> preAnaAlg;
+    NestedAnalysis preAnaAlg;
     final Path preAnalysisConfig = preAnalysisAlgorithmConfig;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
@@ -309,8 +302,8 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
-    preAnalysisAlgorithm = preAnaAlg.getFirst();
-    preAnalysisReachedSet = preAnaAlg.getThird();
+    preAnalysisAlgorithm = preAnaAlg.algorithm();
+    preAnalysisReachedSet = preAnaAlg.reached();
 
     return preAnalysisAlgorithm.run(preAnalysisReachedSet);
   }
@@ -333,7 +326,11 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
     final Path chosenConfig = chooseConfig();
 
-    return run0(pReachedSet, chosenConfig);
+    if (dryRun) {
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    } else {
+      return run0(pReachedSet, chosenConfig);
+    }
   }
 
   /** analyze the CFA and extract useful statistics. */
@@ -457,7 +454,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   private AlgorithmStatus run0(ReachedSet pReachedSet, final Path chosenConfig)
       throws CPAException, InterruptedException {
     Algorithm chosenAlgorithm;
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg;
+    NestedAnalysis currentAlg;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
       currentAlg = createAlgorithm(chosenConfig, cfa.getMainFunction(), cfa, shutdownManager);
@@ -482,9 +479,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
-    chosenAlgorithm = currentAlg.getFirst();
-    // ConfigurableProgramAnalysis chosenCpa = currentAlg.getSecond();
-    ReachedSet reachedSetForChosenAnalysis = currentAlg.getThird();
+    chosenAlgorithm = currentAlg.algorithm();
+    // ConfigurableProgramAnalysis chosenCpa = currentAlg.cpa();
+    ReachedSet reachedSetForChosenAnalysis = currentAlg.reached();
 
     ForwardingReachedSet reached = (ForwardingReachedSet) pReachedSet;
     reached.setDelegate(reachedSetForChosenAnalysis);
@@ -492,7 +489,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     return chosenAlgorithm.run(reachedSetForChosenAnalysis);
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
+  private NestedAnalysis createAlgorithm(
       Path singleConfigFileName,
       CFANode pInitialNode,
       CFA pCfa,

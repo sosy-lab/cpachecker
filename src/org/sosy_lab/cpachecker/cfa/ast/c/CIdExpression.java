@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -16,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CIdExpression extends AIdExpression implements CLeftHandSide {
 
-  private static final long serialVersionUID = -608459029930942264L;
+  @Serial private static final long serialVersionUID = -608459029930942264L;
 
   public CIdExpression(
       final FileLocation pFileLocation,
@@ -77,23 +78,21 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
       return true;
     }
 
-    if (!(obj instanceof CIdExpression)) {
-      return false;
+    if (obj instanceof CIdExpression other) {
+      // Don't call super.equals() here,
+      // it compares the declaration field.
+      // In C, there might be several declarations declaring the same variable,
+      // so we sometimes need to return true even with different declarations.
+
+      @Nullable CSimpleDeclaration decl = getDeclaration();
+      @Nullable CSimpleDeclaration otherDecl = other.getDeclaration();
+      if (decl == null || otherDecl == null) {
+        return decl == otherDecl;
+      } else {
+        return Objects.equals(decl.getQualifiedName(), otherDecl.getQualifiedName());
+      }
     }
 
-    // Don't call super.equals() here,
-    // it compares the declaration field.
-    // In C, there might be several declarations declaring the same variable,
-    // so we sometimes need to return true even with different declarations.
-
-    CIdExpression other = (CIdExpression) obj;
-
-    @Nullable CSimpleDeclaration decl = getDeclaration();
-    @Nullable CSimpleDeclaration otherDecl = other.getDeclaration();
-    if (decl == null || otherDecl == null) {
-      return decl == otherDecl;
-    } else {
-      return Objects.equals(decl.getQualifiedName(), otherDecl.getQualifiedName());
-    }
+    return false;
   }
 }

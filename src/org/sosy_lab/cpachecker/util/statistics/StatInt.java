@@ -18,10 +18,10 @@ import java.util.stream.IntStream;
 /** Thread-safe implementation of numerical statistics. */
 public class StatInt extends AbstractStatValue implements IntConsumer {
 
-  private LongAccumulator maxValue = new LongAccumulator(Math::max, Integer.MIN_VALUE);
-  private LongAccumulator minValue = new LongAccumulator(Math::min, Integer.MAX_VALUE);
-  private LongAdder valueCount = new LongAdder();
-  private LongAdder valueSum = new LongAdder();
+  private final LongAccumulator maxValue = new LongAccumulator(Math::max, Integer.MIN_VALUE);
+  private final LongAccumulator minValue = new LongAccumulator(Math::min, Integer.MAX_VALUE);
+  private final LongAdder valueCount = new LongAdder();
+  private final LongAdder valueSum = new LongAdder();
 
   public static StatInt forStream(StatKind pMainStatisticKind, String pTitle, IntStream pStream) {
     return new StatInt(pMainStatisticKind, pTitle, pStream.summaryStatistics());
@@ -102,28 +102,27 @@ public class StatInt extends AbstractStatValue implements IntConsumer {
 
   @Override
   public String toString() {
-    switch (getMainStatisticKind()) {
-      case SUM:
-        return String.format(
-            "%8d (count: %d, min: %d, max: %d, avg: %.2f)",
-            getValueSum(), getValueCount(), getMinValue(), getMaxValue(), getAverage());
-      case AVG:
-        return String.format(
-            "%.2f (sum: %d, count: %d, min: %d, max: %d)",
-            getAverage(), getValueSum(), getValueCount(), getMinValue(), getMaxValue());
-      case COUNT:
-        return String.format(
-            "%8d (sum: %d, min: %d, max: %d, avg: %.2f)",
-            getValueCount(), getValueSum(), getMinValue(), getMaxValue(), getAverage());
-      case MIN:
-        return String.format(
-            "%8d (sum: %d, count: %d, max: %d, avg: %.2f)",
-            getMinValue(), getValueSum(), getValueCount(), getMaxValue(), getAverage());
-      case MAX:
-        return String.format(
-            "%8d (sum: %d, count: %d, min: %d, avg: %.2f)",
-            getMaxValue(), getValueSum(), getValueCount(), getMinValue(), getAverage());
-    }
-    throw new AssertionError();
+    return switch (getMainStatisticKind()) {
+      case SUM ->
+          String.format(
+              "%8d (count: %d, min: %d, max: %d, avg: %.2f)",
+              getValueSum(), getValueCount(), getMinValue(), getMaxValue(), getAverage());
+      case AVG ->
+          String.format(
+              "%.2f (sum: %d, count: %d, min: %d, max: %d)",
+              getAverage(), getValueSum(), getValueCount(), getMinValue(), getMaxValue());
+      case COUNT ->
+          String.format(
+              "%8d (sum: %d, min: %d, max: %d, avg: %.2f)",
+              getValueCount(), getValueSum(), getMinValue(), getMaxValue(), getAverage());
+      case MIN ->
+          String.format(
+              "%8d (sum: %d, count: %d, max: %d, avg: %.2f)",
+              getMinValue(), getValueSum(), getValueCount(), getMaxValue(), getAverage());
+      case MAX ->
+          String.format(
+              "%8d (sum: %d, count: %d, min: %d, avg: %.2f)",
+              getMaxValue(), getValueSum(), getValueCount(), getMinValue(), getAverage());
+    };
   }
 }

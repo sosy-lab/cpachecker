@@ -69,24 +69,24 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     if (extraIterationsLimitReached()) {
-      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
+      return Optional.of(new PrecisionAdjustmentResult(pState, pPrecision, Action.BREAK));
     }
 
     if (((Targetable) pState).isTarget()) {
       foundTargetCounter++;
 
       if (foundTargetLimitReached()) {
-        return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
+        return Optional.of(new PrecisionAdjustmentResult(pState, pPrecision, Action.BREAK));
       }
     }
 
-    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(pState, pPrecision, Action.CONTINUE));
   }
 
   /**
    * This method returns true if the limit of target states to be found is reached.
    *
-   * @return true, if the limit of target states to be found is reached, else false
+   * @return whether the limit of target states to be found is reached
    */
   private boolean foundTargetLimitReached() {
     return foundTargetCounter >= foundTargetLimit;
@@ -95,7 +95,7 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
   /**
    * This method return true if the limit of extra iterations is reached.
    *
-   * @return true, if the maximum of extra iterations is reached, else false
+   * @return whether the maximum of extra iterations is reached
    */
   private boolean extraIterationsLimitReached() {
     return (foundTargetCounter > 0)

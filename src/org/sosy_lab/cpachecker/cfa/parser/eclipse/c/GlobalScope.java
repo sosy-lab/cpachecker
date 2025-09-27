@@ -17,9 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.eclipse.cdt.core.dom.ast.IType;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -30,13 +30,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * Implementation of {@link Scope} for the global scope (i.e., outside of functions). Allows to
+ * Implementation of {@link Scope} for the global scope (i.e., outside functions). Allows to
  * register functions, types and global variables.
  */
 class GlobalScope extends AbstractScope {
@@ -48,6 +46,7 @@ class GlobalScope extends AbstractScope {
   private final Map<String, CComplexTypeDeclaration> types;
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final ProgramDeclarations programDeclarations;
+  private final ParseContext parseContext;
 
   public GlobalScope(
       Map<String, CSimpleDeclaration> globalVars,
@@ -55,6 +54,7 @@ class GlobalScope extends AbstractScope {
       Map<String, CFunctionDeclaration> functions,
       Map<String, CComplexTypeDeclaration> types,
       Map<String, CTypeDefDeclaration> typedefs,
+      ParseContext parseContext,
       ProgramDeclarations programDeclarations,
       String currentFile,
       Scope pFallbackScope) {
@@ -65,6 +65,7 @@ class GlobalScope extends AbstractScope {
     this.types = types;
     this.typedefs = typedefs;
     this.programDeclarations = programDeclarations;
+    this.parseContext = parseContext;
     fallbackScope = pFallbackScope;
   }
 
@@ -75,6 +76,7 @@ class GlobalScope extends AbstractScope {
         new HashMap<>(),
         new HashMap<>(),
         new HashMap<>(),
+        ParseContext.dummy(),
         new ProgramDeclarations(),
         "",
         CProgramScope.empty());
@@ -160,8 +162,7 @@ class GlobalScope extends AbstractScope {
 
   public @Nullable CTypeDefDeclaration lookupTypedefForTypename(final String name) {
     for (CTypeDefDeclaration d : typedefs.values()) {
-      if (d.getType() instanceof CComplexType
-          && ((CComplexType) d.getType()).getName().equals(name)) {
+      if (d.getType() instanceof CComplexType cComplexType && cComplexType.getName().equals(name)) {
         return d;
       }
     }
@@ -200,8 +201,6 @@ class GlobalScope extends AbstractScope {
     assert declaration instanceof CVariableDeclaration || declaration instanceof CEnumerator
         : "Tried to register a declaration which does not define a name in the standard namespace: "
             + declaration;
-    assert !(declaration.getType().getCanonicalType() instanceof CFunctionType)
-        : "Tried to register a variable with the type of a function: " + declaration;
 
     String name = declaration.getOrigName();
     assert name != null;
@@ -290,7 +289,7 @@ class GlobalScope extends AbstractScope {
       // the type from the other file
       if (programContainsEqualType) {
         CComplexTypeDeclaration oldProgDeclaration = programDeclarations.getEqualType(declaration);
-        overwriteTypeIfNecessary(type, oldProgDeclaration.getType());
+        parseContext.overwriteTypeIfNecessary(type, oldProgDeclaration.getType(), currentFile);
         type = oldProgDeclaration.getType();
 
         // there was already a declaration with this typename before, however
@@ -298,7 +297,7 @@ class GlobalScope extends AbstractScope {
       } else if (programContainsExactNamedType) {
         declaration = createRenamedTypeDeclaration(declaration);
         name = declaration.getType().getQualifiedName();
-        overwriteTypeIfNecessary(type, declaration.getType());
+        parseContext.overwriteTypeIfNecessary(type, declaration.getType(), currentFile);
       }
 
       // We now have a real declaration for a type for which we have seen a forward
@@ -314,7 +313,7 @@ class GlobalScope extends AbstractScope {
       // the type from this file instead of the new one
     } else if (programContainsEqualType) {
       declaration = programDeclarations.getEqualType(declaration);
-      overwriteTypeIfNecessary(type, declaration.getType());
+      parseContext.overwriteTypeIfNecessary(type, declaration.getType(), currentFile);
 
       // there was no former type declaration here, but the NAME of the type that
       // should be declared is already known from another parsed file, so we rename
@@ -322,7 +321,7 @@ class GlobalScope extends AbstractScope {
     } else if (programContainsExactNamedType) {
       declaration = createRenamedTypeDeclaration(declaration);
       name = declaration.getType().getQualifiedName();
-      overwriteTypeIfNecessary(type, declaration.getType());
+      parseContext.overwriteTypeIfNecessary(type, declaration.getType(), currentFile);
     }
 
     if (!programContainsEqualType) {
@@ -331,13 +330,6 @@ class GlobalScope extends AbstractScope {
 
     types.put(name, declaration);
     return true;
-  }
-
-  private void overwriteTypeIfNecessary(CType oldType, CType newType) {
-    IType iType = ASTTypeConverter.getTypeFromTypeConversion(oldType, currentFile);
-    if (iType != null) {
-      ASTTypeConverter.overwriteType(iType, newType, currentFile);
-    }
   }
 
   /**
@@ -368,105 +360,89 @@ class GlobalScope extends AbstractScope {
 
     String newName = getFileSpecificTypeName(oldType.getName());
 
-    if (oldType instanceof CCompositeType) {
-      CCompositeType oldCompositeType = (CCompositeType) oldType;
-      CCompositeType renamedCompositeType =
-          new CCompositeType(
-              oldType.isConst(),
-              oldType.isVolatile(),
-              oldType.getKind(),
-              newName,
-              oldType.getOrigName());
+    return switch (oldType) {
+      case CCompositeType oldCompositeType -> {
+        CCompositeType renamedCompositeType =
+            new CCompositeType(
+                oldType.getQualifiers(), oldType.getKind(), newName, oldType.getOrigName());
+        // overwrite the already found type in the types map of the ASTTypeConverter if necessary
+        // we need to do this, that the members of the renamed CCompositeType get the correct type
+        // names in case of members pointing to the renamed type itself
+        CElaboratedType renamedElaboratedType =
+            new CElaboratedType(
+                renamedCompositeType.getQualifiers(),
+                renamedCompositeType.getKind(),
+                renamedCompositeType.getName(),
+                renamedCompositeType.getOrigName(),
+                renamedCompositeType);
+        parseContext.overwriteTypeIfNecessary(oldType, renamedElaboratedType, currentFile);
+        List<CCompositeTypeMemberDeclaration> newMembers =
+            new ArrayList<>(oldCompositeType.getMembers().size());
+        for (CCompositeTypeMemberDeclaration decl : oldCompositeType.getMembers()) {
 
-      // overwrite the already found type in the types map of the ASTTypeConverter if necessary
-      // we need to do this, that the members of the renamed CCompositeType get the correct type
-      // names
-      // in case of members pointing to the renamed type itself
-      CElaboratedType renamedElaboratedType =
-          new CElaboratedType(
-              renamedCompositeType.isConst(),
-              renamedCompositeType.isVolatile(),
-              renamedCompositeType.getKind(),
-              renamedCompositeType.getName(),
-              renamedCompositeType.getOrigName(),
-              renamedCompositeType);
-      overwriteTypeIfNecessary(oldType, renamedElaboratedType);
+          // here we need to take care of the case that the pointer could be pointing
+          // to the same that that is renamed currently
+          // we need to put in the elaborated renamed type, otherwise there will be
+          // infinite recursion in the types toASTString method, what we don't want
+          if (decl.getType() instanceof CPointerType cPointerType) {
+            newMembers.add(
+                new CCompositeTypeMemberDeclaration(
+                    createPointerField(cPointerType, oldType, renamedElaboratedType),
+                    decl.getName()));
 
-      List<CCompositeTypeMemberDeclaration> newMembers =
-          new ArrayList<>(oldCompositeType.getMembers().size());
-      for (CCompositeTypeMemberDeclaration decl : oldCompositeType.getMembers()) {
-
-        // here we need to take care of the case that the pointer could be pointing
-        // to the same that that is renamed currently
-        // we need to put in the elaborated renamed type, otherwise there will be
-        // infinite recursion in the types toASTString method, what we don't want
-        if (decl.getType() instanceof CPointerType) {
-          newMembers.add(
-              new CCompositeTypeMemberDeclaration(
-                  createPointerField((CPointerType) decl.getType(), oldType, renamedElaboratedType),
-                  decl.getName()));
-
-          // this member cannot be self referencing as it is no pointer
-        } else {
-          newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
+            // this member cannot be self referencing as it is no pointer
+          } else {
+            newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
+          }
         }
+        renamedCompositeType.setMembers(newMembers);
+        yield renamedCompositeType;
       }
-      renamedCompositeType.setMembers(newMembers);
-
-      return renamedCompositeType;
-
-    } else if (oldType instanceof CEnumType) {
-      List<CEnumerator> list = new ArrayList<>(((CEnumType) oldType).getEnumerators().size());
-
-      for (CEnumerator c : ((CEnumType) oldType).getEnumerators()) {
-        CEnumerator newC =
-            new CEnumerator(
-                c.getFileLocation(),
-                c.getName(),
-                c.getQualifiedName(),
-                c.getType(),
-                c.hasValue() ? c.getValue() : null);
-        list.add(newC);
+      case CEnumType oldEnumType -> {
+        List<CEnumerator> list = new ArrayList<>(oldEnumType.getEnumerators().size());
+        for (CEnumerator c : oldEnumType.getEnumerators()) {
+          CEnumerator newC =
+              new CEnumerator(c.getFileLocation(), c.getName(), c.getQualifiedName(), c.getValue());
+          list.add(newC);
+        }
+        CEnumType renamedEnumType =
+            new CEnumType(
+                oldType.getQualifiers(),
+                oldEnumType.getCompatibleType(),
+                list,
+                newName,
+                oldType.getOrigName());
+        for (CEnumerator enumValue : renamedEnumType.getEnumerators()) {
+          enumValue.setEnum(renamedEnumType);
+        }
+        yield renamedEnumType;
       }
-
-      CEnumType renamedEnumType =
-          new CEnumType(
-              oldType.isConst(), oldType.isVolatile(), list, newName, oldType.getOrigName());
-      for (CEnumerator enumValue : renamedEnumType.getEnumerators()) {
-        enumValue.setEnum(renamedEnumType);
+      case CElaboratedType cElaboratedType -> {
+        CComplexType renamedRealType = null;
+        if (cElaboratedType.getRealType() != null) {
+          renamedRealType = createRenamedType(cElaboratedType.getRealType());
+        }
+        yield new CElaboratedType(
+            oldType.getQualifiers(),
+            oldType.getKind(),
+            newName,
+            oldType.getOrigName(),
+            renamedRealType);
       }
-      return renamedEnumType;
-
-    } else if (oldType instanceof CElaboratedType) {
-      CComplexType renamedRealType = null;
-      if (((CElaboratedType) oldType).getRealType() != null) {
-        renamedRealType = createRenamedType(((CElaboratedType) oldType).getRealType());
-      }
-      return new CElaboratedType(
-          oldType.isConst(),
-          oldType.isVolatile(),
-          oldType.getKind(),
-          newName,
-          oldType.getOrigName(),
-          renamedRealType);
-
-    } else {
-      throw new AssertionError("Unhandled CComplexType.");
-    }
+      default -> throw new AssertionError("Unhandled CComplexType.");
+    };
   }
 
   /** This method creates the CType for a referenced field of a CCompositeType. */
   private CType createPointerField(CPointerType oldType, CType eqType, CType newType) {
-    if (oldType.getType() instanceof CPointerType) {
+    if (oldType.getType() instanceof CPointerType cPointerType) {
       return new CPointerType(
-          oldType.isConst(),
-          oldType.isVolatile(),
-          createPointerField((CPointerType) oldType.getType(), eqType, newType));
+          oldType.getQualifiers(), createPointerField(cPointerType, eqType, newType));
     } else {
       if (oldType.getType().getCanonicalType().equals(eqType.getCanonicalType())) {
-        return new CPointerType(oldType.isConst(), oldType.isVolatile(), newType);
+        return new CPointerType(oldType.getQualifiers(), newType);
       } else {
-        return new CPointerType(oldType.isConst(), oldType.isVolatile(), oldType.getType());
+        return new CPointerType(oldType.getQualifiers(), oldType.getType());
       }
     }
   }

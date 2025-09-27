@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -25,9 +26,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * <p>Note also, that the expressions have to be side-effect free.
  */
 public final class JExpressionAssignmentStatement extends AExpressionAssignmentStatement
-    implements JAssignment, JStatement {
+    implements JAssignment {
 
-  private static final long serialVersionUID = 4121782081088537434L;
+  @Serial private static final long serialVersionUID = 4121782081088537434L;
 
   public JExpressionAssignmentStatement(
       FileLocation pFileLocation, JLeftHandSide pLeftHandSide, JExpression pRightHandSide) {
@@ -62,10 +63,6 @@ public final class JExpressionAssignmentStatement extends AExpressionAssignmentS
       return true;
     }
 
-    if (!(obj instanceof JExpressionAssignmentStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JExpressionAssignmentStatement && super.equals(obj);
   }
 }

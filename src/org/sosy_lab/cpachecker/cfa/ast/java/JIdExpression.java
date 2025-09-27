@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,11 +20,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *
  * <p>If possible, it saves a reference to the declaration this name references.
  */
-public class JIdExpression extends AIdExpression implements JLeftHandSide {
+public sealed class JIdExpression extends AIdExpression implements JLeftHandSide
+    permits JFieldAccess {
 
   // TODO refactor to be either abstract or final
 
-  private static final long serialVersionUID = -8692379352848856024L;
+  @Serial private static final long serialVersionUID = -8692379352848856024L;
 
   public JIdExpression(
       FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
@@ -62,10 +64,6 @@ public class JIdExpression extends AIdExpression implements JLeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof JIdExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JIdExpression && super.equals(obj);
   }
 }

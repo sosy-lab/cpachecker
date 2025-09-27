@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.abe.ABEAbstractedState;
 import org.sosy_lab.cpachecker.cpa.abe.ABEIntermediateState;
@@ -127,6 +128,13 @@ public class CongruenceState
   }
 
   @Override
+  public BooleanFormula getScopedFormulaApproximation(
+      FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
+    return congruenceManager.toScopedFormulaApproximationUninstantiated(
+        pManager, this, pFunctionScope.getFunctionName());
+  }
+
+  @Override
   public CFANode getNode() {
     return node;
   }
@@ -138,13 +146,9 @@ public class CongruenceState
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof CongruenceState)) {
-      return false;
-    }
-    if (o == this) {
+    if (this == o) {
       return true;
     }
-    CongruenceState other = (CongruenceState) o;
-    return other.data.equals(data);
+    return o instanceof CongruenceState other && other.data.equals(data);
   }
 }

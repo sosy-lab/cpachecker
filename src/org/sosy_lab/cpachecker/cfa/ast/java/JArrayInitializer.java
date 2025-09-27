@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
@@ -15,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 
 /**
- * This class represents a Array initializer AST node type.
+ * This class represents an Array initializer AST node type.
  *
  * <pre>
  * ArrayInitializer:
@@ -25,10 +26,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
  * The List of initializerExpressions gives the expression the array cell is initialized with from
  * left to right.
  */
-public final class JArrayInitializer extends AbstractExpression
-    implements JAstNode, JInitializer, JExpression {
+public final class JArrayInitializer extends AbstractExpression implements JExpression {
 
-  private static final long serialVersionUID = -9034136529891743726L;
+  @Serial private static final long serialVersionUID = -9034136529891743726L;
   private final List<JExpression> initializerExpressions;
 
   public JArrayInitializer(
@@ -48,12 +48,12 @@ public final class JArrayInitializer extends AbstractExpression
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
 
     StringBuilder astString = new StringBuilder("{");
 
     for (JExpression exp : initializerExpressions) {
-      astString.append(exp.toASTString(pQualified) + ", ");
+      astString.append(exp.toASTString(pAAstNodeRepresentation) + ", ");
     }
 
     if (!initializerExpressions.isEmpty()) {
@@ -88,12 +88,8 @@ public final class JArrayInitializer extends AbstractExpression
       return true;
     }
 
-    if (!(obj instanceof JArrayInitializer) || super.equals(obj)) {
-      return false;
-    }
-
-    JArrayInitializer other = (JArrayInitializer) obj;
-
-    return Objects.equals(other.initializerExpressions, initializerExpressions);
+    return obj instanceof JArrayInitializer other
+        && super.equals(obj)
+        && Objects.equals(other.initializerExpressions, initializerExpressions);
   }
 }

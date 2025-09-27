@@ -15,7 +15,7 @@ import com.google.common.collect.Collections2;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.SequencedMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,7 +55,8 @@ public class BAMCacheImpl implements BAMCache {
   private int noSimilarCausedMisses = 0;
 
   // we use LinkedHashMaps to avoid non-determinism
-  protected final Map<AbstractStateHash, BAMCacheEntry> preciseReachedCache = new LinkedHashMap<>();
+  protected final SequencedMap<AbstractStateHash, BAMCacheEntry> preciseReachedCache =
+      new LinkedHashMap<>();
 
   protected BAMCacheEntry lastAnalyzedEntry = null;
   protected final Reducer reducer;
@@ -197,16 +198,15 @@ public class BAMCacheImpl implements BAMCache {
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof AbstractStateHash)) {
-        return false;
-      }
-      if (pObj == this) {
+      if (this == pObj) {
         return true;
       }
-      AbstractStateHash other = (AbstractStateHash) pObj;
+      // TODO Timing every equals() seems like a lot of potential overhead.
       equalsTimer.start();
       try {
-        return context.equals(other.context) && wrappedHash.equals(other.wrappedHash);
+        return pObj instanceof AbstractStateHash other
+            && context.equals(other.context)
+            && wrappedHash.equals(other.wrappedHash);
       } finally {
         equalsTimer.stop();
       }

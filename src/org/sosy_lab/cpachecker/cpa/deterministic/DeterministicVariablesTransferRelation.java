@@ -64,12 +64,12 @@ public class DeterministicVariablesTransferRelation
         DeterministicVariablesState, DeterministicVariablesState, Precision>
     implements Statistics {
 
-  private StatCounter numberOfAssumes = new StatCounter("Number of assume edges");
-  private StatCounter numberOfNonDetAssumes =
+  private final StatCounter numberOfAssumes = new StatCounter("Number of assume edges");
+  private final StatCounter numberOfNonDetAssumes =
       new StatCounter("Number of non-deterministic assume edges");
 
-  private Set<CFANode> assumes = new HashSet<>();
-  private Set<CFANode> nondetAssumes = new HashSet<>();
+  private final Set<CFANode> assumes = new HashSet<>();
+  private final Set<CFANode> nondetAssumes = new HashSet<>();
 
   @Override
   protected DeterministicVariablesState handleDeclarationEdge(
@@ -77,12 +77,12 @@ public class DeterministicVariablesTransferRelation
       throws CPATransferException {
 
     // we do only care about variable declarations
-    if (!(pDeclaration instanceof AVariableDeclaration)) {
+    if (!(pDeclaration instanceof AVariableDeclaration aVariableDeclaration)) {
       return state;
     }
 
     Wrapper<ASimpleDeclaration> varDeclaration = LIVE_DECL_EQUIVALENCE.wrap(pDeclaration);
-    AInitializer initializer = ((AVariableDeclaration) pDeclaration).getInitializer();
+    AInitializer initializer = aVariableDeclaration.getInitializer();
 
     // initializer is empty, return identity
     if (initializer == null) {
@@ -122,13 +122,11 @@ public class DeterministicVariablesTransferRelation
   @Override
   protected DeterministicVariablesState handleStatementEdge(
       final AStatementEdge cfaEdge, final AStatement statement) throws CPATransferException {
-    // no assignments, thus return identity
     if (statement instanceof AExpressionStatement) {
+      // no assignments, thus return identity
       return state;
-    }
-
-    // no assignments, thus return identity
-    else if (statement instanceof AFunctionCallStatement) {
+    } else if (statement instanceof AFunctionCallStatement) {
+      // no assignments, thus return identity
       return state;
     } else if (statement instanceof AExpressionAssignmentStatement) {
       return handleAssignments((AAssignment) statement);
@@ -173,7 +171,6 @@ public class DeterministicVariablesTransferRelation
   @Override
   protected DeterministicVariablesState handleFunctionReturnEdge(
       final FunctionReturnEdge cfaEdge,
-      final FunctionSummaryEdge fnkCall,
       final AFunctionCall summaryExpr,
       final String callerFunctionName)
       throws CPATransferException {
@@ -183,10 +180,7 @@ public class DeterministicVariablesTransferRelation
 
       // there are functions with returns that are called as FunctionCallStatement, i.e., without
       // assigning
-      if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement assignExp =
-            ((AFunctionCallAssignmentStatement) summaryExpr);
-
+      if (summaryExpr instanceof AFunctionCallAssignmentStatement assignExp) {
         final Collection<Wrapper<ASimpleDeclaration>> assignedVariables =
             handleLeftHandSide(assignExp.getLeftHandSide());
 
@@ -204,9 +198,9 @@ public class DeterministicVariablesTransferRelation
 
     // cleanup by removing function parameter from state
     Set<Wrapper<ASimpleDeclaration>> parameters =
-        new HashSet<>(fnkCall.getFunctionEntry().getFunctionDefinition().getParameters().size());
+        new HashSet<>(cfaEdge.getFunctionEntry().getFunctionDefinition().getParameters().size());
     for (AParameterDeclaration param :
-        fnkCall.getFunctionEntry().getFunctionDefinition().getParameters()) {
+        cfaEdge.getFunctionEntry().getFunctionDefinition().getParameters()) {
       parameters.add(LIVE_DECL_EQUIVALENCE.wrap(param));
     }
     return state.removeDeterministicVariables(parameters);
@@ -266,10 +260,9 @@ public class DeterministicVariablesTransferRelation
       return areAllDeterministic(handleExpression((AExpression) pAssignment.getRightHandSide()))
           ? state.addDeterministicVariable(assignedVariable)
           : state.removeDeterministicVariable(assignedVariable);
-    }
 
-    // for function calls of functions without a body
-    else if (pAssignment instanceof AFunctionCallAssignmentStatement) {
+    } else if (pAssignment instanceof AFunctionCallAssignmentStatement) {
+      // for function calls of functions without a body
       return state.removeDeterministicVariable(Iterables.getOnlyElement(assignedVariables));
     } else {
       throw new AssertionError("Unhandled assignment type " + pAssignment.getClass());
@@ -293,24 +286,24 @@ public class DeterministicVariablesTransferRelation
    */
   private Collection<Wrapper<ASimpleDeclaration>> getVariablesUsedForInitialization(
       final AInitializer init) throws CPATransferException {
-    // e.g. .x=b or .p.x.=1 as part of struct initialization
-    if (init instanceof CDesignatedInitializer) {
-      return getVariablesUsedForInitialization(((CDesignatedInitializer) init).getRightHandSide());
-    }
+    return switch (init) {
+      case CDesignatedInitializer cDesignatedInitializer ->
+          // e.g. .x=b or .p.x.=1 as part of struct initialization
+          getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide());
 
-    // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-    else if (init instanceof CInitializerList) {
-      Collection<Wrapper<ASimpleDeclaration>> readVars = new ArrayList<>();
-
-      for (CInitializer inList : ((CInitializerList) init).getInitializers()) {
-        readVars.addAll(getVariablesUsedForInitialization(inList));
+      case CInitializerList cInitializerList -> {
+        // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
+        Collection<Wrapper<ASimpleDeclaration>> readVars = new ArrayList<>();
+        for (CInitializer inList : cInitializerList.getInitializers()) {
+          readVars.addAll(getVariablesUsedForInitialization(inList));
+        }
+        yield readVars;
       }
-      return readVars;
-    } else if (init instanceof AInitializerExpression) {
-      return handleExpression(((AInitializerExpression) init).getExpression());
-    } else {
-      throw new CPATransferException("Missing case for if-then-else statement.");
-    }
+      case AInitializerExpression aInitializerExpression ->
+          handleExpression(aInitializerExpression.getExpression());
+
+      default -> throw new CPATransferException("Missing case for if-then-else statement.");
+    };
   }
 
   @Override

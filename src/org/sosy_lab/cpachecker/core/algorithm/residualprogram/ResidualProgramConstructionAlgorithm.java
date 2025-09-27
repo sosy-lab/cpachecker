@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionFolder.FOLDER_TYPE;
+import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionFolder.FolderType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -151,8 +151,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       throws InvalidConfigurationException {
     this(pCfa, pConfig, pLogger, pShutdown, pSpec);
 
-    if (pInnerAlgorithm instanceof CPAAlgorithm) {
-      cpaAlgorithm = (CPAAlgorithm) pInnerAlgorithm;
+    if (pInnerAlgorithm instanceof CPAAlgorithm cPAAlgorithm) {
+      cpaAlgorithm = cPAAlgorithm;
     } else {
       throw new InvalidConfigurationException(
           "For residual program generation, only the CPAAlgorithm is required.");
@@ -218,16 +218,12 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     Set<ARGState> addPragma;
     try {
       statistic.collectPragmaPointsTimer.start();
-      switch (constructionStrategy) {
-        case COMBINATION:
-          addPragma = getAllTargetStates(pReachedSet);
-          break;
-        case SLICING:
-          addPragma = getAllTargetStatesNotFullyExplored(pReachedSet);
-          break;
-        default: // CONDITION, CONDITION_PLUS_FOLD no effect
-          addPragma = null;
-      }
+      addPragma =
+          switch (constructionStrategy) {
+            case COMBINATION -> getAllTargetStates(pReachedSet);
+            case SLICING -> getAllTargetStatesNotFullyExplored(pReachedSet);
+            default -> null; // CONDITION, CONDITION_PLUS_FOLD no effect
+          };
     } finally {
       statistic.collectPragmaPointsTimer.stop();
     }
@@ -256,7 +252,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
         Level.INFO,
         "All target states in residual program are relevant and will be considered in slicing.");
     return Sets.newHashSet(
-        Iterables.filter(Iterables.filter(pReachedSet, ARGState.class), state -> state.isTarget()));
+        Iterables.filter(Iterables.filter(pReachedSet, ARGState.class), ARGState::isTarget));
   }
 
   private Set<ARGState> getAllTargetStatesNotFullyExplored(final ReachedSet pNodesOfInlinedProg) {
@@ -321,7 +317,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       }
 
       Multimap<CFANode, CallstackStateEqualsWrapper> result =
-          HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
+          HashMultimap.create(cfa.nodes().size(), cfa.getNumberOfFunctions());
 
       for (AbstractState targetState : AbstractStates.getTargetStates(reached)) {
         result.put(
@@ -366,7 +362,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private boolean hasDeclarationGotoProblem() {
     return constructionStrategy != ResidualGenStrategy.CONDITION_PLUS_FOLD
-        || folder.getType() != FOLDER_TYPE.CFA;
+        || folder.getType() != FolderType.CFA;
   }
 
   protected boolean writeResidualProgram(
@@ -399,7 +395,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
                   .build(),
               logger,
               shutdown);
-      cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
+      cfaCreator.parseFileAndCreateCFA(ImmutableList.of(residualProgram.toString()));
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Default configuration unsuitable for parsing residual program.", e);
       return false;
@@ -422,10 +418,11 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private void checkCPAConfiguration(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    if (pCpa instanceof ARGCPA && ((ARGCPA) pCpa).getWrappedCPAs().get(0) instanceof CompositeCPA) {
-      CompositeCPA comCpa = (CompositeCPA) ((ARGCPA) pCpa).getWrappedCPAs().get(0);
+    if (pCpa instanceof ARGCPA aRGCPA
+        && aRGCPA.getWrappedCPAs().getFirst() instanceof CompositeCPA comCpa) {
 
-      boolean considersLocation = false, considersCallstack = false;
+      boolean considersLocation = false;
+      boolean considersCallstack = false;
       for (ConfigurableProgramAnalysis innerCPA : comCpa.getWrappedCPAs()) {
         if (innerCPA instanceof LocationCPA) {
           considersLocation = true;
@@ -447,16 +444,15 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private boolean checkInitialState(final AbstractState initState) {
     if (usesParallelCompositionOfProgramAndCondition()) {
-      boolean considersAssumption = false, considersAssumptionGuider = false;
+      boolean considersAssumption = false;
+      boolean considersAssumptionGuider = false;
 
       for (AbstractState component : AbstractStates.asIterable(initState)) {
-        if (component instanceof AutomatonState) {
-          if (((AutomatonState) component).getOwningAutomatonName().equals("AssumptionAutomaton")) {
+        if (component instanceof AutomatonState automatonState) {
+          if (automatonState.getOwningAutomatonName().equals("AssumptionAutomaton")) {
             considersAssumption = true;
           }
-          if (((AutomatonState) component)
-              .getOwningAutomatonName()
-              .equals("AssumptionGuidingAutomaton")) {
+          if (automatonState.getOwningAutomatonName().equals("AssumptionGuidingAutomaton")) {
             considersAssumptionGuider = true;
           }
         }
@@ -517,10 +513,10 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
         if (residProg != null) {
           if (collectResidualProgramSizeStatistics) {
-            int residProgSize = residProg.getAllNodes().size();
-            statWriter.put("Original program size (#loc)", cfa.getAllNodes().size());
+            int residProgSize = residProg.nodes().size();
+            statWriter.put("Original program size (#loc)", cfa.nodes().size());
             statWriter.put("Generated program size (#loc)", residProgSize);
-            statWriter.put("Size increase", ((double) residProgSize / cfa.getAllNodes().size()));
+            statWriter.put("Size increase", ((double) residProgSize / cfa.nodes().size()));
           }
           if (exportPixelGraphic && exportPixelFile != null) {
             try {
@@ -550,7 +546,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
                 shutdown);
 
         CFA residProg =
-            cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
+            cfaCreator.parseFileAndCreateCFA(ImmutableList.of(residualProgram.toString()));
 
         return residProg;
 

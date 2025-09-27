@@ -15,7 +15,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -28,6 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -173,7 +172,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // we use a list for the next states,
     // but we also remove states from waitlist, when they are done,
     // so we need fast access to the states
-    final Set<ARGState> waitlist = new LinkedHashSet<>();
+    final SequencedSet<ARGState> waitlist = new LinkedHashSet<>();
 
     // special handling of first state
     s2v.put(end, importantVars);
@@ -185,8 +184,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
 
     while (!waitlist.isEmpty()) {
-      final ARGState current = Iterables.getFirst(waitlist, null);
-      waitlist.remove(current);
+      final ARGState current = waitlist.removeFirst();
 
       // already handled
       assert !s2v.containsKey(current);
@@ -239,7 +237,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // the assumption itself is unimportant, so we can ignore it
     if (isAssumptionWithSameImpChild(usedChildren, current, s2s)) {
 
-      final ARGState child1 = usedChildren.get(0);
+      final ARGState child1 = usedChildren.getFirst();
       s2s.putAll(current, s2s.get(child1));
 
       // vars from latest important child,
@@ -296,7 +294,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       final ARGState current,
       final SetMultimap<ARGState, ARGState> s2s) {
     if (usedChildren.size() == 2) {
-      final ARGState child1 = usedChildren.get(0);
+      final ARGState child1 = usedChildren.getFirst();
       final ARGState child2 = usedChildren.get(1);
       final CFAEdge edge1 = current.getEdgeToChild(child1);
       final CFAEdge edge2 = current.getEdgeToChild(child2);
@@ -316,62 +314,37 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
   /** This function only forwards to the correct type of edge. */
   private boolean handleEdge(CFAEdge edge, Collection<String> importantVars) {
-
-    final boolean result;
     // check the type of the edge
-    switch (edge.getEdgeType()) {
-
-        // int a;
-      case DeclarationEdge:
-        result = handleDeclaration((CDeclarationEdge) edge, importantVars);
-        break;
-
-        // if (a == b) {...}
-      case AssumeEdge:
-        result = handleAssumption((CAssumeEdge) edge, importantVars);
-        break;
-
-        // a = b + c;
-      case StatementEdge:
-        result = handleStatement((CStatementEdge) edge, importantVars);
-        break;
-
-        // return (x);
-      case ReturnStatementEdge:
-        result = handleReturnStatement((CReturnStatementEdge) edge, importantVars);
-        break;
-
-        // assignment from y = f(x);
-      case FunctionReturnEdge:
-        result = handleFunctionReturn((CFunctionReturnEdge) edge, importantVars);
-        break;
-
-        // call from y = f(x);
-      case FunctionCallEdge:
-        result = handleFunctionCall((CFunctionCallEdge) edge, importantVars);
-        break;
-
-      case BlankEdge:
-        result = IS_BLANK_EDGE_IMPORTANT;
-        break;
-
-      default:
-        throw new AssertionError("unhandled edge: " + edge.getRawStatement());
-    }
-
+    final boolean result =
+        switch (edge.getEdgeType()) {
+          // int a;
+          case DeclarationEdge -> handleDeclaration((CDeclarationEdge) edge, importantVars);
+          // if (a == b) {...}
+          case AssumeEdge -> handleAssumption((CAssumeEdge) edge, importantVars);
+          // a = b + c;
+          case StatementEdge -> handleStatement((CStatementEdge) edge, importantVars);
+          // return (x);
+          case ReturnStatementEdge ->
+              handleReturnStatement((CReturnStatementEdge) edge, importantVars);
+          // assignment from y = f(x);
+          case FunctionReturnEdge ->
+              handleFunctionReturn((CFunctionReturnEdge) edge, importantVars);
+          // call from y = f(x);
+          case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) edge, importantVars);
+          case BlankEdge -> IS_BLANK_EDGE_IMPORTANT;
+          default -> throw new AssertionError("unhandled edge: " + edge.getRawStatement());
+        };
     return result;
   }
 
   private boolean handleDeclaration(CDeclarationEdge edge, Collection<String> importantVars) {
     final CDeclaration decl = edge.getDeclaration();
 
-    if (decl instanceof CVariableDeclaration) {
-      final CVariableDeclaration vdecl = (CVariableDeclaration) decl;
-
+    if (decl instanceof CVariableDeclaration vdecl) {
       if (importantVars.remove(vdecl.getQualifiedName())) {
         final CInitializer initializer = vdecl.getInitializer();
-        if (initializer instanceof CInitializerExpression) {
-          final CExpression init = ((CInitializerExpression) initializer).getExpression();
+        if (initializer instanceof CInitializerExpression cInitializerExpression) {
+          final CExpression init = cInitializerExpression.getExpression();
           CFAUtils.getVariableNamesOfExpression(init).copyInto(importantVars);
         }
         return true;
@@ -394,18 +367,17 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleStatement(CStatementEdge edge, Collection<String> importantVars) {
     final AStatement statement = edge.getStatement();
 
-    // expression is an assignment operation, e.g. a = b;
-    if (statement instanceof CAssignment) {
-      return handleAssignment((CAssignment) statement, importantVars);
-    }
+    if (statement instanceof CAssignment cAssignment) {
+      // expression is an assignment operation, e.g. a = b;
+      return handleAssignment(cAssignment, importantVars);
 
-    // call of external function, "scanf(...)" without assignment
-    // internal functioncalls are handled as FunctionCallEdges
-    else if (statement instanceof CFunctionCallStatement) {
+    } else if (statement instanceof CFunctionCallStatement) {
+      // call of external function, "scanf(...)" without assignment
+      // internal functioncalls are handled as FunctionCallEdges
       return true;
 
-      // "exp;" -> nothing to do?
     } else if (statement instanceof CExpressionStatement) {
+      // "exp;" -> nothing to do?
       return false;
 
     } else {
@@ -417,13 +389,13 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     final CExpression lhs = statement.getLeftHandSide();
 
     // a = ?
-    if (lhs instanceof CIdExpression) {
-      if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
+    if (lhs instanceof CIdExpression cIdExpression) {
+      if (importantVars.remove(cIdExpression.getDeclaration().getQualifiedName())) {
         final ARightHandSide rhs = statement.getRightHandSide();
 
         // a = b + c
-        if (rhs instanceof CExpression) {
-          CFAUtils.getVariableNamesOfExpression((CExpression) rhs).copyInto(importantVars);
+        if (rhs instanceof CExpression cExpression) {
+          CFAUtils.getVariableNamesOfExpression(cExpression).copyInto(importantVars);
           return true;
 
           // a = f(x)
@@ -466,15 +438,13 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleFunctionReturn(CFunctionReturnEdge edge, Collection<String> importantVars) {
 
     // set result of function equal to variable on left side
-    CFunctionSummaryEdge fnkCall = edge.getSummaryEdge();
-    CFunctionCall call = fnkCall.getExpression();
+    CFunctionCall call = edge.getFunctionCall();
 
     // handle assignments like "y = f(x);"
-    if (call instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
+    if (call instanceof CFunctionCallAssignmentStatement cAssignment) {
       CExpression lhs = cAssignment.getLeftHandSide();
-      if (lhs instanceof CIdExpression) {
-        if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {
+      if (lhs instanceof CIdExpression cIdExpression) {
+        if (importantVars.remove(cIdExpression.getDeclaration().getQualifiedName())) {
           Optional<CVariableDeclaration> returnVar = edge.getFunctionEntry().getReturnVariable();
           if (returnVar.isPresent()) {
             importantVars.add(returnVar.orElseThrow().getQualifiedName());
@@ -498,7 +468,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   }
 
   /**
-   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore each arg
+   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore, each arg
    * ("x") assigned to a param ("int a") of the function.
    */
   private boolean handleFunctionCall(CFunctionCallEdge edge, Collection<String> importantVars) {
@@ -540,7 +510,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // we use a list for the next states,
     // but we also remove states from waitlist, when they are done,
     // so we need fast access to the states
-    final Set<ARGState> waitlist = new LinkedHashSet<>();
+    final SequencedSet<ARGState> waitlist = new LinkedHashSet<>();
 
     // special handling of first state
     s2f.put(start, oldPf);
@@ -551,8 +521,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
 
     while (!waitlist.isEmpty()) {
-      final ARGState current = Iterables.getFirst(waitlist, null);
-      waitlist.remove(current);
+      final ARGState current = waitlist.removeFirst();
 
       // already handled
       assert !s2f.containsKey(current);
@@ -600,7 +569,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       pfs.add(buildFormulaForEdge(parent, current, oldPf, importantEdges));
     }
 
-    PathFormula joined = pfs.get(0);
+    PathFormula joined = pfs.getFirst();
     for (int i = 1; i < pfs.size(); i++) {
       joined = pfmgr.makeOr(joined, pfs.get(i));
     }

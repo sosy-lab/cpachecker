@@ -13,7 +13,6 @@ import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * This is the default implementation of {@linkplain ExpressionTreeFactory}, which uses a cache in
@@ -25,9 +24,9 @@ import java.util.Set;
 public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFactory<LeafType> {
 
   private final Map<ExpressionTree<LeafType>, ExpressionTree<LeafType>> leafCache = new HashMap<>();
-  private final Map<Set<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> andCache =
+  private final Map<ImmutableSet<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> andCache =
       new HashMap<>();
-  private final Map<Set<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> orCache =
+  private final Map<ImmutableSet<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> orCache =
       new HashMap<>();
 
   @Override
@@ -49,15 +48,14 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
 
   @Override
   public ExpressionTree<LeafType> and(Collection<ExpressionTree<LeafType>> pOperands) {
-    switch (pOperands.size()) {
-      case 0:
-        return ExpressionTrees.getTrue();
-      case 1:
-        return Iterables.getOnlyElement(pOperands);
-      default:
-        final Set<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
-        return andCache.computeIfAbsent(key, ignore -> And.of(key));
-    }
+    return switch (pOperands.size()) {
+      case 0 -> ExpressionTrees.getTrue();
+      case 1 -> Iterables.getOnlyElement(pOperands);
+      default -> {
+        final ImmutableSet<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
+        yield andCache.computeIfAbsent(key, ignore -> And.of(key));
+      }
+    };
   }
 
   @Override
@@ -67,14 +65,13 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
 
   @Override
   public ExpressionTree<LeafType> or(Collection<ExpressionTree<LeafType>> pOperands) {
-    switch (pOperands.size()) {
-      case 0:
-        return ExpressionTrees.getFalse();
-      case 1:
-        return Iterables.getOnlyElement(pOperands);
-      default:
-        final Set<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
-        return orCache.computeIfAbsent(key, ignore -> Or.of(key));
-    }
+    return switch (pOperands.size()) {
+      case 0 -> ExpressionTrees.getFalse();
+      case 1 -> Iterables.getOnlyElement(pOperands);
+      default -> {
+        final ImmutableSet<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
+        yield orCache.computeIfAbsent(key, ignore -> Or.of(key));
+      }
+    };
   }
 }

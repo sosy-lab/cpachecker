@@ -24,7 +24,6 @@ import com.google.common.truth.Fact;
 import com.google.common.truth.FailureMetadata;
 import com.google.common.truth.StringSubject;
 import com.google.common.truth.Subject;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -382,14 +381,13 @@ public class AutomatonInternalTest {
    * {@link Subject} subclass for testing ASTMatchers with Truth (allows to use
    * assert_().about(astMatcher).that("ast pattern").matches(...)).
    */
-  @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
   private class ASTMatcherSubject extends Subject {
 
     private final String pattern;
     private final AutomatonExpressionArguments args =
         new AutomatonExpressionArguments(null, null, null, null, null);
 
-    public ASTMatcherSubject(FailureMetadata pMetadata, String pPattern) {
+    ASTMatcherSubject(FailureMetadata pMetadata, String pPattern) {
       super(pMetadata, pPattern);
       pattern = pPattern;
     }
@@ -407,7 +405,7 @@ public class AutomatonInternalTest {
       return matcher.matches(sourceAST, args);
     }
 
-    public Matches matches(final String src) throws InterruptedException {
+    Matches matches(final String src) throws InterruptedException {
       boolean matches;
       try {
         matches = matches0(src);
@@ -416,37 +414,24 @@ public class AutomatonInternalTest {
             Fact.simpleFact("expected to be a valid pattern"),
             Fact.fact("but was", pattern),
             Fact.fact("which cannot be parsed", e));
-        return new Matches() {
-          @Override
-          public StringSubject andVariable(int pVar) {
-            // Cannot test value of variable with failed parsing.
-            return ASTMatcherSubject.this.ignoreCheck().that("");
-          }
-        };
+        // Cannot test value of variable with failed parsing.
+        return pVar -> ASTMatcherSubject.this.ignoreCheck().that("");
       }
 
       if (!matches) {
         failWithActual(Fact.fact("expected to match", src));
-        return new Matches() {
-          @Override
-          public StringSubject andVariable(int pVar) {
-            // Cannot test value of variable if pattern does not match.
-            return ASTMatcherSubject.this.ignoreCheck().that("");
-          }
-        };
+        // Cannot test value of variable if pattern does not match.
+        return pVar -> ASTMatcherSubject.this.ignoreCheck().that("");
       }
-      return new Matches() {
-        @Override
-        public StringSubject andVariable(int pVar) {
-          check("getTransitionVariables()").that(args.getTransitionVariables()).containsKey(pVar);
-          return ASTMatcherSubject.this
-              .check("transition variable $%s", pVar)
-              .that(args.getTransitionVariable(pVar).toASTString());
-        }
+      return pVar -> {
+        check("getTransitionVariables()").that(args.getTransitionVariables()).containsKey(pVar);
+        return ASTMatcherSubject.this
+            .check("transition variable $%s", pVar)
+            .that(args.getTransitionVariable(pVar).toASTString());
       };
     }
 
-    public void doesNotMatch(String src) throws InterruptedException {
+    void doesNotMatch(String src) throws InterruptedException {
       try {
         if (matches0(src)) {
           if (args.getTransitionVariables().isEmpty()) {
@@ -467,6 +452,7 @@ public class AutomatonInternalTest {
     }
   }
 
+  @FunctionalInterface
   private interface Matches {
     StringSubject andVariable(int var);
   }

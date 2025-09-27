@@ -145,10 +145,10 @@ class DynamicBindingCreator {
 
     JClassOrInterfaceType methodDeclaringType = methodDeclaration.getDeclaringClass();
 
-    if (methodDeclaringType instanceof JClassType) {
-      completeBindingsForDeclaringClassType((JClassType) methodDeclaringType, methodName);
-    } else if (methodDeclaringType instanceof JInterfaceType) {
-      completeBindingsForDeclaringInterfaceType((JInterfaceType) methodDeclaringType, methodName);
+    if (methodDeclaringType instanceof JClassType jClassType) {
+      completeBindingsForDeclaringClassType(jClassType, methodName);
+    } else if (methodDeclaringType instanceof JInterfaceType jInterfaceType) {
+      completeBindingsForDeclaringInterfaceType(jInterfaceType, methodName);
     }
   }
 
@@ -244,14 +244,13 @@ class DynamicBindingCreator {
       }
 
       for (CFAEdge edge : leavingEdges(node)) {
-        if (edge instanceof AStatementEdge) {
-          AStatementEdge statement = (AStatementEdge) edge;
+        if (edge instanceof AStatementEdge statement) {
           JStatement expr = (JStatement) statement.getStatement();
 
           // if statement is of the form x = call(a,b); or call(a,b);
-          if (expr instanceof AFunctionCall) {
+          if (expr instanceof AFunctionCall aFunctionCall) {
             // To Skip new Nodes
-            createBindings(statement, (AFunctionCall) expr, processed);
+            createBindings(statement, aFunctionCall, processed);
           }
         }
 
@@ -381,10 +380,8 @@ class DynamicBindingCreator {
 
     JStatement newFunctionCall;
 
-    if (oldFunctionCall instanceof JMethodInvocationAssignmentStatement) {
-      JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =
-          (JMethodInvocationAssignmentStatement) oldFunctionCall;
-
+    if (oldFunctionCall
+        instanceof JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement) {
       newFunctionCall =
           new JMethodInvocationAssignmentStatement(
               fileloc,
@@ -475,7 +472,7 @@ class DynamicBindingCreator {
 
     JClassOrInterfaceType definingType = overridesThisMethod.getDefiningType();
 
-    // Create condition which represents this.getClass().equals(functionClass.getClass())
+    // Create condition which represents getClass().equals(functionClass.getClass())
     createConditionEdges(
         prevNode,
         successfulNode,
@@ -486,10 +483,8 @@ class DynamicBindingCreator {
 
     JStatement newFunctionCall;
 
-    if (functionCall instanceof JMethodInvocationAssignmentStatement) {
-      JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement =
-          (JMethodInvocationAssignmentStatement) functionCall;
-
+    if (functionCall
+        instanceof JMethodInvocationAssignmentStatement oldFunctionCallAssignmentStatement) {
       // TODO Clone leftHandSide
       JLeftHandSide leftSide = oldFunctionCallAssignmentStatement.getLeftHandSide();
       newFunctionCall =
@@ -619,10 +614,9 @@ class DynamicBindingCreator {
 
     if (!firstReturnType.equals(sndReturnType)) {
 
-      if (!(firstReturnType instanceof JClassOrInterfaceType
-              && sndReturnType instanceof JClassOrInterfaceType)
-          || !isSubType(
-              (JClassOrInterfaceType) firstReturnType, (JClassOrInterfaceType) sndReturnType)) {
+      if (!(firstReturnType instanceof JClassOrInterfaceType firstReturnClassType
+              && sndReturnType instanceof JClassOrInterfaceType sndReturnClassType)
+          || !isSubType(firstReturnClassType, sndReturnClassType)) {
         return false;
       }
     }
@@ -689,8 +683,8 @@ class DynamicBindingCreator {
     }
 
     boolean isAbstract() {
-      return methodEntryNode instanceof JMethodEntryNode
-          && ((JMethodEntryNode) methodEntryNode).getFunctionDefinition().isAbstract();
+      return methodEntryNode instanceof JMethodEntryNode jMethodEntryNode
+          && jMethodEntryNode.getFunctionDefinition().isAbstract();
     }
   }
 }

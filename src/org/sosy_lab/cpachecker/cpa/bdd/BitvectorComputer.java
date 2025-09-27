@@ -75,7 +75,7 @@ class BitvectorComputer {
       }
       int M = partition.getVars().size();
       return (int) Math.ceil(Math.log(N + M) / Math.log(2));
-    } else if (type != null) {
+    } else if (type != null && type.hasKnownConstantSize()) {
       return machineModel.getSizeofInBits(type).intValueExact();
     } else {
       // we know nothing
@@ -117,8 +117,7 @@ class BitvectorComputer {
         value =
             bvmgr.toBitsize(
                 machineModel.getSizeofInBits((CSimpleType) targetType),
-                sourceType instanceof CSimpleType
-                    && machineModel.isSigned((CSimpleType) sourceType),
+                sourceType instanceof CSimpleType cSimpleType && machineModel.isSigned(cSimpleType),
                 value);
       }
       return value;
@@ -169,8 +168,7 @@ class BitvectorComputer {
         value =
             bvmgr.toBitsize(
                 machineModel.getSizeofInBits((CSimpleType) targetType),
-                sourceType instanceof CSimpleType
-                    && machineModel.isSigned((CSimpleType) sourceType),
+                sourceType instanceof CSimpleType cSimpleType && machineModel.isSigned(cSimpleType),
                 value);
       }
       return value;

@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -19,14 +19,14 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 
 /**
  * A view on a {@link SMG}, where no modifications are allowed.
  *
  * <p>All returned Collections are unmodifiable.
  */
-public interface UnmodifiableSMG {
+public sealed interface UnmodifiableSMG permits SMG, UnmodifiableCLangSMG {
 
   /**
    * Returns mutable instance of subclass. Changes to the returned instance are independent of this
@@ -63,7 +63,7 @@ public interface UnmodifiableSMG {
   int getSizeofPtrInBits();
 
   //  FIXME: replace by filter
-  TreeMap<Long, Long> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj);
+  NavigableMap<Long, Long> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj);
 
   boolean isPointer(SMGValue value);
 

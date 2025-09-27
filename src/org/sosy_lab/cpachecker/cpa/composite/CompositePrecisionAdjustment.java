@@ -101,15 +101,14 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
     }
     outElement = outElementStrengthened.orElseThrow();
 
-    PrecisionAdjustmentResult out =
-        PrecisionAdjustmentResult.create(outElement, outPrecision, action);
+    PrecisionAdjustmentResult out = new PrecisionAdjustmentResult(outElement, outPrecision, action);
 
     return Optional.of(out);
   }
 
   /**
    * Call {@link #strengthen(AbstractState, Precision, Iterable)} on contained precision
-   * adjustments. Returns identity if all of the strengthening operations are identities.
+   * adjustments. Returns identity if all the strengthening operations are identities.
    */
   private Optional<CompositeState> callStrengthen(
       CompositeState pCompositeState, CompositePrecision pCompositePrecision)

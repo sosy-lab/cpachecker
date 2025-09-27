@@ -8,13 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** {@link BinarySymbolicExpression} representing the 'shift left' operation. */
 public final class ShiftLeftExpression extends BinarySymbolicExpression {
 
-  private static final long serialVersionUID = 3368892481479334943L;
+  @Serial private static final long serialVersionUID = 3368892481479334943L;
 
   ShiftLeftExpression(
       SymbolicExpression pOperand1,
@@ -33,10 +35,25 @@ public final class ShiftLeftExpression extends BinarySymbolicExpression {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 
+  private ShiftLeftExpression(
+      final SymbolicExpression pOperand1,
+      final SymbolicExpression pOperand2,
+      final Type pExpressionType,
+      final Type pCalculationType,
+      final AbstractState pAbstractState) {
+    super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
+  }
+
   @Override
   public ShiftLeftExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new ShiftLeftExpression(
         getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
+  }
+
+  @Override
+  public SymbolicExpression copyForState(AbstractState pCurrentState) {
+    return new ShiftLeftExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pCurrentState);
   }
 
   @Override

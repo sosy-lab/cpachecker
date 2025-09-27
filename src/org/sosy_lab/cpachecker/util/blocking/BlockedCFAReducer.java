@@ -70,7 +70,7 @@ public class BlockedCFAReducer implements BlockComputer {
   @Option(
       secure = true,
       name = "reducedCfaFile",
-      description = "write the reduced cfa to the specified file.")
+      description = "write the reduced CFA to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reducedCfaFile = Path.of("ReducedCfa.rsf");
 
@@ -248,7 +248,7 @@ public class BlockedCFAReducer implements BlockComputer {
     private final Map<CFANode, ReducedNode> nodeMapping = new HashMap<>();
     private int functionCallId;
 
-    public ReducedNode getWrapper(CFANode pNode) {
+    ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
         boolean isLoopHead = cfa.getAllLoopHeads().orElseThrow().contains(pNode);
@@ -259,7 +259,7 @@ public class BlockedCFAReducer implements BlockComputer {
       return result;
     }
 
-    public FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
+    FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
       functionCallId = pFunctionCallId;
       cfa = pCfa;
     }
@@ -297,10 +297,8 @@ public class BlockedCFAReducer implements BlockComputer {
         }
 
         // Depending on the type of the edge...
-        if (e instanceof CFunctionCallEdge) {
-          CFunctionCallEdge callEdge = (CFunctionCallEdge) e;
-          ReducedNode callReturnTarget =
-              functionNodes.getWrapper(callEdge.getSummaryEdge().getSuccessor());
+        if (e instanceof CFunctionCallEdge callEdge) {
+          ReducedNode callReturnTarget = functionNodes.getWrapper(callEdge.getReturnNode());
           FunctionEntryNode calledFunction = callEdge.getSuccessor();
 
           if (inliningStack.contains(calledFunction)) {
@@ -344,7 +342,8 @@ public class BlockedCFAReducer implements BlockComputer {
   @VisibleForTesting
   void applyReductionSequences(ReducedFunction pApplyTo) {
     // Summarize the given function if the summarization-threshold is not already reached.
-    boolean sequenceApplied, choiceApplied;
+    boolean sequenceApplied;
+    boolean choiceApplied;
     do {
       sequenceApplied = applySequenceRule(pApplyTo);
       choiceApplied = applyChoiceRule(pApplyTo);

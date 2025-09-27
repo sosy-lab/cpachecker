@@ -82,7 +82,7 @@ abstract class ReachDefAnalysis<D, N, E> {
   }
 
   protected final void insertCombiner(N pNode, D pVariable) {
-    nodeDefCombiners.put(pNode, new Def.Combiner<D, E>(pVariable));
+    nodeDefCombiners.put(pNode, new Def.Combiner<>(pVariable));
   }
 
   protected void insertCombiners(DomFrontiers<N> pDomFrontiers) {

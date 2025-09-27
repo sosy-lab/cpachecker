@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class LocalizedRefinablePrecision extends RefinablePrecision {
+
   /**
    * the immutable collection that determines which variables are tracked at a specific location -
    * if it is null, all variables are tracked
@@ -103,19 +104,16 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public boolean tracksTheSameVariablesAs(VariableTrackingPrecision pOtherPrecision) {
-    if (pOtherPrecision.getClass().equals(getClass())
+    return pOtherPrecision.getClass().equals(getClass())
         && super.getBaseline().equals(((LocalizedRefinablePrecision) pOtherPrecision).getBaseline())
-        && rawPrecision.equals(((LocalizedRefinablePrecision) pOtherPrecision).rawPrecision)) {
-      return true;
-    }
-    return false;
+        && rawPrecision.equals(((LocalizedRefinablePrecision) pOtherPrecision).rawPrecision);
   }
 
   @Override
-  public boolean equals(Object other) {
-    return super.equals(other)
-        && other instanceof LocalizedRefinablePrecision
-        && rawPrecision.equals(((LocalizedRefinablePrecision) other).rawPrecision);
+  public boolean equals(Object pObj) {
+    return super.equals(pObj)
+        && pObj instanceof LocalizedRefinablePrecision other
+        && rawPrecision.equals(other.rawPrecision);
   }
 
   @Override

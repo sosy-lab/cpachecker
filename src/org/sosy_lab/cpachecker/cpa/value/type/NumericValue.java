@@ -10,126 +10,163 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serializable;
-import java.math.BigDecimal;
+import java.io.Serial;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
 /** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
-public class NumericValue implements Value, Serializable {
+public record NumericValue(Number number) implements Value {
 
-  private static final long serialVersionUID = -3829943575180448170L;
+  @Serial private static final long serialVersionUID = -3829943575180448170L;
 
-  private Number number;
-
-  /**
-   * Creates a new <code>NumericValue</code>.
-   *
-   * @param pNumber the value of the number
-   */
-  public NumericValue(Number pNumber) {
-    number = pNumber;
-  }
-
-  /**
-   * Returns the number stored in the container.
-   *
-   * @return the number stored in the container
-   */
+  /** Returns the number stored in the container. */
   public Number getNumber() {
     return number;
   }
 
   /**
-   * Returns the integer stored in the container as long. Before calling this function, it must be
-   * ensured using `getType()` that this container contains an integer.
+   * Convert to long
+   *
+   * <p>Warning: This silently truncates and rounds the value to fit into a long. Use {@link
+   * #bigIntegerValue()} instead.
    */
   public long longValue() {
     return number.longValue();
   }
 
-  /** Returns the floating point stored in the container as float. */
+  /**
+   * Convert to float
+   *
+   * <p>Warning: This silently truncates and rounds the value to fit into a float.
+   */
   public float floatValue() {
     return number.floatValue();
   }
 
-  /** Returns the floating point stored in the container as double. */
+  /**
+   * Convert to double
+   *
+   * <p>Warning: This silently truncates and rounds the value to fit into a double.
+   */
   public double doubleValue() {
     return number.doubleValue();
   }
 
-  /** Returns a BigDecimal value representing the stored number. */
-  public BigDecimal bigDecimalValue() {
-    if (number instanceof Double || number instanceof Float) {
-      // if we use number.toString() for float values, the toString() method
-      // will not print the full double but only the number of digits
-      // necessary to distinguish it from the surrounding double-values.
-      // This will result in an incorrect value of the BigDecimal.
-      // Instead, use the floats themselves to get the precise value.
-      //
-      // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
-      return BigDecimal.valueOf(number.doubleValue());
-    } else if (number instanceof Rational) {
-      Rational rat = (Rational) number;
-      return new BigDecimal(rat.getNum())
-          .divide(new BigDecimal(rat.getDen()), 100, RoundingMode.HALF_UP);
-    } else {
-      return new BigDecimal(number.toString());
-    }
-  }
-
-  /** Returns a {@link BigInteger} value representing the stored number. */
-  public BigInteger bigInteger() {
-    if (number instanceof BigInteger) {
-      return (BigInteger) number;
-    }
-    if (number instanceof Double || number instanceof Float) {
-      long x = (long) number.doubleValue();
-      return BigInteger.valueOf(x);
-    }
-    if (number instanceof BigDecimal) {
-      return ((BigDecimal) number).toBigInteger();
-    }
-    if (number instanceof Rational) {
-      return new NumericValue(number).bigDecimalValue().toBigInteger();
-    }
-    return new BigInteger(number.toString());
-  }
-
-  @Override
-  public String toString() {
-    return "NumericValue [number=" + number + "]";
+  /**
+   * Return value as a {@link FloatValue}
+   *
+   * <p>Throws an exception if the value does not have a floating point type already. Use {@link
+   * NumericValue#hasFloatType()} to check first, and {@link
+   * NumericValue#floatingPointValue(Format)} for conversion.
+   */
+  public FloatValue getFloatValue() {
+    return switch (number) {
+      case FloatValue floatValue -> floatValue;
+      case Double doubleValue -> FloatValue.fromDouble(doubleValue);
+      case Float floatValue -> FloatValue.fromFloat(floatValue);
+      default ->
+          throw new IllegalArgumentException(
+              "Value is not a floating point number and needs to be converted first.");
+    };
   }
 
   /**
-   * Returns whether this object and a given object are equal. Two <code>NumericValue</code> objects
-   * are equal if and only if their stored values are equal.
+   * Convert to {@link FloatValue}
    *
-   * @param other the <code>Object</code> to compare to this object
-   * @return <code>true</code> if the given object equals this object, <code>false</code> otherwise
+   * @param format The target format for the conversion
    */
-  @Override
-  public boolean equals(Object other) {
-    if (other instanceof NumericValue) {
-      return getNumber().equals(((NumericValue) other).getNumber());
+  public FloatValue floatingPointValue(FloatValue.Format format) {
+    if (hasFloatType()) {
+      return getFloatValue().withPrecision(format);
+    } else if (hasIntegerType()) {
+      return FloatValue.fromInteger(format, bigIntegerValue());
+    } else if (number instanceof Rational rationalValue) {
+      return FloatValue.fromRational(format, rationalValue);
     } else {
-      return false;
+      throw new UnsupportedOperationException("Should be unreachable.");
     }
   }
 
   /**
-   * Always returns <code>true</code>.
+   * Return value as a {@link BigInteger}
    *
-   * @return always <code>true</code>
+   * <p>Throws an exception if the value does not have an integer type already. Use {@link
+   * NumericValue#hasIntegerType()} to check first, and {@link NumericValue#bigIntegerValue()} for
+   * conversion.
    */
+  public BigInteger getIntegerValue() {
+    if (number instanceof BigInteger bigInt) {
+      return bigInt;
+    } else if (number instanceof Long
+        || number instanceof Integer
+        || number instanceof Short
+        || number instanceof Byte) {
+      return BigInteger.valueOf(number.longValue());
+    } else {
+      throw new IllegalArgumentException(
+          "Value is not an integer number and needs to be converted first.");
+    }
+  }
+
+  /**
+   * Convert to {@link BigInteger}
+   *
+   * <p>WARNING: This silently rounds rational and floating point numbers.
+   */
+  public BigInteger bigIntegerValue() {
+    if (hasIntegerType()) {
+      return getIntegerValue();
+    } else if (number instanceof Rational rationalValue) {
+      BigInteger num = rationalValue.getNum();
+      BigInteger den = rationalValue.getDen();
+      return num.divide(den);
+    } else if (number instanceof Double || number instanceof Float) {
+      return FloatValue.fromDouble(number.doubleValue()).integerValue();
+    } else if (number instanceof FloatValue floatValue) {
+      return floatValue.integerValue();
+    } else {
+      throw new IllegalArgumentException("Should be unreachable.");
+    }
+  }
+
   @Override
   public boolean isNumericValue() {
     return true;
+  }
+
+  /**
+   * Check if the value has an integer type.
+   *
+   * <p>Note that this will not check if the actual value is integer. For types like Double or
+   * Rational this method always returns <code>false</code>.
+   */
+  public boolean hasIntegerType() {
+    return number instanceof BigInteger
+        || number instanceof Long
+        || number instanceof Integer
+        || number instanceof Short
+        || number instanceof Byte;
+  }
+
+  /** Check if the value has a floating point type. */
+  public boolean hasFloatType() {
+    return number instanceof FloatValue || number instanceof Double || number instanceof Float;
+  }
+
+  /**
+   * Check if the type has a fixed size.
+   *
+   * <p>Returns <code>false</code> for Rational and BigInteger as they can represent arbitrary sized
+   * values.
+   */
+  public boolean hasFixedSize() {
+    return !(number instanceof BigInteger || number instanceof Rational);
   }
 
   /**
@@ -138,45 +175,30 @@ public class NumericValue implements Value, Serializable {
    * @return the negation of this objects value
    */
   public NumericValue negate() {
-    // TODO explicitfloat: handle the remaining different implementations of Number properly
-    final Number numberToNegate = getNumber();
+    return switch (number) {
+      case Float numberToNegate when Float.isNaN(numberToNegate) ->
+          // If the number is NaN we need to convert to FloatValue to handle the sign
+          new NumericValue(FloatValue.nan(FloatValue.Format.Float32).negate().floatValue());
+      case Float numberToNegate -> new NumericValue(-numberToNegate);
 
-    // check if number is infinite or NaN
-    if (numberToNegate instanceof Float) {
-      if (numberToNegate.equals(Float.POSITIVE_INFINITY)) {
-        return new NumericValue(Float.NEGATIVE_INFINITY);
+      case Double numberToNegate when Double.isNaN(numberToNegate) ->
+          // If the number is NaN we need to convert to FloatValue to handle the sign
+          new NumericValue(FloatValue.nan(FloatValue.Format.Float64).negate().floatValue());
+      case Double numberToNegate -> new NumericValue(-numberToNegate);
 
-      } else if (numberToNegate.equals(Float.NEGATIVE_INFINITY)) {
-        return new NumericValue(Float.POSITIVE_INFINITY);
+      case FloatValue floatValue -> new NumericValue(floatValue.negate());
 
-      } else if (numberToNegate.equals(Float.NaN)) {
-        return new NumericValue(NegativeNaN.VALUE);
+      case Rational rat -> new NumericValue(rat.negate());
+
+      default -> {
+        if (hasIntegerType()) {
+          // FIXME: This might be broken for -MAX_VALUE if the type is not BigInteger
+          yield new NumericValue(bigIntegerValue().negate());
+        } else {
+          throw new UnsupportedOperationException("Should be unreachable.");
+        }
       }
-    } else if (numberToNegate instanceof Double) {
-      if (numberToNegate.equals(Double.POSITIVE_INFINITY)) {
-        return new NumericValue(Double.NEGATIVE_INFINITY);
-
-      } else if (numberToNegate.equals(Double.NEGATIVE_INFINITY)) {
-        return new NumericValue(Double.POSITIVE_INFINITY);
-
-      } else if (numberToNegate.equals(Double.NaN)) {
-        return new NumericValue(NegativeNaN.VALUE);
-      }
-    } else if (numberToNegate instanceof Rational) {
-      return new NumericValue(((Rational) numberToNegate).negate());
-    } else if (NegativeNaN.VALUE.equals(numberToNegate)) {
-      return new NumericValue(Double.NaN);
-    }
-
-    if (numberToNegate instanceof BigDecimal) {
-      BigDecimal bd = (BigDecimal) numberToNegate;
-      if (bd.signum() == 0) {
-        return new NumericValue(-bd.doubleValue());
-      }
-    }
-
-    // if the stored number is a 'casual' number, just negate it
-    return new NumericValue(bigDecimalValue().negate());
+    };
   }
 
   @Override
@@ -222,56 +244,5 @@ public class NumericValue implements Value, Serializable {
   @Override
   public boolean isExplicitlyKnown() {
     return true;
-  }
-
-  @Override
-  public int hashCode() {
-    // fulfills contract that if this.equals(other),
-    // then this.hashCode() == other.hashCode()
-    return number.hashCode();
-  }
-
-  public static class NegativeNaN extends Number {
-
-    private static final long serialVersionUID = 1L;
-
-    public static final Number VALUE = new NegativeNaN();
-
-    private NegativeNaN() {}
-
-    @Override
-    public double doubleValue() {
-      return Double.NaN;
-    }
-
-    @Override
-    public float floatValue() {
-      return Float.NaN;
-    }
-
-    @Override
-    public int intValue() {
-      return (int) Double.NaN;
-    }
-
-    @Override
-    public long longValue() {
-      return (long) Double.NaN;
-    }
-
-    @Override
-    public String toString() {
-      return "-NaN";
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      return pObj == this || pObj instanceof NegativeNaN;
-    }
-
-    @Override
-    public int hashCode() {
-      return -1;
-    }
   }
 }

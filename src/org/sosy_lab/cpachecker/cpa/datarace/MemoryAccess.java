@@ -125,11 +125,8 @@ class MemoryAccess {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof MemoryAccess)) {
-      return false;
-    }
-    MemoryAccess access = (MemoryAccess) pO;
-    return isWrite == access.isWrite
+    return pO instanceof MemoryAccess access
+        && isWrite == access.isWrite
         && accessEpoch == access.accessEpoch
         && threadId.equals(access.threadId)
         && memoryLocation.equals(access.memoryLocation)

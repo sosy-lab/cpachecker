@@ -73,11 +73,11 @@ public class TargetFunctionsProvider {
   }
 
   public Set<String> getMatchedFunc(CExpression expression) {
-    if (expression instanceof CFieldReference) {
-      String fieldName = ((CFieldReference) expression).getFieldName();
+    if (expression instanceof CFieldReference cFieldReference) {
+      String fieldName = cFieldReference.getFieldName();
       return candidateFunctionsForField.get(fieldName);
-    } else if (expression instanceof CIdExpression) {
-      String variableName = ((CIdExpression) expression).getName();
+    } else if (expression instanceof CIdExpression cIdExpression) {
+      String variableName = cIdExpression.getName();
       return globalsMatching.get(variableName);
     } else {
       return ImmutableSet.of();
@@ -105,27 +105,17 @@ public class TargetFunctionsProvider {
 
     for (FunctionSet functionSet : functionSets) {
       switch (functionSet) {
-        case ALL:
+        case ALL -> {
           // do nothing
-          break;
-        case EQ_PARAM_COUNT:
-          predicates.add(this::checkParamCount);
-          break;
-        case EQ_PARAM_SIZES:
-          predicates.add(this::checkReturnAndParamSizes);
-          break;
-        case EQ_PARAM_TYPES:
-          predicates.add(this::checkReturnAndParamTypes);
-          break;
-        case RETURN_VALUE:
-          predicates.add(this::checkReturnValue);
-          break;
-        case USED_IN_CODE:
+        }
+        case EQ_PARAM_COUNT -> predicates.add(this::checkParamCount);
+        case EQ_PARAM_SIZES -> predicates.add(this::checkReturnAndParamSizes);
+        case EQ_PARAM_TYPES -> predicates.add(this::checkReturnAndParamTypes);
+        case RETURN_VALUE -> predicates.add(this::checkReturnValue);
+        case USED_IN_CODE -> {
           // Not necessary, only matching functions are in the
           // candidateFunctions set
-          break;
-        default:
-          throw new AssertionError();
+        }
       }
     }
     return predicates.stream().reduce((a, b) -> true, BiPredicate::and);
@@ -282,46 +272,34 @@ public class TargetFunctionsProvider {
     }
 
     // Void pointer can be converted to any other pointer or integer
-    if (declaredType instanceof CPointerType) {
-      CPointerType declaredPointerType = (CPointerType) declaredType;
-      if (declaredPointerType.getType() == CVoidType.VOID) {
-        if (actualType instanceof CSimpleType) {
-          CSimpleType actualSimpleType = (CSimpleType) actualType;
-          CBasicType actualBasicType = actualSimpleType.getType();
-          if (actualBasicType.isIntegerType()) {
-            return true;
-          }
-        } else if (actualType instanceof CPointerType) {
+    if ((declaredType instanceof CPointerType declaredPointerType)
+        && (declaredPointerType.getType() == CVoidType.VOID)) {
+      if (actualType instanceof CSimpleType actualSimpleType) {
+        CBasicType actualBasicType = actualSimpleType.getType();
+        if (actualBasicType.isIntegerType()) {
           return true;
         }
-      }
-    }
-
-    // Any pointer or integer can be converted to a void pointer
-    if (actualType instanceof CPointerType) {
-      CPointerType actualPointerType = (CPointerType) actualType;
-      if (actualPointerType.getType() == CVoidType.VOID) {
-        if (declaredType instanceof CSimpleType) {
-          CSimpleType declaredSimpleType = (CSimpleType) declaredType;
-          CBasicType declaredBasicType = declaredSimpleType.getType();
-          if (declaredBasicType.isIntegerType()) {
-            return true;
-          }
-        } else if (declaredType instanceof CPointerType) {
-          return true;
-        }
-      }
-    }
-
-    // If both types are pointers, check if the inner types are compatible
-    if (declaredType instanceof CPointerType && actualType instanceof CPointerType) {
-      CPointerType declaredPointerType = (CPointerType) declaredType;
-      CPointerType actualPointerType = (CPointerType) actualType;
-      if (isCompatibleType(declaredPointerType.getType(), actualPointerType.getType())) {
+      } else if (actualType instanceof CPointerType) {
         return true;
       }
     }
 
-    return false;
+    // Any pointer or integer can be converted to a void pointer
+    if ((actualType instanceof CPointerType actualPointerType)
+        && (actualPointerType.getType() == CVoidType.VOID)) {
+      if (declaredType instanceof CSimpleType declaredSimpleType) {
+        CBasicType declaredBasicType = declaredSimpleType.getType();
+        if (declaredBasicType.isIntegerType()) {
+          return true;
+        }
+      } else if (declaredType instanceof CPointerType) {
+        return true;
+      }
+    }
+
+    // If both types are pointers, check if the inner types are compatible
+    return (declaredType instanceof CPointerType declaredPointerType
+            && actualType instanceof CPointerType actualPointerType)
+        && isCompatibleType(declaredPointerType.getType(), actualPointerType.getType());
   }
 }

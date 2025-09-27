@@ -13,11 +13,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 
 @SuppressWarnings("EqualsGetClass") // should be refactored
-public abstract class SingleIdentifier implements AbstractIdentifier {
+public abstract sealed class SingleIdentifier implements AbstractIdentifier
+    permits FunctionIdentifier, StructureIdentifier, VariableIdentifier {
 
-  protected String name;
-  protected CType type;
-  protected int dereference;
+  protected final String name;
+  protected final CType type;
+  protected final int dereference;
 
   protected SingleIdentifier(String nm, CType tp, int deref) {
     name = nm;
@@ -85,10 +86,11 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
-    if (!(pO instanceof SingleIdentifier)) {
+    // FIXME cf. #1110
+    if (!(pO instanceof SingleIdentifier other)) {
       return 1;
     } else {
-      SingleIdentifier other = (SingleIdentifier) pO;
+
       int result = name.compareTo(other.name);
       if (result != 0) {
         return result;

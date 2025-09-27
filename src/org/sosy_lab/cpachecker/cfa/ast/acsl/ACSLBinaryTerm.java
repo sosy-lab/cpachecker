@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLBinaryTerm implements ACSLTerm {
+public final class ACSLBinaryTerm implements ACSLTerm {
 
   private final ACSLTerm left;
   private final ACSLTerm right;
@@ -21,38 +21,37 @@ public class ACSLBinaryTerm implements ACSLTerm {
         : String.format(
             "ACSLTerm may only hold arithmetic, bitwise or comparison operator, %s is neither", op);
     switch (op) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case TIMES:
-      case MOD:
-      case LSHIFT:
-      case RSHIFT:
-      case BAND:
-      case BOR:
-      case BXOR:
-      case EQ:
-      case NEQ:
-      case LEQ:
-      case GEQ:
-      case LT:
-      case GT:
+      case PLUS,
+          MINUS,
+          DIVIDE,
+          TIMES,
+          MOD,
+          LSHIFT,
+          RSHIFT,
+          BAND,
+          BOR,
+          BXOR,
+          EQ,
+          NEQ,
+          LEQ,
+          GEQ,
+          LT,
+          GT -> {
         left = pLeft;
         right = pRight;
         operator = op;
-        break;
-      case BIMP:
+      }
+      case BIMP -> {
         left = new ACSLUnaryTerm(pLeft, ACSLUnaryOperator.BNEG);
         right = pRight;
         operator = ACSLBinaryOperator.BOR;
-        break;
-      case BEQV:
+      }
+      case BEQV -> {
         left = new ACSLUnaryTerm(pLeft, ACSLUnaryOperator.BNEG);
         right = pRight;
         operator = ACSLBinaryOperator.BXOR;
-        break;
-      default:
-        throw new AssertionError("Unknown operator: " + op);
+      }
+      default -> throw new AssertionError("Unknown operator: " + op);
     }
   }
 
@@ -63,14 +62,12 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLBinaryTerm) {
-      ACSLBinaryTerm other = (ACSLBinaryTerm) o;
-      if (operator.equals(other.operator)) {
-        return (left.equals(other.left) && right.equals(other.right))
-            || (ACSLBinaryOperator.isCommutative(operator)
-                && left.equals(other.right)
-                && right.equals(other.left));
-      }
+    if (o instanceof ACSLBinaryTerm other && operator.equals(other.operator)) {
+      // Some operators are commutative.
+      return (left.equals(other.left) && right.equals(other.right))
+          || (ACSLBinaryOperator.isCommutative(operator)
+              && left.equals(other.right)
+              && right.equals(other.left));
     }
     return false;
   }
@@ -94,29 +91,16 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   public ACSLBinaryTerm flipOperator() {
     assert ACSLBinaryOperator.isComparisonOperator(operator);
-    ACSLBinaryOperator op;
-    switch (operator) {
-      case EQ:
-        op = ACSLBinaryOperator.NEQ;
-        break;
-      case NEQ:
-        op = ACSLBinaryOperator.EQ;
-        break;
-      case LEQ:
-        op = ACSLBinaryOperator.GT;
-        break;
-      case GEQ:
-        op = ACSLBinaryOperator.LT;
-        break;
-      case LT:
-        op = ACSLBinaryOperator.GEQ;
-        break;
-      case GT:
-        op = ACSLBinaryOperator.LEQ;
-        break;
-      default:
-        throw new AssertionError("Unknown BinaryOperator: " + operator);
-    }
+    ACSLBinaryOperator op =
+        switch (operator) {
+          case EQ -> ACSLBinaryOperator.NEQ;
+          case NEQ -> ACSLBinaryOperator.EQ;
+          case LEQ -> ACSLBinaryOperator.GT;
+          case GEQ -> ACSLBinaryOperator.LT;
+          case LT -> ACSLBinaryOperator.GEQ;
+          case GT -> ACSLBinaryOperator.LEQ;
+          default -> throw new AssertionError("Unknown BinaryOperator: " + operator);
+        };
     return new ACSLBinaryTerm(left, right, op);
   }
 

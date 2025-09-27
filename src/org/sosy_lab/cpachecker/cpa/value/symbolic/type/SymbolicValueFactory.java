@@ -10,13 +10,9 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.Types;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -47,8 +43,8 @@ public class SymbolicValueFactory {
   public SymbolicExpression asConstant(Value pValue, Type pType) {
     checkNotNull(pValue);
     assert !pValue.isUnknown();
-    if (pValue instanceof SymbolicExpression) {
-      return ((SymbolicExpression) pValue);
+    if (pValue instanceof SymbolicExpression symbolicExpression) {
+      return symbolicExpression;
 
     } else {
       return new ConstantSymbolicExpression(pValue, getCanonicalType(pType));
@@ -87,8 +83,8 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression negate(SymbolicExpression pFormula, Type pType) {
     checkNotNull(pFormula);
-    if (pFormula instanceof NegationExpression) {
-      return ((NegationExpression) pFormula).getOperand();
+    if (pFormula instanceof NegationExpression negationExpression) {
+      return negationExpression.getOperand();
 
     } else {
       return new NegationExpression(pFormula, pType);
@@ -232,8 +228,8 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression logicalNot(SymbolicExpression pOperand, Type pType) {
 
-    if (pOperand instanceof LogicalNotExpression) {
-      return ((LogicalNotExpression) pOperand).getOperand();
+    if (pOperand instanceof LogicalNotExpression logicalNotExpression) {
+      return logicalNotExpression.getOperand();
 
     } else {
       return new LogicalNotExpression(pOperand, getCanonicalType(pType));
@@ -242,8 +238,8 @@ public class SymbolicValueFactory {
 
   public SymbolicExpression binaryNot(SymbolicExpression pOperand, Type pType) {
 
-    if (pOperand instanceof BinaryNotExpression) {
-      return ((BinaryNotExpression) pOperand).getOperand();
+    if (pOperand instanceof BinaryNotExpression binaryNotExpression) {
+      return binaryNotExpression.getOperand();
 
     } else {
       return new BinaryNotExpression(pOperand, getCanonicalType(pType));
@@ -274,17 +270,14 @@ public class SymbolicValueFactory {
 
   /**
    * Creates a {@link SymbolicExpression} representing the cast of the given value to the given
-   * type. If multiple casts occur sequentially, it is tried to simplify them. A {@link
-   * MachineModel} might be necessary for this if the cast types are instances of {@link CType}.
+   * type. If multiple casts occur sequentially, it is tried to simplify them.
    *
    * @param pValue the value to cast
    * @param pTargetType the type to cast to
-   * @param pMachineModel the machine model, optionally
    * @return a <code>SymbolicExpression</code> representing the cast of the given value to the given
    *     type
    */
-  public SymbolicExpression cast(
-      SymbolicValue pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+  public SymbolicExpression cast(SymbolicValue pValue, Type pTargetType) {
     Type canonicalTargetType = getCanonicalType(pTargetType);
 
     SymbolicExpression operand;
@@ -298,81 +291,17 @@ public class SymbolicValueFactory {
       return (SymbolicExpression) pValue;
     }
 
-    if (!(pValue instanceof SymbolicExpression)) {
+    if (!(pValue instanceof SymbolicExpression symbolicExpression)) {
       return asConstant(pValue, canonicalTargetType);
     } else {
-      operand = (SymbolicExpression) pValue;
+      operand = symbolicExpression;
     }
 
     if (operand.getType().equals(canonicalTargetType)) {
       return operand;
 
     } else {
-      boolean isCast = operand instanceof CastExpression;
-
-      operand = new CastExpression(operand, canonicalTargetType);
-
-      if (isCast) {
-        operand = simplifyCasts((CastExpression) operand, pMachineModel);
-      }
-
-      return operand;
-    }
-  }
-
-  /**
-   * Removes unnecessary sequential casts.
-   *
-   * <p>If a cast that does not change the value of the operand is proceeded by another cast, this
-   * first cast is removed.
-   *
-   * <p>Example:
-   *
-   * <pre>
-   *    char b = nondet();
-   *    b = (int) (long) b;
-   *  </pre>
-   *
-   * In the above example, an expression representing <code>(int) b</code> will be returned.
-   *
-   * @param pExpression the {@link CastExpression} to simplify
-   * @param pMachineModel the machine model
-   * @return a simplified version of the given expression.
-   */
-  private SymbolicExpression simplifyCasts(
-      CastExpression pExpression, Optional<MachineModel> pMachineModel) {
-    Type typeOfBasicExpression = getTypeOfBasicExpression(pExpression);
-    SymbolicExpression operand = pExpression.getOperand();
-
-    if (operand instanceof CastExpression) {
-      Type typeOfOuterCast = pExpression.getType();
-      Type typeOfInnerCast = operand.getType();
-      SymbolicExpression nextOperand = ((CastExpression) operand).getOperand();
-
-      if (typeOfOuterCast instanceof CType && pMachineModel.isPresent()) {
-        assert typeOfInnerCast instanceof CType && typeOfBasicExpression instanceof CType;
-        if (Types.canHoldAllValues(
-            typeOfInnerCast, typeOfBasicExpression, pMachineModel.orElseThrow())) {
-          return cast(nextOperand, typeOfOuterCast, pMachineModel);
-        }
-
-      } else if (typeOfOuterCast instanceof JType) {
-        assert typeOfInnerCast instanceof JType && typeOfBasicExpression instanceof JType;
-        if (Types.canHoldAllValues((JType) typeOfInnerCast, (JType) typeOfBasicExpression)) {
-          return cast(nextOperand, typeOfOuterCast, pMachineModel);
-        }
-      }
-    }
-
-    return pExpression;
-  }
-
-  private Type getTypeOfBasicExpression(SymbolicExpression pExpression) {
-    if (pExpression instanceof CastExpression) {
-      return getTypeOfBasicExpression(((CastExpression) pExpression).getOperand());
-
-    } else {
-      return pExpression.getType();
+      return new CastExpression(operand, canonicalTargetType);
     }
   }
 
@@ -385,8 +314,8 @@ public class SymbolicValueFactory {
     checkNotNull(pOperand);
 
     // &*a = a
-    if (pOperand instanceof PointerExpression) {
-      return ((PointerExpression) pOperand).getOperand();
+    if (pOperand instanceof PointerExpression pointerExpression) {
+      return pointerExpression.getOperand();
 
     } else {
       return new AddressOfExpression(pOperand, getCanonicalType(pType));
@@ -394,8 +323,8 @@ public class SymbolicValueFactory {
   }
 
   private Type getCanonicalType(Type pType) {
-    if (pType instanceof CType) {
-      return ((CType) pType).getCanonicalType();
+    if (pType instanceof CType cType) {
+      return cType.getCanonicalType();
     } else {
       return pType;
     }

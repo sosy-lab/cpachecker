@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -75,12 +74,11 @@ public class FormulaSlicingManager implements StatisticsProvider {
   private final LiveVariables liveVariables;
   private final LoopStructure loopStructure;
 
-  @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private final LogManager logger;
 
   FormulaSlicingManager(
       Configuration config,
-      CachingPathFormulaManager pPathFormulaManager,
+      PathFormulaManager pPathFormulaManager,
       FormulaManagerView pFormulaManager,
       CFA pCfa,
       InductiveWeakeningManager pInductiveWeakeningManager,
@@ -96,7 +94,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
     solver = pSolver;
     bfmgr = pFormulaManager.getBooleanFormulaManager();
     rcnfManager = pRcnfManager;
-    statistics = new FormulaSlicingStatistics(pPathFormulaManager, pSolver);
+    statistics = new FormulaSlicingStatistics(pSolver);
     Preconditions.checkState(
         pCfa.getLiveVariables().isPresent() && pCfa.getLoopStructure().isPresent());
     liveVariables = pCfa.getLiveVariables().orElseThrow();
@@ -131,8 +129,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
       // We do not use the other invariant => do not repeat the computation.
       return Optional.of(
-          PrecisionAdjustmentResult.create(
-              pState, SingletonPrecision.getInstance(), Action.CONTINUE));
+          new PrecisionAdjustmentResult(pState, SingletonPrecision.getInstance(), Action.CONTINUE));
     } else {
       iState = pState.asIntermediate();
     }
@@ -178,11 +175,10 @@ public class FormulaSlicingManager implements StatisticsProvider {
       }
 
       return Optional.of(
-          PrecisionAdjustmentResult.create(out, SingletonPrecision.getInstance(), Action.CONTINUE));
+          new PrecisionAdjustmentResult(out, SingletonPrecision.getInstance(), Action.CONTINUE));
     } else {
       return Optional.of(
-          PrecisionAdjustmentResult.create(
-              pState, SingletonPrecision.getInstance(), Action.CONTINUE));
+          new PrecisionAdjustmentResult(pState, SingletonPrecision.getInstance(), Action.CONTINUE));
     }
   }
 
@@ -282,8 +278,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
           inductiveUnder = ImmutableSet.of(path);
         }
       }
-    } catch (SolverException pE) {
-      throw new CPAException("Solver call failed", pE);
+    } catch (SolverException e) {
+      throw new CPAException("Solver call failed", e);
     } finally {
       statistics.inductiveWeakening.stop();
     }
@@ -340,16 +336,16 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
     try {
       return solver.isUnsat(constraints, node);
-    } catch (SolverException pE) {
+    } catch (SolverException e) {
       logger.log(
           Level.FINE,
           "Got solver exception while obtaining unsat core;"
               + "Re-trying without unsat core extraction",
-          pE);
+          e);
       try {
         return solver.isUnsat(reachabilityQuery);
-      } catch (SolverException pE1) {
-        throw new CPAException("Solver error occurred", pE1);
+      } catch (SolverException e2) {
+        throw new CPAException("Solver error occurred", e2);
       }
     }
   }

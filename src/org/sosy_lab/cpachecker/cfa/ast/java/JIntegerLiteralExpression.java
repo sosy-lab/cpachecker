@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -18,10 +19,10 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public final class JIntegerLiteralExpression extends AIntegerLiteralExpression
     implements JLiteralExpression {
 
-  private static final long serialVersionUID = 1867514989284112879L;
+  @Serial private static final long serialVersionUID = 1867514989284112879L;
 
   public JIntegerLiteralExpression(FileLocation pFileLocation, BigInteger pValue) {
-    super(pFileLocation, JSimpleType.getInt(), pValue);
+    super(pFileLocation, JSimpleType.INT, pValue);
   }
 
   @Override
@@ -52,10 +53,6 @@ public final class JIntegerLiteralExpression extends AIntegerLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof JIntegerLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JIntegerLiteralExpression && super.equals(obj);
   }
 }
