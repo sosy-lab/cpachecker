@@ -153,6 +153,7 @@ public class NodeMapping {
     checkArgument(spcNew.getSmg().hasValue(vNew));
     checkArgument(spcNew.getValueFromSMGValue(vNew).isPresent());
 
+    // TODO: check that this is correct, especially the specs
     if (spcOld.getSmg().isPointer(vOld) && spcNew.getSmg().isPointer(vNew)) {
       SMGPointsToEdge oldPTE = spcOld.getSmg().getPTEdge(vOld).orElseThrow();
       SMGPointsToEdge newPTE = spcNew.getSmg().getPTEdge(vNew).orElseThrow();
