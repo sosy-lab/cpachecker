@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
@@ -48,7 +49,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -123,7 +123,7 @@ public class NumStatementsNondeterministicSimulation {
                 thread,
                 otherThreads,
                 kGreaterZero,
-                pGhostElements.getBitVectorVariables(),
+                pGhostElements,
                 pBinaryExpressionBuilder);
 
         // for finite loops, assume K0 > 0 in the first loop iteration (similar to Lazy-CSeq)
@@ -247,7 +247,7 @@ public class NumStatementsNondeterministicSimulation {
               pActiveThread,
               pOtherThreads,
               pKGreaterZero,
-              pGhostElements.getBitVectorVariables(),
+              pGhostElements,
               pBinaryExpressionBuilder);
       return new SeqLogicalAndExpression(leftHandSide, kZeroExpression);
     }
@@ -281,7 +281,7 @@ public class NumStatementsNondeterministicSimulation {
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
       CBinaryExpression pKGreaterZero,
-      Optional<BitVectorVariables> pBitVectorVariables,
+      GhostElements pGhostElements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -292,12 +292,17 @@ public class NumStatementsNondeterministicSimulation {
               pOptions,
               pActiveThread,
               pOtherThreads,
-              pBitVectorVariables.orElseThrow(),
+              pGhostElements.getBitVectorVariables().orElseThrow(),
               pBinaryExpressionBuilder);
+      // ensure that thread is not at a thread sync location: !sync && !conflict
+      CIdExpression syncVariable =
+          pGhostElements.getThreadSynchronizationVariables().sync.get(pActiveThread);
+      SeqLogicalNotExpression notSync = new SeqLogicalNotExpression(syncVariable);
+      SeqLogicalAndExpression notSyncAndNotConflict =
+          new SeqLogicalAndExpression(notSync, bitVectorEvaluationExpression.negate());
       // the usual bit vector expression is true if there is a conflict
       //  -> negate (we want no conflict if we ignore K == 0)
-      return new SeqLogicalOrExpression(
-          new CToSeqExpression(pKGreaterZero), bitVectorEvaluationExpression.negate());
+      return new SeqLogicalOrExpression(new CToSeqExpression(pKGreaterZero), notSyncAndNotConflict);
     } else {
       return new CToSeqExpression(pKGreaterZero);
     }
@@ -403,7 +408,7 @@ public class NumStatementsNondeterministicSimulation {
         NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
             pOptions, withCountUpdate, pRSmallerK, pRIncrement, pLabelClauseMap);
     return NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
-        withRoundGoto, pSyncVariable, pLabelClauseMap);
+        pOptions, withRoundGoto, pSyncVariable, pLabelClauseMap);
   }
 
   private static SeqThreadStatementBlock injectCountUpdatesIntoBlock(

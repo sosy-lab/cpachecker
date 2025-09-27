@@ -197,6 +197,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
                 pOptions, block, rSmallerK, rIncrement, labelClauseMap);
         SeqThreadStatementBlock withSyncUpdate =
             NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
+                pOptions,
                 withRoundGoto,
                 pThreadSynchronizationVariables.sync.get(pActiveThread),
                 labelClauseMap);

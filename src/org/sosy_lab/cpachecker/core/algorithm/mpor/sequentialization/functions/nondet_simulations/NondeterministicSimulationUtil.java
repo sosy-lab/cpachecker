@@ -205,10 +205,15 @@ public class NondeterministicSimulationUtil {
   // sync injections ===============================================================================
 
   static SeqThreadStatementBlock injectSyncUpdatesIntoBlock(
+      MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
       CIdExpression pSyncVariable,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
+    // sync variables are only required with kIgnoreZeroReduction enabled
+    if (!pOptions.kIgnoreZeroReduction) {
+      return pBlock;
+    }
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withGoto =
