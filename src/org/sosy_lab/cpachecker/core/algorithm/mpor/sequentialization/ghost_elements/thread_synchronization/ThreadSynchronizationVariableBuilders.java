@@ -94,6 +94,7 @@ public class ThreadSynchronizationVariableBuilders {
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression sync =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
+              // TODO a thread could also start with pthread_mutex_lock -> initialize with 1
               true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
       rSyncVariables.put(thread, sync);
     }

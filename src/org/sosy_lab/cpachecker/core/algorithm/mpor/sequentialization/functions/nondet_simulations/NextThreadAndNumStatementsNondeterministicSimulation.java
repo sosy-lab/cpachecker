@@ -32,7 +32,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -41,7 +43,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
   static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
-      ProgramCounterVariables pPcVariables,
+      GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -54,7 +56,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRReset();
     return buildThreadSimulations(
         pOptions,
-        pPcVariables,
+        pGhostElements,
         pClauses,
         kNondet,
         kGreaterZeroAssumption,
@@ -64,7 +66,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
   private static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
-      ProgramCounterVariables pPcVariables,
+      GhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       CFunctionCallAssignmentStatement pKNondet,
       CFunctionCallStatement pKGreaterZeroAssumption,
@@ -77,7 +79,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements(
             pOptions,
-            pPcVariables,
+            pGhostElements,
             pKNondet,
             pKGreaterZeroAssumption,
             pRReset,
@@ -94,7 +96,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
   private static ImmutableMap<CExpression, SeqMultiControlStatement>
       buildInnerMultiControlStatements(
           MPOROptions pOptions,
-          ProgramCounterVariables pPcVariables,
+          GhostElements pGhostElements,
           CFunctionCallAssignmentStatement pKNondet,
           CFunctionCallStatement pKGreaterZeroAssumption,
           CExpressionAssignmentStatement pRReset,
@@ -114,7 +116,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
               pBinaryExpressionBuilder),
           buildSingleThreadMultiControlStatementWithoutCount(
               pOptions,
-              pPcVariables,
+              pGhostElements,
               thread,
               pKNondet,
               pKGreaterZeroAssumption,
@@ -127,7 +129,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
   private static SeqMultiControlStatement buildSingleThreadMultiControlStatementWithoutCount(
       MPOROptions pOptions,
-      ProgramCounterVariables pPcVariables,
+      GhostElements pGhostElements,
       MPORThread pThread,
       CFunctionCallAssignmentStatement pKNondet,
       CFunctionCallStatement pKGreaterZeroAssumption,
@@ -137,18 +139,22 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
       throws UnrecognizedCodeException {
 
     ImmutableList<SeqThreadStatementClause> clauses =
-        buildSingleThreadClausesWithoutCount(pOptions, pClauses, pBinaryExpressionBuilder);
-    CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.id);
+        buildSingleThreadClausesWithoutCount(
+            pOptions,
+            pThread,
+            pGhostElements.getThreadSynchronizationVariables(),
+            pClauses,
+            pBinaryExpressionBuilder);
+
+    ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
+    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id);
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
-            pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
+            pOptions, pcVariables, pThread, pBinaryExpressionBuilder);
 
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
-            pOptions,
-            pPcVariables.getPcLeftHandSide(pThread.id),
-            clauses,
-            pBinaryExpressionBuilder);
+            pOptions, pcVariables.getPcLeftHandSide(pThread.id), clauses, pBinaryExpressionBuilder);
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
@@ -168,6 +174,8 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
   private static ImmutableList<SeqThreadStatementClause> buildSingleThreadClausesWithoutCount(
       MPOROptions pOptions,
+      MPORThread pActiveThread,
+      ThreadSynchronizationVariables pThreadSynchronizationVariables,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -184,9 +192,15 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        newBlocks.add(
+        SeqThreadStatementBlock withRoundGoto =
             NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-                pOptions, block, rSmallerK, rIncrement, labelClauseMap));
+                pOptions, block, rSmallerK, rIncrement, labelClauseMap);
+        SeqThreadStatementBlock withSyncUpdate =
+            NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
+                withRoundGoto,
+                pThreadSynchronizationVariables.sync.get(pActiveThread),
+                labelClauseMap);
+        newBlocks.add(withSyncUpdate);
       }
       updatedClauses.add(clause.cloneWithBlocks(newBlocks.build()));
     }

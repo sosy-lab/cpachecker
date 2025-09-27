@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqKIgnoreZeroStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqLastBitVectorUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqCountUpdateStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.thread_sync.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -256,6 +257,8 @@ public class SeqThreadStatementUtil {
     // first order the reduction statements based on pOptions
     leftOver.addAll(orderInjectedReductionStatements(pOptions, pInjectedStatements));
     // bit vector updates are placed at the end, i.e. where pc etc. updates are
+    leftOver.addAll(
+        getInjectedStatementsByClass(pInjectedStatements, SeqSyncUpdateStatement.class));
     leftOver.addAll(
         getInjectedStatementsByClass(pInjectedStatements, SeqBitVectorAssignmentStatement.class));
     leftOver.addAll(

@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -33,9 +34,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqRoundGotoStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.thread_sync.SeqSyncUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -60,7 +63,7 @@ public class NondeterministicSimulationUtil {
               pOptions, pGhostElements, pClauses, pBinaryExpressionBuilder);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pGhostElements.getPcVariables(), pClauses, pBinaryExpressionBuilder);
+              pOptions, pGhostElements, pClauses, pBinaryExpressionBuilder);
     };
   }
 
@@ -138,10 +141,10 @@ public class NondeterministicSimulationUtil {
 
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
-      SeqThreadStatement withGoto =
+      SeqThreadStatement withRoundGoto =
           tryInjectRoundGotoIntoStatement(
               pOptions, pRSmallerK, pRIncrement, statement, pLabelClauseMap);
-      newStatements.add(withGoto);
+      newStatements.add(withRoundGoto);
     }
     return pBlock.cloneWithStatements(newStatements.build());
   }
@@ -197,5 +200,59 @@ public class NondeterministicSimulationUtil {
     SeqRoundGotoStatement roundGoto =
         new SeqRoundGotoStatement(pRSmallerK, pRIncrement, pTargetGoto);
     return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
+  }
+
+  // sync injections ===============================================================================
+
+  static SeqThreadStatementBlock injectSyncUpdatesIntoBlock(
+      SeqThreadStatementBlock pBlock,
+      CIdExpression pSyncVariable,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
+      SeqThreadStatement withGoto =
+          tryInjectSyncUpdateIntoStatement(statement, pSyncVariable, pLabelClauseMap);
+      newStatements.add(withGoto);
+    }
+    return pBlock.cloneWithStatements(newStatements.build());
+  }
+
+  private static SeqThreadStatement tryInjectSyncUpdateIntoStatement(
+      SeqThreadStatement pStatement,
+      CIdExpression pSyncVariable,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+
+    if (pStatement.getTargetPc().isPresent()) {
+      // int target is present -> retrieve label by pc from map
+      int targetPc = pStatement.getTargetPc().orElseThrow();
+      if (targetPc != Sequentialization.EXIT_PC) {
+        SeqThreadStatementClause targetClause =
+            Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+        return injectSyncUpdateIntoStatementByTargetPc(
+            pStatement, Optional.of(targetClause), pSyncVariable);
+      } else {
+        return injectSyncUpdateIntoStatementByTargetPc(pStatement, Optional.empty(), pSyncVariable);
+      }
+    }
+    // no int target pc -> no replacement
+    return pStatement;
+  }
+
+  private static SeqThreadStatement injectSyncUpdateIntoStatementByTargetPc(
+      SeqThreadStatement pStatement,
+      Optional<SeqThreadStatementClause> pTargetClause,
+      CIdExpression pSyncVariable) {
+
+    boolean isSync =
+        pTargetClause.isPresent()
+            && SeqThreadStatementUtil.anySynchronizesThreads(
+                pTargetClause.orElseThrow().getAllStatements());
+    CIntegerLiteralExpression value =
+        isSync ? SeqIntegerLiteralExpression.INT_1 : SeqIntegerLiteralExpression.INT_0;
+    SeqSyncUpdateStatement syncUpdate =
+        new SeqSyncUpdateStatement(
+            SeqStatementBuilder.buildExpressionAssignmentStatement(pSyncVariable, value));
+    return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(syncUpdate));
   }
 }

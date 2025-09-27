@@ -150,11 +150,7 @@ public class NumStatementsNondeterministicSimulation {
       // add the thread loop statements (assumptions and switch)
       rLines.addAll(
           buildSingleThreadClausesWithCount(
-              pOptions,
-              pGhostElements.getPcVariables(),
-              thread,
-              clauses,
-              pBinaryExpressionBuilder));
+              pOptions, pGhostElements, thread, clauses, pBinaryExpressionBuilder));
 
       // add additional closing bracket, if needed
       if (pOptions.kAssignLazy) {
@@ -309,7 +305,7 @@ public class NumStatementsNondeterministicSimulation {
 
   private static ImmutableList<String> buildSingleThreadClausesWithCount(
       MPOROptions pOptions,
-      ProgramCounterVariables pPcVariables,
+      GhostElements pGhostElements,
       MPORThread pThread,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -317,18 +313,18 @@ public class NumStatementsNondeterministicSimulation {
 
     ImmutableList.Builder<String> rLines = ImmutableList.builder();
     ImmutableList<SeqThreadStatementClause> clauses =
-        buildSingleThreadClausesWithCount(pOptions, pThread, pClauses, pBinaryExpressionBuilder);
-    CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.id);
+        buildSingleThreadClauses(
+            pOptions, pGhostElements, pThread, pClauses, pBinaryExpressionBuilder);
+
+    ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
+    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id);
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
-            pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
+            pOptions, pcVariables, pThread, pBinaryExpressionBuilder);
 
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
-            pOptions,
-            pPcVariables.getPcLeftHandSide(pThread.id),
-            clauses,
-            pBinaryExpressionBuilder);
+            pOptions, pcVariables.getPcLeftHandSide(pThread.id), clauses, pBinaryExpressionBuilder);
     SeqMultiControlStatement multiControlStatement =
         MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
             pOptions,
@@ -344,8 +340,9 @@ public class NumStatementsNondeterministicSimulation {
     return rLines.build();
   }
 
-  private static ImmutableList<SeqThreadStatementClause> buildSingleThreadClausesWithCount(
+  private static ImmutableList<SeqThreadStatementClause> buildSingleThreadClauses(
       MPOROptions pOptions,
+      GhostElements pGhostElements,
       MPORThread pThread,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -353,15 +350,20 @@ public class NumStatementsNondeterministicSimulation {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
+    // count
     CExpressionAssignmentStatement countIncrement =
         SeqStatementBuilder.buildIncrementStatement(SeqIdExpression.CNT, pBinaryExpressionBuilder);
     CExpressionAssignmentStatement countDecrement =
         SeqStatementBuilder.buildDecrementStatement(SeqIdExpression.CNT, pBinaryExpressionBuilder);
+    // round
     CBinaryExpression rSmallerK =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.R, pThread.getKVariable().orElseThrow(), BinaryOperator.LESS_THAN);
     CExpressionAssignmentStatement rIncrement =
         SeqStatementBuilder.buildIncrementStatement(SeqIdExpression.R, pBinaryExpressionBuilder);
+    // sync
+    CIdExpression syncVariable =
+        pGhostElements.getThreadSynchronizationVariables().sync.get(pThread);
 
     ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
@@ -375,6 +377,7 @@ public class NumStatementsNondeterministicSimulation {
                 countDecrement,
                 rSmallerK,
                 rIncrement,
+                syncVariable,
                 labelClauseMap));
       }
       updatedClauses.add(clause.cloneWithBlocks(newBlocks.build()));
@@ -382,7 +385,7 @@ public class NumStatementsNondeterministicSimulation {
     return updatedClauses.build();
   }
 
-  // Count injection ===============================================================================
+  // Injections ====================================================================================
 
   private static SeqThreadStatementBlock injectCountAndRoundGotoIntoBlock(
       MPOROptions pOptions,
@@ -391,14 +394,16 @@ public class NumStatementsNondeterministicSimulation {
       CExpressionAssignmentStatement pCountDecrement,
       CBinaryExpression pRSmallerK,
       CExpressionAssignmentStatement pRIncrement,
+      CIdExpression pSyncVariable,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    return NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
-        pOptions,
-        injectCountUpdatesIntoBlock(pBlock, pCountIncrement, pCountDecrement),
-        pRSmallerK,
-        pRIncrement,
-        pLabelClauseMap);
+    SeqThreadStatementBlock withCountUpdate =
+        injectCountUpdatesIntoBlock(pBlock, pCountIncrement, pCountDecrement);
+    SeqThreadStatementBlock withRoundGoto =
+        NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
+            pOptions, withCountUpdate, pRSmallerK, pRIncrement, pLabelClauseMap);
+    return NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
+        withRoundGoto, pSyncVariable, pLabelClauseMap);
   }
 
   private static SeqThreadStatementBlock injectCountUpdatesIntoBlock(
