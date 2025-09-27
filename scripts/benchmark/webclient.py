@@ -462,7 +462,7 @@ class WebInterface:
                 revision,
             )
         else:
-            logging.info("Using %s version %s.", self._tool_name, self._revision)
+            logging.info("Using %s version %s.", self._tool_name, self._tool_version)
 
         if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
@@ -536,11 +536,6 @@ class WebInterface:
         tool_info['toolVersion'] = version_bytes.decode("UTF-8").strip()
 
         return tool_info
-
-    def _request_tool_name(self):
-        path = "tool/name"
-        (tool_name, _) = self._request("GET", path)
-        return tool_name.decode("UTF-8")
 
     def tool_revision(self):
         return self._revision
