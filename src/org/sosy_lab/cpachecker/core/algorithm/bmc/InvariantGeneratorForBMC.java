@@ -175,8 +175,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
   private enum InvariantGeneratorHeadStartFactories {
     NONE {
       @Override
-      InvariantGeneratorHeadStart createFor(
-          InvariantGeneratorForBMC pInvariantGeneratorForBMC) {
+      InvariantGeneratorHeadStart createFor(InvariantGeneratorForBMC pInvariantGeneratorForBMC) {
         return new InvariantGeneratorHeadStart() {
 
           @Override
@@ -189,8 +188,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
 
     AWAIT_TERMINATION {
       @Override
-      InvariantGeneratorHeadStart createFor(
-          InvariantGeneratorForBMC pInvariantGeneratorForBMC) {
+      InvariantGeneratorHeadStart createFor(InvariantGeneratorForBMC pInvariantGeneratorForBMC) {
         CountDownLatch latch = new CountDownLatch(1);
         pInvariantGeneratorForBMC.conditionAdjustmentEventSubscribers.add(
             new ConditionAdjustmentEventSubscriber() {

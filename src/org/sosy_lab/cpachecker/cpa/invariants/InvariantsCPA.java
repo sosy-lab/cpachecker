@@ -668,8 +668,7 @@ public class InvariantsCPA
     TimeSpan lastTimeSpan = null;
     TimeSpan lastLastTimeSpan = null;
 
-    ConditionAdjusterWithTimeLimit(Configuration pConfig)
-        throws InvalidConfigurationException {
+    ConditionAdjusterWithTimeLimit(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this, ConditionAdjusterWithTimeLimit.class);
     }
 
