@@ -15,25 +15,16 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BinaryBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.DecimalBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.value_expression.HexadecimalBitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorUtil {
 
@@ -180,26 +171,6 @@ public class BitVectorUtil {
       }
     }
     return false;
-  }
-
-  // Sparse ========================================================================================
-
-  public static CIdExpression createSparseAccessVariable(
-      MPOROptions pOptions,
-      boolean pIsDirect,
-      MPORThread pThread,
-      MemoryLocation pMemoryLocation,
-      MemoryAccessType pAccessType) {
-
-    // we use the original variable name here, not the substitute -> less code
-    String name =
-        SeqNameUtil.buildSparseBitVectorNameByAccessType(
-            pOptions, pIsDirect, pThread.id, pMemoryLocation, pAccessType);
-    // always initialize with 0, the actual bit vectors are set inside main()
-    CSimpleDeclaration declaration =
-        SeqDeclarationBuilder.buildVariableDeclaration(
-            true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
-    return SeqExpressionBuilder.buildIdExpression(declaration);
   }
 
   // Helpers =======================================================================================

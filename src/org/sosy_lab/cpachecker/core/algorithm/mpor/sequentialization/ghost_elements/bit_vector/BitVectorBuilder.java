@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -62,7 +64,7 @@ public class BitVectorBuilder {
         buildDenseBitVectorsByAccessType(pOptions, pThreads, MemoryAccessType.ACCESS);
     // create access variables for all global variables for all threads (for sparse bit vectors)
     Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseAccessBitVectors =
-        buildSparseBitVectorsByAccessType(
+        buildSparseBitVectors(
             pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.ACCESS);
     // last bit vector used to store the bit vector of a thread before context switch
     Optional<LastDenseBitVector> lastDenseAccessBitVector =
@@ -98,14 +100,12 @@ public class BitVectorBuilder {
         buildDenseBitVectorsByAccessType(pOptions, pThreads, MemoryAccessType.WRITE);
     // create read + write variables (for sparse bit vectors)
     Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseAccessBitVectors =
-        buildSparseBitVectorsByAccessType(
+        buildSparseBitVectors(
             pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.ACCESS);
     Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseReadBitVectors =
-        buildSparseBitVectorsByAccessType(
-            pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.READ);
+        buildSparseBitVectors(pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.READ);
     Optional<ImmutableMap<MemoryLocation, SparseBitVector>> sparseWriteBitVectors =
-        buildSparseBitVectorsByAccessType(
-            pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.WRITE);
+        buildSparseBitVectors(pOptions, pThreads, pRelevantMemoryLocations, MemoryAccessType.WRITE);
     // last bit vector used to store the bit vector of a thread before context switch
     Optional<LastDenseBitVector> lastDenseAccessBitVector =
         tryBuildLastDenseBitVectorByAccessType(pOptions, MemoryAccessType.ACCESS);
@@ -160,39 +160,38 @@ public class BitVectorBuilder {
       case DIRECT -> {
         if (pOptions.kIgnoreZeroReduction) {
           yield Optional.of(
-              buildDenseBitVectorIdExpression(pOptions, pThread.id, pAccessType, ReachType.DIRECT));
+              buildBitVectorIdExpression(
+                  pOptions,
+                  Optional.of(pThread),
+                  Optional.empty(),
+                  pAccessType,
+                  ReachType.DIRECT,
+                  BitVectorDirection.CURRENT));
         }
         yield Optional.empty();
       }
       case REACHABLE -> {
-        if (pAccessType.equals(MemoryAccessType.READ)) {
-          // we never need reachable read bit vectors
-          yield Optional.empty();
+        if (!pAccessType.equals(MemoryAccessType.READ)) {
+          yield Optional.of(
+              buildBitVectorIdExpression(
+                  pOptions,
+                  Optional.of(pThread),
+                  Optional.empty(),
+                  pAccessType,
+                  ReachType.REACHABLE,
+                  BitVectorDirection.CURRENT));
         }
-        yield Optional.of(
-            buildDenseBitVectorIdExpression(
-                pOptions, pThread.id, pAccessType, ReachType.REACHABLE));
+        // we never need reachable read bit vectors
+        yield Optional.empty();
       }
     };
   }
 
-  private static CIdExpression buildDenseBitVectorIdExpression(
-      MPOROptions pOptions, int pThreadId, MemoryAccessType pAccessType, ReachType pReachType) {
-
-    String name = SeqNameUtil.buildDenseBitVectorName(pOptions, pThreadId, pAccessType, pReachType);
-    // these declarations are not actually used, we only need it for the CIdExpression
-    CVariableDeclaration declaration =
-        SeqDeclarationBuilder.buildVariableDeclaration(
-            false, SeqSimpleType.INT, name, SeqInitializer.INT_0);
-    return SeqExpressionBuilder.buildIdExpression(declaration);
-  }
-
-  private static Optional<ImmutableMap<MemoryLocation, SparseBitVector>>
-      buildSparseBitVectorsByAccessType(
-          MPOROptions pOptions,
-          ImmutableList<MPORThread> pThreads,
-          ImmutableMap<MemoryLocation, Integer> pRelevantMemoryLocations,
-          MemoryAccessType pAccessType) {
+  private static Optional<ImmutableMap<MemoryLocation, SparseBitVector>> buildSparseBitVectors(
+      MPOROptions pOptions,
+      ImmutableList<MPORThread> pThreads,
+      ImmutableMap<MemoryLocation, Integer> pRelevantMemoryLocations,
+      MemoryAccessType pAccessType) {
 
     if (pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
@@ -200,28 +199,34 @@ public class BitVectorBuilder {
     ImmutableMap.Builder<MemoryLocation, SparseBitVector> rAccessVariables = ImmutableMap.builder();
     for (MemoryLocation memoryLocation : pRelevantMemoryLocations.keySet()) {
       ImmutableMap<MPORThread, CIdExpression> directVariables =
-          buildSparseBitVectorsByAccessType(pOptions, true, pThreads, memoryLocation, pAccessType);
+          buildSparseBitVectors(pOptions, pThreads, memoryLocation, pAccessType, ReachType.DIRECT);
       ImmutableMap<MPORThread, CIdExpression> reachableVariables =
-          buildSparseBitVectorsByAccessType(pOptions, false, pThreads, memoryLocation, pAccessType);
+          buildSparseBitVectors(
+              pOptions, pThreads, memoryLocation, pAccessType, ReachType.REACHABLE);
       rAccessVariables.put(
           memoryLocation, new SparseBitVector(directVariables, reachableVariables, pAccessType));
     }
     return Optional.of(rAccessVariables.buildOrThrow());
   }
 
-  private static ImmutableMap<MPORThread, CIdExpression> buildSparseBitVectorsByAccessType(
+  private static ImmutableMap<MPORThread, CIdExpression> buildSparseBitVectors(
       MPOROptions pOptions,
-      boolean pIsDirect,
       ImmutableList<MPORThread> pThreads,
       MemoryLocation pMemoryLocation,
-      MemoryAccessType pAccessType) {
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
 
     ImmutableMap.Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       rAccessVariables.put(
           thread,
-          BitVectorUtil.createSparseAccessVariable(
-              pOptions, pIsDirect, thread, pMemoryLocation, pAccessType));
+          buildBitVectorIdExpression(
+              pOptions,
+              Optional.of(thread),
+              Optional.of(pMemoryLocation),
+              pAccessType,
+              pReachType,
+              BitVectorDirection.CURRENT));
     }
     return rAccessVariables.buildOrThrow();
   }
@@ -234,13 +239,14 @@ public class BitVectorBuilder {
     if (!pOptions.conflictReduction || pOptions.bitVectorEncoding.isSparse) {
       return Optional.empty();
     }
-    String variableName =
-        SeqNameUtil.buildLastReachableDenseBitVectorNameByAccessType(pOptions, pAccessType);
-    // these declarations are not actually used, we only need it for the CIdExpression
-    CVariableDeclaration lastDeclaration =
-        SeqDeclarationBuilder.buildVariableDeclaration(
-            false, SeqSimpleType.INT, variableName, SeqInitializer.INT_0);
-    CIdExpression lastIdExpression = SeqExpressionBuilder.buildIdExpression(lastDeclaration);
+    CIdExpression lastIdExpression =
+        buildBitVectorIdExpression(
+            pOptions,
+            Optional.empty(),
+            Optional.empty(),
+            pAccessType,
+            ReachType.REACHABLE,
+            BitVectorDirection.LAST);
     return Optional.of(new LastDenseBitVector(lastIdExpression));
   }
 
@@ -255,16 +261,40 @@ public class BitVectorBuilder {
     }
     ImmutableMap.Builder<MemoryLocation, LastSparseBitVector> rMap = ImmutableMap.builder();
     for (MemoryLocation memoryLocation : pRelevantMemoryLocations.keySet()) {
-      String variableName =
-          SeqNameUtil.buildLastSparseBitVectorNameByAccessType(
-              pOptions, memoryLocation.getName(), pAccessType);
-      // these declarations are not actually used, we only need it for the CIdExpression
-      CVariableDeclaration lastDeclaration =
-          SeqDeclarationBuilder.buildVariableDeclaration(
-              false, SeqSimpleType.INT, variableName, SeqInitializer.INT_0);
-      CIdExpression lastIdExpression = SeqExpressionBuilder.buildIdExpression(lastDeclaration);
+      CIdExpression lastIdExpression =
+          buildBitVectorIdExpression(
+              pOptions,
+              Optional.empty(),
+              Optional.of(memoryLocation),
+              pAccessType,
+              ReachType.REACHABLE,
+              BitVectorDirection.LAST);
       rMap.put(memoryLocation, new LastSparseBitVector(lastIdExpression));
     }
     return Optional.of(rMap.buildOrThrow());
+  }
+
+  // Helper ========================================================================================
+
+  public static CIdExpression buildBitVectorIdExpression(
+      MPOROptions pOptions,
+      Optional<MPORThread> pThread,
+      Optional<MemoryLocation> pMemoryLocation,
+      MemoryAccessType pAccessType,
+      ReachType pReachType,
+      BitVectorDirection pDirection) {
+
+    checkArgument(
+        !pOptions.bitVectorEncoding.isSparse || pMemoryLocation.isPresent(),
+        "if the bitVectorEncoding is sparse, then pMemoryLocation must be present");
+
+    String name =
+        SeqNameUtil.buildBitVectorName(
+            pOptions, pThread, pMemoryLocation, pAccessType, pReachType, pDirection);
+    // this declaration is not actually used, we only need it for the CIdExpression
+    CSimpleDeclaration declaration =
+        SeqDeclarationBuilder.buildVariableDeclaration(
+            true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
+    return SeqExpressionBuilder.buildIdExpression(declaration);
   }
 }

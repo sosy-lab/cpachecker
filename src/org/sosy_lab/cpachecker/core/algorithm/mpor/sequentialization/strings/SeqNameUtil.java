@@ -16,11 +16,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDirection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqNameUtil {
 
@@ -143,9 +145,57 @@ public class SeqNameUtil {
         + SeqToken.return_value;
   }
 
+  // Bit Vectors ===================================================================================
+
+  public static String buildBitVectorName(
+      MPOROptions pOptions,
+      Optional<MPORThread> pThread,
+      Optional<MemoryLocation> pMemoryLocation,
+      MemoryAccessType pAccessType,
+      ReachType pReachType,
+      BitVectorDirection pDirection) {
+
+    return switch (pDirection) {
+      case CURRENT ->
+          buildBitVectorName(
+              pOptions, pThread.orElseThrow().id, pMemoryLocation, pAccessType, pReachType);
+      case LAST -> buildLastBitVectorName(pOptions, pMemoryLocation, pAccessType);
+    };
+  }
+
+  private static String buildBitVectorName(
+      MPOROptions pOptions,
+      int pThreadId,
+      Optional<MemoryLocation> pMemoryLocation,
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
+
+    return switch (pOptions.bitVectorEncoding) {
+      case NONE -> throw new IllegalArgumentException();
+      case BINARY, DECIMAL, HEXADECIMAL ->
+          buildDenseBitVectorName(pOptions, pThreadId, pAccessType, pReachType);
+      case SPARSE ->
+          buildSparseBitVectorName(
+              pOptions, pThreadId, pMemoryLocation.orElseThrow(), pAccessType, pReachType);
+    };
+  }
+
+  private static String buildLastBitVectorName(
+      MPOROptions pOptions,
+      Optional<MemoryLocation> pMemoryLocation,
+      MemoryAccessType pAccessType) {
+
+    return switch (pOptions.bitVectorEncoding) {
+      case NONE -> throw new IllegalArgumentException();
+      case BINARY, DECIMAL, HEXADECIMAL -> buildLastDenseBitVectorName(pOptions, pAccessType);
+      case SPARSE ->
+          buildLastSparseBitVectorName(pOptions, pMemoryLocation.orElseThrow(), pAccessType);
+    };
+  }
+
   // Dense Bit Vectors =============================================================================
 
-  public static String buildDenseBitVectorName(
+  private static String buildDenseBitVectorName(
       MPOROptions pOptions, int pThreadId, MemoryAccessType pAccessType, ReachType pReachType) {
 
     return pOptions.shortVariableNames
@@ -158,7 +208,7 @@ public class SeqNameUtil {
             + pAccessType.longName;
   }
 
-  public static String buildLastReachableDenseBitVectorNameByAccessType(
+  private static String buildLastDenseBitVectorName(
       MPOROptions pOptions, MemoryAccessType pAccessType) {
 
     return pOptions.shortVariableNames
@@ -174,33 +224,32 @@ public class SeqNameUtil {
 
   // Sparse Bit Vector =============================================================================
 
-  public static String buildSparseBitVectorNameByAccessType(
+  private static String buildSparseBitVectorName(
       MPOROptions pOptions,
-      boolean pIsDirect,
       int pThreadId,
       MemoryLocation pMemoryLocation,
-      MemoryAccessType pAccessType) {
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
 
-    String variableName = pMemoryLocation.getName();
     return pOptions.shortVariableNames
         ? SeqToken.b
-            + (pIsDirect ? SeqToken.d : SeqToken.r)
+            + pReachType.shortName
             + pAccessType.shortName
             + pThreadId
             + SeqSyntax.UNDERSCORE
-            + variableName
+            + pMemoryLocation.getName()
         : buildThreadPrefix(pOptions, pThreadId)
             + SeqToken.BIT_VECTOR
             + SeqSyntax.UNDERSCORE
-            + (pIsDirect ? SeqToken.DIRECT : SeqToken.REACHABLE)
+            + pReachType.longName
             + SeqSyntax.UNDERSCORE
             + pAccessType.longName
             + SeqSyntax.UNDERSCORE
-            + variableName;
+            + pMemoryLocation.getName();
   }
 
-  public static String buildLastSparseBitVectorNameByAccessType(
-      MPOROptions pOptions, String pVariableName, MemoryAccessType pAccessType) {
+  private static String buildLastSparseBitVectorName(
+      MPOROptions pOptions, MemoryLocation pMemoryLocation, MemoryAccessType pAccessType) {
 
     return pOptions.shortVariableNames
         ? SeqToken.last
@@ -209,7 +258,7 @@ public class SeqNameUtil {
             + SeqToken.r
             + pAccessType.shortName
             + SeqSyntax.UNDERSCORE
-            + pVariableName
+            + pMemoryLocation.getName()
         : SeqToken.LAST
             + SeqSyntax.UNDERSCORE
             + SeqToken.BIT_VECTOR
@@ -218,7 +267,7 @@ public class SeqNameUtil {
             + SeqSyntax.UNDERSCORE
             + pAccessType.longName
             + SeqSyntax.UNDERSCORE
-            + pVariableName;
+            + pMemoryLocation.getName();
   }
 
   // Thread Synchronization ========================================================================

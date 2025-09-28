@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public enum ReachType {
+  /** For {@link MemoryLocation}s that are reachable before any context switch occurs. */
   DIRECT(SeqToken.d, SeqToken.DIRECT),
+  /** For all {@link MemoryLocation}s that are reachable, relative to a given program location. */
   REACHABLE(SeqToken.r, SeqToken.REACHABLE);
 
   public final String shortName;
