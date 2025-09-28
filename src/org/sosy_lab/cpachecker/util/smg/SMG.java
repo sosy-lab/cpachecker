@@ -1811,10 +1811,16 @@ public class SMG {
     return new SMGObjectsAndValues(visitedObjects, visitedValues);
   }
 
-  public Set<SMGObject> getTargetsForPointersIn(SMGObject pTarget) {
+  /**
+   * Returns all pointer targets for pointers in the given object. Invalid objects return an empty
+   * set.
+   *
+   * @param pSourceOfPointers the object searched for pointers.
+   */
+  public Set<SMGObject> getTargetsForPointersIn(SMGObject pSourceOfPointers) {
     ImmutableSet.Builder<SMGObject> results = ImmutableSet.builder();
-    PersistentSet<SMGHasValueEdge> hves = hasValueEdges.get(pTarget);
-    if (!isValid(pTarget) || hves == null) {
+    PersistentSet<SMGHasValueEdge> hves = hasValueEdges.get(pSourceOfPointers);
+    if (!isValid(pSourceOfPointers) || hves == null) {
       return ImmutableSet.of();
     }
     for (SMGHasValueEdge hve : hves) {
