@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -144,15 +145,15 @@ public class SeqNameUtil {
 
   // Dense Bit Vectors =============================================================================
 
-  public static String buildDenseBitVectorNameByAccessType(
-      MPOROptions pOptions, boolean pIsDirect, int pThreadId, MemoryAccessType pAccessType) {
+  public static String buildDenseBitVectorName(
+      MPOROptions pOptions, int pThreadId, MemoryAccessType pAccessType, ReachType pReachType) {
 
     return pOptions.shortVariableNames
-        ? SeqToken.b + (pIsDirect ? SeqToken.d : SeqToken.r) + pAccessType.shortName + pThreadId
+        ? SeqToken.b + pReachType.shortName + pAccessType.shortName + pThreadId
         : buildThreadPrefix(pOptions, pThreadId)
             + SeqToken.BIT_VECTOR
             + SeqSyntax.UNDERSCORE
-            + (pIsDirect ? SeqToken.DIRECT : SeqToken.REACHABLE)
+            + pReachType.longName
             + SeqSyntax.UNDERSCORE
             + pAccessType.longName;
   }

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -22,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -138,48 +140,52 @@ public class BitVectorBuilder {
     if (!pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
     }
-    ImmutableSet.Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
+    Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> directVariable =
-          buildDenseDirectBitVectorByAccessType(pOptions, thread, pAccessType);
+          buildDenseBitVector(pOptions, thread, pAccessType, ReachType.DIRECT);
       Optional<CIdExpression> reachableVariable =
-          buildDenseReachableBitVectorByAccessType(pOptions, thread, pAccessType);
-      rBitVectors.add(
-          new DenseBitVector(
-              thread, directVariable, reachableVariable, pAccessType, pOptions.bitVectorEncoding));
+          buildDenseBitVector(pOptions, thread, pAccessType, ReachType.REACHABLE);
+      rBitVectors.add(new DenseBitVector(thread, directVariable, reachableVariable));
     }
     return Optional.of(rBitVectors.build());
   }
 
-  private static Optional<CIdExpression> buildDenseDirectBitVectorByAccessType(
-      MPOROptions pOptions, MPORThread pThread, MemoryAccessType pAccessType) {
+  private static Optional<CIdExpression> buildDenseBitVector(
+      MPOROptions pOptions,
+      MPORThread pThread,
+      MemoryAccessType pAccessType,
+      ReachType pReachType) {
 
-    if (pOptions.kIgnoreZeroReduction) {
-      String directReadName =
-          SeqNameUtil.buildDenseBitVectorNameByAccessType(pOptions, true, pThread.id, pAccessType);
-      // these declarations are not actually used, we only need it for the CIdExpression
-      CVariableDeclaration directDeclaration =
-          SeqDeclarationBuilder.buildVariableDeclaration(
-              false, SeqSimpleType.INT, directReadName, SeqInitializer.INT_0);
-      return Optional.of(SeqExpressionBuilder.buildIdExpression(directDeclaration));
-    }
-    return Optional.empty();
+    return switch (pReachType) {
+      case DIRECT -> {
+        if (pOptions.kIgnoreZeroReduction) {
+          yield Optional.of(
+              buildDenseBitVectorIdExpression(pOptions, pThread.id, pAccessType, ReachType.DIRECT));
+        }
+        yield Optional.empty();
+      }
+      case REACHABLE -> {
+        if (pAccessType.equals(MemoryAccessType.READ)) {
+          // we never need reachable read bit vectors
+          yield Optional.empty();
+        }
+        yield Optional.of(
+            buildDenseBitVectorIdExpression(
+                pOptions, pThread.id, pAccessType, ReachType.REACHABLE));
+      }
+    };
   }
 
-  private static Optional<CIdExpression> buildDenseReachableBitVectorByAccessType(
-      MPOROptions pOptions, MPORThread pThread, MemoryAccessType pAccessType) {
+  private static CIdExpression buildDenseBitVectorIdExpression(
+      MPOROptions pOptions, int pThreadId, MemoryAccessType pAccessType, ReachType pReachType) {
 
-    if (pAccessType.equals(MemoryAccessType.READ)) {
-      // we never need reachable read bit vectors
-      return Optional.empty();
-    }
-    String reachableReadName =
-        SeqNameUtil.buildDenseBitVectorNameByAccessType(pOptions, false, pThread.id, pAccessType);
+    String name = SeqNameUtil.buildDenseBitVectorName(pOptions, pThreadId, pAccessType, pReachType);
     // these declarations are not actually used, we only need it for the CIdExpression
-    CVariableDeclaration reachableDeclaration =
+    CVariableDeclaration declaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
-            false, SeqSimpleType.INT, reachableReadName, SeqInitializer.INT_0);
-    return Optional.of(SeqExpressionBuilder.buildIdExpression(reachableDeclaration));
+            false, SeqSimpleType.INT, name, SeqInitializer.INT_0);
+    return SeqExpressionBuilder.buildIdExpression(declaration);
   }
 
   private static Optional<ImmutableMap<MemoryLocation, SparseBitVector>>
@@ -236,8 +242,7 @@ public class BitVectorBuilder {
         SeqDeclarationBuilder.buildVariableDeclaration(
             false, SeqSimpleType.INT, variableName, SeqInitializer.INT_0);
     CIdExpression lastIdExpression = SeqExpressionBuilder.buildIdExpression(lastDeclaration);
-    return Optional.of(
-        new LastDenseBitVector(lastIdExpression, pAccessType, pOptions.bitVectorEncoding));
+    return Optional.of(new LastDenseBitVector(lastIdExpression));
   }
 
   private static Optional<ImmutableMap<MemoryLocation, LastSparseBitVector>>
@@ -259,7 +264,7 @@ public class BitVectorBuilder {
           SeqDeclarationBuilder.buildVariableDeclaration(
               false, SeqSimpleType.INT, variableName, SeqInitializer.INT_0);
       CIdExpression lastIdExpression = SeqExpressionBuilder.buildIdExpression(lastDeclaration);
-      rMap.put(memoryLocation, new LastSparseBitVector(lastIdExpression, pAccessType));
+      rMap.put(memoryLocation, new LastSparseBitVector(lastIdExpression));
     }
     return Optional.of(rMap.buildOrThrow());
   }

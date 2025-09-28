@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector;
 
-import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -27,33 +25,15 @@ public class DenseBitVector {
   /** The bit vector for all reachable statements, relative to a location. */
   private final Optional<CIdExpression> reachableVariable;
 
-  /** For debugging purposes only. */
-  @SuppressWarnings("unused")
-  private final MemoryAccessType accessType;
-
-  /** For debugging purposes only. */
-  @SuppressWarnings("unused")
-  private final BitVectorEncoding encoding;
-
   DenseBitVector(
       MPORThread pThread,
       // note that both direct and reachable can be empty, when there are no global variables
       Optional<CIdExpression> pDirectVariable,
-      Optional<CIdExpression> pReachableVariable,
-      MemoryAccessType pAccessType,
-      BitVectorEncoding pEncoding) {
-
-    // TODO why parametrize?
-    checkArgument(pEncoding.isDense, "encoding must be dense");
-    checkArgument(
-        !pAccessType.equals(MemoryAccessType.READ) || pReachableVariable.isEmpty(),
-        "for access type READ, the reachable variable must be empty");
+      Optional<CIdExpression> pReachableVariable) {
 
     thread = pThread;
     directVariable = pDirectVariable;
     reachableVariable = pReachableVariable;
-    accessType = pAccessType;
-    encoding = pEncoding;
   }
 
   public MPORThread getThread() {

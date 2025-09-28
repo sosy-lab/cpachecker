@@ -22,8 +22,6 @@ public class SparseBitVector {
 
   public final ImmutableMap<MPORThread, CIdExpression> reachableVariables;
 
-  public final MemoryAccessType accessType;
-
   SparseBitVector(
       ImmutableMap<MPORThread, CIdExpression> pDirectVariables,
       ImmutableMap<MPORThread, CIdExpression> pReachableVariables,
@@ -32,6 +30,5 @@ public class SparseBitVector {
     checkArgument(!pAccessType.equals(MemoryAccessType.NONE));
     directVariables = pDirectVariables;
     reachableVariables = pReachableVariables;
-    accessType = pAccessType;
   }
 }
