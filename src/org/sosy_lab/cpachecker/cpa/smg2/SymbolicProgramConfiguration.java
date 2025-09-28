@@ -1719,7 +1719,7 @@ public class SymbolicProgramConfiguration {
    * @param newMemory the object root is copied into and the root of the copied sub-SMG.
    * @param rootSPC SPC for root and the source of the copied sub-SMG.
    * @param newSPC SPC for newMemory.
-   * @param restrictionOffset the restricted offset (either NFO or PFO) not to be copied.
+   * @param restrictedOffset the restricted offset (either NFO or PFO) not to be copied.
    * @param mappingOfStates the mapping already known of rootSPC -> newSPC
    * @return a new SPC, based on newSPC, with the sub-SMG copied. Note: mappingOfStates is assumed
    *     to be mutable, else we need to return this as well.
@@ -1730,19 +1730,20 @@ public class SymbolicProgramConfiguration {
       SMGSinglyLinkedListSegment newMemory,
       SymbolicProgramConfiguration rootSPC,
       SymbolicProgramConfiguration newSPC,
-      BigInteger restrictionOffset,
+      BigInteger restrictedOffset,
       NodeMapping mappingOfStates)
       throws SMGException {
     // Add all values. next/prev pointer is wrong here, depending on left/right sided
     // materialization! We write this later in the materialization.
     // If one of those is a pointer, we copy the pointer and memory structure
-    Set<BigInteger> excludedOffsets = ImmutableSet.of(restrictionOffset);
+    Map<SMGObject, Set<BigInteger>> excludedOffsets =
+        ImmutableMap.of(root, ImmutableSet.of(restrictedOffset));
     if (root instanceof SMGDoublyLinkedListSegment dllListSeg) {
       checkArgument(
-          root.getNextOffset().equals(restrictionOffset)
-              || dllListSeg.getPrevOffset().equals(restrictionOffset));
+          root.getNextOffset().equals(restrictedOffset)
+              || dllListSeg.getPrevOffset().equals(restrictedOffset));
     } else {
-      checkArgument(root.getNextOffset().equals(restrictionOffset));
+      checkArgument(root.getNextOffset().equals(restrictedOffset));
     }
     return copyMemoryOfTo(root, newMemory, rootSPC, newSPC, mappingOfStates, excludedOffsets);
   }
@@ -1760,7 +1761,7 @@ public class SymbolicProgramConfiguration {
    * @param rootSPC rootObjs SPC.
    * @param newSPC the new SPC to be the target of the copy.
    * @param mappingOfNodes already known mappings of rootSPC to newSPC.
-   * @param excludedOffsets offsets not copied.
+   * @param excludedOffsets offsets not to be copied per object.
    * @return a new SPC based on newSPC with the sub-SMG added. Note: all mappings are added in
    *     mappingOfNodes, this is expected to be mutable, else we need to return it.
    * @throws SMGException for not implemented features or errors.
@@ -1771,7 +1772,7 @@ public class SymbolicProgramConfiguration {
       SymbolicProgramConfiguration rootSPC,
       SymbolicProgramConfiguration newSPC,
       NodeMapping mappingOfNodes,
-      Set<BigInteger> excludedOffsets)
+      Map<SMGObject, Set<BigInteger>> excludedOffsets)
       throws SMGException {
     // We can't handle stack variables here. Alloca would be fine.
     // TODO: handle non variable stack memory here.
@@ -1801,93 +1802,9 @@ public class SymbolicProgramConfiguration {
     if (!rootSPC.isObjectValid(rootObj)) {
       currentNewSPC = currentNewSPC.invalidateSMGObject(newMemory, false);
     }
-    // copyHVEdgesFromTo() uses the mapping and adds the mapping for SMGValues only
-    // It does not copy memory. So while the SMGValue and Value of ptrs are present now, the PTE and
-    // the Object behind them are missing.
-    MergedSPCAndMapping currentNewSPCAndMapping =
-        copyHVEdgesFromTo(
-            rootSPC, rootObj, currentNewSPC, newMemory, mappingOfNodes, excludedOffsets);
-    currentNewSPC = currentNewSPCAndMapping.getMergedSPC();
-    mappingOfNodes = currentNewSPCAndMapping.getMapping();
-    // All HVEs copied from root to new SPC, with the exception filtered out
-    Set<SMGHasValueEdge> ptrValues =
-        rootSPC
-            .getSmg()
-            .getSMGObjectsWithSMGHasValueEdges()
-            .getOrDefault(rootObj, PersistentSet.of())
-            .stream()
-            .filter(
-                hve ->
-                    !excludedOffsets.contains(hve.getOffset())
-                        && rootSPC.getSmg().isPointer(hve.hasValue())
-                        && !hve.hasValue().isZero())
-            .collect(ImmutableSet.toImmutableSet());
 
-    // All values from the old root are copied to the new obj already,
-    //   we might need to do some adjustments and copy memory
-    // Now we have all values whose memory we might need to copy
-    for (SMGHasValueEdge hve : ptrValues) {
-      SMGValue smgValueRoot = hve.hasValue();
-      SMGPointsToEdge pteRoot = rootSPC.smg.getPTEdge(smgValueRoot).orElseThrow();
-      SMGObject rootTargetMemory = pteRoot.pointsTo();
-      checkState(mappingOfNodes.hasMapping(smgValueRoot));
-      SMGValue newSMGValue = mappingOfNodes.getMappedValue(smgValueRoot);
-      boolean copyMemoryRecursivly = false;
-
-      // Replicate sub-SMG if not yet done (the value was copied, but not the PTE)
-      if (!currentNewSPC.smg.isPointer(newSMGValue)) {
-        SMGObject newMemoryTargetObject = mappingOfNodes.getMappedObject(rootTargetMemory);
-        if (newMemoryTargetObject != null) {
-          // Known memory, just insert PTE
-          checkState(currentNewSPC.isHeapObject(newMemoryTargetObject));
-          assert currentNewSPC
-              .smg
-              .getSMGObjectsWithSMGHasValueEdges()
-              .getOrDefault(newMemoryTargetObject, PersistentSet.of())
-              .equals(rootSPC.smg.getEdges(rootTargetMemory));
-
-        } else {
-          // Copy memory and insert PTE
-          checkState(!currentNewSPC.heapObjects.contains(rootTargetMemory));
-          // We can't handle stack variables here. Alloca would be fine.
-          // TODO: handle non variable stack memory here.
-          checkState(rootSPC.isHeapObject(rootTargetMemory));
-          newMemoryTargetObject = rootTargetMemory;
-          copyMemoryRecursivly = true;
-        }
-        // Insert correct PTE in new SPC
-        SMGPointsToEdge newPTE =
-            new SMGPointsToEdge(
-                newMemoryTargetObject, pteRoot.getOffset(), pteRoot.targetSpecifier());
-        assert !currentNewSPC.smg.getPTEdges().anyMatch(e -> e.equals(newPTE));
-        currentNewSPC =
-            currentNewSPC.copyWithNewSMG(
-                currentNewSPC.smg.copyAndAddPTEdgeWithInternalMapping(newPTE, newSMGValue));
-
-        if (copyMemoryRecursivly) {
-          // Now copy all values and copy all memory for pointers again recursively
-          currentNewSPCAndMapping =
-              copyMemoryOfTo(
-                  rootTargetMemory,
-                  rootTargetMemory,
-                  rootSPC,
-                  currentNewSPC,
-                  mappingOfNodes,
-                  ImmutableSet.of());
-          currentNewSPC = currentNewSPCAndMapping.getMergedSPC();
-          mappingOfNodes = currentNewSPCAndMapping.getMapping();
-        }
-
-      } else {
-        // There is a PTE in the new SPC already, make some checks that it's OK.
-        SMGPointsToEdge pteNew = currentNewSPC.smg.getPTEdge(newSMGValue).orElseThrow();
-        checkState(pteRoot.getOffset().equals(pteNew.getOffset()));
-        checkState(mappingOfNodes.hasMapping(pteRoot.pointsTo()));
-        checkState(mappingOfNodes.getMappedObject(pteRoot.pointsTo()).equals(pteNew.pointsTo()));
-        checkState(pteRoot.targetSpecifier().equals(pteNew.targetSpecifier()));
-      }
-    }
-    return MergedSPCAndMapping.of(currentNewSPC, mappingOfNodes);
+    return copyHVEdgesIncludingMemoryFromTo(
+        rootSPC, rootObj, currentNewSPC, newMemory, mappingOfNodes, excludedOffsets);
   }
 
   /*
@@ -3014,11 +2931,12 @@ public class SymbolicProgramConfiguration {
   // Only to be used by materialization to copy an SMGObject
   public SymbolicProgramConfiguration copyAllValuesFromObjToObj(
       SMGObject source, SMGObject target) {
-    return copyHVEdgesFromTo(source, target);
+    return copyHVEdgesIncludingMemoryFromTo(source, target);
   }
 
   // We need this here due to the update to the nesting level as this changes the SPC
-  private SymbolicProgramConfiguration copyHVEdgesFromTo(SMGObject source, SMGObject target) {
+  private SymbolicProgramConfiguration copyHVEdgesIncludingMemoryFromTo(
+      SMGObject source, SMGObject target) {
     PersistentSet<SMGHasValueEdge> setOfValues =
         smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(source, PersistentSet.of());
     // We expect that there are NO edges in the target!
@@ -3044,31 +2962,42 @@ public class SymbolicProgramConfiguration {
         valueToTypeMap);
   }
 
-  private static MergedSPCAndMapping copyHVEdgesFromTo(
+  /**
+   * This method copies HV edges and adds them to the mapping if not mapped yet. If a value is a
+   * pointer, the nested memory is also copied, as long as there is no pointers from outside the
+   * sub-SMG of the source object that are not yet mapped. If the later case occurs, this throws.
+   */
+  private static MergedSPCAndMapping copyHVEdgesIncludingMemoryFromTo(
       SymbolicProgramConfiguration sourceSPC,
       SMGObject source,
       SymbolicProgramConfiguration pTargetSPC,
       SMGObject target,
       NodeMapping mappingBetweenStates,
-      Set<BigInteger> excludedOffsets)
+      Map<SMGObject, Set<BigInteger>> excludedOffsetsPerObject)
       throws SMGException {
-    SymbolicProgramConfiguration newTargetState = pTargetSPC;
+    Set<BigInteger> excludedOffsetsInSourceObj =
+        excludedOffsetsPerObject.getOrDefault(source, ImmutableSet.of());
+    SymbolicProgramConfiguration newTargetSPC = pTargetSPC;
     // Get edges in source
     PersistentSet<SMGHasValueEdge> setOfValuesSource =
         sourceSPC.smg.getSMGObjectsWithSMGHasValueEdges().getOrDefault(source, PersistentSet.of());
     // We expect that there are NO edges in the target!
     checkState(
-        newTargetState
+        newTargetSPC
             .smg
             .getSMGObjectsWithSMGHasValueEdges()
             .getOrDefault(target, PersistentSet.of())
             .isEmpty());
 
+    ImmutableSet.Builder<SMGValue> pointerWhoseTargetNeedsToBeCopiedBuilder =
+        ImmutableSet.builder();
     // Go through edges in source and copy all to the new, but use existing mappings if possible
     for (SMGHasValueEdge hveSource : setOfValuesSource) {
-      if (excludedOffsets.contains(hveSource.getOffset())) {
+      if (excludedOffsetsInSourceObj.contains(hveSource.getOffset())) {
+        // Filter out unwanted offsets
         continue;
       }
+      boolean addMapping = false;
       SMGValue smgValueSource = hveSource.hasValue();
       Value valueInSource = sourceSPC.getValueFromSMGValue(smgValueSource).orElseThrow();
       SMGValue smgValueInTarget = smgValueSource;
@@ -3077,8 +3006,8 @@ public class SymbolicProgramConfiguration {
       if (mappingBetweenStates.hasMapping(smgValueSource)) {
         // We know the value mapping already, use it
         smgValueInTarget = mappingBetweenStates.getMappedValue(smgValueSource);
-        checkArgument(newTargetState.smg.getValues().containsKey(smgValueInTarget));
-        Optional<Value> maybeNewSPCValue = newTargetState.getValueFromSMGValue(smgValueInTarget);
+        checkArgument(newTargetSPC.smg.getValues().containsKey(smgValueInTarget));
+        Optional<Value> maybeNewSPCValue = newTargetSPC.getValueFromSMGValue(smgValueInTarget);
         if (maybeNewSPCValue.isEmpty()) {
           throw new SMGException("Error when mapping values when merging.");
         }
@@ -3086,25 +3015,24 @@ public class SymbolicProgramConfiguration {
         nestingLevel = sourceSPC.getNestingLevel(smgValueSource);
 
       } else {
+        // No mapping known yet.
         // Never map 0, 0 is always present and the same values.
         if (!smgValueSource.isZero()) {
           // Add new mapping
           // Check that the target SPC/SMG does not have a mapping for this value
-          checkState(!newTargetState.containsValueInMapping(valueInSource));
-          checkState(!newTargetState.containsValueInMapping(smgValueInTarget));
+          checkState(!newTargetSPC.containsValueInMapping(valueInSource));
+          checkState(!newTargetSPC.containsValueInMapping(smgValueInTarget));
 
-          // TODO: refactor with duplicate code below
-          // Add the value to the target spc
-          CType typeSource = sourceSPC.valueToTypeMap.get(smgValueSource);
-          // Check that the type exists and can be copied
-          checkNotNull(typeSource);
-          newTargetState =
-              newTargetState.copyAndPutValue(
-                  valueInTarget, smgValueInTarget, nestingLevel, typeSource);
+          if (sourceSPC.getSmg().isPointer(smgValueSource)) {
+            // Copy all values for pointers, collect them, and add their memory and mapping after
+            // finishing copying to this object.
+            // This makes sure that there is no problems for memory structures looping back here.
+            pointerWhoseTargetNeedsToBeCopiedBuilder.add(smgValueSource);
 
-          mappingBetweenStates =
-              mappingBetweenStates.copyAndAddMapping(
-                  smgValueSource, sourceSPC, smgValueInTarget, newTargetState);
+          } else {
+            // Mapping is added below
+            addMapping = true;
+          }
         }
       }
       // Add the mapping if it is not yet existing
@@ -3113,16 +3041,115 @@ public class SymbolicProgramConfiguration {
       checkNotNull(typeSource);
 
       // This only updates the nesting level if a mapping already exists
-      newTargetState =
-          newTargetState.copyAndPutValue(valueInTarget, smgValueInTarget, nestingLevel, typeSource);
-      newTargetState =
-          newTargetState.writeValue(
+      newTargetSPC =
+          newTargetSPC.copyAndPutValue(valueInTarget, smgValueInTarget, nestingLevel, typeSource);
+      newTargetSPC =
+          newTargetSPC.writeValue(
               target, hveSource.getOffset(), hveSource.getSizeInBits(), smgValueInTarget);
-      assert newTargetState.smg.hasValue(smgValueInTarget);
-      assert newTargetState.getValueFromSMGValue(smgValueInTarget).isPresent();
+      assert newTargetSPC.smg.hasValue(smgValueInTarget);
+      assert newTargetSPC.getValueFromSMGValue(smgValueInTarget).isPresent();
+
+      if (addMapping) {
+        mappingBetweenStates =
+            mappingBetweenStates.copyAndAddMapping(
+                smgValueSource, sourceSPC, smgValueInTarget, newTargetSPC);
+      }
     }
 
-    return MergedSPCAndMapping.of(newTargetState, mappingBetweenStates);
+    // Now copy the sub-SMG of pointers and add their mapping once the pointers target exists
+    // All pointers whose memory needs to be copied, with the exception already filtered out.
+    Set<SMGValue> pointerWhoseTargetNeedsToBeCopied =
+        pointerWhoseTargetNeedsToBeCopiedBuilder.build();
+
+    // All values from the old source are copied to the new obj already,
+    //   we might need to do some adjustments and copy memory, add PTEs, and mappings
+    for (SMGValue pointerValueFromSource : pointerWhoseTargetNeedsToBeCopied) {
+      SMGPointsToEdge pteOfPtrFromSource =
+          sourceSPC.smg.getPTEdge(pointerValueFromSource).orElseThrow();
+      SMGObject targetMemoryOfPtrFromSource = pteOfPtrFromSource.pointsTo();
+      checkState(mappingBetweenStates.hasMapping(pointerValueFromSource));
+      SMGValue newSMGValue = mappingBetweenStates.getMappedValue(pointerValueFromSource);
+      boolean copyMemoryRecursivly = false;
+
+      if (newTargetSPC.smg.isPointer(newSMGValue)) {
+        // There is a PTE in the new SPC already, make some checks that it's OK.
+        SMGPointsToEdge pteNew = newTargetSPC.smg.getPTEdge(newSMGValue).orElseThrow();
+        checkState(pteOfPtrFromSource.getOffset().equals(pteNew.getOffset()));
+        checkState(mappingBetweenStates.hasMapping(pteOfPtrFromSource.pointsTo()));
+        checkState(
+            mappingBetweenStates
+                .getMappedObject(pteOfPtrFromSource.pointsTo())
+                .equals(pteNew.pointsTo()));
+        checkState(pteOfPtrFromSource.targetSpecifier().equals(pteNew.targetSpecifier()));
+        checkState(
+            sourceSPC.isHeapObject(pteOfPtrFromSource.pointsTo())
+                == newTargetSPC.isHeapObject(pteNew.pointsTo()));
+        checkState(
+            sourceSPC.isObjectValid(pteOfPtrFromSource.pointsTo())
+                == newTargetSPC.isObjectValid(pteNew.pointsTo()));
+
+      } else {
+        // Not a pointer, but the value is copied
+        //   -> copy sub-SMG (memory), insert PTE, and add mapping
+        SMGObject newMemoryTargetObject;
+        if (mappingBetweenStates.hasMapping(targetMemoryOfPtrFromSource)) {
+          // Known memory, just insert PTE
+          newMemoryTargetObject = mappingBetweenStates.getMappedObject(targetMemoryOfPtrFromSource);
+          checkState(newTargetSPC.isHeapObject(newMemoryTargetObject));
+          assert newTargetSPC
+              .smg
+              .getSMGObjectsWithSMGHasValueEdges()
+              .getOrDefault(newMemoryTargetObject, PersistentSet.of())
+              .equals(sourceSPC.smg.getEdges(targetMemoryOfPtrFromSource));
+
+        } else {
+          // Copy memory and insert PTE
+          checkState(!newTargetSPC.heapObjects.contains(targetMemoryOfPtrFromSource));
+          // We can't handle stack variables here. Alloca would be fine.
+          // TODO: handle non variable stack memory here.
+          checkState(sourceSPC.isHeapObject(targetMemoryOfPtrFromSource));
+          newMemoryTargetObject = targetMemoryOfPtrFromSource;
+          copyMemoryRecursivly = true;
+        }
+        // Insert correct PTE in new SPC
+        SMGPointsToEdge newPTE =
+            new SMGPointsToEdge(
+                newMemoryTargetObject,
+                pteOfPtrFromSource.getOffset(),
+                pteOfPtrFromSource.targetSpecifier());
+        assert !newTargetSPC.smg.getPTEdges().anyMatch(e -> e.equals(newPTE));
+        newTargetSPC =
+            newTargetSPC.copyWithNewSMG(
+                newTargetSPC.smg.copyAndAddPTEdgeWithInternalMapping(newPTE, newSMGValue));
+
+        if (copyMemoryRecursivly) {
+          // Now copy all values and copy all memory for pointers again recursively
+          // (Since we copy the object, they are now equal)
+          MergedSPCAndMapping newSPCAndMapping =
+              copyMemoryOfTo(
+                  targetMemoryOfPtrFromSource,
+                  targetMemoryOfPtrFromSource,
+                  sourceSPC,
+                  newTargetSPC,
+                  mappingBetweenStates,
+                  excludedOffsetsPerObject);
+          newTargetSPC = newSPCAndMapping.getMergedSPC();
+          mappingBetweenStates = newSPCAndMapping.getMapping();
+
+          checkState(mappingBetweenStates.hasMapping(targetMemoryOfPtrFromSource));
+          checkState(
+              mappingBetweenStates.getMappedObject(targetMemoryOfPtrFromSource)
+                  == targetMemoryOfPtrFromSource);
+        }
+
+        // Add mapping
+        mappingBetweenStates =
+            mappingBetweenStates.copyAndAddMapping(
+                pointerValueFromSource, sourceSPC, newSMGValue, newTargetSPC);
+      }
+    }
+
+    return MergedSPCAndMapping.of(newTargetSPC, mappingBetweenStates);
   }
 
   public PersistentStack<Value> getAtExitStack() {
