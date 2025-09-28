@@ -1834,7 +1834,9 @@ public class SymbolicProgramConfiguration {
 
     // Assert that all found objects are mapped in the result
     for (SMGObject objInSubSMG : objectsInSubSMG) {
-      checkState(resultMapping.hasMapping(objInSubSMG));
+      if (!objInSubSMG.isZero()) {
+        checkState(resultMapping.hasMapping(objInSubSMG));
+      }
     }
 
     // Assert that there is no outside pointers in the copied portion
@@ -3182,7 +3184,7 @@ public class SymbolicProgramConfiguration {
 
       } else {
         // Not a pointer, but the value is copied
-        //   -> copy sub-SMG (memory), insert PTE, and add mapping
+        //   -> copy sub-SMG (memory) and insert PTE (mapping already exists)
         SMGObject newMemoryTargetObject;
         if (mappingBetweenStates.hasMapping(targetMemoryOfPtrFromSource)) {
           // Known memory, just insert PTE
@@ -3234,10 +3236,8 @@ public class SymbolicProgramConfiguration {
                   == targetMemoryOfPtrFromSource);
         }
 
-        // Add mapping
-        mappingBetweenStates =
-            mappingBetweenStates.copyAndAddMapping(
-                pointerValueFromSource, sourceSPC, newSMGValue, newTargetSPC);
+        checkState(mappingBetweenStates.hasMapping(pointerValueFromSource));
+        checkState(mappingBetweenStates.hasMapping(targetMemoryOfPtrFromSource));
       }
     }
 
