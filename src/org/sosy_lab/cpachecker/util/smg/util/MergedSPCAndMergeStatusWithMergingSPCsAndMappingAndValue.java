@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.smg.util;
 
+import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.SMGRecoverableFailureType.DELAYED_MERGE;
+
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure;
+import org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.SMGRecoverableFailureType;
 
 public class MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue {
 
@@ -55,6 +58,10 @@ public class MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue {
   /** If this is true, the other inputs are NULL! */
   public boolean isRecoverableFailure() {
     return recoverableFailure != null;
+  }
+
+  public boolean isRecoverableFailureTypeDelayedMerge() {
+    return recoverableFailure != null && recoverableFailure.getFailureType() == DELAYED_MERGE;
   }
 
   public SMGRecoverableFailure getRecoverableFailure() {

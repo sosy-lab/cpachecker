@@ -871,8 +871,7 @@ public class SymbolicProgramConfiguration {
       res =
           insertRightLLAndJoin(
               pSpc1, pSpc2, v1, v2, pNewSpc, mapping1, mapping2, initialJoinStatus, nestingDiff);
-      if (res.isEmpty()
-          || res.orElseThrow().getRecoverableFailure().getFailureType() == DELAYED_MERGE) {
+      if (res.isEmpty() || res.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
         return Optional.empty();
       }
       failureType = res.orElseThrow().getRecoverableFailure().getFailureType();
@@ -1285,8 +1284,7 @@ public class SymbolicProgramConfiguration {
       // Let res = joinValues(status, SMG1, SMG2, new SMG, m1, m2, aNext, v2, ldiff).
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           mergeValues(spc1, spc2, aNext, v2, newSPC, mapping1, mapping2, status, nestingDiff);
-      if (maybeRes.isEmpty()
-          || maybeRes.orElseThrow().getRecoverableFailure().getFailureType() == DELAYED_MERGE) {
+      if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
         return Optional.empty();
       } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
         // Hand the extension request back, extend and then possibly restart this method
@@ -1378,8 +1376,7 @@ public class SymbolicProgramConfiguration {
     //   skipping the inserted list element in a sense.
     Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
         mergeValues(spc1, spc2, aNext, v2, newSPC, mapping1, mapping2, status, nestingDiff);
-    if (maybeRes.isEmpty()
-        || maybeRes.orElseThrow().getRecoverableFailure().getFailureType() == DELAYED_MERGE) {
+    if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
       return maybeRes;
     } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
       // Investigate this, most likely the list of the right hand side is longer than the one on the
@@ -1532,8 +1529,7 @@ public class SymbolicProgramConfiguration {
       // Let res = joinValues(status, SMG1, SMG2, new SMG, m1, m2, v1, aNext, ldiff).
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           mergeValues(spc1, spc2, v1, aNext, newSPC, mapping1, mapping2, status, nestingDiff);
-      if (maybeRes.isEmpty()
-          || maybeRes.orElseThrow().getRecoverableFailure().getFailureType() == DELAYED_MERGE) {
+      if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
         return Optional.empty();
       } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
         // Investigate this, most likely the list of the left hand side is longer than the one on
@@ -1626,8 +1622,7 @@ public class SymbolicProgramConfiguration {
     //   skipping the abstracted list element.
     Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
         mergeValues(spc1, spc2, v1, aNext, newSPC, mapping1, mapping2, status, nestingDiff);
-    if (maybeRes.isEmpty()
-        || maybeRes.orElseThrow().getRecoverableFailure().getFailureType() == DELAYED_MERGE) {
+    if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
       return maybeRes;
     } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
       // Hand the extension request back, extend and then possibly restart this method
