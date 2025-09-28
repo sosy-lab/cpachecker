@@ -202,7 +202,7 @@ public class WitnessExporterTest {
           "parallelAlgorithm.configFiles",
           "config/components/kInduction/kInduction.properties, "
               + getInvGenFile(pWitnessPath)
-              + "::supply-reached-refinable");
+              + "::supply-reached:refinable");
     } else {
       overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
     }
