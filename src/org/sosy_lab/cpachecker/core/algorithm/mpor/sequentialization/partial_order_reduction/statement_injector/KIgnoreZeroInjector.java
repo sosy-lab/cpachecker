@@ -6,10 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
@@ -17,12 +16,10 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqConflictOrderStatement;
@@ -36,105 +33,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class KIgnoreZeroInjector {
 
-  static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> injectKIgnoreZeroReduction(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  // Public Interface ==============================================================================
 
-    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rInjected =
-        ImmutableListMultimap.builder();
-    for (MPORThread activeThread : pClauses.keySet()) {
-      ImmutableSet<MPORThread> otherThreads =
-          MPORUtil.withoutElement(pClauses.keySet(), activeThread);
-      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(activeThread);
-      ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
-      ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses);
-      rInjected.putAll(
-          activeThread,
-          injectKIgnoreZeroReductionIntoClauses(
-              pOptions,
-              activeThread.getKVariable(),
-              otherThreads,
-              clauses,
-              labelClauseMap,
-              labelBlockMap,
-              pBitVectorVariables,
-              pMemoryModel,
-              pBinaryExpressionBuilder));
-    }
-    return rInjected.build();
-  }
-
-  // Private =======================================================================================
-
-  private static ImmutableList<SeqThreadStatementClause> injectKIgnoreZeroReductionIntoClauses(
-      MPOROptions pOptions,
-      Optional<CIdExpression> pKVariable,
-      ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
-    for (SeqThreadStatementClause clause : pClauses) {
-      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        newBlocks.add(
-            injectKIgnoreZeroReductionIntoBlock(
-                pOptions,
-                block,
-                pKVariable,
-                pOtherThreads,
-                pLabelClauseMap,
-                pLabelBlockMap,
-                pBitVectorVariables,
-                pMemoryModel,
-                pBinaryExpressionBuilder));
-      }
-      rInjected.add(clause.cloneWithBlocks(newBlocks.build()));
-    }
-    return rInjected.build();
-  }
-
-  private static SeqThreadStatementBlock injectKIgnoreZeroReductionIntoBlock(
-      MPOROptions pOptions,
-      SeqThreadStatementBlock pBlock,
-      Optional<CIdExpression> pKVariable,
-      ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      newStatements.add(
-          injectKIgnoreZeroReductionIntoStatement(
-              pOptions,
-              pKVariable,
-              pOtherThreads,
-              statement,
-              pLabelClauseMap,
-              pLabelBlockMap,
-              pBitVectorVariables,
-              pMemoryModel,
-              pBinaryExpressionBuilder));
-    }
-    return pBlock.cloneWithStatements(newStatements.build());
-  }
-
-  private static SeqThreadStatement injectKIgnoreZeroReductionIntoStatement(
+  static SeqThreadStatement injectKIgnoreZeroReductionIntoStatement(
       MPOROptions pOptions,
       Optional<CIdExpression> pKVariable,
       ImmutableSet<MPORThread> pOtherThreads,
@@ -152,9 +53,9 @@ class KIgnoreZeroInjector {
       // exclude exit pc, don't want 'assume(conflict)' there
       if (targetPc != Sequentialization.EXIT_PC) {
         SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-        if (PartialOrderReducer.isReductionAllowed(pOptions, newTarget)) {
+        if (StatementInjector.isReductionAllowed(pOptions, newTarget)) {
           BitVectorEvaluationExpression evaluationExpression =
-              PartialOrderReducer.buildBitVectorEvaluationExpression(
+              StatementInjector.buildBitVectorEvaluationExpression(
                   pOptions,
                   pOtherThreads,
                   pLabelBlockMap,

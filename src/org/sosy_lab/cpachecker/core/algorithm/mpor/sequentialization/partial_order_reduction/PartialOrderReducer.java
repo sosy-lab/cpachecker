@@ -9,21 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.StatementInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -46,111 +39,17 @@ public class PartialOrderReducer {
       MemoryModel memoryModel = pMemoryModel.orElseThrow();
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
           StatementLinker.link(pOptions, pClauses, memoryModel);
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withBitVectorReduction =
-          pOptions.bitVectorReduction
-              ? BitVectorInjector.injectBitVectorReduction(
-                  pOptions,
-                  linked,
-                  pBitVectorVariables.orElseThrow(),
-                  memoryModel,
-                  pBinaryExpressionBuilder,
-                  pLogger)
-              : linked;
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withConflictReduction =
-          pOptions.conflictReduction
-              ? ConflictResolver.resolve(
-                  pOptions,
-                  withBitVectorReduction,
-                  pBitVectorVariables.orElseThrow(),
-                  memoryModel,
-                  pBinaryExpressionBuilder,
-                  pLogger)
-              : withBitVectorReduction;
-      // this needs to be last, it collects the prior injections
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> withKIgnoreZeroReduction =
-          pOptions.kIgnoreZeroReduction
-              ? KIgnoreZeroInjector.injectKIgnoreZeroReduction(
-                  pOptions,
-                  withConflictReduction,
-                  pBitVectorVariables.orElseThrow(),
-                  memoryModel,
-                  pBinaryExpressionBuilder)
-              : withConflictReduction;
-      // always inject bit vector assignments after evaluations i.e. reductions
-      return isAnyBitVectorReductionEnabled(pOptions)
-          ? BitVectorAssignmentInjector.injectBitVectorAssignments(
-              pOptions,
-              withKIgnoreZeroReduction,
-              pBitVectorVariables.orElseThrow(),
-              memoryModel,
-              pLogger)
-          : linked;
+      if (pOptions.areBitVectorsEnabled()) {
+        return StatementInjector.injectStatements(
+            pOptions,
+            linked,
+            pBitVectorVariables.orElseThrow(),
+            memoryModel,
+            pBinaryExpressionBuilder,
+            pLogger);
+      }
+      return linked;
     }
     return pClauses;
-  }
-
-  // Bit Vector Evaluations =======================================================================
-
-  static BitVectorEvaluationExpression buildBitVectorEvaluationExpression(
-      MPOROptions pOptions,
-      ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      SeqThreadStatementBlock pTargetBlock,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    return BitVectorEvaluationBuilder.buildEvaluationByDirectVariableAccesses(
-        pOptions,
-        pOtherThreads,
-        pLabelBlockMap,
-        pTargetBlock,
-        pBitVectorVariables,
-        pMemoryModel,
-        pBinaryExpressionBuilder);
-  }
-
-  static SeqBitVectorEvaluationStatement buildBitVectorEvaluationStatement(
-      MPOROptions pOptions,
-      ImmutableSet<MPORThread> pOtherThreads,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      SeqThreadStatementBlock pTargetBlock,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    BitVectorEvaluationExpression evaluationExpression =
-        buildBitVectorEvaluationExpression(
-            pOptions,
-            pOtherThreads,
-            pLabelBlockMap,
-            pTargetBlock,
-            pBitVectorVariables,
-            pMemoryModel,
-            pBinaryExpressionBuilder);
-    return new SeqBitVectorEvaluationStatement(
-        pOptions, evaluationExpression, pTargetBlock.getLabel());
-  }
-
-  // boolean helpers ===============================================================================
-
-  private static boolean isAnyBitVectorReductionEnabled(MPOROptions pOptions) {
-    return pOptions.bitVectorReduction
-        || pOptions.conflictReduction
-        || pOptions.kIgnoreZeroReduction;
-  }
-
-  /**
-   * Checks whether bit vector injections are allowed, i.e. if they do not result in interleaving
-   * loss.
-   */
-  static boolean isReductionAllowed(MPOROptions pOptions, SeqThreadStatementClause pTarget) {
-
-    // if the target starts with a thread synchronization (i.e. assume), do not inject
-    return !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
-        // check based on pOptions if the target is a loop head that must remain separate
-        && !SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, pTarget);
   }
 }

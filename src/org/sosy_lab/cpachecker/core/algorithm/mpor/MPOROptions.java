@@ -477,6 +477,6 @@ public class MPOROptions {
   }
 
   public boolean areBitVectorsEnabled() {
-    return bitVectorReduction || conflictReduction;
+    return bitVectorReduction || conflictReduction || kIgnoreZeroReduction;
   }
 }

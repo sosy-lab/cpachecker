@@ -6,20 +6,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -31,98 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorAssignmentInjector {
 
-  // Public Interfaces =============================================================================
-
-  static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> injectBitVectorAssignments(
-      MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      LogManager pLogger) {
-
-    if (pMemoryModel.getRelevantMemoryLocationAmount() == 0) {
-      pLogger.log(
-          Level.INFO,
-          "bit vectors are enabled, but the program does not contain any global memory locations.");
-      return pClauses; // no relevant memory locations -> no bit vectors needed
-    }
-    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rInjected =
-        ImmutableListMultimap.builder();
-    for (MPORThread activeThread : pClauses.keySet()) {
-      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(activeThread);
-      ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
-      ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses);
-      rInjected.putAll(
-          activeThread,
-          injectBitVectorAssignmentsIntoClauses(
-              pOptions,
-              activeThread,
-              clauses,
-              labelClauseMap,
-              labelBlockMap,
-              pBitVectorVariables,
-              pMemoryModel));
-    }
-    return rInjected.build();
-  }
-
-  // Private Methods ===============================================================================
-
-  private static ImmutableList<SeqThreadStatementClause> injectBitVectorAssignmentsIntoClauses(
-      MPOROptions pOptions,
-      MPORThread pActiveThread,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel) {
-
-    ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
-    for (SeqThreadStatementClause clause : pClauses) {
-      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        newBlocks.add(
-            injectBitVectorAssignmentsIntoBlock(
-                pOptions,
-                block,
-                pActiveThread,
-                pLabelClauseMap,
-                pLabelBlockMap,
-                pBitVectorVariables,
-                pMemoryModel));
-      }
-      rInjected.add(clause.cloneWithBlocks(newBlocks.build()));
-    }
-    return rInjected.build();
-  }
-
-  private static SeqThreadStatementBlock injectBitVectorAssignmentsIntoBlock(
-      MPOROptions pOptions,
-      SeqThreadStatementBlock pBlock,
-      MPORThread pActiveThread,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel) {
-
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      newStatements.add(
-          injectBitVectorAssignmentsIntoStatement(
-              pOptions,
-              pActiveThread,
-              statement,
-              pLabelClauseMap,
-              pLabelBlockMap,
-              pBitVectorVariables,
-              pMemoryModel));
-    }
-    return pBlock.cloneWithStatements(newStatements.build());
-  }
-
-  private static SeqThreadStatement injectBitVectorAssignmentsIntoStatement(
+  static SeqThreadStatement injectBitVectorAssignmentsIntoStatement(
       MPOROptions pOptions,
       final MPORThread pActiveThread,
       SeqThreadStatement pCurrentStatement,

@@ -6,13 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -41,91 +38,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-class ConflictResolver {
+class ConflictOrderInjector {
 
   // Public Interface ==============================================================================
 
-  static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> resolve(
+  static SeqThreadStatement injectOrderStatementsIntoStatement(
       MPOROptions pOptions,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger)
-      throws UnrecognizedCodeException {
-
-    if (pMemoryModel.getRelevantMemoryLocationAmount() == 0) {
-      pLogger.log(
-          Level.INFO,
-          "conflictReduction is enabled, but the program does not contain any global variables.");
-      return pClauses; // no global variables -> no conflict resolving needed
-    }
-    ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rResolved =
-        ImmutableListMultimap.builder();
-    for (MPORThread activeThread : pClauses.keySet()) {
-      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(activeThread);
-      ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses);
-      // step 1: inject conflict order assumptions
-      ImmutableList<SeqThreadStatementClause> withConflictOrder =
-          addConflictOrdersToClauses(
-              pOptions,
-              pClauses.get(activeThread),
-              activeThread,
-              labelBlockMap,
-              pBitVectorVariables,
-              pMemoryModel,
-              pBinaryExpressionBuilder);
-      // step 2: inject updates to last_... variables
-      rResolved.putAll(
-          activeThread,
-          addLastUpdatesToClauses(
-              pOptions,
-              pClauses.keySet().size(),
-              withConflictOrder,
-              activeThread,
-              pBitVectorVariables));
-    }
-    return rResolved.build();
-  }
-
-  // Conflict Order ================================================================================
-
-  private static ImmutableList<SeqThreadStatementClause> addConflictOrdersToClauses(
-      MPOROptions pOptions,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      MPORThread pActiveThread,
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      BitVectorVariables pBitVectorVariables,
-      MemoryModel pMemoryModel,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<SeqThreadStatementClause> rWithOrders = ImmutableList.builder();
-    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
-    for (SeqThreadStatementClause clause : pClauses) {
-      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock mergedBlock : clause.getBlocks()) {
-        newBlocks.add(
-            addConflictOrdersToBlock(
-                pOptions,
-                mergedBlock,
-                pActiveThread,
-                labelClauseMap,
-                pLabelBlockMap,
-                pBitVectorVariables,
-                pMemoryModel,
-                pBinaryExpressionBuilder));
-      }
-      rWithOrders.add(clause.cloneWithBlocks(newBlocks.build()));
-    }
-    return rWithOrders.build();
-  }
-
-  private static SeqThreadStatementBlock addConflictOrdersToBlock(
-      MPOROptions pOptions,
-      SeqThreadStatementBlock pBlock,
+      int pNumThreads,
+      SeqThreadStatement pStatement,
       MPORThread pActiveThread,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -134,23 +54,23 @@ class ConflictResolver {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      newStatements.add(
-          addConflictOrderToStatement(
-              pOptions,
-              statement,
-              pActiveThread,
-              pLabelClauseMap,
-              pLabelBlockMap,
-              pBitVectorVariables,
-              pMemoryModel,
-              pBinaryExpressionBuilder));
-    }
-    return pBlock.cloneWithStatements(newStatements.build());
+    SeqThreadStatement withConflictOrder =
+        injectConflictOrderIntoStatement(
+            pOptions,
+            pStatement,
+            pActiveThread,
+            pLabelClauseMap,
+            pLabelBlockMap,
+            pBitVectorVariables,
+            pMemoryModel,
+            pBinaryExpressionBuilder);
+    return injectLastUpdatesIntoStatement(
+        pOptions, pNumThreads, withConflictOrder, pActiveThread, pBitVectorVariables);
   }
 
-  private static SeqThreadStatement addConflictOrderToStatement(
+  // Private =======================================================================================
+
+  private static SeqThreadStatement injectConflictOrderIntoStatement(
       MPOROptions pOptions,
       SeqThreadStatement pStatement,
       MPORThread pActiveThread,
@@ -169,7 +89,7 @@ class ConflictResolver {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause targetClause = pLabelClauseMap.get(targetPc);
       assert targetClause != null : "could not find targetPc in pLabelBlockMap";
-      if (PartialOrderReducer.isReductionAllowed(pOptions, targetClause)) {
+      if (StatementInjector.isReductionAllowed(pOptions, targetClause)) {
         SeqThreadStatementBlock targetBlock = pLabelBlockMap.get(targetPc);
         // build conflict order statement (with bit vector evaluations based on targetBlock)
         BitVectorEvaluationExpression lastBitVectorEvaluation =
@@ -193,43 +113,7 @@ class ConflictResolver {
 
   // Last Updates ==================================================================================
 
-  private static ImmutableList<SeqThreadStatementClause> addLastUpdatesToClauses(
-      MPOROptions pOptions,
-      int pNumThreads,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      MPORThread pActiveThread,
-      BitVectorVariables pBitVectorVariables) {
-
-    ImmutableList.Builder<SeqThreadStatementClause> rWithOrders = ImmutableList.builder();
-    for (SeqThreadStatementClause clause : pClauses) {
-      ImmutableList.Builder<SeqThreadStatementBlock> newBlocks = ImmutableList.builder();
-      for (SeqThreadStatementBlock mergedBlock : clause.getBlocks()) {
-        newBlocks.add(
-            addLastUpdatesToBlock(
-                pOptions, pNumThreads, mergedBlock, pActiveThread, pBitVectorVariables));
-      }
-      rWithOrders.add(clause.cloneWithBlocks(newBlocks.build()));
-    }
-    return rWithOrders.build();
-  }
-
-  private static SeqThreadStatementBlock addLastUpdatesToBlock(
-      MPOROptions pOptions,
-      int pNumThreads,
-      SeqThreadStatementBlock pBlock,
-      MPORThread pActiveThread,
-      BitVectorVariables pBitVectorVariables) {
-
-    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-    for (SeqThreadStatement statement : pBlock.getStatements()) {
-      newStatements.add(
-          addLastUpdatesToStatement(
-              pOptions, pNumThreads, statement, pActiveThread, pBitVectorVariables));
-    }
-    return pBlock.cloneWithStatements(newStatements.build());
-  }
-
-  private static SeqThreadStatement addLastUpdatesToStatement(
+  private static SeqThreadStatement injectLastUpdatesIntoStatement(
       MPOROptions pOptions,
       int pNumThreads,
       SeqThreadStatement pStatement,
