@@ -55,7 +55,7 @@ public class SeqBlankStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    return SeqThreadStatementUtil.buildInjectedStatements(
+    return SeqThreadStatementUtil.buildInjectedStatementsString(
         options, pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
   }
 

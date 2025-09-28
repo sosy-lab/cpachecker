@@ -441,7 +441,10 @@ public class MemoryModelBuilder {
     List<CExpression> arguments = pFunctionCallEdge.getArguments();
     List<CParameterDeclaration> parameterDeclarations =
         pFunctionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
-    // C does not allow optional parameters
+    // TODO this should be removed, see e.g.
+    //  pthread-driver-races/char_generic_nvram_read_nvram_nvram_unlocked_ioctl
+    //  with the function declaration int printk(const char * fmt, ...);
+    //  -> one parameter, but e.g. 2 arguments possible
     assert arguments.size() == parameterDeclarations.size()
         : "function argument number should be same as parameter declaration number";
     for (int i = 0; i < arguments.size(); i++) {

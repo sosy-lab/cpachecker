@@ -75,7 +75,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return controlStatement.toASTString()
         + SeqSyntax.SPACE

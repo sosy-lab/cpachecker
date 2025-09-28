@@ -182,7 +182,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String targetStatements =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     // we only want name and initializer here, the declaration is done beforehand
     return constCpaCheckerTmpDeclaration.toASTString()

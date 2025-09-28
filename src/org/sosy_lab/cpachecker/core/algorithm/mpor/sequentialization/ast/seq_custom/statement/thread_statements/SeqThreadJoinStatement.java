@@ -93,7 +93,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
     Optional<String> returnValueRead =
         buildReturnValueRead(joinedThreadExitVariable, substituteEdges);
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return assumeCall.toASTString()

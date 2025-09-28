@@ -78,7 +78,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return lockedFalse.toASTString() + SeqSyntax.SPACE + injected;
   }

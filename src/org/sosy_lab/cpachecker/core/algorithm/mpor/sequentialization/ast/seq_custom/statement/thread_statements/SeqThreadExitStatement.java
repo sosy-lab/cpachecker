@@ -82,7 +82,7 @@ public class SeqThreadExitStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return returnValueAssignment.statement.toASTString() + SeqSyntax.SPACE + injected;
   }

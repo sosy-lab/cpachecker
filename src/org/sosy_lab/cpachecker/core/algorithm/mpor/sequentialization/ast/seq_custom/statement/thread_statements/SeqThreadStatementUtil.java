@@ -180,7 +180,7 @@ public class SeqThreadStatementUtil {
    * This returns either a {@code pc} write of the form {@code pc[i] = n;} including injected
    * statements, if present.
    */
-  static String buildInjectedStatements(
+  static String buildInjectedStatementsString(
       MPOROptions pOptions,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,

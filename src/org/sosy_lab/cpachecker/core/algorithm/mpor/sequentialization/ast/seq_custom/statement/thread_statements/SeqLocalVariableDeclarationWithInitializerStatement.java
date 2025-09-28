@@ -90,7 +90,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return variableDeclaration.toASTStringWithOnlyNameAndInitializer() + SeqSyntax.SPACE + injected;
   }

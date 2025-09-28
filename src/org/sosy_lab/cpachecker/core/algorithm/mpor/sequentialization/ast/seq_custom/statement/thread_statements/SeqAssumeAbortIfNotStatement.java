@@ -87,7 +87,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
         .append(condAssignment.toExpressionAssignmentStatement().toASTString())
         .append(SeqSyntax.SPACE);
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     rString.append(injected);
     return rString.toString();

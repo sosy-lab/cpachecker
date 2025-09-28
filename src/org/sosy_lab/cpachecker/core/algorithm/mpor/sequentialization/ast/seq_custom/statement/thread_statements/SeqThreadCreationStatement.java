@@ -106,28 +106,45 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
     CExpressionAssignmentStatement createdPcWrite =
         SeqStatementBuilder.buildPcWrite(
             pcVariables.getPcLeftHandSide(createdThread.id), Sequentialization.INIT_PC);
-    StringBuilder bitVectors = new StringBuilder();
-    if (bitVectorInitializations.isPresent()) {
+    StringBuilder bitVectorInitializationString = new StringBuilder();
+    if (this.bitVectorInitializations.isPresent()) {
       for (SeqBitVectorAssignmentStatement initialization :
-          bitVectorInitializations.orElseThrow()) {
-        bitVectors.append(initialization.toASTString()).append(SeqSyntax.SPACE);
+          this.bitVectorInitializations.orElseThrow()) {
+        bitVectorInitializationString.append(initialization.toASTString()).append(SeqSyntax.SPACE);
       }
     }
-    String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+    String injectedStatementsString =
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options,
             pcVariables.getPcLeftHandSide(creatingThread.id),
             targetPc,
             targetGoto,
             injectedStatements);
-    return startRoutineArgAssignment.isPresent()
-        ? startRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement().toASTString()
-        : SeqSyntax.EMPTY_STRING
-            + SeqSyntax.SPACE
-            + bitVectors
-            + createdPcWrite.toASTString()
-            + SeqSyntax.SPACE
-            + injected;
+    Optional<String> startRoutineArgAssignmentString =
+        buildStartRoutineArgAssignmentString(startRoutineArgAssignment);
+    if (startRoutineArgAssignmentString.isPresent()) {
+      return startRoutineArgAssignmentString.orElseThrow()
+          + SeqSyntax.SPACE
+          + bitVectorInitializationString
+          + createdPcWrite.toASTString()
+          + SeqSyntax.SPACE
+          + injectedStatementsString;
+    }
+    return bitVectorInitializationString
+        + createdPcWrite.toASTString()
+        + SeqSyntax.SPACE
+        + injectedStatementsString;
+  }
+
+  private static Optional<String> buildStartRoutineArgAssignmentString(
+      Optional<FunctionParameterAssignment> pStartRoutineArgAssignment) {
+
+    if (pStartRoutineArgAssignment.isPresent()) {
+      CExpressionAssignmentStatement assignment =
+          pStartRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement();
+      return Optional.of(assignment.toASTString());
+    }
+    return Optional.empty();
   }
 
   @Override

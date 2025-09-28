@@ -85,7 +85,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
           .append(SeqSyntax.SPACE);
     }
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     rString.append(injected);
     return rString.toString();

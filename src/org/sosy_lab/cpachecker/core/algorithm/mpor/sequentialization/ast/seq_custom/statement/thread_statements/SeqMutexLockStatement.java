@@ -89,7 +89,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
         SeqAssumptionBuilder.buildAssumption(mutexLockedVariable.notLockedExpression);
 
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return assumeCall.toASTString()

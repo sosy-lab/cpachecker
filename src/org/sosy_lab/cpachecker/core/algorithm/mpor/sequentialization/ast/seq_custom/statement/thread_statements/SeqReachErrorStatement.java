@@ -69,7 +69,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String injected =
-        SeqThreadStatementUtil.buildInjectedStatements(
+        SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, Optional.of(targetPc), Optional.empty(), injectedStatements);
     return Sequentialization.inputReachErrorDummy + SeqSyntax.SPACE + injected;
   }
