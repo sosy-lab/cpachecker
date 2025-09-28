@@ -3093,7 +3093,7 @@ public class SymbolicProgramConfiguration {
         // Filter out unwanted offsets
         continue;
       }
-      boolean addMapping = false;
+
       SMGValue smgValueSource = hveSource.hasValue();
       Value valueInSource = sourceSPC.getValueFromSMGValue(smgValueSource).orElseThrow();
       SMGValue smgValueInTarget = smgValueSource;
@@ -3124,10 +3124,6 @@ public class SymbolicProgramConfiguration {
             // finishing copying to this object.
             // This makes sure that there is no problems for memory structures looping back here.
             pointerWhoseTargetNeedsToBeCopiedBuilder.add(smgValueSource);
-
-          } else {
-            // Mapping is added below
-            addMapping = true;
           }
         }
       }
@@ -3145,11 +3141,11 @@ public class SymbolicProgramConfiguration {
       assert newTargetSPC.smg.hasValue(smgValueInTarget);
       assert newTargetSPC.getValueFromSMGValue(smgValueInTarget).isPresent();
 
-      if (addMapping) {
-        mappingBetweenStates =
-            mappingBetweenStates.copyAndAddMapping(
-                smgValueSource, sourceSPC, smgValueInTarget, newTargetSPC);
-      }
+      // Always add this mapping. Note: smgValueSource might be a pointer, smgValueInTarget might
+      // not be one YET, it will be once the memory is copied and the PTE is added below!
+      mappingBetweenStates =
+          mappingBetweenStates.copyAndAddMappingInCopySubSMG(
+              smgValueSource, sourceSPC, smgValueInTarget, newTargetSPC);
     }
 
     // Now copy the sub-SMG of pointers and add their mapping once the pointers target exists
