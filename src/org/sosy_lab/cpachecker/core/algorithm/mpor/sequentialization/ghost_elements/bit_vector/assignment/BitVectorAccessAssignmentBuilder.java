@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorAccessAssignmentBuilder {
@@ -61,20 +62,22 @@ public class BitVectorAccessAssignmentBuilder {
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
       if (pOptions.kIgnoreZeroReduction) {
         rStatements.addAll(
-            BitVectorAssignmentUtil.buildSparseDirectBitVectorAssignmentsByAccessType(
+            BitVectorAssignmentUtil.buildSparseBitVectorAssignments(
                 pOptions,
                 pThread,
                 pBitVectorVariables,
                 pDirectMemoryLocations,
-                MemoryAccessType.ACCESS));
+                MemoryAccessType.ACCESS,
+                ReachType.DIRECT));
       }
       rStatements.addAll(
-          BitVectorAssignmentUtil.buildSparseReachableBitVectorAssignmentsByAccessType(
+          BitVectorAssignmentUtil.buildSparseBitVectorAssignments(
               pOptions,
               pThread,
               pBitVectorVariables,
               pReachableMemoryLocations,
-              MemoryAccessType.ACCESS));
+              MemoryAccessType.ACCESS,
+              ReachType.REACHABLE));
     } else {
       if (pOptions.kIgnoreZeroReduction) {
         rStatements.add(

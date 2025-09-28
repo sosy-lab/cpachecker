@@ -354,15 +354,17 @@ class ConflictResolver {
     ImmutableMap<MemoryLocation, SparseBitVector> sparseBitVectors =
         pBitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (var entry : sparseBitVectors.entrySet()) {
-      for (var innerEntry : entry.getValue().reachableVariables.entrySet()) {
-        if (innerEntry.getKey().equals(pActiveThread)) {
+      ImmutableMap<MPORThread, CIdExpression> reachableVariableMap =
+          entry.getValue().getVariablesByReachType(ReachType.REACHABLE);
+      for (var reachableVariable : reachableVariableMap.entrySet()) {
+        if (reachableVariable.getKey().equals(pActiveThread)) {
           MemoryLocation memoryLocation = entry.getKey();
           LastSparseBitVector lastSparseBitVector = lastSparseBitVectors.get(memoryLocation);
           assert lastSparseBitVector != null;
-          CIdExpression rightHandSide = innerEntry.getValue();
+          CIdExpression rightHandSide = reachableVariable.getValue();
           CExpressionAssignmentStatement update =
               SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  lastSparseBitVector.variable, rightHandSide);
+                  lastSparseBitVector.reachableVariable, rightHandSide);
           rUpdates.add(update);
         }
       }

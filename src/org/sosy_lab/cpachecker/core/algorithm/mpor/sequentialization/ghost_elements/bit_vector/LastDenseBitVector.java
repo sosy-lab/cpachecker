@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector;
 
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 public class LastDenseBitVector {
 
-  /** The bit vector for all reachable statements, relative to a location. */
   public final CIdExpression reachableVariable;
 
   LastDenseBitVector(CIdExpression pReachableVariable) {

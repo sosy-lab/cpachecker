@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -140,7 +139,7 @@ public class BitVectorBuilder {
     if (!pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
     }
-    Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
+    ImmutableSet.Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> directVariable =
           buildDenseBitVector(pOptions, thread, pAccessType, ReachType.DIRECT);

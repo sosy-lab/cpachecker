@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqBitVectorDeclarationBuilder {
@@ -242,7 +243,7 @@ public class SeqBitVectorDeclarationBuilder {
         SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(false);
         SeqBitVectorDeclaration declaration =
             new SeqBitVectorDeclaration(
-                BitVectorDataType.__UINT8_T, sparseBitVector.variable, initializer);
+                BitVectorDataType.__UINT8_T, sparseBitVector.reachableVariable, initializer);
         rDeclarations.add(declaration);
       }
     }
@@ -258,11 +259,11 @@ public class SeqBitVectorDeclarationBuilder {
 
     SeqBitVectorDeclaration directDeclaration =
         buildSparseBitVectorDeclaration(
-            pSparseBitVector.directVariables.get(pThread),
+            pSparseBitVector.getVariablesByReachType(ReachType.DIRECT).get(pThread),
             pDirectMemoryLocations.contains(pMemoryLocation));
     SeqBitVectorDeclaration reachableDeclaration =
         buildSparseBitVectorDeclaration(
-            pSparseBitVector.reachableVariables.get(pThread),
+            pSparseBitVector.getVariablesByReachType(ReachType.REACHABLE).get(pThread),
             pReachableMemoryLocations.contains(pMemoryLocation));
     return ImmutableList.<SeqBitVectorDeclaration>builder()
         .add(directDeclaration)

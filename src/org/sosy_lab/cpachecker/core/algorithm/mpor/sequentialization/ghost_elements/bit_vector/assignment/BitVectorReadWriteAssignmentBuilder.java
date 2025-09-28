@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorReadWriteAssignmentBuilder {
@@ -78,34 +79,38 @@ public class BitVectorReadWriteAssignmentBuilder {
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
       if (pOptions.kIgnoreZeroReduction) {
         rStatements.addAll(
-            BitVectorAssignmentUtil.buildSparseDirectBitVectorAssignmentsByAccessType(
+            BitVectorAssignmentUtil.buildSparseBitVectorAssignments(
                 pOptions,
                 pThread,
                 pBitVectorVariables,
                 pDirectReadMemoryLocations,
-                MemoryAccessType.READ));
+                MemoryAccessType.READ,
+                ReachType.DIRECT));
         rStatements.addAll(
-            BitVectorAssignmentUtil.buildSparseDirectBitVectorAssignmentsByAccessType(
+            BitVectorAssignmentUtil.buildSparseBitVectorAssignments(
                 pOptions,
                 pThread,
                 pBitVectorVariables,
                 pDirectWriteMemoryLocations,
-                MemoryAccessType.WRITE));
+                MemoryAccessType.WRITE,
+                ReachType.DIRECT));
       }
       rStatements.addAll(
-          BitVectorAssignmentUtil.buildSparseReachableBitVectorAssignmentsByAccessType(
+          BitVectorAssignmentUtil.buildSparseBitVectorAssignments(
               pOptions,
               pThread,
               pBitVectorVariables,
               pReachableAccessMemoryLocations,
-              MemoryAccessType.ACCESS));
+              MemoryAccessType.ACCESS,
+              ReachType.REACHABLE));
       rStatements.addAll(
-          BitVectorAssignmentUtil.buildSparseReachableBitVectorAssignmentsByAccessType(
+          BitVectorAssignmentUtil.buildSparseBitVectorAssignments(
               pOptions,
               pThread,
               pBitVectorVariables,
               pReachableWriteMemoryLocations,
-              MemoryAccessType.WRITE));
+              MemoryAccessType.WRITE,
+              ReachType.REACHABLE));
     } else {
       if (pOptions.kIgnoreZeroReduction) {
         rStatements.add(

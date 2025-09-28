@@ -492,14 +492,16 @@ class BitVectorReadWriteEvaluationBuilder {
     SparseBitVector sparseReadBitVector =
         Objects.requireNonNull(pBitVectorVariables.getSparseReadBitVectors().get(pMemoryLocation));
     SeqExpression activeReadVariable =
-        new CToSeqExpression(sparseReadBitVector.directVariables.get(pActiveThread));
+        new CToSeqExpression(
+            sparseReadBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread));
     SeqLogicalAndExpression leftHandSide =
         buildFullSparseSingleVariableLeftHandSide(activeReadVariable, pOtherWriteVariables);
 
     SparseBitVector sparseWriteBitVector =
         Objects.requireNonNull(pBitVectorVariables.getSparseWriteBitVectors().get(pMemoryLocation));
     SeqExpression activeWriteVariable =
-        new CToSeqExpression(sparseWriteBitVector.directVariables.get(pActiveThread));
+        new CToSeqExpression(
+            sparseWriteBitVector.getVariablesByReachType(ReachType.DIRECT).get(pActiveThread));
     SeqLogicalAndExpression rightHandSide =
         buildFullSparseSingleVariableRightHandSide(activeWriteVariable, pOtherAccessVariables);
 

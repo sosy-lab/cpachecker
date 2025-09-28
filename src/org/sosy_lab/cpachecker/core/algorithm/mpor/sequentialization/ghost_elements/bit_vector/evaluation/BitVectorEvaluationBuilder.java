@@ -201,7 +201,7 @@ public class BitVectorEvaluationBuilder {
         pBitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
     for (var entry : lastSparseBitVectors.entrySet()) {
       MemoryLocation memoryLocation = entry.getKey();
-      rMap.put(memoryLocation, new CToSeqExpression(entry.getValue().variable));
+      rMap.put(memoryLocation, new CToSeqExpression(entry.getValue().reachableVariable));
     }
     return rMap.build();
   }

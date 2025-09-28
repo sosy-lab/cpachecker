@@ -13,14 +13,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SparseBitVector {
 
   // TODO make optionals
-  public final ImmutableMap<MPORThread, CIdExpression> directVariables;
+  private final ImmutableMap<MPORThread, CIdExpression> directVariables;
 
-  public final ImmutableMap<MPORThread, CIdExpression> reachableVariables;
+  private final ImmutableMap<MPORThread, CIdExpression> reachableVariables;
 
   SparseBitVector(
       ImmutableMap<MPORThread, CIdExpression> pDirectVariables,
@@ -30,5 +31,12 @@ public class SparseBitVector {
     checkArgument(!pAccessType.equals(MemoryAccessType.NONE));
     directVariables = pDirectVariables;
     reachableVariables = pReachableVariables;
+  }
+
+  public ImmutableMap<MPORThread, CIdExpression> getVariablesByReachType(ReachType pReachType) {
+    return switch (pReachType) {
+      case DIRECT -> directVariables;
+      case REACHABLE -> reachableVariables;
+    };
   }
 }

@@ -206,7 +206,8 @@ class BitVectorAccessEvaluationBuilder {
     ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.getSparseAccessBitVectors().entrySet()) {
       SeqExpression directBitVector =
-          new CToSeqExpression(entry.getValue().directVariables.get(pActiveThread));
+          new CToSeqExpression(
+              entry.getValue().getVariablesByReachType(ReachType.DIRECT).get(pActiveThread));
       SeqLogicalAndExpression logicalAnd =
           buildSingleSparseLogicalAndExpression(
               sparseBitVectorMap, directBitVector, entry.getKey());
