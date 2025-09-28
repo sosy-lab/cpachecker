@@ -1745,7 +1745,103 @@ public class SymbolicProgramConfiguration {
     } else {
       checkArgument(root.getNextOffset().equals(restrictedOffset));
     }
-    return copyMemoryOfTo(root, newMemory, rootSPC, newSPC, mappingOfStates, excludedOffsets);
+
+    MergedSPCAndMapping res =
+        copyMemoryOfTo(root, newMemory, rootSPC, newSPC, mappingOfStates, excludedOffsets);
+
+    assert assertSafeCopyOfSubSMG(rootSPC, root, res, excludedOffsets, mappingOfStates);
+
+    return res;
+  }
+
+  private static boolean assertSafeCopyOfSubSMG(
+      SymbolicProgramConfiguration initialSPC,
+      SMGObject initialRoot,
+      MergedSPCAndMapping copyResult,
+      Map<SMGObject, Set<BigInteger>> excludedOffsets,
+      NodeMapping initialMapping) {
+    // Either first or last pointer need to be excluded!
+    checkArgument(!excludedOffsets.isEmpty());
+    // Explore sub-SMG and gather all connected memory and all pointers towards it that are not part
+    // of the sub-SMG. All pointers towards the sub-SMG that are not originating in the sub-SMG need
+    // to be in the mapping.
+    // Also, all found memory needs to be in the mapping!
+    NodeMapping resultMapping = copyResult.getMapping();
+    // SMG newSMG = copyResult.getMergedSPC().getSmg();
+    if (!(initialRoot instanceof SMGSinglyLinkedListSegment sllRootInTargetSPC)) {
+      // The root needs to be an S/DLL!
+      return false;
+    }
+    BigInteger nextOffset = sllRootInTargetSPC.getNextOffset();
+    Optional<BigInteger> maybePrevOffset = Optional.empty();
+    if (sllRootInTargetSPC instanceof SMGDoublyLinkedListSegment dllRootInTargetSPC) {
+      maybePrevOffset = Optional.of(dllRootInTargetSPC.getPrevOffset());
+    }
+
+    Set<SMGObject> objectsInSubSMG = new HashSet<>();
+    // Search the given obj without using the restricted offsets
+    for (SMGHasValueEdge hve :
+        initialSPC
+            .getSmg()
+            .getSMGObjectsWithSMGHasValueEdges()
+            .getOrDefault(initialRoot, PersistentSet.of())) {
+      if (!excludedOffsets.getOrDefault(initialRoot, ImmutableSet.of()).contains(hve.getOffset())
+          && initialSPC.getSmg().isPointer(hve.hasValue())) {
+        SMGObject targetOfPtr =
+            initialSPC.getSmg().getPTEdge(hve.hasValue()).orElseThrow().pointsTo();
+        if (hve.getOffset().equals(nextOffset)
+            || (maybePrevOffset.isPresent()
+                && maybePrevOffset.orElseThrow().equals(hve.getOffset()))) {
+          // Next or prev, one has to be already excluded per definition.
+          // The other could theoretically be part of the sub-SMG, but we don't explore already
+          // mapped parts.
+          // It HAS to be in the final mapping!
+          checkState(
+              resultMapping.hasMapping(hve.hasValue()) && resultMapping.hasMapping(targetOfPtr));
+
+          // To be safe, we expect the pointer the be part of the mapping for now, but this strictly
+          // does NOT need to hold! But we should investigate the consequences in the merge
+          // algorithm, as this copies the rest of the list as well.
+          checkState(
+              initialMapping.hasMapping(hve.hasValue()) || initialMapping.hasMapping(targetOfPtr));
+          // The precondition directly above makes sure that this is obj is never added for now.
+          if (!initialMapping.hasMapping(hve.hasValue())
+              && !initialMapping.hasMapping(targetOfPtr)) {
+            objectsInSubSMG.add(targetOfPtr);
+          }
+
+        } else {
+          objectsInSubSMG.add(targetOfPtr);
+        }
+      }
+    }
+
+    // Now gather all nested memory
+    Set<SMGObject> newlyFoundObjs = objectsInSubSMG;
+    Set<SMGObject> sourceObjsOfPointersIntoSubSMG = new HashSet<>();
+    int sizeOfObjectsBeforeUpdate = 0;
+    while (sizeOfObjectsBeforeUpdate < objectsInSubSMG.size()) {
+      sizeOfObjectsBeforeUpdate = objectsInSubSMG.size();
+      Set<SMGObject> nestedObjsFound = new HashSet<>();
+      for (SMGObject objToSearchThrough : newlyFoundObjs) {
+        nestedObjsFound.addAll(initialSPC.getSmg().getTargetsForPointersIn(objToSearchThrough));
+        sourceObjsOfPointersIntoSubSMG.addAll(
+            initialSPC.getSmg().getAllSourcesForPointersPointingTowards(objToSearchThrough));
+      }
+      newlyFoundObjs = nestedObjsFound;
+      objectsInSubSMG.addAll(newlyFoundObjs);
+    }
+
+    // Assert that all found objects are mapped in the result
+    for (SMGObject objInSubSMG : objectsInSubSMG) {
+      checkState(resultMapping.hasMapping(objInSubSMG));
+    }
+
+    // Assert that there is no outside pointers in the copied portion
+    // TODO: This is not correct, as it ignores already mapped sources and objects currently!
+    assert objectsInSubSMG.containsAll(sourceObjsOfPointersIntoSubSMG);
+
+    return true;
   }
 
   /**
