@@ -106,35 +106,22 @@ class Benchmark(VcloudBenchmarkBase):
         If valid, retrieves the latest commit hash.
         """
         try:
-            result = subprocess.run(
+            uncommited_changes_check = subprocess.run(
                 ["git", "status", "--porcelain", "--untracked-files=no"],
                 cwd=_ROOT_DIR,
                 text=True,
                 capture_output=True,
             )
-            if result.returncode != 0:
-                sys.exit(
-                    f"Error: Failed to check the Git status of the repository. "
-                    f"Git output:\n{result.stderr}"
-                )
-            if result.stdout.strip():
-                sys.exit(
-                    "Error: Only revisions in the CPAchecker repository are supported when "
+            if uncommited_changes_check.returncode != 0:
+                logging.error("Failed to check the Git status of the repository.")
+                sys.exit(f"Git output:\n{uncommited_changes_check.stderr}")
+            if uncommited_changes_check.stdout.strip():
+                logging.error(
+                    "Only revisions in the CPAchecker repository are supported when "
                     "benchmarking CPAchecker remotely via Benchcloud. "
                     "Please explicitly pass --revision to specify the revision you want to benchmark or commit and push your changes."
                 )
-
-            branch_result = subprocess.run(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                cwd=_ROOT_DIR,
-                text=True,
-                capture_output=True,
-            )
-            if branch_result.returncode != 0:
-                sys.exit(
-                    f"Error: Failed to determine the current Git branch. "
-                    f"Git output:\n{branch_result.stderr}"
-                )
+                sys.exit()
 
             upstream_check = subprocess.run(
                 ["git", "rev-parse", "HEAD", "HEAD@{u}"],
@@ -144,18 +131,14 @@ class Benchmark(VcloudBenchmarkBase):
             )
 
             if upstream_check.returncode != 0:
-                logging.warning(
-                    "Warning: No upstream branch configured for the current branch. "
-                    "Benchmarking will proceed using the current revision hash, "
-                    "but ensure this revision is accessible in the CPAchecker repository."
-                )
+                logging.warning("No upstream branch configured for the current branch.")
             else:
                 local_commit, upstream_commit = (
                     upstream_check.stdout.strip().splitlines()
                 )
                 if local_commit != upstream_commit:
                     logging.warning(
-                        "Warning: Current branch and upstream branch differ. "
+                        "Current branch and upstream branch differ. "
                         "Benchmarking won't work if the local revision has not been pushed to the CPAchecker repository."
                     )
 
