@@ -130,7 +130,11 @@ class Benchmark(VcloudBenchmarkBase):
             )
 
             if upstream_check.returncode != 0:
-                logging.warning("No upstream branch configured for the current branch.")
+                logging.warning(
+                    "No upstream branch configured for the current branch."
+                    "Benchmarking will proceed using the local revision hash, "
+                    "but it will fail if this revision is not accessible in the CPAchecker repository."
+                )
             else:
                 local_commit, upstream_commit = (
                     upstream_check.stdout.strip().splitlines()
