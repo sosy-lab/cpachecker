@@ -137,6 +137,37 @@ public class NodeMapping {
   }
 
   /**
+   * For usage when copying a sub-SMG. Special version that assumes that 1. vNew is not yet added to
+   * the new SPC, but will be and 2. if vOld is a pointer, vNew is not a pointer yet, but will be
+   * the same pointer as old by the end of copy sub-SMG.
+   */
+  public NodeMapping copyAndAddMappingInCopySubSMG(
+      SMGValue vOld,
+      SymbolicProgramConfiguration spcOld,
+      SMGValue vNew,
+      SymbolicProgramConfiguration spcNew) {
+    checkNotNull(vOld);
+    checkNotNull(vNew);
+    checkNotNull(spcOld);
+    checkNotNull(spcNew);
+    checkArgument(spcOld.getSmg().hasValue(vOld));
+    checkArgument(spcOld.getValueFromSMGValue(vOld).isPresent());
+    checkArgument(!hasMapping(vOld));
+
+    if (spcOld.getSmg().isPointer(vOld)) {
+      if (spcNew.getSmg().isPointer(vNew)) {
+        return copyAndAddMapping(vOld, spcOld, vNew, spcNew);
+      }
+
+      SMGPointsToEdge oldPTE = spcOld.getSmg().getPTEdge(vOld).orElseThrow();
+      return copyAndAddMapping(vOld, vNew, oldPTE.targetSpecifier());
+    }
+
+    checkArgument(!spcNew.getSmg().isPointer(vNew));
+    return copyAndAddMapping(vOld, vNew, IS_REGION);
+  }
+
+  /**
    * Maps the values vOld -> vNew for target spec of vNew. Automatically retrieves and sanity checks
    * both values in their SPC/SMG and retrieves the target spec from vNew in spcNew.
    */
