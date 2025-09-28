@@ -1831,12 +1831,14 @@ public class SymbolicProgramConfiguration {
       newlyFoundObjs = nestedObjsFound;
       objectsInSubSMG.addAll(newlyFoundObjs);
     }
+    // 0 should never be part of the objects and root is always a part of them
+    objectsInSubSMG.remove(SMGObject.nullInstance());
+    sourceObjsOfPointersIntoSubSMG.remove(SMGObject.nullInstance());
+    objectsInSubSMG.add(initialRoot);
 
     // Assert that all found objects are mapped in the result
     for (SMGObject objInSubSMG : objectsInSubSMG) {
-      if (!objInSubSMG.isZero()) {
-        checkState(resultMapping.hasMapping(objInSubSMG));
-      }
+      checkState(resultMapping.hasMapping(objInSubSMG));
     }
 
     // Assert that there is no outside pointers in the copied portion
