@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -347,7 +348,8 @@ public final class MPORUtil {
     CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
     CType type = getTypeByIdExpression(idExpression);
     return new AbstractMap.SimpleEntry<>(
-        idExpression.getDeclaration(), getFieldMemberByFieldReference(pFieldReference, type));
+        idExpression.getDeclaration(),
+        recursivelyFindFieldMemberByFieldOwner(pFieldReference, type));
   }
 
   /**
@@ -357,6 +359,12 @@ public final class MPORUtil {
   public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference) {
     if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
       return idExpression;
+    }
+    if (pFieldReference.getFieldOwner()
+        instanceof CArraySubscriptExpression arraySubscriptExpression) {
+      if (arraySubscriptExpression.getArrayExpression() instanceof CIdExpression idExpression) {
+        return idExpression;
+      }
     }
     if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
       return recursivelyFindFieldOwner(fieldReference);
@@ -375,9 +383,12 @@ public final class MPORUtil {
    * Extracts the {@link CCompositeTypeMemberDeclaration} of the field member accessed in {@code
    * pFieldReference}, e.g. {@code member} in {@code owner->member}.
    */
-  public static CCompositeTypeMemberDeclaration getFieldMemberByFieldReference(
-      CFieldReference pFieldReference, CType pType) {
+  public static CCompositeTypeMemberDeclaration recursivelyFindFieldMemberByFieldOwner(
+      final CFieldReference pFieldReference, CType pType) {
 
+    if (pType instanceof CPointerType pointerType) {
+      return recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
+    }
     if (pType instanceof CElaboratedType elaboratedType) {
       // composite type contains the composite type members, e.g. 'amount'
       if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
@@ -391,10 +402,10 @@ public final class MPORUtil {
     if (pType instanceof CTypedefType typedefType) {
       // elaborated type is e.g. struct __anon_type_QType
       if (typedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-        return getFieldMemberByFieldReference(pFieldReference, elaboratedType);
+        return recursivelyFindFieldMemberByFieldOwner(pFieldReference, elaboratedType);
       }
       if (typedefType.getRealType() instanceof CTypedefType innerTypedefType) {
-        return getFieldMemberByFieldReference(pFieldReference, innerTypedefType);
+        return recursivelyFindFieldMemberByFieldOwner(pFieldReference, innerTypedefType);
       }
     }
     throw new IllegalArgumentException("field owner type must be CTypedefType");

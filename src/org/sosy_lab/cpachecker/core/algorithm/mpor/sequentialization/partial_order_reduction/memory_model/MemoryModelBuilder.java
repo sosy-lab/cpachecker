@@ -494,7 +494,7 @@ public class MemoryModelBuilder {
 
     CIdExpression fieldOwner = MPORUtil.recursivelyFindFieldOwner(pFieldReference);
     CCompositeTypeMemberDeclaration fieldMember =
-        MPORUtil.getFieldMemberByFieldReference(
+        MPORUtil.recursivelyFindFieldMemberByFieldOwner(
             pFieldReference, pFieldReference.getFieldOwner().getExpressionType());
     return getMemoryLocationByFieldReference(
         pOptions, pCallContext, fieldOwner.getDeclaration(), fieldMember, pInitialMemoryLocations);

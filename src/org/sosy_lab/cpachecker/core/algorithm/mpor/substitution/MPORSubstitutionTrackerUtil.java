@@ -271,7 +271,7 @@ public class MPORSubstitutionTrackerUtil {
       CSimpleDeclaration fieldOwner =
           MPORUtil.recursivelyFindFieldOwner(pFieldReference).getDeclaration();
       CCompositeTypeMemberDeclaration fieldMember =
-          MPORUtil.getFieldMemberByFieldReference(pFieldReference, pointerType.getType());
+          MPORUtil.recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
       if (pIsWrite) {
         pTracker.orElseThrow().addWrittenFieldReferencePointerDereference(fieldOwner, fieldMember);
       }
