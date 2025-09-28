@@ -345,10 +345,9 @@ public final class MPORUtil {
       CFieldReference pFieldReference) {
 
     CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
-    CTypedefType typedefType = getTypedefTypeByIdExpression(idExpression);
+    CType type = getTypeByIdExpression(idExpression);
     return new AbstractMap.SimpleEntry<>(
-        idExpression.getDeclaration(),
-        getFieldMemberByFieldReference(pFieldReference, typedefType));
+        idExpression.getDeclaration(), getFieldMemberByFieldReference(pFieldReference, type));
   }
 
   /**
@@ -365,16 +364,11 @@ public final class MPORUtil {
     throw new IllegalArgumentException("could not find CIdExpression field owner");
   }
 
-  private static CTypedefType getTypedefTypeByIdExpression(CIdExpression pIdExpression) {
-    if (pIdExpression.getExpressionType() instanceof CTypedefType typedefType) {
-      return typedefType;
-    }
+  private static CType getTypeByIdExpression(CIdExpression pIdExpression) {
     if (pIdExpression.getExpressionType() instanceof CPointerType pointerType) {
-      if (pointerType.getType() instanceof CTypedefType typedefType) {
-        return typedefType;
-      }
+      return pointerType.getType();
     }
-    throw new IllegalArgumentException("could not extract CTypedefType from pIdExpression");
+    return pIdExpression.getExpressionType();
   }
 
   /**
