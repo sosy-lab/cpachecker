@@ -22,15 +22,20 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -47,7 +52,7 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
 
   /**
    * Create an automaton from a correctness witness. This automaton contains a single node and each
-   * invariant is marked as such on a edge which matches starts at that single state and returns to
+   * invariant is marked as such on an edge which matches starts at that single state and returns to
    * it. Each transition is only passed if the locations match.
    *
    * @param entries the entries of the correctness witness
@@ -67,6 +72,9 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
 
     SetMultimap<Pair<Integer, Integer>, Pair<String, String>> lineToSeenInvariants =
         HashMultimap.create();
+
+    CBinaryExpressionBuilder cBinaryExpressionBuilder =
+        new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
 
     for (AbstractEntry entry : entries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
@@ -95,6 +103,23 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
               continue;
             }
 
+            CExpression invariantAsCExpression;
+            CExpression negatedInvariantAsCExpression;
+            try {
+              invariantAsCExpression =
+                  invariant.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+              negatedInvariantAsCExpression =
+                  cBinaryExpressionBuilder.negateExpressionAndSimplify(invariantAsCExpression);
+            } catch (UnrecognizedCodeException e) {
+              throw new WitnessParseException(
+                  "The invariant could not be parsed to a C expression: "
+                      + invariantString.substring(0, 100),
+                  e);
+            }
+
+            // Initialize the check which determines when the invariant will be evaluated.
+            AutomatonBoolExpr passTransitionWhenCheckSucceeds;
+
             if (invariantType.equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())) {
               Optional<IterationElement> optionalIterationStructure =
                   astCfaRelation.getIterationStructureStartingAtColumn(column, line);
@@ -106,21 +131,34 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
                 continue;
               }
 
-              transitions.add(
-                  new AutomatonTransition.Builder(
-                          new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow())),
-                          entryStateId)
-                      .withCandidateInvariants(invariant)
-                      .build());
+              passTransitionWhenCheckSucceeds =
+                  new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow()));
+
             } else if (invariantType.equals(InvariantRecordType.LOCATION_INVARIANT.getKeyword())) {
-              transitions.add(
-                  new AutomatonTransition.Builder(
-                          new CheckCoversColumnAndLine(column, line), entryStateId)
-                      .withCandidateInvariants(invariant)
-                      .build());
+
+              passTransitionWhenCheckSucceeds = new CheckCoversColumnAndLine(column, line);
             } else {
               throw new WitnessParseException(
                   "The witness contained other statements than Loop and Location Invariants!");
+            }
+
+            // Add the transition for where we already know that the invariant is valid at this
+            // location
+            transitions.add(
+                new AutomatonTransition.Builder(passTransitionWhenCheckSucceeds, entryStateId)
+                    .withCandidateInvariants(invariant)
+                    .withAssumptions(ImmutableList.of(invariantAsCExpression))
+                    .build());
+
+            if (checkInvariantsHoldForEveryPath) {
+              // Add a transition which checks if the invariant holds at this location and goes to
+              // an error state if it does not
+              transitions.add(
+                  new AutomatonTransition.Builder(
+                          passTransitionWhenCheckSucceeds, AutomatonInternalState.ERROR)
+                      .withTargetInformation(new StringExpression("invalid invariant"))
+                      .withAssumptions(ImmutableList.of(negatedInvariantAsCExpression))
+                      .build());
             }
           }
         }
@@ -133,7 +171,8 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
 
     List<AutomatonInternalState> automatonStates =
         ImmutableList.of(
-            new AutomatonInternalState(entryStateId, transitions.build(), false, false, true));
+            new AutomatonInternalState(entryStateId, transitions.build(), false, true, true),
+            AutomatonInternalState.ERROR);
 
     Automaton automaton;
     try {

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.slicing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.TreeMultimap;
 import java.util.List;
@@ -142,10 +141,11 @@ final class SliceToCfaConversion {
         return relevantFunctionDeclaration;
       }
 
-      if (cfaNode instanceof CFunctionEntryNode && astNode instanceof CVariableDeclaration) {
+      if (cfaNode instanceof CFunctionEntryNode cFunctionEntryNode
+          && astNode instanceof CVariableDeclaration) {
 
         if (relevantFunctionDeclaration.getType().getReturnType() != CVoidType.VOID) {
-          return ((CFunctionEntryNode) cfaNode).getReturnVariable().orElseThrow();
+          return cFunctionEntryNode.getReturnVariable().orElseThrow();
         }
 
         // return type of function is void, so no return variable exists
@@ -195,8 +195,8 @@ final class SliceToCfaConversion {
       String functionName = node.getFunction().getQualifiedName();
       allNodes.put(functionName, node);
 
-      if (node instanceof FunctionEntryNode) {
-        functionEntryNodes.put(functionName, (FunctionEntryNode) node);
+      if (node instanceof FunctionEntryNode functionEntryNode) {
+        functionEntryNodes.put(functionName, functionEntryNode);
       }
     }
 
@@ -326,7 +326,7 @@ final class SliceToCfaConversion {
       boolean relevantTakesVarargs =
           functionType.takesVarArgs()
               && !parameters.isEmpty()
-              && relevantDeclarations.contains(Iterables.getLast(parameters));
+              && relevantDeclarations.contains(parameters.getLast());
 
       CFunctionType relevantFunctionType =
           new CFunctionTypeWithNames(relevantReturnType, relevantParameters, relevantTakesVarargs);
@@ -403,8 +403,7 @@ final class SliceToCfaConversion {
         CExpression argument = arguments.get(index);
 
         // varargs can lead to more arguments than parameters
-        if (index >= parameters.size()
-            && relevantDeclarations.contains(Iterables.getLast(parameters))) {
+        if (index >= parameters.size() && relevantDeclarations.contains(parameters.getLast())) {
 
           assert functionDeclaration.getType().takesVarArgs();
 

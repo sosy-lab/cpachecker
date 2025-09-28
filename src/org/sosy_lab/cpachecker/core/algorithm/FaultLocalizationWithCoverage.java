@@ -172,15 +172,14 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
       case TARANTULA -> new Tarantula();
       case DSTAR -> new DStar();
       case OCHIAI -> new Ochiai();
-      default -> throw new AssertionError("Unexpected ranking-algorithm type: " + pAlgorithmType);
     };
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
-    if (algorithm instanceof Statistics) {
-      statsCollection.add((Statistics) algorithm);
+    if (algorithm instanceof Statistics statistics) {
+      statsCollection.add(statistics);
     }
   }
 

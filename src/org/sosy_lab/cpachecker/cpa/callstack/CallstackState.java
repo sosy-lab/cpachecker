@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
@@ -32,7 +31,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
  * <p>Note that whenever a new state is created, this represents a new, unique, entry of a function.
  * Two separate entries of the same function are not considered equal, even if the function names
  * and call nodes of the two callstacks match. Cf. {@link
- * CallstackTest#testCallstackPreventsUndesiredCoverage()} for an example. (Because of this this
+ * CallstackTest#testCallstackPreventsUndesiredCoverage()} for an example. (Because of this, this
  * class must inherit the identity-based {@link #equals(Object)} and {@link #hashCode()} from
  * Object.)
  */
@@ -86,7 +85,7 @@ public class CallstackState
       stack.add(state.getCurrentFunction());
       state = state.getPreviousState();
     }
-    return Lists.reverse(stack);
+    return stack.reversed();
   }
 
   @Override

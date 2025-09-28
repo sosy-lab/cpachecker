@@ -125,8 +125,8 @@ public final class AbstractionManager {
       BooleanFormula symbVar =
           fmgr.createPredicateVariable("PRED" + numberOfPredicates.getFreshId());
       Region absVar =
-          (rmgr instanceof SymbolicRegionManager)
-              ? ((SymbolicRegionManager) rmgr).createPredicate(atom)
+          (rmgr instanceof SymbolicRegionManager symbolicRegionManager)
+              ? symbolicRegionManager.createPredicate(atom)
               : rmgr.createPredicate();
 
       logger.log(
@@ -182,9 +182,9 @@ public final class AbstractionManager {
    * @return An uninstantiated BooleanFormula.
    */
   public BooleanFormula convertRegionToFormula(Region af) {
-    if (rmgr instanceof SymbolicRegionManager) {
+    if (rmgr instanceof SymbolicRegionManager symbolicRegionManager) {
       // optimization shortcut
-      return ((SymbolicRegionManager) rmgr).toFormula(af);
+      return symbolicRegionManager.toFormula(af);
     }
 
     Map<Region, BooleanFormula> cache;
@@ -277,7 +277,7 @@ public final class AbstractionManager {
    *
    * @param f1 an AbstractFormula
    * @param f2 an AbstractFormula
-   * @return true if (f1 => f2), false otherwise
+   * @return whether (f1 => f2)
    */
   public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException {
     return rmgr.entails(f1, f2);
@@ -290,7 +290,7 @@ public final class AbstractionManager {
    * be fixed either, because when using symbolic regions we do not know what are the predicates (a
    * predicate does not need to be an SMT atom, it can be larger).
    *
-   * <p>Thus better avoid using this method if possible.
+   * <p>Thus, better avoid using this method if possible.
    */
   public Set<AbstractionPredicate> extractPredicates(Region af) {
     Set<AbstractionPredicate> vars = new HashSet<>();

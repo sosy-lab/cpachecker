@@ -26,7 +26,7 @@ public sealed interface ACSLAnnotation
   /**
    * Returns a predicate representation of the completeness clauses of the annotation.
    *
-   * <p>The returned predicate should be logically equivalent to true if all of the completeness
+   * <p>The returned predicate should be logically equivalent to true if all the completeness
    * clauses are fulfilled.
    */
   ACSLPredicate getCompletenessPredicate();

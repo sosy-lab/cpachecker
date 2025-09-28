@@ -1421,7 +1421,7 @@ public class PdrAlgorithm implements Algorithm {
     private final Map<SymbolicCandiateInvariant, BlockedCounterexampleToInductivity>
         spuriousAbstractions = new HashMap<>();
 
-    public DetectingLiftingAbstractionFailureStrategy(boolean pEager) {
+    DetectingLiftingAbstractionFailureStrategy(boolean pEager) {
       eager = pEager;
     }
 

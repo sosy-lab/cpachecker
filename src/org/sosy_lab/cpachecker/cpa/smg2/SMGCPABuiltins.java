@@ -10,15 +10,15 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -103,8 +103,8 @@ public class SMGCPABuiltins {
 
   // TODO: Properly model printf (dereferences and stuff)
   // TODO: General modelling system for functions which do not modify state?
-  private final Set<String> BUILTINS =
-      Sets.newHashSet(
+  private static final ImmutableSet<String> BUILTINS =
+      ImmutableSet.of(
           "__VERIFIER_BUILTIN_PLOT",
           "memcpy",
           "memcmp",
@@ -119,7 +119,8 @@ public class SMGCPABuiltins {
           "__builtin_va_end",
           "__builtin_va_copy",
           "atexit",
-          "__CPACHECKER_atexit_next");
+          "__CPACHECKER_atexit_next",
+          "fgets");
 
   /**
    * Returns true if the functionName equals a built in function handleable by this class. This
@@ -184,7 +185,7 @@ public class SMGCPABuiltins {
 
   /**
    * Routes to the correct function call. Only handles built in functions. If no such function is
-   * found this returns a unknown value.
+   * found this returns an unknown value.
    *
    * @param pFunctionCall {@link CFunctionCallExpression} that has been checked for all other known
    *     functions (math functions etc.) and only unknown and builtin functions for isABuiltIn() ==
@@ -231,56 +232,53 @@ public class SMGCPABuiltins {
       throws CPATransferException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
-      return evaluateExternalAllocation(cFCExpression, pState);
+      return evaluateExternalAllocationFunction(cFCExpression, pState, calledFunctionName);
     }
 
-    switch (calledFunctionName) {
-      case "alloca":
-      case "__builtin_alloca":
-        return evaluateAlloca(cFCExpression, pState, pCfaEdge);
+    return switch (calledFunctionName) {
+      case "alloca", "__builtin_alloca" -> evaluateAlloca(cFCExpression, pState, pCfaEdge);
 
-      case "memset":
-        return evaluateMemset(cFCExpression, pState, pCfaEdge);
+      case "memset" -> evaluateMemset(cFCExpression, pState, pCfaEdge);
 
-      case "memcpy":
-        return evaluateMemcpy(cFCExpression, pState, pCfaEdge);
+      case "memcpy" -> evaluateMemcpy(cFCExpression, pState, pCfaEdge);
 
-      case "memcmp":
-        return evaluateMemcmp(cFCExpression, pState, pCfaEdge);
+      case "memcmp" -> evaluateMemcmp(cFCExpression, pState, pCfaEdge);
 
-      case "strcmp":
-        return evaluateStrcmp(cFCExpression, pState, pCfaEdge);
+      case "strcmp" -> evaluateStrcmp(cFCExpression, pState, pCfaEdge);
 
-      case "__VERIFIER_BUILTIN_PLOT":
+      case "__VERIFIER_BUILTIN_PLOT" -> {
         evaluateVBPlot(cFCExpression, pState);
-      // $FALL-THROUGH$
-      case "printf":
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      }
+
+      case "printf" -> {
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
         logger.log(
             Level.FINE, "Returned unknown value due to call to printf function in " + pCfaEdge);
-        return Collections3.transformedImmutableListCopy(
+        yield Collections3.transformedImmutableListCopy(
             checkedStates, ValueAndSMGState::ofUnknownValue);
+      }
 
-      case "realloc":
-        return evaluateRealloc(cFCExpression, pState, pCfaEdge);
+      case "realloc" -> evaluateRealloc(cFCExpression, pState, pCfaEdge);
 
-      case "__builtin_va_start":
-        return evaluateVaStart(cFCExpression, pCfaEdge, pState);
-      case "__builtin_va_arg":
-        return evaluateVaArg(cFCExpression, pCfaEdge, pState);
-      case "__builtin_va_copy":
-        return evaluateVaCopy(cFCExpression, pCfaEdge, pState);
-      case "__builtin_va_end":
-        return evaluateVaEnd(cFCExpression, pCfaEdge, pState);
-      case "atexit":
-        return evaluateAtExit(cFCExpression, pCfaEdge, pState);
-      case "__CPACHECKER_atexit_next":
-        return evaluateAtExitNext(pState);
+      case "__builtin_va_start" -> evaluateVaStart(cFCExpression, pCfaEdge, pState);
 
-      default:
+      case "__builtin_va_arg" -> evaluateVaArg(cFCExpression, pCfaEdge, pState);
+
+      case "__builtin_va_copy" -> evaluateVaCopy(cFCExpression, pCfaEdge, pState);
+
+      case "__builtin_va_end" -> evaluateVaEnd(cFCExpression, pCfaEdge, pState);
+
+      case "atexit" -> evaluateAtExit(cFCExpression, pCfaEdge, pState);
+
+      case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(pState);
+
+      case "fgets" -> evaluateFGets(cFCExpression, pCfaEdge, pState, calledFunctionName);
+
+      default -> {
         if (isNondetBuiltin(calledFunctionName)) {
-          return Collections.singletonList(
+          yield Collections.singletonList(
               ValueAndSMGState.ofUnknownValue(
                   pState,
                   "Returned unknown value due to call to nondeterministic havoc function as defined"
@@ -290,7 +288,71 @@ public class SMGCPABuiltins {
           throw new UnsupportedOperationException(
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
+      }
+    };
+  }
+
+  private List<ValueAndSMGState> evaluateFGets(
+      CFunctionCallExpression pCFCExpression,
+      CFAEdge pCfaEdge,
+      SMGState pState,
+      String calledFunctionName)
+      throws CPATransferException {
+
+    if (pCFCExpression.getParameterExpressions().size() != 3) {
+      throw new UnrecognizedCodeException(
+          pCFCExpression.getFunctionNameExpression().toASTString() + " needs 3 argument.",
+          pCfaEdge,
+          pCFCExpression);
     }
+
+    /*
+     * C def:
+     * char *fgets(char *str, int n, FILE *stream);
+     * char *str: A pointer to an array of characters where the read string will be stored.
+     *   This array should be large enough to hold the string, including the terminating null
+     *   character.
+     * int n: The maximum number of characters to read, including the terminating null character.
+     *   fgets will read up to n-1 characters, leaving room for the null character.
+     * FILE *stream: A pointer to a FILE object that specifies the input stream to read from.
+     *   This can be a file pointer obtained from functions like fopen, or it can be stdin for
+     *   standard input.
+     * return: fgets returns the same pointer str that was passed in, which now contains the string
+     *   that was read. If an error occurs, or if end-of-file is reached and no characters were
+     *   read, fgets returns NULL.
+     */
+
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    // Check valid inputs
+    for (SMGState checkedState :
+        checkAllParametersForValidity(pState, pCfaEdge, pCFCExpression, calledFunctionName)) {
+
+      // Copy is not possible of course, so we simply set the memory region to unknown (no edge)
+      for (ValueAndSMGState argumentStrAndState :
+          pCFCExpression
+              .getParameterExpressions()
+              .getFirst()
+              .accept(new SMGCPAValueVisitor(evaluator, checkedState, pCfaEdge, logger, options))) {
+        Value argStr = argumentStrAndState.getValue();
+        // TODO: Model errors etc.
+        resultBuilder.add(ValueAndSMGState.of(argStr, argumentStrAndState.getState()));
+        /*
+        for (ValueAndSMGState argumentNAndState :
+            pCFCExpression.getParameterExpressions().get(1).accept(new SMGCPAValueVisitor(evaluator, argumentStrAndState.getState(), pCfaEdge, logger, options))) {
+          Value argN = argumentNAndState.getValue();
+
+          for (ValueAndSMGState argumentStreamAndState :
+              pCFCExpression.getParameterExpressions().get(2).accept(new SMGCPAValueVisitor(evaluator, argumentNAndState.getState(), pCfaEdge, logger, options))) {
+
+            SMGState state = argumentStreamAndState.getState();
+            Value argStream = argumentStreamAndState.getValue();
+
+            // TODO:
+            resultBuilder.add();
+          }}*/
+      }
+    }
+    return resultBuilder.build();
   }
 
   /*
@@ -310,7 +372,7 @@ public class SMGCPABuiltins {
 
   private CExpression evaluateCFunctionCallToFirstParameterForVA(
       CFunctionCallExpression cFCExpression) {
-    CExpression firstArg = cFCExpression.getParameterExpressions().get(0);
+    CExpression firstArg = cFCExpression.getParameterExpressions().getFirst();
     while (firstArg instanceof CCastExpression) {
       firstArg = ((CCastExpression) firstArg).getOperand();
     }
@@ -330,7 +392,7 @@ public class SMGCPABuiltins {
       throws CPATransferException {
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the destination
-    CExpression destArg = cFCExpression.getParameterExpressions().get(0);
+    CExpression destArg = cFCExpression.getParameterExpressions().getFirst();
     Preconditions.checkArgument(destArg instanceof CIdExpression);
     CIdExpression destIdArg = (CIdExpression) destArg;
     // The second argument is the source
@@ -349,7 +411,7 @@ public class SMGCPABuiltins {
             sizeInBits,
             SMGCPAExpressionEvaluator.getCanonicalType(srcIdArg));
     Preconditions.checkArgument(addressesAndStates.size() == 1);
-    ValueAndSMGState addressAndState = addressesAndStates.get(0);
+    ValueAndSMGState addressAndState = addressesAndStates.getFirst();
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
       // Critical error, should never happen
@@ -409,10 +471,7 @@ public class SMGCPABuiltins {
     CExpression secondArg = cFCExpression.getParameterExpressions().get(1);
     StackFrame currentStack = pState.getMemoryModel().getStackFrames().peek();
     CParameterDeclaration paramDecl =
-        currentStack
-            .getFunctionDefinition()
-            .getParameters()
-            .get(currentStack.getFunctionDefinition().getParameters().size() - 1);
+        currentStack.getFunctionDefinition().getParameters().getLast();
     if (!paramDecl.getType().equals(secondArg.getExpressionType())) {
       // Log warning (gcc only throws a warning and it works anyway)
       logger.logf(
@@ -465,7 +524,7 @@ public class SMGCPABuiltins {
               cfaEdge);
       // Unlikely that someone throws an abstracted list into a var args
       Preconditions.checkArgument(writtenStates.size() == 1);
-      currentState = writtenStates.get(0);
+      currentState = writtenStates.getFirst();
       offset = offset.add(sizeInBitsVarArg);
     }
 
@@ -481,7 +540,7 @@ public class SMGCPABuiltins {
     // Get the CExpression for the first argument
     List<CExpression> argsExpr = cFCExpression.getParameterExpressions();
     Preconditions.checkArgument(argsExpr.size() == 1);
-    CExpression fpExpr = argsExpr.get(0);
+    CExpression fpExpr = argsExpr.getFirst();
 
     // Evaluate the expression
     SMGCPAValueVisitor valueVisitor =
@@ -490,8 +549,8 @@ public class SMGCPABuiltins {
     Preconditions.checkArgument(evalStates.size() == 1);
 
     // Get the value for the expression and the new state
-    Value atExitAddressValue = evalStates.get(0).getValue();
-    SMGState newState = evalStates.get(0).getState();
+    Value atExitAddressValue = evalStates.getFirst().getValue();
+    SMGState newState = evalStates.getFirst().getState();
 
     if (atExitAddressValue instanceof AddressExpression pAddressExpression) {
       Preconditions.checkArgument(
@@ -590,7 +649,7 @@ public class SMGCPABuiltins {
               List<SMGStateAndOptionalSMGObjectAndOffset> deref =
                   currentState.dereferencePointer(address);
               Preconditions.checkArgument(deref.size() == 1);
-              SMGStateAndOptionalSMGObjectAndOffset targetAndState = deref.get(0);
+              SMGStateAndOptionalSMGObjectAndOffset targetAndState = deref.getFirst();
               currentState = targetAndState.getSMGState();
               if (targetAndState.hasSMGObjectAndOffset()) {
                 SMGObject derefedObj = targetAndState.getSMGObject();
@@ -626,34 +685,44 @@ public class SMGCPABuiltins {
     if (calledFunctionName.contains("pthread")) {
       throw new SMGException("Concurrency analysis not supported in this configuration.");
     }
-    switch (options.getHandleUnknownFunctions()) {
-      case STRICT:
+    return switch (options.getHandleUnknownFunctions()) {
+      case STRICT -> {
         if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe. See the"
                       + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
-                  calledFunctionName));
+                  cFCExpression));
         }
-      // fallthrough for safe functions
-      // $FALL-THROUGH$
-      case ASSUME_SAFE:
-      case ASSUME_EXTERNAL_ALLOCATED:
-        List<SMGState> checkedStates =
-            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
         logger.log(
             Level.FINE,
-            "Returned unknown value for unknown function that is "
-                + options.getHandleUnknownFunctions()
-                + " allocated in ",
+            "Returned unknown value for strict handling of unknown functions, but flagged as safe"
+                + " unknown function: "
+                + cFCExpression,
             pCfaEdge);
-        return Collections3.transformedImmutableListCopy(
-            checkedStates, ValueAndSMGState::ofUnknownValue);
-      default:
-        throw new UnsupportedOperationException(
-            "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
-                + options.getHandleUnknownFunctions());
-    }
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      }
+      case ASSUME_SAFE -> {
+        logger.log(
+            Level.FINE,
+            "Returned unknown value for assumed to be safe unknown function " + cFCExpression,
+            pCfaEdge);
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      }
+      case ASSUME_EXTERNAL_ALLOCATED -> {
+        ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
+        for (SMGState checkedState :
+            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName)) {
+          logger.log(
+              Level.FINE,
+              "Returned unknown value with allocated memory for unknown function " + cFCExpression,
+              pCfaEdge);
+          builder.addAll(
+              evaluateExternalAllocationFunction(cFCExpression, checkedState, calledFunctionName));
+        }
+        yield builder.build();
+      }
+    };
   }
 
   /**
@@ -832,8 +901,8 @@ public class SMGCPABuiltins {
    * @return {@link List} of {@link ValueAndSMGState}s holding valid and invalid returns (if
    *     enabled) for the called allocation functions. The {@link Value} will not be a {@link
    *     AddressExpression}, but may be numeric 0 (leading to the 0 SMGObject). Valid {@link Value}s
-   *     pointers have always offset 0. Invalid calls may have a unknown {@link Value} as a return
-   *     type in case of errors a error state is set.
+   *     pointers have always offset 0. Invalid calls may have an unknown {@link Value} as a return
+   *     type in case of errors an error state is set.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   List<ValueAndSMGState> evaluateConfigurableAllocationFunction(
@@ -888,11 +957,12 @@ public class SMGCPABuiltins {
         }
       }
       // The size is always given in bytes, we want bit size
-      CType sizeType = functionCall.getParameterExpressions().get(0).getExpressionType();
+      CType sizeType = functionCall.getParameterExpressions().getFirst().getExpressionType();
       if (!sizeValue.isNumericValue()) {
         sizeType =
             SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                functionCall.getParameterExpressions().get(0).getExpressionType(), machineModel);
+                functionCall.getParameterExpressions().getFirst().getExpressionType(),
+                machineModel);
       }
       Value sizeInBits = evaluator.multiplyBitOffsetValues(sizeValue, BigInteger.valueOf(8));
 
@@ -933,7 +1003,7 @@ public class SMGCPABuiltins {
         stateWithNewHeap =
             stateWithNewHeap
                 .writeToZero(addressToNewRegion, functionCall.getExpressionType(), edge)
-                .get(0);
+                .getFirst();
       }
       resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
     } else {
@@ -1104,11 +1174,11 @@ public class SMGCPABuiltins {
       Value bufferValue = bufferAddressAndState.getValue();
       SMGState currentState = bufferAddressAndState.getState();
       // If the Value is no AddressExpression we can't work with it
-      // The buffer is type * and has to be a AddressExpression with a not unknown value and a
+      // The buffer is type * and has to be an AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (!(bufferValue instanceof AddressExpression)
-          || ((AddressExpression) bufferValue).getMemoryAddress().isUnknown()
-          || !((AddressExpression) bufferValue).getOffset().isNumericValue()) {
+      if (!(bufferValue instanceof AddressExpression addressExpression)
+          || addressExpression.getMemoryAddress().isUnknown()
+          || !addressExpression.getOffset().isNumericValue()) {
         currentState = currentState.withInvalidWrite(bufferValue);
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
@@ -1131,7 +1201,7 @@ public class SMGCPABuiltins {
               evaluateMemset(
                   countAndState.getState(),
                   cfaEdge,
-                  (AddressExpression) bufferValue,
+                  addressExpression,
                   charValueAndSMGState.getValue(),
                   countAndState.getValue()));
         }
@@ -1142,8 +1212,8 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Checks the Values such that they are useable, returns a unknown Value with error state (may be
-   * non critical) if its not useable. Else it writes the char entered (int value) into the region
+   * Checks the Values such that they are useable, returns an unknown Value with error state (may be
+   * non critical) if it's not useable. Else it writes the char entered (int value) into the region
    * behind the given address count times. Make sure that the bufferValue is already checked and is
    * a valid AddressExpression!
    *
@@ -1154,8 +1224,8 @@ public class SMGCPABuiltins {
    * @param charValue {@link Value} representing the character to be inserted.
    * @param countValue {@link Value} for the number of chars inserted.
    * @return {@link ValueAndSMGState} with either the address to the buffer (not a {@link
-   *     AddressExpression}) and the written {@link SMGState}, or a unknown value and maybe a error
-   *     state.
+   *     AddressExpression}) and the written {@link SMGState}, or an unknown value and maybe an
+   *     error state.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private ValueAndSMGState evaluateMemset(
@@ -1215,7 +1285,7 @@ public class SMGCPABuiltins {
                   charValue,
                   CNumericTypes.CHAR,
                   cfaEdge)
-              .get(0);
+              .getFirst();
     } else {
       // Write each char on its own
       for (int c = 0; c < count; c++) {
@@ -1228,7 +1298,7 @@ public class SMGCPABuiltins {
                     charValue,
                     CNumericTypes.CHAR,
                     cfaEdge)
-                .get(0);
+                .getFirst();
       }
     }
     // Since this returns the pointer of the buffer we check the offset of the AddressExpression, if
@@ -1239,37 +1309,40 @@ public class SMGCPABuiltins {
       ValueAndSMGState newPointerAndState =
           evaluator
               .findOrcreateNewPointer(bufferMemoryAddress, bufferOffsetInBits, currentState)
-              .get(0);
+              .getFirst();
       return ValueAndSMGState.of(newPointerAndState.getValue(), newPointerAndState.getState());
     }
   }
 
-  // TODO all functions are external in C, do we even need this?
-  @SuppressWarnings("unused")
-  private List<ValueAndSMGState> evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGException {
-    throw new SMGException("evaluateExternalAllocation in SMGBUILTINS");
-    /*
+  private List<ValueAndSMGState> evaluateExternalAllocationFunction(
+      CFunctionCallExpression pFunctionCall, SMGState pState, String calledFunctionName) {
+
+    if (!(pFunctionCall.getExpressionType() instanceof CPointerType)
+        || !isExternalAllocationFunction(calledFunctionName)) {
+      // Non-allocating call, return unknown value.
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+    }
+    // Some methods like fgets return pointers that were parameters of the function, we need to
+    //  model those functions fully, so that they don't end up here!
+
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
+    Value allocationSize =
+        new NumericValue(BigInteger.valueOf(options.getExternalAllocationSize()));
 
-    List<ValueAndSMGState> result = new ArrayList<>();
+    // TODO line numbers are not unique when we have multiple input files!
+    String extAllocationLabel =
+        "_EXTERNAL_ALLOC_"
+            + functionName
+            + "_ID"
+            + U_ID_GENERATOR.getFreshId()
+            + "_Line:"
+            + pFunctionCall.getFileLocation().getStartingLineNumber();
 
-
-    String allocation_label =
-        functionName
-            + "_PARAMETERS_"
-            + pFunctionCall.getParameterExpressions().size()
-            + "_RETURN_"
-            + pFunctionCall.getExpressionType();
-
-
-    result.add(ValueAndSMGState.of(pState, pState.addExternalAllocation(allocation_label)));
-    addExternalAllocation would create a pointer (points to edge) to a memory region created with
-    size: options.getExternalAllocationSize(), offset: options.getExternalAllocationSize() / 2, as external
-    and i don't see why
-
-    return result;
-    */
+    // TODO: allocation is easy, but not all cases of handling external memory are implemented
+    //  currently.
+    // TODO: can this fail?
+    return ImmutableList.of(
+        evaluator.createExternalHeapMemoryAndPointer(pState, allocationSize, extAllocationLabel));
   }
 
   /**
@@ -1281,8 +1354,8 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return A {@link List} of {@link ValueAndSMGState}s with the results of the alloca call on the
-   *     stack of the returned {@link SMGState}s or a error info set in case of errors. The Value is
-   *     either a pointer to the valid stack memory allocated or unknown. The pointer is not a
+   *     stack of the returned {@link SMGState}s or an error info set in case of errors. The Value
+   *     is either a pointer to the valid stack memory allocated or unknown. The pointer is not a
    *     {@link AddressExpression}!
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
@@ -1334,7 +1407,7 @@ public class SMGCPABuiltins {
    * @param cfaEdge for logging/debugging.
    * @return a {@link List} of {@link ValueAndSMGState}s with the address {@link Value} (NO {@link
    *     AddressExpression}!) to the new memory on the stack. May be unknown in case of a problem
-   *     and may have a error state with the error.
+   *     and may have an error state with the error.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateAlloca(
@@ -1351,9 +1424,9 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Evaluate the use of the C Free() method. Should recieve 1 argument that should be a address to
-   * memory not yet freed (still valid). If the Value is no address, a already freed address or any
-   * other form of invalid address (i.e. = 0) the return state will have a error info attached.
+   * Evaluate the use of the C Free() method. Should recieve 1 argument that should be an address to
+   * memory not yet freed (still valid). If the Value is no address, an already freed address or any
+   * other form of invalid address (i.e. = 0) the return state will have an error info attached.
    *
    * @param pFunctionCall the {@link CFunctionCallExpression} that lead to this function call.
    * @param pState current {@link SMGState}.
@@ -1392,8 +1465,8 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return a list of {@link ValueAndSMGState} with either the targetAddress pointer expression and
-   *     the state in which the copy was successfull, or a unknown value and maybe a error state if
-   *     something went wrong, i.e. invalid/read/write.
+   *     the state in which the copy was successfull, or an unknown value and maybe an error state
+   *     if something went wrong, i.e. invalid/read/write.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateMemcpy(
@@ -2094,7 +2167,7 @@ public class SMGCPABuiltins {
     // No Object is empty, but there might be edges in one when there are none in the other.
     // First filter out all edges not (partially) covered by the size given, then check if there are
     // edges covering the entire size argument.
-    SortedMap<BigInteger, SMGHasValueEdge> hvesObj1InSizeOrdered = new TreeMap<>();
+    NavigableMap<BigInteger, SMGHasValueEdge> hvesObj1InSizeOrdered = new TreeMap<>();
     for (SMGHasValueEdge hve : allHvesObj1) {
       BigInteger hveOffset = hve.getOffset();
       BigInteger hveOffsetPlusSize = hveOffset.add(hve.getSizeInBits());
@@ -2106,7 +2179,7 @@ public class SMGCPABuiltins {
       }
     }
 
-    SortedMap<BigInteger, SMGHasValueEdge> hvesObj2InSizeOrdered = new TreeMap<>();
+    NavigableMap<BigInteger, SMGHasValueEdge> hvesObj2InSizeOrdered = new TreeMap<>();
     for (SMGHasValueEdge hve : allHvesObj2) {
       BigInteger hveOffset = hve.getOffset();
       BigInteger hveOffsetPlusSize = hveOffset.add(hve.getSizeInBits());
@@ -2310,9 +2383,9 @@ public class SMGCPABuiltins {
 
       Value firstAddress = firstValueAndSMGState.getValue();
       // If the Value is no AddressExpression we can't work with it
-      // The buffer is type * and has to be a AddressExpression with a not unknown value and a
+      // The buffer is type * and has to be an AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (!(firstAddress instanceof AddressExpression)) {
+      if (!(firstAddress instanceof AddressExpression firstAddressExpr)) {
         // The value can be unknown
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
@@ -2321,7 +2394,7 @@ public class SMGCPABuiltins {
                 pCfaEdge));
         continue;
       }
-      AddressExpression firstAddressExpr = (AddressExpression) firstAddress;
+
       if (!firstAddressExpr.getOffset().isNumericValue()) {
         // Write the target region to unknown
         resultBuilder.add(
@@ -2337,7 +2410,7 @@ public class SMGCPABuiltins {
               STRCMP_SECOND_PARAMETER, pFunctionCall, firstValueAndSMGState.getState(), pCfaEdge)) {
         Value secondAddress = secondValueAndSMGState.getValue();
         // If the Value is no AddressExpression we can't work with it
-        // The buffer is type * and has to be a AddressExpression with a not unknown value and a
+        // The buffer is type * and has to be an AddressExpression with a not unknown value and a
         // concrete offset to be used correctly
         if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
@@ -2400,7 +2473,7 @@ public class SMGCPABuiltins {
         new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
 
     for (ValueAndSMGState argumentOneAndState :
-        functionCall.getParameterExpressions().get(0).accept(valueVisitor)) {
+        functionCall.getParameterExpressions().getFirst().accept(valueVisitor)) {
       for (ValueAndSMGState argumentTwoAndState :
           getAllocateFunctionParameter(1, functionCall, argumentOneAndState.getState(), cfaEdge)) {
 
@@ -2438,7 +2511,7 @@ public class SMGCPABuiltins {
    *
    * @param pState current {@link SMGState}
    * @param pSizeValue size in byte
-   * @param pCfaEdge current cfa edge
+   * @param pCfaEdge current CFA edge
    * @return list of points to new memory and its states
    */
   private Collection<ValueAndSMGState> evaluateReallocWParameters(
@@ -2464,7 +2537,7 @@ public class SMGCPABuiltins {
       // undefined beh
       return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
     }
-    CType sizeType = functionCall.getParameterExpressions().get(0).getExpressionType();
+    CType sizeType = functionCall.getParameterExpressions().getFirst().getExpressionType();
     if (pSizeValue.isNumericValue()) {
       sizeInBits =
           new NumericValue(
@@ -2474,7 +2547,8 @@ public class SMGCPABuiltins {
         if (!pSizeValue.isNumericValue()) {
           sizeType =
               SMGCPAExpressionEvaluator.promoteMemorySizeTypeForBitCalculation(
-                  functionCall.getParameterExpressions().get(0).getExpressionType(), machineModel);
+                  functionCall.getParameterExpressions().getFirst().getExpressionType(),
+                  machineModel);
         }
         sizeInBits = evaluator.multiplyBitOffsetValues(pSizeValue, BigInteger.valueOf(8));
       } else {

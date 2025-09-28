@@ -104,8 +104,7 @@ public class FunctionPointerState
 
     @Override
     public boolean equals(Object pObj) {
-      return pObj instanceof NamedFunctionTarget
-          && ((NamedFunctionTarget) pObj).functionName.equals(functionName);
+      return pObj instanceof NamedFunctionTarget other && other.functionName.equals(functionName);
     }
 
     @Override

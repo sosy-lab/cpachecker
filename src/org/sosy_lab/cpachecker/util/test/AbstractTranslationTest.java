@@ -145,7 +145,7 @@ public abstract class AbstractTranslationTest {
 
   private static class CompilerExecutor extends ProcessExecutor<IOException> {
 
-    public CompilerExecutor(LogManager pLogger, String... cmd) throws IOException {
+    CompilerExecutor(LogManager pLogger, String... cmd) throws IOException {
       super(pLogger, IOException.class, cmd);
     }
   }

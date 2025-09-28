@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
  * This Visitor implements evaluation of simply typed expressions. An expression is defined as
  * simply typed iff it is not an array type ({@link
  * org.sosy_lab.cpachecker.cfa.types.c.CArrayType}), a struct or union type ({@link
- * org.sosy_lab.cpachecker.cfa.types.c.CComplexType}), a imaginary type ({@link
+ * org.sosy_lab.cpachecker.cfa.types.c.CComplexType}), an imaginary type ({@link
  * CImaginaryLiteralExpression}), or a pointer type ({@link
  * org.sosy_lab.cpachecker.cfa.types.c.CPointerType}). The key distinction between these types and
  * simply typed types is, that a value of simply typed types can be represented as a numerical value
@@ -129,49 +129,34 @@ public class BDDVectorCExpressionVisitor
       rVal = castCValue(rVal, rType, calculationType, bvmgr, machineModel);
     }
 
-    Region[] result;
-    switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case MODULO:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
-        result =
-            castCValue(
-                result, calculationType, binaryExpr.getExpressionType(), bvmgr, machineModel);
-
-        break;
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
+    return switch (binaryOperator) {
+      case PLUS,
+          MINUS,
+          DIVIDE,
+          MODULO,
+          MULTIPLY,
+          SHIFT_LEFT,
+          SHIFT_RIGHT,
+          BINARY_AND,
+          BINARY_OR,
+          BINARY_XOR -> {
+        Region[] result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
+        yield castCValue(
+            result, calculationType, binaryExpr.getExpressionType(), bvmgr, machineModel);
+      }
+      case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         final Region tmp = booleanOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
         // return 1 if expression holds, 0 otherwise
 
         int size = 32;
-        if (calculationType instanceof CSimpleType) {
-          size = machineModel.getSizeofInBits((CSimpleType) calculationType);
+        if (calculationType instanceof CSimpleType cSimpleType) {
+          size = machineModel.getSizeofInBits(cSimpleType);
         }
 
-        result = bvmgr.wrapLast(tmp, size);
+        yield bvmgr.wrapLast(tmp, size);
         // we do not cast here, because 0 and 1 should be small enough for every type.
-
-        break;
-
-      default:
-        throw new AssertionError("unhandled binary operator");
-    }
-
-    return result;
+      }
+    };
   }
 
   private static Region[] arithmeticOperation(
@@ -182,8 +167,8 @@ public class BDDVectorCExpressionVisitor
       final CType calculationType) {
 
     boolean signed = true;
-    if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
+    if (calculationType instanceof CSimpleType cSimpleType) {
+      signed = !cSimpleType.hasUnsignedSpecifier();
     }
 
     return switch (op) {
@@ -215,8 +200,8 @@ public class BDDVectorCExpressionVisitor
       final CType calculationType) {
 
     boolean signed = true;
-    if (calculationType instanceof CSimpleType) {
-      signed = !((CSimpleType) calculationType).hasUnsignedSpecifier();
+    if (calculationType instanceof CSimpleType cSimpleType) {
+      signed = !cSimpleType.hasUnsignedSpecifier();
     }
 
     return switch (op) {
@@ -353,7 +338,7 @@ public class BDDVectorCExpressionVisitor
   /**
    * This method returns the input-value, casted to match the type. If the value matches the type,
    * it is returned unchanged. This method handles overflows and print warnings for the user.
-   * Example: This method is called, when an value of type 'integer' is assigned to a variable of
+   * Example: This method is called, when a value of type 'integer' is assigned to a variable of
    * type 'char'.
    *
    * @param value will be casted. If value is null, null is returned.
@@ -378,7 +363,7 @@ public class BDDVectorCExpressionVisitor
           machineModel.isSigned((CSimpleType) sourceType),
           value);
     }
-    // currently we do not handle floats, doubles or voids, pointers, so lets ignore this case.
+    // currently, we do not handle floats, doubles or voids, pointers, so let's ignore this case.
     return value;
   }
 }

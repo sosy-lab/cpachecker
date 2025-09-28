@@ -66,7 +66,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
               List<String> parts = Splitter.on(",").splitToList(l.toString());
               LocationInstance locationInstance =
                   new LocationInstance(
-                      nodeMapping.apply(Integer.parseInt(parts.get(0))),
+                      nodeMapping.apply(Integer.parseInt(parts.getFirst())),
                       Integer.parseInt(parts.get(1)));
               for (Object o : iterable) {
                 locationInstances.put(

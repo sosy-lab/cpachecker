@@ -116,7 +116,7 @@ public class ConfigurationFileChecks {
           // always set by this test
           "java.sourcepath",
           "differential.program",
-          // handled by code outside of CPAchecker class
+          // handled by code outside CPAchecker class
           "output.disable",
           "report.export",
           "statistics.print",
@@ -172,7 +172,12 @@ public class ConfigurationFileChecks {
   @Options
   private static class OptionsWithSpecialHandlingInTest {
 
-    @Option(secure = true, description = "C, Java, or LLVM IR?")
+    @Option(
+        secure = true,
+        description =
+            "Programming language of the input program. If not given explicitly, auto-detection"
+                + " will occur. LLVM IR is currently unsupported as input (cf."
+                + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
     private Language language = Language.C;
 
     @Option(
@@ -251,10 +256,10 @@ public class ConfigurationFileChecks {
   private static ConfigurationBuilder parse(Object pConfigFile)
       throws IOException, InvalidConfigurationException, URISyntaxException {
     Path configFile;
-    if (pConfigFile instanceof Path) {
-      configFile = (Path) pConfigFile;
-    } else if (pConfigFile instanceof URL) {
-      configFile = Path.of(((URL) pConfigFile).toURI());
+    if (pConfigFile instanceof Path path) {
+      configFile = path;
+    } else if (pConfigFile instanceof URL uRL) {
+      configFile = Path.of(uRL.toURI());
     } else {
       throw new AssertionError("Unexpected config file " + pConfigFile);
     }
@@ -282,7 +287,7 @@ public class ConfigurationFileChecks {
     // for specific use cases (e.g., SV-COMP).
     // If you add config files for specific use cases (and this is clear from the config's name!),
     // you can whitelist it here.
-    // Otherwise consider changing the default value of the option if the value makes sense in
+    // Otherwise, consider changing the default value of the option if the value makes sense in
     // general, or remove it from the config file.
 
     checkOption(config, "analysis.entryFunction");
@@ -386,7 +391,7 @@ public class ConfigurationFileChecks {
     config.inject(options);
 
     @SuppressWarnings("deprecation")
-    final String spec = config.getProperty(SPECIFICATION_OPTION);
+    final @Nullable String spec = config.getProperty(SPECIFICATION_OPTION);
     @SuppressWarnings("deprecation")
     final String cpas = Objects.requireNonNullElse(config.getProperty("CompositeCPA.cpas"), "");
     @SuppressWarnings("deprecation")

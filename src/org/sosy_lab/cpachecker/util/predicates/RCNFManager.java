@@ -133,32 +133,28 @@ public class RCNFManager implements StatisticsProvider {
       return out;
     }
 
-    BooleanFormula result;
-    switch (boundVarsHandling) {
-      case QE_LIGHT_THEN_DROP:
-        try {
-          statistics.lightQuantifierElimination.start();
-          result = fmgr.applyTactic(input, Tactic.QE_LIGHT);
-        } finally {
-          statistics.lightQuantifierElimination.stop();
-        }
-        break;
-      case QE:
-        try {
-          statistics.quantifierElimination.start();
-          result = fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
-        } catch (SolverException e) {
-          throw new UnsupportedOperationException("Unexpected solver error", e);
-        } finally {
-          statistics.quantifierElimination.stop();
-        }
-        break;
-      case DROP:
-        result = input;
-        break;
-      default:
-        throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
-    }
+    final BooleanFormula result =
+        switch (boundVarsHandling) {
+          case QE_LIGHT_THEN_DROP -> {
+            try {
+              statistics.lightQuantifierElimination.start();
+              yield fmgr.applyTactic(input, Tactic.QE_LIGHT);
+            } finally {
+              statistics.lightQuantifierElimination.stop();
+            }
+          }
+          case QE -> {
+            try {
+              statistics.quantifierElimination.start();
+              yield fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
+            } catch (SolverException e) {
+              throw new UnsupportedOperationException("Unexpected solver error", e);
+            } finally {
+              statistics.quantifierElimination.stop();
+            }
+          }
+          case DROP -> input;
+        };
     BooleanFormula noBoundVars = dropBoundVariables(result);
 
     try {
@@ -297,9 +293,9 @@ public class RCNFManager implements StatisticsProvider {
           public BooleanFormula visitFunction(
               Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
             if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ
-                && fmgr.getFormulaType(newArgs.get(0)).isNumeralType()) {
+                && fmgr.getFormulaType(newArgs.getFirst()).isNumeralType()) {
               Preconditions.checkState(newArgs.size() == 2);
-              Formula a = newArgs.get(0);
+              Formula a = newArgs.getFirst();
               Formula b = newArgs.get(1);
               return bfmgr.and(
                   fmgr.makeGreaterOrEqual(a, b, true), fmgr.makeLessOrEqual(a, b, true));

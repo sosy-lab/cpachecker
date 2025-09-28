@@ -131,7 +131,7 @@ public class CounterexampleInfo extends AbstractAppender {
    *     variable assignments to edges on the target path. This mapping must contain all edges on
    *     the target path, but providing assumptions over program variables in the context of these
    *     edges is optional.
-   * @return an object representing information about an feasible counterexample with an precise
+   * @return an object representing information about a feasible counterexample with a precise
    *     representation of the path from the first state to the target state.
    */
   public static CounterexampleInfo feasiblePrecise(
@@ -280,7 +280,7 @@ public class CounterexampleInfo extends AbstractAppender {
       elem.put("line", edge.getFileLocation().getStartingLineInOrigin());
       elem.put("file", edge.getFileLocation().getFileName());
 
-      // cfa path with assignments has no padding (only inner edges of argpath).
+      // CFA path with assignments has no padding (only inner edges of argpath).
       if (assignments == null) {
         elem.put("val", "");
       } else {

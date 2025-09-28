@@ -61,27 +61,29 @@ class IntAddCollectingVisitor extends VariablesCollectingVisitor {
       return null;
     }
 
-    switch (exp.getOperator()) {
-      case PLUS:
-      case MINUS:
-      case LESS_THAN:
-      case LESS_EQUAL:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case EQUALS:
-      case NOT_EQUALS:
-      case BINARY_AND:
-      case BINARY_XOR:
-      case BINARY_OR:
+    return switch (exp.getOperator()) {
+      case PLUS,
+          MINUS,
+          LESS_THAN,
+          LESS_EQUAL,
+          GREATER_THAN,
+          GREATER_EQUAL,
+          EQUALS,
+          NOT_EQUALS,
+          BINARY_AND,
+          BINARY_XOR,
+          BINARY_OR -> {
         // this calculations work with all numbers
         operand1.addAll(operand2);
-        return operand1;
-
-      default: // *, /, %, shift --> no simple calculations
+        yield operand1;
+      }
+      default -> {
+        // *, /, %, shift --> no simple calculations
         nonIntAddVars.addAll(operand1);
         nonIntAddVars.addAll(operand2);
-        return null;
-    }
+        yield null;
+      }
+    };
   }
 
   @Override

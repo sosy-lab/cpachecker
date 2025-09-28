@@ -95,8 +95,8 @@ public class CtoFormulaTypeHandler {
    * @throws IllegalArgumentException if size of type is not known statically
    */
   public final long getExactBitSizeof(CType pType) {
-    if (pType instanceof CBitFieldType) {
-      return ((CBitFieldType) pType).getBitFieldSize();
+    if (pType instanceof CBitFieldType cBitFieldType) {
+      return cBitFieldType.getBitFieldSize();
     }
     return getExactSizeof(pType) * machineModel.getSizeofCharInBits();
   }
@@ -109,8 +109,8 @@ public class CtoFormulaTypeHandler {
    * @return the size in bits of the given type.
    */
   public final long getApproximatedBitSizeof(CType pType) {
-    if (pType instanceof CBitFieldType) {
-      return ((CBitFieldType) pType).getBitFieldSize();
+    if (pType instanceof CBitFieldType cBitFieldType) {
+      return cBitFieldType.getBitFieldSize();
     }
     return getApproximatedSizeof(pType) * machineModel.getSizeofCharInBits();
   }

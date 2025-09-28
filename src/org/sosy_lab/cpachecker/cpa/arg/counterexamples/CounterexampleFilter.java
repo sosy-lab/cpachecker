@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
  *
  * <p>IMPORTANT: A counterexample filter should try hard to not have a reference on ARGStates! Doing
  * so would retain a lot of memory, because every ARGState has (transitive) references to the full
- * ARG. Also ARGStates may be deleted later on, which changes their state and thus makes them
+ * ARG. Also, ARGStates may be deleted later on, which changes their state and thus makes them
  * useless.
  *
  * <p>Instead, prefer keeping references to objects like CFAEdges, or representations of program
@@ -57,16 +57,19 @@ public interface CounterexampleFilter {
       List<CounterexampleFilter.Factory> cexFilterClasses)
       throws InvalidConfigurationException {
     switch (cexFilterClasses.size()) {
-      case 0:
+      case 0 -> {
         return new NullCounterexampleFilter();
-      case 1:
-        return cexFilterClasses.get(0).create(config, logger, cpa);
-      default:
+      }
+      case 1 -> {
+        return cexFilterClasses.getFirst().create(config, logger, cpa);
+      }
+      default -> {
         List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());
         for (CounterexampleFilter.Factory factory : cexFilterClasses) {
           filters.add(factory.create(config, logger, cpa));
         }
         return new ConjunctiveCounterexampleFilter(filters);
+      }
     }
   }
 }

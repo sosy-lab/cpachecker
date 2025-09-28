@@ -29,7 +29,7 @@ public class FaultContribution {
   /**
    * The calculation of the score of FaultContribution is not implemented. The score is used to rank
    * FaultContributions. The recommended way is to calculate the score based on the likelihood of
-   * the appended RankInfos instead of setting it to an value manually. The score will be printed to
+   * the appended RankInfos instead of setting it to a value manually. The score will be printed to
    * the user as an indicator of how likely this edge is to fix the error when changed. However,
    * there exists an example method for calculating the score. For more details see
    * FaultRankingUtils.
@@ -71,18 +71,13 @@ public class FaultContribution {
                 + ".\n");
 
     for (FaultInfo faultInfo : copy) {
-      switch (faultInfo.getType()) {
-        case RANK_INFO:
-          out.append(" ".repeat(2));
-          break;
-        case REASON:
-          out.append(" ".repeat(5));
-          break;
-        case FIX:
-          out.append(" ".repeat(8));
-          break;
-      }
-      out.append(faultInfo).append("\n");
+      int indent =
+          switch (faultInfo.getType()) {
+            case RANK_INFO -> 2;
+            case REASON -> 5;
+            case FIX -> 8;
+          };
+      out.append(" ".repeat(indent)).append(faultInfo).append("\n");
     }
 
     return out.toString();

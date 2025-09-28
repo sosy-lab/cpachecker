@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 /**
- * This class is used to represent a identifier of a C primary expression.
+ * This class is used to represent an identifier of a C primary expression.
  *
  * <p>It is usually used in the concrete state {@link ConcreteState} to assign a value to a variable
  * without needing to calculate an address for it. It is also used to define an address for a
@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 public final class IDExpression extends LeftHandSide {
 
   /**
-   * Constructs a IDExpression object with a given identifier and a given scope. The primary
+   * Constructs an IDExpression object with a given identifier and a given scope. The primary
    * expression this idExpresssion represents has to be an lvalue.
    *
    * @param pName the name of the idExpression, which is the identifier of the primary expression in
@@ -34,7 +34,7 @@ public final class IDExpression extends LeftHandSide {
   }
 
   /**
-   * Constructs a IDExpression object with a given identifier.
+   * Constructs an IDExpression object with a given identifier.
    *
    * @param pName the identifier of the primary expression.
    */
