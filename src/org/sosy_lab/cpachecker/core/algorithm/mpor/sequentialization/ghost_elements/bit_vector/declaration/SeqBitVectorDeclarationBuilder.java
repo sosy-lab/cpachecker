@@ -113,8 +113,8 @@ public class SeqBitVectorDeclarationBuilder {
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (DenseBitVector denseBitVector :
         pBitVectorVariables.getDenseBitVectorsByAccessType(pAccessType)) {
-      MPORThread thread = denseBitVector.thread;
-      if (pOptions.kIgnoreZeroReduction && denseBitVector.directVariable.isPresent()) {
+      MPORThread thread = denseBitVector.getThread();
+      if (pOptions.kIgnoreZeroReduction && denseBitVector.isDirectVariablePresent()) {
         ImmutableSet<MemoryLocation> directMemoryLocations =
             getDirectMemoryLocationsByAccessType(pMemoryModel, pClauses.get(thread), pAccessType);
         BitVectorValueExpression directInitializer =
@@ -122,10 +122,10 @@ public class SeqBitVectorDeclarationBuilder {
         // direct bit vector
         SeqBitVectorDeclaration directDeclaration =
             new SeqBitVectorDeclaration(
-                type, denseBitVector.directVariable.orElseThrow(), directInitializer);
+                type, denseBitVector.getDirectVariable(), directInitializer);
         rDeclarations.add(directDeclaration);
       }
-      if (denseBitVector.reachableVariable.isPresent()) {
+      if (denseBitVector.isReachableVariablePresent()) {
         // TODO we can optimize here by saving the 0 initializers and leaving them out entirely
         //  or not write them ever again
         ImmutableSet<MemoryLocation> reachableMemoryLocations =
@@ -137,7 +137,7 @@ public class SeqBitVectorDeclarationBuilder {
         // reachable bit vector
         SeqBitVectorDeclaration reachableDeclaration =
             new SeqBitVectorDeclaration(
-                type, denseBitVector.reachableVariable.orElseThrow(), reachableInitializer);
+                type, denseBitVector.getReachableVariable(), reachableInitializer);
         rDeclarations.add(reachableDeclaration);
       }
     }

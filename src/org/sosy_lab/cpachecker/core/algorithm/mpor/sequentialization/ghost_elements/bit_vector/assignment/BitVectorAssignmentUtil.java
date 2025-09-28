@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 class BitVectorAssignmentUtil {
@@ -36,7 +37,7 @@ class BitVectorAssignmentUtil {
       MemoryAccessType pAccessType) {
 
     CExpression bitVectorVariable =
-        pBitVectorVariables.getDenseDirectBitVectorByAccessType(pAccessType, pThread);
+        pBitVectorVariables.getDenseBitVector(pThread, pAccessType, ReachType.DIRECT);
     BitVectorValueExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pDirectMemoryLocations);
     return new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression);
@@ -51,7 +52,7 @@ class BitVectorAssignmentUtil {
       MemoryAccessType pAccessType) {
 
     CExpression bitVectorVariable =
-        pBitVectorVariables.getDenseReachableBitVectorByAccessType(pAccessType, pThread);
+        pBitVectorVariables.getDenseBitVector(pThread, pAccessType, ReachType.REACHABLE);
     BitVectorValueExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(pOptions, pMemoryModel, pReachableMemoryLocations);
     return new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression);

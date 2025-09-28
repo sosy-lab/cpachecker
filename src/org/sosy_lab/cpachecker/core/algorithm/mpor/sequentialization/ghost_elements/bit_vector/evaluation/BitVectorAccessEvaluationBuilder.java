@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -120,8 +121,8 @@ class BitVectorAccessEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     CExpression directBitVector =
-        pBitVectorVariables.getDenseDirectBitVectorByAccessType(
-            MemoryAccessType.ACCESS, pActiveThread);
+        pBitVectorVariables.getDenseBitVector(
+            pActiveThread, MemoryAccessType.ACCESS, ReachType.DIRECT);
     ImmutableSet<CExpression> otherReachableBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
             MemoryAccessType.ACCESS, pOtherThreads);

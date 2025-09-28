@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -222,11 +223,11 @@ class BitVectorReadWriteEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     CExpression directReadBitVector =
-        pBitVectorVariables.getDenseDirectBitVectorByAccessType(
-            MemoryAccessType.READ, pActiveThread);
+        pBitVectorVariables.getDenseBitVector(
+            pActiveThread, MemoryAccessType.READ, ReachType.DIRECT);
     CExpression directWriteBitVector =
-        pBitVectorVariables.getDenseDirectBitVectorByAccessType(
-            MemoryAccessType.WRITE, pActiveThread);
+        pBitVectorVariables.getDenseBitVector(
+            pActiveThread, MemoryAccessType.WRITE, ReachType.DIRECT);
     ImmutableSet<CExpression> otherWriteBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
             MemoryAccessType.WRITE, pOtherThreads);

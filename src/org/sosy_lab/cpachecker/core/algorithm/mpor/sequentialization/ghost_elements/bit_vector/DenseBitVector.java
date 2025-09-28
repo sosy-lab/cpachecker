@@ -13,21 +13,27 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class DenseBitVector {
 
-  public final MPORThread thread;
+  /** The thread that this bit vector belongs to. */
+  private final MPORThread thread;
 
   /** The bit vector for the next statement. */
-  public final Optional<CIdExpression> directVariable;
+  private final Optional<CIdExpression> directVariable;
 
   /** The bit vector for all reachable statements, relative to a location. */
-  public final Optional<CIdExpression> reachableVariable;
+  private final Optional<CIdExpression> reachableVariable;
 
-  public final MemoryAccessType accessType;
+  /** For debugging purposes only. */
+  @SuppressWarnings("unused")
+  private final MemoryAccessType accessType;
 
-  public final BitVectorEncoding encoding;
+  /** For debugging purposes only. */
+  @SuppressWarnings("unused")
+  private final BitVectorEncoding encoding;
 
   DenseBitVector(
       MPORThread pThread,
@@ -48,5 +54,32 @@ public class DenseBitVector {
     reachableVariable = pReachableVariable;
     accessType = pAccessType;
     encoding = pEncoding;
+  }
+
+  public MPORThread getThread() {
+    return thread;
+  }
+
+  public boolean isDirectVariablePresent() {
+    return directVariable.isPresent();
+  }
+
+  public CIdExpression getDirectVariable() {
+    return directVariable.orElseThrow();
+  }
+
+  public boolean isReachableVariablePresent() {
+    return reachableVariable.isPresent();
+  }
+
+  public CIdExpression getReachableVariable() {
+    return reachableVariable.orElseThrow();
+  }
+
+  public CIdExpression getVariableByReachType(ReachType pReachType) {
+    return switch (pReachType) {
+      case DIRECT -> getDirectVariable();
+      case REACHABLE -> getReachableVariable();
+    };
   }
 }

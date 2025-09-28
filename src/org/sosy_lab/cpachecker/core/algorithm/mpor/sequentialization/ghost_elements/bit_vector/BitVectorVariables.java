@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorVariables {
@@ -64,43 +65,30 @@ public class BitVectorVariables {
     lastSparseWriteBitVector = pLastSparseWriteBitVector;
   }
 
-  public CExpression getDenseDirectBitVectorByAccessType(
-      MemoryAccessType pAccessType, MPORThread pThread) {
+  public CExpression getDenseBitVector(
+      MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
 
-    for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
-      if (variable.thread.equals(pThread)) {
-        return variable.directVariable.orElseThrow();
+    for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
+      if (denseBitVector.getThread().equals(pThread)) {
+        return denseBitVector.getVariableByReachType(pReachType);
       }
     }
-    throw new IllegalArgumentException("could not find pThread");
+    throw new IllegalArgumentException("could not find DenseBitVector");
   }
 
-  public CExpression getDenseReachableBitVectorByAccessType(
-      MemoryAccessType pAccessType, MPORThread pThread) {
-
-    for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
-      if (variable.thread.equals(pThread)) {
-        return variable.reachableVariable.orElseThrow();
-      }
-    }
-    throw new IllegalArgumentException("could not find pThread");
-  }
-
-  // TODO CIdExpression?
   public ImmutableSet<CExpression> getOtherDenseReachableBitVectorsByAccessType(
       MemoryAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
 
-    ImmutableSet.Builder<CExpression> rVariables = ImmutableSet.builder();
-    for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
-      if (pOtherThreads.contains(variable.thread)) {
-        rVariables.add(variable.reachableVariable.orElseThrow());
+    ImmutableSet.Builder<CExpression> rDenseBitVectors = ImmutableSet.builder();
+    for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
+      if (pOtherThreads.contains(denseBitVector.getThread())) {
+        rDenseBitVectors.add(denseBitVector.getReachableVariable());
       }
     }
-    return rVariables.build();
+    return rDenseBitVectors.build();
   }
 
   public ImmutableSet<DenseBitVector> getDenseBitVectorsByAccessType(MemoryAccessType pAccessType) {
-
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> denseAccessBitVectors.orElseThrow();

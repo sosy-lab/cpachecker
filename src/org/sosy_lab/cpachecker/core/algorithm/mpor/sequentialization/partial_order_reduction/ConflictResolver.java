@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -334,7 +335,7 @@ class ConflictResolver {
     LastDenseBitVector lastDenseBitVector =
         pBitVectorVariables.getLastDenseBitVectorByAccessType(pAccessType);
     CExpression rightHandSide =
-        pBitVectorVariables.getDenseReachableBitVectorByAccessType(pAccessType, pActiveThread);
+        pBitVectorVariables.getDenseBitVector(pActiveThread, pAccessType, ReachType.REACHABLE);
     CExpressionAssignmentStatement update =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             lastDenseBitVector.reachableVariable, rightHandSide);
