@@ -173,6 +173,11 @@ public class TerminationWitnessValidator implements Algorithm {
 
     // Check that every candidate invariant is disjunctively well-founded and transition invariant
     for (LoopStructure.Loop loop : loops) {
+      if (loop.getIncomingEdges().isEmpty()) {
+        // The loop is not reachable due to prunning in CFA construction
+        logger.log(Level.INFO, "A loop is not reachable !");
+        continue;
+      }
       BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
       if (!checkWithInfiniteSpace && hasInfiniteSpace(invariant)) {
         throw new CPAException("The configuration does not support infinite state spaces.");
