@@ -201,7 +201,8 @@ public class NodeMapping {
       // Non-pointers only (and 0 is never mapped!)
       checkArgument(
           !spcOld.getSmg().isPointer(vOld) || spcNew.getSmg().isPointer(vNew),
-          "You can't map a pointer to a non-pointer. Did you forget to make the new value a pointer?");
+          "You can't map a pointer to a non-pointer. Did you forget to make the new value a"
+              + " pointer?");
       // Use region as default for non-pointers for now
       return copyAndAddMapping(vOld, vNew, IS_REGION);
     }

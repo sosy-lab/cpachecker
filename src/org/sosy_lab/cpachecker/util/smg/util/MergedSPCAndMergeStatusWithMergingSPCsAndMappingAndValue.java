@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.SMGRec
 
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure;
-import org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.SMGRecoverableFailureType;
 
 public class MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue {
 
