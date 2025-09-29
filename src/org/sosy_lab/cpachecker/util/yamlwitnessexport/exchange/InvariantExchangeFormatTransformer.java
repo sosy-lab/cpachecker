@@ -158,8 +158,8 @@ public class InvariantExchangeFormatTransformer {
               scope.lookupVariable(nameOfTheVariableInProgram) != null
                   ? scope.lookupVariable(nameOfTheVariableInProgram).getType()
                   : CNumericTypes.LONG_LONG_INT,
-              "main::" + prevVariable,
-              "main::" + prevVariable,
+              prevVariable,
+              prevVariable,
               "main::" + prevVariable,
               null);
       // TODO: Add also the original variable into the scope?
@@ -167,7 +167,9 @@ public class InvariantExchangeFormatTransformer {
       cfa.getMainFunction()
           .addLeavingEdge(
               new CDeclarationEdge(
-                  scope.lookupType(nameOfTheVariableInProgram) + " " + prevVariable + ";",
+                  scope.lookupVariable(nameOfTheVariableInProgram) != null
+                    ? scope.lookupVariable(nameOfTheVariableInProgram).getType() + " " + prevVariable + ";"
+                    : "long long " + prevVariable + ";",
                   cfa.getMainFunction().getFileLocation(),
                   cfa.getMainFunction(),
                   CFANode.newDummyCFANode(),

@@ -311,7 +311,7 @@ public class TerminationWitnessValidator implements Algorithm {
     ImmutableMap.Builder<LoopStructure.Loop, BooleanFormula> builder = new ImmutableMap.Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
-      BooleanFormula invariantForTheLoop = bfmgr.makeFalse();
+      BooleanFormula invariantForTheLoop = bfmgr.makeTrue();
       PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(loop.getInnerLoopEdges()));
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         if (!invariant.isTransitionInvariant()) {
@@ -321,11 +321,15 @@ public class TerminationWitnessValidator implements Algorithm {
         if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
           BooleanFormula invariantFormula;
           try {
-            invariantFormula = invariant.getFormula(fmgr, pfmgr, loopFormula);
+            if (invariant.asExpressionTree().toString().equals("true")) {
+              invariantFormula = bfmgr.makeTrue();
+            } else {
+              invariantFormula = invariant.getFormula(fmgr, pfmgr, loopFormula);
+            }
           } catch (CPATransferException e) {
-            invariantFormula = bfmgr.makeFalse();
+            invariantFormula = bfmgr.makeTrue();
           }
-          invariantForTheLoop = bfmgr.or(invariantForTheLoop, invariantFormula);
+          invariantForTheLoop = bfmgr.and(invariantForTheLoop, invariantFormula);
         }
       }
       builder.put(loop, invariantForTheLoop);
