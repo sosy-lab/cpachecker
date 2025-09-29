@@ -102,7 +102,6 @@ public class SubstituteEdgeBuilder {
               false,
               false,
               false,
-              false,
               Optional.of(tracker));
       CAssumeEdge substituteAssumeEdge = substituteAssumeEdge(assume, substituteAssumption);
       return Optional.of(SubstituteEdge.of(pOptions, substituteAssumeEdge, pThreadEdge, tracker));
@@ -110,8 +109,7 @@ public class SubstituteEdgeBuilder {
     } else if (cfaEdge instanceof CStatementEdge statement) {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
       CStatement substituteStatement =
-          pSubstitution.substitute(
-              statement.getStatement(), false, callContext, Optional.of(tracker));
+          pSubstitution.substitute(statement.getStatement(), callContext, Optional.of(tracker));
       CStatementEdge substituteStatementEdge =
           substituteStatementEdge(statement, substituteStatement);
       return Optional.of(
@@ -122,7 +120,7 @@ public class SubstituteEdgeBuilder {
       if (functionSummary.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
         MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
         CStatement substituteAssignment =
-            pSubstitution.substitute(assignment, false, callContext, Optional.of(tracker));
+            pSubstitution.substitute(assignment, callContext, Optional.of(tracker));
         CFunctionSummaryEdge substituteFunctionSummaryEdge =
             substituteFunctionSummaryEdge(functionSummary, substituteAssignment);
         return Optional.of(
@@ -134,7 +132,7 @@ public class SubstituteEdgeBuilder {
       MPORSubstitutionTracker tracker = new MPORSubstitutionTracker();
       CStatement substituteFunctionCall =
           pSubstitution.substitute(
-              functionCall.getFunctionCall(), false, callContext, Optional.of(tracker));
+              functionCall.getFunctionCall(), callContext, Optional.of(tracker));
       assert substituteFunctionCall instanceof CFunctionCall
           : "substitute function call must be CFunctionCall";
       CFunctionCallEdge substituteFunctionCallEdge =

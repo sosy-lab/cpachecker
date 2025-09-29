@@ -111,7 +111,6 @@ public class FunctionStatementBuilder {
                     false,
                     false,
                     false,
-                    false,
                     Optional.empty()));
         rAssignments.put(callContext, parameterAssignment);
       }
@@ -141,7 +140,6 @@ public class FunctionStatementBuilder {
                       // the inner call context is the context in which pthread_create is called
                       rightHandSide,
                       callContext.callContext,
-                      false,
                       false,
                       false,
                       false,
