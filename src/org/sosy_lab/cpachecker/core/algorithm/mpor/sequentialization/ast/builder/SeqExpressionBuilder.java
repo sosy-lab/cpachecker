@@ -30,15 +30,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -108,7 +108,7 @@ public class SeqExpressionBuilder {
         buildStringLiteralExpression(SeqStringUtil.wrapInQuotationMarks(pFunction));
 
     return buildFunctionCallExpression(
-        SeqVoidType.VOID,
+        CVoidType.VOID,
         SeqIdExpression.REACH_ERROR,
         ImmutableList.of(file, line, function),
         SeqFunctionDeclaration.REACH_ERROR);
@@ -137,7 +137,7 @@ public class SeqExpressionBuilder {
 
   public static CIntegerLiteralExpression buildIntegerLiteralExpression(int pValue) {
     return new CIntegerLiteralExpression(
-        FileLocation.DUMMY, SeqSimpleType.INT, BigInteger.valueOf(pValue));
+        FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pValue));
   }
 
   // CIdExpression =================================================================================
@@ -163,7 +163,7 @@ public class SeqExpressionBuilder {
     return SeqExpressionBuilder.buildIdExpression(
         SeqDeclarationBuilder.buildVariableDeclaration(
             false,
-            SeqSimpleType.CONST_INT,
+            CNumericTypes.CONST_INT,
             SeqToken.NUM_THREADS,
             SeqInitializerBuilder.buildInitializerExpression(
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads))));

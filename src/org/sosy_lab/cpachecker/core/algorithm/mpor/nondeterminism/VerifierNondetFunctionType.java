@@ -13,11 +13,11 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqFunctionCallExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 
 /**
  * Taken from <a
@@ -42,8 +42,8 @@ public enum VerifierNondetFunctionType {
 
   public @NonNull CType getReturnType() {
     return switch (this) {
-      case INT -> SeqSimpleType.INT;
-      case UINT -> SeqSimpleType.UNSIGNED_INT;
+      case INT -> CNumericTypes.INT;
+      case UINT -> CNumericTypes.UNSIGNED_INT;
     };
   }
 

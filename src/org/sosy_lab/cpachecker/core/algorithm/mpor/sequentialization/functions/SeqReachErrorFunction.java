@@ -14,11 +14,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqParameterDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqStringLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqReachErrorFunction extends SeqFunction {
@@ -29,7 +29,7 @@ public class SeqReachErrorFunction extends SeqFunction {
     assertFailCall =
         new CFunctionCallExpression(
             FileLocation.DUMMY,
-            SeqVoidType.VOID,
+            CVoidType.VOID,
             SeqIdExpression.ASSERT_FAIL,
             ImmutableList.of(
                 SeqStringLiteralExpression.STRING_0,
@@ -48,7 +48,7 @@ public class SeqReachErrorFunction extends SeqFunction {
 
   @Override
   public CType getReturnType() {
-    return SeqVoidType.VOID;
+    return CVoidType.VOID;
   }
 
   @Override

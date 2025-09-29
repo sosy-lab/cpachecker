@@ -17,13 +17,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqParameterDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqExpressions {
@@ -32,21 +32,21 @@ public class SeqExpressions {
 
     public static final CFunctionCallExpression ABORT =
         SeqExpressionBuilder.buildFunctionCallExpression(
-            SeqVoidType.VOID,
+            CVoidType.VOID,
             SeqIdExpression.ABORT,
             ImmutableList.of(),
             SeqFunctionDeclaration.ABORT);
 
     public static final CFunctionCallExpression VERIFIER_NONDET_INT =
         SeqExpressionBuilder.buildFunctionCallExpression(
-            SeqSimpleType.INT,
+            CNumericTypes.INT,
             SeqIdExpression.VERIFIER_NONDET_INT,
             ImmutableList.of(),
             SeqFunctionDeclaration.VERIFIER_NONDET_INT);
 
     public static final CFunctionCallExpression VERIFIER_NONDET_UINT =
         SeqExpressionBuilder.buildFunctionCallExpression(
-            SeqSimpleType.UNSIGNED_INT,
+            CNumericTypes.UNSIGNED_INT,
             SeqIdExpression.VERIFIER_NONDET_UINT,
             ImmutableList.of(),
             SeqFunctionDeclaration.VERIFIER_NONDET_UINT);

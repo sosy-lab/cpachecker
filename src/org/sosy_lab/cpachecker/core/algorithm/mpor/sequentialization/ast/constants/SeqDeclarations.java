@@ -17,13 +17,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializerList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqPointerType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -39,65 +39,65 @@ public class SeqDeclarations {
 
     public static final CVariableDeclaration LAST_THREAD_UNSIGNED =
         buildVariableDeclaration(
-            true, SeqSimpleType.UNSIGNED_INT, SeqToken.last_thread, SeqInitializer.INT_0);
+            true, CNumericTypes.UNSIGNED_INT, SeqToken.last_thread, SeqInitializer.INT_0);
 
     // next_thread
 
     public static final CVariableDeclaration NEXT_THREAD_SIGNED =
         buildVariableDeclaration(
-            true, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_0);
+            true, CNumericTypes.INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
     public static final CVariableDeclaration NEXT_THREAD_UNSIGNED =
         buildVariableDeclaration(
-            true, SeqSimpleType.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
+            true, CNumericTypes.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
     // cnt
 
     // TODO add long variable name option for all of these?
     public static final CVariableDeclaration CNT =
         buildVariableDeclaration(
-            false, SeqSimpleType.UNSIGNED_INT, SeqToken.cnt, SeqInitializer.INT_1);
+            false, CNumericTypes.UNSIGNED_INT, SeqToken.cnt, SeqInitializer.INT_1);
 
     // K
 
     public static final CVariableDeclaration K_SIGNED =
-        buildVariableDeclaration(false, SeqSimpleType.INT, SeqToken.K, SeqInitializer.INT_0);
+        buildVariableDeclaration(false, CNumericTypes.INT, SeqToken.K, SeqInitializer.INT_0);
 
     public static final CVariableDeclaration K_UNSIGNED =
         buildVariableDeclaration(
-            false, SeqSimpleType.UNSIGNED_INT, SeqToken.K, SeqInitializer.INT_0);
+            false, CNumericTypes.UNSIGNED_INT, SeqToken.K, SeqInitializer.INT_0);
 
     // r
 
     public static final CVariableDeclaration R =
         buildVariableDeclaration(
-            false, SeqSimpleType.UNSIGNED_INT, SeqToken.r, SeqInitializer.INT_0);
+            false, CNumericTypes.UNSIGNED_INT, SeqToken.r, SeqInitializer.INT_0);
 
     // i
 
     public static final CVariableDeclaration I =
-        buildVariableDeclaration(false, SeqSimpleType.INT, SeqToken.i, SeqInitializer.INT_0);
+        buildVariableDeclaration(false, CNumericTypes.INT, SeqToken.i, SeqInitializer.INT_0);
   }
 
   public static class SeqParameterDeclaration {
 
     public static final CParameterDeclaration COND =
-        new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.CONST_INT, SeqToken.cond);
+        new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.CONST_INT, SeqToken.cond);
 
     public static final CParameterDeclaration ASSERTION =
         new CParameterDeclaration(
-            FileLocation.DUMMY, SeqPointerType.CONST_CHAR_POINTER, SeqToken.__assertion);
+            FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, SeqToken.__assertion);
 
     public static final CParameterDeclaration FILE =
         new CParameterDeclaration(
-            FileLocation.DUMMY, SeqPointerType.CONST_CHAR_POINTER, SeqToken.__file);
+            FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, SeqToken.__file);
 
     public static final CParameterDeclaration LINE =
-        new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.UNSIGNED_INT, SeqToken.__line);
+        new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, SeqToken.__line);
 
     public static final CParameterDeclaration FUNCTION =
         new CParameterDeclaration(
-            FileLocation.DUMMY, SeqPointerType.CONST_CHAR_POINTER, SeqToken.__function);
+            FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, SeqToken.__function);
   }
 
   public static class SeqFunctionDeclaration {

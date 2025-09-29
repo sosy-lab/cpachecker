@@ -32,6 +32,9 @@ public final class CNumericTypes {
   public static final CSimpleType INT =
       new CSimpleType(
           CTypeQualifiers.NONE, CBasicType.INT, false, false, false, false, false, false, false);
+  public static final CSimpleType CONST_INT =
+      new CSimpleType(
+          CTypeQualifiers.CONST, CBasicType.INT, false, false, false, false, false, false, false);
   public static final CSimpleType SIGNED_INT =
       new CSimpleType(
           CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);

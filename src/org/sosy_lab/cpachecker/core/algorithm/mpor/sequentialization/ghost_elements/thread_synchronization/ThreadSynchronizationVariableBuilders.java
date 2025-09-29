@@ -20,12 +20,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -71,7 +71,7 @@ public class ThreadSynchronizationVariableBuilders {
               // use unsigned char (8 bit), we only need values 0 and 1
               CIdExpression mutexLocked =
                   SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-                      true, SeqSimpleType.UNSIGNED_CHAR, varName, SeqInitializer.INT_0);
+                      true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializer.INT_0);
               CBinaryExpression notLockedExpression =
                   pBinaryExpressionBuilder.buildBinaryExpression(
                       mutexLocked, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
@@ -95,7 +95,7 @@ public class ThreadSynchronizationVariableBuilders {
       CIdExpression sync =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
               // TODO a thread could also start with pthread_mutex_lock -> initialize with 1
-              true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
+              true, CNumericTypes.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
       rSyncVariables.put(thread, sync);
     }
     return rSyncVariables.buildOrThrow();

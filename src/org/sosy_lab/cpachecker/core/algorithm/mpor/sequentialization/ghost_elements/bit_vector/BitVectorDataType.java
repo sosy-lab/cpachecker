@@ -11,15 +11,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public enum BitVectorDataType {
-  __UINT8_T(8, SeqSimpleType.UNSIGNED_CHAR),
-  __UINT16_T(16, SeqSimpleType.UNSIGNED_SHORT_INT),
-  __UINT32_T(32, SeqSimpleType.UNSIGNED_INT),
-  __UINT64_T(64, SeqSimpleType.UNSIGNED_LONG_INT);
+  __UINT8_T(8, CNumericTypes.UNSIGNED_CHAR),
+  __UINT16_T(16, CNumericTypes.UNSIGNED_SHORT_INT),
+  __UINT32_T(32, CNumericTypes.UNSIGNED_INT),
+  __UINT64_T(64, CNumericTypes.UNSIGNED_LONG_INT);
 
   public final int size;
   public final CSimpleType simpleType;

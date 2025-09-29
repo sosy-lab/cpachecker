@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -42,8 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqPointerType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -254,7 +254,7 @@ public class ThreadBuilder {
         String name = SeqNameUtil.buildStartRoutineExitVariableName(pOptions, pThreadCFA.threadId);
         CVariableDeclaration declaration =
             SeqDeclarationBuilder.buildVariableDeclaration(
-                true, SeqPointerType.VOID_POINTER, name, null);
+                true, CPointerType.POINTER_TO_VOID, name, null);
         CIdExpression startRoutineExitVariable =
             SeqExpressionBuilder.buildIdExpression(declaration);
         return Optional.of(startRoutineExitVariable);
@@ -305,7 +305,7 @@ public class ThreadBuilder {
       CVariableDeclaration declaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               false,
-              pOptions.nondeterminismSigned ? SeqSimpleType.INT : SeqSimpleType.UNSIGNED_INT,
+              pOptions.nondeterminismSigned ? CNumericTypes.INT : CNumericTypes.UNSIGNED_INT,
               variableName,
               SeqInitializer.INT_0);
       CIdExpression KVariable = SeqExpressionBuilder.buildIdExpression(declaration);
