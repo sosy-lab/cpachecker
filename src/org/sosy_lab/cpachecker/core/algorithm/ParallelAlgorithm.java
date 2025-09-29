@@ -19,7 +19,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -98,6 +100,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               + " corresponding configuration is ignored.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
+
+  private static final String REFINABLE_ANNOT = "refinable";
+  private static final String SUPPLY_REACHED_ANNOT = "supply-reached";
+  private static final String IGNORE_RESULT_ANNOT = "ignore-result";
+  private static final Set<String> VALID_ANNOTATIONS =
+      ImmutableSet.of(REFINABLE_ANNOT, SUPPLY_REACHED_ANNOT, IGNORE_RESULT_ANNOT);
 
   private Set<String> ignoredConfigs = new LinkedHashSet<>();
 
@@ -252,8 +260,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final AnnotatedValue<Path> pSingleConfigFileName)
       throws InvalidConfigurationException, InterruptedException {
     final Path singleConfigFileName = pSingleConfigFileName.value();
-    boolean supplyReached = false;
-    boolean refineAnalysis = false;
+    final boolean supplyReached;
+    final boolean refineAnalysis;
 
     final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
     if (singleConfig == null) {
@@ -268,30 +276,28 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     if (pSingleConfigFileName.annotation().isPresent()) {
       // separate each annotation by the delimiter ':'
       // a workaround to handle multiple annotations
-      Iterable<String> annotations =
-          Splitter.on(':')
-              .trimResults() // remove whitespace
-              .omitEmptyStrings() // skip empty entries
-              .split(pSingleConfigFileName.annotation().orElseThrow());
-      for (String annotation : annotations) {
-        switch (annotation) {
-          case "refinable" -> {
-            refineAnalysis = true;
-          }
-          case "supply-reached" -> {
-            supplyReached = true;
-          }
-          case "ignore-result" -> {
-            ignoredConfigs.add(singleConfigFileName.toString());
-          }
-          default ->
-              throw new InvalidConfigurationException(
-                  String.format(
-                      "Annotation %s is not valid for config %s in option"
-                          + " parallelAlgorithm.configFiles",
-                      pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
-        }
+      Set<String> annotations =
+          ImmutableSet.copyOf(
+              Splitter.on(':')
+                  .trimResults() // remove whitespace
+                  .omitEmptyStrings() // skip empty entries
+                  .split(pSingleConfigFileName.annotation().orElseThrow()));
+      Set<String> invalidAnnotations = Sets.difference(annotations, VALID_ANNOTATIONS);
+      if (!invalidAnnotations.isEmpty()) {
+        throw new InvalidConfigurationException(
+            String.format(
+                "The following annotations are not valid for config %s in option"
+                    + " parallelAlgorithm.configFiles: %s.",
+                pSingleConfigFileName.value(), invalidAnnotations));
       }
+      refineAnalysis = annotations.contains(REFINABLE_ANNOT);
+      supplyReached = annotations.contains(SUPPLY_REACHED_ANNOT);
+      if (annotations.contains(IGNORE_RESULT_ANNOT)) {
+        ignoredConfigs.add(singleConfigFileName.toString());
+      }
+    } else {
+      refineAnalysis = false;
+      supplyReached = false;
     }
 
     final ResourceLimitChecker singleAnalysisOverallLimit =
@@ -316,8 +322,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
     }
 
-    final boolean supplyReachedFinal = supplyReached;
-    final boolean refineAnalysisFinal = refineAnalysis;
     AtomicBoolean terminated = new AtomicBoolean(false);
     StatisticsEntry statisticsEntry =
         stats.getNewSubStatistics(reached, singleConfigFileName.toString(), terminated);
@@ -328,8 +332,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             reached,
             singleLogger,
             cpa,
-            supplyReachedFinal,
-            refineAnalysisFinal,
+            supplyReached,
+            refineAnalysis,
             coreComponents,
             singleAnalysisOverallLimit,
             terminated,
