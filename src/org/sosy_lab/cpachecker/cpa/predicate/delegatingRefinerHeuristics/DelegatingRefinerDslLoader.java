@@ -131,7 +131,7 @@ final class DelegatingRefinerDslLoader {
         List<String> tagParts =
             Splitter.on(':').limit(2).trimResults().splitToList(line.replace(",", ""));
         if (tagParts.size() == 2) {
-          tags.put(tagParts.get(0), tagParts.get(1));
+          tags.put(tagParts.getFirst(), tagParts.get(1));
         }
       }
     }

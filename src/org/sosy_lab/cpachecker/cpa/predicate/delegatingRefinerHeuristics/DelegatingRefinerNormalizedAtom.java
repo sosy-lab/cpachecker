@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
+import com.google.common.base.Strings;
+
 /**
  * Represents a normalized atomic formula created by the DelegatingRefinerAtomNormalizer. Each atom
  * encodes a canonical expression with a left operand, an operator and an optional right operand.
@@ -16,23 +18,16 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 record DelegatingRefinerNormalizedAtom(String leftAtom, String operator, String rightAtom) {
   String toSExpr() {
     if (operator.equals("and") || operator.equals("or")) {
-      if (rightAtom != null && !rightAtom.isEmpty()) {
+      if (!Strings.isNullOrEmpty(rightAtom)) {
         return "(" + operator + " " + leftAtom + " " + rightAtom + ")";
       }
       return "(" + operator + " " + leftAtom + ")";
     }
 
-    if (rightAtom != null && !rightAtom.isEmpty()) {
+    if (!Strings.isNullOrEmpty(rightAtom)) {
       return "(" + operator + " " + leftAtom + " " + rightAtom + ")";
     }
 
     return "(" + operator + " " + leftAtom + ")";
-  }
-
-  String toExpr() {
-    if (rightAtom != null && !rightAtom.isEmpty()) {
-      return leftAtom + " " + operator + " " + rightAtom;
-    }
-    return operator + " " + leftAtom;
   }
 }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
@@ -102,7 +103,7 @@ class DelegatingRefinerAtomNormalizer
     try {
 
       String shortString = formulaManager.visit(pFormula, operandFinder);
-      if (shortString != null && !shortString.isEmpty()) {
+      if (!Strings.isNullOrEmpty(shortString)) {
         return shortString;
       }
     } catch (ClassCastException e) {
@@ -195,7 +196,7 @@ class DelegatingRefinerAtomNormalizer
 
   private ImmutableList<DelegatingRefinerNormalizedAtom> handleBinary(
       String pOperator, List<Formula> pList) {
-    String leftAtom = normalizeOperand(pList.get(0));
+    String leftAtom = normalizeOperand(pList.getFirst());
     String rightAtom = normalizeOperand(pList.get(1));
     DelegatingRefinerNormalizedAtom atom =
         new DelegatingRefinerNormalizedAtom(leftAtom, pOperator, rightAtom);
