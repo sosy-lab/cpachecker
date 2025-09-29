@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -77,16 +76,6 @@ public class DistributedValueAnalysisCPA
     combinePrecisionOperator = new CombineValuePrecisionOperator();
     coverageOperator = new ValueStateCoverageOperator(formulaManager);
     blockNode = pBlockNode;
-
-    int blockNodeId = 0;
-    if (blockNode.getId().startsWith("L"))
-      blockNodeId = Integer.parseInt(blockNode.getId().substring(1)) * 100 + 1;
-    if (blockNode.getId().startsWith("MH"))
-      blockNodeId = Integer.parseInt(blockNode.getId().substring(2)) * 100 + 2;
-    if (blockNode.getId().startsWith("MV"))
-      blockNodeId = Integer.parseInt(blockNode.getId().substring(2)) * 100 + 3;
-
-    SymbolicValueFactory.setIdCounter(blockNodeId << 16);
   }
 
   @Override
