@@ -33,7 +33,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
@@ -154,7 +157,9 @@ public class InvariantExchangeFormatTransformer {
               cfa.getMainFunction().getFileLocation(),
               false,
               CStorageClass.AUTO,
-              scope.lookupVariable(nameOfTheVariableInProgram).getType(),
+              scope.lookupVariable(nameOfTheVariableInProgram) != null ?
+                scope.lookupVariable(nameOfTheVariableInProgram).getType() :
+                CNumericTypes.LONG_LONG_INT,
               "main::" + prevVariable,
               "main::" + prevVariable,
               "main::" + prevVariable,
