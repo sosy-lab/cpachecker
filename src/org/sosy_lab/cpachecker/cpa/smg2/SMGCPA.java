@@ -94,7 +94,7 @@ public class SMGCPA
       toUppercase = true,
       values = {"SEP", "JOIN"},
       description = "which merge operator to use for the SMGCPA")
-  private String mergeType = "SEP";
+  private String mergeType = "JOIN";
 
   @Option(secure = true, description = "get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
