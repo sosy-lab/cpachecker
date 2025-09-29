@@ -100,6 +100,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   private InvariantEntry processRankingFunction(
       RankingFunction pRankingFunction, CFANode pLoopHead) {
     List<String> transitionInvariants = new ArrayList<>();
+    final String TMP_KEYWORD = "__CPAchecker_TMP";
     Optional<IterationElement> iterationStructure =
         getASTStructure().getTightestIterationStructureForNode(pLoopHead);
     if (iterationStructure.isEmpty()) {
@@ -128,7 +129,11 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
                     rankingFunction.getVariables(),
                     LONG_LONG_CAST,
                     ")"));
-        transitionInvariants.add(prevRank + " > " + currentRank);
+        if (prevRank.contains(TMP_KEYWORD)) {
+          transitionInvariants.add("true");
+        } else {
+          transitionInvariants.add(prevRank + " > " + currentRank);
+        }
       }
     } else {
       String prevRank =
@@ -145,7 +150,11 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
                   pRankingFunction.getVariables(),
                   LONG_LONG_CAST,
                   ")"));
-      transitionInvariants.add(prevRank + " > " + currentRank);
+      if (prevRank.contains(TMP_KEYWORD)) {
+        transitionInvariants.add("true");
+      } else {
+        transitionInvariants.add(prevRank + " > " + currentRank);
+      }
     }
     return new InvariantEntry(
         TransitionInvariantUtils.removeFunctionFromVarsName(
