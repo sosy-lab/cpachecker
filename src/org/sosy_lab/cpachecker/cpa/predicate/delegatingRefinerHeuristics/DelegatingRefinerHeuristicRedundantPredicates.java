@@ -10,9 +10,12 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
-import java.util.List;
+import com.google.common.collect.Multiset;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -22,34 +25,95 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
-import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
 /**
- * A heuristic which checks for redundancy in the added predicates and returns false if they are
- * above an acceptable threshold.
+ * A heuristic that checks for redundant patterns in the newly added predicates. In order to do so,
+ * the predicates are split into singular atomic formulas, normalized and matched against a set of
+ * declarative DSL rules defining the singular patterns. The heuristic tracks the frequency of each
+ * pattern across all newly added predicates. If any singular pattern dominates beyond the
+ * acceptable redundancy threshold, the heuristic returns false.
  */
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
+  private static final double EPSILON = 0.01;
+
   private final double redundancyThreshold;
   private final FormulaManagerView formulaManager;
   private final LogManager logger;
+  private final DelegatingRefinerAtomNormalizer normalizer;
+  private final DelegatingRefinerDslMatcher matcher;
+
+  private double previousRedundancy = -1.0;
+  private double previousDominantCount = 0.0;
 
   public DelegatingRefinerHeuristicRedundantPredicates(
-      double acceptableRedundancyThreshold,
-      FormulaManagerView pFormulaManager,
+      double pAcceptableRedundancyThreshold,
+      final FormulaManagerView pFormulaManager,
       final LogManager pLogger) {
-    this.redundancyThreshold = acceptableRedundancyThreshold;
+    this.redundancyThreshold = pAcceptableRedundancyThreshold;
     this.formulaManager = checkNotNull(pFormulaManager);
     this.logger = pLogger;
+    normalizer = new DelegatingRefinerAtomNormalizer(formulaManager, logger);
+
+    try {
+      ImmutableList<DelegatingRefinerPatternRule> allPatternRules =
+          DelegatingRefinerDslLoader.loadDsl(
+              Path.of(
+                  "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerHeuristics/redundancyRules.dsl"));
+      this.matcher = new DelegatingRefinerDslMatcher(allPatternRules);
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to load DSL rules for redundancy matching.", e);
+    }
   }
 
   @Override
   public boolean fulfilled(
       UnmodifiableReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
-    PatternNormalizer patternNormalizer = new PatternNormalizer(formulaManager);
-    ImmutableMultiset.Builder<NormalizedPatternType> patternBuilder = ImmutableMultiset.builder();
+
+    ImmutableMultiset.Builder<String> patternFrequencyBuilder = ImmutableMultiset.builder();
+    ImmutableMultiset.Builder<String> categoryFrequencyBuilder = ImmutableMultiset.builder();
+
+    collectAndCategorizePatterns(pDeltas, patternFrequencyBuilder, categoryFrequencyBuilder);
+
+    ImmutableMultiset<String> patternFrequency = patternFrequencyBuilder.build();
+    ImmutableMultiset<String> categoryFrequency = categoryFrequencyBuilder.build();
+
+    logPatterns(patternFrequency, categoryFrequency);
+
+    double maxRedundancyDetected = calculateMaxRedundancy(patternFrequency);
+
+    boolean isRedundancyPlateauing =
+        (previousRedundancy >= 0.0)
+            && (Math.abs(maxRedundancyDetected - previousRedundancy) < EPSILON);
+
+    previousRedundancy = maxRedundancyDetected;
+
+    Multiset.Entry<String> dominantPattern = getMostFrequent(patternFrequency);
+
+    boolean isDominantPatternGrowing = dominantPattern.getCount() > previousDominantCount;
+
+    previousDominantCount = dominantPattern.getCount();
+
+    logger.logf(
+        Level.INFO,
+        "Maximal redundancy: %.2f for threshold %.2f.",
+        maxRedundancyDetected,
+        redundancyThreshold);
+
+    if (patternFrequency.size() > 500 && isRedundancyPlateauing && isDominantPatternGrowing) {
+      logger.logf(
+          Level.INFO,
+          "Redundancy is plateauing at: %.2f and only one pattern is growing at %.2f.",
+          previousRedundancy,
+          previousDominantCount);
+      return false;
+    }
+    return maxRedundancyDetected <= redundancyThreshold;
+  }
+
+  private void collectAndCategorizePatterns(
+      ImmutableList<ReachedSetDelta> pDeltas,
+      ImmutableMultiset.Builder<String> pPatternBuilder,
+      ImmutableMultiset.Builder<String> pCategoryBuilder) {
 
     for (ReachedSetDelta delta : pDeltas) {
       for (AbstractState pState : delta.getAddedStates()) {
@@ -58,212 +122,89 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
         if (predState.isAbstractionState()) {
           BooleanFormula abstractionFormula = predState.getAbstractionFormula().asFormula();
-          NormalizedPatternType normalizedPattern =
-              formulaManager.visit(abstractionFormula, patternNormalizer);
-          patternBuilder.add(normalizedPattern);
+          ImmutableList<DelegatingRefinerNormalizedAtom> atoms =
+              normalizer.normalizeFormula(abstractionFormula);
+
+          for (DelegatingRefinerNormalizedAtom atom : atoms) {
+            processAtom(atom, pPatternBuilder, pCategoryBuilder);
+          }
         }
       }
     }
+  }
 
-    ImmutableMultiset<NormalizedPatternType> patternSequence = patternBuilder.build();
-    int totalNumberPatterns = patternSequence.size();
-    if (totalNumberPatterns == 0) {
-      return true;
-    }
-
-    int maxPatternCount = 0;
-    NormalizedPatternType maxPatternName = null;
-
-    for (NormalizedPatternType pattern : patternSequence.elementSet()) {
-      int patternCount = patternSequence.count(pattern);
-
-      if (patternCount > maxPatternCount) {
-        maxPatternCount = patternCount;
-        maxPatternName = pattern;
+  private void processAtom(
+      DelegatingRefinerNormalizedAtom atom,
+      ImmutableCollection.Builder<String> pPatternBuilder,
+      ImmutableCollection.Builder<String> pCategoryBuilder) {
+    String sExpr = atom.toSExpr();
+    for (String subAtom : DelegatingRefinerDslMatcher.extractAtoms(sExpr)) {
+      DelegatingRefinerNormalizedFormula normalizedFormula = matcher.applyPatternRule(subAtom);
+      if (normalizedFormula != null) {
+        pPatternBuilder.add(normalizedFormula.id());
+        pCategoryBuilder.add(normalizedFormula.category());
+      } else {
+        logger.logf(Level.FINEST, "No rule matched formula: %s.", atom);
       }
     }
+  }
 
-    double dominanceRate = (double) maxPatternCount / totalNumberPatterns;
-
-    if (maxPatternName != null) {
+  private void logPatterns(
+      ImmutableMultiset<String> pPatternFrequency, ImmutableMultiset<String> pCategoryFrequency) {
+    for (Multiset.Entry<String> pattern : pPatternFrequency.entrySet()) {
       logger.logf(
           Level.FINEST,
-          "Checking current redundancy rate in predicates: %.2f. Most redundant pattern is %s.",
-          dominanceRate,
-          checkNotNull(maxPatternName.describeForLogs()));
-    } else {
-      logger.logf(
-          Level.FINEST,
-          "Checking current redundancy rate in predicates: %.2f. No dominant pattern found.",
-          dominanceRate);
+          "Pattern %s was registered %d number of times.",
+          pattern.getElement(),
+          pattern.getCount());
     }
 
-    logger.logf(
-        Level.FINEST,
-        "Redundancy rate in predicates is too high: %.2f. Heuristic REDUNDANT_PREDICATES is no"
-            + " longer applicable.",
-        dominanceRate);
-    return dominanceRate <= redundancyThreshold;
+    for (Multiset.Entry<String> category : pCategoryFrequency.entrySet()) {
+      logger.logf(
+          Level.FINEST,
+          "Pattern %s was registered %d number of times.",
+          category.getElement(),
+          category.getCount());
+    }
+
+    Multiset.Entry<String> dominantCategory = getMostFrequent(pCategoryFrequency);
+    if (dominantCategory != null) {
+      logger.logf(Level.FINEST, "Dominant category is %s.", dominantCategory);
+    }
+
+    Multiset.Entry<String> dominantPattern = getMostFrequent(pPatternFrequency);
+    if (dominantPattern != null) {
+      logger.logf(
+          Level.FINEST,
+          "Dominant pattern is %s for %s.",
+          dominantPattern,
+          pPatternFrequency.size());
+    }
+  }
+
+  private double calculateMaxRedundancy(ImmutableMultiset<String> pPatternFrequency) {
+    int totalPatterns = pPatternFrequency.size();
+    if (totalPatterns == 0) {
+      return 0.0;
+    }
+    Multiset.Entry<String> dominantPattern = getMostFrequent(pPatternFrequency);
+    if (dominantPattern == null) {
+      return 0.0;
+    }
+    return (double) dominantPattern.getCount() / totalPatterns;
+  }
+
+  private <T> Multiset.Entry<T> getMostFrequent(ImmutableMultiset<T> pMultiset) {
+    Multiset.Entry<T> dominant = null;
+    for (Multiset.Entry<T> entry : pMultiset.entrySet()) {
+      if (dominant == null || entry.getCount() > dominant.getCount()) {
+        dominant = entry;
+      }
+    }
+    return dominant;
   }
 
   public double getRedundancyThreshold() {
     return redundancyThreshold;
-  }
-
-  private enum NormalizedPatternType {
-    CONST_ONLY,
-    CONST_AND_VAR,
-    EQ_VAR_VAR,
-    NESTED_AND,
-    NESTED_OR,
-    NEGATION,
-    BITVECTOR_OP,
-    QUANTIFIED,
-    OTHER;
-
-    private String describeForLogs() {
-      return switch (this) {
-        case CONST_ONLY -> "only predicates with constants";
-        case CONST_AND_VAR -> "predicates that mix constants and variables";
-        case EQ_VAR_VAR -> "predicates with equality between variables";
-        case NESTED_AND -> "predicates with nested conjunctions";
-        case NESTED_OR -> "predicates with nested disjunctions";
-        case NEGATION -> "Negated predicates";
-        case BITVECTOR_OP -> "predicates with bitvector operations";
-        case QUANTIFIED -> "Quantified formulas";
-        case OTHER -> "Other, not classified predicates";
-      };
-    }
-  }
-
-  private static class PatternNormalizer implements FormulaVisitor<NormalizedPatternType> {
-    private final FormulaManagerView formulaManager;
-
-    private PatternNormalizer(FormulaManagerView pFormulaManager) {
-      this.formulaManager = checkNotNull(pFormulaManager);
-    }
-
-    private boolean isNot(String pS) {
-      return "not".equals(pS);
-    }
-
-    private boolean isEqual(String pS) {
-      return "eq".equals(pS);
-    }
-
-    private boolean isOr(String pS) {
-      return "or".equals(pS);
-    }
-
-    private boolean isAnd(String pS) {
-      return "and".equals(pS);
-    }
-
-    private String transformOperator(FunctionDeclaration<?> pFunctionDeclaration) {
-      String raw = pFunctionDeclaration.getName();
-      if (raw.startsWith("`") && raw.endsWith("`") && raw.length() > 1) {
-        raw = raw.substring(1, raw.length() - 1);
-      }
-
-      if (raw.startsWith("=_T")) {
-        return "eq";
-      }
-      if (raw.startsWith("bv")) {
-        return "bitvector";
-      }
-      int position = raw.length() - 1;
-      boolean hasDigit = false;
-      while (position >= 0 && Character.isDigit(raw.charAt(position))) {
-        hasDigit = true;
-        position--;
-      }
-      if (hasDigit && position >= 0 && raw.charAt(position) == '_') {
-        raw = raw.substring(0, position);
-      }
-      return raw;
-    }
-
-    private NormalizedPatternType classifyFunction(String operand, List<Formula> pList) {
-      // Classify negations and bitvector operations first
-      if (isNot(operand)) {
-        return NormalizedPatternType.NEGATION;
-      }
-
-      if ("bitvector".equals(operand)) {
-        return NormalizedPatternType.BITVECTOR_OP;
-      }
-
-      // Count remaining patterns
-      int constCount = 0;
-      int varCount = 0;
-      boolean nestedAnd = false;
-      boolean nestedOr = false;
-
-      for (Formula toVisit : pList) {
-        NormalizedPatternType sub = formulaManager.visit(toVisit, this);
-
-        switch (sub) {
-          case CONST_ONLY -> constCount++;
-          case CONST_AND_VAR -> {
-            constCount++;
-            varCount++;
-          }
-          case EQ_VAR_VAR, OTHER -> varCount++;
-          case NESTED_AND -> nestedAnd = true;
-          case NESTED_OR -> nestedOr = true;
-          default -> {}
-        }
-      }
-
-      // Classify remaining pattern based on count and operators
-      if (constCount == pList.size()) {
-        return NormalizedPatternType.CONST_ONLY;
-      }
-      if (constCount > 0 && varCount > 0) {
-        return NormalizedPatternType.CONST_AND_VAR;
-      }
-      if (isEqual(operand) && pList.size() == 2 && constCount == 0) {
-        return NormalizedPatternType.EQ_VAR_VAR;
-      }
-      if (isAnd(operand) && nestedAnd) {
-        return NormalizedPatternType.NESTED_AND;
-      }
-      if (isOr(operand) && nestedOr) {
-        return NormalizedPatternType.NESTED_OR;
-      }
-      return NormalizedPatternType.OTHER;
-    }
-
-    @Override
-    public NormalizedPatternType visitFreeVariable(Formula pFormula, String pS) {
-      return NormalizedPatternType.OTHER;
-    }
-
-    @Override
-    public NormalizedPatternType visitBoundVariable(Formula pFormula, int pI) {
-      return NormalizedPatternType.OTHER;
-    }
-
-    @Override
-    public NormalizedPatternType visitConstant(Formula pFormula, Object pO) {
-      return NormalizedPatternType.CONST_ONLY;
-    }
-
-    @Override
-    public NormalizedPatternType visitFunction(
-        Formula pFormula, List<Formula> pList, FunctionDeclaration<?> pFunctionDeclaration) {
-      String operand = transformOperator(pFunctionDeclaration);
-      return classifyFunction(operand, pList);
-    }
-
-    @Override
-    public NormalizedPatternType visitQuantifier(
-        BooleanFormula pBooleanFormula,
-        Quantifier pQuantifier,
-        List<Formula> pList,
-        BooleanFormula pBooleanFormula1) {
-
-      return NormalizedPatternType.QUANTIFIED;
-    }
   }
 }
