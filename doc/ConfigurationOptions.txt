@@ -3473,7 +3473,7 @@ cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 cpa.smg2.memoryErrors = true
 
 # which merge operator to use for the SMGCPA
-cpa.smg2.merge = "SEP"
+cpa.smg2.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
 # Whether to perform SAT checks only for the last added constraint
