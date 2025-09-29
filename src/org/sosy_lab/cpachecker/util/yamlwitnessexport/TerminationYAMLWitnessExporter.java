@@ -124,8 +124,8 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         String currentRank =
             rightSideOfRankingFunction(
                 wrapTheVariablesWithAdditionalContext(
-                    pRankingFunction.toString(),
-                    pRankingFunction.getVariables(),
+                    rankingFunction.toString(),
+                    rankingFunction.getVariables(),
                     LONG_LONG_CAST,
                     ")"));
         transitionInvariants.add(prevRank + " > " + currentRank);
