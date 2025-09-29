@@ -175,7 +175,7 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
     Set<BooleanFormula> invariantInDNF = bfmgr.toDisjunctionArgs(pFormula, true);
 
     for (BooleanFormula candidateInvariant : invariantInDNF) {
-      if (!isTheFormulaSimplyWellFounded(candidateInvariant)) {
+      if (!isTheFormulaSimplyWellFounded(candidateInvariant, pSupportingInvariants)) {
         return false;
       }
     }
@@ -186,26 +186,30 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
    * Checks whether the formula is simply well-founded, i.e. T(s,s) holds. We can do it as R^+ => T
    * means that T(s,s) violates well-foundedness on reachable states.
    */
-  private boolean isTheFormulaSimplyWellFounded(BooleanFormula pFormula)
+  private boolean isTheFormulaSimplyWellFounded(BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants)
       throws InterruptedException {
     pFormula =
         fmgr.instantiate(
             pFormula,
             TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 1, fmgr, scope));
-    pFormula =
-        bfmgr.implication(
-            TransitionInvariantUtils.makeStatesEquivalent(pFormula, pFormula, 1, 1, bfmgr, fmgr),
-            pFormula);
+    BooleanFormula sameState = TransitionInvariantUtils.makeStatesEquivalent(pFormula, pFormula, 1, 1, bfmgr, fmgr);
+    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+      SSAMap ssaMap =
+          TransitionInvariantUtils.setIndicesToDifferentValues(
+              supportingInvariant, 1, 1, fmgr, scope);
+      sameState = bfmgr.and(sameState, fmgr.instantiate(supportingInvariant, ssaMap));
+    }
+    pFormula = bfmgr.and(sameState, pFormula);
 
     try {
       // Checks well-foundedness as
-      if (solver.isUnsat(bfmgr.not(pFormula))) {
-        return false;
+      if (solver.isUnsat(pFormula)) {
+        return true;
       }
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Disjunctive well-foundedness check failed !");
-      return false;
+      return true;
     }
-    return true;
+    return false;
   }
 }
