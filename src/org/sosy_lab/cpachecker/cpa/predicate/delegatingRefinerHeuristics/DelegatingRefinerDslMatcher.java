@@ -63,13 +63,13 @@ final class DelegatingRefinerDslMatcher {
   // Applies the first matching rule or returns null if none match.
   DelegatingRefinerNormalizedFormula applyPatternRule(String pSmtExpr) {
     for (DelegatingRefinerPatternRule patternRule : patternRules) {
-      Map<String, String> bindings = matchAndExtract(patternRule.getPatternMatch(), pSmtExpr);
+      Map<String, String> bindings = matchAndExtract(patternRule.patternMatch(), pSmtExpr);
       if (bindings != null) {
-        String normalized = substitute(patternRule.getNormalizedPattern(), bindings);
-        String fingerprint = substitute(patternRule.getPatternFingerprint(), bindings);
-        ImmutableMap<String, String> tagged = applyTags(patternRule.getTags(), bindings);
+        String normalized = substitute(patternRule.normalizedPattern(), bindings);
+        String fingerprint = substitute(patternRule.patternFingerprint(), bindings);
+        ImmutableMap<String, String> tagged = applyTags(patternRule.tags(), bindings);
         return new DelegatingRefinerNormalizedFormula(
-            normalized, fingerprint, patternRule.getId(), tagged, patternRule.getCategory());
+            normalized, fingerprint, patternRule.id(), tagged, patternRule.category());
       }
     }
     return null;
