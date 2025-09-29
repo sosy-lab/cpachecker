@@ -168,8 +168,11 @@ public class InvariantExchangeFormatTransformer {
           .addLeavingEdge(
               new CDeclarationEdge(
                   scope.lookupVariable(nameOfTheVariableInProgram) != null
-                    ? scope.lookupVariable(nameOfTheVariableInProgram).getType() + " " + prevVariable + ";"
-                    : "long long " + prevVariable + ";",
+                      ? scope.lookupVariable(nameOfTheVariableInProgram).getType()
+                          + " "
+                          + prevVariable
+                          + ";"
+                      : "long long " + prevVariable + ";",
                   cfa.getMainFunction().getFileLocation(),
                   cfa.getMainFunction(),
                   CFANode.newDummyCFANode(),
