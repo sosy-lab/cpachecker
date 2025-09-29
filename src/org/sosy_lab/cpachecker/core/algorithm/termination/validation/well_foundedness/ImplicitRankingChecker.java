@@ -98,8 +98,11 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       varDeclaration =
           TransitionInvariantUtils.removeFunctionFromVarsName(
               scope.lookupVariable(variable).toString());
-      builder.append(varDeclaration + "\n");
       alreadyDeclaredVars.add(varDeclaration);
+      if (!varDeclaration.contains(";")) {
+        varDeclaration = varDeclaration + ";";
+      }
+      builder.append(varDeclaration + "\n");
     }
     for (String variable : mapNamesToVariables.keySet()) {
       varDeclaration =
