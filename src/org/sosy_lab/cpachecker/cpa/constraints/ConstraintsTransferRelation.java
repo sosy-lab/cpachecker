@@ -516,13 +516,12 @@ public class ConstraintsTransferRelation
         throws CPATransferException, InterruptedException {
 
       assert pStrengtheningState instanceof ConstraintsState;
-      ConstraintsState newState = pStateToStrengthen;
+      if (pStateToStrengthen.equals(pStrengtheningState)) return Optional.empty();
 
+      ConstraintsState newState = pStateToStrengthen;
       for (Constraint constraint : ((ConstraintsState) pStrengtheningState)) {
         newState = newState.copyWithNew(constraint);
       }
-
-      if (pStateToStrengthen.equals(newState)) return Optional.empty();
 
       try {
         newState = getIfSatisfiable(newState, functionName, solver);
