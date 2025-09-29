@@ -110,8 +110,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description = "set the C formatting style preset used by clang-format, if enabled.")
   private ClangFormatStyle formatStyle = ClangFormatStyle.WEBKIT;
 
-  @Option(secure = true, description = "include original function declarations from input file?")
-  private boolean inputFunctionDeclarations = false;
+  @Option(
+      description =
+          "include original function declarations from input file? excluding them may result in"
+              + " syntax errors for programs that use function pointers.")
+  private boolean inputFunctionDeclarations = true;
 
   // TODO make this secure by checking if all types for all variables are included
   @Option(description = "include original type declarations from input file?")

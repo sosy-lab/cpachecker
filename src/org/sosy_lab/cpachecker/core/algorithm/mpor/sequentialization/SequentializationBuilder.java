@@ -10,11 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -34,11 +31,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -75,56 +70,6 @@ public class SequentializationBuilder {
       }
     }
     return rOriginalDeclarations.build();
-  }
-
-  // Empty Function Declarations ===================================================================
-
-  public static ImmutableList<String> buildEmptyInputFunctionDeclarations(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
-    Set<CFunctionDeclaration> visited = new HashSet<>();
-    ImmutableList.Builder<String> rEmptyFunctionDeclarations = ImmutableList.builder();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      for (CFunctionDeclaration functionDeclaration : substituteEdge.accessedFunctionPointers) {
-        if (visited.add(functionDeclaration)) {
-          rEmptyFunctionDeclarations.add(
-              buildEmptyFunctionDefinitionFromDeclaration(functionDeclaration));
-        }
-      }
-    }
-    return rEmptyFunctionDeclarations.build();
-  }
-
-  private static String buildEmptyFunctionDefinitionFromDeclaration(
-      CFunctionDeclaration pDeclaration) {
-
-    StringBuilder rDeclaration = new StringBuilder();
-    rDeclaration.append(pDeclaration.getType().getReturnType().toASTString(""));
-    rDeclaration.append(SeqSyntax.SPACE);
-    rDeclaration.append(pDeclaration.getOrigName());
-    // add parameters either with original or generic name, if rDeclaration without names
-    rDeclaration.append(SeqSyntax.BRACKET_LEFT);
-    for (int i = 0; i < pDeclaration.getParameters().size(); i++) {
-      CParameterDeclaration parameter = pDeclaration.getParameters().get(i);
-      rDeclaration
-          .append(parameter.getType().getCanonicalType().toASTString(""))
-          .append(SeqSyntax.SPACE);
-      if (parameter.getName().isEmpty()) {
-        rDeclaration.append(
-            SeqNameUtil.buildParameterNameForEmptyFunctionDefinition(pDeclaration, i));
-      } else {
-        rDeclaration.append(parameter.getOrigName());
-      }
-      if (i != pDeclaration.getParameters().size() - 1) {
-        rDeclaration.append(SeqSyntax.COMMA).append(SeqSyntax.SPACE);
-      }
-    }
-    rDeclaration.append(SeqSyntax.BRACKET_RIGHT);
-    // no body, only {}. the parser still accepts it, even with e.g. int return type
-    rDeclaration.append(SeqSyntax.SPACE);
-    rDeclaration.append(SeqSyntax.CURLY_BRACKET_LEFT);
-    rDeclaration.append(SeqSyntax.CURLY_BRACKET_RIGHT);
-    return rDeclaration.toString();
   }
 
   // Input Variable Declarations ===================================================================

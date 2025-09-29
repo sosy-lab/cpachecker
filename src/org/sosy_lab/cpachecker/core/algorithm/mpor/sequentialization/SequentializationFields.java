@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SequentializationFields {
 
+  private final CFA inputCfa;
+
   public final int numThreads;
 
   /** The list of threads in the program, including the main thread and all pthreads. */
@@ -60,17 +62,18 @@ public class SequentializationFields {
   // TODO split into separate function so that unit tests create only what they test
   SequentializationFields(
       MPOROptions pOptions,
-      CFA pCfa,
+      CFA pInputCfa,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    threads = ThreadBuilder.createThreads(pOptions, pCfa);
+    inputCfa = pInputCfa;
+    threads = ThreadBuilder.createThreads(pOptions, pInputCfa);
     numThreads = threads.size();
     substitutions =
         MPORSubstitutionBuilder.buildSubstitutions(
             pOptions,
-            CFAUtils.getGlobalVariableDeclarations(pCfa),
+            CFAUtils.getGlobalVariableDeclarations(pInputCfa),
             threads,
             pBinaryExpressionBuilder,
             pLogger);
@@ -98,5 +101,9 @@ public class SequentializationFields {
             ghostElements,
             pBinaryExpressionBuilder,
             pLogger);
+  }
+
+  public CFA getInputCfa() {
+    return inputCfa;
   }
 }

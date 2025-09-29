@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -91,10 +90,6 @@ public class MPORSubstitutionTrackerUtil {
           pFrom.getWrittenFieldMembers().get(fieldOwner)) {
         pTo.addWrittenFieldMember(fieldOwner, fieldMember);
       }
-    }
-    // function pointers
-    for (CFunctionDeclaration functionDeclaration : pFrom.getAccessedFunctionPointers()) {
-      pTo.addAccessedFunctionPointer(functionDeclaration);
     }
   }
 

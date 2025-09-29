@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -56,10 +55,6 @@ public class SubstituteEdge {
 
   public final ImmutableSet<MemoryLocation> writtenMemoryLocations;
 
-  // FUNCTION POINTERS =============================================================================
-
-  public final ImmutableSet<CFunctionDeclaration> accessedFunctionPointers;
-
   private SubstituteEdge(
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
@@ -68,8 +63,7 @@ public class SubstituteEdge {
       ImmutableSet<MemoryLocation> pAccessedPointerDereferences,
       ImmutableSet<MemoryLocation> pWrittenPointerDereferences,
       ImmutableSet<MemoryLocation> pAccessedMemoryLocations,
-      ImmutableSet<MemoryLocation> pWrittenMemoryLocations,
-      ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
+      ImmutableSet<MemoryLocation> pWrittenMemoryLocations) {
 
     // TODO maybe make it an optional single entry then? ...
     checkArgument(
@@ -95,8 +89,6 @@ public class SubstituteEdge {
     writtenMemoryLocations = pWrittenMemoryLocations;
     readMemoryLocations =
         Sets.symmetricDifference(writtenMemoryLocations, accessedMemoryLocations).immutableCopy();
-    // functions
-    accessedFunctionPointers = pAccessedFunctionPointers;
   }
 
   public static SubstituteEdge of(CFAEdge pCfaEdge, ThreadEdge pThreadEdge) {
@@ -105,7 +97,6 @@ public class SubstituteEdge {
         pThreadEdge,
         ImmutableSet.of(),
         ImmutableMap.of(),
-        ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
@@ -134,8 +125,7 @@ public class SubstituteEdge {
         SubstituteUtil.getMemoryLocationsByAccessType(
             pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.ACCESS),
         SubstituteUtil.getMemoryLocationsByAccessType(
-            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE),
-        pTracker.getAccessedFunctionPointers());
+            pOptions, pThreadEdge.callContext, pTracker, MemoryAccessType.WRITE));
   }
 
   public ImmutableSet<MemoryLocation> getMemoryLocationsByAccessType(MemoryAccessType pAccessType) {

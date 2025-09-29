@@ -303,8 +303,9 @@ analysis.algorithm.MPOR.formatCode = true
 analysis.algorithm.MPOR.formatStyle = WEBKIT
   enum:     [CHROMIUM, GNU, GOOGLE, LLVM, MICROSOFT, MOZILLA, WEBKIT]
 
-# include original function declarations from input file?
-analysis.algorithm.MPOR.inputFunctionDeclarations = false
+# include original function declarations from input file? excluding them may
+# result in syntax errors for programs that use function pointers.
+analysis.algorithm.MPOR.inputFunctionDeclarations = true
 
 # include original type declarations from input file?
 analysis.algorithm.MPOR.inputTypeDeclarations = true

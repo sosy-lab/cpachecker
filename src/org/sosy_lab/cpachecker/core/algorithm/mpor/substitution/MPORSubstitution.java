@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -153,16 +152,6 @@ public class MPORSubstitution {
               logger);
           return getVariableSubstitute(
               idExpression.getDeclaration(), pIsDeclaration, pCallContext, pTracker);
-        }
-        // when accessing function pointers e.g. &func. this is also possible without the unary
-        // amper
-        // operator '&', but the example tasks used only this expression, so we restrict it.
-        if (pIsUnaryAmper) {
-          if (declaration instanceof CFunctionDeclaration functionDeclaration) {
-            if (pTracker.isPresent()) {
-              pTracker.orElseThrow().addAccessedFunctionPointer(functionDeclaration);
-            }
-          }
         }
       }
       case CBinaryExpression binary -> {

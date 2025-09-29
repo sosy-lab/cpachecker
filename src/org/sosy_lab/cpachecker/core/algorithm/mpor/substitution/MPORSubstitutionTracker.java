@@ -100,11 +100,6 @@ public class MPORSubstitutionTracker {
   private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
       writtenFieldMembers;
 
-  // FUNCTION POINTERS =============================================================================
-
-  /** All accessed function pointers. */
-  private final Set<CFunctionDeclaration> accessedFunctionPointers;
-
   public MPORSubstitutionTracker() {
     accessedMainFunctionArgs = new HashSet<>();
 
@@ -122,8 +117,6 @@ public class MPORSubstitutionTracker {
 
     accessedFieldMembers = HashMultimap.create();
     writtenFieldMembers = HashMultimap.create();
-
-    accessedFunctionPointers = new HashSet<>();
   }
 
   // add methods ===================================================================================
@@ -187,10 +180,6 @@ public class MPORSubstitutionTracker {
       CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pWrittenFieldMember) {
 
     writtenFieldMembers.put(pOwnerDeclaration, pWrittenFieldMember);
-  }
-
-  public void addAccessedFunctionPointer(CFunctionDeclaration pAccessedFunctionPointer) {
-    accessedFunctionPointers.add(pAccessedFunctionPointer);
   }
 
   // getters =======================================================================================
@@ -298,12 +287,6 @@ public class MPORSubstitutionTracker {
     return ImmutableSetMultimap.copyOf(writtenFieldMembers);
   }
 
-  // function pointers
-
-  public ImmutableSet<CFunctionDeclaration> getAccessedFunctionPointers() {
-    return ImmutableSet.copyOf(accessedFunctionPointers);
-  }
-
   @Override
   public int hashCode() {
     return Objects.hash(
@@ -317,8 +300,7 @@ public class MPORSubstitutionTracker {
         accessedDeclarations,
         writtenDeclarations,
         accessedFieldMembers,
-        writtenFieldMembers,
-        accessedFunctionPointers);
+        writtenFieldMembers);
   }
 
   @Override
@@ -339,7 +321,6 @@ public class MPORSubstitutionTracker {
         && accessedDeclarations.equals(other.accessedDeclarations)
         && writtenDeclarations.equals(other.writtenDeclarations)
         && accessedFieldMembers.equals(other.accessedFieldMembers)
-        && writtenFieldMembers.equals(other.writtenFieldMembers)
-        && accessedFunctionPointers.equals(other.accessedFunctionPointers);
+        && writtenFieldMembers.equals(other.writtenFieldMembers);
   }
 }
