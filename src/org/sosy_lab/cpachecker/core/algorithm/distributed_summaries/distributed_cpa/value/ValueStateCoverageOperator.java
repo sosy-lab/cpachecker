@@ -31,9 +31,9 @@ public class ValueStateCoverageOperator implements CoverageOperator {
     BooleanFormula formula2 =
         ((ValueAnalysisState) state2).getFormulaApproximation(formulaManagerView);
 
-    BooleanFormula oneImpliesTwo =
-        formulaManagerView.makeOr(formulaManagerView.makeNot(formula1), formula2);
-    return formulaManagerView.getBooleanFormulaManager().isTrue(oneImpliesTwo);
+    BooleanFormula implies =
+        formulaManagerView.getBooleanFormulaManager().implication(formula1, formula2);
+    return formulaManagerView.getBooleanFormulaManager().isTrue(implies);
   }
 
   @Override

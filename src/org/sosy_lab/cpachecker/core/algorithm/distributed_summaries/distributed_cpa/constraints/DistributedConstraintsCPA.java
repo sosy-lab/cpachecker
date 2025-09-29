@@ -23,6 +23,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DistributedConstraintsCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -35,6 +38,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   private final ProceedConstraintsStateOperator proceedOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final ConstraintsStateCoverageOperator coverageOperator;
+  private final BlockNode blockNode;
 
   public DistributedConstraintsCPA(ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
     constraintsCPA = pConstraintsCPA;
@@ -47,6 +51,7 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
     combinePrecisionOperator = new CombineConstraintsPrecisionOperator();
     coverageOperator =
         new ConstraintsStateCoverageOperator(constraintsCPA, pBlockNode.getInitialLocation());
+    blockNode = pBlockNode;
   }
 
   @Override
@@ -107,10 +112,19 @@ public class DistributedConstraintsCPA implements ForwardingDistributedConfigura
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     ConstraintsState constraintsState = (ConstraintsState) pAbstractState;
-    // What if we have "assume x == x"?
-    // create new "true" state, ask is it is subsumed?
-    return constraintsState.getDefiniteAssignment().isEmpty()
-        && constraintsState.isEmpty();
+    BooleanFormulaManagerView bfm =
+        constraintsCPA.getSolver().getFormulaManager().getBooleanFormulaManager();
+    try {
+      BooleanFormula stateAsFormula1 =
+          bfm.and(
+              constraintsCPA
+                  .getSolver()
+                  .getFullFormula(
+                      constraintsState, blockNode.getInitialLocation().getFunctionName()));
+      return bfm.isTrue(stateAsFormula1);
+    } catch (UnrecognizedCodeException | InterruptedException pE) {
+      throw new AssertionError("Failed creating formula from constraints", pE);
+    }
   }
 
   @Override

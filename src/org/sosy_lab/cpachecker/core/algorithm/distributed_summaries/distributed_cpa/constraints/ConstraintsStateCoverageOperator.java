@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -17,12 +16,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class ConstraintsStateCoverageOperator implements CoverageOperator {
   public final ConstraintsSolver solver;
@@ -41,23 +38,11 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
     Set<Constraint> constraints2 = new HashSet<>((ConstraintsState) state2);
 
     if (constraints2.isEmpty()) return true;
-    return constraints1.equals(constraints2);
+    BooleanFormulaManagerView bfm = solver.getFormulaManager().getBooleanFormulaManager();
+    BooleanFormula stateAsFormula1 = bfm.and(solver.getFullFormula(constraints1, functionName));
+    BooleanFormula stateAsFormula2 = bfm.and(solver.getFullFormula(constraints2, functionName));
 
-    // TODO FIX - this is an overapproximation!!
-/*    HashSet<Constraint> constraints = HashSet.newHashSet(constraints1.size() + constraints2.size());
-
-    constraints.addAll(constraints1);
-    for (Constraint c : constraints2) {
-      constraints.add(new LogicalNotExpression((SymbolicExpression) c, c.getType()));
-    }
-
-    try {
-      SolverResult result =
-          solver.checkUnsatWithFreshSolver(new ConstraintsState(constraints), functionName);
-      return result.isUNSAT();
-    } catch (SolverException pE) {
-      throw new CPAException("Solver failed checking ConstraintState subsumption", pE);
-    } */
+    return bfm.isTrue(bfm.implication(stateAsFormula1, stateAsFormula2));
   }
 
   @Override

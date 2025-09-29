@@ -632,7 +632,7 @@ public class ConstraintsSolver {
    * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
-  private ImmutableSet<BooleanFormula> getFullFormula(
+  public ImmutableSet<BooleanFormula> getFullFormula(
       Collection<Constraint> pConstraints, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
 
