@@ -43,12 +43,30 @@ public class StatementInjector {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
+    // first check shortcuts: are injections necessary?
     if (pMemoryModel.getRelevantMemoryLocationAmount() == 0) {
       pLogger.log(
           Level.INFO,
           "bit vectors are enabled, but the program does not contain any global memory locations.");
       return pClauses; // no relevant memory locations -> no bit vectors needed
     }
+    if (!pOptions.areBitVectorsEnabled()) {
+      return pClauses;
+    }
+    return injectStatements(
+        pOptions, pClauses, pBitVectorVariables, pMemoryModel, pBinaryExpressionBuilder);
+  }
+
+  // Private Methods ===============================================================================
+
+  private static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> injectStatements(
+      MPOROptions pOptions,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      BitVectorVariables pBitVectorVariables,
+      MemoryModel pMemoryModel,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rInjected =
         ImmutableListMultimap.builder();
     for (MPORThread activeThread : pClauses.keySet()) {
@@ -72,8 +90,6 @@ public class StatementInjector {
     }
     return rInjected.build();
   }
-
-  // Private Methods ===============================================================================
 
   private static ImmutableList<SeqThreadStatementClause> injectStatementsIntoClauses(
       MPOROptions pOptions,
@@ -189,18 +205,16 @@ public class StatementInjector {
               pMemoryModel,
               pBinaryExpressionBuilder);
     }
-    if (pOptions.areBitVectorsEnabled()) {
-      // always inject bit vector assignments after evaluations i.e. reductions
-      pStatement =
-          BitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(
-              pOptions,
-              pActiveThread,
-              pStatement,
-              pLabelClauseMap,
-              pLabelBlockMap,
-              pBitVectorVariables,
-              pMemoryModel);
-    }
+    // always inject bit vector assignments after evaluations i.e. reductions
+    pStatement =
+        BitVectorAssignmentInjector.injectBitVectorAssignmentsIntoStatement(
+            pOptions,
+            pActiveThread,
+            pStatement,
+            pLabelClauseMap,
+            pLabelBlockMap,
+            pBitVectorVariables,
+            pMemoryModel);
     return pStatement;
   }
 
