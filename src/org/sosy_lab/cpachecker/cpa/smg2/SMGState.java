@@ -1509,13 +1509,13 @@ public class SMGState
   // states from reached.
   // The other state is some state from the reached-set, and might be the result of a merge with the
   // "this" state.
+  // The "this" state itself might be a recently merged state, as its successor might be merged with
+  // it and the successor might therefore vanish.
   @Override
   public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
     if (this == pOther) {
       return true;
     }
-
-    checkArgument(mergeInfo.isEmpty(), "A successor state can not be the result of a merge");
 
     if (pOther.mergeInfo.isPresent()) {
       // Try to apply info from merge first
