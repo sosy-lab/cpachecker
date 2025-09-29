@@ -357,14 +357,9 @@ public class SeqThreadStatementClauseUtil {
         if (targetNumber.orElseThrow() != Sequentialization.EXIT_PC) {
           SeqThreadStatementBlock target = pLabelBlockMap.get(targetNumber.orElseThrow());
           assert target != null : "target could not be found in map";
-          // non-loop starts are always added as targets,
-          // loop starts are added only once to prevent backward jumps
-          if (!target.isLoopStart() || pVisited.add(target)) {
+          if (!pGraph.containsKey(target)) {
             pGraph.get(pCurrentBlock).add(target);
-            // if the target is a loop start, it is already in pVisited at this location
-            if (target.isLoopStart() || pVisited.add(target)) {
-              recursivelyBuildBlockGraph(target, pGraph, pLabelBlockMap, pVisited);
-            }
+            recursivelyBuildBlockGraph(target, pGraph, pLabelBlockMap, pVisited);
           }
         }
       }
