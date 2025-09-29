@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -750,7 +749,6 @@ public class SMGOptions {
             "threshold for level of determinism, in percent, up-to which abstraction computations "
                 + "are performed (and iteration threshold was reached)")
     @IntegerOption(min = 0, max = 100)
-    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
     private int determinismThreshold = 85;
 
     @Option(

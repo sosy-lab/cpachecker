@@ -13,7 +13,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -97,7 +96,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
   private final StatTimer totalAbstraction;
   private final StatTimer totalEnforcePath;
 
-  @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
   private boolean performPrecisionBasedAbstraction = false;
 
   public SMGPrecisionAdjustment(

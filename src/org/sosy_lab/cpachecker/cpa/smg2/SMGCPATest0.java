@@ -97,8 +97,8 @@ public class SMGCPATest0 {
       mergeOp =
           new SMGMergeOperator(
               new SMGCPAStatistics(), new SMGOptions(Configuration.defaultConfiguration(), null));
-    } catch (InvalidConfigurationException pE) {
-      throw new RuntimeException(pE);
+    } catch (InvalidConfigurationException exception) {
+      throw new RuntimeException(exception);
     }
   }
 

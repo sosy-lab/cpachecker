@@ -2228,10 +2228,8 @@ public class SMGState
     List<SMGObject> thisLookThroughElementsNext = lookThroughList(pointerToThisObj, next);
     List<SMGObject> otherLookThroughElementsNext =
         otherState.lookThroughList(pointerToOtherObj, next);
-    SMGObject lastThisInListNext =
-        thisLookThroughElementsNext.get(thisLookThroughElementsNext.size() - 1);
-    SMGObject lastOtherInListNext =
-        otherLookThroughElementsNext.get(otherLookThroughElementsNext.size() - 1);
+    SMGObject lastThisInListNext = thisLookThroughElementsNext.getLast();
+    SMGObject lastOtherInListNext = otherLookThroughElementsNext.getLast();
     // Loop check (same element twice)
     boolean loopingThis = false;
     if (thisLookThroughElementsNext.size() > 1

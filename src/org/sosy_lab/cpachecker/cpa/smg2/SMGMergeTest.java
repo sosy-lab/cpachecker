@@ -354,7 +354,7 @@ public class SMGMergeTest extends SMGCPATest0 {
   /**
    * @param listLengthToAbortTest if at this length the list can not be abstracted or merged, the
    *     test is aborted.
-   * @param topListSpec specification of the uppermost list. Must be present.
+   * @param topListSpecGen specification of the uppermost list. Must be present.
    * @param nestedListSpecsByNesting specifies nested lists by nesting in the list.
    */
   @SuppressWarnings("all")
@@ -371,10 +371,14 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     SMGState initialState = currentState;
     reached = new ArrayList<>();
+    // Make warning go away
+    // TODO: delete once used
+    assertThat(reached.isEmpty()).isTrue();
 
     // TODO: implement BFS
     assertThat(bfsTrueAndDfsFalse).isFalse();
 
+    /*
     ImmutableMap.Builder<String, Integer> variableAndPointerLocationInListBuilder =
         ImmutableMap.builder();
     if (variableTowardsFirstTopElement.isPresent()) {
@@ -386,11 +390,13 @@ public class SMGMergeTest extends SMGCPATest0 {
     }
     Map<String, Integer> variableAndPointerLocationInList =
         variableAndPointerLocationInListBuilder.buildOrThrow();
+        */
 
+    /*
     int len = 1;
     boolean stop = false;
     while (!stop) {
-      /*
+
       // Nested null, as it is replaced later on
       ListSpec topListSpec = topListSpecGen.create(len, variableAndPointerLocationInList, null);
       stop =
@@ -404,8 +410,8 @@ public class SMGMergeTest extends SMGCPATest0 {
 
       assertThat(len).isLessThan(listLengthToAbortTest);
       len++;
-      */
-    }
+
+    }*/
 
     currentState = initialState;
   }
