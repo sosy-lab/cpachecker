@@ -226,8 +226,8 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
       // only new declarations are added and existing declarations are deleted
       if (ignoreDeclarations) {
 
-        if (pEdgeInGiven instanceof CDeclarationEdge) {
-          if (!declarationNameAlreadyExistsInOtherCFA(true, (CDeclarationEdge) pEdgeInGiven)) {
+        if (pEdgeInGiven instanceof CDeclarationEdge cDeclarationEdge) {
+          if (!declarationNameAlreadyExistsInOtherCFA(true, cDeclarationEdge)) {
             return Optional.of(
                 new ModificationsRcdState(
                     pEdgeInGiven.getSuccessor(),
@@ -391,66 +391,69 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
     VariableIdentifierVisitor visitor = new VariableIdentifierVisitor();
     Set<String> usedVars = new HashSet<>();
 
-    // EdgeType is..
-    if (pEdge instanceof CDeclarationEdge) { // DeclarationEdge
-      CDeclaration decl = ((CDeclarationEdge) pEdge).getDeclaration();
-
-      if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
-        return false;
-      } else if (decl instanceof CVariableDeclaration) {
-        CInitializer initl = ((CVariableDeclaration) decl).getInitializer();
-        if (initl instanceof CInitializerExpression) {
-          usedVars = ((CInitializerExpression) initl).getExpression().accept(visitor);
+    switch (pEdge) {
+      case CDeclarationEdge cDeclarationEdge -> {
+        CDeclaration decl = cDeclarationEdge.getDeclaration();
+        if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
+          return false;
+        } else if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+          CInitializer initl = cVariableDeclaration.getInitializer();
+          if (initl instanceof CInitializerExpression cInitializerExpression) {
+            usedVars = cInitializerExpression.getExpression().accept(visitor);
+          } else {
+            return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+          }
+        }
+      }
+      case CReturnStatementEdge cReturnStatementEdge -> {
+        CExpression exp = cReturnStatementEdge.getExpression().orElse(null);
+        if (exp != null) {
+          usedVars = exp.accept(visitor);
         } else {
-          return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+          return !pVars.isEmpty(); // fallback, shouldn't happen
         }
       }
-
-    } else if (pEdge instanceof CReturnStatementEdge) { // ReturnStatementEdge
-      CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orElse(null);
-      if (exp != null) {
-        usedVars = exp.accept(visitor);
-      } else {
-        return !pVars.isEmpty(); // fallback, shouldn't happen
-      }
-    } else if (pEdge instanceof CAssumeEdge) { // AssumeEdge
-      usedVars = ((CAssumeEdge) pEdge).getExpression().accept(visitor);
-    } else if (pEdge instanceof CStatementEdge) { // StatementEdge
-      CStatement stmt = ((CStatementEdge) pEdge).getStatement();
-
-      if (stmt instanceof CExpressionStatement) {
-        usedVars = ((CExpressionStatement) stmt).getExpression().accept(visitor);
-      } else {
-        if (stmt instanceof CAssignment) {
-          CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
-          if (!(lhs instanceof CIdExpression)) {
-            usedVars.addAll(lhs.accept(visitor));
+      case CAssumeEdge cAssumeEdge -> usedVars = cAssumeEdge.getExpression().accept(visitor);
+      case CStatementEdge cStatementEdge -> {
+        CStatement stmt = cStatementEdge.getStatement();
+        if (stmt instanceof CExpressionStatement cExpressionStatement) {
+          usedVars = cExpressionStatement.getExpression().accept(visitor);
+        } else {
+          if (stmt instanceof CAssignment cAssignment) {
+            CLeftHandSide lhs = cAssignment.getLeftHandSide();
+            if (!(lhs instanceof CIdExpression)) {
+              usedVars.addAll(lhs.accept(visitor));
+            }
+            if (stmt instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+              usedVars.addAll(cExpressionAssignmentStatement.getRightHandSide().accept(visitor));
+            }
           }
-          if (stmt instanceof CExpressionAssignmentStatement) {
-            usedVars.addAll(
-                ((CExpressionAssignmentStatement) stmt).getRightHandSide().accept(visitor));
-          }
-        }
-        if (stmt instanceof CFunctionCall) {
-          CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
-          usedVars.addAll(funCall.getFunctionNameExpression().accept(visitor));
-          for (CExpression exp : funCall.getParameterExpressions()) {
-            usedVars.addAll(exp.accept(visitor));
+          if (stmt instanceof CFunctionCall cFunctionCall) {
+            CFunctionCallExpression funCall = cFunctionCall.getFunctionCallExpression();
+            usedVars.addAll(funCall.getFunctionNameExpression().accept(visitor));
+            for (CExpression exp : funCall.getParameterExpressions()) {
+              usedVars.addAll(exp.accept(visitor));
+            }
           }
         }
       }
-
-    } else if (pEdge instanceof BlankEdge) { // BlankEdge
-      return false;
-    } else if (pEdge instanceof CFunctionCallEdge) { // FunctionCallEdge
-      for (CExpression exp : ((CFunctionCallEdge) pEdge).getArguments()) {
-        usedVars.addAll(exp.accept(visitor));
+      case BlankEdge blankEdge -> {
+        return false;
       }
-    } else if (pEdge instanceof CFunctionSummaryEdge
-        || pEdge instanceof CFunctionReturnEdge) { // CallToReturnEdge, FunctionReturnEdge
-      return false;
-    } else {
-      return !pVars.isEmpty();
+      case CFunctionCallEdge cFunctionCallEdge -> {
+        for (CExpression exp : cFunctionCallEdge.getArguments()) {
+          usedVars.addAll(exp.accept(visitor));
+        }
+      }
+      case CFunctionSummaryEdge summaryEdge -> {
+        return false;
+      }
+      case CFunctionReturnEdge returnEdge -> {
+        return false;
+      }
+      default -> {
+        return !pVars.isEmpty();
+      }
     }
 
     return !Collections.disjoint(usedVars, pVars);

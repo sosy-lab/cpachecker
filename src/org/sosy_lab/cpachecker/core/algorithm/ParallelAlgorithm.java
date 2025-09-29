@@ -22,7 +22,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -152,7 +151,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     ForwardingReachedSet forwardingReachedSet = (ForwardingReachedSet) pReachedSet;
 
     ThreadFactory threadFactory =
-        new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "-thread-%d").build();
+        Thread.ofPlatform().name(getClass().getSimpleName() + "-thread-", 0).factory();
     ListeningExecutorService exec =
         listeningDecorator(newFixedThreadPool(analyses.size(), threadFactory));
 
@@ -206,7 +205,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         }
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
-        if (cause instanceof CPAException) {
+        if (cause instanceof CPAException cPAException) {
           if (cause.getMessage().contains("recursion")) {
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to recursion");
@@ -215,7 +214,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to concurrency");
           }
-          exceptions.add((CPAException) cause);
+          exceptions.add(cPAException);
 
         } else {
           // runParallelAnalysis only declares CPAException, so this is unchecked or unexpected.
@@ -337,18 +336,19 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final StatisticsEntry pStatisticsEntry)
       throws CPAException { // handleFutureResults needs to handle all the exceptions declared here
     try {
-      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
-        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
+      if (algorithm
+          instanceof ConditionAdjustmentEventSubscriber conditionAdjustmentEventSubscriber) {
+        conditionAdjustmentEventSubscribers.add(conditionAdjustmentEventSubscriber);
       }
 
       singleAnalysisOverallLimit.start();
 
-      if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider) cpa).collectStatistics(pStatisticsEntry.subStatistics);
+      if (cpa instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(pStatisticsEntry.subStatistics);
       }
 
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(pStatisticsEntry.subStatistics);
+      if (algorithm instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(pStatisticsEntry.subStatistics);
       }
 
       try {
@@ -526,16 +526,16 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       analysisName = pAnalysisName;
     }
 
-    public static ParallelAnalysisResult of(
+    static ParallelAnalysisResult of(
         ReachedSet pReached, AlgorithmStatus pStatus, String pAnalysisName) {
       return new ParallelAnalysisResult(pReached, pStatus, pAnalysisName);
     }
 
-    public static ParallelAnalysisResult absent(String pAnalysisName) {
+    static ParallelAnalysisResult absent(String pAnalysisName) {
       return new ParallelAnalysisResult(null, null, pAnalysisName);
     }
 
-    public boolean hasValidReachedSet() {
+    boolean hasValidReachedSet() {
       if (reached == null || status == null) {
         return false;
       }
@@ -547,15 +547,15 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                   .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
     }
 
-    public @Nullable ReachedSet getReached() {
+    @Nullable ReachedSet getReached() {
       return reached;
     }
 
-    public @Nullable AlgorithmStatus getStatus() {
+    @Nullable AlgorithmStatus getStatus() {
       return status;
     }
 
-    public String getAnalysisName() {
+    String getAnalysisName() {
       return analysisName;
     }
   }
@@ -572,7 +572,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       writeUnsuccessfulAnalysisFiles = pWriteUnsuccessfulAnalysisFiles;
     }
 
-    public synchronized StatisticsEntry getNewSubStatistics(
+    synchronized StatisticsEntry getNewSubStatistics(
         ReachedSet pReached, String pName, AtomicBoolean pTerminated) {
       Collection<Statistics> subStats = new CopyOnWriteArrayList<>();
       StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pTerminated);

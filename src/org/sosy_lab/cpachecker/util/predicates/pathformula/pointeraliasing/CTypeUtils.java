@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 /** Utility class with helper methods for CTypes. */
 class CTypeUtils {
@@ -28,8 +29,7 @@ class CTypeUtils {
   private CTypeUtils() {}
 
   private static final CachingCanonizingCTypeVisitor typeVisitor =
-      new CachingCanonizingCTypeVisitor(
-          /* ignoreConst= */ true, /* ignoreVolatile= */ true, /* ignoreSignedness= */ false);
+      new CachingCanonizingCTypeVisitor(/* ignoreSignedness= */ false);
 
   /** Return the length of an array, honoring the options for maximum and default array length. */
   static int getArrayLength(CArrayType t, FormulaEncodingWithPointerAliasingOptions options) {
@@ -129,19 +129,19 @@ class CTypeUtils {
    */
   static CType getBaseType(CType type) {
     checkIsSimplified(type);
-    if (!(type instanceof CArrayType)) {
-      return new CPointerType(false, false, type);
+    if (!(type instanceof CArrayType cArrayType)) {
+      return new CPointerType(CTypeQualifiers.NONE, type);
     } else {
-      return new CPointerType(false, false, ((CArrayType) type).getType());
+      return new CPointerType(CTypeQualifiers.NONE, cArrayType.getType());
     }
   }
 
   static CType implicitCastToPointer(CType type) {
     checkIsSimplified(type);
-    if (type instanceof CArrayType) {
-      return new CPointerType(false, false, checkIsSimplified(((CArrayType) type).getType()));
+    if (type instanceof CArrayType cArrayType) {
+      return new CPointerType(CTypeQualifiers.NONE, checkIsSimplified(cArrayType.getType()));
     } else if (type instanceof CFunctionType) {
-      return new CPointerType(false, false, type);
+      return new CPointerType(CTypeQualifiers.NONE, type);
     } else {
       return type;
     }
@@ -158,16 +158,17 @@ class CTypeUtils {
 
   /**
    * The code in this package works only with "simplified" types, which have typedefs resolved and
-   * const and volatile removed (as produced by {@link
-   * TypeHandlerWithPointerAliasing#simplifyType(CType)}. This method can be used as an assertion
-   * check that a given type has been simplified.
+   * qualifiers removed (as produced by {@link TypeHandlerWithPointerAliasing#simplifyType(CType)}.
+   * This method can be used as an assertion check that a given type has been simplified.
    *
    * @param type A C-type.
    * @return The same type object, if it is simplified, otherwise an exception is thrown.
    */
   static <T extends CType> T checkIsSimplified(final T type) {
-    checkArgument(!type.isConst(), "Type %s is const but should have been simplified.", type);
-    checkArgument(!type.isVolatile(), "Type %s is volatile but should have been simplified.", type);
+    checkArgument(
+        type.getQualifiers().isEmpty(),
+        "Type %s has qualifiers but should have been simplified.",
+        type);
     // More expensive checks as assertions
     assert type.equals(type.getCanonicalType())
         : "Type " + type + " is not equal to its canonical type but should have been simplified.";

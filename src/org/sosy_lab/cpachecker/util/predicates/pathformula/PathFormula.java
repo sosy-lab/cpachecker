@@ -160,7 +160,7 @@ public final class PathFormula implements Serializable {
     private final int length;
     private final PointerTargetSet pts;
 
-    public SerializationProxy(PathFormula pPathFormula) {
+    SerializationProxy(PathFormula pPathFormula) {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       formulaDump = mgr.dumpFormula(pPathFormula.formula).toString();

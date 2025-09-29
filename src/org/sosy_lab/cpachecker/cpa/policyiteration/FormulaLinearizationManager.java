@@ -63,7 +63,7 @@ public class FormulaLinearizationManager {
 
             // Pattern matching on (NOT (= A B)).
             if (split.size() == 2) {
-              return bfmgr.or(bfmgr.not(split.get(0)), bfmgr.not(split.get(1)));
+              return bfmgr.or(bfmgr.not(split.getFirst()), bfmgr.not(split.get(1)));
             }
             return super.visitNot(pOperand);
           }
@@ -87,7 +87,7 @@ public class FormulaLinearizationManager {
   private BooleanFormula annotateDisjunction(List<BooleanFormula> args) {
     assert !args.isEmpty();
     if (args.size() == 1) {
-      return args.get(0);
+      return args.getFirst();
     } else {
       BooleanFormula choiceVar = bfmgr.makeVariable(getFreshVarName());
       int pivot = args.size() / 2;

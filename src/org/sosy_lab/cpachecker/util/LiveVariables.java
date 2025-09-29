@@ -99,8 +99,9 @@ public class LiveVariables {
 
         @Override
         protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {
-          if (pA instanceof CVariableDeclaration && pB instanceof CVariableDeclaration) {
-            return ((CVariableDeclaration) pA).equalsWithoutStorageClass(pB);
+          if (pA instanceof CVariableDeclaration cVariableDeclaration
+              && pB instanceof CVariableDeclaration) {
+            return cVariableDeclaration.equalsWithoutStorageClass(pB);
           } else {
             return pA.equals(pB);
           }
@@ -108,8 +109,8 @@ public class LiveVariables {
 
         @Override
         protected int doHash(ASimpleDeclaration pT) {
-          if (pT instanceof CVariableDeclaration) {
-            return ((CVariableDeclaration) pT).hashCodeWithOutStorageClass();
+          if (pT instanceof CVariableDeclaration cVariableDeclaration) {
+            return cVariableDeclaration.hashCodeWithOutStorageClass();
           } else {
             return pT.hashCode();
           }
@@ -147,7 +148,7 @@ public class LiveVariables {
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
     private TimeSpan partwiseLivenessCheckTime = TimeSpan.ofSeconds(20);
 
-    public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
+    LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
   }

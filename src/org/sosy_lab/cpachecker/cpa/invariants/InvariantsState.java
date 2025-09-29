@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -1128,7 +1129,7 @@ public class InvariantsState
                 && !isExportableInScope(
                     ((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope);
 
-    Set<BooleanFormula<CompoundInterval>> filteredApproximations = new LinkedHashSet<>();
+    SequencedSet<BooleanFormula<CompoundInterval>> filteredApproximations = new LinkedHashSet<>();
     for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
       approximation = replaceInvalid(approximation, isInvalidVar);
       Set<MemoryLocation> memLocs = approximation.accept(new CollectVarsVisitor<>());
@@ -1149,7 +1150,7 @@ public class InvariantsState
       Predicate<NumeralFormula<CompoundInterval>> pIsInvalidVarApproximationFormulas,
       Function<String, String> pVariableNameConverter) {
 
-    Set<ExpressionTree<Object>> approximationsAsCode = new LinkedHashSet<>();
+    SequencedSet<ExpressionTree<Object>> approximationsAsCode = new LinkedHashSet<>();
     for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
       approximation = replaceInvalid(approximation, pIsInvalidVarApproximationFormulas);
       Set<MemoryLocation> memLocs = approximation.accept(new CollectVarsVisitor<>());
@@ -1407,7 +1408,7 @@ public class InvariantsState
     if (includeTypeInformation) {
       formulas = Iterables.concat(formulas, getTypeInformationAsAssumptions());
     }
-    Set<BooleanFormula<CompoundInterval>> result = new LinkedHashSet<>();
+    SequencedSet<BooleanFormula<CompoundInterval>> result = new LinkedHashSet<>();
     for (BooleanFormula<CompoundInterval> formula : formulas) {
       if (formula != null
           && Iterables.all(
@@ -1424,7 +1425,7 @@ public class InvariantsState
     if (this == pObj) {
       return true;
     }
-    return pObj instanceof InvariantsState && equalsState((InvariantsState) pObj);
+    return pObj instanceof InvariantsState other && equalsState(other);
   }
 
   private boolean equalsState(InvariantsState pOther) {
@@ -1863,7 +1864,7 @@ public class InvariantsState
 
   private Set<Variable<CompoundInterval>> getVariables(
       final Predicate<MemoryLocation> pMemoryLocationPredicate) {
-    final Set<Variable<CompoundInterval>> result = new LinkedHashSet<>();
+    final SequencedSet<Variable<CompoundInterval>> result = new LinkedHashSet<>();
     Predicate<NumeralFormula<CompoundInterval>> pCondition =
         pFormula -> {
           if (pFormula instanceof Variable) {
@@ -1980,11 +1981,11 @@ public class InvariantsState
   }
 
   private static int compare(Number pOp1, Number pOp2) {
-    if (pOp1 instanceof BigInteger && pOp2 instanceof BigInteger) {
-      return ((BigInteger) pOp1).compareTo((BigInteger) pOp2);
+    if (pOp1 instanceof BigInteger op1 && pOp2 instanceof BigInteger op2) {
+      return op1.compareTo(op2);
     }
-    if (pOp1 instanceof BigDecimal && pOp2 instanceof BigDecimal) {
-      return ((BigDecimal) pOp1).compareTo((BigDecimal) pOp2);
+    if (pOp1 instanceof BigDecimal op1 && pOp2 instanceof BigDecimal op2) {
+      return op1.compareTo(op2);
     }
     if (isAssignableToLong(pOp1) && isAssignableToLong(pOp2)) {
       return Long.compare(pOp1.longValue(), pOp2.longValue());
@@ -2037,8 +2038,8 @@ public class InvariantsState
         return true;
       }
       // All tools are derived from the factory
-      return pObj instanceof Tools
-          && compoundIntervalManagerFactory.equals(((Tools) pObj).compoundIntervalManagerFactory);
+      return pObj instanceof Tools other
+          && compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory);
     }
 
     @Override

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Joiner;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
@@ -29,8 +28,7 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
           callstackState.getCallNode().getNodeNumber() + "." + callstackState.getCurrentFunction());
       callstackState = callstackState.getPreviousState();
     }
-    Collections.reverse(states);
-    String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
+    String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states.reversed());
     return DssMessagePayload.builder()
         .addEntry(CallstackCPA.class.getName(), result)
         .buildPayload();

@@ -13,7 +13,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
@@ -315,7 +314,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         x = x.getParent();
       }
     }
-    path = Lists.reverse(path);
+    path = path.reversed();
 
     // x is common ancestor
     // path is ]x; v] (path from x to v, excluding x, including v)
@@ -334,7 +333,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       formulas.add(bfmgr.not(fmgr.instantiate(w.getStateFormula(), pf.getSsa().withDefault(1))));
     }
 
-    path.add(0, x); // now path is [x; v] (including x and v)
+    path.addFirst(x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
     Optional<ImmutableList<BooleanFormula>> interpolantInfo = imgr.interpolate(formulas);
@@ -511,7 +510,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
     path.add(w); // root element
 
-    return Lists.reverse(path);
+    return path.reversed();
   }
 
   @Override

@@ -192,7 +192,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           "Expect that only violation witness is part of the specification.");
     }
 
-    witness = pSpecificationAutomata.get(0);
+    witness = pSpecificationAutomata.getFirst();
     witnessAutomatonName = AUTOMATANAMEPREFIX + witness.getName();
 
     Scope scope =
@@ -206,7 +206,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 scope,
                 cfa.getLanguage(),
                 pShutdownNotifier)
-            .get(0);
+            .getFirst();
     terminationAutomatonName = AUTOMATANAMEPREFIX + terminationAutomaton.getName();
 
     statistics = new NonTerminationValidationStatistics();
@@ -556,7 +556,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       Preconditions.checkArgument(
           cpa instanceof ARGCPA, "Require ARGCPA to check validity of recurrent set:");
 
-      ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().get(0);
+      ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().getFirst();
 
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
@@ -625,8 +625,9 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         for (AbstractState compState : AbstractStates.asIterable(stateWithoutSucc)) {
 
           // check that no terminating states are reached
-          if (compState instanceof LocationState) {
-            if (((LocationState) compState).getLocationNode().getNumLeavingEdges() == 0) {
+          switch (compState) {
+            case LocationState locationState
+                when locationState.getLocationNode().getNumLeavingEdges() == 0 -> {
               // assume that analysis removed such infeasible successors, thus this state is
               // feasible
               logger.log(
@@ -634,56 +635,53 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                   "May reach a terminating state from the recurrent set in current check.");
               return false;
             }
-
-            // check if callstack state may be the reason why no successors exists
-          } else if (compState instanceof CallstackState) {
-
-            if (((CallstackState) compState).getDepth() == 0) {
-              if (AbstractStates.extractLocation(stateWithoutSucc) instanceof FunctionExitNode) {
-                // at end of function no successors exist, likely because callstack CPA does not
-                // know the correct successor
-                logger.log(
-                    Level.INFO,
-                    "Function return without known caller found. May be unsound to continue. Abort"
-                        + " current check.");
-                return false;
-              }
+            case CallstackState callstackState
+                when callstackState.getDepth() == 0
+                    && AbstractStates.extractLocation(stateWithoutSucc)
+                        instanceof FunctionExitNode -> {
+              // at end of function no successors exist, likely because callstack CPA does not know
+              // the correct successor
+              logger.log(
+                  Level.INFO,
+                  "Function return without known caller found. May be unsound to continue."
+                      + " Abort current check.");
+              return false;
             }
+            case AutomatonState amState
+                when amState.getOwningAutomaton() == pAutomatonRedetectRecurrentSet
+                    && amState
+                        .getInternalStateName()
+                        .equals(SuccessorState.FINISHED.toString()) -> {
+              pNegInvCheck.getPredecessor().addLeavingEdge(pNegInvCheck);
 
-            // check that when one iteration of infinite paths ends, it ends in the recurrent set
-          } else if (compState instanceof AutomatonState amState) {
-            if (amState.getOwningAutomaton() == pAutomatonRedetectRecurrentSet) {
-              if (amState.getInternalStateName().equals(SuccessorState.FINISHED.toString())) {
-                pNegInvCheck.getPredecessor().addLeavingEdge(pNegInvCheck);
-
-                // reached end of iteration, i.e., found cycle start at stem end location again
-                // check that after iteration remain in recurrent set
-                // check that there does not exist a successor from this state along the negated
-                // description of the recurrent set (represented by assume edge pNegInvCheck)
-                for (AbstractState succ :
+              // reached end of iteration, i.e., found cycle start at stem end location again
+              // check that after iteration remain in recurrent set
+              // check that there does not exist a successor from this state along the negated
+              // description of the recurrent set (represented by assume edge pNegInvCheck)
+              for (AbstractState succ :
+                  wrappedCPA
+                      .getTransferRelation()
+                      .getAbstractSuccessorsForEdge(
+                          ((ARGState) stateWithoutSucc).getWrappedState(),
+                          reached.getPrecision(stateWithoutSucc),
+                          pNegInvCheck)) {
+                java.util.Optional<PrecisionAdjustmentResult> precResult =
                     wrappedCPA
-                        .getTransferRelation()
-                        .getAbstractSuccessorsForEdge(
-                            ((ARGState) stateWithoutSucc).getWrappedState(),
+                        .getPrecisionAdjustment()
+                        .prec(
+                            succ,
                             reached.getPrecision(stateWithoutSucc),
-                            pNegInvCheck)) {
-                  java.util.Optional<PrecisionAdjustmentResult> precResult =
-                      wrappedCPA
-                          .getPrecisionAdjustment()
-                          .prec(
-                              succ,
-                              reached.getPrecision(stateWithoutSucc),
-                              reached,
-                              Functions.identity(),
-                              succ);
-                  pNegInvCheck.getPredecessor().removeLeavingEdge(pNegInvCheck);
-                  if (precResult.isPresent()) {
-                    logger.log(Level.INFO, "May leave the recurrent set in current check.");
-                    return false;
-                  }
+                            reached,
+                            Functions.identity(),
+                            succ);
+                pNegInvCheck.getPredecessor().removeLeavingEdge(pNegInvCheck);
+                if (precResult.isPresent()) {
+                  logger.log(Level.INFO, "May leave the recurrent set in current check.");
+                  return false;
                 }
               }
             }
+            default -> {}
           }
         }
       }
@@ -749,16 +747,14 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       List<AbstractState> initialCandidate = new ArrayList<>(succ.size());
       for (AbstractState successor : succ) {
         for (AbstractState innerState : AbstractStates.asIterable(successor)) {
-          if (innerState instanceof AutomatonState
-              && ((AutomatonState) innerState)
-                  .getInternalStateName()
-                  .equals(pStemEndCycleStart.getName())) {
+          if (innerState instanceof AutomatonState automatonState
+              && automatonState.getInternalStateName().equals(pStemEndCycleStart.getName())) {
             initialCandidate.add(successor);
           }
         }
 
         if (initialCandidate.size() == 1) {
-          return new ARGState(initialCandidate.get(0), null);
+          return new ARGState(initialCandidate.getFirst(), null);
         }
       }
     } catch (CPATransferException e) {
@@ -854,12 +850,13 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               return false;
             }
 
-            if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression)) {
+            if (!(amState.getAssumptions().getFirst()
+                instanceof CBinaryExpression cBinaryExpression)) {
               logger.log(
                   Level.INFO, "Found a disallowed assumption. Only support binary assumptions.");
               return false;
             } else {
-              assumption = (CBinaryExpression) amState.getAssumptions().get(0);
+              assumption = cBinaryExpression;
             }
 
             if (!(assumption.getOperator() == BinaryOperator.EQUALS)) {
@@ -877,9 +874,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               switch (edge.getEdgeType()) {
                 case StatementEdge -> {
                   CStatement stmt = ((CStatementEdge) edge).getStatement();
-                  if (stmt instanceof CFunctionCallAssignmentStatement) {
+                  if (stmt
+                      instanceof
+                      CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
                     // external function call
-                    assigned = ((CFunctionCallAssignmentStatement) stmt).getLeftHandSide();
+                    assigned = cFunctionCallAssignmentStatement.getLeftHandSide();
                     if (!assumption.getOperand1().equals(assigned)
                         && !assumption.getOperand2().equals(assigned)) {
                       logger.log(
@@ -895,8 +894,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 }
                 case DeclarationEdge -> {
                   CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-                  if (decl instanceof CVariableDeclaration
-                      && ((CVariableDeclaration) decl).getInitializer() == null) {
+                  if (decl instanceof CVariableDeclaration cVariableDeclaration
+                      && cVariableDeclaration.getInitializer() == null) {
 
                     // check that assumption only affects declared variable
                     if (!decl.getName().equals(assumption.getOperand1().toASTString())
@@ -1069,7 +1068,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
             scope,
             cfa.getLanguage(),
             shutdown)
-        .get(0);
+        .getFirst();
   }
 
   @Override

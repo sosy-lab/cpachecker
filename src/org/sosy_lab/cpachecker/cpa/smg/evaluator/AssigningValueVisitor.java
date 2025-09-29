@@ -125,13 +125,12 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     CExpression operand2 = unwrap(binExp.getOperand2());
     BinaryOperator op = binExp.getOperator();
 
-    if (operand1 instanceof CLeftHandSide) {
-      deriveFurtherInformation((CLeftHandSide) operand1, operand2, op);
+    if (operand1 instanceof CLeftHandSide cLeftHandSide) {
+      deriveFurtherInformation(cLeftHandSide, operand2, op);
     }
 
-    if (operand2 instanceof CLeftHandSide) {
-      deriveFurtherInformation(
-          (CLeftHandSide) operand2, operand1, op.getSwitchOperandsSidesLogicalOperator());
+    if (operand2 instanceof CLeftHandSide cLeftHandSide) {
+      deriveFurtherInformation(cLeftHandSide, operand1, op.getSwitchOperandsSidesLogicalOperator());
     }
 
     return null;
@@ -165,7 +164,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
         return;
       }
 
-      SMGAddress addressOfField = addressOfFields.get(0).getObject();
+      SMGAddress addressOfField = addressOfFields.getFirst().getObject();
 
       if (addressOfField.isUnknown()) {
         return;
@@ -234,7 +233,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
       return;
     }
 
-    SMGAddress addressOfField = addressOfFields.get(0).getObject();
+    SMGAddress addressOfField = addressOfFields.getFirst().getObject();
 
     if (addressOfField.isUnknown()) {
       return;

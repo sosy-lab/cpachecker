@@ -83,11 +83,11 @@ public class PathConditionsCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (condition instanceof StatisticsProvider) {
-      ((StatisticsProvider) condition).collectStatistics(pStatsCollection);
+    if (condition instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
 
-    } else if (condition instanceof Statistics) {
-      pStatsCollection.add((Statistics) condition);
+    } else if (condition instanceof Statistics statistics) {
+      pStatsCollection.add(statistics);
     }
   }
 

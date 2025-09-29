@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
@@ -88,6 +89,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -110,7 +112,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
 
 /** Class containing all the code that converts C code into a formula. */
 public class CtoFormulaConverter {
@@ -188,8 +189,6 @@ public class CtoFormulaConverter {
   // VARIABLE_UNINITIALIZED!)
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  private final FunctionDeclaration<?> stringUfDecl;
-
   protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
   public CtoFormulaConverter(
@@ -215,9 +214,6 @@ public class CtoFormulaConverter {
     shutdownNotifier = pShutdownNotifier;
 
     direction = pDirection;
-
-    stringUfDecl =
-        ffmgr.declareUF("__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
   @FormatMethod
@@ -238,7 +234,7 @@ public class CtoFormulaConverter {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = CTypes.copyDequalified(pCompositeType);
+    CCompositeType compositeType = pCompositeType.withoutQualifiers();
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
@@ -575,7 +571,11 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.callUF(stringUfDecl, fmgr.getIntegerFormulaManager().makeNumber(n));
+      result =
+          ffmgr.declareAndCallUF(
+              "__string__",
+              typeHandler.getPointerType(),
+              fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
 
       // In principle, we could add constraints that the addresses of all these string literals
@@ -820,7 +820,7 @@ public class CtoFormulaConverter {
 
     if (fromType instanceof CFunctionType) {
       // references to functions can be seen as function pointers
-      fromType = new CPointerType(false, false, fromType);
+      fromType = new CPointerType(CTypeQualifiers.NONE, fromType);
     }
 
     // This results in a signed type for pointers, which is what we need because GCC does sign
@@ -862,8 +862,8 @@ public class CtoFormulaConverter {
     if (pType instanceof CEnumType enumType) {
       return enumType.getCompatibleType();
     }
-    if (pType instanceof CElaboratedType
-        && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM) {
+    if (pType instanceof CElaboratedType cElaboratedType
+        && cElaboratedType.getKind() == ComplexTypeKind.ENUM) {
       return CNumericTypes.INT;
     }
     return pType;
@@ -906,12 +906,12 @@ public class CtoFormulaConverter {
     checkSimpleCastArgument(pToCType);
     Predicate<CType> isSigned =
         t -> {
-          if (t instanceof CSimpleType) {
-            return machineModel.isSigned((CSimpleType) t);
+          if (t instanceof CSimpleType cSimpleType) {
+            return machineModel.isSigned(cSimpleType);
           }
           if ((t instanceof CBitFieldType bitFieldType)
-              && (bitFieldType.getType() instanceof CSimpleType)) {
-            return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
+              && (bitFieldType.getType() instanceof CSimpleType cSimpleType)) {
+            return machineModel.isSigned(cSimpleType);
           }
           throw new AssertionError("Not a simple type: " + t);
         };
@@ -1015,17 +1015,21 @@ public class CtoFormulaConverter {
         intValue = intValue.negate();
       }
       Value floatValue =
-          AbstractExpressionValueVisitor.castCValue(
-              intValue, targetType, machineModel, logger, e.getFileLocation());
+          AbstractExpressionValueVisitor.castCValue(intValue, targetType, machineModel, logger);
       return new CFloatLiteralExpression(
-          e.getFileLocation(), targetType, floatValue.asNumericValue().bigDecimalValue());
+          e.getFileLocation(),
+          machineModel,
+          targetType,
+          FloatValue.fromInteger(
+              FloatValue.Format.fromCType(machineModel, targetType),
+              floatValue.asNumericValue().bigIntegerValue()));
     }
 
     return pExp;
   }
 
   private static boolean isFloatingPointType(final CType pType) {
-    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
+    return pType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType();
   }
 
   //  @Override
@@ -1041,8 +1045,8 @@ public class CtoFormulaConverter {
 
     // param-constraints must be added _before_ handling the edge (some lines below),
     // because this edge could write a global value.
-    if (edge.getPredecessor() instanceof CFunctionEntryNode) {
-      final CFunctionEntryNode entryNode = (CFunctionEntryNode) edge.getPredecessor();
+    if (edge.getPredecessor() instanceof CFunctionEntryNode entryNode) {
+
       addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, entryNode);
       addGlobalAssignmentConstraints(
           edge, function, ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, false);
@@ -1288,11 +1292,11 @@ public class CtoFormulaConverter {
           errorConditions);
 
     } else {
-      if (stmt instanceof CFunctionCallStatement) {
+      if (stmt instanceof CFunctionCallStatement callStmt) {
         CRightHandSideVisitor<Formula, UnrecognizedCodeException> ev =
             createCRightHandSideVisitor(
                 statement, function, ssa, pts, constraints, errorConditions);
-        CFunctionCallStatement callStmt = (CFunctionCallStatement) stmt;
+
         callStmt.getFunctionCallExpression().accept(ev);
 
       } else if (!(stmt instanceof CExpressionStatement)) {
@@ -1313,13 +1317,12 @@ public class CtoFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(edge.getDeclaration() instanceof CVariableDeclaration decl)) {
       // struct prototype, function declaration, typedef etc.
       logfOnce(Level.FINEST, edge, "Ignoring declaration");
       return bfmgr.makeTrue();
     }
 
-    CVariableDeclaration decl = (CVariableDeclaration) edge.getDeclaration();
     final String varName = decl.getQualifiedName();
 
     if (!isRelevantVariable(decl)) {
@@ -1399,21 +1402,20 @@ public class CtoFormulaConverter {
    */
   protected void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
       throws UnsupportedCodeException {
-    if (!options.shouldAbortOnLargeArrays() || !(declarationType instanceof CArrayType)) {
+    if (!options.shouldAbortOnLargeArrays() || !(declarationType instanceof CArrayType arrayType)) {
       return;
     }
-    CArrayType arrayType = (CArrayType) declarationType;
+
     CType elementType = arrayType.getType();
 
-    if (elementType instanceof CSimpleType
-        && ((CSimpleType) elementType).getType().isFloatingPointType()) {
+    if (elementType instanceof CSimpleType cSimpleType
+        && cSimpleType.getType().isFloatingPointType()) {
       if (arrayType.getLengthAsInt().orElse(0) > 100) {
         throw new UnsupportedCodeException("large floating-point array", declarationEdge);
       }
     }
 
-    if (elementType instanceof CSimpleType
-        && ((CSimpleType) elementType).getType() == CBasicType.INT) {
+    if (elementType instanceof CSimpleType cSimpleType && cSimpleType.getType() == CBasicType.INT) {
       if (arrayType.getLengthAsInt().orElse(0) >= 10000) {
         throw new UnsupportedCodeException("large integer array", declarationEdge);
       }

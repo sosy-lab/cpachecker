@@ -110,7 +110,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -251,8 +250,8 @@ public class CFAUtils {
   public static Set<CFAEdge> forwardLinearReach(CFAEdge edge) {
     CFAEdge current = edge;
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
-    while (CFAUtils.leavingEdges(current.getSuccessor()).size() == 1) {
-      current = CFAUtils.leavingEdges(current.getSuccessor()).first().get();
+    while (current.getSuccessor().getNumLeavingEdges() == 1) {
+      current = current.getSuccessor().getLeavingEdge(0);
       builder.add(current);
     }
     return builder.build();
@@ -308,9 +307,12 @@ public class CFAUtils {
     return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) enteringEdges((CFANode) node);
   }
 
-  @SuppressWarnings("unchecked")
-  public static FluentIterable<FunctionReturnEdge> leavingEdges(final FunctionExitNode node) {
-    return (FluentIterable<FunctionReturnEdge>) (FluentIterable<?>) leavingEdges((CFANode) node);
+  public static FluentIterable<CFAEdge> leavingEdges(final FunctionExitNode node) {
+    // may be strengthened to only return FunctionReturnEdges
+    // if no analysis adds dummy edges after FunctionExitNodes anymore
+    // (currently https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1319)
+    // and we really want unchecked casts
+    return leavingEdges((CFANode) node);
   }
 
   @Deprecated // entry nodes do not have summary edges
@@ -341,7 +343,7 @@ public class CFAUtils {
   @InlineMe(
       replacement = "CFAUtils.leavingEdges(node)",
       imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<FunctionReturnEdge> allLeavingEdges(final FunctionExitNode node) {
+  public static FluentIterable<CFAEdge> allLeavingEdges(final FunctionExitNode node) {
     return leavingEdges(node);
   }
 
@@ -651,7 +653,7 @@ public class CFAUtils {
       }
     }
 
-    public boolean hasBackwardsEdges() {
+    boolean hasBackwardsEdges() {
       return hasBackwardsEdges;
     }
   }
@@ -705,7 +707,7 @@ public class CFAUtils {
     waitlist.offer(ImmutableList.of(pNode));
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
-      CFANode pathSucc = currentPath.get(currentPath.size() - 1);
+      CFANode pathSucc = currentPath.getLast();
       List<BlankEdge> leavingBlankEdges =
           CFAUtils.leavingEdges(pathSucc).filter(BlankEdge.class).toList();
       if (pathSucc.getNumLeavingEdges() <= 0
@@ -725,7 +727,7 @@ public class CFAUtils {
     blankPaths.clear();
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
-      CFANode pathPred = currentPath.get(0);
+      CFANode pathPred = currentPath.getFirst();
       List<BlankEdge> enteringBlankEdges =
           CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
       if (pathPred.getNumEnteringEdges() <= 0
@@ -782,8 +784,8 @@ public class CFAUtils {
             .filter(FileLocation::isRealLocation)
             .toSet();
 
-    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode) {
-      FunctionEntryNode functionEntryNode = (FunctionEntryNode) pEdge.getPredecessor();
+    if (result.isEmpty() && pEdge.getPredecessor() instanceof FunctionEntryNode functionEntryNode) {
+
       if (functionEntryNode.getFileLocation().isRealLocation()) {
         return ImmutableSet.of(functionEntryNode.getFileLocation());
       }
@@ -792,15 +794,13 @@ public class CFAUtils {
   }
 
   public static Iterable<AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
-    switch (edge.getEdgeType()) {
+    return switch (edge.getEdgeType()) {
       case CallToReturnEdge -> {
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
-        return ImmutableSet.of(fnSumEdge.getExpression());
+        yield ImmutableSet.of(fnSumEdge.getExpression());
       }
-      default -> {
-        return Optionals.asSet(edge.getRawAST());
-      }
-    }
+      default -> Optionals.asSet(edge.getRawAST());
+    };
   }
 
   /**

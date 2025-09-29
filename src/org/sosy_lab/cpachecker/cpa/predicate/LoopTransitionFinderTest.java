@@ -15,8 +15,8 @@ import static com.google.common.truth.TruthJUnit.assume;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import java.util.Comparator;
+import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import org.junit.Before;
 import org.junit.Test;
@@ -148,11 +148,11 @@ public class LoopTransitionFinderTest {
             "}");
 
     // loop heads ordered by their reverse post-order IDs
-    SortedSet<CFANode> loopHeads =
+    NavigableSet<CFANode> loopHeads =
         new TreeSet<>(Comparator.comparingInt(CFANode::getReversePostorderId));
     loopHeads.addAll(cfa.getAllLoopHeads().orElseThrow());
     // first loop head in the program has the highest reverse post-order ID
-    CFANode loopHead = loopHeads.last();
+    CFANode loopHead = loopHeads.getLast();
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(
             config, cfa.getLoopStructure().orElseThrow(), pfmgr, logger, notifier);

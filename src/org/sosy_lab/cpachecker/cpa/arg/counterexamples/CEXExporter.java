@@ -187,12 +187,13 @@ public class CEXExporter {
       return;
     }
 
-    if (exportFaults && counterexample instanceof FaultLocalizationInfo && faultExporter != null) {
+    if (exportFaults
+        && counterexample instanceof FaultLocalizationInfo faultLocalizationInfo
+        && faultExporter != null) {
       try {
         CFAPathWithAssumptions errorPath = counterexample.getCFAPathWithAssignments();
         faultExporter.export(
-            ((FaultLocalizationInfo) counterexample).getRankedList(),
-            errorPath.get(errorPath.size() - 1).getCFAEdge());
+            faultLocalizationInfo.getRankedList(), errorPath.getLast().getCFAEdge());
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not export faults as JSON.");
       }

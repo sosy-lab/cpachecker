@@ -30,10 +30,10 @@ class EqualElimination extends BooleanFormulaTransformationVisitor {
       List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pAtom);
 
       if (split.size() == 1) {
-        return split.get(0);
+        return split.getFirst();
 
       } else if (split.size() == 2) {
-        return fmgr.makeAnd(split.get(0), split.get(1));
+        return fmgr.makeAnd(split.getFirst(), split.get(1));
 
       } else {
         throw new AssertionError();

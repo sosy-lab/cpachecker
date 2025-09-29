@@ -197,7 +197,8 @@ public class LiveVariablesTransferRelation
     if (assumeGlobalVariablesAreAlwaysLive) {
       for (int i = 0; i < noVars; i++) {
         ASimpleDeclaration decl = allDeclarations.get(i).get();
-        if (decl instanceof AVariableDeclaration && ((AVariableDeclaration) decl).isGlobal()) {
+        if (decl instanceof AVariableDeclaration aVariableDeclaration
+            && aVariableDeclaration.isGlobal()) {
           globalVars.set(i);
         }
       }
@@ -262,8 +263,8 @@ public class LiveVariablesTransferRelation
       }
 
       for (CFAEdge e : CFAUtils.enteringEdges(node)) {
-        if (e instanceof ADeclarationEdge) {
-          ASimpleDeclaration decl = ((ADeclarationEdge) e).getDeclaration();
+        if (e instanceof ADeclarationEdge aDeclarationEdge) {
+          ASimpleDeclaration decl = aDeclarationEdge.getDeclaration();
           allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(decl));
           if (decl instanceof AFunctionDeclaration funcDecl) {
             for (AParameterDeclaration param : funcDecl.getParameters()) {
@@ -429,9 +430,9 @@ public class LiveVariablesTransferRelation
      */
 
     // we can remove the assigned variable from the live variables
-    if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
+    if (summaryExpr instanceof AFunctionCallAssignmentStatement aFunctionCallAssignmentStatement) {
       boolean isLeftHandsideLive =
-          isLeftHandSideLive(((AFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
+          isLeftHandSideLive(aFunctionCallAssignmentStatement.getLeftHandSide());
       ASimpleDeclaration retVal = cfaEdge.getFunctionEntry().getReturnVariable().get();
       BitSet data = state.getDataCopy();
       handleAssignment((AAssignment) summaryExpr, data);
@@ -586,20 +587,18 @@ public class LiveVariablesTransferRelation
   private void getVariablesUsedForInitialization(AInitializer init, BitSet writeInto)
       throws CPATransferException {
     // e.g. .x=b or .p.x.=1  as part of struct initialization
-    if (init instanceof CDesignatedInitializer) {
-      getVariablesUsedForInitialization(
-          ((CDesignatedInitializer) init).getRightHandSide(), writeInto);
-
-      // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-    } else if (init instanceof CInitializerList) {
-      for (CInitializer inList : ((CInitializerList) init).getInitializers()) {
-        getVariablesUsedForInitialization(inList, writeInto);
+    switch (init) {
+      case CDesignatedInitializer cDesignatedInitializer ->
+          getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide(), writeInto);
+      case CInitializerList cInitializerList -> {
+        for (CInitializer inList : cInitializerList.getInitializers()) {
+          getVariablesUsedForInitialization(inList, writeInto);
+        }
       }
-    } else if (init instanceof AInitializerExpression) {
-      handleExpression(((AInitializerExpression) init).getExpression(), writeInto);
-
-    } else {
-      throw new CPATransferException("Missing case for if-then-else statement.");
+      case AInitializerExpression aInitializerExpression ->
+          handleExpression(aInitializerExpression.getExpression(), writeInto);
+      case null, default ->
+          throw new CPATransferException("Missing case for if-then-else statement.");
     }
   }
 
@@ -654,7 +653,7 @@ public class LiveVariablesTransferRelation
   private static class LhsPointerDereferenceVisitor extends AExpressionVisitor<Boolean, NoException>
       implements CExpressionVisitor<Boolean, NoException> {
 
-    protected LhsPointerDereferenceVisitor() {}
+    LhsPointerDereferenceVisitor() {}
 
     @Override
     public Boolean visit(CBinaryExpression pIastBinaryExpression) throws NoException {

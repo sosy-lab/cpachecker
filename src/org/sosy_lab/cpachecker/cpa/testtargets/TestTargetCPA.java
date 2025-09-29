@@ -125,7 +125,7 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
     List<String> components = Splitter.on('#').splitToList(targetEdge);
     if (components.size() > 1) {
       try {
-        int predNum = Integer.parseInt(components.get(0));
+        int predNum = Integer.parseInt(components.getFirst());
         int edgeID = Integer.parseInt(components.get(1));
         Optional<CFANode> pred =
             pCfa.nodes().stream().filter(node -> (node.getNodeNumber() == predNum)).findFirst();
@@ -159,5 +159,9 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
   @Override
   public TestTargetPrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
+  }
+
+  public boolean isRunInParallel() {
+    return runParallel;
   }
 }

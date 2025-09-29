@@ -151,8 +151,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       throws InvalidConfigurationException {
     this(pCfa, pConfig, pLogger, pShutdown, pSpec);
 
-    if (pInnerAlgorithm instanceof CPAAlgorithm) {
-      cpaAlgorithm = (CPAAlgorithm) pInnerAlgorithm;
+    if (pInnerAlgorithm instanceof CPAAlgorithm cPAAlgorithm) {
+      cpaAlgorithm = cPAAlgorithm;
     } else {
       throw new InvalidConfigurationException(
           "For residual program generation, only the CPAAlgorithm is required.");
@@ -418,8 +418,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private void checkCPAConfiguration(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    if (pCpa instanceof ARGCPA && ((ARGCPA) pCpa).getWrappedCPAs().get(0) instanceof CompositeCPA) {
-      CompositeCPA comCpa = (CompositeCPA) ((ARGCPA) pCpa).getWrappedCPAs().get(0);
+    if (pCpa instanceof ARGCPA aRGCPA
+        && aRGCPA.getWrappedCPAs().getFirst() instanceof CompositeCPA comCpa) {
 
       boolean considersLocation = false;
       boolean considersCallstack = false;
@@ -448,13 +448,11 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       boolean considersAssumptionGuider = false;
 
       for (AbstractState component : AbstractStates.asIterable(initState)) {
-        if (component instanceof AutomatonState) {
-          if (((AutomatonState) component).getOwningAutomatonName().equals("AssumptionAutomaton")) {
+        if (component instanceof AutomatonState automatonState) {
+          if (automatonState.getOwningAutomatonName().equals("AssumptionAutomaton")) {
             considersAssumption = true;
           }
-          if (((AutomatonState) component)
-              .getOwningAutomatonName()
-              .equals("AssumptionGuidingAutomaton")) {
+          if (automatonState.getOwningAutomatonName().equals("AssumptionGuidingAutomaton")) {
             considersAssumptionGuider = true;
           }
         }

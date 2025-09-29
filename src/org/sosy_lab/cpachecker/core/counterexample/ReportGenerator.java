@@ -386,10 +386,11 @@ public class ReportGenerator {
   }
 
   private String extractPreconditionFromFaultLocalizationInfo(FaultLocalizationInfo fInfo) {
-    if (!(fInfo instanceof FaultLocalizationInfoWithTraceFormula)) {
+    if (!(fInfo
+        instanceof FaultLocalizationInfoWithTraceFormula faultLocalizationInfoWithTraceFormula)) {
       return "";
     }
-    TraceFormula traceFormula = ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula();
+    TraceFormula traceFormula = faultLocalizationInfoWithTraceFormula.getTraceFormula();
     PreCondition preCondition = traceFormula.getPrecondition();
     FormulaContext context = traceFormula.getContext();
     FormulaToCVisitor visitor =
@@ -451,10 +452,11 @@ public class ReportGenerator {
   private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer writer)
       throws IOException {
     if (counterExample == null) {
-      writer.write(sourceFiles.get(0));
+      writer.write(sourceFiles.getFirst());
     } else {
       String title =
-          String.format("%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
+          String.format(
+              "%s (Counterexample %s)", sourceFiles.getFirst(), counterExample.getUniqueId());
       writer.write(title);
     }
   }
@@ -491,9 +493,9 @@ public class ReportGenerator {
                 "<tr id=\"statistics-"
                     + counter
                     + "\"><td>"
-                    + htmlEscaper().escape(splitLine.get(0))
+                    + htmlEscaper().escape(splitLine.getFirst())
                     + "</td><td>"
-                    + htmlEscaper().escape(splitLineAnotherValue.get(0))
+                    + htmlEscaper().escape(splitLineAnotherValue.getFirst())
                     + "</td><td>"
                     + htmlEscaper()
                         .escape(CharMatcher.anyOf("()").removeFrom(splitLineAnotherValue.get(1)))
@@ -504,7 +506,7 @@ public class ReportGenerator {
                 "<tr id=\"statistics-"
                     + counter
                     + "\"><td>"
-                    + htmlEscaper().escape(splitLine.get(0))
+                    + htmlEscaper().escape(splitLine.getFirst())
                     + "</td><td>"
                     + htmlEscaper().escape(splitLine.get(1))
                     + "</td><td></td></tr>\n";
@@ -578,7 +580,7 @@ public class ReportGenerator {
                 + "\"><th scope=\"row\">"
                 + countLineNumber
                 + "</th><td>"
-                + htmlEscaper().escape(splitLine.get(0))
+                + htmlEscaper().escape(splitLine.getFirst())
                 + "</td><td>"
                 + htmlEscaper().escape(splitLine.get(1))
                 + "</td></tr>\n";
@@ -609,11 +611,11 @@ public class ReportGenerator {
         while ((line = log.readLine()) != null && !logLinePattern.matcher(line).matches()) {}
         while (line != null) {
           List<String> splitLine = logLineSplitter.splitToList(line);
-          List<String> dateTime = logDateSplitter.splitToList(splitLine.get(0));
+          List<String> dateTime = logDateSplitter.splitToList(splitLine.getFirst());
 
           writer.write("<tr id=\"log-" + counter + "\">");
           writer.write("<th scope=\"row\">");
-          writer.write(htmlEscaper().escape(dateTime.get(0)));
+          writer.write(htmlEscaper().escape(dateTime.getFirst()));
           writer.write("</th><td>");
           writer.write(htmlEscaper().escape(dateTime.get(1)));
           writer.write("</td><td>");
@@ -817,24 +819,24 @@ public class ReportGenerator {
       edgeLabel.append("dummy edge");
       argEdge.put("type", "dummy type");
     } else {
-      argEdge.put("type", edges.get(0).getEdgeType().toString());
+      argEdge.put("type", edges.getFirst().getEdgeType().toString());
       if (edges.size() > 1) {
         edgeLabel.append("Lines ");
-        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(edges.getFirst().getFileLocation().getStartingLineInOrigin());
         edgeLabel.append(" - ");
-        edgeLabel.append(edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(edges.getLast().getFileLocation().getStartingLineInOrigin());
         edgeLabel.append(":");
         argEdge.put("lines", edgeLabel.substring(6));
       } else {
         edgeLabel.append("Line ");
-        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(edges.getFirst().getFileLocation().getStartingLineInOrigin());
         argEdge.put("line", edgeLabel.substring(5));
       }
       for (CFAEdge edge : edges) {
         if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
           edgeLabel.append("\n");
           List<String> edgeText = Splitter.on(':').limit(2).splitToList(getEdgeText(edge));
-          edgeLabel.append(edgeText.get(0));
+          edgeLabel.append(edgeText.getFirst());
           if (edgeText.size() > 1) {
             edgeLabel.append("\n");
             edgeLabel.append(edgeText.get(1));
@@ -844,7 +846,7 @@ public class ReportGenerator {
           edgeLabel.append(getEdgeText(edge));
         }
       }
-      argEdge.put("file", edges.get(0).getFileLocation().getFileName());
+      argEdge.put("file", edges.getFirst().getFileLocation().getFileName());
     }
     argEdge.put("label", edgeLabel.toString());
     return argEdge;
