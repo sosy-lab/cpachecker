@@ -133,6 +133,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         }
       }
     }
+    loopCondition = loopCondition.replace("true", "1");
+    loopCondition = loopCondition.replace("false", "0");
     builder.append("while(" + loopCondition + ") {\n");
     // Initialize the variables from the transition invariant
     for (String variable : mapNamesToVariables.keySet()) {
@@ -158,6 +160,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
     builder.append("}}");
     String overapproximatingProgam = builder.toString();
+    System.out.println(overapproximatingProgam);
 
     try {
       // Initialization:
