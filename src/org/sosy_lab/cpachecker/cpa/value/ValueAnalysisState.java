@@ -1021,8 +1021,8 @@ public final class ValueAnalysisState
             new ConstantSymbolicExpression(value2.getValue(), value2.getType());
         if (!expr1.equals(expr2))
           constraints.add(
-            SymbolicValueFactory.getInstance()
-                .equal(expr1, expr2, value2.getType(), value2.getType()));
+              SymbolicValueFactory.getInstance()
+                  .equal(expr1, expr2, value2.getType(), value2.getType()));
       }
     }
     return constraints;
