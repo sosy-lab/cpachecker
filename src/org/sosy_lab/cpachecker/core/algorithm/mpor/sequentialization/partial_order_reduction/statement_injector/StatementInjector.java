@@ -53,6 +53,7 @@ public class StatementInjector {
     if (!pOptions.areBitVectorsEnabled()) {
       return pClauses;
     }
+    // otherwise inject statements into clauses
     return injectStatements(
         pOptions, pClauses, pBitVectorVariables, pMemoryModel, pBinaryExpressionBuilder);
   }

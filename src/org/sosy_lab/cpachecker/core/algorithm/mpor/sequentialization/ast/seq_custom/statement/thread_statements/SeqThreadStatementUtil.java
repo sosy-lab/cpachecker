@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementUtil {
 
+  // boolean helpers ===============================================================================
+
   /**
    * Returns {@code true} if {@code pCurrentStatement} starts inside an atomic block, but does not
    * actually start it.
