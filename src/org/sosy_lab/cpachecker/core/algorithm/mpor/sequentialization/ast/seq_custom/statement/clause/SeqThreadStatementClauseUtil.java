@@ -355,11 +355,15 @@ public class SeqThreadStatementClauseUtil {
       Optional<Integer> targetNumber = SeqThreadStatementUtil.tryGetTargetPcOrGotoNumber(statement);
       if (targetNumber.isPresent()) {
         if (targetNumber.orElseThrow() != Sequentialization.EXIT_PC) {
-          SeqThreadStatementBlock target = pLabelBlockMap.get(targetNumber.orElseThrow());
-          assert target != null : "target could not be found in map";
-          if (!pGraph.containsKey(target)) {
-            pGraph.get(pCurrentBlock).add(target);
-            recursivelyBuildBlockGraph(target, pGraph, pLabelBlockMap, pVisited);
+          SeqThreadStatementBlock targetBlock =
+              Objects.requireNonNull(pLabelBlockMap.get(targetNumber.orElseThrow()));
+          // prevent loops in graph
+          if (!pGraph.containsKey(targetBlock) && !pCurrentBlock.equals(targetBlock)) {
+            // ensure no duplicates
+            if (!pGraph.get(pCurrentBlock).contains(targetBlock)) {
+              pGraph.get(pCurrentBlock).add(targetBlock);
+              recursivelyBuildBlockGraph(targetBlock, pGraph, pLabelBlockMap, pVisited);
+            }
           }
         }
       }
