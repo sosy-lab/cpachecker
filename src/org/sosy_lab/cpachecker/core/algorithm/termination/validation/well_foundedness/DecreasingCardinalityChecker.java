@@ -186,13 +186,15 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
    * Checks whether the formula is simply well-founded, i.e. T(s,s) holds. We can do it as R^+ => T
    * means that T(s,s) violates well-foundedness on reachable states.
    */
-  private boolean isTheFormulaSimplyWellFounded(BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants)
+  private boolean isTheFormulaSimplyWellFounded(
+      BooleanFormula pFormula, ImmutableList<BooleanFormula> pSupportingInvariants)
       throws InterruptedException {
     pFormula =
         fmgr.instantiate(
             pFormula,
             TransitionInvariantUtils.setIndicesToDifferentValues(pFormula, 1, 1, fmgr, scope));
-    BooleanFormula sameState = TransitionInvariantUtils.makeStatesEquivalent(pFormula, pFormula, 1, 1, bfmgr, fmgr);
+    BooleanFormula sameState =
+        TransitionInvariantUtils.makeStatesEquivalent(pFormula, pFormula, 1, 1, bfmgr, fmgr);
     for (BooleanFormula supportingInvariant : pSupportingInvariants) {
       SSAMap ssaMap =
           TransitionInvariantUtils.setIndicesToDifferentValues(
