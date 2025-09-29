@@ -160,7 +160,6 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     }
     builder.append("}}");
     String overapproximatingProgam = builder.toString();
-    System.out.println(overapproximatingProgam);
 
     try {
       // Initialization:
