@@ -170,7 +170,7 @@ public class SMGCPAValueVisitorTest {
             .copyFrom(Configuration.defaultConfiguration())
             .setOption("cpa.smg2.preciseSMGRead", "false")
             .build();
-    options = new SMGOptions(defaultOptionsNoPreciseRead);
+    options = new SMGOptions(defaultOptionsNoPreciseRead, null);
 
     // null, null is fine as long as builtin functions are not used!
     evaluator =
@@ -211,7 +211,7 @@ public class SMGCPAValueVisitorTest {
         SMGState.of(
             MACHINE_MODEL,
             logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
+            new SMGOptions(Configuration.defaultConfiguration(), null),
             evaluator,
             new SMGCPAStatistics());
 

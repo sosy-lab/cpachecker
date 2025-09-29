@@ -3448,10 +3448,6 @@ cpa.smg2.initialPrecisionFile = no default value
 # get an initial precision from a predicate precision file
 cpa.smg2.initialPredicatePrecisionFile = no default value
 
-# Perform merge SMGStates by SMGJoin on ends of code block. Works with
-# 'merge=JOIN'
-cpa.smg2.joinOnBlockEnd = true
-
 # If this option is enabled, a call to malloc with value zero results in a
 # return value that is equal to zero. If this option is disabled, a non-zero
 # memory section that may not be accessed but freed is returned.
@@ -3475,6 +3471,17 @@ cpa.smg2.memoryErrors = true
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# Apply merge operator only on ends of code blocks.
+cpa.smg2.merge.exclusivelyBlockEnds = false
+
+# Apply merge operator only on equal code block ends if true. Only applied if
+# exclusivelyBlockEnds=true.
+cpa.smg2.merge.exclusivelyEqualBlockEnds = false
+
+# Apply merge operator only on states with at least one input state including
+# an abstracted list.
+cpa.smg2.merge.exclusivelyWithAbstractionPresent = true
 
 # Whether to perform SAT checks only for the last added constraint
 cpa.smg2.minimalSatCheck = true

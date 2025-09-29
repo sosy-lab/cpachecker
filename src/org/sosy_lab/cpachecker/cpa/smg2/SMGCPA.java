@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
@@ -114,7 +113,6 @@ public class SMGCPA
   private final CFA cfa;
   private final SMGOptions options;
   private final SMGCPAExportOptions exportOptions;
-  private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -135,10 +133,10 @@ public class SMGCPA
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
-    options = new SMGOptions(pConfig);
 
     config = pConfig;
     cfa = pCfa;
+    options = new SMGOptions(pConfig, cfa);
     machineModel = cfa.getMachineModel();
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
@@ -147,7 +145,6 @@ public class SMGCPA
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
 
     statistics = new SMGCPAStatistics();
-    precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
 
     blockOperator = new BlockOperator();
@@ -208,7 +205,6 @@ public class SMGCPA
     return new SMGTransferRelation(
         logger,
         options,
-        precisionAdjustmentOptions,
         exportOptions,
         cfa,
         constraintsStrengthenOperator,
@@ -225,7 +221,7 @@ public class SMGCPA
   public MergeOperator getMergeOperator() {
     return switch (mergeType) {
       case "SEP" -> MergeSepOperator.getInstance();
-      case "JOIN" -> new SMGMergeOperator(statistics, options, precisionAdjustmentOptions);
+      case "JOIN" -> new SMGMergeOperator(statistics, options);
       default -> throw new AssertionError("unknown mergetype for SMGCPA");
     };
   }
@@ -253,8 +249,7 @@ public class SMGCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new SMGPrecisionAdjustment(
-        statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
+    return new SMGPrecisionAdjustment(statistics, cfa, options, precisionAdjustmentStatistics);
   }
 
   public LogManagerWithoutDuplicates getLogger() {

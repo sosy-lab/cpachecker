@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.util.smg.util.MergedSMGStateAndMergeStatus;
 
 public class SMGMergeTest extends SMGCPATest0 {
 
+  List<SMGState> reached = new ArrayList<>();
+
   private static final String TOP_LIST_STACK_VARIABLE_1 = "testStackVariableTopList1";
   private static final String TOP_LIST_STACK_VARIABLE_2 = "testStackVariableTopList2";
   private static final String NESTED_LIST_STACK_VARIABLE_1 = "testStackVariableNestedList1";
@@ -59,7 +61,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         false,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
   }
@@ -76,7 +78,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         false,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
   }
@@ -93,7 +95,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         false,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
   }
@@ -108,7 +110,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         true,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
   }
@@ -124,7 +126,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         true,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 2,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 2,
         spec,
         variableAndPointerLocationInList);
   }
@@ -142,7 +144,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         false,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
   }
@@ -160,7 +162,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         false,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
   }
@@ -178,7 +180,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         true,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
   }
@@ -196,7 +198,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         true,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 2,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 2,
         spec,
         variableAndPointerLocationInList);
   }
@@ -214,7 +216,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         true,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 1,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
   }
@@ -232,7 +234,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     generateListsAndAssertMergeability(
         true,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 2,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 2,
         spec,
         variableAndPointerLocationInList);
   }
@@ -257,11 +259,37 @@ public class SMGMergeTest extends SMGCPATest0 {
     generateListsWithSingleNestedListsAndAssertMergeability(
         true,
         true,
-        smgPrecOptions.getListAbstractionMinimumLengthThreshold() + 2,
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 2,
         spec,
         variableAndPointerLocationInList,
         nestedSpec,
         NESTED_LIST_STACK_VARIABLE_1);
+  }
+
+  @Test
+  public void
+      mergeSLLWithPointerTowardsBeginningWithNestedListWithIdenticalNondetValuesAndPointerTowardsEndOfNestedDFS()
+          throws CPAException, InterruptedException {
+    int maxLength =
+        smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 2;
+    Optional<String> variableTowardsFirstTopElement = Optional.of(TOP_LIST_STACK_VARIABLE_1);
+    Optional<String> variableTowardsLastTopElement = Optional.of(TOP_LIST_STACK_VARIABLE_2);
+    Optional<String> variableTowardsLastNested = Optional.of(NESTED_LIST_STACK_VARIABLE_1);
+
+    IFunction<Integer, Map<String, Integer>, List<ListSpec>, ListSpec> spec =
+        ListSpec::getBareSllWithNestedListBeforeNextOf;
+
+    IFunction<Integer, Map<String, Integer>, List<ListSpec>, ListSpec> nestedSpec =
+        ListSpec::getSllWithSingleIdenticalNondetIntValueAfterNfo;
+
+    generateAndAssertMergeabilityAndSubsumtionOfListSpecifiedInCPAcheckerOrder(
+        false,
+        maxLength,
+        variableTowardsFirstTopElement,
+        variableTowardsLastTopElement,
+        spec,
+        variableTowardsLastNested,
+        ImmutableList.of(nestedSpec));
   }
 
   // ####################### No more tests, just generators/helper methods #######################
@@ -305,7 +333,8 @@ public class SMGMergeTest extends SMGCPATest0 {
             abstractAbstractableStatesWithSingleNestedLists(
                 nestedListsToTest, dll, maxListLength, topListLength, indexOfNestedList);
 
-        int minAbstrLen = smgPrecOptions.getListAbstractionMinimumLengthThreshold();
+        int minAbstrLen =
+            smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold();
         boolean topListAbstracted =
             topListLength - indexOfNestedList >= minAbstrLen || indexOfNestedList > minAbstrLen;
 
@@ -321,6 +350,220 @@ public class SMGMergeTest extends SMGCPATest0 {
       topListLength++;
     }
   }
+
+  /**
+   * @param listLengthToAbortTest if at this length the list can not be abstracted or merged, the
+   *     test is aborted.
+   * @param topListSpec specification of the uppermost list. Must be present.
+   * @param nestedListSpecsByNesting specifies nested lists by nesting in the list.
+   */
+  @SuppressWarnings("all")
+  private void generateAndAssertMergeabilityAndSubsumtionOfListSpecifiedInCPAcheckerOrder(
+      boolean bfsTrueAndDfsFalse,
+      int listLengthToAbortTest,
+      Optional<String> variableTowardsFirstTopElement,
+      Optional<String> variableTowardsLastTopElement,
+      IFunction<Integer, Map<String, Integer>, List<ListSpec>, ListSpec> topListSpecGen,
+      Optional<String> variableTowardsLatestNestedElement,
+      List<IFunction<Integer, Map<String, Integer>, List<ListSpec>, ListSpec>>
+          nestedListSpecsByNesting)
+      throws CPAException, InterruptedException {
+
+    SMGState initialState = currentState;
+    reached = new ArrayList<>();
+
+    // TODO: implement BFS
+    assertThat(bfsTrueAndDfsFalse).isFalse();
+
+    ImmutableMap.Builder<String, Integer> variableAndPointerLocationInListBuilder =
+        ImmutableMap.builder();
+    if (variableTowardsFirstTopElement.isPresent()) {
+      variableAndPointerLocationInListBuilder.put(variableTowardsFirstTopElement.orElseThrow(), 0);
+    }
+    if (variableTowardsLastTopElement.isPresent()) {
+      variableAndPointerLocationInListBuilder.put(
+          variableTowardsLastTopElement.orElseThrow(), Integer.MAX_VALUE);
+    }
+    Map<String, Integer> variableAndPointerLocationInList =
+        variableAndPointerLocationInListBuilder.buildOrThrow();
+
+    int len = 1;
+    boolean stop = false;
+    while (!stop) {
+      /*
+      // Nested null, as it is replaced later on
+      ListSpec topListSpec = topListSpecGen.create(len, variableAndPointerLocationInList, null);
+      stop =
+          buildListsInDFSOrderAndAssertWithPseudoCPA(
+              listLengthToAbortTest,
+              nestedListSpecsByNesting.getFirst(),
+              variableTowardsLatestNestedElement,
+              nestedListSpecsByNesting.subList(1, nestedListSpecsByNesting.size()),
+              topListSpec,
+              len);
+
+      assertThat(len).isLessThan(listLengthToAbortTest);
+      len++;
+      */
+    }
+
+    currentState = initialState;
+  }
+
+  /**
+   * Returns the result of the STOP operator, i.e. false for continue, true for stop. The current
+   * list should not be extended with new elements once true is returned. Will perform pseudo CPA
+   * (abstract/precision adjustment, merge, stop).
+   */
+  /*
+    private boolean performPseudoCPA(
+        SMGState newStateWithList)
+        throws CPAException, InterruptedException {
+
+      // Try to abstract, add result to reached
+      SMGState maybeNewAbstractedState = abstractListsWithDefaultOptions(newStateWithList);
+
+      // Try to merge abstracted with all in reached and replace the taken with the merged.
+      List<SMGState> removeFromReached = new ArrayList<>();
+      List<SMGState> addToReached = new ArrayList<>();
+      for (SMGState stateFromReached : reached) {
+        Optional<MergedSMGStateAndMergeStatus> mergeResult =
+            mergeOp.mergeForTests(maybeNewAbstractedState, stateFromReached);
+
+        if (mergeResult.isPresent()) {
+          SMGState mergedState = mergeResult.orElseThrow().getMergedSMGState();
+          removeFromReached.add(stateFromReached);
+          addToReached.add(mergedState);
+        }
+      }
+
+      reached.removeAll(removeFromReached);
+      reached.addAll(addToReached);
+
+      // Try <= on all in reached, it should only work for successfully merge or abstraction cases
+      // at all.
+      // If <=, stop generation into length of this combination
+      for (SMGState stateFromReached : reached) {
+        if (maybeNewAbstractedState.isLessOrEqual(stateFromReached)) {
+          // STOP
+          return true;
+        }
+      }
+
+      reached.add(maybeNewAbstractedState);
+
+      return false;
+    }
+
+    private boolean buildListsInDFSOrderAndAssertWithPseudoCPA(
+        int listLengthToAbortTest,
+        IFunction<Integer, Map<String, Integer>, List<ListSpec>, ListSpec> listSpecToApply,
+        Optional<String> variableTowardsLatestNestedElement,
+        List<IFunction<Integer, Map<String, Integer>, List<ListSpec>, ListSpec>> nestedListSpecsToApply, ListSpec currentSpecification, int lengthOfLastInCurrent)
+        throws CPAException, InterruptedException {
+
+      // Error in test-setup
+      assertThat(currentSpecification).isNotNull();
+      // We don't support nesting beyond 2 nestings for now (and we split 1 of into listSpecToApply)
+      assertThat(nestedListSpecsToApply.size()).isLessThan(2);
+
+      boolean stop = false;
+      Map<String, Integer> variableMap = ImmutableMap.of();
+      if (nestedListSpecsToApply.isEmpty()) {
+        if (variableTowardsLatestNestedElement.isPresent()) {
+          variableMap =
+              ImmutableMap.of(variableTowardsLatestNestedElement.orElseThrow(), Integer.MAX_VALUE);
+        }
+
+        // Generate x specs/states into depth with all other indices null until stop
+        // Then, for all generated specs/states, do the same at the next index etc
+        for (int index = 0; index < lengthOfLastInCurrent; index++) {
+        ImmutableList.Builder<ListSpec> specs = ImmutableList.builder();
+        int lengthNested = 0;
+        while (!stop) {
+          assertThat(lengthNested).isLessThan(listLengthToAbortTest);
+          ListSpec nestedListSpec;
+          // For 0 we leave the null in current so that no nested is created
+          if (lengthNested != 0) {
+           nestedListSpec = listSpecToApply.create(lengthNested, variableMap, null);
+            // TODO: combine with prev
+            ImmutableList.Builder<ListSpec> newNestedLists = ImmutableList.builder();
+            newNestedLists.add(nestedListSpec);
+            if (index > 0) {
+              // Add more to newNestedLists up until index
+              // addAnotherElementToList
+            }
+
+            currentSpecification.replaceNestedListSpecs(newNestedLists.build());
+          }
+
+
+          SMGState stateWithNestedList = buildConcreteListWith(currentSpecification);
+          stop = performPseudoCPA(stateWithNestedList);
+          lengthNested++;
+        }
+        }
+        // return specs;
+
+      } else {
+        IFunction<Integer, Map<String, Integer>, List<ListSpec>, ListSpec> nextNestedSpec =
+            nestedListSpecsToApply.getFirst();
+        List<IFunction<Integer, Map<String, Integer>, List<ListSpec>, ListSpec>> remainingNested =
+            nestedListSpecsToApply.subList(1, nestedListSpecsToApply.size());
+        // TODO: support more nestings?
+        assertThat(remainingNested).isEmpty();
+
+        throw new AssertionError("Implement me");
+      }
+
+      return stop;
+    }
+
+    // Only DFS for now
+    private <A> void getAllCombinationsFor(
+        Set<A> specs, int breite, int length, int maxWidth, List<A> current, List<List<A>> result) {
+      if (current.size() == maxWidth) {
+        result.add(current);
+
+      } else {
+
+        Iterator<A> specIter = specs.iterator();
+        for (int i = -1; i < specs.size(); i++) {
+          A spec;
+          if (i == -1) {
+            spec = null;
+          } else {
+            spec = specIter.next();
+          }
+          ArrayList<A> newCurrent = new ArrayList<>();
+          newCurrent.addAll(current);
+          newCurrent.add(spec);
+        }
+      }
+    }
+
+    private void dfs(List<Integer> l, List<Integer> temp, int idx) {
+      // Print the current combination
+      System.out.println(temp);
+
+      // Base case: if idx exceeds the list size, return
+      if (idx >= l.size()) {
+        return;
+      }
+
+      // Iterate through the remaining elements starting from idx
+      for (int i = idx; i < l.size(); i++) {
+        // Add the current element to the temp list
+        temp.add(l.get(i));
+
+        // Recursively generate combinations with the next index
+        dfs(l, temp, i + 1);
+
+        // Backtrack by removing the last added element
+        temp.remove(temp.size() - 1);
+      }
+    }
+  */
 
   /**
    * Generates the list according to the specified list parameters and asserts that it is
@@ -565,7 +808,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     // We can only abstract the top list if the nested (distinct) list element leaves enough room
     int marginLeft = topListLength - indexOfNestedListStartingFrom1;
-    int minAbstrLen = smgPrecOptions.getListAbstractionMinimumLengthThreshold();
+    int minAbstrLen = smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold();
     boolean topListAbstracted =
         marginLeft >= minAbstrLen || indexOfNestedListStartingFrom1 > minAbstrLen;
 
@@ -686,7 +929,7 @@ public class SMGMergeTest extends SMGCPATest0 {
       throws SMGException {
     return new SMGCPAAbstractionManager(
             stateToBeAbstracted,
-            smgPrecOptions.getListAbstractionMinimumLengthThreshold(),
+            smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold(),
             new SMGCPAStatistics())
         .findAndAbstractLists();
   }
@@ -724,10 +967,10 @@ public class SMGMergeTest extends SMGCPATest0 {
 
   private void assertNotMergeable(List<SMGState> statesToTest) throws CPAException {
     for (int listLeft = 0;
-        listLeft < smgPrecOptions.getListAbstractionMinimumLengthThreshold();
+        listLeft < smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold();
         listLeft++) {
       for (int listRight = listLeft + 1;
-          listRight < smgPrecOptions.getListAbstractionMinimumLengthThreshold();
+          listRight < smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold();
           listRight++) {
         Optional<MergedSMGStateAndMergeStatus> mergeResLeftRight =
             mergeOp.mergeForTests(statesToTest.get(listLeft), statesToTest.get(listRight));
@@ -811,18 +1054,7 @@ public class SMGMergeTest extends SMGCPATest0 {
 
       if (listLength == 1) {
         // Make sure that shared values are truly shared between the states!
-        // Values lazily generated for each state anew if not for this, resulting in actual new and
-        // distinct
-        // values when the same value is wanted. So we generate them once in the shared state if
-        // truly
-        // shared and identical values are requested.
-        List<List<Value>> sharedValues = sharedValuesInListSpec;
-        for (List<Value> sharedValuesInAList : sharedValues) {
-          for (Value sharedValue : sharedValuesInAList) {
-            currentState =
-                currentState.copyAndAddValue(sharedValue, CNumericTypes.INT).getSMGState();
-          }
-        }
+        addSharedValuesToCurrentState();
       }
 
       statesToTestBuilder.add(buildConcreteListWith(concreteSpec));
@@ -832,6 +1064,19 @@ public class SMGMergeTest extends SMGCPATest0 {
     assertThat(statesToTest).hasSize(maxListLength);
     currentState = initialState;
     return statesToTest;
+  }
+
+  // Values lazily generated for each state anew if not for this, resulting in actual new and
+  // distinct values when the same value is wanted. So we generate them once in the shared
+  // state if truly shared and identical values are requested.
+  // Save and reset the current state if you want to reuse it!
+  private void addSharedValuesToCurrentState() {
+    List<List<Value>> sharedValues = sharedValuesInListSpec;
+    for (List<Value> sharedValuesInAList : sharedValues) {
+      for (Value sharedValue : sharedValuesInAList) {
+        currentState = currentState.copyAndAddValue(sharedValue, CNumericTypes.INT).getSMGState();
+      }
+    }
   }
 
   // TODO: add ability to define where to point to inside the nested list
@@ -1193,6 +1438,11 @@ public class SMGMergeTest extends SMGCPATest0 {
       prevOffset = pPrevOffset;
     }
 
+    @SuppressWarnings("unused")
+    private void replaceNestedListSpecs(List<ListSpec> newNestedLists) {
+      nestedLists = newNestedLists;
+    }
+
     public static ListSpec getSllWithNoValues(
         int length, Map<String, Integer> stackVariableForPtrToListAndLocation) {
       return new ListSpec(
@@ -1380,6 +1630,36 @@ public class SMGMergeTest extends SMGCPATest0 {
           Optional.empty());
     }
 
+    public static ListSpec getSllWithSingleIdenticalNondetIntValueAfterNfo(
+        int length,
+        Map<String, Integer> stackVariableForPtrToListAndLocation,
+        List<ListSpec> nestedListsSpec) {
+      // This spec does not support nested lists. The parameter is only meant to support the
+      // interface!
+      assertThat(nestedListsSpec).isEmpty();
+      if (sharedValuesInListSpec.isEmpty()) {
+        ImmutableList.Builder<List<Value>> nondetValues = ImmutableList.builder();
+        SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+        Value nondetValue = factory.asConstant(factory.newIdentifier(null), CNumericTypes.INT);
+        // This is called with the smallest list, length 1, first. So we need to pad this
+        for (int i = 0; i < length + 5; i++) {
+          nondetValues.add(ImmutableList.of(nondetValue));
+        }
+        sharedValuesInListSpec = nondetValues.build();
+      }
+      return new ListSpec(
+          stackVariableForPtrToListAndLocation,
+          false,
+          BigInteger.valueOf(64),
+          length,
+          BigInteger.ZERO,
+          Optional.of(BigInteger.ZERO),
+          ImmutableList.of(),
+          ImmutableList.of(),
+          BigInteger.ZERO,
+          Optional.empty());
+    }
+
     public static ListSpec getDllWithSingleIdenticalNondetIntValueAfterNfoAndPfo(
         int length, Map<String, Integer> stackVariableForPtrToListAndLocation) {
       if (sharedValuesInListSpec.isEmpty()) {
@@ -1537,6 +1817,23 @@ public class SMGMergeTest extends SMGCPATest0 {
           ImmutableList.of(),
           BigInteger.valueOf(32),
           Optional.of(BigInteger.valueOf(64)));
+    }
+
+    public static ListSpec getBareSllWithNestedListBeforeNextOf(
+        int length,
+        Map<String, Integer> stackVariableForPtrToTopListAndLocation,
+        List<ListSpec> nestedListsSpec) {
+      return new ListSpec(
+          stackVariableForPtrToTopListAndLocation,
+          false,
+          BigInteger.valueOf(64),
+          length,
+          BigInteger.ZERO,
+          Optional.empty(),
+          nestedListsSpec,
+          ImmutableList.of(),
+          BigInteger.valueOf(32),
+          Optional.empty());
     }
 
     public List<List<Value>> getValuesToFill() {

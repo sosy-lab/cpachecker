@@ -1003,12 +1003,12 @@ public class SymbolicProgramConfiguration {
                   SMGState.of(
                           MachineModel.LINUX32,
                           new LogManagerWithoutDuplicates(LogManager.createTestLogManager()),
-                          new SMGOptions(Configuration.defaultConfiguration()),
+                          new SMGOptions(Configuration.defaultConfiguration(), null),
                           new SMGCPAExpressionEvaluator(
                               MachineModel.LINUX32,
                               new LogManagerWithoutDuplicates(LogManager.createTestLogManager()),
                               new SMGCPAExportOptions(null, SMGExportLevel.NEVER),
-                              new SMGOptions(Configuration.defaultConfiguration()),
+                              new SMGOptions(Configuration.defaultConfiguration(), null),
                               null),
                           new SMGCPAStatistics())
                       .copyAndReplaceMemoryModel(pSpc));

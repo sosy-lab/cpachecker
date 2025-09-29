@@ -205,7 +205,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pEvaluator,
             pStatistics),
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig),
+            new SMGOptions(pConfig, pCfa),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,

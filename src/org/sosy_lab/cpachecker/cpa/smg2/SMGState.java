@@ -7708,10 +7708,6 @@ public class SMGState
     return blockEnd.orElseThrow();
   }
 
-  public boolean mergeAtBlockEnd() {
-    return options.getJoinOnBlockEnd();
-  }
-
   /** This state is a result of merging the 2 states given with the resulting merge status given. */
   public SMGState asResultOfMerge(
       SMGState pNewSMGState, SMGState pSmgStateFromReached, SMGMergeStatus pMergeStatus) {

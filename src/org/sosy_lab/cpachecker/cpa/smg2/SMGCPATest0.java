@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
@@ -66,7 +65,6 @@ public class SMGCPATest0 {
   protected SMGState currentState;
   protected SMGCPAMaterializer materializer;
   protected SMGOptions smgOptions;
-  protected PrecAdjustmentOptions smgPrecOptions;
 
   protected SMGCPAExpressionEvaluator evaluator;
 
@@ -98,9 +96,7 @@ public class SMGCPATest0 {
     try {
       mergeOp =
           new SMGMergeOperator(
-              new SMGCPAStatistics(),
-              new SMGOptions(Configuration.defaultConfiguration()),
-              new PrecAdjustmentOptions(Configuration.defaultConfiguration(), null));
+              new SMGCPAStatistics(), new SMGOptions(Configuration.defaultConfiguration(), null));
     } catch (InvalidConfigurationException pE) {
       throw new RuntimeException(pE);
     }
@@ -126,7 +122,7 @@ public class SMGCPATest0 {
 
     materializer = new SMGCPAMaterializer(logger, new SMGCPAStatistics());
 
-    smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+    smgOptions = new SMGOptions(Configuration.defaultConfiguration(), null);
     evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel,
@@ -137,7 +133,6 @@ public class SMGCPATest0 {
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
     currentState = currentState.copyAndAddDummyStackFrame();
-    smgPrecOptions = new PrecAdjustmentOptions(Configuration.defaultConfiguration(), null);
   }
 
   public SMGState getFreshState() {
@@ -741,7 +736,7 @@ public class SMGCPATest0 {
     MachineModel machineModel = MachineModel.LINUX32;
     LogManagerWithoutDuplicates logger =
         new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
-    SMGOptions smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+    SMGOptions smgOptions = new SMGOptions(Configuration.defaultConfiguration(), null);
     SMGCPAExpressionEvaluator evaluator =
         new SMGCPAExpressionEvaluator(
             machineModel,

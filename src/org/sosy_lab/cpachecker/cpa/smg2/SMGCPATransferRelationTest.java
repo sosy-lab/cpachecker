@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -172,7 +171,7 @@ public class SMGCPATransferRelationTest {
             .copyFrom(Configuration.defaultConfiguration())
             .setOption("cpa.smg2.preciseSMGRead", "false")
             .build();
-    smgOptions = new SMGOptions(defaultOptionsNoPreciseRead);
+    smgOptions = new SMGOptions(defaultOptionsNoPreciseRead, null);
     SMGCPAExpressionEvaluator evaluator =
         new SMGCPAExpressionEvaluator(
             MACHINE_MODEL, logManager, SMGCPAExportOptions.getNoExportInstance(), smgOptions, null);
@@ -186,7 +185,6 @@ public class SMGCPATransferRelationTest {
         new SMGTransferRelation(
             logManager,
             smgOptions,
-            new PrecAdjustmentOptions(Configuration.defaultConfiguration(), null),
             SMGCPAExportOptions.getNoExportInstance(),
             MACHINE_MODEL,
             ImmutableList.of(),

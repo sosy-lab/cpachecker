@@ -82,7 +82,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetMaybeNestingLvl;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
@@ -114,8 +114,7 @@ public class SMGTransferRelation
     extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
 
   private final SMGOptions options;
-
-  private final PrecAdjustmentOptions precisionAdjustmentOptions;
+  private final SMGAbstractionOptions abstractionOptions;
 
   @SuppressWarnings("unused")
   private final SMGCPAExportOptions exportSMGOptions;
@@ -141,7 +140,6 @@ public class SMGTransferRelation
   public SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
-      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       CFA pCfa,
       ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
@@ -151,7 +149,7 @@ public class SMGTransferRelation
     cfa = pCfa;
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
-    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
+    abstractionOptions = options.getAbstractionOptions();
     exportSMGOptions = pExportSMGOptions;
     solver = pSolver;
 
@@ -170,7 +168,6 @@ public class SMGTransferRelation
   protected SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
-      PrecAdjustmentOptions pPrecisionAdjustmentOptions,
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
       Collection<String> pBooleanVariables,
@@ -179,7 +176,7 @@ public class SMGTransferRelation
       throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
-    precisionAdjustmentOptions = pPrecisionAdjustmentOptions;
+    abstractionOptions = options.getAbstractionOptions();
     exportSMGOptions = pExportSMGOptions;
     booleanVariables = pBooleanVariables;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
@@ -858,11 +855,11 @@ public class SMGTransferRelation
         && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
       if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
         // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
-        if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+        if (abstractionOptions.getListAbstractionMinimumLengthThreshold()
                 <= loopBound.getValue().intValueExact()
-            && precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
-                < precisionAdjustmentOptions.getListAbstractionMaximumIncreaseLengthThreshold()) {
-          precisionAdjustmentOptions.incListAbstractionMinimumLengthThreshold();
+            && abstractionOptions.getListAbstractionMinimumLengthThreshold()
+                < abstractionOptions.getListAbstractionMaximumIncreaseLengthThreshold()) {
+          abstractionOptions.incListAbstractionMinimumLengthThreshold();
         }
       }
     }
