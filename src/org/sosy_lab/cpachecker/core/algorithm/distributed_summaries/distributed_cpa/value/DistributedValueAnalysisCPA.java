@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
+import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,6 +52,7 @@ public class DistributedValueAnalysisCPA
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final ValueStateCoverageOperator coverageOperator;
   private final FormulaManagerView formulaManager;
+  static Map<String, ValueAnalysisState> initialState = new HashMap<>();
 
   public DistributedValueAnalysisCPA(
       ValueAnalysisCPA pValueCPA,
@@ -156,10 +158,13 @@ public class DistributedValueAnalysisCPA
 
   @Override
   public ValueAnalysisState getInitialState(CFANode node, StateSpacePartition partition) {
+    if (initialState.containsKey(blockNode.getId())) return initialState.get(blockNode.getId());
+
     ValueAnalysisState init = new ValueAnalysisState(cfa.getMachineModel());
     Map<String, Type> accessedVars =
         DeserializeValueAnalysisStateOperator.getAccessedVariables(blockNode);
     DeserializeValueAnalysisStateOperator.havocVariables(init, accessedVars);
+    initialState.put(blockNode.getId(), init);
     return init;
   }
 }
