@@ -99,7 +99,10 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
 
     // ∃s1. T(s,s1) ∧ ¬T(s',s1) ∧ I(s1)
     BooleanFormula middleStep = fmgr.makeAnd(stepFromS, stepFromSPrime);
-    middleStep = qfmgr.exists(collectAllCurrVariables(stepFromS), middleStep);
+    ImmutableList<Formula> quantifiedVars = collectAllCurrVariables(stepFromS);
+    if (!quantifiedVars.isEmpty()) {
+      middleStep = qfmgr.exists(collectAllCurrVariables(stepFromS), middleStep);
+    }
 
     // T(s,s2), T(s',s2) ∧ I(s2)
     SSAMap ssaMapForS2 =
@@ -117,7 +120,10 @@ public class DecreasingCardinalityChecker implements WellFoundednessChecker {
 
     // ∀s2.T(s',s2) ∧ I(s2) => T(s,s2)
     BooleanFormula middleStep2 = bfmgr.implication(stepFromSPrime2, stepFromS2);
-    middleStep2 = qfmgr.forall(collectAllCurrVariables(stepFromSPrime2), middleStep2);
+    quantifiedVars = collectAllCurrVariables(stepFromSPrime2);
+    if (!quantifiedVars.isEmpty()) {
+      middleStep2 = qfmgr.forall(quantifiedVars, middleStep2);
+    }
 
     // T(s,s') ∧ I(s) ∧ I(s') => [∃s1.T(s,s1) ∧ I(s1) ∧ ¬T(s',s1)] ∧ [∀s2.T(s',s2) ∧ I(s1) =>
     // T(s,s2)]
