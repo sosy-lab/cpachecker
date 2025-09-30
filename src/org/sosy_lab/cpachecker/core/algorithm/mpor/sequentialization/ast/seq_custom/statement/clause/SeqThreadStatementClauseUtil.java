@@ -16,8 +16,10 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -358,20 +360,50 @@ public class SeqThreadStatementClauseUtil {
         if (targetNumber.orElseThrow() != Sequentialization.EXIT_PC) {
           SeqThreadStatementBlock targetBlock =
               Objects.requireNonNull(pLabelBlockMap.get(targetNumber.orElseThrow()));
-          // visit loop starts only once, when entering loop
-          if (!targetBlock.isLoopStart() || pVisitedLoopStarts.add(targetBlock)) {
-            // prevent jump to statement itself
-            if (!pCurrentBlock.equals(targetBlock)) {
-              // prevent duplicates
-              if (!pGraph.get(pCurrentBlock).contains(targetBlock)) {
-                pGraph.get(pCurrentBlock).add(targetBlock);
-                recursivelyBuildBlockGraph(targetBlock, pGraph, pVisitedLoopStarts, pLabelBlockMap);
-              }
+          // ensure that adding (pCurrentBlock, targetBlock) does not yield cycle in pGraph
+          if (isCycleFree(pGraph, pCurrentBlock, targetBlock)) {
+            // prevent duplicates
+            if (!pGraph.get(pCurrentBlock).contains(targetBlock)) {
+              pGraph.get(pCurrentBlock).add(targetBlock);
+              recursivelyBuildBlockGraph(targetBlock, pGraph, pVisitedLoopStarts, pLabelBlockMap);
             }
           }
         }
       }
     }
+  }
+
+  /**
+   * Returns {@code true} if adding {@code pBlock} and {@code pTarget} would result in {@code
+   * pGraph} being free of cycles.
+   */
+  private static boolean isCycleFree(
+      ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pGraph,
+      SeqThreadStatementBlock pBlock,
+      SeqThreadStatementBlock pTarget) {
+
+    // shortcut: if pBlock == pTarget, then cycle
+    if (pBlock.equals(pTarget)) {
+      return false;
+    }
+    // check if pBlock is reachable when starting in pTarget
+    Deque<SeqThreadStatementBlock> stack = new ArrayDeque<>();
+    Set<SeqThreadStatementBlock> visited = new HashSet<>();
+    stack.push(pTarget);
+    while (!stack.isEmpty()) {
+      SeqThreadStatementBlock current = stack.pop();
+      if (visited.add(current)) {
+        if (current.equals(pBlock)) {
+          // Path exists: adding edge creates a cycle
+          return false;
+        }
+        for (SeqThreadStatementBlock successor : pGraph.get(current)) {
+          stack.push(successor);
+        }
+      }
+    }
+    // no path from pBlock to pTarget
+    return true;
   }
 
   private static void recursivelyReorderBlocks(
