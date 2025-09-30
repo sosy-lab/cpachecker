@@ -800,7 +800,16 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
+        if (BuiltinFunctions.isPopcountFunction(functionName)) {
+          return handlePopCount(
+              functionName,
+              functionType,
+              parameterValues,
+              pIastFunctionCallExpression,
+              machineModel,
+              logger);
+
+        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           return BuiltinOverflowFunctions.evaluateFunctionCall(
               pIastFunctionCallExpression, this, machineModel, logger);
 
@@ -2263,6 +2272,56 @@ public abstract class AbstractExpressionValueVisitor
     } else {
       return null;
     }
+  }
+
+  /**
+   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
+   * sums up all 1-bits of an unsigned int, unsigned long or unsigned long long. Test c programs
+   * available: test/programs/simple/builtin_popcount32_x.c and
+   * test/programs/simple/builtin_popcount64_x.c
+   */
+  @SuppressWarnings("unused")
+  private static Value handlePopCount(
+      String pFunctionName,
+      CType pReturnType,
+      List<Value> pParameters,
+      CFunctionCallExpression e,
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates logger)
+      throws UnrecognizedCodeException {
+    if (pParameters.size() == 1) {
+      // Cast to unsigned target type
+      Value paramValue =
+          castCValue(
+              pParameters.getFirst(),
+              e.getParameterExpressions().getFirst().getExpressionType(),
+              pMachineModel,
+              logger);
+      CSimpleType paramType =
+          BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
+
+      if (paramValue.isNumericValue()) {
+        // int bitSizeOfInputType = pMachineModel.getSizeofInBits(paramType.getCanonicalType());
+        NumericValue numericParam = paramValue.asNumericValue();
+
+        // Check that the input is unsigned, as defined by the function
+        checkArgument(numericParam.bigIntegerValue().compareTo(BigInteger.ZERO) >= 0);
+
+        return new NumericValue(numericParam.bigIntegerValue().bitCount());
+      }
+
+      // TODO: add impl for SymExec
+      return Value.UnknownValue.getInstance();
+    }
+    throw new UnrecognizedCodeException(
+        "Function "
+            + pFunctionName
+            + " received "
+            + pParameters.size()
+            + " parameters"
+            + " instead of the expected "
+            + 1,
+        e);
   }
 
   /**
