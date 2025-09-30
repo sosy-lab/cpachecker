@@ -632,7 +632,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         shutdownNotifier.shutdownIfNecessary();
         stats.interpolationPreparation.start();
-        BooleanFormula loopInv;
         try {
           partitionedFormulas.collectFormulasFromARG(pReachedSet);
           updateAuxiliaryInvariant(pReachedSet, partitionedFormulas);
