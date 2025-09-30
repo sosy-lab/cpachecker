@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlExpressionEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -30,16 +31,31 @@ public class SeqThreadStatementBlockUtil {
           // infinite while (1) loop -> loop is in predecessor of predecessor
           for (CFAEdge enteringEdgeA : CFAUtils.enteringEdges(predecessorA)) {
             CFANode predecessorB = enteringEdgeA.getPredecessor();
-            if (predecessorB.isLoopStart()) {
+            if (isWhileTrueLoopStart(predecessorB)) {
+              return true;
+            } else if (enteringEdgeA instanceof CDeclarationEdge) {
+              // edge case: while(1) starts with switch(__VERIFIER_nondet...())
+              // which is transformed into separate declaration
               for (CFAEdge enteringEdgeB : CFAUtils.enteringEdges(predecessorB)) {
-                if (enteringEdgeB instanceof BlankEdge blankEdge) {
-                  String description = blankEdge.getDescription();
-                  if (description.equals(SingleControlExpressionEncoding.WHILE.keyword)) {
-                    return true;
-                  }
+                if (isWhileTrueLoopStart(enteringEdgeB.getPredecessor())) {
+                  return true;
                 }
               }
             }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private static boolean isWhileTrueLoopStart(CFANode pCfaNode) {
+    if (pCfaNode.isLoopStart()) {
+      for (CFAEdge enteringEdgeB : CFAUtils.enteringEdges(pCfaNode)) {
+        if (enteringEdgeB instanceof BlankEdge blankEdge) {
+          String description = blankEdge.getDescription();
+          if (description.equals(SingleControlExpressionEncoding.WHILE.keyword)) {
+            return true;
           }
         }
       }
