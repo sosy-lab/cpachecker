@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="10 s" hardtimelimit="30 s" memlimit="500 MB" cpuCores="9">
+<benchmark tool="cpachecker" timelimit="10 s" hardtimelimit="30 s" memlimit="500 MB" cpuCores="4">
 
   <option name="--no-output-files"/>
   <option name="--heap">150M</option>
