@@ -1009,7 +1009,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Computing fixed points by interpolation-sequence (ISMC)");
     List<BooleanFormula> itpSequence = getInterpolationSequence(pFormulas);
     updateReachabilityVector(reachVector, itpSequence);
-    return checkFixedPointOfReachabilityVector(reachVector, pFormulas);
+    return checkFixedPointOfReachabilityVector(reachVector);
   }
 
   /**
@@ -1067,7 +1067,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    */
   private boolean checkFixedPointOfReachabilityVector(
-      List<BooleanFormula> reachVector, PartitionedFormulas formulas)
+      List<BooleanFormula> reachVector)
       throws InterruptedException, SolverException {
     logger.log(Level.FINE, "Checking fixed point of the reachability vector");
 
