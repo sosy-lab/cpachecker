@@ -53,9 +53,10 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
             CFAUtils.leavingEdges(node).toSet(), blockState.getBlockNode().getEdges());
 
     if (intersection.contains(cfaEdge)) {
-      if (cfaEdge
-          .getSuccessor()
-          .equals(blockState.getBlockNode().getViolationConditionLocation())) {
+      if (!blockState.getViolationConditions().isEmpty()
+          && cfaEdge
+              .getSuccessor()
+              .equals(blockState.getBlockNode().getViolationConditionLocation())) {
         ImmutableList.Builder<BlockState> successors = ImmutableList.builder();
         for (AbstractState vc : blockState.getViolationConditions()) {
           successors.add(
