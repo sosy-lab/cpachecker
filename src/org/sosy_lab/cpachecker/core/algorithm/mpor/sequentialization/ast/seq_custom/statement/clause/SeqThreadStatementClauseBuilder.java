@@ -73,7 +73,7 @@ public class SeqThreadStatementClauseBuilder {
     // if enabled, ensure that no backward goto exist
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> noBackwardGoto =
         pOptions.noBackwardGoto
-            ? SeqThreadStatementClauseUtil.removeBackwardGoto(reducedClauses)
+            ? SeqThreadStatementClauseUtil.removeBackwardGoto(reducedClauses, pLogger)
             : reducedClauses;
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> consecutiveLabels =

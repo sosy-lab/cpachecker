@@ -475,6 +475,8 @@ public class SeqThreadStatementBuilder {
       ThreadSynchronizationVariables pThreadSynchronizationVariables) {
 
     CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(pSubstituteEdge.cfaEdge);
+    // TODO goblint-regression/13-privatized_68-pfscan_protected_loop_minimal_interval_true
+    //  causes issues here, the unlockedMutexT is a parameter which is not in the locked map
     assert pThreadSynchronizationVariables.locked.containsKey(unlockedMutexT);
     // assign 0 to locked variable
     CExpressionAssignmentStatement lockedFalse =

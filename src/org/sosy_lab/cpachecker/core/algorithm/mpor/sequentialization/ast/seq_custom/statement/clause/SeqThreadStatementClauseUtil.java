@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -130,7 +131,7 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap.Builder<Integer, SeqThreadStatementBlock> rMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        rMap.put(block.getLabel().labelNumber, block);
+        rMap.put(block.getLabel().getNumber(), block);
       }
     }
     return rMap.buildOrThrow();
@@ -170,7 +171,7 @@ public class SeqThreadStatementClauseUtil {
         for (SeqThreadStatement mergedStatement : block.getStatements()) {
           newStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
-        int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().labelNumber));
+        int blockIndex = Objects.requireNonNull(labelBlockMap.get(block.getLabel().getNumber()));
         newBlocks.add(
             block.cloneWithLabelNumber(blockIndex).cloneWithStatements(newStatements.build()));
       }
@@ -187,7 +188,7 @@ public class SeqThreadStatementClauseUtil {
     int index = Sequentialization.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
-        rLabelToIndex.put(block.getLabel().labelNumber, index++);
+        rLabelToIndex.put(block.getLabel().getNumber(), index++);
       }
     }
     return rLabelToIndex.buildOrThrow();
@@ -225,7 +226,7 @@ public class SeqThreadStatementClauseUtil {
     } else if (pCurrentStatement.getTargetGoto().isPresent()) {
       SeqBlockLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
       // for gotos, use block labels
-      int index = Objects.requireNonNull(pLabelBlockMap.get(label.labelNumber));
+      int index = Objects.requireNonNull(pLabelBlockMap.get(label.getNumber()));
       return pCurrentStatement.cloneWithTargetGoto(label.cloneWithLabelNumber(index));
     }
     // no target pc or target goto -> no replacement
@@ -302,7 +303,7 @@ public class SeqThreadStatementClauseUtil {
   // No Backward Goto ==============================================================================
 
   public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> removeBackwardGoto(
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses, LogManager pLogger) {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rNoBackwardGoto =
         ImmutableListMultimap.builder();
@@ -314,8 +315,8 @@ public class SeqThreadStatementClauseUtil {
       // create set to track which blocks were placed already
       ImmutableList<SeqThreadStatementBlock> reorderedBlocks =
           reorderBlocks(firstBlocks.getFirst(), labelBlockMap);
-      assert SeqValidator.validateEqualBlocks(reorderedBlocks, allBlocks)
-          : "block sets must be equal before and after reordering";
+      SeqValidator.validateEqualBlocks(reorderedBlocks, allBlocks, pLogger);
+      SeqValidator.validateNoBackwardGoto(reorderedBlocks, pLogger);
       rNoBackwardGoto.putAll(thread, buildClausesFromReorderedBlocks(reorderedBlocks, firstBlocks));
     }
     return rNoBackwardGoto.build();
@@ -405,7 +406,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementBlock> pBlocks) {
 
     return ImmutableList.sortedCopyOf(
-        Comparator.comparingInt((SeqThreadStatementBlock block) -> block.getLabel().labelNumber)
+        Comparator.comparingInt((SeqThreadStatementBlock block) -> block.getLabel().getNumber())
             .reversed(),
         pBlocks);
   }

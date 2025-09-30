@@ -16,12 +16,12 @@ public class SeqBlockLabelStatement implements SeqLabelStatement {
 
   public final String threadPrefix;
 
-  public final int labelNumber;
+  public final int number;
 
-  public SeqBlockLabelStatement(String pThreadPrefix, int pLabelNumber) {
+  public SeqBlockLabelStatement(String pThreadPrefix, int pNumber) {
     // we store the thread prefix so that cloning does not require the options (shortVariables)
     threadPrefix = pThreadPrefix;
-    labelNumber = pLabelNumber;
+    number = pNumber;
   }
 
   @Override
@@ -31,10 +31,14 @@ public class SeqBlockLabelStatement implements SeqLabelStatement {
 
   @Override
   public String toASTStringWithoutColon() {
-    return threadPrefix + SeqSyntax.UNDERSCORE + labelNumber;
+    return threadPrefix + SeqSyntax.UNDERSCORE + number;
   }
 
   public SeqBlockLabelStatement cloneWithLabelNumber(int pLabelNumber) {
     return new SeqBlockLabelStatement(threadPrefix, pLabelNumber);
+  }
+
+  public int getNumber() {
+    return number;
   }
 }

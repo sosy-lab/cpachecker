@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -38,12 +39,14 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class SeqValidator {
 
+  // Program Parsing ===============================================================================
+
   /**
    * Checks whether CPAchecker can parse the output file {@code pSequentializationPath}.
    *
    * <p>Only use this method if {@link MPOROptions#inputTypeDeclarations} is disabled, because using
-   * preprocessors on source code (i.e. {@code String}s) is not allowed and we need to run it on the
-   * output file.
+   * preprocessors on source code (i.e. {@code String}s) is not allowed, and we need to run it on
+   * the output file.
    */
   public static void validateProgramParsing(
       Path pSequentializationPath,
@@ -92,6 +95,8 @@ public class SeqValidator {
     return pSequentialization;
   }
 
+  // Program Counter (pc) ==========================================================================
+
   /**
    * Returns {@code pClauses} as is or throws an {@link AssertionError} if:
    *
@@ -125,24 +130,6 @@ public class SeqValidator {
       }
     }
     return pClauses;
-  }
-
-  /** Returns {@code true} if the two collections contain the exact same blocks, in any order. */
-  public static boolean validateEqualBlocks(
-      ImmutableCollection<SeqThreadStatementBlock> pBlocksA,
-      ImmutableCollection<SeqThreadStatementBlock> pBlocksB) {
-
-    // short circuit: check for equal length
-    if (pBlocksA.size() != pBlocksB.size()) {
-      return false;
-    }
-    // otherwise check if B contains all elements from A
-    for (SeqThreadStatementBlock blockA : pBlocksA) {
-      if (!pBlocksB.contains(blockA)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /** Maps origin pcs n in {@code case n} to the set of target pcs m {@code pc[t_id] = m}. */
@@ -207,6 +194,48 @@ public class SeqValidator {
       }
     }
   }
+
+  // Block Reordering ==============================================================================
+
+  /** Returns {@code true} if the two collections contain the exact same blocks, in any order. */
+  public static void validateEqualBlocks(
+      ImmutableCollection<SeqThreadStatementBlock> pBlocksA,
+      ImmutableCollection<SeqThreadStatementBlock> pBlocksB,
+      LogManager pLogger) {
+
+    // short circuit: check for equal length
+    if (pBlocksA.size() != pBlocksB.size()) {
+      handleValidationException("pBlocksA and pBlocksB length differ", pLogger);
+    }
+    // otherwise check if B contains all elements from A
+    for (SeqThreadStatementBlock blockA : pBlocksA) {
+      if (!pBlocksB.contains(blockA)) {
+        handleValidationException("pBlocksB does not contain all blocks from pBlocksA", pLogger);
+      }
+    }
+  }
+
+  public static void validateNoBackwardGoto(
+      ImmutableCollection<SeqThreadStatementBlock> pBlocks, LogManager pLogger) {
+
+    for (SeqThreadStatementBlock block : pBlocks) {
+      for (SeqThreadStatement statement : block.getStatements()) {
+        if (statement.getTargetGoto().isPresent()) {
+          SeqBlockLabelStatement originLabel = block.getLabel();
+          SeqBlockLabelStatement targetLabel = statement.getTargetGoto().orElseThrow();
+          if (originLabel.getNumber() < targetLabel.getNumber()) {
+            handleValidationException(
+                String.format(
+                    "block label number %s is smaller than target label number %s",
+                    originLabel.getNumber(), targetLabel.getNumber()),
+                pLogger);
+          }
+        }
+      }
+    }
+  }
+
+  // Helper ========================================================================================
 
   private static void handleValidationException(String pMessage, LogManager pLogger) {
     pLogger.log(Level.SEVERE, pMessage);
