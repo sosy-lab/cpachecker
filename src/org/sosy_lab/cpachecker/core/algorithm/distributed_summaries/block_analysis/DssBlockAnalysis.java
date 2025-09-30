@@ -199,11 +199,11 @@ public class DssBlockAnalysis {
     if (forcefullyCollectAllArgPaths) {
       return collectAllArgPaths(states);
     }
-    ImmutableList.Builder<ARGPath> builder = ImmutableList.builder();
+    ImmutableList.Builder<ARGPath> paths = ImmutableList.builder();
     for (ARGState state : states) {
-      builder.addAll(ARGUtils.getAllPaths(reachedSet, state));
+      paths.addAll(ARGUtils.getAllPaths(reachedSet, state));
     }
-    return builder.build();
+    return paths.build();
   }
 
   private List<AbstractState> computeViolationConditionStatesFromOrigin(
@@ -279,7 +279,7 @@ public class DssBlockAnalysis {
       resetStatesBuilder.put(summary, reset);
       sps.add(new StateAndPrecision(reset, makeStartPrecision()));
     }
-    ImmutableMap<StateAndPrecision, AbstractState> resetStates = resetStatesBuilder.build();
+    ImmutableMap<StateAndPrecision, AbstractState> resetStates = resetStatesBuilder.buildOrThrow();
     reachedSet.clear();
     DssBlockAnalyses.executeCpaAlgorithmWithStates(reachedSet, cpa, sps);
     ImmutableSet<AbstractState> reachedSetStates = ImmutableSet.copyOf(reachedSet.asCollection());
