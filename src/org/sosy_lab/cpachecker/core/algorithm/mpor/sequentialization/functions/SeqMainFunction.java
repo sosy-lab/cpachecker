@@ -327,7 +327,7 @@ public class SeqMainFunction extends SeqFunction {
       rDeclarations.add(SeqComment.THREAD_SIMULATION_VARIABLES);
     }
     for (CSimpleDeclaration declaration :
-        pFields.ghostElements.getThreadSynchronizationVariables().getDeclarations()) {
+        pFields.ghostElements.getThreadSynchronizationVariables().getDeclarations(pOptions)) {
       rDeclarations.add(declaration.toASTString());
     }
     return rDeclarations.build();

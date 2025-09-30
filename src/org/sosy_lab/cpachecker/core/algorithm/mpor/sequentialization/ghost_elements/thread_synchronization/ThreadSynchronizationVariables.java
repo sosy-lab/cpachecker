@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class ThreadSynchronizationVariables {
@@ -34,13 +35,15 @@ public class ThreadSynchronizationVariables {
   }
 
   /** Returns all declarations of the thread synchronization variables. */
-  public ImmutableList<CSimpleDeclaration> getDeclarations() {
+  public ImmutableList<CSimpleDeclaration> getDeclarations(MPOROptions pOptions) {
     ImmutableList.Builder<CSimpleDeclaration> rDeclarations = ImmutableList.builder();
     for (MutexLocked mutexLockedVariable : locked.values()) {
       rDeclarations.add(mutexLockedVariable.idExpression.getDeclaration());
     }
-    for (CIdExpression syncVariable : sync.values()) {
-      rDeclarations.add(syncVariable.getDeclaration());
+    if (pOptions.kIgnoreZeroReduction) {
+      for (CIdExpression syncVariable : sync.values()) {
+        rDeclarations.add(syncVariable.getDeclaration());
+      }
     }
     return rDeclarations.build();
   }
