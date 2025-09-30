@@ -635,9 +635,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         BooleanFormula loopInv;
         try {
           partitionedFormulas.collectFormulasFromARG(pReachedSet);
-          loopInv =
-              invariantGeneratorForBMC.getUninstantiatedInvariants(
-                  pReachedSet, getLoopHeads(), fmgr, pfmgr);
+          updateAuxiliaryInvariant(pReachedSet, partitionedFormulas);
         } finally {
           stats.interpolationPreparation.stop();
         }
@@ -647,12 +645,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         // k-induction
         if (checkPropertyInductiveness
             && loopBoundMgr.performKIAtCurrentIteration()
-            && isPropertyInductive(pReachedSet, partitionedFormulas, loopInv)) {
+            && isPropertyInductive(pReachedSet, partitionedFormulas)) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
         // Interpolation
         if (isInterpolationEnabled()
-            && reachFixedPoint(pReachedSet, partitionedFormulas, reachVector, loopInv)) {
+            && reachFixedPoint(pReachedSet, partitionedFormulas, reachVector)) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
@@ -788,13 +786,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /** Check if the safety property can be proven by <i>k</i>-induction */
-  private boolean isPropertyInductive(
-      ReachedSet pReachedSet, PartitionedFormulas formulas, BooleanFormula loopInv)
+  private boolean isPropertyInductive(ReachedSet pReachedSet, PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
     boolean isInductive;
     try (ProverEnvironment inductionProver = solver.newProverEnvironment()) {
       stats.satCheck.start();
-      inductionProver.push(fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()));
+      inductionProver.push(fmgr.instantiate(lastInductiveAuxInv, formulas.getPrefixSsaMap()));
       inductionProver.push(bfmgr.and(formulas.getLoopFormulas()));
       inductionProver.push(formulas.getAssertionFormula());
       try {
@@ -815,25 +812,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private boolean reachFixedPoint(
-      ReachedSet pReachedSet,
-      PartitionedFormulas formulas,
-      List<BooleanFormula> reachVector,
-      BooleanFormula loopInv)
+      ReachedSet pReachedSet, PartitionedFormulas formulas, List<BooleanFormula> reachVector)
       throws CPAException, SolverException, InterruptedException {
     stats.fixedPointComputation.start();
     try {
       boolean hasReachedFixedPoint = false;
       switch (fixedPointComputeStrategy) {
-        case ITP ->
-            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector, loopInv);
+        case ITP -> hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector);
         case ITPSEQ ->
-            hasReachedFixedPoint =
-                reachFixedPointByInterpolationSequence(formulas, reachVector, loopInv);
+            hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
         case ITPSEQ_AND_ITP -> {
-          hasReachedFixedPoint =
-              reachFixedPointByInterpolationSequence(formulas, reachVector, loopInv);
+          hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
           if (!hasReachedFixedPoint) {
-            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector, loopInv);
+            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector);
           }
         }
         case NONE -> {}
@@ -866,6 +857,27 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
+  private void updateAuxiliaryInvariant(ReachedSet reachedSet, PartitionedFormulas formulas)
+      throws CPATransferException, InterruptedException, SolverException {
+    BooleanFormula loopInv =
+        invariantGeneratorForBMC.getUninstantiatedInvariants(
+            reachedSet, getLoopHeads(), fmgr, pfmgr);
+    // Examine aux. invariant
+    if (!bfmgr.isTrue(loopInv) && !lastInductiveAuxInv.equals(loopInv)) {
+      logger.log(Level.ALL, "The new auxiliary loop-head invariant is", loopInv);
+      if (formulas.checkInductivenessOf(solver, loopInv)) {
+        logger.log(Level.FINE, "The new auxiliary loop-head invariant is inductive");
+        if (bfmgr.isTrue(lastInductiveAuxInv)) {
+          // print only once
+          logger.log(Level.INFO, "Got an inductive auxiliary invariant at loop head");
+        }
+        lastInductiveAuxInv = loopInv;
+      } else {
+        logger.log(Level.FINE, "The new auxiliary loop-head invariant is not inductive");
+      }
+    }
+  }
+
   /**
    * The method to iteratively compute fixed points by interpolation.
    *
@@ -874,7 +886,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    */
   private boolean reachFixedPointByInterpolation(
-      final PartitionedFormulas formulas, List<BooleanFormula> reachVector, BooleanFormula loopInv)
+      final PartitionedFormulas formulas, List<BooleanFormula> reachVector)
       throws InterruptedException, CPAException, SolverException {
     if (!loopBoundMgr.performIMCAtCurrentIteration()) {
       return false;
@@ -885,22 +897,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       reachVector.add(bfmgr.makeTrue());
     }
 
-    // Examine aux. invariant
-    if (!bfmgr.isTrue(loopInv) && !lastInductiveAuxInv.equals(loopInv)) {
-      logger.log(Level.ALL, "The new auxiliary loop-head invariant is", loopInv);
-      if (formulas.checkInductivenessOf(solver, loopInv)) {
-        logger.log(Level.FINE, "The new auxiliary loop-head invariant is inductive");
-        if (bfmgr.isTrue(lastInductiveAuxInv)) {
-          // print only once
-          logger.log(
-              Level.INFO,
-              "The injected auxiliary loop-head invariant is non-trivial and inductive");
-        }
-        lastInductiveAuxInv = loopInv;
-      } else {
-        logger.log(Level.FINE, "The new auxiliary loop-head invariant is not inductive");
-      }
-    }
     final boolean isLoopInvTrivial = bfmgr.isTrue(lastInductiveAuxInv);
 
     logger.log(Level.FINE, "Computing fixed points by interpolation (IMC)");
@@ -1006,7 +1002,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    */
   private boolean reachFixedPointByInterpolationSequence(
-      PartitionedFormulas pFormulas, List<BooleanFormula> reachVector, BooleanFormula loopInv)
+      PartitionedFormulas pFormulas, List<BooleanFormula> reachVector)
       throws CPAException, InterruptedException, SolverException {
     if (!loopBoundMgr.performISMCAtCurrentIteration()) {
       return false;
@@ -1014,7 +1010,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Computing fixed points by interpolation-sequence (ISMC)");
     List<BooleanFormula> itpSequence = getInterpolationSequence(pFormulas);
     updateReachabilityVector(reachVector, itpSequence);
-    return checkFixedPointOfReachabilityVector(reachVector, pFormulas, loopInv);
+    return checkFixedPointOfReachabilityVector(reachVector, pFormulas);
   }
 
   /**
@@ -1072,22 +1068,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    */
   private boolean checkFixedPointOfReachabilityVector(
-      List<BooleanFormula> reachVector, PartitionedFormulas formulas, BooleanFormula loopInv)
+      List<BooleanFormula> reachVector, PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
     logger.log(Level.FINE, "Checking fixed point of the reachability vector");
-
-    final boolean isLoopInvInductive = formulas.checkInductivenessOf(solver, loopInv);
-    logger.log(Level.ALL, "The auxiliary loop-head invariant is: ", loopInv);
-    if (!bfmgr.isTrue(loopInv)) {
-      logger.log(
-          Level.FINE,
-          "The non-trivial auxiliary loop-head invariant is "
-              + (isLoopInvInductive ? "" : "not ")
-              + "inductive");
-      if (!isLoopInvInductive) {
-        logger.log(Level.FINE, "Invariant is not injected because it is not inductive");
-      }
-    }
 
     if (impactLikeCovering) {
       BooleanFormula lastImage = reachVector.getLast();
@@ -1111,9 +1094,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return true;
         }
         // Step 2: ISMC check strengthened by external invariant
-        if (!bfmgr.isTrue(loopInv)
-            && isLoopInvInductive
-            && solver.implies(bfmgr.and(imageAtI, loopInv), currentImage)) {
+        if (!bfmgr.isTrue(lastInductiveAuxInv)
+            && solver.implies(bfmgr.and(imageAtI, lastInductiveAuxInv), currentImage)) {
           logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
           finalFixedPoint = bfmgr.or(currentImage, reachVector.getFirst());
           stats.fixedPointConvergenceLength = reachVector.size();
