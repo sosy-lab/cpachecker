@@ -86,6 +86,7 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
+  <!-- Apron is currently not working
   <rundefinition name="Verification_value10+apron-cmc">
     <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
@@ -101,27 +102,27 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="Verification_valueCegar60+apronCegar-cmc">
-    <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-    <option name="--option">pcc.proofgen.doPCC=false</option>
+<rundefinition name="Verification_valueCegar60+apronCegar-cmc">
+  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=false</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+-->
 
-
-  <!-- Verification Memory -->
+<!-- Verification Memory -->
   <rundefinition name="Verification-Memory_valueCegar60+pred-cmc">
     <option name="--combinations-valueCegar60+pred-cmc"/>
     <option name="--option">restartAlgorithm.combineARGsAfterRestart=false</option>
@@ -187,6 +188,7 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
+  <!-- Apron is currently not working
   <rundefinition name="Verification-Memory_value10+apron-cmc">
     <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
@@ -220,6 +222,7 @@ SPDX-License-Identifier: Apache-2.0
       <include>../programs/benchmarks/systemc/toy.cil.yml</include>
     </tasks>
   </rundefinition>
+-->
 
   <!-- Proof Generation -->
   <!-- ARG -->
@@ -296,45 +299,47 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="Proof-Generation_arg_value10+apron-cmc">
-    <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-    <option name="--option">pcc.proofgen.doPCC=true</option>
-    <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_arg.proof</option>
-    <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+  <!-- Apron is currently not working
+<rundefinition name="Proof-Generation_arg_value10+apron-cmc">
+  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_arg.proof</option>
+  <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
 
-  <rundefinition name="Proof-Generation_arg_valueCegar60+apronCegar-cmc">
-    <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-    <option name="--option">pcc.proofgen.doPCC=true</option>
-    <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-    <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_arg.proof</option>
+<rundefinition name="Proof-Generation_arg_valueCegar60+apronCegar-cmc">
+  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+  <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_arg.proof</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+-->
 
-  <!-- Reached set proof -->
+<!-- Reached set proof -->
   <rundefinition name="Proof-Generation_reached-set_valueCegar60+pred-cmc">
     <option name="--combinations-valueCegar60+pred-cmc"/>
     <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
@@ -408,45 +413,47 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="Proof-Generation_reached-set_value10+apron-cmc">
-    <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-    <option name="--option">pcc.strategy=ReachedSetStrategy</option>  
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-    <option name="--option">pcc.proofgen.doPCC=true</option>
-    <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_reached.proof</option>
+  <!-- Apron is currently not working
+<rundefinition name="Proof-Generation_reached-set_value10+apron-cmc">
+  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+  <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_reached.proof</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
 
-  <rundefinition name="Proof-Generation_reached-set_valueCegar60+apronCegar-cmc">
-    <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-    <option name="--option">pcc.proofgen.doPCC=true</option>
-    <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_reached.proof</option>
-    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+<rundefinition name="Proof-Generation_reached-set_valueCegar60+apronCegar-cmc">
+  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_reached.proof</option>
+  <option name="--option">pcc.strategy=ReachedSetStrategy</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+-->
 
-  <!-- partial reached set proof -->
+<!-- partial reached set proof -->
   <rundefinition name="Proof-Generation_partial-reached-set_valueCegar60+pred-cmc">
     <option name="--combinations-valueCegar60+pred-cmc"/>
     <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
@@ -524,45 +531,47 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="Proof-Generation_partial-reached-set_value10+apron-cmc">
-    <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-    <option name="--option">pcc.proofgen.doPCC=true</option>
-    <option name="--option">pcc.partial.certificateType=MONOTONESTOPARG</option>
-    <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_partial.proof</option>
-    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+  <!-- Apron is currently not working
+<rundefinition name="Proof-Generation_partial-reached-set_value10+apron-cmc">
+  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.partial.certificateType=MONOTONESTOPARG</option>
+  <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_partial.proof</option>
+  <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
 
-  <rundefinition name="Proof-Generation_partial-reached-set_valueCegar60+apronCegar-cmc">
-    <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-    <option name="--option">pcc.proofgen.doPCC=true</option>
-    <option name="--option">pcc.partial.certificateType=MONOTONESTOPARG</option>
-    <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_partial.proof</option>
-    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+<rundefinition name="Proof-Generation_partial-reached-set_valueCegar60+apronCegar-cmc">
+  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.partial.certificateType=MONOTONESTOPARG</option>
+  <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_partial.proof</option>
+  <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+-->
 
 <!-- CMC args proof -->
   <rundefinition name="Proof-Generation_cmc-args_valueCegar60+pred-cmc">
@@ -646,50 +655,51 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="Proof-Generation_cmc-args_value10+apron-cmc">
-    <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">pcc.proofgen.doPCC=true</option>
-    <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
-    <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
-    <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
-    <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
-    <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
+  <!-- Apron is currently not working
+<rundefinition name="Proof-Generation_cmc-args_value10+apron-cmc">
+  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
+  <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
+  <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
+  <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
+  <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-    </tasks>
-  </rundefinition>
-        
-  <rundefinition name="Proof-Generation_cmc-args_valueCegar60+apronCegar-cmc">
-    <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">pcc.proofgen.doPCC=true</option>
-    <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
-    <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
-    <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option> 
-    <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
-    <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-    </tasks>
-  </rundefinition>
+<rundefinition name="Proof-Generation_cmc-args_valueCegar60+apronCegar-cmc">
+  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">pcc.proofgen.doPCC=true</option>
+  <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
+  <option name="--option">analysis.memorizeReachedAfterRestart=true</option>
+  <option name="--option">pcc.strategy=arg.ARG_CMCStrategy</option>
+  <option name="--option">counterexample.removeInfeasibleErrorState=false</option>
+  <option name="--option">assumptions.removeNonExploredWithoutSuccessors=true</option>
 
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+-->
 
-  <!-- Complete proof check -->
+<!-- Complete proof check -->
 
   <!-- ARG Proof -->
   <rundefinition name="Complete-proof-check_arg-proof_valueAnalysis-predicateAnalysis-proofcheck">
@@ -779,52 +789,53 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="Complete-proof-check_arg-proof_valueApronAnalysis-proofcheck">
-    <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-    <option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_arg.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
-    <option name="--option">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+  <!-- Apron is currently not working
+<rundefinition name="Complete-proof-check_arg-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_arg.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+  <option name="--option">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+  <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
 
-  <rundefinition name="Complete-proof-check_arg-proof_valueApronAnalysis-proofcheck">
-    <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-    <option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_arg.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
-    <option name="--option">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+<rundefinition name="Complete-proof-check_arg-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_arg.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
+  <option name="--option">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+  <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+-->
 
-  <!-- Reached set proof -->
-
+<!-- Reached set proof -->
   <rundefinition name="Complete-proof-check_reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
     <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
@@ -908,51 +919,52 @@ SPDX-License-Identifier: Apache-2.0
       <include>../programs/CMC+PCC/bonus.c</include>
     </tasks>
   </rundefinition>
-   
-  <rundefinition name="Complete-proof-check_reached-set-proof_valueApronAnalysis-proofcheck">
-    <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-    <option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_reached.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-    </tasks>
-  </rundefinition>
+  <!-- Apron is currently not working
+<rundefinition name="Complete-proof-check_reached-set-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_reached.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
 
-  <rundefinition name="Complete-proof-check_reached-set-proof_valueApronAnalysis-proofcheck">
-    <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-    <option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_reached.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">pcc.strategy=ReachedSetStrategy</option>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-    </tasks>
-  </rundefinition>
+<rundefinition name="Complete-proof-check_reached-set-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_reached.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">pcc.strategy=ReachedSetStrategy</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+-->
 
 <!-- partial reached set proof -->
- 
   <rundefinition name="Complete-proof-check_partial-reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
     <option name="--config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
@@ -1040,17 +1052,18 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="Complete-proof-check_partial-reached-set-proof_valueApronAnalysis-proofcheck">
-    <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
-    <option name="--option">analysis.algorithm.proofCheck=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_partial.proof</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
-    <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-    <option name="--option">pcc.strategy=PartialReachedSetStrategy</option> 
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option> 
-      
-      <!-- only possible in combination-->
+  <!-- Apron is currently not working
+<rundefinition name="Complete-proof-check_partial-reached-set-proof_valueApronAnalysis-proofcheck">
+  <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
+  <option name="--option">analysis.algorithm.proofCheck=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_partial.proof</option>
+  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="--option">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
+  <option name="--option">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
+  <option name="--option">pcc.strategy=PartialReachedSetStrategy</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+
+     only possible in combination
      <tasks>
       <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
       <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
@@ -1082,6 +1095,7 @@ SPDX-License-Identifier: Apache-2.0
       <include>../programs/benchmarks/systemc/toy.cil.yml</include>
     </tasks>
   </rundefinition>
+-->
 
   <!-- CMC args proof -->
   <rundefinition name="Complete-proof-check_cmc-args-proof_value+pred-cmc-proofcheck">
@@ -1151,54 +1165,56 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <rundefinition name="Complete-proof-check_cmc-args-proof_value+apron-cmc-proofcheck">
-    <option name="--config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
-    <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
+  <!-- Apron is currently not working
+<rundefinition name="Complete-proof-check_cmc-args-proof_value+apron-cmc-proofcheck">
+  <option name="--config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+  <option name="--option">pcc.proof=output/ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
+  <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+  </tasks>
+</rundefinition>
 
-  <rundefinition name="Complete-proof-check_cmc-args-proof_value+apron-cmc-proofcheck">
-    <option name="--config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
-    <option name="--skip-recursion"/>
-    <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
-    <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
+<rundefinition name="Complete-proof-check_cmc-args-proof_value+apron-cmc-proofcheck">
+  <option name="--config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
+  <option name="--skip-recursion"/>
+  <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
+  <option name="--option">pcc.arg.checkPropertyPerElement=true</option>
+  <option name="--option">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-      <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-      <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-      <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-    </tasks>
-  </rundefinition>
+  <tasks>
+    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+  </tasks>
+</rundefinition>
+-->
 
-  <columns>
-    <column title="total">Total time for CPAchecker</column>
-    <column title="Analysis time">Time for Analysis</column>
-    <column title="Verif time">Time for program analyis</column>
-    <column title="Total val time">Total time for proof check algorithm</column>
-    <column title="Proof read">Time for reading in proof (not complete time in interleaved modes)</column>
-    <column title="Algorithms">Number of algorithms used</column>
-    <column title="Combination time">Time to combine ARGs</column>
-    <column title="Proof gen time">Time for proof writing</column>
-    <column title="Proof size">Proof file size (bytes)</column>
-    <column title="Proof states">Number of proof elements</column>
-    <column title="Reached size">Size of reached set</column>
-    <column title="Heap Mem">Used heap memory</column>
-    <column title="Non-Heap Mem">Used non-heap memory</column>
-  </columns>
+<columns>
+  <column title="total">Total time for CPAchecker</column>
+  <column title="Analysis time">Time for Analysis</column>
+  <column title="Verif time">Time for program analyis</column>
+  <column title="Total val time">Total time for proof check algorithm</column>
+  <column title="Proof read">Time for reading in proof (not complete time in interleaved modes)</column>
+  <column title="Algorithms">Number of algorithms used</column>
+  <column title="Combination time">Time to combine ARGs</column>
+  <column title="Proof gen time">Time for proof writing</column>
+  <column title="Proof size">Proof file size (bytes)</column>
+  <column title="Proof states">Number of proof elements</column>
+  <column title="Reached size">Size of reached set</column>
+  <column title="Heap Mem">Used heap memory</column>
+  <column title="Non-Heap Mem">Used non-heap memory</column>
+</columns>
 </benchmark>
