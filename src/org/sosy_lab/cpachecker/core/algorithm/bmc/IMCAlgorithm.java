@@ -1066,8 +1066,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *     the current over-approximation is unsafe.
    * @throws InterruptedException On shutdown request.
    */
-  private boolean checkFixedPointOfReachabilityVector(
-      List<BooleanFormula> reachVector)
+  private boolean checkFixedPointOfReachabilityVector(List<BooleanFormula> reachVector)
       throws InterruptedException, SolverException {
     logger.log(Level.FINE, "Checking fixed point of the reachability vector");
 
