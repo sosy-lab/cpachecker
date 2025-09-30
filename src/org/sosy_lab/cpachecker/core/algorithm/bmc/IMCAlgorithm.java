@@ -518,36 +518,52 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     loopBoundMgr = new LoopBoundManager(pConfig);
     invariantsOptions = new InvariantsOptions(pConfig);
 
-    if (assertTargetsAtEveryIteration
-        && fixedPointComputeStrategy != FixedPointComputeStrategy.ITP) {
-      logger.log(
-          Level.WARNING,
-          "Cannot assert targets at every iteration with current strategy for computing fixed"
-              + " point. Setting imc.assertTargetsAtEveryIteration to false.");
-      assertTargetsAtEveryIteration = false;
-    }
-    if (assertTargetsAtEveryIteration && backwardAnalysis) {
-      logger.log(
-          Level.WARNING,
-          "Cannot assert targets at every iteration when performing backward analysis. Setting"
-              + " imc.assertTargetsAtEveryIteration to false.");
-      assertTargetsAtEveryIteration = false;
-    }
     if (fixedPointComputeStrategy.isIMCEnabled() || fixedPointComputeStrategy.isISMCEnabled()) {
       stats.numOfInterpolants = 0;
       stats.numOfInterpolationCalls = 0;
     }
+
+    // check configuration compatibility
     if (invariantGeneratorForBMC.isRunning()) {
+      if (invariantsOptions.injectionStrategy == InvariantsInjectionStrategy.REFINE_PROPERTY
+          && fixedPointComputeStrategy.isIMCEnabled()
+          && backwardAnalysis) {
+        logger.log(
+            Level.WARNING,
+            "Property refinement by auxiliary invariants is not supported in backward IMC. "
+                + "Setting imc.backwardAnalysis to false.");
+        backwardAnalysis = false;
+      }
       if (invariantsOptions.injectionStrategy == InvariantsInjectionStrategy.REFINE_ITP
           && fixedPointComputeStrategy.isISMCEnabled()) {
         logger.log(
             Level.WARNING,
             "Interpolant refinement by auxiliary invariants is not supported in ISMC");
       }
+      if (invariantsOptions.injectionStrategy == InvariantsInjectionStrategy.REFINE_PROPERTY
+          && fixedPointComputeStrategy.isISMCEnabled()) {
+        logger.log(
+            Level.WARNING, "Property refinement by auxiliary invariants is not supported in ISMC");
+      }
       if (impactLikeCovering) {
         logger.log(
             Level.WARNING,
             "Invariants injection is not supported by ISMC with Impact-like covering");
+      }
+    }
+    if (assertTargetsAtEveryIteration) {
+      if (fixedPointComputeStrategy != FixedPointComputeStrategy.ITP) {
+        logger.log(
+            Level.WARNING,
+            "Cannot assert targets at every iteration with current strategy for computing fixed"
+                + " point. Setting imc.assertTargetsAtEveryIteration to false.");
+        assertTargetsAtEveryIteration = false;
+      } else if (backwardAnalysis) {
+        logger.log(
+            Level.WARNING,
+            "Cannot assert targets at every iteration when performing backward analysis. Setting"
+                + " imc.assertTargetsAtEveryIteration to false.");
+        assertTargetsAtEveryIteration = false;
       }
     }
   }
