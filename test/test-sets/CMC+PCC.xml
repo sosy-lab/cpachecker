@@ -86,41 +86,42 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
-  <rundefinition name="Verification_value10+apron-cmc">
-    <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-    <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-    <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-    <option name="--option">pcc.proofgen.doPCC=false</option>
+  <!-- Apron is currently not working -->
+  <?ignore
+    <rundefinition name="Verification_value10+apron-cmc">
+      <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+      <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+      <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+      <option name="--option">pcc.proofgen.doPCC=false</option>
 
-    <tasks>
-      <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-      <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-      <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-    </tasks>
-  </rundefinition>
+      <tasks>
+        <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+      </tasks>
+    </rundefinition>
 
-<rundefinition name="Verification_valueCegar60+apronCegar-cmc">
-  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-  <option name="--option">pcc.proofgen.doPCC=false</option>
+    <rundefinition name="Verification_valueCegar60+apronCegar-cmc">
+      <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+      <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+      <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+      <option name="--option">pcc.proofgen.doPCC=false</option>
 
-  <tasks>
-    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-  </tasks>
-</rundefinition>
--->
+      <tasks>
+        <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+        <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+        <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+        <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+        <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+        <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+        <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+      </tasks>
+    </rundefinition>
+  ?>
 
 <!-- Verification Memory -->
   <rundefinition name="Verification-Memory_valueCegar60+pred-cmc">
@@ -188,7 +189,8 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
+  <!-- Apron is currently not working -->
+  <?ignore
   <rundefinition name="Verification-Memory_value10+apron-cmc">
     <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
     <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
@@ -221,8 +223,8 @@ SPDX-License-Identifier: Apache-2.0
       <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
       <include>../programs/benchmarks/systemc/toy.cil.yml</include>
     </tasks>
-  </rundefinition>
--->
+</rundefinition>
+  ?>
 
   <!-- Proof Generation -->
   <!-- ARG -->
@@ -299,45 +301,46 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
-<rundefinition name="Proof-Generation_arg_value10+apron-cmc">
-  <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
-  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-  <option name="--option">pcc.proofgen.doPCC=true</option>
-  <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_arg.proof</option>
-  <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+  <!-- Apron is currently not working -->
+  <?ignore
+    <rundefinition name="Proof-Generation_arg_value10+apron-cmc">
+      <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
+      <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+      <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+      <option name="--option">pcc.proofgen.doPCC=true</option>
+      <option name="--option">pcc.proofFile=ValueApronCMC_${taskdef_name}_arg.proof</option>
+      <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+    
+      <tasks>
+        <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
+      </tasks>
+    </rundefinition>
 
-  <tasks>
-    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-    <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
-    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-    <include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
-  </tasks>
-</rundefinition>
-
-<rundefinition name="Proof-Generation_arg_valueCegar60+apronCegar-cmc">
-  <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
-  <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
-  <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
-  <option name="--option">pcc.proofgen.doPCC=true</option>
-  <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
-  <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_arg.proof</option>
-
-  <tasks>
-    <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
-    <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
-    <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
-    <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
-    <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-    <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
-    <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
-    <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
-    <include>../programs/benchmarks/systemc/toy.cil.yml</include>
-  </tasks>
-</rundefinition>
--->
+    <rundefinition name="Proof-Generation_arg_valueCegar60+apronCegar-cmc">
+      <option name="--config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
+      <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
+      <option name="--option">restartAlgorithm.combineARGsAfterRestart=true</option>
+      <option name="--option">pcc.proofgen.doPCC=true</option>
+      <option name="--option">pcc.strategy=arg.ARG_CPAStrategy</option>
+      <option name="--option">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_arg.proof</option>
+    
+      <tasks>
+        <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+        <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+        <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+        <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+        <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+        <include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
+        <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+        <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+        <include>../programs/benchmarks/systemc/toy.cil.yml</include>
+      </tasks>
+    </rundefinition>
+  ?>
 
 <!-- Reached set proof -->
   <rundefinition name="Proof-Generation_reached-set_valueCegar60+pred-cmc">
@@ -413,7 +416,8 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
+  <!-- Apron is currently not working -->
+  <?ignore
 <rundefinition name="Proof-Generation_reached-set_value10+apron-cmc">
   <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
   <option name="--option">pcc.strategy=ReachedSetStrategy</option>
@@ -451,7 +455,7 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/systemc/toy.cil.yml</include>
   </tasks>
 </rundefinition>
--->
+  ?>
 
 <!-- partial reached set proof -->
   <rundefinition name="Proof-Generation_partial-reached-set_valueCegar60+pred-cmc">
@@ -531,7 +535,8 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
+  <!-- Apron is currently not working -->
+  <?ignore
 <rundefinition name="Proof-Generation_partial-reached-set_value10+apron-cmc">
   <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
   <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
@@ -571,7 +576,7 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/systemc/toy.cil.yml</include>
   </tasks>
 </rundefinition>
--->
+  ?>
 
 <!-- CMC args proof -->
   <rundefinition name="Proof-Generation_cmc-args_valueCegar60+pred-cmc">
@@ -655,7 +660,8 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
+  <!-- Apron is currently not working -->
+  <?ignore
 <rundefinition name="Proof-Generation_cmc-args_value10+apron-cmc">
   <option name="--config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
   <option name="--option">cpa.composite.aggregateBasicBlocks=false</option>
@@ -697,7 +703,7 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/systemc/toy.cil.yml</include>
   </tasks>
 </rundefinition>
--->
+  ?>
 
 <!-- Complete proof check -->
 
@@ -789,7 +795,8 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
+  <!-- Apron is currently not working -->
+  <?ignore
 <rundefinition name="Complete-proof-check_arg-proof_valueApronAnalysis-proofcheck">
   <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
   <option name="--option">analysis.algorithm.proofCheck=true</option>
@@ -833,7 +840,7 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/systemc/toy.cil.yml</include>
   </tasks>
 </rundefinition>
--->
+  ?>
 
 <!-- Reached set proof -->
   <rundefinition name="Complete-proof-check_reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
@@ -920,7 +927,8 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
+  <!-- Apron is currently not working -->
+  <?ignore
 <rundefinition name="Complete-proof-check_reached-set-proof_valueApronAnalysis-proofcheck">
   <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
   <option name="--option">analysis.algorithm.proofCheck=true</option>
@@ -962,7 +970,7 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/systemc/toy.cil.yml</include>
   </tasks>
 </rundefinition>
--->
+  ?>
 
 <!-- partial reached set proof -->
   <rundefinition name="Complete-proof-check_partial-reached-set-proof_valueAnalysis-predicateAnalysis-proofcheck">
@@ -1052,7 +1060,8 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
+  <!-- Apron is currently not working -->
+  <?ignore
 <rundefinition name="Complete-proof-check_partial-reached-set-proof_valueApronAnalysis-proofcheck">
   <option name="--config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
   <option name="--option">analysis.algorithm.proofCheck=true</option>
@@ -1094,8 +1103,8 @@ SPDX-License-Identifier: Apache-2.0
       <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
       <include>../programs/benchmarks/systemc/toy.cil.yml</include>
     </tasks>
-  </rundefinition>
--->
+</rundefinition>
+  ?>
 
   <!-- CMC args proof -->
   <rundefinition name="Complete-proof-check_cmc-args-proof_value+pred-cmc-proofcheck">
@@ -1165,7 +1174,8 @@ SPDX-License-Identifier: Apache-2.0
     </tasks>
   </rundefinition>
 
-  <!-- Apron is currently not working
+  <!-- Apron is currently not working -->
+  <?ignore
 <rundefinition name="Complete-proof-check_cmc-args-proof_value+apron-cmc-proofcheck">
   <option name="--config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
   <option name="--option">cpa.propertychecker.className=NoTargetStateChecker</option>
@@ -1200,7 +1210,7 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/systemc/toy.cil.yml</include>
   </tasks>
 </rundefinition>
--->
+  ?>
 
 <columns>
   <column title="total">Total time for CPAchecker</column>
