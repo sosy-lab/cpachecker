@@ -318,6 +318,45 @@ public class SequentializationParseTest {
   }
 
   @Test
+  public void test_race_4_1_thread_local_vars() throws Exception {
+    // this program had issues with infinite recursion when reordering blocks
+    Path path = Path.of("./test/programs/mpor/sequentialization/race-4_1-thread_local_vars.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options =
+        MPOROptions.testInstance(
+            true,
+            BitVectorEncoding.DECIMAL,
+            false,
+            true,
+            true,
+            MultiControlStatementEncoding.IF_ELSE_CHAIN,
+            MultiControlStatementEncoding.SWITCH_CASE,
+            true,
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            0,
+            // keep enabled
+            true,
+            true,
+            false,
+            NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
+            true,
+            false,
+            ReductionMode.READ_AND_WRITE,
+            ReductionOrder.NONE,
+            false,
+            false,
+            false,
+            // keep enabled
+            true);
+    testProgram(path, options);
+  }
+
+  @Test
   public void test_read_write_lock_2() throws Exception {
     // this program contains start_routines that start directly with a function call.
     // this forces us to reorder the thread statements, because function statements are usually

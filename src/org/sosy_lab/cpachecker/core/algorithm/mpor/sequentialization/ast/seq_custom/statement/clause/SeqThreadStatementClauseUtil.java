@@ -336,7 +336,11 @@ public class SeqThreadStatementClauseUtil {
     // create graph used for dependency checking
     ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> blockGraph =
         ArrayListMultimap.create();
-    recursivelyBuildBlockGraph(pFirstBlock, blockGraph, new HashSet<>(), pLabelBlockMap);
+    Set<SeqThreadStatementBlock> visitedLoopStarts = new HashSet<>();
+    if (pFirstBlock.isLoopStart()) {
+      visitedLoopStarts.add(pFirstBlock);
+    }
+    recursivelyBuildBlockGraph(pFirstBlock, blockGraph, visitedLoopStarts, pLabelBlockMap);
     recursivelyReorderBlocks(blockGraph, foundOrder);
     assert !foundOrder.isEmpty() : "could not find any order";
     return ImmutableList.copyOf(foundOrder);
@@ -380,13 +384,13 @@ public class SeqThreadStatementClauseUtil {
         sortByLabelNumberDescending(zeroInDegreeBlocks);
     for (SeqThreadStatementBlock block : sortedDescending) {
       tryAddToFoundOrder(block, pFoundOrder);
+      // add all targets of block that are independent, i.e. not origins or targets (except block)
       for (SeqThreadStatementBlock target : pBlockGraph.get(block)) {
-        if (!pBlockGraph.keySet().contains(target)) {
-          // if any target is not a key i.e. does not target another block -> add
+        if (isTargetIndependent(pBlockGraph, block, target)) {
           tryAddToFoundOrder(target, pFoundOrder);
         }
       }
-      // remove "used" block
+      // then remove "used" block
       pBlockGraph.removeAll(block);
     }
     // if there are still blocks in the graph, continue recursive reordering
@@ -423,6 +427,26 @@ public class SeqThreadStatementClauseUtil {
     if (!pFoundOrder.contains(pBlock)) {
       pFoundOrder.add(pBlock);
     }
+  }
+
+  private static boolean isTargetIndependent(
+      ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pBlockGraph,
+      SeqThreadStatementBlock pBlock,
+      SeqThreadStatementBlock pTarget) {
+
+    if (pBlockGraph.containsKey(pTarget)) {
+      // pTarget targets some other block -> not independent
+      return false;
+    }
+    for (SeqThreadStatementBlock block : pBlockGraph.keySet()) {
+      if (!Objects.requireNonNull(block).equals(pBlock)) {
+        if (pBlockGraph.get(block).contains(pTarget)) {
+          // pTarget is target of some other block -> not independent
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   private static ImmutableList<SeqThreadStatementClause> buildClausesFromReorderedBlocks(
