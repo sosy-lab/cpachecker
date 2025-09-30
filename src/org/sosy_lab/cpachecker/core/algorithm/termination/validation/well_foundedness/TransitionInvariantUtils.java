@@ -73,9 +73,10 @@ public class TransitionInvariantUtils {
       if (prevVar.contains("__PREV") && prevVar.contains("@" + prevIndex)) {
         String prevVarPure = prevVar.replace("__PREV", "");
         prevVarPure = prevVarPure.replace("@" + prevIndex, "");
+        prevVarPure = removeFunctionFromVarsName(prevVarPure);
         String currVar = "";
         for (String var : currMapNamesToVars.keySet()) {
-          if (var.replace("@" + currIndex, "").equals(prevVarPure)) {
+          if (removeFunctionFromVarsName(var.replace("@" + currIndex, "")).equals(prevVarPure)) {
             currVar = var;
             break;
           }
