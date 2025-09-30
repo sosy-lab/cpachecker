@@ -101,6 +101,8 @@ public class MPOROptions {
 
   public final boolean shortVariableNames;
 
+  public final boolean validateNoBackwardGoto;
+
   public final boolean validateParse;
 
   public final boolean validatePc;
@@ -141,6 +143,7 @@ public class MPOROptions {
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariableNames,
+      boolean pValidateNoBackwardGoto,
       boolean pValidateParse,
       boolean pValidatePc) {
 
@@ -187,6 +190,7 @@ public class MPOROptions {
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
     shortVariableNames = pShortVariableNames;
+    validateNoBackwardGoto = pValidateNoBackwardGoto;
     validateParse = pValidateParse;
     validatePc = pValidatePc;
   }
@@ -230,6 +234,7 @@ public class MPOROptions {
         false,
         false,
         true,
+        true,
         true);
   }
 
@@ -260,7 +265,8 @@ public class MPOROptions {
       ReductionOrder pReductionOrder,
       boolean pScalarPc,
       boolean pSequentializationErrors,
-      boolean pShortVariableNames) {
+      boolean pShortVariableNames,
+      boolean pValidateNoBackwardGoto) {
 
     return new MPOROptions(
         pAllowPointerWrites,
@@ -303,7 +309,8 @@ public class MPOROptions {
         pScalarPc,
         pSequentializationErrors,
         pShortVariableNames,
-        // no parse validation in unit tests -> tests are independent of implementation
+        pValidateNoBackwardGoto,
+        // no parse validation is done separately in unit tests
         false,
         true);
   }
@@ -378,6 +385,11 @@ public class MPOROptions {
                 + " specified.");
         throw new AssertionError();
       }
+    }
+    if (!noBackwardGoto && validateNoBackwardGoto) {
+      pLogger.log(
+          Level.SEVERE, "validateNoBackwardGoto is enabled, but noBackwardGoto is disabled.");
+      throw new AssertionError();
     }
   }
 

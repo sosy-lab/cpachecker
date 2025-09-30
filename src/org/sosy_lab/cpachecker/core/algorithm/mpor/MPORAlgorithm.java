@@ -172,7 +172,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description =
           "removes backward goto from loops. this option is independent from noBackwardGoto.")
-  private boolean noBackwardLoopGoto = false;
+  private boolean noBackwardLoopGoto = true;
 
   @Option(
       secure = true,
@@ -253,14 +253,21 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private boolean shortVariableNames = true;
 
   @Option(
+      secure = true,
       description =
-          "test if CPAchecker can parse sequentialization? note that it may take several seconds"
+          "check if all goto statements jump forward, i.e. to a higher line of code in the"
+              + " program?")
+  private boolean validateNoBackwardGoto = true;
+
+  @Option(
+      description =
+          "check if CPAchecker can parse sequentialization? note that it may take several seconds"
               + " to parse a program")
   private boolean validateParse = true;
 
   @Option(
       description =
-          "test if all label pc (except initial) are target pc and all target pc (except "
+          "check if all label pc (except initial) are target pc and all target pc (except "
               + " termination) are label pc within a thread simulation?")
   private boolean validatePc = true;
 
@@ -361,6 +368,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     scalarPc,
                     sequentializationErrors,
                     shortVariableNames,
+                    validateNoBackwardGoto,
                     validateParse,
                     validatePc));
 

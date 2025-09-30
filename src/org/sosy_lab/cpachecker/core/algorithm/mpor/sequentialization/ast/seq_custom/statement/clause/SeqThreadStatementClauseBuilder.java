@@ -80,10 +80,9 @@ public class SeqThreadStatementClauseBuilder {
         pOptions.consecutiveLabels
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
             : noBackwardGoto;
-    // if enabled, ensure that all label and target pc are valid
-    return pOptions.validatePc
-        ? SeqValidator.validateClauses(consecutiveLabels, pLogger)
-        : consecutiveLabels;
+    // validate clauses based on pOptions
+    SeqValidator.validateClauses(pOptions, consecutiveLabels, pLogger);
+    return consecutiveLabels;
   }
 
   /** Maps threads to the case clauses they potentially execute. */

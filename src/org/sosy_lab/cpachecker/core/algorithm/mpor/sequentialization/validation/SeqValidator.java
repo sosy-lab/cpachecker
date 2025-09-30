@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -31,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -95,6 +95,25 @@ public class SeqValidator {
     return pSequentialization;
   }
 
+  // Clauses =======================================================================================
+
+  public static void validateClauses(
+      MPOROptions pOptions,
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      LogManager pLogger) {
+
+    if (pOptions.validatePc) {
+      validateProgramCounters(pClauses, pLogger);
+    }
+    if (pOptions.validateNoBackwardGoto) {
+      for (MPORThread thread : pClauses.keySet()) {
+        ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
+            SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses.get(thread));
+        validateBlockLabelLessThanTargetLabel(pOptions, labelBlockMap, pLogger);
+      }
+    }
+  }
+
   // Program Counter (pc) ==========================================================================
 
   /**
@@ -109,7 +128,7 @@ public class SeqValidator {
    *
    * Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
-  public static ImmutableListMultimap<MPORThread, SeqThreadStatementClause> validateClauses(
+  private static void validateProgramCounters(
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses, LogManager pLogger) {
 
     // TODO validate that if there is a ThreadJoin, MutexLock etc. that it MUST be the
@@ -124,12 +143,11 @@ public class SeqValidator {
       ImmutableSet<Integer> allTargetPcs =
           pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
       for (var pcEntry : pcMap.entrySet()) {
-        checkLabelPcAsTargetPc(
+        validateLabelPcAsTargetPc(
             pcEntry.getKey(), allTargetPcs, labelClauseMap, thread.getId(), pLogger);
-        checkTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.getId(), pLogger);
+        validateTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.getId(), pLogger);
       }
     }
-    return pClauses;
   }
 
   /** Maps origin pcs n in {@code case n} to the set of target pcs m {@code pc[t_id] = m}. */
@@ -147,7 +165,7 @@ public class SeqValidator {
     return rPcMap.buildOrThrow();
   }
 
-  private static void checkLabelPcAsTargetPc(
+  private static void validateLabelPcAsTargetPc(
       int pLabelPc,
       ImmutableSet<Integer> pAllTargetPc,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
@@ -175,7 +193,7 @@ public class SeqValidator {
     }
   }
 
-  private static void checkTargetPcAsLabelPc(
+  private static void validateTargetPcAsLabelPc(
       ImmutableSet<Integer> pTargetPcs,
       ImmutableSet<Integer> pLabelPcs,
       int pThreadId,
@@ -215,20 +233,27 @@ public class SeqValidator {
     }
   }
 
-  public static void validateNoBackwardGoto(
-      ImmutableCollection<SeqThreadStatementBlock> pBlocks, LogManager pLogger) {
+  private static void validateBlockLabelLessThanTargetLabel(
+      MPOROptions pOptions,
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      LogManager pLogger) {
 
-    for (SeqThreadStatementBlock block : pBlocks) {
+    for (SeqThreadStatementBlock block : pLabelBlockMap.values()) {
       for (SeqThreadStatement statement : block.getStatements()) {
         if (statement.getTargetGoto().isPresent()) {
-          SeqBlockLabelStatement originLabel = block.getLabel();
-          SeqBlockLabelStatement targetLabel = statement.getTargetGoto().orElseThrow();
-          if (originLabel.getNumber() < targetLabel.getNumber()) {
-            handleValidationException(
-                String.format(
-                    "block label number %s is smaller than target label number %s",
-                    originLabel.getNumber(), targetLabel.getNumber()),
-                pLogger);
+          int blockNumber = block.getLabel().getNumber();
+          int targetNumber = statement.getTargetGoto().orElseThrow().getNumber();
+          if (blockNumber > targetNumber) {
+            SeqThreadStatementBlock targetBlock =
+                Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
+            // ignore backward jump, if it is to a loop start and enabled in options
+            if (!targetBlock.isLoopStart() || pOptions.noBackwardLoopGoto) {
+              handleValidationException(
+                  String.format(
+                      "block number %s is greater than target number %s",
+                      blockNumber, targetNumber),
+                  pLogger);
+            }
           }
         }
       }

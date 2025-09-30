@@ -18,9 +18,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -315,8 +317,7 @@ public class SeqThreadStatementClauseUtil {
       // create set to track which blocks were placed already
       ImmutableList<SeqThreadStatementBlock> reorderedBlocks =
           reorderBlocks(firstBlocks.getFirst(), labelBlockMap);
-      SeqValidator.validateEqualBlocks(reorderedBlocks, allBlocks, pLogger);
-      SeqValidator.validateNoBackwardGoto(reorderedBlocks, pLogger);
+      SeqValidator.validateEqualBlocks(allBlocks, reorderedBlocks, pLogger);
       rNoBackwardGoto.putAll(thread, buildClausesFromReorderedBlocks(reorderedBlocks, firstBlocks));
     }
     return rNoBackwardGoto.build();
@@ -335,7 +336,7 @@ public class SeqThreadStatementClauseUtil {
     // create graph used for dependency checking
     ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> blockGraph =
         ArrayListMultimap.create();
-    recursivelyBuildBlockGraph(pFirstBlock, blockGraph, pLabelBlockMap);
+    recursivelyBuildBlockGraph(pFirstBlock, blockGraph, new HashSet<>(), pLabelBlockMap);
     recursivelyReorderBlocks(blockGraph, foundOrder);
     assert !foundOrder.isEmpty() : "could not find any order";
     return ImmutableList.copyOf(foundOrder);
@@ -344,7 +345,8 @@ public class SeqThreadStatementClauseUtil {
   private static void recursivelyBuildBlockGraph(
       SeqThreadStatementBlock pCurrentBlock,
       ListMultimap<SeqThreadStatementBlock, SeqThreadStatementBlock> pGraph,
-      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
+      Set<SeqThreadStatementBlock> pVisitedLoopStarts,
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     for (SeqThreadStatement statement : pCurrentBlock.getStatements()) {
       Optional<Integer> targetNumber = SeqThreadStatementUtil.tryGetTargetPcOrGotoNumber(statement);
@@ -352,12 +354,15 @@ public class SeqThreadStatementClauseUtil {
         if (targetNumber.orElseThrow() != Sequentialization.EXIT_PC) {
           SeqThreadStatementBlock targetBlock =
               Objects.requireNonNull(pLabelBlockMap.get(targetNumber.orElseThrow()));
-          // prevent loops in graph
-          if (!pGraph.containsKey(targetBlock) && !pCurrentBlock.equals(targetBlock)) {
-            // ensure no duplicates
-            if (!pGraph.get(pCurrentBlock).contains(targetBlock)) {
-              pGraph.get(pCurrentBlock).add(targetBlock);
-              recursivelyBuildBlockGraph(targetBlock, pGraph, pLabelBlockMap);
+          // visit loop starts only once, when entering loop
+          if (!targetBlock.isLoopStart() || pVisitedLoopStarts.add(targetBlock)) {
+            // prevent jump to statement itself
+            if (!pCurrentBlock.equals(targetBlock)) {
+              // prevent duplicates
+              if (!pGraph.get(pCurrentBlock).contains(targetBlock)) {
+                pGraph.get(pCurrentBlock).add(targetBlock);
+                recursivelyBuildBlockGraph(targetBlock, pGraph, pVisitedLoopStarts, pLabelBlockMap);
+              }
             }
           }
         }

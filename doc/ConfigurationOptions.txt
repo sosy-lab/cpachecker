@@ -343,7 +343,7 @@ analysis.algorithm.MPOR.noBackwardGoto = true
 
 # removes backward goto from loops. this option is independent from
 # noBackwardGoto.
-analysis.algorithm.MPOR.noBackwardLoopGoto = false
+analysis.algorithm.MPOR.noBackwardLoopGoto = true
 
 # use signed __VERIFIER_nondet_int() instead of unsigned
 # __VERIFIER_nondet_uint()?
@@ -400,11 +400,15 @@ analysis.algorithm.MPOR.sequentializationErrors = false
 # use shortened variable names, e.g. THREAD0 -> T0
 analysis.algorithm.MPOR.shortVariableNames = true
 
-# test if CPAchecker can parse sequentialization? note that it may take
+# check if all goto statements jump forward, i.e. to a higher line of code in
+# the program?
+analysis.algorithm.MPOR.validateNoBackwardGoto = true
+
+# check if CPAchecker can parse sequentialization? note that it may take
 # several seconds to parse a program
 analysis.algorithm.MPOR.validateParse = true
 
-# test if all label pc (except initial) are target pc and all target pc
+# check if all label pc (except initial) are target pc and all target pc
 # (except  termination) are label pc within a thread simulation?
 analysis.algorithm.MPOR.validatePc = true
 

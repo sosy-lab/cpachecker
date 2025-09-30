@@ -86,7 +86,8 @@ public class SequentializationParseTest {
             ReductionOrder.CONFLICT_THEN_BITVECTOR,
             true,
             true,
-            false);
+            false,
+            true);
     testProgram(path, options);
   }
 
@@ -122,6 +123,7 @@ public class SequentializationParseTest {
             ReductionMode.ACCESS_ONLY,
             ReductionOrder.NONE,
             true,
+            false,
             false,
             false);
     testProgram(path, options);
@@ -161,7 +163,8 @@ public class SequentializationParseTest {
             ReductionOrder.NONE,
             false,
             false,
-            false);
+            false,
+            true);
     testProgram(path, options);
   }
 
@@ -198,7 +201,8 @@ public class SequentializationParseTest {
             ReductionOrder.BITVECTOR_THEN_CONFLICT,
             true,
             true,
-            true);
+            true,
+            false);
     testProgram(path, options);
   }
 
@@ -232,6 +236,7 @@ public class SequentializationParseTest {
             ReductionMode.ACCESS_ONLY,
             ReductionOrder.NONE,
             false,
+            true,
             true,
             true);
     testProgram(path, options);
@@ -270,6 +275,7 @@ public class SequentializationParseTest {
             ReductionOrder.NONE,
             false,
             true,
+            false,
             false);
     testProgram(path, options);
   }
@@ -306,7 +312,8 @@ public class SequentializationParseTest {
             ReductionOrder.NONE,
             true,
             true,
-            false);
+            false,
+            true);
     testProgram(path, options);
   }
 
@@ -344,6 +351,7 @@ public class SequentializationParseTest {
             ReductionOrder.CONFLICT_THEN_BITVECTOR,
             true,
             false,
+            false,
             false);
     testProgram(path, options);
   }
@@ -380,7 +388,8 @@ public class SequentializationParseTest {
             ReductionOrder.NONE,
             false,
             true,
-            false);
+            false,
+            true);
     testProgram(path, options);
   }
 
@@ -417,7 +426,8 @@ public class SequentializationParseTest {
             ReductionOrder.NONE,
             true,
             false,
-            true);
+            true,
+            false);
     testProgram(path, options);
   }
 
@@ -451,6 +461,7 @@ public class SequentializationParseTest {
             ReductionMode.ACCESS_ONLY,
             ReductionOrder.BITVECTOR_THEN_CONFLICT,
             false,
+            true,
             true,
             true);
     testProgram(path, options);

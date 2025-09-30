@@ -61,6 +61,7 @@ public class InputRejectionTest {
           ReductionOrder.NONE,
           false,
           false,
+          false,
           false);
 
   /**
@@ -214,6 +215,7 @@ public class InputRejectionTest {
             false,
             ReductionMode.ACCESS_ONLY,
             ReductionOrder.NONE,
+            false,
             false,
             false,
             false);
