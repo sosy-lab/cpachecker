@@ -14,7 +14,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -23,15 +26,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.termination.ClassVariables;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -40,9 +47,24 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DeserializeValueAnalysisStateOperator implements DeserializeOperator {
   final Map<String, Type> accessedVariables;
+  static Optional<Map<String, Type>> globals = Optional.empty();
 
-  public DeserializeValueAnalysisStateOperator(BlockNode pBlockNode) {
+  public DeserializeValueAnalysisStateOperator(BlockNode pBlockNode, CFA pCFA) {
     accessedVariables = getAccessedVariables(pBlockNode);
+    if (globals.isEmpty()) {
+      initializeGlobals(pCFA);
+    }
+  }
+
+  private void initializeGlobals(CFA pCFA) {
+    Map<String, Type> newGlobals = new HashMap<>();
+    ImmutableSet<CVariableDeclaration> declarations =
+        ClassVariables.collectDeclarations(pCFA).getGlobalDeclarations();
+
+    for (CVariableDeclaration decl : declarations) {
+      newGlobals.put(decl.getQualifiedName(), decl.getType());
+    }
+    globals = Optional.of(newGlobals);
   }
 
   @Override
@@ -105,6 +127,28 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
           expressions.add(cExprAssignment.getRightHandSide());
         }
       }
+
+      if (edge instanceof CFunctionReturnEdge returnEdge
+          && returnEdge.getSummaryEdge().getExpression()
+              instanceof CFunctionCallAssignmentStatement cFunAssignment) {
+        expressions.add(cFunAssignment.getLeftHandSide());
+
+        final FunctionEntryNode functionEntryNode = returnEdge.getSummaryEdge().getFunctionEntry();
+        final Optional<? extends AVariableDeclaration> optionalReturnVarDeclaration =
+            functionEntryNode.getReturnVariable();
+
+        if (optionalReturnVarDeclaration.isPresent()) {
+          MemoryLocation functionReturnVar =
+              MemoryLocation.forDeclaration(optionalReturnVarDeclaration.get());
+          final Type functionReturnType =
+              functionEntryNode.getFunctionDefinition().getType().getReturnType();
+          accessedVariables.put(functionReturnVar.getExtendedQualifiedName(), functionReturnType);
+        }
+      }
+
+      if (edge instanceof CReturnStatementEdge returnEdge)
+        if (returnEdge.getExpression().isPresent())
+          expressions.add(returnEdge.getExpression().get());
     }
 
     for (CExpression expr : expressions) {

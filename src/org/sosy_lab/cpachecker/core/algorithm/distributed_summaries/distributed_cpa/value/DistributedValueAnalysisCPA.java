@@ -66,7 +66,7 @@ public class DistributedValueAnalysisCPA
     Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
     serializeOperator = new SerializeValueAnalysisStateOperator();
-    deserializeOperator = new DeserializeValueAnalysisStateOperator(pBlockNode);
+    deserializeOperator = new DeserializeValueAnalysisStateOperator(pBlockNode, pCFA);
     violationConditionOperator = new ValueViolationConditionOperator(cfa.getMachineModel());
 
     serializePrecisionOperator = new SerializeValuePrecisionOperator();
@@ -148,11 +148,14 @@ public class DistributedValueAnalysisCPA
   @Override
   public ValueAnalysisState getInitialState(CFANode node, StateSpacePartition partition) {
     if (initialState.containsKey(blockNode.getId())) return initialState.get(blockNode.getId());
-
     ValueAnalysisState init = new ValueAnalysisState(cfa.getMachineModel());
     Map<String, Type> accessedVars =
         DeserializeValueAnalysisStateOperator.getAccessedVariables(blockNode);
+    Map<String, Type> globals = DeserializeValueAnalysisStateOperator.globals.get();
+
     DeserializeValueAnalysisStateOperator.havocVariables(init, accessedVars);
+    DeserializeValueAnalysisStateOperator.havocVariables(init, globals);
+
     initialState.put(blockNode.getId(), init);
     return init;
   }
