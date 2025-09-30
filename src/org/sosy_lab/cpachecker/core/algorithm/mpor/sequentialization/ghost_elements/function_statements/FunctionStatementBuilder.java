@@ -129,7 +129,7 @@ public class FunctionStatementBuilder {
       ThreadEdge callContext = cell.getRowKey();
       if (visited.add(callContext)) {
         // only the thread calling pthread_create assigns the start_routine arg
-        if (pSubstitution.thread.id == callContext.threadId) {
+        if (pSubstitution.thread.getId() == callContext.threadId) {
           CIdExpression leftHandSide = cell.getValue();
           CExpression rightHandSide = PthreadUtil.extractStartRoutineArg(callContext.cfaEdge);
           FunctionParameterAssignment startRoutineArgAssignment =

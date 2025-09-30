@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
  */
 public class MPORThread {
 
-  public final int id;
+  private final int id;
 
   /** The pthread_t object. Set to empty for the main thread. */
   public final Optional<CIdExpression> threadObject;
@@ -76,6 +76,10 @@ public class MPORThread {
     cfa = pCfa;
     kVariable = pKVariable;
     label = pLabel;
+  }
+
+  public int getId() {
+    return id;
   }
 
   public boolean isMain() {

@@ -136,7 +136,7 @@ class ConflictOrderInjector {
         CExpressionAssignmentStatement lastThreadUpdate =
             SeqStatementBuilder.buildExpressionAssignmentStatement(
                 SeqIdExpression.LAST_THREAD,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(pActiveThread.id));
+                SeqExpressionBuilder.buildIntegerLiteralExpression(pActiveThread.getId()));
         SeqLastBitVectorUpdateStatement lastUpdateStatement =
             new SeqLastBitVectorUpdateStatement(
                 lastThreadUpdate,

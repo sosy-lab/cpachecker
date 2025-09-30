@@ -112,7 +112,7 @@ public class ThreadUtil {
 
   public static MPORThread getThreadById(ImmutableCollection<MPORThread> pThreads, int pId) {
     for (MPORThread thread : pThreads) {
-      if (thread.id == pId) {
+      if (thread.getId() == pId) {
         return thread;
       }
     }

@@ -160,7 +160,8 @@ public class SeqThreadStatementBuilder {
     CFAEdge edge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
-    CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id);
+    CLeftHandSide pcLeftHandSide =
+        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId());
 
     if (yieldsNoStatement(pThread, pSubstituteEdge, successor)) {
       return buildBlankStatement(pOptions, pcLeftHandSide, targetPc);
@@ -267,7 +268,7 @@ public class SeqThreadStatementBuilder {
       ProgramCounterVariables pProgramCounterVariables,
       FunctionStatements pFunctionStatements) {
 
-    CLeftHandSide pcLeftHandSide = pProgramCounterVariables.getPcLeftHandSide(pThread.id);
+    CLeftHandSide pcLeftHandSide = pProgramCounterVariables.getPcLeftHandSide(pThread.getId());
     // function calls -> store parameters in ghost variables
     if (MPORUtil.isReachErrorCall(pThreadEdge.cfaEdge)) {
       // inject non-inlined reach_error
@@ -329,7 +330,8 @@ public class SeqThreadStatementBuilder {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(cfaEdge);
-    CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id);
+    CLeftHandSide pcLeftHandSide =
+        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId());
 
     return switch (pthreadFunctionType) {
       case PTHREAD_CREATE ->
@@ -441,8 +443,8 @@ public class SeqThreadStatementBuilder {
         targetThread.startRoutineExitVariable,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc,
-        pGhostElements.getPcVariables().getThreadNotActiveExpression(targetThread.id),
-        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id));
+        pGhostElements.getPcVariables().getThreadNotActiveExpression(targetThread.getId()),
+        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId()));
   }
 
   private static SeqMutexLockStatement buildMutexLockStatement(

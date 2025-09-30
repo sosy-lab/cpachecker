@@ -52,7 +52,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
     CBinaryExpression lastThreadLessThanThreadId =
         binaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.LAST_THREAD,
-            SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id),
+            SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.getId()),
             BinaryOperator.LESS_THAN);
     // if (last_thread < n)
     SeqIfExpression ifExpression = new SeqIfExpression(lastThreadLessThanThreadId);

@@ -102,7 +102,7 @@ public class NondeterministicSimulationUtil {
     if (pOptions.scalarPc) {
       CBinaryExpression threadActiveExpression =
           SeqExpressionBuilder.buildPcUnequalExitPc(
-              pPcVariables.getPcLeftHandSide(pThread.id), pBinaryExpressionBuilder);
+              pPcVariables.getPcLeftHandSide(pThread.getId()), pBinaryExpressionBuilder);
       CFunctionCallStatement assumeCall =
           SeqAssumptionBuilder.buildAssumption(threadActiveExpression);
       return Optional.of(assumeCall);

@@ -158,7 +158,7 @@ public class SeqNameUtil {
     return switch (pDirection) {
       case CURRENT ->
           buildBitVectorName(
-              pOptions, pThread.orElseThrow().id, pMemoryLocation, pAccessType, pReachType);
+              pOptions, pThread.orElseThrow().getId(), pMemoryLocation, pAccessType, pReachType);
       case LAST -> buildLastBitVectorName(pOptions, pMemoryLocation, pAccessType);
     };
   }

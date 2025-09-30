@@ -78,7 +78,7 @@ public class MPORSubstitutionBuilder {
                   parameterSubstitutes,
                   mainFunctionArgSubstitutes,
                   startRoutineArgSubstitutes,
-                  thread.id,
+                  thread.getId(),
                   thread.localVariables,
                   pBinaryExpressionBuilder,
                   pLogger);
@@ -227,7 +227,7 @@ public class MPORSubstitutionBuilder {
           SeqNameUtil.buildParameterName(
               pOptions,
               parameterDeclaration,
-              pThread.id,
+              pThread.getId(),
               pFunctionDeclaration.getOrigName(),
               pCallNumber);
       // we use variable declarations for parameters in the sequentialization
@@ -291,7 +291,7 @@ public class MPORSubstitutionBuilder {
                     SeqNameUtil.buildStartRoutineArgName(
                         pOptions,
                         parameterDeclaration,
-                        createdThread.id,
+                        createdThread.getId(),
                         startRoutineDeclaration.getOrigName());
                 CParameterDeclaration substituteParameterDeclaration =
                     substituteParameterDeclaration(parameterDeclaration, varName);

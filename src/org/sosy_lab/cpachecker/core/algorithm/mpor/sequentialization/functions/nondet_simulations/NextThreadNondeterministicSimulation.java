@@ -58,14 +58,14 @@ public class NextThreadNondeterministicSimulation {
     ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
         ImmutableMap.builder();
     for (MPORThread thread : pClauses.keySet()) {
-      CLeftHandSide expression = pPcVariables.getPcLeftHandSide(thread.id);
+      CLeftHandSide expression = pPcVariables.getPcLeftHandSide(thread.getId());
       Optional<CFunctionCallStatement> assumption =
           NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
               pOptions, pPcVariables, thread, pBinaryExpressionBuilder);
       ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
           SeqThreadStatementClauseUtil.mapExpressionToClause(
               pOptions,
-              pPcVariables.getPcLeftHandSide(thread.id),
+              pPcVariables.getPcLeftHandSide(thread.getId()),
               pClauses.get(thread),
               pBinaryExpressionBuilder);
 
@@ -73,7 +73,7 @@ public class NextThreadNondeterministicSimulation {
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               pOptions.controlEncodingThread,
               SeqIdExpression.NEXT_THREAD,
-              thread.id,
+              thread.getId(),
               pBinaryExpressionBuilder);
       SeqMultiControlStatement multiControlStatement =
           MultiControlStatementBuilder.buildMultiControlStatementByEncoding(

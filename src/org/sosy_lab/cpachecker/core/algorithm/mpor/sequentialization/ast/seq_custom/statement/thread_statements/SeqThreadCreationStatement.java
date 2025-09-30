@@ -105,7 +105,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement createdPcWrite =
         SeqStatementBuilder.buildPcWrite(
-            pcVariables.getPcLeftHandSide(createdThread.id), Sequentialization.INIT_PC);
+            pcVariables.getPcLeftHandSide(createdThread.getId()), Sequentialization.INIT_PC);
     StringBuilder bitVectorInitializationString = new StringBuilder();
     if (this.bitVectorInitializations.isPresent()) {
       for (SeqBitVectorAssignmentStatement initialization :
@@ -116,7 +116,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
     String injectedStatementsString =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options,
-            pcVariables.getPcLeftHandSide(creatingThread.id),
+            pcVariables.getPcLeftHandSide(creatingThread.getId()),
             targetPc,
             targetGoto,
             injectedStatements);

@@ -90,7 +90,7 @@ public class ThreadSynchronizationVariableBuilders {
 
     ImmutableMap.Builder<MPORThread, CIdExpression> rSyncVariables = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
-      String name = SeqNameUtil.buildSyncName(pOptions, thread.id);
+      String name = SeqNameUtil.buildSyncName(pOptions, thread.getId());
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression sync =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(

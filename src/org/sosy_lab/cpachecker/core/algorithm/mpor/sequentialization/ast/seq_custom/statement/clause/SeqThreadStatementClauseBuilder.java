@@ -202,7 +202,8 @@ public class SeqThreadStatementClauseBuilder {
     int labelPc = pThreadNode.pc;
     ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
 
-    CLeftHandSide pcLeftHandSide = pGhostElements.getPcVariables().getPcLeftHandSide(pThread.id);
+    CLeftHandSide pcLeftHandSide =
+        pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId());
 
     ImmutableList<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
     if (leavingEdges.isEmpty()) {
@@ -228,7 +229,7 @@ public class SeqThreadStatementClauseBuilder {
               pGhostElements));
     }
     SeqBlockLabelStatement blockLabelStatement =
-        buildBlockLabelStatement(pOptions, pThread.id, labelPc);
+        buildBlockLabelStatement(pOptions, pThread.getId(), labelPc);
     SeqThreadStatementBlock block =
         new SeqThreadStatementBlock(pOptions, pNextThread, blockLabelStatement, statements.build());
     SeqThreadStatementClause clause = new SeqThreadStatementClause(block);
@@ -247,8 +248,8 @@ public class SeqThreadStatementClauseBuilder {
   private static Optional<MPORThread> tryGetNextThread(
       MPORThread pCurrentThread, ImmutableList<MPORThread> pAllThreads) {
 
-    if (pCurrentThread.id < pAllThreads.size() - 1) {
-      return Optional.of(ThreadUtil.getThreadById(pAllThreads, pCurrentThread.id + 1));
+    if (pCurrentThread.getId() < pAllThreads.size() - 1) {
+      return Optional.of(ThreadUtil.getThreadById(pAllThreads, pCurrentThread.getId() + 1));
     }
     return Optional.empty();
   }

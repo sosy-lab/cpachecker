@@ -52,7 +52,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -77,7 +77,7 @@ public class SequentializationFieldsTest {
     // check that we (only) identify the passing of &i to pthread_create as start_routine arg
     assertThat(memoryModel.startRoutineArgAssignments.size() == 1).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -101,7 +101,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -122,7 +122,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
     // check that each __CPAchecker_TMP variable storing function return values is present once
     Set<CLeftHandSide> visited = new HashSet<>();
@@ -153,7 +153,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -174,7 +174,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -197,7 +197,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -221,7 +221,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -247,7 +247,7 @@ public class SequentializationFieldsTest {
     // both pthread_create calls take &queue as arguments
     assertThat(memoryModel.startRoutineArgAssignments.size() == 2).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -269,7 +269,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerParameterAssignments.isEmpty()).isTrue();
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -290,7 +290,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.isEmpty()).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -313,7 +313,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.size() == 1).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 
@@ -336,7 +336,7 @@ public class SequentializationFieldsTest {
     assertThat(memoryModel.pointerDereferences.size() == 2).isTrue();
     assertThat(memoryModel.startRoutineArgAssignments.isEmpty()).isTrue();
     // the main thread should always have id 0
-    assertThat(fields.mainSubstitution.thread.id == 0).isTrue();
+    assertThat(fields.mainSubstitution.thread.getId() == 0).isTrue();
     assertThat(fields.mainSubstitution.thread.threadObject.isEmpty()).isTrue();
   }
 

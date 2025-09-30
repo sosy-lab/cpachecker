@@ -262,7 +262,7 @@ public class NumStatementsNondeterministicSimulation {
 
     CBinaryExpression pcUnequalExitPc =
         SeqExpressionBuilder.buildPcUnequalExitPc(
-            pPcVariables.getPcLeftHandSide(pActiveThread.id), pBinaryExpressionBuilder);
+            pPcVariables.getPcLeftHandSide(pActiveThread.getId()), pBinaryExpressionBuilder);
     if (pOptions.loopIterations > 0 && pOptions.loopFiniteMainThreadEnd) {
       if (!pActiveThread.isMain()) {
         CBinaryExpression iNotLastIteration =
@@ -322,14 +322,17 @@ public class NumStatementsNondeterministicSimulation {
             pOptions, pGhostElements, pThread, pClauses, pBinaryExpressionBuilder);
 
     ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
-    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id);
+    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.getId());
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
             pOptions, pcVariables, pThread, pBinaryExpressionBuilder);
 
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
-            pOptions, pcVariables.getPcLeftHandSide(pThread.id), clauses, pBinaryExpressionBuilder);
+            pOptions,
+            pcVariables.getPcLeftHandSide(pThread.getId()),
+            clauses,
+            pBinaryExpressionBuilder);
     SeqMultiControlStatement multiControlStatement =
         MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
             pOptions,

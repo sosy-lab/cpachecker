@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -79,16 +80,16 @@ public class ThreadBuilder {
         createThread(pOptions, Optional.empty(), Optional.empty(), mainEntryNode);
     rThreads.add(mainThread);
     // recursively search the thread CFAs for pthread_create calls, and store in rThreads
-    rThreads.addAll(
-        recursivelyFindThreadCreations(pOptions, pCfa, mainThread, ImmutableList.builder()));
+    List<MPORThread> createdThreads = new ArrayList<>();
+    recursivelyFindThreadCreations(pOptions, pCfa, mainThread, createdThreads);
+    // sort threads by ID, otherwise the program could have backward jumps
+    createdThreads.sort(Comparator.comparingInt(MPORThread::getId));
+    rThreads.addAll(createdThreads);
     return rThreads.build();
   }
 
-  private static ImmutableList<MPORThread> recursivelyFindThreadCreations(
-      MPOROptions pOptions,
-      final CFA pCfa,
-      MPORThread pCurrentThread,
-      ImmutableList.Builder<MPORThread> pSearchedThreads) {
+  private static void recursivelyFindThreadCreations(
+      MPOROptions pOptions, CFA pCfa, MPORThread pCurrentThread, List<MPORThread> pFoundThreads) {
 
     for (ThreadEdge threadEdge : pCurrentThread.cfa.threadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
@@ -103,11 +104,10 @@ public class ThreadBuilder {
         MPORThread newThread =
             createThread(
                 pOptions, Optional.ofNullable(pthreadT), Optional.of(threadEdge), entryNode);
-        recursivelyFindThreadCreations(pOptions, pCfa, newThread, pSearchedThreads);
-        pSearchedThreads.add(newThread);
+        recursivelyFindThreadCreations(pOptions, pCfa, newThread, pFoundThreads);
+        pFoundThreads.add(newThread);
       }
     }
-    return pSearchedThreads.build();
   }
 
   /**

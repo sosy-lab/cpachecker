@@ -112,7 +112,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               pOptions.controlEncodingThread,
               SeqIdExpression.NEXT_THREAD,
-              thread.id,
+              thread.getId(),
               pBinaryExpressionBuilder),
           buildSingleThreadMultiControlStatementWithoutCount(
               pOptions,
@@ -147,14 +147,17 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
             pBinaryExpressionBuilder);
 
     ProgramCounterVariables pcVariables = pGhostElements.getPcVariables();
-    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.id);
+    CLeftHandSide expression = pcVariables.getPcLeftHandSide(pThread.getId());
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
             pOptions, pcVariables, pThread, pBinaryExpressionBuilder);
 
     ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
         SeqThreadStatementClauseUtil.mapExpressionToClause(
-            pOptions, pcVariables.getPcLeftHandSide(pThread.id), clauses, pBinaryExpressionBuilder);
+            pOptions,
+            pcVariables.getPcLeftHandSide(pThread.getId()),
+            clauses,
+            pBinaryExpressionBuilder);
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
