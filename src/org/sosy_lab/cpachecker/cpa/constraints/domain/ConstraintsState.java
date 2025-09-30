@@ -201,5 +201,4 @@ public final class ConstraintsState extends ForwardingSet<Constraint>
   public boolean shouldBeHighlighted() {
     return false;
   }
-
 }
