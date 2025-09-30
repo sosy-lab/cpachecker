@@ -206,11 +206,11 @@ public class MPOROptions {
         true,
         MultiControlStatementEncoding.SWITCH_CASE,
         MultiControlStatementEncoding.NONE,
-        false,
+        true,
         ClangFormatStyle.WEBKIT,
-        false,
-        false,
-        false,
+        true,
+        true,
+        true,
         false,
         false,
         false,
@@ -218,21 +218,21 @@ public class MPOROptions {
         true,
         false,
         0,
-        false,
-        false,
+        true,
+        true,
         false,
         NondeterminismSource.NUM_STATEMENTS,
-        false,
+        true,
         SeqWriter.DEFAULT_OUTPUT_PATH,
-        false,
+        true,
         true,
         false,
         false,
         ReductionMode.NONE,
         ReductionOrder.NONE,
+        true,
         false,
-        false,
-        false,
+        true,
         true,
         true,
         true);
@@ -346,6 +346,7 @@ public class MPOROptions {
     return true;
   }
 
+  // TODO best move to input_rejection
   void handleOptionRejections(LogManager pLogger) {
     if (loopIterations < 0) {
       pLogger.logfUserException(
