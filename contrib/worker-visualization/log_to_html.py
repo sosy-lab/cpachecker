@@ -97,7 +97,7 @@ def html_for_message(message, block_log: Dict[str, str], export_keys: dict):
     senders = ["all"]
     receivers = ["all"]
     msg_id = message["filename"]
-    if direction == "BLOCK_POSTCONDITION":
+    if direction == "PRECONDITION":
         receivers = successors
         senders = predecessors
         arrow = "&darr;"
