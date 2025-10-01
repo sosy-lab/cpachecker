@@ -13,8 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.SMGRecoverableFailureType.DELAYED_MERGE;
-import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.SMGRecoverableFailureType.LEFT_LIST_LONGER;
-import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.SMGRecoverableFailureType.RIGHT_LIST_LONGER;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.delayedMerge;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.leftListLonger;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.rightListLonger;
@@ -2119,13 +2117,16 @@ public class SymbolicProgramConfiguration {
     // If res = ⊥, return ⊥.
     if (maybeRes.isEmpty()) {
       return Optional.empty();
-    } else if (maybeRes.orElseThrow().isRecoverableFailure()) {
-      SMGRecoverableFailure recFailure = maybeRes.orElseThrow().getRecoverableFailure();
+    }
+
+    MergedSPCAndMergeStatusWithMergingSPCsAndMapping res = maybeRes.orElseThrow();
+    if (res.isRecoverableFailure()) {
+      SMGRecoverableFailure recFailure = res.getRecoverableFailure();
       checkArgument(recFailure.getFailureType() != DELAYED_MERGE);
       return Optional.of(
           MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue.recoverableFailure(recFailure));
     }
-    MergedSPCAndMergeStatusWithMergingSPCsAndMapping res = maybeRes.orElseThrow();
+
     newSPC = res.getMergedSPC();
     spc1 = res.getMergingSPC1();
     spc2 = res.getMergingSPC2();
