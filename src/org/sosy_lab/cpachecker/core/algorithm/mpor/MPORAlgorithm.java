@@ -112,9 +112,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       description =
-          "include original function declarations from input file? excluding them may result in"
-              + " syntax errors for programs that use function pointers.")
-  private boolean inputFunctionDeclarations = true;
+          "include original function declarations from input file? including them may result in"
+              + " unsound analysis (e.g. false alarms for CBMC + ignored function calls through"
+              + " function pointers for CPAchecker)")
+  private boolean inputFunctionDeclarations = false;
 
   // TODO make this secure by checking if all types for all variables are included
   @Option(description = "include original type declarations from input file?")
