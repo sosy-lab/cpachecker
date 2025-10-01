@@ -109,7 +109,7 @@ public class SeqValidator {
       for (MPORThread thread : pClauses.keySet()) {
         ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
             SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses.get(thread));
-        validateBlockLabelLessThanTargetLabel(pOptions, labelBlockMap, pLogger);
+        validateBlockLabelLessThanTargetLabel(pOptions, thread, labelBlockMap, pLogger);
       }
     }
   }
@@ -235,6 +235,7 @@ public class SeqValidator {
 
   private static void validateBlockLabelLessThanTargetLabel(
       MPOROptions pOptions,
+      MPORThread pThread,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       LogManager pLogger) {
 
@@ -250,8 +251,8 @@ public class SeqValidator {
             if (!targetBlock.isLoopStart() || pOptions.noBackwardLoopGoto) {
               handleValidationException(
                   String.format(
-                      "block number %s is greater than target number %s",
-                      blockNumber, targetNumber),
+                      "block number %s is greater than target number %s in thread %s",
+                      blockNumber, targetNumber, pThread.getId()),
                   pLogger);
             }
           }

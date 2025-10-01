@@ -92,6 +92,47 @@ public class SequentializationParseTest {
   }
 
   @Test
+  public void test_13_privatized_69_refine_protected_loop_interval_true() throws Exception {
+    // this program had issues with infinite recursion when reordering blocks
+    Path path =
+        Path.of(
+            "./test/programs/mpor/sequentialization/13-privatized_69-refine-protected-loop-interval_true.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options =
+        MPOROptions.testInstance(
+            true,
+            BitVectorEncoding.BINARY,
+            false,
+            true,
+            false,
+            MultiControlStatementEncoding.BINARY_SEARCH_TREE,
+            MultiControlStatementEncoding.NONE,
+            true,
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            0,
+            // keep enabled
+            true,
+            true,
+            false,
+            NondeterminismSource.NUM_STATEMENTS,
+            true,
+            false,
+            ReductionMode.NONE,
+            ReductionOrder.NONE,
+            false,
+            true,
+            false,
+            // keep enabled
+            true);
+    testProgram(path, options);
+  }
+
+  @Test
   public void test_28_race_reach_45_escape_racing() throws Exception {
     // this program contains a start_routine argument passed via pthread_create
     Path path = Path.of("./test/programs/mpor/sequentialization/28-race_reach_45-escape_racing.c");

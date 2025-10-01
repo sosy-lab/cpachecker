@@ -44,6 +44,8 @@ public class SeqThreadStatementBlockUtil {
         return true;
       } else if (isWhileTrueLoopStartWithDeclaration(enteringEdge, predecessor)) {
         return true;
+      } else if (isWhileTrueLoopStartWithFunctionCall(predecessor)) {
+        return true;
       }
     }
     return false;
@@ -57,22 +59,21 @@ public class SeqThreadStatementBlockUtil {
         if (isWhileTrueLoopStart(enteringEdge.getPredecessor())) {
           return true;
         }
-        if (isWhileTrueLoopStartWithFunctionCall(enteringEdge)) {
-          return true;
-        }
       }
     }
     return false;
   }
 
-  private static boolean isWhileTrueLoopStartWithFunctionCall(CFAEdge pCfaEdge) {
-    if (pCfaEdge.getDescription().equals("Function start dummy edge")) {
+  private static boolean isWhileTrueLoopStartWithFunctionCall(CFANode pCfaNode) {
+    if (pCfaNode instanceof CFunctionEntryNode) {
       // edge case: while(1) is followed directly by function call
-      if (pCfaEdge.getPredecessor() instanceof CFunctionEntryNode) {
-        for (CFAEdge functionCallEdge : CFAUtils.enteringEdges(pCfaEdge.getPredecessor())) {
-          for (CFAEdge enteringEdge : CFAUtils.enteringEdges(functionCallEdge.getPredecessor())) {
-            if (isWhileTrueLoopStart(enteringEdge.getPredecessor())) {
-              return true;
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pCfaNode)) {
+        if (leavingEdge.getDescription().equals("Function start dummy edge")) {
+          for (CFAEdge functionCallEdge : CFAUtils.enteringEdges(pCfaNode)) {
+            for (CFAEdge enteringEdge : CFAUtils.enteringEdges(functionCallEdge.getPredecessor())) {
+              if (isWhileTrueLoopStart(enteringEdge.getPredecessor())) {
+                return true;
+              }
             }
           }
         }
@@ -85,8 +86,7 @@ public class SeqThreadStatementBlockUtil {
     if (pCfaNode.isLoopStart()) {
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(pCfaNode)) {
         if (enteringEdge instanceof BlankEdge blankEdge) {
-          String description = blankEdge.getDescription();
-          if (description.equals(SingleControlExpressionEncoding.WHILE.keyword)) {
+          if (blankEdge.getDescription().equals(SingleControlExpressionEncoding.WHILE.keyword)) {
             return true;
           }
         }
