@@ -404,19 +404,19 @@ public class DssBlockAnalysis {
         if (previousEntry.getKey().equals(pReceived.getSenderId())
             && dcpa.isMostGeneralBlockEntryState(previous.state())) {
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
-          continue;
         }
         boolean previousLessEqualDeserialized =
             dcpa.getCoverageOperator()
                 .isSubsumed(previous.state(), dcpa.reset(deserialized.state()));
-        boolean deserializedLessEqualPrevious =
-            dcpa.getCoverageOperator()
-                .isSubsumed(dcpa.reset(deserialized.state()), previous.state());
-        if (previousLessEqualDeserialized && deserializedLessEqualPrevious) {
-          covered++;
+        if (previousLessEqualDeserialized) {
+          boolean deserializedLessEqualPrevious =
+              dcpa.getCoverageOperator()
+                  .isSubsumed(dcpa.reset(deserialized.state()), previous.state());
+          if (deserializedLessEqualPrevious) {
+            covered++;
+          }
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
-        } else if (previousLessEqualDeserialized) {
-          discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
+          continue;
         }
       }
     }
@@ -424,10 +424,6 @@ public class DssBlockAnalysis {
       soundPredecessors.add(pReceived.getSenderId());
     } else {
       soundPredecessors.remove(pReceived.getSenderId());
-    }
-    if (covered == deserializedStates.size()) {
-      // we already have a precondition equivalent to the new one
-      return DssMessageProcessing.stop();
     }
     if (!block.getLoopPredecessorIds().contains(pReceived.getSenderId())) {
       for (StateAndPrecision sp : preconditions.get(pReceived.getSenderId())) {
@@ -437,6 +433,10 @@ public class DssBlockAnalysis {
     ImmutableSet<PredecessorStateEntry> discarded = discard.build();
     preconditions.putAll(pReceived.getSenderId(), deserializedStates);
     discarded.forEach(pse -> preconditions.remove(pse.predecessorId(), pse.stateAndPrecision()));
+    if (covered == deserializedStates.size()) {
+      // we already have a precondition equivalent to the new one
+      return DssMessageProcessing.stop();
+    }
     return processing;
   }
 
