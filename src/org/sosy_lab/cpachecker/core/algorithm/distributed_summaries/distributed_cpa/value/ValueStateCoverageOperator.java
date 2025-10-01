@@ -12,28 +12,31 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class ValueStateCoverageOperator implements CoverageOperator {
 
-  private final FormulaManagerView formulaManagerView;
+  private final Solver solver;
 
-  public ValueStateCoverageOperator(FormulaManagerView pFormulaManagerView) {
-    formulaManagerView = pFormulaManagerView;
+  public ValueStateCoverageOperator(Solver pSolver) {
+    solver = pSolver;
   }
 
   @Override
   public boolean isSubsumed(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     BooleanFormula formula1 =
-        ((ValueAnalysisState) state1).getFormulaApproximation(formulaManagerView);
+        ((ValueAnalysisState) state1).getFormulaApproximation(solver.getFormulaManager());
     BooleanFormula formula2 =
-        ((ValueAnalysisState) state2).getFormulaApproximation(formulaManagerView);
+        ((ValueAnalysisState) state2).getFormulaApproximation(solver.getFormulaManager());
 
-    BooleanFormula implies =
-        formulaManagerView.getBooleanFormulaManager().implication(formula1, formula2);
-    return formulaManagerView.getBooleanFormulaManager().isTrue(implies);
+    try {
+      return solver.implies(formula1, formula2);
+    } catch (SolverException e) {
+      throw new CPAException("Solver encountered an issue when calculating implication.", e);
+    }
   }
 
   @Override

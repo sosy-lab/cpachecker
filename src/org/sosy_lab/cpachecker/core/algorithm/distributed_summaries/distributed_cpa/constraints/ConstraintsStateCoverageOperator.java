@@ -20,13 +20,14 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class ConstraintsStateCoverageOperator implements CoverageOperator {
-  public final ConstraintsSolver solver;
-  public final String functionName;
+  private final ConstraintsSolver constraintsSolver;
+  private final String functionName;
 
   public ConstraintsStateCoverageOperator(ConstraintsCPA pCPA, CFANode pCFANode) {
-    solver = pCPA.getSolver();
+    constraintsSolver = pCPA.getSolver();
     functionName = pCFANode.getFunctionName();
   }
 
@@ -37,12 +38,19 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
     Set<Constraint> constraints1 = new HashSet<>((ConstraintsState) state1);
     Set<Constraint> constraints2 = new HashSet<>((ConstraintsState) state2);
 
-    if (constraints2.isEmpty()) return true;
-    BooleanFormulaManagerView bfm = solver.getFormulaManager().getBooleanFormulaManager();
-    BooleanFormula stateAsFormula1 = bfm.and(solver.getFullFormula(constraints1, functionName));
-    BooleanFormula stateAsFormula2 = bfm.and(solver.getFullFormula(constraints2, functionName));
+    if (constraints2.isEmpty() || constraints1.equals(constraints2)) return true;
 
-    return bfm.isTrue(bfm.implication(stateAsFormula1, stateAsFormula2));
+    BooleanFormulaManagerView bfm =
+        constraintsSolver.getFormulaManager().getBooleanFormulaManager();
+    BooleanFormula stateAsFormula1 =
+        bfm.and(constraintsSolver.getFullFormula(constraints1, functionName));
+    BooleanFormula stateAsFormula2 =
+        bfm.and(constraintsSolver.getFullFormula(constraints2, functionName));
+    try {
+      return constraintsSolver.getSolver().implies(stateAsFormula1, stateAsFormula2);
+    } catch (SolverException e) {
+      throw new CPAException("Solver encountered an issue when calculating implication.", e);
+    }
   }
 
   @Override

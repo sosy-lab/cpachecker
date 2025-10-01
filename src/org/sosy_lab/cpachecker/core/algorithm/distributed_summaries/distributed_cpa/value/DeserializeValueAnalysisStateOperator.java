@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.termination.ClassVariables;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -51,20 +50,6 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
 
   public DeserializeValueAnalysisStateOperator(BlockNode pBlockNode, CFA pCFA) {
     accessedVariables = getAccessedVariables(pBlockNode);
-    if (globals.isEmpty()) {
-      initializeGlobals(pCFA);
-    }
-  }
-
-  private void initializeGlobals(CFA pCFA) {
-    Map<String, Type> newGlobals = new HashMap<>();
-    ImmutableSet<CVariableDeclaration> declarations =
-        ClassVariables.collectDeclarations(pCFA).getGlobalDeclarations();
-
-    for (CVariableDeclaration decl : declarations) {
-      newGlobals.put(decl.getQualifiedName(), decl.getType());
-    }
-    globals = Optional.of(newGlobals);
   }
 
   @Override
