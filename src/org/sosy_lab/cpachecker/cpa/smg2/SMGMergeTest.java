@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import org.junit.After;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -64,7 +65,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for SLL with a pointer from a stack variable towards the beginning
@@ -82,7 +82,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for SLL with a pointer from a stack variable towards the beginning
@@ -100,7 +99,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for DLL with a pointer from a stack variable towards the beginning
@@ -116,7 +114,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for DLL with a pointer from a stack variable towards the beginning
@@ -133,7 +130,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 2,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for SLL with each element having an identical nondet value with a pointer from a
@@ -152,7 +148,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for SLL with each element having a distinct nondet value with a pointer from a
@@ -171,7 +166,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for DLL with each element having an identical nondet value with a pointer from a
@@ -190,7 +184,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for DLL with each element having an identical nondet value with a pointer from a
@@ -209,7 +202,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 2,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for DLL with each element having a distinct nondet value with a pointer from a
@@ -228,7 +220,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 1,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // Tests merge for DLL with each element having a distinct nondet value with a pointer from a
@@ -247,7 +238,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold() + 2,
         spec,
         variableAndPointerLocationInList);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // ############################# Nested List Tests Below This Point #############################
@@ -275,7 +265,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         variableAndPointerLocationInList,
         nestedSpec,
         NESTED_LIST_STACK_VARIABLE_1);
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   @Test
@@ -302,7 +291,6 @@ public class SMGMergeTest extends SMGCPATest0 {
         spec,
         variableTowardsLastNested,
         ImmutableList.of(nestedSpec));
-    sharedValuesInListSpec = ImmutableList.of();
   }
 
   // ####################### No more tests, just generators/helper methods #######################

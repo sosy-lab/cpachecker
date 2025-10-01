@@ -104,6 +104,10 @@ public class SMGCPATest0 {
 
   static List<List<Value>> sharedValuesInListSpec = ImmutableList.of();
 
+  private static void resetSharedValues() {
+    sharedValuesInListSpec = ImmutableList.of();
+  }
+
   // The visitor should always use the currentState!
   @Before
   public void init() throws InvalidConfigurationException {
@@ -146,6 +150,7 @@ public class SMGCPATest0 {
   @After
   public void resetSMGStateAndVisitor() {
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
+    resetSharedValues();
   }
 
   public static ConstraintsSolver makeTestSolver(
