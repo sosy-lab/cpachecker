@@ -16,12 +16,12 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
  * A heuristic which lets the default refiner do a fixed number of iterations so that enough data is
  * collected in order to judge refinement progress with other heuristics.
  */
-public class DelegatingRefinerHeuristicRunDefaultNTimes implements DelegatingRefinerHeuristic {
+public class DelegatingRefinerHeuristicRun_N_Times implements DelegatingRefinerHeuristic {
 
   private final int fixedRuns;
   private int currentRuns = 0;
 
-  public DelegatingRefinerHeuristicRunDefaultNTimes(int pFixedRuns) {
+  public DelegatingRefinerHeuristicRun_N_Times(int pFixedRuns) {
     this.fixedRuns = pFixedRuns;
   }
 

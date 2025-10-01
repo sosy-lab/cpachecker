@@ -116,7 +116,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       ImmutableMultiset.Builder<String> pCategoryBuilder) {
 
     for (ReachedSetDelta delta : pDeltas) {
-      for (AbstractState pState : delta.getAddedStates()) {
+      for (AbstractState pState : delta.addedStates()) {
         PredicateAbstractState predState =
             checkNotNull(AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
 

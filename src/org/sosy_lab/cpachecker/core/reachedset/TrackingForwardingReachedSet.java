@@ -8,33 +8,40 @@
 
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Extension of {@link ForwardingReachedSet} that tracks changes in the ReachedSet (such as added or
- * removed states). Intended for use with delegating refiner and its heuristics.
+ * removed states). Intended for use with DelegatingRefiner and its heuristics.
  */
 public class TrackingForwardingReachedSet extends ForwardingReachedSet {
-
-  private final ReachedSetDelta delta = new ReachedSetDelta();
+  private final Set<AbstractState> addedStates = new HashSet<>();
+  private final Set<AbstractState> removedStates = new HashSet<>();
 
   public TrackingForwardingReachedSet(ReachedSet pDelegate) {
     super(pDelegate);
   }
 
   public void resetTracking() {
-    delta.clear();
+    addedStates.clear();
+    removedStates.clear();
   }
 
   public ReachedSetDelta getDelta() {
-    return delta.copy();
+    return new ReachedSetDelta(
+        ImmutableSet.copyOf(addedStates), ImmutableSet.copyOf(removedStates));
   }
 
   @Override
   public void add(AbstractState pState, Precision pPrecision) {
-    delta.storeAddedStates(pState);
+    addedStates.add(checkNotNull(pState));
     super.add(pState, pPrecision);
   }
 
@@ -43,7 +50,7 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
     for (Pair<AbstractState, Precision> pair : pToAdd) {
       AbstractState pState = pair.getFirst();
       if (pState != null) {
-        delta.storeAddedStates(pState);
+        addedStates.add(pState);
       }
     }
     super.addAll(pToAdd);
@@ -51,14 +58,14 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
 
   @Override
   public void remove(AbstractState pState) {
-    delta.storeRemovedState(pState);
+    removedStates.add(checkNotNull(pState));
     super.remove(pState);
   }
 
   @Override
   public void removeAll(Iterable<? extends AbstractState> pToRemove) {
     for (AbstractState pState : pToRemove) {
-      delta.storeRemovedState(pState);
+      removedStates.add(pState);
     }
     super.removeAll(pToRemove);
   }

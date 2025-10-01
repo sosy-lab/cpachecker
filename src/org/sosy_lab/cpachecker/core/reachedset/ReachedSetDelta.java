@@ -11,44 +11,14 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-/**
- * Central class to store the difference of ReachedSets between refinement iterations. Intended for
- * use with delegating refiner and its heuristics. Immutable snapshots can be created via {@link
- * #copy()}
- */
-public final class ReachedSetDelta {
-  private final Set<AbstractState> addedStates = new HashSet<>();
-  private final Set<AbstractState> removedStates = new HashSet<>();
+/** Immutable snapshot of changes in a {@link TrackingForwardingReachedSet} */
+public record ReachedSetDelta(
+    ImmutableSet<AbstractState> addedStates, ImmutableSet<AbstractState> removedStates) {
 
-  void clear() {
-    addedStates.clear();
-    removedStates.clear();
-  }
-
-  void storeAddedStates(AbstractState pState) {
-    addedStates.add(checkNotNull(pState));
-  }
-
-  void storeRemovedState(AbstractState pState) {
-    removedStates.add(checkNotNull(pState));
-  }
-
-  public ImmutableSet<AbstractState> getAddedStates() {
-    return ImmutableSet.copyOf(addedStates);
-  }
-
-  public ImmutableSet<AbstractState> getRemovedStates() {
-    return ImmutableSet.copyOf(removedStates);
-  }
-
-  ReachedSetDelta copy() {
-    ReachedSetDelta deltaCopy = new ReachedSetDelta();
-    deltaCopy.addedStates.addAll(this.addedStates);
-    deltaCopy.removedStates.addAll(this.removedStates);
-    return deltaCopy;
+  public ReachedSetDelta {
+    checkNotNull(addedStates, "addedStates must not be null.");
+    checkNotNull(removedStates, "removedStates must not be null.");
   }
 }
