@@ -2384,7 +2384,9 @@ public class SymbolicProgramConfiguration {
         hves2.stream()
             .filter(h -> !spc2.smg.isPointer(h.hasValue()))
             .collect(ImmutableSet.toImmutableSet());
-    // Extend obj2 with new values where modified obj2 has a 0 edge but modified obj1 does not
+
+    // Extend obj2 with new values where modified obj2 has a 0 edge (or no edge) but modified obj1
+    // has a non-zero and non-pointer value
     for (SMGHasValueEdge hve1NotZero : hves1NotZerosNotPointers) {
       BigInteger offset1 = hve1NotZero.getOffset();
       BigInteger size1 = hve1NotZero.getSizeInBits();
@@ -2412,7 +2414,8 @@ public class SymbolicProgramConfiguration {
       }
     }
 
-    // Extend obj1 with new values where modified obj1 has a 0 edge but modified obj2 does not
+    // Extend obj1 with new values where modified obj1 has a 0 edge (or no edge) but modified obj2
+    // has a non-zero and non-pointer value
     for (SMGHasValueEdge hve2NotZero : hves2NotZerosNotPointers) {
       BigInteger offset2 = hve2NotZero.getOffset();
       BigInteger size2 = hve2NotZero.getSizeInBits();
@@ -2442,8 +2445,8 @@ public class SymbolicProgramConfiguration {
     }
 
     // Every field that was a pointer before, is a pointer now
-    assert assertMergeFields(spc1, updatedSPC1, obj1);
-    assert assertMergeFields(spc2, updatedSPC2, obj1);
+    assert assertMergeFields(spc1, updatedSPC1, obj1, spc2, obj2);
+    assert assertMergeFields(spc2, updatedSPC2, obj2, spc1, obj1);
 
     return Optional.of(MergingSPCsAndMergeStatus.of(updatedSPC1, updatedSPC2, status));
   }
@@ -2451,7 +2454,9 @@ public class SymbolicProgramConfiguration {
   private static boolean assertMergeFields(
       SymbolicProgramConfiguration originalSPC,
       SymbolicProgramConfiguration updatedSPC,
-      SMGObject objectMerged) {
+      SMGObject objectMerged,
+      SymbolicProgramConfiguration otherOriginalSPC,
+      SMGObject otherObj) {
     for (SMGHasValueEdge oldPointerHves :
         originalSPC.smg.getHasValueEdgesByPredicate(
             objectMerged, h -> originalSPC.smg.isPointer(h.hasValue()))) {
@@ -2461,11 +2466,25 @@ public class SymbolicProgramConfiguration {
               h ->
                   h.getOffset().equals(oldPointerHves.getOffset())
                       && h.getSizeInBits().equals(oldPointerHves.getSizeInBits()));
+
+      assert !maybeNewHVE.isEmpty();
+      // 0 values may be replaced by havoc values if there was a non-0, non-pointer in the other
       if (oldPointerHves.hasValue().isZero()) {
-        assert !maybeNewHVE.isEmpty();
-        assert maybeNewHVE.orElseThrow().hasValue().isZero();
+        Optional<SMGHasValueEdge> maybeOtherOriginalHVE =
+            otherOriginalSPC.smg.getHasValueEdgeByPredicate(
+                otherObj,
+                h ->
+                    h.getOffset().equals(oldPointerHves.getOffset())
+                        && h.getSizeInBits().equals(oldPointerHves.getSizeInBits()));
+        if (maybeOtherOriginalHVE.isPresent()
+            && !maybeOtherOriginalHVE.orElseThrow().hasValue().isZero()
+            && !otherOriginalSPC.smg.isPointer(maybeOtherOriginalHVE.orElseThrow().hasValue())) {
+          assert !maybeNewHVE.orElseThrow().hasValue().isZero()
+              && !updatedSPC.smg.isPointer(maybeNewHVE.orElseThrow().hasValue());
+        } else {
+          assert maybeNewHVE.orElseThrow().hasValue().isZero();
+        }
       } else {
-        assert !maybeNewHVE.isEmpty();
         assert updatedSPC.smg.isPointer(maybeNewHVE.orElseThrow().hasValue());
       }
     }
