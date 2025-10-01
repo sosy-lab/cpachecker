@@ -75,7 +75,7 @@ public class CounterexampleCheckAlgorithm
       description =
           """
           Which model checker to use for verifying counterexamples as a second check.
-          Currently CBMC or CPAchecker with a different config or the concrete execution\s
+          Currently CBMC or CPAchecker with a different config or the concrete execution\\s
           checker can be used.\
           """)
   private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;

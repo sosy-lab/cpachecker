@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
+  <option name="--benchmark"/>
+  <option name="--heap">2000M</option>
+
+  <!-- Step 1: Generate witness file using Predicate Analysis -->
+  <rundefinition name="step1-witness-generation">
+    <option name="--predicateAnalysis"/>
+    <option name="--option">cpa.arg.yamlProofWitness=output/witness-experiment1.yml</option>
+  </rundefinition>
+
+  <!-- Step 2: Baseline - Empty Precision Value Analysis (for comparison) -->
+  <rundefinition name="step2-empty-precision-baseline">
+    <option name="--valueAnalysis"/>
+  </rundefinition>
+
+  <!-- Step 3: Generate witness-based precision and perform analysis -->
+  <rundefinition name="step3-witness-precision-analysis">
+    <option name="--valueAnalysis"/>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=output/witness-experiment1.yml</option>
+    <option name="--option">cpa.value.precisionFile=output/precision-experiment1.txt</option>
+  </rundefinition>
+
+
+  <!-- Select suitable programs for testing precision effect -->
+  <tasks name="E1-Loop-Test">
+    <include>../programs/simple/loop1.yml</include>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+
+</benchmark>
