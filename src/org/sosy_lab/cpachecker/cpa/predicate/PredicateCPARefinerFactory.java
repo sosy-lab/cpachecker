@@ -275,7 +275,9 @@ public final class PredicateCPARefinerFactory {
         DelegatingRefinerRefinerType.DEFAULT,
         defaultRefiner,
         DelegatingRefinerRefinerType.STATIC,
-        staticRefiner);
+        staticRefiner,
+        DelegatingRefinerRefinerType.STOP,
+        new PredicateStopRefiner());
   }
 
   // Creates a List of records for the DelegatingRefiner for what refiner to choose for which
@@ -362,6 +364,8 @@ public final class PredicateCPARefinerFactory {
                   predicateCpa.getSolver().getFormulaManager(),
                   predicateCpa.getLogger());
         }
+
+        case STOP -> pHeuristic = (pReached, pDeltas) -> true;
 
         default ->
             throw new InvalidConfigurationException(

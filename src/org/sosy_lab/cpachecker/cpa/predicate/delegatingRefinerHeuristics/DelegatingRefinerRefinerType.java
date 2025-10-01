@@ -14,5 +14,6 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
  */
 public enum DelegatingRefinerRefinerType {
   DEFAULT,
-  STATIC
+  STATIC,
+  STOP
 }

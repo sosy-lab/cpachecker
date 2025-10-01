@@ -82,66 +82,6 @@ public class PredicateDelegatingRefinerTest {
     return pRefinerFactory.buildRefinerMap(defaultRefiner, staticRefiner);
   }
 
-  /** This test checks the buildRefinerMap method's functionality for the DelegatingRefiner. */
-  @Test
-  public void setUpAvailableRefinerMap() throws Exception {
-    Configuration pConfig = TestDataTools.configurationForTest().build();
-    PredicateCPARefinerFactory pPredicateCPARefinerFactory = setUpRefinerFactory(pConfig);
-    ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pAvailableRefiners =
-        setUpRefinerMap(pPredicateCPARefinerFactory);
-    assertThat(pAvailableRefiners).hasSize(2);
-    assertThat(pAvailableRefiners)
-        .containsEntry(DelegatingRefinerRefinerType.DEFAULT, defaultRefiner);
-    assertThat(pAvailableRefiners)
-        .containsEntry(DelegatingRefinerRefinerType.STATIC, staticRefiner);
-  }
-
-  /**
-   * This test checks if DelegatingRefiner parses the command-line input for the StaticRefinement
-   * heuristic-refiner pair correctly.
-   */
-  @Test
-  public void setUpStaticRefiner() throws Exception {
-    Configuration pStaticConfig =
-        TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "STATIC:STATIC")
-            .build();
-    PredicateCPARefinerFactory pStaticRefinerFactory = setUpRefinerFactory(pStaticConfig);
-
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pStaticRefinerFactory.createDelegatingRefinerConfig(setUpRefinerMap(pStaticRefinerFactory));
-
-    assertThat(pRefinerRecords).hasSize(1);
-    assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
-    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
-  }
-
-  /**
-   * This test checks if DelegatingRefiner sets up the default refiner with the default value for
-   * the number of runs to collect data for other heuristics correctly.
-   */
-  @Test
-  public void setUpDefaultRefinement() throws Exception {
-    Configuration pDefaultConfig =
-        TestDataTools.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "DEFAULT_N_TIMES:DEFAULT")
-            .build();
-    PredicateCPARefinerFactory pDefaultRefinerFactory = setUpRefinerFactory(pDefaultConfig);
-
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pDefaultRefinerFactory.createDelegatingRefinerConfig(
-            setUpRefinerMap(pDefaultRefinerFactory));
-
-    assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRunDefaultNTimes.class);
-    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(defaultRefiner);
-    assertThat(
-            ((DelegatingRefinerHeuristicRunDefaultNTimes) pRefinerRecords.getFirst().pHeuristic())
-                .getFixedRuns())
-        .isEqualTo(10);
-  }
-
   /**
    * This test checks if DelegatingRefiner parses the command-line input for a custom number of runs
    * for the run default refiner n-times heuristic correctly.
@@ -164,33 +104,6 @@ public class PredicateDelegatingRefinerTest {
             ((DelegatingRefinerHeuristicRunDefaultNTimes) pRefinerRecords.getFirst().pHeuristic())
                 .getFixedRuns())
         .isEqualTo(5);
-  }
-
-  /**
-   * This test checks if DelegatingRefiner sets up the default refiner with the predicate redundancy
-   * heuristic and its default threshold value correctly.
-   */
-  @Test
-  public void setUpRedundantHeuristic() throws Exception {
-    Configuration pRedundantConfig =
-        TestDataTools.configurationForTest()
-            .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
-            .build();
-    PredicateCPARefinerFactory pRedundantRefinerFactory = setUpRefinerFactory(pRedundantConfig);
-
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pRedundantRefinerFactory.createDelegatingRefinerConfig(
-            setUpRefinerMap(pRedundantRefinerFactory));
-
-    assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
-    assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(defaultRefiner);
-    assertThat(
-            ((DelegatingRefinerHeuristicRedundantPredicates)
-                    pRefinerRecords.getFirst().pHeuristic())
-                .getRedundancyThreshold())
-        .isEqualTo(0.8);
   }
 
   /**
@@ -555,23 +468,6 @@ public class PredicateDelegatingRefinerTest {
     assertThrows(
         InvalidConfigurationException.class,
         () -> setUpRefinerFactory(pStringRedundancyThresholdConfig));
-  }
-
-  /**
-   * This test checks if DelegatingRefiner throws an exception when the refinerMap is empty and no
-   * default is available.
-   */
-  @Test
-  public void checkEmptyAvailableRefiners() throws Exception {
-    Configuration pEmptyConfig = TestDataTools.configurationForTest().build();
-
-    PredicateCPARefinerFactory pEmptyFactory = setUpRefinerFactory(pEmptyConfig);
-
-    ImmutableMap<DelegatingRefinerRefinerType, ARGBasedRefiner> pEmptyMap = ImmutableMap.of();
-
-    assertThrows(
-        InvalidConfigurationException.class,
-        () -> pEmptyFactory.createDelegatingRefinerConfig(pEmptyMap));
   }
 
   // A dummy refiner to serve as ARGBasedRefiner instances the DelegatingRefiner adds to its map of

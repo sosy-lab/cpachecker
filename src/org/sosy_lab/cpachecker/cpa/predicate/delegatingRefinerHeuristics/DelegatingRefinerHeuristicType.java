@@ -16,5 +16,6 @@ public enum DelegatingRefinerHeuristicType {
   STATIC,
   DEFAULT_N_TIMES,
   REDUNDANT_PREDICATES,
-  INTERPOLATION_RATE
+  INTERPOLATION_RATE,
+  STOP
 }
