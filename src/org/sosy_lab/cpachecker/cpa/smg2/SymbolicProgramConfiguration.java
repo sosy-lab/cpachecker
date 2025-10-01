@@ -2409,7 +2409,8 @@ public class SymbolicProgramConfiguration {
         Value valueToWrite = updatedSPC2.getNewSymbolicValueForType(maybeV1Type.getCanonicalType());
         SMGValue newSMGValue = SMGValue.of();
         // TODO: we can do better with SMT solvers
-        updatedSPC2 = updatedSPC2.copyAndPutValue(valueToWrite, newSMGValue, 0, maybeV1Type);
+        int nesting = updatedSPC1.smg.getNestingLevel(hve1NotZero.hasValue());
+        updatedSPC2 = updatedSPC2.copyAndPutValue(valueToWrite, newSMGValue, nesting, maybeV1Type);
         updatedSPC2 = updatedSPC2.writeValue(obj2, offset1, size1, newSMGValue);
       }
     }
@@ -2438,9 +2439,10 @@ public class SymbolicProgramConfiguration {
         maybeV2Type = maybeV2Type.getCanonicalType();
         SMGValue newSMGValue = SMGValue.of();
         // TODO: we can do better with SMT solvers
-        Value valueToWrite = updatedSPC2.getNewSymbolicValueForType(maybeV2Type);
-        updatedSPC2 = updatedSPC2.copyAndPutValue(valueToWrite, newSMGValue, 0, maybeV2Type);
-        updatedSPC2 = updatedSPC2.writeValue(obj2, offset2, size2, newSMGValue);
+        Value valueToWrite = updatedSPC1.getNewSymbolicValueForType(maybeV2Type);
+        int nesting = updatedSPC2.smg.getNestingLevel(smgValueFrom2);
+        updatedSPC1 = updatedSPC1.copyAndPutValue(valueToWrite, newSMGValue, nesting, maybeV2Type);
+        updatedSPC1 = updatedSPC1.writeValue(obj1, offset2, size2, newSMGValue);
       }
     }
 
