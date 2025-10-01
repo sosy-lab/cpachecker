@@ -607,16 +607,20 @@ public class SymbolicProgramConfiguration {
       // Returns a value that represents both inputs, inclusive their memory, if it succeeds.
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeJoinedValuesResult =
           mergeValues(spc1, spc2, v1, v2, newSPC, mapping1, mapping2, status, currentNestingDiff);
+
       if (maybeJoinedValuesResult.isEmpty()) {
         return Optional.empty();
-      } else if (maybeJoinedValuesResult.orElseThrow().isRecoverableFailure()) {
+      }
 
-        SMGRecoverableFailure recFail =
-            maybeJoinedValuesResult.orElseThrow().getRecoverableFailure();
-        if (recFail.getFailureType() == DELAYED_MERGE) {
+      MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue joinedValuesResult =
+          maybeJoinedValuesResult.orElseThrow();
+      if (joinedValuesResult.isRecoverableFailure()) {
+
+        if (joinedValuesResult.isRecoverableFailureTypeDelayedMerge()) {
           return Optional.empty();
 
         } else {
+          SMGRecoverableFailure recFail = joinedValuesResult.getRecoverableFailure();
           // Extension over the paper, allows list length mismatch correction
           if (recFail.hasPointerOffset() && offset != recFail.getPointerOffset()) {
             // If we know that we left the (potential) list, extension is no longer helping
@@ -629,8 +633,6 @@ public class SymbolicProgramConfiguration {
         }
       }
 
-      MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue joinedValuesResult =
-          maybeJoinedValuesResult.orElseThrow();
       MergedSPCAndMergeStatusWithMergingSPCsAndMapping joinedSPCsAndMappingsAndStatus =
           joinedValuesResult.getJoinSPCAndJoinStatusWithJoinedSPCsAndMapping();
       status = joinedSPCsAndMappingsAndStatus.getMergeStatus();
