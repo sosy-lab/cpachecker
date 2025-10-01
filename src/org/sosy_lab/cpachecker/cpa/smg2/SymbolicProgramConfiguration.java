@@ -90,7 +90,6 @@ import org.sosy_lab.cpachecker.util.smg.join.NodeMapping;
 import org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus;
 import org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatusOrRecoverableFailure;
 import org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure;
-import org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.SMGRecoverableFailureType;
 import org.sosy_lab.cpachecker.util.smg.util.MergedSPCAndMapping;
 import org.sosy_lab.cpachecker.util.smg.util.MergedSPCAndMergeStatus;
 import org.sosy_lab.cpachecker.util.smg.util.MergedSPCAndMergeStatusWithMergingSPCsAndMapping;
@@ -825,7 +824,16 @@ public class SymbolicProgramConfiguration {
 
     // Subsequent parts of the paper are handled in the following method
     return handleRecoverableFailure(
-        pSpc1, pSpc2, v1, v2, pNewSpc, mapping1, mapping2, initialJoinStatus, nestingDiff, res);
+        pSpc1,
+        pSpc2,
+        v1,
+        v2,
+        pNewSpc,
+        mapping1,
+        mapping2,
+        initialJoinStatus,
+        nestingDiff,
+        res.orElseThrow());
   }
 
   /**
@@ -843,10 +851,9 @@ public class SymbolicProgramConfiguration {
           NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
           int nestingDiff,
-          Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> res)
+          MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue res)
           throws SMGException {
-    SMGRecoverableFailureType failureType =
-        res.orElseThrow().getRecoverableFailure().getFailureType();
+
     // 6. Let targetObj1/2 be the target of the PTEs of v1 and v2
     SMGPointsToEdge pte1 = pSpc1.smg.getPTEdge(v1).orElseThrow();
     SMGPointsToEdge pte2 = pSpc2.smg.getPTEdge(v2).orElseThrow();
@@ -855,35 +862,45 @@ public class SymbolicProgramConfiguration {
 
     // 7. If targetObj1 is an abstracted obj, insertLeftLLsAndJoin().
     //      If bottom, return bottom, if not recoverable failure, return result.
-    if (t1 instanceof SMGSinglyLinkedListSegment && (failureType == DELAYED_MERGE)) {
-      res =
+    if (t1 instanceof SMGSinglyLinkedListSegment && res.isRecoverableFailureTypeDelayedMerge()) {
+      Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           insertLeftLLAndJoin(
               pSpc1, pSpc2, v1, v2, pNewSpc, mapping1, mapping2, initialJoinStatus, nestingDiff);
-      if (res.isEmpty() || !res.orElseThrow().isRecoverableFailure()) {
-        return res;
+
+      if (maybeRes.isEmpty()) {
+        return maybeRes;
       }
-      failureType = res.orElseThrow().getRecoverableFailure().getFailureType();
+
+      res = maybeRes.orElseThrow();
+      if (!res.isRecoverableFailure()) {
+        return maybeRes;
+      }
     }
 
     // 8. If targetObj2 is an abstracted obj, insertRightLLsAndJoin().
-    //      If bottom, return bottom, else return result.
-    if (t2 instanceof SMGSinglyLinkedListSegment && failureType == DELAYED_MERGE) {
-      res =
+    //      If bottom or recoverable failure (delayed merge), return bottom, else return result.
+    if (t2 instanceof SMGSinglyLinkedListSegment && res.isRecoverableFailureTypeDelayedMerge()) {
+      Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           insertRightLLAndJoin(
               pSpc1, pSpc2, v1, v2, pNewSpc, mapping1, mapping2, initialJoinStatus, nestingDiff);
-      if (res.isEmpty() || res.orElseThrow().isRecoverableFailureTypeDelayedMerge()) {
+      if (maybeRes.isEmpty()) {
         return Optional.empty();
       }
-      failureType = res.orElseThrow().getRecoverableFailure().getFailureType();
+
+      res = maybeRes.orElseThrow();
+      if (res.isRecoverableFailureTypeDelayedMerge()) {
+        return Optional.empty();
+      }
     }
 
-    if (failureType == DELAYED_MERGE) {
+    if (res.isRecoverableFailureTypeDelayedMerge()) {
       return Optional.empty();
     }
 
     // Against the papers algorithm we also return recoverable failure below here. This allows us to
     // join lists with differing length here or in previously merged abstract list segments.
-    if (t2 instanceof SMGSinglyLinkedListSegment sll2 && failureType == LEFT_LIST_LONGER) {
+    if (t2 instanceof SMGSinglyLinkedListSegment sll2
+        && res.isRecoverableFailureTypeLeftListLonger()) {
       // Extend the right list with a 0+ from another abstracted element right
       // res = insertRightLLIntoRightAndJoin();
 
@@ -896,7 +913,7 @@ public class SymbolicProgramConfiguration {
       }
 
       // Multiple extensions are possible, but happen 1 element further now.
-      res =
+      Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           mergeValues(
               pSpc1,
               maybeNewSPC2.orElseThrow(),
@@ -908,9 +925,12 @@ public class SymbolicProgramConfiguration {
               initialJoinStatus,
               nestingDiff);
 
-      if (res.isEmpty()) {
+      if (maybeRes.isEmpty()) {
         return Optional.empty();
-      } else if (res.orElseThrow().isRecoverableFailure()) {
+      }
+
+      res = maybeRes.orElseThrow();
+      if (res.isRecoverableFailure()) {
         // return Optional.empty();
         throw new RuntimeException("investigate merge error for list extensions");
         /*
@@ -952,7 +972,8 @@ public class SymbolicProgramConfiguration {
       }
     }
 
-    if (t1 instanceof SMGSinglyLinkedListSegment sll1 && failureType == RIGHT_LIST_LONGER) {
+    if (t1 instanceof SMGSinglyLinkedListSegment sll1
+        && res.isRecoverableFailureTypeRightListLonger()) {
       // Extend the left list with a 0+ from another abstracted element also left
       // res = insertLeftLLIntoLeftAndJoin(pSpc1, pSpc2, v1, t1, v2, t2, pNewSpc, mapping1,
       // mapping2, initialJoinStatus, nestingDiff);
@@ -966,7 +987,7 @@ public class SymbolicProgramConfiguration {
       }
 
       // Multiple extensions are possible, but happen 1 element further now.
-      res =
+      Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           mergeValues(
               maybeNewSPC1.orElseThrow(),
               pSpc2,
@@ -978,16 +999,19 @@ public class SymbolicProgramConfiguration {
               initialJoinStatus,
               nestingDiff);
 
-      if (res.isEmpty()) {
+      if (maybeRes.isEmpty()) {
         return Optional.empty();
-      } else if (res.orElseThrow().isRecoverableFailure()) {
+      }
+      res = maybeRes.orElseThrow();
+      if (res.isRecoverableFailure()) {
         // Either delayed merge or suddenly we want to extend the other side?
         // Or the extension failed here, and has to be done earlier.
         // return Optional.empty();
         throw new RuntimeException("investigate merge error for list extensions");
       }
     }
-    return res;
+
+    return Optional.of(res);
   }
 
   // TODO: this is a dummy, lower mat to SPC level.
