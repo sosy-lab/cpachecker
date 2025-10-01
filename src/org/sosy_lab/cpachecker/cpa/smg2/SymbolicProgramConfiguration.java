@@ -2393,7 +2393,10 @@ public class SymbolicProgramConfiguration {
       if (maybeHve2.size() != 1) {
         throw new SMGException("Error when merging 2 has-value-edges.");
       }
-      if (maybeHve2.getFirst().hasValue().isZero()) {
+
+      // If spc2 has 0, or an unknown value that is not mapped (i.e. there was no edge at all)
+      if (maybeHve2.getFirst().hasValue().isZero()
+          || updatedSPC2.getValueFromSMGValue(maybeHve2.getFirst().hasValue()).isEmpty()) {
         CType maybeV1Type = spc1.valueToTypeMap.get(hve1NotZero.hasValue());
         if (maybeV1Type == null) {
           throw new SMGException(
@@ -2408,6 +2411,7 @@ public class SymbolicProgramConfiguration {
         updatedSPC2 = updatedSPC2.writeValue(obj2, offset1, size1, newSMGValue);
       }
     }
+
     // Extend obj1 with new values where modified obj1 has a 0 edge but modified obj2 does not
     for (SMGHasValueEdge hve2NotZero : hves2NotZerosNotPointers) {
       BigInteger offset2 = hve2NotZero.getOffset();
@@ -2417,7 +2421,10 @@ public class SymbolicProgramConfiguration {
       if (maybeHve1.size() != 1) {
         throw new SMGException("Error when merging 2 has-value-edges.");
       }
-      if (maybeHve1.getFirst().hasValue().isZero()) {
+
+      // If spc1 has 0, or an unknown value that is not mapped (i.e. there was no edge at all)
+      if (maybeHve1.getFirst().hasValue().isZero()
+          || updatedSPC1.getValueFromSMGValue(maybeHve1.getFirst().hasValue()).isEmpty()) {
         SMGValue smgValueFrom2 = hve2NotZero.hasValue();
         CType maybeV2Type = spc2.valueToTypeMap.get(smgValueFrom2);
         if (maybeV2Type == null) {
@@ -2436,7 +2443,6 @@ public class SymbolicProgramConfiguration {
 
     // Every field that was a pointer before, is a pointer now
     assert assertMergeFields(spc1, updatedSPC1, obj1);
-
     assert assertMergeFields(spc2, updatedSPC2, obj1);
 
     return Optional.of(MergingSPCsAndMergeStatus.of(updatedSPC1, updatedSPC2, status));
@@ -2456,14 +2462,11 @@ public class SymbolicProgramConfiguration {
                   h.getOffset().equals(oldPointerHves.getOffset())
                       && h.getSizeInBits().equals(oldPointerHves.getSizeInBits()));
       if (oldPointerHves.hasValue().isZero()) {
-        if (maybeNewHVE.isEmpty() || !maybeNewHVE.orElseThrow().hasValue().isZero()) {
-          return false;
-        }
+        assert !maybeNewHVE.isEmpty();
+        assert maybeNewHVE.orElseThrow().hasValue().isZero();
       } else {
-        if (maybeNewHVE.isEmpty()
-            || !updatedSPC.smg.isPointer(maybeNewHVE.orElseThrow().hasValue())) {
-          return false;
-        }
+        assert !maybeNewHVE.isEmpty();
+        assert updatedSPC.smg.isPointer(maybeNewHVE.orElseThrow().hasValue());
       }
     }
     return true;
