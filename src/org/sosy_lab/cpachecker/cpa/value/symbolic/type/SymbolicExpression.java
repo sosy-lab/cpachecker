@@ -23,6 +23,7 @@ public abstract sealed class SymbolicExpression implements SymbolicValue
     permits AddressExpression,
         BinarySymbolicExpression,
         ConstantSymbolicExpression,
+        FunctionCallExpression,
         UnarySymbolicExpression {
 
   @Serial private static final long serialVersionUID = 2228733300503173691L;

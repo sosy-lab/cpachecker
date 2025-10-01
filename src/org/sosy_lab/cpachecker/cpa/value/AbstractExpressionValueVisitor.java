@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PopcountFunctionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -2290,13 +2291,9 @@ public abstract class AbstractExpressionValueVisitor
       LogManagerWithoutDuplicates logger)
       throws UnrecognizedCodeException {
     if (pParameters.size() == 1) {
+      CType argumentType = e.getParameterExpressions().getFirst().getExpressionType();
       // Cast to unsigned target type
-      Value paramValue =
-          castCValue(
-              pParameters.getFirst(),
-              e.getParameterExpressions().getFirst().getExpressionType(),
-              pMachineModel,
-              logger);
+      Value paramValue = castCValue(pParameters.getFirst(), argumentType, pMachineModel, logger);
       CSimpleType paramType =
           BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
 
@@ -2308,9 +2305,10 @@ public abstract class AbstractExpressionValueVisitor
         checkArgument(numericParam.bigIntegerValue().compareTo(BigInteger.ZERO) >= 0);
 
         return new NumericValue(numericParam.bigIntegerValue().bitCount());
+      } else if (paramValue instanceof SymbolicExpression symbolicParam) {
+        return new PopcountFunctionExpression(symbolicParam, e);
       }
 
-      // TODO: add impl for SymExec
       return Value.UnknownValue.getInstance();
     }
     throw new UnrecognizedCodeException(

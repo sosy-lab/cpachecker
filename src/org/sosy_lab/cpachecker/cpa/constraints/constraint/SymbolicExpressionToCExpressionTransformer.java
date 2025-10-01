@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.DivisionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.FunctionCallExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LessThanOrEqualExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalAndExpression;
@@ -330,5 +331,17 @@ public class SymbolicExpressionToCExpressionTransformer
   @Override
   public CExpression visit(NegationExpression pExpression) {
     return createUnaryExpression(pExpression, CUnaryExpression.UnaryOperator.MINUS);
+  }
+
+  @Override
+  public CExpression visit(FunctionCallExpression pExpression) {
+    throw new UnsupportedOperationException(
+        "Function calls can't be handled by the SymbolicExpressionToCExpressionTransformer");
+    // Not possible. Use CId Expr instead?
+    /*
+      return new CFunctionCallExpression(DUMMY_LOCATION, getCType(pExpression.getType()),
+          (CExpression) pExpression.getFunctionNameExpression(),
+          pExpression.getArguments().stream().map(a -> a.accept(this)).collect(ImmutableList.toImmutableList()),(CFunctionDeclaration) pExpression.getDeclaration());
+    */
   }
 }
