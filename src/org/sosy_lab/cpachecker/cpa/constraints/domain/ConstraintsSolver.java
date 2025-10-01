@@ -655,6 +655,10 @@ public class ConstraintsSolver {
     return getFormulaCreator(pFunctionName).createFormula(pConstraint);
   }
 
+  public Solver getSolver() {
+    return solver;
+  }
+
   private interface ConstraintsCache {
     CacheResult getCachedResult(Collection<BooleanFormula> pConstraints);
 
