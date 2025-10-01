@@ -416,7 +416,6 @@ public class DssBlockAnalysis {
             covered++;
           }
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
-          continue;
         }
       }
     }
