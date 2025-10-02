@@ -240,7 +240,7 @@ public class PredicateDelegatingRefinerTest {
    * times in pDefaultFixedRuns.
    */
   @Test
-  public void checkDefaultNTimesRunNumbers() {
+  public void checkDefaultNTimesRunNumbers() throws InvalidConfigurationException {
     DelegatingRefinerHeuristicRunNTimes runDefaultNTimes =
         new DelegatingRefinerHeuristicRunNTimes(3);
 

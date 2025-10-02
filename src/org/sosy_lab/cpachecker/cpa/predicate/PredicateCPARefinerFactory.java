@@ -330,50 +330,21 @@ public final class PredicateCPARefinerFactory {
             "Refiner must not be null. Available refiners: " + pRefinersAvailable.keySet());
       }
 
-      DelegatingRefinerHeuristic pHeuristic;
+      DelegatingRefinerHeuristic pHeuristic =
+          switch (pHeuristicName) {
+            case STATIC -> new DelegatingRefinerHeuristicStaticRefinement();
+            case DEFAULT_N_TIMES -> new DelegatingRefinerHeuristicRunNTimes(defaultFixedRuns);
+            case INTERPOLATION_RATE ->
+                new DelegatingRefinerHeuristicInterpolationRate(
+                    refinementContext, predicateCpa.getLogger(), defaultInterpolantRate);
+            case REDUNDANT_PREDICATES ->
+                new DelegatingRefinerHeuristicRedundantPredicates(
+                    acceptableRedundancyThreshold,
+                    predicateCpa.getSolver().getFormulaManager(),
+                    predicateCpa.getLogger());
+            case STOP -> (pReached, pDeltas) -> true;
+          };
 
-      switch (pHeuristicName) {
-        case STATIC -> pHeuristic = new DelegatingRefinerHeuristicStaticRefinement();
-
-        case DEFAULT_N_TIMES -> {
-          if (defaultFixedRuns < 0) {
-            throw new InvalidConfigurationException(
-                "Number of runs for the refiner must not be negative.");
-          }
-          pHeuristic = new DelegatingRefinerHeuristicRunNTimes(defaultFixedRuns);
-        }
-
-        case INTERPOLATION_RATE -> {
-          if (defaultInterpolantRate < 0.0) {
-            throw new InvalidConfigurationException(
-                "Acceptable number of interpolants per refinement must not be negative");
-          }
-          pHeuristic =
-              new DelegatingRefinerHeuristicInterpolationRate(
-                  refinementContext, predicateCpa.getLogger(), defaultInterpolantRate);
-        }
-
-        case REDUNDANT_PREDICATES -> {
-          if (acceptableRedundancyThreshold < 0.0 || acceptableRedundancyThreshold > 1.0) {
-            throw new InvalidConfigurationException(
-                "Acceptable redundancy rate must be between 0.0 and 1.0.");
-          }
-          pHeuristic =
-              new DelegatingRefinerHeuristicRedundantPredicates(
-                  acceptableRedundancyThreshold,
-                  predicateCpa.getSolver().getFormulaManager(),
-                  predicateCpa.getLogger());
-        }
-
-        case STOP -> pHeuristic = (pReached, pDeltas) -> true;
-
-        default ->
-            throw new InvalidConfigurationException(
-                "Unknown heuristic"
-                    + pHeuristicName
-                    + ". Available heuristics: "
-                    + Joiner.on(",").join(EnumSet.allOf(DelegatingRefinerHeuristicType.class)));
-      }
       recordBuilder.add(new HeuristicDelegatingRefinerRecord(pHeuristic, pRefiner));
     }
     return recordBuilder.build();

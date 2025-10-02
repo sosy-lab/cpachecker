@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import com.google.common.collect.ImmutableList;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -29,10 +30,15 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   public DelegatingRefinerHeuristicInterpolationRate(
       TrackingPredicateCPARefinementContext pRefinementContext,
       final LogManager pLogger,
-      double pInterpolantRate) {
+      double pInterpolantRate)
+      throws InvalidConfigurationException {
     this.refinementContext = pRefinementContext;
     this.acceptableInterpolantRate = pInterpolantRate;
     this.logger = pLogger;
+    if (pInterpolantRate < 0.0) {
+      throw new InvalidConfigurationException(
+          "Acceptable number of interpolants per refinement must not be negative");
+    }
     currentTotalInterpolantRate = 0.0;
   }
 

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
@@ -21,7 +22,11 @@ public class DelegatingRefinerHeuristicRunNTimes implements DelegatingRefinerHeu
   private final int fixedRuns;
   private int currentRuns = 0;
 
-  public DelegatingRefinerHeuristicRunNTimes(int pFixedRuns) {
+  public DelegatingRefinerHeuristicRunNTimes(int pFixedRuns) throws InvalidConfigurationException {
+    if (pFixedRuns < 0) {
+      throw new InvalidConfigurationException(
+          "Number of runs for the refiner must not be negative.");
+    }
     this.fixedRuns = pFixedRuns;
   }
 

@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
@@ -49,7 +50,12 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   public DelegatingRefinerHeuristicRedundantPredicates(
       double pAcceptableRedundancyThreshold,
       final FormulaManagerView pFormulaManager,
-      final LogManager pLogger) {
+      final LogManager pLogger)
+      throws InvalidConfigurationException {
+    if (pAcceptableRedundancyThreshold < 0.0 || pAcceptableRedundancyThreshold > 1.0) {
+      throw new InvalidConfigurationException(
+          "Acceptable redundancy rate must be between 0.0 and 1.0.");
+    }
     this.redundancyThreshold = pAcceptableRedundancyThreshold;
     this.formulaManager = checkNotNull(pFormulaManager);
     this.logger = pLogger;
