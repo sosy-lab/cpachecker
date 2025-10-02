@@ -1,0 +1,136 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+// This DSL defines normalization rules for SMT formulas. They are used to unify syntactically different but semantically equivalent formulas into canonical, normalized forms. These normalized forms are used for redundancy detection in the added predicates during refinement.
+// Each rule has the following components:
+// - id: Unique identifier for the rule
+// - category: Semantic domain or category a rule belongs to (e.g., Equality, Logical)
+// - patternMatch: Pattern to match an input S-expression (SMT formula)
+// - normalizedPattern: Canonical normalized form (string template with placeholders)
+
+[{
+        "id": "BVExtractExpr",
+        "category":"Bitvector",
+        "patternMatch" : "(bvextract_<hi>_<lo> <var>)",
+        "normalizedPattern" : "(extract (<hi>, <lo> <var>))"
+},
+
+  {
+    "id": "BVExtractConst",
+    "category":"Bitvector",
+    "patternMatch" : "(= (bvextract_<hi>_<lo> <var>) <const>)",
+    "normalizedPattern" : " (<var>[<hi>:<lo>] == <const>)"
+  },
+
+
+  {
+    "id": "NotBVExtract",
+    "category":"Bitvector",
+    "patternMatch" : "(! (= (bvextract_<hi>_<lo> <var>) <const>))",
+    "normalizedPattern" : "(not (<var>[<hi>:<lo>] == <const>))"
+  },
+
+  {
+    "id": "NotBVExtractExpr",
+    "category":"Bitvector",
+    "patternMatch" : "(! bvextract_<hi>_<lo> <var>)",
+    "normalizedPattern" : "(not extract (<hi>, <lo>, <var>))"
+  },
+
+  {
+    "id": "BVAdd",
+    "category":"Bitvector",
+    "patternMatch" : "(= (bvadd <const1> <var>) <const2>)",
+    "normalizedPattern" : "(<var> + <const1> == <const2>)"
+  },
+
+  {
+    "id": "BVAddExpr",
+    "category":"Bitvector",
+    "patternMatch" : "(bvadd <const> <var>)",
+    "normalizedPattern" : "(<var> + <const>)"
+  },
+
+  {
+    "id": "BVLshl",
+    "category":"Bitvector",
+    "patternMatch" : "(= (bvlshl <var> <const1>) <const2>)",
+    "normalizedPattern" : "(<var> << <const1> == <const2>)"
+  },
+
+  {
+    "id": "BVLshlExpr",
+    "category":"Bitvector",
+    "patternMatch" : "(bvlshl <var> <const>)",
+    "normalizedPattern" : "(<var> << <const>)"
+  },
+
+  {
+    "id": "EqVarConst32",
+    "category":"Equality",
+    "patternMatch" : "(= <var1> <const>_32)",
+    "normalizedPattern" : "(<var1> == <const>)"
+  },
+
+  {
+    "id": "EqVarConst",
+    "category":"Equality",
+    "patternMatch" : "(= <var> <const>)",
+    "normalizedPattern" : "(<var> == <const>)"
+  },
+  {
+    "id": "EqVarVar",
+    "category":"Equality",
+    "patternMatch" : "(= <var1> <var2>)",
+    "normalizedPattern" : "(<var1> == <var2>)"
+  },
+  {
+    "id": "EqVarSingle",
+    "category":"Equality",
+    "patternMatch" : "(= <var>)",
+    "normalizedPattern" : "(<var>)"
+  },
+  {
+    "id": "EqVarTerm",
+    "category":"Equality",
+    "patternMatch" : "(= <var> <term>)",
+    "normalizedPattern" : "(<var> == <term>)"
+  },
+
+  {
+    "id": "NestedAND",
+    "category":"Logical",
+    "patternMatch" : "(and <term1> <term2>)",
+    "normalizedPattern" : "(<term1> AND <term2>)"
+  },
+
+  {
+    "id": "MultiAnd",
+    "category":"Logical",
+    "patternMatch" : "(and <term1> (and <term2> <term3>))",
+    "normalizedPattern" : "(<term1> AND (<term2> AND <term3>))"
+  },
+
+
+  {
+    "id": "NestedOR",
+    "category":"Logical",
+    "patternMatch" : "(or <term1> <term2>)",
+    "normalizedPattern" : "(<term1> OR <term2>)"
+  },
+
+  {
+    "id": "NegatedExpr",
+    "category":"Logical",
+    "patternMatch" : "(not <term>)",
+    "normalizedPattern" : "(NOT <term>)"
+  }
+]
+
+
+

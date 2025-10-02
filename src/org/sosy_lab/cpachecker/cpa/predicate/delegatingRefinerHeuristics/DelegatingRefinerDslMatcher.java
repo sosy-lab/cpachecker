@@ -10,10 +10,8 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -69,11 +67,9 @@ final class DelegatingRefinerDslMatcher {
       if (mayBeBindings.isPresent()) {
         Map<String, String> bindings = mayBeBindings.orElseThrow();
         String normalized = substitute(patternRule.normalizedPattern(), bindings);
-        String fingerprint = substitute(patternRule.patternFingerprint(), bindings);
-        ImmutableMap<String, String> tagged = applyTags(patternRule.tags(), bindings);
         return Optional.of(
             new DelegatingRefinerNormalizedFormula(
-                normalized, fingerprint, patternRule.id(), tagged, patternRule.category()));
+                normalized, patternRule.id(), patternRule.category()));
       }
     }
     return Optional.empty();
@@ -142,34 +138,6 @@ final class DelegatingRefinerDslMatcher {
       }
     }
     return Optional.of(ImmutableMap.copyOf(bindings));
-  }
-
-  // Applies tags by substituting placeholders and merging duplicates.
-  private ImmutableMap<String, String> applyTags(
-      Map<String, String> pTagTemplate, Map<String, String> pBindings) {
-    Multimap<String, String> merged = ArrayListMultimap.create();
-
-    for (Map.Entry<String, String> entry : pTagTemplate.entrySet()) {
-      String key = entry.getKey();
-      String value = entry.getValue();
-
-      if (key.startsWith("<") && key.endsWith(">")) {
-        String bound = pBindings.get(key.substring(1, key.length() - 1));
-        if (bound != null) {
-          merged.put(bound, value);
-        }
-      } else {
-        merged.put(key, value);
-      }
-    }
-
-    ImmutableMap.Builder<String, String> tagged = ImmutableMap.builder();
-    for (String k : merged.keySet()) {
-      String mergedValue = String.join(",", merged.get(k));
-      tagged.put(k, mergedValue);
-    }
-
-    return tagged.buildKeepingLast();
   }
 
   // Extracts matchable atoms from an s-expression.

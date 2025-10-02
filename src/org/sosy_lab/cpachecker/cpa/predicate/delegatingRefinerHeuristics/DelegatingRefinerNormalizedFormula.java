@@ -8,24 +8,26 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
-import com.google.common.collect.ImmutableMap;
-
 /**
- * Represents the result of matching a DSL rule to a normalized atom. Encodes the normalized
- * pattern, a semantic fingerprint and rule metadata. Used by the
- * DelegatingRefinerRedundantPredicates Heuristic to check for redundancy in the predicate set.
+ * Represents the result of matching a DSL rule to a normalized atom.
+ *
+ * <p>Components:
+ *
+ * <ul>
+ *   <li>normalizedPattern: the canonical, normalized form for the s-expression extracted from the
+ *       Abstraction formula
+ *   <li>id: a unique identifier for the rule
+ *   <li>category: Semantic domain or category a rule belongs to
+ * </ul>
+ *
+ * Each DelegatingRefinerNormalizedFormula is produced by the DelegatingRefinerDslMatcher when a DSL
+ * rule successfully matches an SMT expression.
  */
-record DelegatingRefinerNormalizedFormula(
-    String normalizedPattern,
-    String patternFingerprint,
-    String id,
-    ImmutableMap<String, String> tags,
-    String category) {
+record DelegatingRefinerNormalizedFormula(String normalizedPattern, String id, String category) {
 
   @Override
   public String toString() {
     return String.format(
-        "NormalizedFormula [%s]: %s [fingerprint: %s, category: %s, tags: %s]",
-        id, normalizedPattern, patternFingerprint, category, tags);
+        "NormalizedFormula [%s]: %s [category: %s]", id, normalizedPattern, category);
   }
 }

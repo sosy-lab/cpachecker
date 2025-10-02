@@ -65,7 +65,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       ImmutableList<DelegatingRefinerPatternRule> allPatternRules =
           DelegatingRefinerDslLoader.loadDsl(
               Path.of(
-                  "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerHeuristics/redundancyRules.dsl"));
+                  "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerHeuristics/redundancyRules.json"));
       this.matcher = new DelegatingRefinerDslMatcher(allPatternRules);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to load DSL rules for redundancy matching.", e);

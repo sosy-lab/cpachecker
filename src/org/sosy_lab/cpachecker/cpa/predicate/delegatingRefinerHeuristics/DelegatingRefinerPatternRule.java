@@ -10,42 +10,37 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableMap;
-
 /**
- * Represents a declarative pattern rule used to normalize and categorize the different patterns
- * that can be discovered in the added predicates during refinement. Each rule has a match
- * expression, a normalized form, a semantic fingerprint, a category and a set of tags. The rules
- * are loaded from a DSL file and applied to the patterns to detect redundancy in the pattern set.
+ * Immutable representation of a declarative pattern rule used to normalize and categorize the
+ * different patterns that can be discovered in the added predicates during refinement.
+ *
+ * <p>A DelegatingRefinerPatternRule corresponds to one entry in the redundancyRules.dsl and defines
+ * how a SMT formula should be recognized and transformed into a normalized form. These rules are
+ * used by the DelegatingRefinerDslMatcher.
+ *
+ * <p>Components:
+ *
+ * <ul>
+ *   <li>patternMatch: the raw DSL match template, an s-expression with placeholders, extracted from
+ *       the Abstraction formula
+ *   <li>normalizedPattern: the canonical, normalized form for the s-expression extracted from the
+ *       Abstraction formula
+ *   <li>id: a unique identifier for the rule
+ *   <li>category: Semantic domain or category a rule belongs to
+ * </ul>
  */
 record DelegatingRefinerPatternRule(
-    String patternMatch,
-    String normalizedPattern,
-    String patternFingerprint,
-    String id,
-    ImmutableMap<String, String> tags,
-    String category) {
+    String patternMatch, String normalizedPattern, String id, String category) {
 
   static DelegatingRefinerPatternRule of(
-      String pPatternMatch,
-      String pNormalizedPattern,
-      String pPatternFingerprint,
-      String pId,
-      ImmutableMap<String, String> pTags,
-      String pCategory) {
+      String pPatternMatch, String pNormalizedPattern, String pId, String pCategory) {
     return new DelegatingRefinerPatternRule(
-        pPatternMatch,
-        pNormalizedPattern,
-        pPatternFingerprint,
-        checkNotNull(pId),
-        pTags,
-        checkNotNull(pCategory));
+        pPatternMatch, pNormalizedPattern, checkNotNull(pId), checkNotNull(pCategory));
   }
 
   @Override
   public String toString() {
     return String.format(
-        "rule[%s] : %s -> %s [fingerprint: %s, category: %s, tags: %s]",
-        id, patternMatch, normalizedPattern, patternFingerprint, category, tags);
+        "rule[%s] : %s -> %s [category: %s]", id, patternMatch, normalizedPattern, category);
   }
 }
