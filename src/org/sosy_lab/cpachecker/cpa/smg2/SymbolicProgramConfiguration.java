@@ -851,9 +851,10 @@ public class SymbolicProgramConfiguration {
           NodeMapping mapping2,
           SMGMergeStatus initialJoinStatus,
           int nestingDiff,
-          MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue res)
+          MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue initialResult)
           throws SMGException {
 
+    MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue res = initialResult;
     // 6. Let targetObj1/2 be the target of the PTEs of v1 and v2
     SMGPointsToEdge pte1 = pSpc1.smg.getPTEdge(v1).orElseThrow();
     SMGPointsToEdge pte2 = pSpc2.smg.getPTEdge(v2).orElseThrow();
@@ -901,22 +902,26 @@ public class SymbolicProgramConfiguration {
     // join lists with differing length here or in previously merged abstract list segments.
     if (t2 instanceof SMGSinglyLinkedListSegment sll2
         && res.isRecoverableFailureTypeLeftListLonger()) {
-      // Extend the right list with a 0+ from another abstracted element right
-      // res = insertRightLLIntoRightAndJoin();
+      // Alternative? : Extend the right list with a 0+ from another abstracted element right
 
-      // TODO: if this works, make materialization work on SPC level
+      // TODO: make materialization work on SPC level
       Optional<SymbolicProgramConfiguration> maybeNewSPC2 =
           getMaterializedListAndSPC(pSpc2, v2, sll2);
 
       if (maybeNewSPC2.isEmpty()) {
+        // 0+ Mat, we abort as it is unlikely to succeed and gets complex from here (case-split)
         return Optional.empty();
       }
 
+      SymbolicProgramConfiguration unfoldedSPC2 = maybeNewSPC2.orElseThrow();
+
       // Multiple extensions are possible, but happen 1 element further now.
+      // Essentially restart mergeValues with the extended list. If it can be extended further it
+      // will be in the mergeValues call
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           mergeValues(
               pSpc1,
-              maybeNewSPC2.orElseThrow(),
+              unfoldedSPC2,
               v1,
               v2,
               pNewSpc,
@@ -925,63 +930,18 @@ public class SymbolicProgramConfiguration {
               initialJoinStatus,
               nestingDiff);
 
-      if (maybeRes.isEmpty()) {
+      if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailure()) {
         return Optional.empty();
       }
 
-      res = maybeRes.orElseThrow();
-      if (res.isRecoverableFailure()) {
-        // return Optional.empty();
-        if (res.isRecoverableFailureTypeRightListLonger()) {
-          return Optional.empty();
-        }
-        throw new RuntimeException("investigate merge error for list extensions");
-        /*
-        // min len > 0 is a conservative assumption to not endlessly unroll.
-        while (t2 instanceof SMGSinglyLinkedListSegment sll2ext
-            && sll2ext.getMinLength() > 0
-            && failureType == LEFT_LIST_LONGER) {
-          // Extend the right list with a 0+ from another abstracted element right
-          // res = insertRightLLIntoRightAndJoin();
-
-          // TODO: if this works, make materialization work on SPC level
-          maybeNewSPC2 = getMaterializedListAndSPC(pSpc2, v2, sll2);
-
-          if (maybeNewSPC2.isEmpty()) {
-            return Optional.empty();
-          }
-
-          // Multiple extensions are possible, but happen 1 element further now.
-          res =
-              mergeValues(
-                  pSpc1,
-                  maybeNewSPC2.orElseThrow(),
-                  v1,
-                  v2,
-                  pNewSpc,
-                  mapping1,
-                  mapping2,
-                  initialJoinStatus,
-                  nestingDiff);
-        }
-        if (res.isEmpty()) {
-          return Optional.empty();
-        } else if (res.orElseThrow().isRecoverableFailure()) {
-          // Either delayed merge or suddenly we want to extend the other side?
-          // Or the extension failed here, and has to be done earlier.
-          throw new RuntimeException("investigate merge error for list extensions");
-        }
-        */
-      }
+      return maybeRes;
     }
 
     if (t1 instanceof SMGSinglyLinkedListSegment sll1
         && res.isRecoverableFailureTypeRightListLonger()) {
-      // Extend the left list with a 0+ from another abstracted element also left
-      // res = insertLeftLLIntoLeftAndJoin(pSpc1, pSpc2, v1, t1, v2, t2, pNewSpc, mapping1,
-      // mapping2, initialJoinStatus, nestingDiff);
+      // Alternative? : Extend the right list with a 0+ from another abstracted element right
 
-      // TODO: if this works, make materialization work on SPC level
+      // TODO: make materialization work on SPC level
       Optional<SymbolicProgramConfiguration> maybeNewSPC1 =
           getMaterializedListAndSPC(pSpc1, v1, sll1);
 
@@ -989,10 +949,12 @@ public class SymbolicProgramConfiguration {
         return Optional.empty();
       }
 
+      SymbolicProgramConfiguration unfoldingSPC1 = maybeNewSPC1.orElseThrow();
+
       // Multiple extensions are possible, but happen 1 element further now.
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMappingAndValue> maybeRes =
           mergeValues(
-              maybeNewSPC1.orElseThrow(),
+              unfoldingSPC1,
               pSpc2,
               v1,
               v2,
@@ -1002,25 +964,19 @@ public class SymbolicProgramConfiguration {
               initialJoinStatus,
               nestingDiff);
 
-      if (maybeRes.isEmpty()) {
+      if (maybeRes.isEmpty() || maybeRes.orElseThrow().isRecoverableFailure()) {
         return Optional.empty();
       }
-      res = maybeRes.orElseThrow();
-      if (res.isRecoverableFailure()) {
-        // Either delayed merge or suddenly we want to extend the other side?
-        // Or the extension failed here, and has to be done earlier.
-        // return Optional.empty();
-        if (res.isRecoverableFailureTypeLeftListLonger()) {
-          return Optional.empty();
-        }
-        throw new RuntimeException("investigate merge error for list extensions");
-      }
+      return maybeRes;
     }
 
     return Optional.of(res);
   }
 
   // TODO: this is a dummy, lower mat to SPC level.
+  /**
+   * Materializes the input object sll behind input address v. Returns empty for 0+ materialization.
+   */
   private static Optional<SymbolicProgramConfiguration> getMaterializedListAndSPC(
       SymbolicProgramConfiguration pSpc, SMGValue v, SMGSinglyLinkedListSegment sll)
       throws SMGException {
