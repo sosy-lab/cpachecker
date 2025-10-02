@@ -71,6 +71,8 @@ public class MPOROptions {
 
   public final int loopIterations;
 
+  public final boolean loopUnrolling;
+
   public final boolean noBackwardGoto;
 
   public final boolean noBackwardLoopGoto;
@@ -128,6 +130,7 @@ public class MPOROptions {
       boolean pLinkReduction,
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
+      boolean pLoopUnrolling,
       boolean pNoBackwardGoto,
       boolean pNoBackwardLoopGoto,
       boolean pNondeterminismSigned,
@@ -175,6 +178,7 @@ public class MPOROptions {
     linkReduction = pLinkReduction;
     loopFiniteMainThreadEnd = pLoopFiniteMainThreadEnd;
     loopIterations = pLoopIterations;
+    loopUnrolling = pLoopUnrolling;
     noBackwardGoto = pNoBackwardGoto;
     noBackwardLoopGoto = pNoBackwardLoopGoto;
     nondeterminismSigned = pNondeterminismSigned;
@@ -218,6 +222,7 @@ public class MPOROptions {
         true,
         false,
         0,
+        false,
         true,
         true,
         false,
@@ -255,6 +260,7 @@ public class MPOROptions {
       boolean pLinkReduction,
       boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
+      boolean pLoopUnrolling,
       boolean pNoBackwardGoto,
       boolean pNoBackwardLoopGoto,
       boolean pNondeterminismSigned,
@@ -293,6 +299,7 @@ public class MPOROptions {
         pLinkReduction,
         pLoopFiniteMainThreadEnd,
         pLoopIterations,
+        pLoopUnrolling,
         pNoBackwardGoto,
         pNoBackwardLoopGoto,
         pNondeterminismSigned,
@@ -355,6 +362,15 @@ public class MPOROptions {
           "loopIterations must be 0 or greater, cannot be %s",
           loopIterations);
       throw new AssertionError();
+    }
+    if (loopIterations == 0) {
+      if (loopUnrolling) {
+        pLogger.logfUserException(
+            Level.SEVERE,
+            new RuntimeException(),
+            "loopUnrolling can only be enabled when loopIterations > 0");
+        throw new AssertionError();
+      }
     }
     if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {
       pLogger.log(

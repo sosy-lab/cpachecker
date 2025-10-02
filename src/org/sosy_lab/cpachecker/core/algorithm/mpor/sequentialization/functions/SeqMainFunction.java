@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondet
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
@@ -53,8 +52,6 @@ public class SeqMainFunction extends SeqFunction {
 
   private final SequentializationFields fields;
 
-  private final CIdExpression numThreadsVariable;
-
   // TODO make Optional
   private final CFunctionCallAssignmentStatement nextThreadAssignment;
 
@@ -78,7 +75,6 @@ public class SeqMainFunction extends SeqFunction {
 
     options = pOptions;
     fields = pFields;
-    numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(pFields.numThreads);
 
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
@@ -87,7 +83,7 @@ public class SeqMainFunction extends SeqFunction {
         SeqStatementBuilder.buildNextThreadAssignment(pOptions.nondeterminismSigned);
     nextThreadAssumptions =
         SeqAssumptionBuilder.buildNextThreadAssumption(
-            pOptions.nondeterminismSigned, numThreadsVariable, binaryExpressionBuilder);
+            pOptions.nondeterminismSigned, pFields, binaryExpressionBuilder);
     nextThreadActiveAssumption =
         SeqAssumptionBuilder.buildNextThreadActiveAssumption(options, binaryExpressionBuilder);
 

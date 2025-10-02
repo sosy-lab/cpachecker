@@ -164,6 +164,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "unroll the loop used for thread simulation? not unrolling loops can be unsound, e.g. for"
+              + " CBMC. only use with loopIterations > 0.")
+  private boolean loopUnrolling = false;
+
+  @Option(
+      secure = true,
+      description =
           "removes backward goto, i.e. jumping to a line higher up in the program, by reordering"
               + " statements. only works for if-else constructs, not loops. use noBackwardLoopGoto"
               + " to ensure that backward loop goto are removed.")
@@ -354,6 +361,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     linkReduction,
                     loopFiniteMainThreadEnd,
                     loopIterations,
+                    loopUnrolling,
                     noBackwardGoto,
                     noBackwardLoopGoto,
                     nondeterminismSigned,

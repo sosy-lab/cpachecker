@@ -337,6 +337,10 @@ analysis.algorithm.MPOR.loopFiniteMainThreadEnd = false
 # entire state space is not searched.
 analysis.algorithm.MPOR.loopIterations = 0
 
+# unroll the loop used for thread simulation? not unrolling loops can be
+# unsound, e.g. for CBMC. only use with loopIterations > 0.
+analysis.algorithm.MPOR.loopUnrolling = false
+
 # removes backward goto, i.e. jumping to a line higher up in the program, by
 # reordering statements. only works for if-else constructs, not loops. use
 # noBackwardLoopGoto to ensure that backward loop goto are removed.

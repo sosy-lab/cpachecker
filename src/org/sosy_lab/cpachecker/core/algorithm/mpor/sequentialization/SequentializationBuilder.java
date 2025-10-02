@@ -309,9 +309,7 @@ public class SequentializationBuilder {
     ImmutableList.Builder<String> rDeclarations = ImmutableList.builder();
 
     // NUM_THREADS
-    CIdExpression numThreadsIdExpression =
-        SeqExpressionBuilder.buildNumThreadsIdExpression(pFields.numThreads);
-    rDeclarations.add(numThreadsIdExpression.getDeclaration().toASTString());
+    rDeclarations.add(pFields.ghostElements.numThreadsIdExpression.getDeclaration().toASTString());
 
     // last_thread is always unsigned, we assign NUM_THREADS if the current thread terminates
     if (pOptions.conflictReduction) {

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
@@ -21,6 +22,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
  */
 public class GhostElements {
 
+  public final CIdExpression numThreadsIdExpression;
+
   private final Optional<BitVectorVariables> bitVectorVariables;
 
   private final ImmutableMap<MPORThread, FunctionStatements> functionStatements;
@@ -30,11 +33,13 @@ public class GhostElements {
   private final ThreadSynchronizationVariables threadSynchronizationVariables;
 
   public GhostElements(
+      CIdExpression pNumThreadsIdExpression,
       Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableMap<MPORThread, FunctionStatements> pFunctionStatements,
       ProgramCounterVariables pProgramCounterVariables,
       ThreadSynchronizationVariables pThreadSynchronizationVariables) {
 
+    numThreadsIdExpression = pNumThreadsIdExpression;
     bitVectorVariables = pBitVectorVariables;
     functionStatements = pFunctionStatements;
     programCounterVariables = pProgramCounterVariables;

@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
@@ -53,7 +54,7 @@ public class SeqAssumptionBuilder {
 
   public static ImmutableList<CFunctionCallStatement> buildNextThreadAssumption(
       boolean pIsSigned,
-      CIdExpression pNumThreads,
+      SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -67,9 +68,10 @@ public class SeqAssumptionBuilder {
               BinaryOperator.LESS_EQUAL);
       rAssumptions.add(buildAssumption(nextThreadAtLeastZero));
     }
+    CIdExpression numThreads = pFields.ghostElements.numThreadsIdExpression;
     CBinaryExpression nextThreadLessThanNumThreads =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.NEXT_THREAD, pNumThreads, BinaryOperator.LESS_THAN);
+            SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN);
     rAssumptions.add(buildAssumption(nextThreadLessThanNumThreads));
     return rAssumptions.build();
   }
