@@ -162,9 +162,10 @@ def html_dict_to_html_table(
     table = Airium()
     with table.table(klass="worker"):
         # header
-        with table.tr(klass="header_row"):
-            for key in headers:
-                table.th(_t=f"{key}")
+        with table.thead():
+            with table.tr(klass="header_row"):
+                for key in headers:
+                    table.th(_t=f"{key}")
 
         # row values
         type_to_klass = {
