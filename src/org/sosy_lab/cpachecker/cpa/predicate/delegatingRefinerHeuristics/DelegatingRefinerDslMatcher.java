@@ -21,6 +21,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Applies the first matching DSL pattern rule to a normalized atomic formula. Returns a normalized
@@ -61,29 +62,32 @@ final class DelegatingRefinerDslMatcher {
   }
 
   // Applies the first matching rule or returns null if none match.
-  DelegatingRefinerNormalizedFormula applyPatternRule(String pSmtExpr) {
+  Optional<DelegatingRefinerNormalizedFormula> applyPatternRule(String pSmtExpr) {
     for (DelegatingRefinerPatternRule patternRule : patternRules) {
-      Map<String, String> bindings = matchAndExtract(patternRule.patternMatch(), pSmtExpr);
-      if (bindings != null) {
+      Optional<Map<String, String>> mayBeBindings =
+          matchAndExtract(patternRule.patternMatch(), pSmtExpr);
+      if (mayBeBindings.isPresent()) {
+        Map<String, String> bindings = mayBeBindings.get();
         String normalized = substitute(patternRule.normalizedPattern(), bindings);
         String fingerprint = substitute(patternRule.patternFingerprint(), bindings);
         ImmutableMap<String, String> tagged = applyTags(patternRule.tags(), bindings);
-        return new DelegatingRefinerNormalizedFormula(
-            normalized, fingerprint, patternRule.id(), tagged, patternRule.category());
+        return Optional.of(
+            new DelegatingRefinerNormalizedFormula(
+                normalized, fingerprint, patternRule.id(), tagged, patternRule.category()));
       }
     }
-    return null;
+    return Optional.empty();
   }
 
   // Matches an expression against a pattern and extracts wildcard bindings.
-  private Map<String, String> matchAndExtract(String pPattern, String pExpression) {
+  private Optional<Map<String, String>> matchAndExtract(String pPattern, String pExpression) {
     Map<String, String> bindings = new HashMap<>();
 
     List<String> patternParts = tokenizeSExpr(pPattern);
     List<String> expressionParts = tokenizeSExpr(pExpression);
 
     if (patternParts.size() != expressionParts.size()) {
-      return null;
+      return Optional.empty();
     }
 
     for (int i = 0; i < patternParts.size(); i++) {
@@ -91,16 +95,17 @@ final class DelegatingRefinerDslMatcher {
       String eP = expressionParts.get(i);
 
       if (pP.contains("<")) {
-        ImmutableMap<String, String> tokenBindings = matchTokensWithWildcards(pP, eP);
-        if (tokenBindings == null) {
-          return null;
+        Optional<ImmutableMap<String, String>> mayBeTokenBindings =
+            matchTokensWithWildcards(pP, eP);
+        if (mayBeTokenBindings.isEmpty()) {
+          return Optional.empty();
         }
-        bindings.putAll(tokenBindings);
+        bindings.putAll(mayBeTokenBindings.get());
       } else if (!pP.equals(eP)) {
-        return null;
+        return Optional.empty();
       }
     }
-    return bindings;
+    return Optional.of(bindings);
   }
 
   // Substitutes bindings into a pattern template.
@@ -114,7 +119,7 @@ final class DelegatingRefinerDslMatcher {
   }
 
   // Matches tokens with underscore-separated wildcards, e.g. BVExtract_31_31.
-  private static ImmutableMap<String, String> matchTokensWithWildcards(
+  private static Optional<ImmutableMap<String, String>> matchTokensWithWildcards(
       String pPatternToken, String pExpressionToken) {
     Map<String, String> bindings = new HashMap<>();
 
@@ -124,7 +129,7 @@ final class DelegatingRefinerDslMatcher {
         ImmutableList.copyOf(Splitter.on('_').split(pExpressionToken));
 
     if (patternParts.size() != expressionParts.size()) {
-      return null;
+      return Optional.empty();
     }
 
     for (int i = 0; i < patternParts.size(); i++) {
@@ -133,10 +138,10 @@ final class DelegatingRefinerDslMatcher {
       if (p.startsWith("<") && p.endsWith(">")) {
         bindings.put(p.substring(1, p.length() - 1), e);
       } else if (!p.equals(e)) {
-        return null;
+        return Optional.empty();
       }
     }
-    return ImmutableMap.copyOf(bindings);
+    return Optional.of(ImmutableMap.copyOf(bindings));
   }
 
   // Applies tags by substituting placeholders and merging duplicates.

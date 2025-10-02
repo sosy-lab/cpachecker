@@ -38,6 +38,15 @@ class DelegatingRefinerAtomNormalizer
   private final FormulaManagerView formulaManager;
   private final LogManager logger;
 
+  private static final String NULL_OPERATOR = "<null>";
+  private static final String BOOLEAN_TRUE = "true";
+  private static final String EQUALITY_OPERATOR = "=";
+  private static final String CONSTANT = "const";
+  private static final String FREE_VARIABLE = "var";
+  private static final String BOUND_VARIABLE = "bound";
+  private static final String FREE_VARIABLE_ID_OPERATOR = "id";
+  private static final String BOUND_VARIABLE_ID_OPERATOR = "idx";
+
   private static final Map<String, String> OPERATOR_MAP =
       ImmutableMap.<String, String>builder()
           .put("bvult", "<")
@@ -63,7 +72,7 @@ class DelegatingRefinerAtomNormalizer
 
   private String normalizeOperator(String pOperator) {
     if (pOperator == null) {
-      return "<null>";
+      return NULL_OPERATOR;
     }
     if (pOperator.startsWith("bvextract_")) {
       return pOperator;
@@ -97,7 +106,7 @@ class DelegatingRefinerAtomNormalizer
   private String normalizeOperand(Formula pFormula) {
     OperandFinder operandFinder = new OperandFinder();
     if (pFormula == null) {
-      return "<null>";
+      return NULL_OPERATOR;
     }
 
     try {
@@ -115,19 +124,22 @@ class DelegatingRefinerAtomNormalizer
   @Override
   public ImmutableList<DelegatingRefinerNormalizedAtom> visitFreeVariable(
       Formula pFormula, String pS) {
-    return ImmutableList.of(new DelegatingRefinerNormalizedAtom(pS, "id", "var"));
+    return ImmutableList.of(
+        new DelegatingRefinerNormalizedAtom(pS, FREE_VARIABLE_ID_OPERATOR, FREE_VARIABLE));
   }
 
   @Override
   public ImmutableList<DelegatingRefinerNormalizedAtom> visitBoundVariable(
       Formula pFormula, int pI) {
     return ImmutableList.of(
-        new DelegatingRefinerNormalizedAtom("bound", "idx", String.valueOf(pI)));
+        new DelegatingRefinerNormalizedAtom(
+            BOUND_VARIABLE, BOUND_VARIABLE_ID_OPERATOR, String.valueOf(pI)));
   }
 
   @Override
   public ImmutableList<DelegatingRefinerNormalizedAtom> visitConstant(Formula pFormula, Object pO) {
-    return ImmutableList.of(new DelegatingRefinerNormalizedAtom("const", "=", String.valueOf(pO)));
+    return ImmutableList.of(
+        new DelegatingRefinerNormalizedAtom(CONSTANT, EQUALITY_OPERATOR, String.valueOf(pO)));
   }
 
   @Override
@@ -163,10 +175,9 @@ class DelegatingRefinerAtomNormalizer
         if (listElement instanceof BooleanFormula pBooleanFormula) {
           atomsBuilder.addAll(formulaManager.visit(pBooleanFormula, this));
         } else {
-          String subatom = normalizeOperand(listElement);
-          DelegatingRefinerNormalizedAtom normalizedSubAtom =
-              new DelegatingRefinerNormalizedAtom(subatom, "=", "true");
-          atomsBuilder.add(normalizedSubAtom);
+          atomsBuilder.add(
+              new DelegatingRefinerNormalizedAtom(
+                  normalizeOperand(listElement), EQUALITY_OPERATOR, BOOLEAN_TRUE));
         }
       }
     }

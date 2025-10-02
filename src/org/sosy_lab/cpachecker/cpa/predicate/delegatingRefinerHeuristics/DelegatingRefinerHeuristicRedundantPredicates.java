@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -139,8 +140,9 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       ImmutableCollection.Builder<String> pCategoryBuilder) {
     String sExpr = atom.toSExpr();
     for (String subAtom : DelegatingRefinerDslMatcher.extractAtoms(sExpr)) {
-      DelegatingRefinerNormalizedFormula normalizedFormula = matcher.applyPatternRule(subAtom);
-      if (normalizedFormula != null) {
+      Optional<DelegatingRefinerNormalizedFormula> maybeFormula = matcher.applyPatternRule(subAtom);
+      if (maybeFormula.isPresent()) {
+        DelegatingRefinerNormalizedFormula normalizedFormula = maybeFormula.get();
         pPatternBuilder.add(normalizedFormula.id());
         pCategoryBuilder.add(normalizedFormula.category());
       } else {
