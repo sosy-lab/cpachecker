@@ -417,7 +417,7 @@ public class SMGMergeTest extends SMGCPATest0 {
     currentState = initialState;
   }
 
-  /**
+  /* TODO: make this javadoc again once commented out code is back
    * Returns the result of the STOP operator, i.e. false for continue, true for stop. The current
    * list should not be extended with new elements once true is returned. Will perform pseudo CPA
    * (abstract/precision adjustment, merge, stop).
