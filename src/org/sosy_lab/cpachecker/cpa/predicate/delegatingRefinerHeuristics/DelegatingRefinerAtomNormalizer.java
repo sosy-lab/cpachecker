@@ -43,9 +43,7 @@ class DelegatingRefinerAtomNormalizer
   private static final String EQUALITY_OPERATOR = "=";
   private static final String CONSTANT = "const";
   private static final String FREE_VARIABLE = "var";
-  private static final String BOUND_VARIABLE = "bound";
   private static final String FREE_VARIABLE_ID_OPERATOR = "id";
-  private static final String BOUND_VARIABLE_ID_OPERATOR = "idx";
 
   private static final Map<String, String> OPERATOR_MAP =
       ImmutableMap.<String, String>builder()
@@ -133,7 +131,7 @@ class DelegatingRefinerAtomNormalizer
       Formula pFormula, int pI) {
     return ImmutableList.of(
         new DelegatingRefinerNormalizedAtom(
-            BOUND_VARIABLE, BOUND_VARIABLE_ID_OPERATOR, String.valueOf(pI)));
+            "bound", "idx", String.valueOf(pI)));
   }
 
   @Override
