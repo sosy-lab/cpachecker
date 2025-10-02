@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRun_N_Times;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
@@ -101,7 +101,7 @@ public class PredicateDelegatingRefinerTest {
             setUpRefinerMap(pDefaultIndividualRunsRefinerFactory));
 
     assertThat(
-            ((DelegatingRefinerHeuristicRun_N_Times) pRefinerRecords.getFirst().pHeuristic())
+            ((DelegatingRefinerHeuristicRunNTimes) pRefinerRecords.getFirst().pHeuristic())
                 .getFixedRuns())
         .isEqualTo(5);
   }
@@ -226,7 +226,7 @@ public class PredicateDelegatingRefinerTest {
     assertThat(pRefinerRecords.getFirst().pHeuristic())
         .isInstanceOf(DelegatingRefinerHeuristicStaticRefinement.class);
     assertThat(pRefinerRecords.get(1).pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRun_N_Times.class);
+        .isInstanceOf(DelegatingRefinerHeuristicRunNTimes.class);
     assertThat(pRefinerRecords.get(2).pHeuristic())
         .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
     assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
@@ -241,8 +241,8 @@ public class PredicateDelegatingRefinerTest {
    */
   @Test
   public void checkDefaultNTimesRunNumbers() {
-    DelegatingRefinerHeuristicRun_N_Times runDefaultNTimes =
-        new DelegatingRefinerHeuristicRun_N_Times(3);
+    DelegatingRefinerHeuristicRunNTimes runDefaultNTimes =
+        new DelegatingRefinerHeuristicRunNTimes(3);
 
     assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isTrue();
     assertThat(runDefaultNTimes.fulfilled(null, ImmutableList.of())).isTrue();
