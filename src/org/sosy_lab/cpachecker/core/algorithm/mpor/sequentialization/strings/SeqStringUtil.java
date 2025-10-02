@@ -65,7 +65,7 @@ public class SeqStringUtil {
 
   // Multi Control Statement Suffix ================================================================
 
-  public static Optional<String> tryBuildSuffixByMultiControlStatementEncoding(
+  public static Optional<String> tryBuildBlockSuffix(
       MPOROptions pOptions,
       Optional<MPORThread> pNextThread,
       ImmutableList<SeqThreadStatement> pStatements)
@@ -77,10 +77,10 @@ public class SeqStringUtil {
     if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
       return Optional.empty();
     }
-    return Optional.of(buildSuffixByMultiControlStatementEncoding(pOptions, pNextThread));
+    return Optional.of(buildBlockSuffixByControlStatementEncoding(pOptions, pNextThread));
   }
 
-  private static String buildSuffixByMultiControlStatementEncoding(
+  private static String buildBlockSuffixByControlStatementEncoding(
       MPOROptions pOptions, Optional<MPORThread> pNextThread) throws UnrecognizedCodeException {
 
     // use control encoding of the statement since we append the suffix to the statement
@@ -89,6 +89,10 @@ public class SeqStringUtil {
           throw new IllegalArgumentException(
               "cannot build suffix for control encoding " + pOptions.controlEncodingStatement);
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN -> {
+        if (pOptions.loopUnrolling) {
+          // with loop unrolling enabled, always return to main()
+          yield SeqToken._return + SeqSyntax.SEMICOLON;
+        }
         if (ThreadUtil.isThreadLabelRequired(pOptions)) {
           // if this is not the last thread, add goto T{next_thread_ID}, otherwise continue
           if (pNextThread.isPresent()) {
@@ -99,6 +103,7 @@ public class SeqStringUtil {
         }
         yield SeqToken._continue + SeqSyntax.SEMICOLON;
       }
+      // it is best to always use break; for switch cases, tests showed it is more efficient
       case SWITCH_CASE -> SeqToken._break + SeqSyntax.SEMICOLON;
     };
   }

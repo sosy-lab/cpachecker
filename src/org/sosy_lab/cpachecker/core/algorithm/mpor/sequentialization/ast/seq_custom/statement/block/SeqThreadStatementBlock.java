@@ -58,9 +58,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
     for (SeqThreadStatement statement : statements) {
       lines.add(statement.toASTString() + SeqSyntax.SPACE);
     }
-    Optional<String> suffix =
-        SeqStringUtil.tryBuildSuffixByMultiControlStatementEncoding(
-            options, nextThread, statements);
+    Optional<String> suffix = SeqStringUtil.tryBuildBlockSuffix(options, nextThread, statements);
     if (suffix.isPresent()) {
       lines.add(suffix.orElseThrow());
     }

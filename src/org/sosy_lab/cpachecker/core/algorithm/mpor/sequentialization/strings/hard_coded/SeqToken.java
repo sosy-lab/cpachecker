@@ -150,6 +150,8 @@ public class SeqToken {
 
   public static final String READ = "READ";
 
+  public static final String _return = "return";
+
   public static final String return_value = "return_value";
 
   public static final String S = "S";
