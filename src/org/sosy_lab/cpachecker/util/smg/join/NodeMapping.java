@@ -57,7 +57,9 @@ public class NodeMapping {
     checkNotNull(innerMap);
     checkArgument(
         innerMap.size() == 1,
-        "Requested mapping for " + value + ", but multiple mappings present: " + innerMap);
+        "Requested mapping for %s, but multiple mappings present: %s",
+        value,
+        innerMap);
     return innerMap.values().iterator().next();
   }
 
