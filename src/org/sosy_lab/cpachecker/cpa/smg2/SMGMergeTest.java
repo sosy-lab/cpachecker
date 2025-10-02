@@ -551,7 +551,6 @@ public class SMGMergeTest extends SMGCPATest0 {
 
     private void dfs(List<Integer> l, List<Integer> temp, int idx) {
       // Print the current combination
-      System.out.println(temp);
 
       // Base case: if idx exceeds the list size, return
       if (idx >= l.size()) {
