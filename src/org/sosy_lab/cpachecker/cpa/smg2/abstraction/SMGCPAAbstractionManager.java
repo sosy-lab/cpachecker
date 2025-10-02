@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -126,7 +127,9 @@ public class SMGCPAAbstractionManager {
    *
    */
   public SMGState findAndAbstractLists() throws SMGException {
-    Preconditions.checkState(maxTriesBeforeAbort > 0);
+    Preconditions.checkState(
+        maxTriesBeforeAbort > 0,
+        MoreStrings.lazyString(() -> String.valueOf(state.getMemoryModel())));
     SMGState currentState = state;
     statistics.startTotalListSearchTime();
 
