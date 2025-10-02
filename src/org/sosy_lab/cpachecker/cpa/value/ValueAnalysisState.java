@@ -29,19 +29,25 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.eclipse.cdt.internal.core.dom.parser.c.CField;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -98,7 +104,8 @@ public final class ValueAnalysisState
         LatticeAbstractState<ValueAnalysisState>,
         PseudoPartitionable {
 
-  @Serial private static final long serialVersionUID = -3152134511524554358L;
+  @Serial
+  private static final long serialVersionUID = -3152134511524554358L;
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
 
@@ -154,7 +161,7 @@ public final class ValueAnalysisState
    * This method assigns a value to the variable and puts it in the map.
    *
    * @param variableName name of the variable.
-   * @param value value to be assigned.
+   * @param value        value to be assigned.
    */
   void assignConstant(String variableName, Value value) {
     addToConstantsMap(MemoryLocation.parseExtendedQualifiedName(variableName), value, null);
@@ -163,13 +170,47 @@ public final class ValueAnalysisState
   // Same as assignConstant, but if an variable is already present in the VA State, it does not get
   // overwritten
   // Used by extractor component of TestCaseGeneratorAlgorithm
-  // assignConstantFromCexpression
-  public void assignConstantSafe(CSimpleDeclaration cDeclaration, Value value) {
-    MemoryLocation pMemoryLocation = MemoryLocation.forDeclaration(cDeclaration);
-//    forIdentifier(String pIdentifier, long pOffset)
-    if (!this.contains(pMemoryLocation)) {
+  //
+  public void assignConstantFromCexpression(CExpression cexpression, Value value) {
+    MemoryLocation pMemoryLocation = null;
+    if (cexpression instanceof CIdExpression cIdExpression) {
+      pMemoryLocation = MemoryLocation.forDeclaration(cIdExpression.getDeclaration());
+    } else if (cexpression instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      String pIdentifier = getIdFromArrayExpression(cArraySubscriptExpression.getArrayExpression());
+      Optional<Long> pOffset = getOffset(cArraySubscriptExpression.getSubscriptExpression());
+      if (pOffset.isPresent()) { //todo handle
+//        pMemoryLocation = MemoryLocation.forIdentifier(pIdentifier, pOffset.get());
+      }
+    } else {
+      assert (cexpression instanceof CUnaryExpression ||
+          cexpression instanceof CPointerExpression ||
+          cexpression instanceof CFieldReference)
+          : "Unknown Cexpression: " + cexpression.getExpressionType();
+    }
+    if (pMemoryLocation != null &&!this.contains(pMemoryLocation)) {
       addToConstantsMap(pMemoryLocation, value, null);
     }
+  }
+
+  private String getIdFromArrayExpression(CExpression arrayExpression){
+    if (arrayExpression instanceof CIdExpression cIdExpression) {
+          return cIdExpression.getDeclaration().getQualifiedName();
+    }
+    assert (arrayExpression instanceof CCastExpression)
+        : "Unknown id arrayExpression: " + arrayExpression.getExpressionType();
+    return null;
+  }
+
+  private  Optional<Long> getOffset(CExpression pCExpression) {
+    Optional<Long> offset = Optional.empty();
+    if (pCExpression instanceof CIntegerLiteralExpression pCIntegerLiteralExpression) {
+        offset = Optional.of(pCIntegerLiteralExpression.asLong());
+    } else if (pCExpression instanceof CIdExpression pCIdExpression) {
+      //todo
+    } else {
+      assert false : "unknown expression type in arrray: " + pCExpression;
+    }
+    return offset;
   }
 
   private void addToConstantsMap(

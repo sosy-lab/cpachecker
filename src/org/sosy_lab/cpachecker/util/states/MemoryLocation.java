@@ -73,7 +73,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   }
 
   /**
-   * Create an instance for the given identifier without function name but with an offset. Typically
+   * Create an instance for the given identifier wfithout function name but with an offset. Typically
    * this should be used for global variables.
    */
   public static MemoryLocation forIdentifier(String pIdentifier, long pOffset) {

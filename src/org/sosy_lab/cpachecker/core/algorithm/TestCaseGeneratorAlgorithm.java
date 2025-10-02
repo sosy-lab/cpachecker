@@ -435,27 +435,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private void writeExpressionToState(
       CBinaryExpression cBinaryExpression,
       ValueAnalysisState valueAnalysisState) {
-    Optional<CIdExpression> op1 = processOperand1(cBinaryExpression.getOperand1());
     CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
     Value variableValue = new NumericValue(op2.getValue());
-    if (!variableValue.isUnknown() &&  op1.isPresent()) {
-      valueAnalysisState.assignConstantSafe(op1.get().getDeclaration(), variableValue);
+    if (!variableValue.isUnknown()) {
+      valueAnalysisState.assignConstantFromCexpression(cBinaryExpression.getOperand1() , variableValue);
+      //assignConstant(MemoryLocation pMemoryLocation, Value value, Type pType)
     }
-  }
-
-  private Optional<CIdExpression> processOperand1(CExpression op1) {
-    if (op1 instanceof CIdExpression) {
-      return Optional.of((CIdExpression) op1);
-    } else if (op1 instanceof CUnaryExpression) {
-      return Optional.of((CIdExpression) ((CUnaryExpression) op1).getOperand());
-    } else if (op1 instanceof CPointerExpression) {
-      return Optional.of((CIdExpression) ((CPointerExpression) op1).getOperand());
-    } else if (op1 instanceof CArraySubscriptExpression) {
-//      return Optional.empty();
-      return processOperand1(((CArraySubscriptExpression) op1).getArrayExpression());
-    }
-//    assert(false);
-    return Optional.empty();
   }
 
   private ValueAnalysisState extractVAState(CompositeState wrappedState) {
