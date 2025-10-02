@@ -622,11 +622,6 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitBoundVar(BooleanFormula var, int deBruijnIdx) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public BDD visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       return ((JavaBDDRegion) atomToRegion.apply(pAtom)).getBDD().id();
     }

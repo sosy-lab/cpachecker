@@ -84,12 +84,6 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
   }
 
   @Override
-  public Boolean visitBoundVariable(Formula pF, int pDeBruijnIdx) {
-    // No-OP; not relevant for the given use-cases
-    return true;
-  }
-
-  @Override
   public Boolean visitConstant(Formula pF, Object pValue) {
     FormulaType<?> type = fmgr.getFormulaType(pF);
     final String value = pValue.toString();
