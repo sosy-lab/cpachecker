@@ -67,7 +67,7 @@ final class DelegatingRefinerDslMatcher {
       Optional<Map<String, String>> mayBeBindings =
           matchAndExtract(patternRule.patternMatch(), pSmtExpr);
       if (mayBeBindings.isPresent()) {
-        Map<String, String> bindings = mayBeBindings.get();
+        Map<String, String> bindings = mayBeBindings.orElseThrow();
         String normalized = substitute(patternRule.normalizedPattern(), bindings);
         String fingerprint = substitute(patternRule.patternFingerprint(), bindings);
         ImmutableMap<String, String> tagged = applyTags(patternRule.tags(), bindings);
@@ -100,7 +100,7 @@ final class DelegatingRefinerDslMatcher {
         if (mayBeTokenBindings.isEmpty()) {
           return Optional.empty();
         }
-        bindings.putAll(mayBeTokenBindings.get());
+        bindings.putAll(mayBeTokenBindings.orElseThrow());
       } else if (!pP.equals(eP)) {
         return Optional.empty();
       }

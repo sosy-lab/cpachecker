@@ -142,7 +142,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     for (String subAtom : DelegatingRefinerDslMatcher.extractAtoms(sExpr)) {
       Optional<DelegatingRefinerNormalizedFormula> maybeFormula = matcher.applyPatternRule(subAtom);
       if (maybeFormula.isPresent()) {
-        DelegatingRefinerNormalizedFormula normalizedFormula = maybeFormula.get();
+        DelegatingRefinerNormalizedFormula normalizedFormula = maybeFormula.orElseThrow();
         pPatternBuilder.add(normalizedFormula.id());
         pCategoryBuilder.add(normalizedFormula.category());
       } else {
