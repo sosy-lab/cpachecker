@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-import org.junit.After;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -1103,11 +1102,11 @@ public class SMGMergeTest extends SMGCPATest0 {
     for (Entry<String, Integer> entry : stackVariableForPtrToListAndLocation.entrySet()) {
       checkArgument(
           entry.getValue() >= 0,
-          "Specified local variable"
-              + entry.getKey()
+          "Specified local variable %s"
               + " that is supposed to reference a new list segment that lies"
-              + " outside of the possible list with index: "
-              + entry.getValue());
+              + " outside of the possible list with index: %s",
+          entry.getKey(),
+          entry.getValue());
     }
 
     internalBuildConcreteListWith(listToBuild);
