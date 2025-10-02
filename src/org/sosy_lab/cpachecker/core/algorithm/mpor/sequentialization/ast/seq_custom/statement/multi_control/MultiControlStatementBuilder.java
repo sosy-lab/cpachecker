@@ -33,7 +33,7 @@ public class MultiControlStatementBuilder {
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
-    // TODO add default error statement for binary tree and if-else chain
+    // TODO add default error statement for binary tree and if-else chain (sequentializationErrors)
     return switch (pMultiControlStatementEncoding) {
       case NONE ->
           throw new IllegalArgumentException(

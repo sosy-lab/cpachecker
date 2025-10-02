@@ -9,13 +9,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
@@ -24,6 +28,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqDeclarationBuilder {
+
+  public static CFunctionDeclaration buildFunctionDeclarationWithoutParameters(
+      CFunctionType pFunctionType, String pFunctionName) {
+
+    return new CFunctionDeclaration(
+        FileLocation.DUMMY, pFunctionType, pFunctionName, ImmutableList.of(), ImmutableSet.of());
+  }
+
+  public static CFunctionDeclaration buildThreadSimulationFunctionDeclaration(int pThreadId) {
+    CFunctionType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
+    String functionName = SeqNameUtil.buildFunctionName(SeqToken.thread + pThreadId);
+    return buildFunctionDeclarationWithoutParameters(functionType, functionName);
+  }
 
   // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
   public static CVariableDeclaration buildVariableDeclaration(

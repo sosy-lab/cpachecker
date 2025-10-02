@@ -283,7 +283,7 @@ public class SeqNameUtil {
     return buildThreadPrefix(pOptions, pThreadId) + SeqSyntax.UNDERSCORE + SeqToken.SYNC;
   }
 
-  // Other
+  // Other =========================================================================================
 
   public static String buildQualifiedName(String pVarName) {
     // TODO the qualified names are not relevant in the seq, so we just use dummy::

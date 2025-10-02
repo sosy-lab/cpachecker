@@ -166,6 +166,8 @@ public class SeqToken {
 
   public static final String _t = "_t";
 
+  public static final String thread = "thread";
+
   public static final String THREAD = "THREAD";
 
   public static final String uint = "uint";

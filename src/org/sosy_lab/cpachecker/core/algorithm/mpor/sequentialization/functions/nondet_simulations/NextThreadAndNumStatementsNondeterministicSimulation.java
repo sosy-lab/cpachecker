@@ -64,6 +64,34 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         pBinaryExpressionBuilder);
   }
 
+  static ImmutableList<String> buildThreadSimulation(
+      MPOROptions pOptions,
+      GhostElements pGhostElements,
+      MPORThread pThread,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CFunctionCallAssignmentStatement kNondet =
+        NondeterministicSimulationUtil.buildKNondetAssignment(pOptions, SeqIdExpression.K);
+    CBinaryExpression kGreaterZero = buildKGreaterZero(pBinaryExpressionBuilder);
+    CFunctionCallStatement kGreaterZeroAssumption =
+        SeqAssumptionBuilder.buildAssumption(kGreaterZero);
+    CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRReset();
+
+    SeqMultiControlStatement multiControlStatement =
+        buildSingleThreadMultiControlStatementWithoutCount(
+            pOptions,
+            pGhostElements,
+            pThread,
+            kNondet,
+            kGreaterZeroAssumption,
+            rReset,
+            pClauses,
+            pBinaryExpressionBuilder);
+    return SeqStringUtil.splitOnNewline(multiControlStatement.toASTString());
+  }
+
   private static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
       GhostElements pGhostElements,

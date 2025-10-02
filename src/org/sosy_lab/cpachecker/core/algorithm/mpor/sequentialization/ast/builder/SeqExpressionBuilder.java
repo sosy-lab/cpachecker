@@ -159,6 +159,12 @@ public class SeqExpressionBuilder {
     return new CIdExpression(FileLocation.DUMMY, pDeclaration);
   }
 
+  public static CIdExpression buildThreadSimulationFunctionIdExpression(int pThreadId) {
+    CFunctionDeclaration functionDeclaration =
+        SeqDeclarationBuilder.buildThreadSimulationFunctionDeclaration(pThreadId);
+    return SeqExpressionBuilder.buildIdExpression(functionDeclaration);
+  }
+
   public static CIdExpression buildNumThreadsIdExpression(int pNumThreads) {
     return SeqExpressionBuilder.buildIdExpression(
         SeqDeclarationBuilder.buildVariableDeclaration(

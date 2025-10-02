@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -67,6 +68,32 @@ public class NondeterministicSimulationUtil {
     };
   }
 
+  public static ImmutableList<String> buildThreadSimulationByNondeterminismSource(
+      MPOROptions pOptions,
+      GhostElements pGhostElements,
+      MPORThread pThread,
+      ImmutableSet<MPORThread> pOtherThreads,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pOptions.nondeterminismSource) {
+      case NEXT_THREAD ->
+          NextThreadNondeterministicSimulation.buildThreadSimulation(
+              pOptions,
+              pGhostElements.getPcVariables(),
+              pThread,
+              pClauses,
+              pBinaryExpressionBuilder);
+      case NUM_STATEMENTS ->
+          NumStatementsNondeterministicSimulation.buildThreadSimulation(
+              pOptions, pGhostElements, pThread, pOtherThreads, pClauses, pBinaryExpressionBuilder);
+      case NEXT_THREAD_AND_NUM_STATEMENTS ->
+          NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulation(
+              pOptions, pGhostElements, pThread, pClauses, pBinaryExpressionBuilder);
+    };
+  }
+
   // Multi Control Flow Statements =================================================================
 
   /**
@@ -113,7 +140,7 @@ public class NondeterministicSimulationUtil {
   // r and K statements/expressions ================================================================
 
   /** Returns the expression for {@code K = __VERIFIER_nondet_{int, uint}()} */
-  public static CFunctionCallAssignmentStatement buildKNondetAssignment(
+  static CFunctionCallAssignmentStatement buildKNondetAssignment(
       MPOROptions pOptions, CIdExpression pKVariable) {
 
     return SeqStatementBuilder.buildFunctionCallAssignmentStatement(

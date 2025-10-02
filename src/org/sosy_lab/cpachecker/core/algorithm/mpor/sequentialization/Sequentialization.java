@@ -183,7 +183,7 @@ public class Sequentialization {
         SequentializationBuilder.buildThreadSimulationVariableDeclarations(options, pFields));
 
     // add custom function declarations and definitions
-    rProgram.addAll(SequentializationBuilder.buildFunctionDeclarations(options));
+    rProgram.addAll(SequentializationBuilder.buildFunctionDeclarations(options, pFields));
     rProgram.addAll(
         SequentializationBuilder.buildFunctionDefinitions(
             options, pFields, binaryExpressionBuilder, logger));

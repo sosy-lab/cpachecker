@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
@@ -58,17 +59,6 @@ public class NextThreadNondeterministicSimulation {
     ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
         ImmutableMap.builder();
     for (MPORThread thread : pClauses.keySet()) {
-      CLeftHandSide expression = pPcVariables.getPcLeftHandSide(thread.getId());
-      Optional<CFunctionCallStatement> assumption =
-          NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
-              pOptions, pPcVariables, thread, pBinaryExpressionBuilder);
-      ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
-          SeqThreadStatementClauseUtil.mapExpressionToClause(
-              pOptions,
-              pPcVariables.getPcLeftHandSide(thread.getId()),
-              pClauses.get(thread),
-              pBinaryExpressionBuilder);
-
       CExpression clauseExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               pOptions.controlEncodingThread,
@@ -76,21 +66,54 @@ public class NextThreadNondeterministicSimulation {
               thread.getId(),
               pBinaryExpressionBuilder);
       SeqMultiControlStatement multiControlStatement =
-          MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
-              pOptions,
-              pOptions.controlEncodingStatement,
-              expression,
-              MultiControlStatementBuilder.buildPrecedingStatements(
-                  assumption,
-                  Optional.empty(),
-                  Optional.empty(),
-                  Optional.empty(),
-                  Optional.empty()),
-              expressionClauseMap,
-              pBinaryExpressionBuilder);
-
+          buildMultiControlStatement(
+              pOptions, pPcVariables, thread, pClauses.get(thread), pBinaryExpressionBuilder);
       rStatements.put(clauseExpression, multiControlStatement);
     }
     return rStatements.buildOrThrow();
+  }
+
+  private static SeqMultiControlStatement buildMultiControlStatement(
+      MPOROptions pOptions,
+      ProgramCounterVariables pPcVariables,
+      MPORThread pThread,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    Optional<CFunctionCallStatement> assumption =
+        NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
+            pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
+    ImmutableList<CStatement> precedingStatements =
+        MultiControlStatementBuilder.buildPrecedingStatements(
+            assumption, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+    CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.getId());
+    ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
+        SeqThreadStatementClauseUtil.mapExpressionToClause(
+            pOptions,
+            pPcVariables.getPcLeftHandSide(pThread.getId()),
+            pClauses,
+            pBinaryExpressionBuilder);
+    return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
+        pOptions,
+        pOptions.controlEncodingStatement,
+        expression,
+        precedingStatements,
+        expressionClauseMap,
+        pBinaryExpressionBuilder);
+  }
+
+  static ImmutableList<String> buildThreadSimulation(
+      MPOROptions pOptions,
+      ProgramCounterVariables pPcVariables,
+      MPORThread pThread,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    SeqMultiControlStatement multiControlStatement =
+        buildMultiControlStatement(
+            pOptions, pPcVariables, pThread, pClauses, pBinaryExpressionBuilder);
+    return SeqStringUtil.splitOnNewline(multiControlStatement.toASTString());
   }
 }

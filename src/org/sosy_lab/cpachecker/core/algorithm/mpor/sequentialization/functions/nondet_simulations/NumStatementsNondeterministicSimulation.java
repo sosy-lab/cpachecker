@@ -66,98 +66,108 @@ public class NumStatementsNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRReset();
-    return buildThreadSimulations(
-        pOptions, pGhostElements, pClauses, rReset, pBinaryExpressionBuilder);
-  }
-
-  private static ImmutableList<String> buildThreadSimulations(
-      MPOROptions pOptions,
-      GhostElements pGhostElements,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
-      CExpressionAssignmentStatement pRReset,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
     ImmutableList.Builder<String> rLines = ImmutableList.builder();
     if (!pOptions.kAssignLazy) {
       rLines.addAll(buildKAssignments(pOptions, pClauses, pBinaryExpressionBuilder));
       rLines.add(buildKSumAssumption(pClauses.keySet(), pBinaryExpressionBuilder));
     }
     for (MPORThread thread : pClauses.keySet()) {
-      CIdExpression kVariable = thread.getKVariable().orElseThrow();
-      ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(pClauses.keySet(), thread);
-      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
-
-      // K' > 0
-      CBinaryExpression kGreaterZero =
-          pBinaryExpressionBuilder.buildBinaryExpression(
-              thread.getKVariable().orElseThrow(),
-              SeqIntegerLiteralExpression.INT_0,
-              BinaryOperator.GREATER_THAN);
-
-      // create T{thread_id}: label
-      if (thread.getLabel().isPresent()) {
-        rLines.add(thread.getLabel().orElseThrow().toASTString());
-      }
-
-      // create "if (pc != 0 ...)" condition
-      SeqExpression ifCondition =
-          buildIfConditionExpression(
+      rLines.addAll(
+          buildThreadSimulation(
               pOptions,
+              pGhostElements,
               thread,
-              otherThreads,
+              MPORUtil.withoutElement(pClauses.keySet(), thread),
+              pClauses.get(thread),
+              pBinaryExpressionBuilder));
+    }
+    return rLines.build();
+  }
+
+  static ImmutableList<String> buildThreadSimulation(
+      MPOROptions pOptions,
+      GhostElements pGhostElements,
+      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<String> rLines = ImmutableList.builder();
+
+    // K' > 0
+    CBinaryExpression kGreaterZero =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            pActiveThread.getKVariable().orElseThrow(),
+            SeqIntegerLiteralExpression.INT_0,
+            BinaryOperator.GREATER_THAN);
+
+    // create T{thread_id}: label
+    if (pActiveThread.getLabel().isPresent()) {
+      rLines.add(pActiveThread.getLabel().orElseThrow().toASTString());
+    }
+
+    // create "if (pc != 0 ...)" condition
+    SeqExpression ifCondition =
+        buildIfConditionExpression(
+            pOptions,
+            pActiveThread,
+            pOtherThreads,
+            kGreaterZero,
+            pGhostElements,
+            pBinaryExpressionBuilder);
+    SeqIfExpression ifExpression = new SeqIfExpression(ifCondition);
+    rLines.add(SeqStringUtil.appendCurlyBracketLeft(ifExpression.toASTString()));
+
+    if (pOptions.kAssignLazy) {
+      // add the K = nondet assignment for this thread
+      rLines.addAll(
+          buildSingleKAssignment(
+              pOptions,
+              pActiveThread.getKVariable().orElseThrow(),
+              pClauses.size(),
+              pBinaryExpressionBuilder));
+      SeqExpression lazyIfCondition =
+          buildKZeroExpression(
+              pOptions,
+              pActiveThread,
+              pOtherThreads,
               kGreaterZero,
               pGhostElements,
               pBinaryExpressionBuilder);
-      SeqIfExpression ifExpression = new SeqIfExpression(ifCondition);
-      rLines.add(SeqStringUtil.appendCurlyBracketLeft(ifExpression.toASTString()));
 
-      if (pOptions.kAssignLazy) {
-        // add the K = nondet assignment for this thread
-        rLines.addAll(
-            buildSingleKAssignment(pOptions, kVariable, clauses.size(), pBinaryExpressionBuilder));
-        SeqExpression lazyIfCondition =
-            buildKZeroExpression(
-                pOptions,
-                thread,
-                otherThreads,
-                kGreaterZero,
-                pGhostElements,
-                pBinaryExpressionBuilder);
-
-        // for finite loops, assume K0 > 0 in the first loop iteration (similar to Lazy-CSeq)
-        if (pOptions.loopIterations > 0) {
-          if (thread.isMain()) {
-            CBinaryExpression iEqualsZeroCondition =
-                pBinaryExpressionBuilder.buildBinaryExpression(
-                    SeqIdExpression.I, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
-            SeqIfExpression iEqualsZeroExpression = new SeqIfExpression(iEqualsZeroCondition);
-            rLines.add(SeqStringUtil.appendCurlyBracketLeft(iEqualsZeroExpression.toASTString()));
-            rLines.add(SeqAssumptionBuilder.buildAssumption(kGreaterZero).toASTString());
-            rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-          }
+      // for finite loops, assume K0 > 0 in the first loop iteration (similar to Lazy-CSeq)
+      if (pOptions.loopIterations > 0) {
+        if (pActiveThread.isMain()) {
+          CBinaryExpression iEqualsZeroCondition =
+              pBinaryExpressionBuilder.buildBinaryExpression(
+                  SeqIdExpression.I, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+          SeqIfExpression iEqualsZeroExpression = new SeqIfExpression(iEqualsZeroCondition);
+          rLines.add(SeqStringUtil.appendCurlyBracketLeft(iEqualsZeroExpression.toASTString()));
+          rLines.add(SeqAssumptionBuilder.buildAssumption(kGreaterZero).toASTString());
+          rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
         }
-
-        // if (K > 0) ...
-        SeqIfExpression lazyIfExpression = new SeqIfExpression(lazyIfCondition);
-        rLines.add(SeqStringUtil.appendCurlyBracketLeft(lazyIfExpression.toASTString()));
       }
 
-      // reset iteration only when needed i.e. after if (...) for performance
-      rLines.add(pRReset.toASTString());
+      // if (K > 0) ...
+      SeqIfExpression lazyIfExpression = new SeqIfExpression(lazyIfCondition);
+      rLines.add(SeqStringUtil.appendCurlyBracketLeft(lazyIfExpression.toASTString()));
+    }
 
-      // add the thread loop statements (assumptions and switch)
-      rLines.addAll(
-          buildSingleThreadClausesWithCount(
-              pOptions, pGhostElements, thread, clauses, pBinaryExpressionBuilder));
+    // reset iteration only when needed i.e. after if (...) for performance
+    CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRReset();
+    rLines.add(rReset.toASTString());
 
-      // add additional closing bracket, if needed
-      if (pOptions.kAssignLazy) {
-        rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-      }
+    // add the thread loop statements (assumptions and switch)
+    rLines.addAll(
+        buildSingleThreadClausesWithCount(
+            pOptions, pGhostElements, pActiveThread, pClauses, pBinaryExpressionBuilder));
+
+    // add additional closing bracket, if needed
+    if (pOptions.kAssignLazy) {
       rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     }
+    rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
     return rLines.build();
   }
 
