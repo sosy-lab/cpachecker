@@ -372,7 +372,7 @@ public class SequentializationBuilder {
     }
 
     // active_thread_count / cnt
-    if (!pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+    if (pOptions.isThreadCountRequired()) {
       rDeclarations.add(SeqVariableDeclaration.CNT.toASTString());
     }
 

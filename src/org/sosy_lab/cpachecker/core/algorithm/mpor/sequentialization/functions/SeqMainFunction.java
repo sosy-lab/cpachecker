@@ -88,7 +88,7 @@ public class SeqMainFunction extends SeqFunction {
         SeqAssumptionBuilder.buildNextThreadActiveAssumption(options, binaryExpressionBuilder);
 
     countAssumption =
-        SeqAssumptionBuilder.buildCountGreaterZeroAssumption(options, binaryExpressionBuilder);
+        SeqAssumptionBuilder.tryBuildCountGreaterZeroAssumption(options, binaryExpressionBuilder);
   }
 
   @Override
@@ -131,7 +131,7 @@ public class SeqMainFunction extends SeqFunction {
         CFunctionCallStatement assumption = nextThreadActiveAssumption.orElseThrow();
         rBody.addAll(SeqStringUtil.splitOnNewline(assumption.toASTString()));
       }
-    } else {
+    } else if (countAssumption.isPresent()) {
       if (options.comments) {
         rBody.add(SeqComment.ACTIVE_THREAD_COUNT);
       }

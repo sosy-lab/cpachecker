@@ -94,19 +94,18 @@ public class SeqAssumptionBuilder {
     return Optional.of(assumeCall);
   }
 
-  public static Optional<CFunctionCallStatement> buildCountGreaterZeroAssumption(
+  public static Optional<CFunctionCallStatement> tryBuildCountGreaterZeroAssumption(
       MPOROptions pOptions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
-      // thread count is only used when next_thread is not used
+    if (!pOptions.isThreadCountRequired()) {
       return Optional.empty();
     }
     // assume(cnt > 0);
-    CBinaryExpression nextThreadActive =
+    CBinaryExpression countGreaterZeroExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.CNT, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
-    CFunctionCallStatement assumeCall = buildAssumption(nextThreadActive);
+    CFunctionCallStatement assumeCall = buildAssumption(countGreaterZeroExpression);
     return Optional.of(assumeCall);
   }
 }

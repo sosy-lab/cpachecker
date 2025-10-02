@@ -121,7 +121,7 @@ public class ThreadUtil {
 
   public static boolean isThreadLabelRequired(MPOROptions pOptions) {
     // only needed if the loop is finite i.e. not 0, otherwise just use continue;
-    if (pOptions.loopIterations > 0) {
+    if (pOptions.loopIterations > 0 && !pOptions.loopUnrolling) {
       // only use with NUM_STATEMENTS nondeterminism, for NEXT_THREAD, just continue;
       if (!pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
         // in switch case, just use break; instead of continue;

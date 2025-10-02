@@ -394,7 +394,7 @@ public class NumStatementsNondeterministicSimulation {
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     SeqThreadStatementBlock withCountUpdate =
-        injectCountUpdatesIntoBlock(pBlock, pCountIncrement, pCountDecrement);
+        tryInjectCountUpdatesIntoBlock(pOptions, pBlock, pCountIncrement, pCountDecrement);
     SeqThreadStatementBlock withRoundGoto =
         NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
             pOptions, withCountUpdate, pRSmallerK, pRIncrement, pLabelClauseMap);
@@ -402,11 +402,15 @@ public class NumStatementsNondeterministicSimulation {
         pOptions, withRoundGoto, pSyncVariable, pLabelClauseMap);
   }
 
-  private static SeqThreadStatementBlock injectCountUpdatesIntoBlock(
+  private static SeqThreadStatementBlock tryInjectCountUpdatesIntoBlock(
+      MPOROptions pOptions,
       SeqThreadStatementBlock pBlock,
       CExpressionAssignmentStatement pCountIncrement,
       CExpressionAssignmentStatement pCountDecrement) {
 
+    if (!pOptions.isThreadCountRequired()) {
+      return pBlock;
+    }
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withCountUpdates =

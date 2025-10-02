@@ -501,4 +501,8 @@ public class MPOROptions {
   public boolean areBitVectorsEnabled() {
     return bitVectorReduction || conflictReduction || kIgnoreZeroReduction;
   }
+
+  public boolean isThreadCountRequired() {
+    return nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS) && loopIterations == 0;
+  }
 }
