@@ -82,10 +82,6 @@ public class SMGMergeOperator implements MergeOperator {
     return smgStateFromReached;
   }
 
-  static int merges = 0;
-  static int mergeTries = 0;
-  static int mergeNotSucceed = 0;
-
   /**
    * If merge fails, returns empty. Else, returns the merged state and the merge status. Only for
    * tests. Note: ignores block-end status of states when merging.
