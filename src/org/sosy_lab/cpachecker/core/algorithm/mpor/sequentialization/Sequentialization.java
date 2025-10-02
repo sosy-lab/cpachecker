@@ -178,6 +178,10 @@ public class Sequentialization {
     rProgram.addAll(
         SequentializationBuilder.buildStartRoutineExitDeclarations(options, pFields.threads));
 
+    // add thread simulation variables (i.e. ghost elements)
+    rProgram.addAll(
+        SequentializationBuilder.buildThreadSimulationVariableDeclarations(options, pFields));
+
     // add custom function declarations and definitions
     rProgram.addAll(SequentializationBuilder.buildFunctionDeclarations(options));
     rProgram.addAll(

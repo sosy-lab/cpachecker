@@ -18,19 +18,30 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -283,5 +294,99 @@ public class SequentializationBuilder {
         new SeqMainFunction(pOptions, pFields, pBinaryExpressionBuilder, pLogger);
     rFunctionDefinitions.addAll(mainFunction.buildDefinition());
     return rFunctionDefinitions.build();
+  }
+
+  // Thread Simulation Variables ===================================================================
+
+  /**
+   * Returns the {@link String} for thread simulation variable declarations. These are local to the
+   * {@code main} function. Variables that are used in other functions are declared beforehand as
+   * global variables.
+   */
+  static ImmutableList<String> buildThreadSimulationVariableDeclarations(
+      MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<String> rDeclarations = ImmutableList.builder();
+
+    // NUM_THREADS
+    CIdExpression numThreadsIdExpression =
+        SeqExpressionBuilder.buildNumThreadsIdExpression(pFields.numThreads);
+    rDeclarations.add(numThreadsIdExpression.getDeclaration().toASTString());
+
+    // last_thread is always unsigned, we assign NUM_THREADS if the current thread terminates
+    if (pOptions.conflictReduction) {
+      CIntegerLiteralExpression numThreadsLiteral =
+          SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
+      CInitializer lastThreadInitializer =
+          SeqInitializerBuilder.buildInitializerExpression(numThreadsLiteral);
+      CVariableDeclaration lastThreadDeclaration =
+          SeqDeclarationBuilder.buildVariableDeclaration(
+              false,
+              CNumericTypes.UNSIGNED_INT,
+              SeqIdExpression.LAST_THREAD.getName(),
+              lastThreadInitializer);
+      rDeclarations.add(lastThreadDeclaration.toASTString());
+    }
+
+    // next_thread
+    if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+      if (pOptions.nondeterminismSigned) {
+        rDeclarations.add(SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString());
+      } else {
+        rDeclarations.add(SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString());
+      }
+    }
+
+    // pc variable(s)
+    if (pOptions.comments) {
+      rDeclarations.add(SeqComment.PC_DECLARATION);
+    }
+    ImmutableList<CVariableDeclaration> pcDeclarations =
+        SeqDeclarationBuilder.buildPcDeclarations(pOptions, pFields);
+    for (CVariableDeclaration pcDeclaration : pcDeclarations) {
+      rDeclarations.add(pcDeclaration.toASTString());
+    }
+
+    // if enabled: bit vectors
+    if (pOptions.areBitVectorsEnabled()) {
+      ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
+          SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(pOptions, pFields);
+      for (SeqBitVectorDeclaration bitVectorDeclaration : bitVectorDeclarations) {
+        rDeclarations.add(bitVectorDeclaration.toASTString());
+      }
+    }
+
+    // active_thread_count / cnt
+    if (!pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+      rDeclarations.add(SeqVariableDeclaration.CNT.toASTString());
+    }
+
+    // if enabled: K and r
+    if (pOptions.nondeterminismSource.isNumStatementsNondeterministic()) {
+      rDeclarations.add(SeqVariableDeclaration.R.toASTString());
+      if (pOptions.nondeterminismSource.equals(
+          NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS)) {
+        if (pOptions.nondeterminismSigned) {
+          rDeclarations.add(SeqVariableDeclaration.K_SIGNED.toASTString());
+        } else {
+          rDeclarations.add(SeqVariableDeclaration.K_UNSIGNED.toASTString());
+        }
+      }
+      if (pOptions.nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
+        for (MPORThread thread : pFields.threads) {
+          rDeclarations.add(thread.getKVariable().orElseThrow().getDeclaration().toASTString());
+        }
+      }
+    }
+
+    // thread synchronization variables (e.g. mutex_locked)
+    if (pOptions.comments) {
+      rDeclarations.add(SeqComment.THREAD_SIMULATION_VARIABLES);
+    }
+    for (CSimpleDeclaration declaration :
+        pFields.ghostElements.getThreadSynchronizationVariables().getDeclarations(pOptions)) {
+      rDeclarations.add(declaration.toASTString());
+    }
+    return rDeclarations.build();
   }
 }

@@ -143,7 +143,6 @@ public class SequentializationParseTest {
             BitVectorEncoding.NONE,
             false,
             false,
-            // the program contains pointers -> disable conflictReduction
             false,
             MultiControlStatementEncoding.IF_ELSE_CHAIN,
             MultiControlStatementEncoding.BINARY_SEARCH_TREE,
