@@ -932,6 +932,9 @@ public class SymbolicProgramConfiguration {
       res = maybeRes.orElseThrow();
       if (res.isRecoverableFailure()) {
         // return Optional.empty();
+        if (res.isRecoverableFailureTypeRightListLonger()) {
+          return Optional.empty();
+        }
         throw new RuntimeException("investigate merge error for list extensions");
         /*
         // min len > 0 is a conservative assumption to not endlessly unroll.
@@ -1007,6 +1010,9 @@ public class SymbolicProgramConfiguration {
         // Either delayed merge or suddenly we want to extend the other side?
         // Or the extension failed here, and has to be done earlier.
         // return Optional.empty();
+        if (res.isRecoverableFailureTypeLeftListLonger()) {
+          return Optional.empty();
+        }
         throw new RuntimeException("investigate merge error for list extensions");
       }
     }
