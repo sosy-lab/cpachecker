@@ -395,6 +395,11 @@ public class DssBlockAnalysis {
     resetStates();
     ImmutableSet.Builder<PredecessorStateEntry> discard = ImmutableSet.builder();
     int covered = 0;
+    if (pReceived.isSound()) {
+      soundPredecessors.add(pReceived.getSenderId());
+    } else {
+      soundPredecessors.remove(pReceived.getSenderId());
+    }
     for (StateAndPrecision deserialized : deserializedStates) {
       if (dcpa.isMostGeneralBlockEntryState(deserialized.state())) {
         soundPredecessors.add(pReceived.getSenderId());
@@ -413,16 +418,12 @@ public class DssBlockAnalysis {
               dcpa.getCoverageOperator()
                   .isSubsumed(dcpa.reset(deserialized.state()), previous.state());
           if (deserializedLessEqualPrevious) {
+            soundPredecessors.add(pReceived.getSenderId());
             covered++;
           }
           discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
         }
       }
-    }
-    if (pReceived.isSound()) {
-      soundPredecessors.add(pReceived.getSenderId());
-    } else {
-      soundPredecessors.remove(pReceived.getSenderId());
     }
     if (!block.getLoopPredecessorIds().contains(pReceived.getSenderId())) {
       for (StateAndPrecision sp : preconditions.get(pReceived.getSenderId())) {

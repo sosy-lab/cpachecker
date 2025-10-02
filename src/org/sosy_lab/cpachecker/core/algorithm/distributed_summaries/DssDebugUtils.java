@@ -15,11 +15,14 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.function.Function;
 import org.jspecify.annotations.NonNull;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DssDebugUtils {
 
@@ -51,5 +54,19 @@ public class DssDebugUtils {
             .join(Joiner.on("\n  "));
     int rep = Splitter.on("\n").splitToStream(header).mapToInt(String::length).max().orElse(0);
     return "=".repeat(rep) + "\n" + header + "\n" + "=".repeat(rep);
+  }
+
+  public static String prettyPrintPredicateAnalysisBlock(
+      BlockNode blockNode,
+      Multimap<String, @NonNull StateAndPrecision> preconditions,
+      Multimap<String, @NonNull StateAndPrecision> violationConditions) {
+    return prettyPrintBlock(
+        blockNode.getId(),
+        preconditions,
+        violationConditions,
+        a ->
+            AbstractStates.extractStateByType(a, PredicateAbstractState.class)
+                .getPathFormula()
+                .toString());
   }
 }
