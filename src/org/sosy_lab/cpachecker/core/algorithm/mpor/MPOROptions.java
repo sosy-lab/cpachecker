@@ -67,8 +67,6 @@ public class MPOROptions {
 
   public final boolean linkReduction;
 
-  public final boolean loopFiniteMainThreadEnd;
-
   public final int loopIterations;
 
   public final boolean loopUnrolling;
@@ -128,7 +126,6 @@ public class MPOROptions {
       boolean pKIgnoreZeroReduction,
       boolean pLicense,
       boolean pLinkReduction,
-      boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
       boolean pLoopUnrolling,
       boolean pNoBackwardGoto,
@@ -176,7 +173,6 @@ public class MPOROptions {
     kIgnoreZeroReduction = pKIgnoreZeroReduction;
     license = pLicense;
     linkReduction = pLinkReduction;
-    loopFiniteMainThreadEnd = pLoopFiniteMainThreadEnd;
     loopIterations = pLoopIterations;
     loopUnrolling = pLoopUnrolling;
     noBackwardGoto = pNoBackwardGoto;
@@ -220,7 +216,6 @@ public class MPOROptions {
         false,
         // true so that MemoryModel is created
         true,
-        false,
         0,
         false,
         true,
@@ -258,7 +253,6 @@ public class MPOROptions {
       boolean pKIgnoreZeroReduction,
       boolean pLicense,
       boolean pLinkReduction,
-      boolean pLoopFiniteMainThreadEnd,
       int pLoopIterations,
       boolean pLoopUnrolling,
       boolean pNoBackwardGoto,
@@ -297,7 +291,6 @@ public class MPOROptions {
         pKIgnoreZeroReduction,
         pLicense,
         pLinkReduction,
-        pLoopFiniteMainThreadEnd,
         pLoopIterations,
         pLoopUnrolling,
         pNoBackwardGoto,

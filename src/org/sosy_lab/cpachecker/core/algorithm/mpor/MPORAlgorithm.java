@@ -150,12 +150,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       description =
-          "when loopIterations > 0 (i.e. finite) and nondeterminismSource=NUM_STATEMENTS, then the"
-              + " last loop iteration only executes the main thread.")
-  private boolean loopFiniteMainThreadEnd = false;
-
-  @Option(
-      description =
           "the number of loop iterations to perform thread simulations. use 0 for an infinite loop"
               + " (while (1)). any number other than 0 is unsound, because the entire state space"
               + " is not searched.")
@@ -359,7 +353,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     kIgnoreZeroReduction,
                     license,
                     linkReduction,
-                    loopFiniteMainThreadEnd,
                     loopIterations,
                     loopUnrolling,
                     noBackwardGoto,

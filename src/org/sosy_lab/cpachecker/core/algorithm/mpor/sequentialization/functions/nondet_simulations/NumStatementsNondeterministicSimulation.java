@@ -136,19 +136,6 @@ public class NumStatementsNondeterministicSimulation {
               pGhostElements,
               pBinaryExpressionBuilder);
 
-      // for finite loops, assume K0 > 0 in the first loop iteration (similar to Lazy-CSeq)
-      if (pOptions.loopIterations > 0) {
-        if (pActiveThread.isMain()) {
-          CBinaryExpression iEqualsZeroCondition =
-              pBinaryExpressionBuilder.buildBinaryExpression(
-                  SeqIdExpression.I, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
-          SeqIfExpression iEqualsZeroExpression = new SeqIfExpression(iEqualsZeroCondition);
-          rLines.add(SeqStringUtil.appendCurlyBracketLeft(iEqualsZeroExpression.toASTString()));
-          rLines.add(SeqAssumptionBuilder.buildAssumption(kGreaterZero).toASTString());
-          rLines.add(SeqSyntax.CURLY_BRACKET_RIGHT);
-        }
-      }
-
       // if (K > 0) ...
       SeqIfExpression lazyIfExpression = new SeqIfExpression(lazyIfCondition);
       rLines.add(SeqStringUtil.appendCurlyBracketLeft(lazyIfExpression.toASTString()));
@@ -245,7 +232,7 @@ public class NumStatementsNondeterministicSimulation {
 
     SeqExpression leftHandSide =
         buildIfConditionLeftHandSideExpression(
-            pOptions, pActiveThread, pGhostElements.getPcVariables(), pBinaryExpressionBuilder);
+            pActiveThread, pGhostElements.getPcVariables(), pBinaryExpressionBuilder);
     // for lazy assignments (i.e. after if), just need if (pc != 0)
     if (pOptions.kAssignLazy) {
       return leftHandSide;
@@ -264,7 +251,6 @@ public class NumStatementsNondeterministicSimulation {
   }
 
   private static SeqExpression buildIfConditionLeftHandSideExpression(
-      MPOROptions pOptions,
       MPORThread pActiveThread,
       ProgramCounterVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -273,16 +259,6 @@ public class NumStatementsNondeterministicSimulation {
     CBinaryExpression pcUnequalExitPc =
         SeqExpressionBuilder.buildPcUnequalExitPc(
             pPcVariables.getPcLeftHandSide(pActiveThread.getId()), pBinaryExpressionBuilder);
-    if (pOptions.loopIterations > 0 && pOptions.loopFiniteMainThreadEnd) {
-      if (!pActiveThread.isMain()) {
-        CBinaryExpression iNotLastIteration =
-            pBinaryExpressionBuilder.buildBinaryExpression(
-                SeqIdExpression.I,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(pOptions.loopIterations),
-                BinaryOperator.NOT_EQUALS);
-        return new SeqLogicalAndExpression(pcUnequalExitPc, iNotLastIteration);
-      }
-    }
     return new CToSeqExpression(pcUnequalExitPc);
   }
 
