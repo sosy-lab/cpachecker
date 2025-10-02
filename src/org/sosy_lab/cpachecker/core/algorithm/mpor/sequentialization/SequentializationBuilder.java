@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -37,12 +36,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
@@ -305,21 +302,8 @@ public class SequentializationBuilder {
     rFunctionDefinitions.addAll(assume.buildDefinition());
     // create separate thread simulation functions, if enabled
     if (pOptions.loopUnrolling) {
-      for (MPORThread thread : pFields.clauses.keySet()) {
-        ImmutableSet<MPORThread> otherThreads =
-            MPORUtil.withoutElement(pFields.clauses.keySet(), thread);
-        ImmutableList<SeqThreadStatementClause> clauses = pFields.clauses.get(thread);
-        ImmutableList<String> threadSimulation =
-            NondeterministicSimulationUtil.buildThreadSimulationByNondeterminismSource(
-                pOptions,
-                pFields.ghostElements,
-                thread,
-                otherThreads,
-                clauses,
-                pBinaryExpressionBuilder);
-        SeqThreadSimulationFunction threadSimulationFunction =
-            new SeqThreadSimulationFunction(threadSimulation, thread.getId());
-        rFunctionDefinitions.addAll(threadSimulationFunction.buildDefinition());
+      for (SeqThreadSimulationFunction threadSimulation : pFields.threadSimulationFunctions) {
+        rFunctionDefinitions.addAll(threadSimulation.buildDefinition());
       }
     }
     // create clauses in main method

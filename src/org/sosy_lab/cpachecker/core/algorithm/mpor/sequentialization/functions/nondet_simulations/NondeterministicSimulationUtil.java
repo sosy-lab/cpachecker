@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
@@ -25,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -50,21 +51,23 @@ public class NondeterministicSimulationUtil {
 
   public static ImmutableList<String> buildThreadSimulationsByNondeterminismSource(
       MPOROptions pOptions,
-      GhostElements pGhostElements,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    if (pOptions.loopUnrolling) {
+      return buildThreadSimulationFunctionCalls(pOptions, pFields);
+    }
     return switch (pOptions.nondeterminismSource) {
       case NEXT_THREAD ->
           NextThreadNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pGhostElements.getPcVariables(), pClauses, pBinaryExpressionBuilder);
+              pOptions, pFields, pBinaryExpressionBuilder);
       case NUM_STATEMENTS ->
           NumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pGhostElements, pClauses, pBinaryExpressionBuilder);
+              pOptions, pFields, pBinaryExpressionBuilder);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulations(
-              pOptions, pGhostElements, pClauses, pBinaryExpressionBuilder);
+              pOptions, pFields, pBinaryExpressionBuilder);
     };
   }
 
@@ -92,6 +95,29 @@ public class NondeterministicSimulationUtil {
           NextThreadAndNumStatementsNondeterministicSimulation.buildThreadSimulation(
               pOptions, pGhostElements, pThread, pClauses, pBinaryExpressionBuilder);
     };
+  }
+
+  // Thread Simulation Function Calls ==============================================================
+
+  private static ImmutableList<String> buildThreadSimulationFunctionCalls(
+      MPOROptions pOptions, SequentializationFields pFields) {
+
+    ImmutableList.Builder<String> rFunctionCalls = ImmutableList.builder();
+    // start with main function call
+    String mainThreadFunctionCall =
+        pFields.mainThreadSimulationFunction.orElseThrow().getFunctionCall();
+    rFunctionCalls.add(mainThreadFunctionCall);
+    for (int i = 0; i < pOptions.loopIterations; i++) {
+      for (SeqThreadSimulationFunction function : pFields.threadSimulationFunctions) {
+        if (!function.thread.isMain()) {
+          // continue with all other threads
+          rFunctionCalls.add(function.getFunctionCall());
+        }
+      }
+      // end on main thread
+      rFunctionCalls.add(mainThreadFunctionCall);
+    }
+    return rFunctionCalls.build();
   }
 
   // Multi Control Flow Statements =================================================================

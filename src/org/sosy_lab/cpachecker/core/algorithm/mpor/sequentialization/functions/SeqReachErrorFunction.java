@@ -57,7 +57,7 @@ public class SeqReachErrorFunction extends SeqFunction {
   }
 
   @Override
-  public ImmutableList<CParameterDeclaration> getParameters() {
+  public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
     ImmutableList.Builder<CParameterDeclaration> rParameters = ImmutableList.builder();
     rParameters.add(
         SeqParameterDeclaration.FILE,

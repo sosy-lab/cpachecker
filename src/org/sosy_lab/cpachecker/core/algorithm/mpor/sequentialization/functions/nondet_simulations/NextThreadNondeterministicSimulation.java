@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
@@ -34,14 +35,16 @@ public class NextThreadNondeterministicSimulation {
   /** Creates the control flow statements for all threads based on {@code pClauses}. */
   static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
-      ProgramCounterVariables pPcVariables,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements(
-            pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);
+            pOptions,
+            pFields.ghostElements.getPcVariables(),
+            pFields.clauses,
+            pBinaryExpressionBuilder);
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
             pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);

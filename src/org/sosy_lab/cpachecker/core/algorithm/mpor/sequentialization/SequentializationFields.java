@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -34,8 +36,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SequentializationFields {
-
-  private final CFA inputCfa;
 
   public final int numThreads;
 
@@ -59,6 +59,10 @@ public class SequentializationFields {
 
   public final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
 
+  public final ImmutableList<SeqThreadSimulationFunction> threadSimulationFunctions;
+
+  public final Optional<SeqThreadSimulationFunction> mainThreadSimulationFunction;
+
   // TODO split into separate function so that unit tests create only what they test
   SequentializationFields(
       MPOROptions pOptions,
@@ -67,7 +71,6 @@ public class SequentializationFields {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    inputCfa = pInputCfa;
     threads = ThreadBuilder.createThreads(pOptions, pInputCfa);
     numThreads = threads.size();
     substitutions =
@@ -101,9 +104,13 @@ public class SequentializationFields {
             ghostElements,
             pBinaryExpressionBuilder,
             pLogger);
-  }
-
-  public CFA getInputCfa() {
-    return inputCfa;
+    threadSimulationFunctions =
+        SeqFunctionBuilder.buildThreadSimulationFunctions(
+            pOptions, ghostElements, clauses, pBinaryExpressionBuilder);
+    mainThreadSimulationFunction =
+        pOptions.loopUnrolling
+            ? Optional.of(
+                SeqFunctionBuilder.extractMainThreadSimulationFunction(threadSimulationFunctions))
+            : Optional.empty();
   }
 }

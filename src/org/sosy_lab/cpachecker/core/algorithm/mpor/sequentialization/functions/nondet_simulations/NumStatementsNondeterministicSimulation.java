@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -61,24 +62,25 @@ public class NumStatementsNondeterministicSimulation {
 
   static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
-      GhostElements pGhostElements,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses = pFields.clauses;
+
     ImmutableList.Builder<String> rLines = ImmutableList.builder();
     if (!pOptions.kAssignLazy) {
-      rLines.addAll(buildKAssignments(pOptions, pClauses, pBinaryExpressionBuilder));
-      rLines.add(buildKSumAssumption(pClauses.keySet(), pBinaryExpressionBuilder));
+      rLines.addAll(buildKAssignments(pOptions, clauses, pBinaryExpressionBuilder));
+      rLines.add(buildKSumAssumption(clauses.keySet(), pBinaryExpressionBuilder));
     }
-    for (MPORThread thread : pClauses.keySet()) {
+    for (MPORThread thread : clauses.keySet()) {
       rLines.addAll(
           buildThreadSimulation(
               pOptions,
-              pGhostElements,
+              pFields.ghostElements,
               thread,
-              MPORUtil.withoutElement(pClauses.keySet(), thread),
-              pClauses.get(thread),
+              MPORUtil.withoutElement(clauses.keySet(), thread),
+              clauses.get(thread),
               pBinaryExpressionBuilder));
     }
     return rLines.build();

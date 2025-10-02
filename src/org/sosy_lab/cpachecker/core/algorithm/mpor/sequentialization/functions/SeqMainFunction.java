@@ -100,8 +100,10 @@ public class SeqMainFunction extends SeqFunction {
         buildMainFunctionArgNondetAssignments(fields.mainSubstitution, fields.clauses, logger));
 
     // --- loop starts here ---
-    SeqSingleControlExpression loopHead = buildLoopHead(options, binaryExpressionBuilder);
-    rBody.add(SeqStringUtil.appendCurlyBracketLeft(loopHead.toASTString()));
+    Optional<SeqSingleControlExpression> loopHead = buildLoopHead(options, binaryExpressionBuilder);
+    if (loopHead.isPresent()) {
+      rBody.add(SeqStringUtil.appendCurlyBracketLeft(loopHead.orElseThrow().toASTString()));
+    }
 
     if (options.conflictReduction) {
       // add last_thread = next_thread assignment (before setting next_thread)
@@ -121,7 +123,7 @@ public class SeqMainFunction extends SeqFunction {
       for (CFunctionCallStatement nextThreadAssumption : nextThreadAssumptions) {
         rBody.add(nextThreadAssumption.toASTString());
       }
-      // assumptions over next_thread being active (pc != -1)
+      // assumptions over next_thread being active (pc != 0)
       if (nextThreadActiveAssumption.isPresent()) {
         if (options.comments) {
           rBody.add(SeqComment.NEXT_THREAD_ACTIVE);
@@ -142,8 +144,11 @@ public class SeqMainFunction extends SeqFunction {
     }
     rBody.addAll(
         NondeterministicSimulationUtil.buildThreadSimulationsByNondeterminismSource(
-            options, fields.ghostElements, fields.clauses, binaryExpressionBuilder));
-    rBody.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+            options, fields, binaryExpressionBuilder));
+
+    if (loopHead.isPresent()) {
+      rBody.add(SeqSyntax.CURLY_BRACKET_RIGHT);
+    }
     // --- loop ends here ---
 
     if (options.sequentializationErrors) {
@@ -164,7 +169,7 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   @Override
-  public ImmutableList<CParameterDeclaration> getParameters() {
+  public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
     return ImmutableList.of();
   }
 
@@ -209,14 +214,18 @@ public class SeqMainFunction extends SeqFunction {
     return rMainArgAssignments.build();
   }
 
-  private static SeqSingleControlExpression buildLoopHead(
+  private static Optional<SeqSingleControlExpression> buildLoopHead(
       MPOROptions pOptions, CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
+    if (pOptions.loopUnrolling) {
+      return Optional.empty();
+    }
     if (pOptions.loopIterations == 0) {
-      return new SeqWhileExpression(SeqIntegerLiteralExpression.INT_1);
+      return Optional.of(new SeqWhileExpression(SeqIntegerLiteralExpression.INT_1));
     } else {
-      return new SeqForExpression(
-          SeqIdExpression.I, pOptions.loopIterations, pBinaryExpressionBuilder);
+      return Optional.of(
+          new SeqForExpression(
+              SeqIdExpression.I, pOptions.loopIterations, pBinaryExpressionBuilder));
     }
   }
 }

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -21,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -43,8 +43,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
   static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
-      GhostElements pGhostElements,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      SequentializationFields pFields,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -55,13 +54,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         SeqAssumptionBuilder.buildAssumption(kGreaterZero);
     CExpressionAssignmentStatement rReset = NondeterministicSimulationUtil.buildRReset();
     return buildThreadSimulations(
-        pOptions,
-        pGhostElements,
-        pClauses,
-        kNondet,
-        kGreaterZeroAssumption,
-        rReset,
-        pBinaryExpressionBuilder);
+        pOptions, pFields, kNondet, kGreaterZeroAssumption, rReset, pBinaryExpressionBuilder);
   }
 
   static ImmutableList<String> buildThreadSimulation(
@@ -94,8 +87,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
 
   private static ImmutableList<String> buildThreadSimulations(
       MPOROptions pOptions,
-      GhostElements pGhostElements,
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
+      SequentializationFields pFields,
       CFunctionCallAssignmentStatement pKNondet,
       CFunctionCallStatement pKGreaterZeroAssumption,
       CExpressionAssignmentStatement pRReset,
@@ -107,11 +99,10 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements(
             pOptions,
-            pGhostElements,
+            pFields,
             pKNondet,
             pKGreaterZeroAssumption,
             pRReset,
-            pClauses,
             pBinaryExpressionBuilder);
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
@@ -124,18 +115,17 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
   private static ImmutableMap<CExpression, SeqMultiControlStatement>
       buildInnerMultiControlStatements(
           MPOROptions pOptions,
-          GhostElements pGhostElements,
+          SequentializationFields pFields,
           CFunctionCallAssignmentStatement pKNondet,
           CFunctionCallStatement pKGreaterZeroAssumption,
           CExpressionAssignmentStatement pRReset,
-          ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
           throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
         ImmutableMap.builder();
-    for (MPORThread thread : pClauses.keySet()) {
-      ImmutableList<SeqThreadStatementClause> clauses = pClauses.get(thread);
+    for (MPORThread thread : pFields.clauses.keySet()) {
+      ImmutableList<SeqThreadStatementClause> clauses = pFields.clauses.get(thread);
       rStatements.put(
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               pOptions.controlEncodingThread,
@@ -144,7 +134,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
               pBinaryExpressionBuilder),
           buildSingleThreadMultiControlStatementWithoutCount(
               pOptions,
-              pGhostElements,
+              pFields.ghostElements,
               thread,
               pKNondet,
               pKGreaterZeroAssumption,
