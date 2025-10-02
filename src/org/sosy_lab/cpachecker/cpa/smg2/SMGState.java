@@ -6946,9 +6946,13 @@ public class SMGState
     //   and want to easily check them later on)
     Map<SMGObject, Integer> ptrsTowardsNextObj =
         memoryModel.getSmg().getAllSourcesForPointersPointingTowardsWithNumOfOccurrences(nextObj);
-    checkState(
-        ptrsTowardsNextObj.size() == 1
-            && ptrsTowardsNextObj.entrySet().stream().allMatch(e -> e.getValue() == 1));
+    if (ptrsTowardsNextObj.size() != 1
+        || ptrsTowardsNextObj.entrySet().stream().allMatch(e -> e.getValue() != 1)) {
+      // Technically not entirely true; if there is multiple pointers towards the next element, they
+      // might stem from a nested expression, which is allowed. BUT, that would also mean that this
+      // expression would need such a pointer and nested expression.
+      return this;
+    }
 
     // If it does, create a new SLL with the correct information
     // Copy the edges from one of the objects object into the SLL
