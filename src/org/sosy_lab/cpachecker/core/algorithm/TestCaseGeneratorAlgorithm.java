@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -72,9 +74,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
 @Options(prefix = "testcase")
@@ -339,7 +343,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     // initialisation of starting state and reachedSet
     ARGState argState = (ARGState) reachedState;
     ARGState eStartState = createStartState(argState);
-    processExpressions(cexInfo, eStartState);
+    initializeStartState(cexInfo, eStartState);
     ReachedSet eReached = factory.createReachedSet(cpa);
     eReached.add(eStartState, pReached.getPrecision(reachedState));
     // run value analysis and check what additional targets have been covered
@@ -403,30 +407,31 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   // extracts individual expressions from the counterexample and adds them to the ValueAnalysisState
-  // of the starting state
-  // in descending order relative to the line number of the c program
-  private void processExpressions(CounterexampleInfo cexInfo, ARGState eStartState) {
+  // of the starting state in descending order relative to the line number of the c program
+  private void initializeStartState(CounterexampleInfo cexInfo, ARGState eStartState) {
     // extract all variable assignments from reached state
     ValueAnalysisState valueAnalysisState =
         extractVAState((CompositeState) eStartState.getWrappedState());
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(valueAnalysisState, "main",
+        valueAnalysisState.getMachineModel(), new LogManagerWithoutDuplicates(logger));
     CFAPathWithAssumptions reachStateAssignments = cexInfo.getCFAPathWithAssignments();
     for (int i = reachStateAssignments.size() - 1; i >= 0; i--) {
       CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(i);
       ImmutableList<AExpressionStatement> stateExpStmts = edgeWithAssignment.getExpStmts();
-      mapExpressions(stateExpStmts, valueAnalysisState);
+      mapExpressions(stateExpStmts, valueAnalysisState, visitor);
     }
   }
 
-
   private void mapExpressions(
-      ImmutableList<AExpressionStatement> expStmt, ValueAnalysisState valueAnalysisState) {
+      ImmutableList<AExpressionStatement> expStmt,
+      ValueAnalysisState valueAnalysisState,
+      ExpressionValueVisitor visitor) {
     if (expStmt.isEmpty()) {
       return;
     }
-
     for (int i = 0; i < expStmt.size(); i++) {
       writeExpressionToState((CBinaryExpression) expStmt.get(i).getExpression(),
-          valueAnalysisState);
+          valueAnalysisState, visitor);
     }
   }
 
@@ -434,12 +439,21 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // but only if there is no disctinct value tracked already for that variable
   private void writeExpressionToState(
       CBinaryExpression cBinaryExpression,
-      ValueAnalysisState valueAnalysisState) {
-    CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
-    Value variableValue = new NumericValue(op2.getValue());
-    if (!variableValue.isUnknown()) {
-      valueAnalysisState.assignConstantFromCexpression(cBinaryExpression.getOperand1() , variableValue);
-      //assignConstant(MemoryLocation pMemoryLocation, Value value, Type pType)
+      ValueAnalysisState valueAnalysisState,
+      ExpressionValueVisitor visitor) {
+    try {
+      MemoryLocation memLoc = visitor.evaluateMemoryLocation(cBinaryExpression.getOperand1());
+      // if variable is already assigned then no new assignmend is added to the VAstate
+      if (memLoc == null || valueAnalysisState.contains(memLoc)) {
+        return;
+      }
+      CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
+      Value variableValue = new NumericValue(op2.getValue());
+      if (!variableValue.isUnknown()) {
+        valueAnalysisState.assignConstant(memLoc, variableValue, null);
+      }
+    } catch (UnrecognizedCodeException e) {
+      logger.log(Level.FINE, "No Memorylocation found for CExpression.");
     }
   }
 
