@@ -1101,4 +1101,7 @@ public final class ValueAnalysisState
       return String.format("%s (%s)", value, type);
     }
   }
+  public MachineModel getMachineModel() {
+    return machineModel;
+  }
 }
