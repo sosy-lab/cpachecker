@@ -3483,6 +3483,14 @@ cpa.smg2.merge.exclusivelyEqualBlockEnds = false
 # an abstracted list.
 cpa.smg2.merge.exclusivelyWithAbstractionPresent = true
 
+# When true, concrete values can be overapproximated when merging, e.g. when
+# merged with a symbolic value, or another, but distinct concrete value.
+cpa.smg2.merge.overapproximateConcreteValues = false
+
+# When true, unequal constraints on symbolic values are overapproximated when
+# merging.
+cpa.smg2.merge.overapproximateSymbolicConstraints = false
+
 # Whether to perform SAT checks only for the last added constraint
 cpa.smg2.minimalSatCheck = true
 

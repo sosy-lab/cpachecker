@@ -669,6 +669,20 @@ public class SMGOptions {
                 + " abstracted list.")
     private boolean mergeOnlyWithAbstractionPresent = true;
 
+    @Option(
+        secure = true,
+        name = "overapproximateSymbolicConstraints",
+        description =
+            "When true, unequal constraints on symbolic values are overapproximated when merging.")
+    private boolean overapproximateSymbolicConstraints = false;
+
+    @Option(
+        secure = true,
+        name = "overapproximateConcreteValues",
+        description =
+            "When true, concrete values can be overapproximated when merging, e.g. when merged with a symbolic value, or another, but distinct concrete value.")
+    private boolean overapproximateConcreteValues = false;
+
     @SuppressWarnings("unused")
     public SMGMergeOptions(Configuration config, @Nullable CFA pCfa)
         throws InvalidConfigurationException {
@@ -685,6 +699,14 @@ public class SMGOptions {
 
     public boolean mergeOnlyWithAbstractionPresent() {
       return mergeOnlyWithAbstractionPresent;
+    }
+
+    public boolean isOverapproximateSymbolicConstraints() {
+      return overapproximateSymbolicConstraints;
+    }
+
+    public boolean isOverapproximateConcreteValues() {
+      return overapproximateConcreteValues;
     }
   }
 

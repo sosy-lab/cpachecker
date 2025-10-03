@@ -557,7 +557,8 @@ public class SMGState
       SMGCPAStatistics pStatistics) {
     return new SMGState(
         pMachineModel,
-        SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits())),
+        SymbolicProgramConfiguration.of(
+            BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), opts),
         logManager,
         opts,
         pEvaluator,
@@ -1301,7 +1302,8 @@ public class SMGState
 
     SMGState otherSanitizedState = pOtherStateFromReached.removeOldConstraints();
     SMGState thisSanitizedState = removeOldConstraints();
-    if (!otherSanitizedState.constraintsState.equals(thisSanitizedState.constraintsState)) {
+    if (!options.getMergeOptions().isOverapproximateSymbolicConstraints()
+        && !otherSanitizedState.constraintsState.equals(thisSanitizedState.constraintsState)) {
       // TODO: Problem: there might still be distinct symbolic values with the same constraints.
       //   => Compare those by location.
       //   Example: imagine a loop, the loop bound may be against a nondet() function,
@@ -3844,17 +3846,43 @@ public class SMGState
       // Materialize for all pointers towards an abstracted list, excluding the hfo offset
       // Materialization might generate 2 states, one of which deleted the 0+, and for this
       // state the read value is wrong!
-      for (SMGStateAndOptionalSMGObjectAndOffset newState :
-          materializeLinkedList(
-              readSMGValue,
-              memoryModel.getSmg().getPTEdge(readSMGValue).orElseThrow(),
-              currentState)) {
+      SMGPointsToEdge readValuePte = memoryModel.getSmg().getPTEdge(readSMGValue).orElseThrow();
+      List<SMGStateAndOptionalSMGObjectAndOffset> matLists =
+          materializeLinkedList(readSMGValue, readValuePte, currentState);
+      for (int i = 0; i < matLists.size(); i++) {
+        SMGStateAndOptionalSMGObjectAndOffset newState = matLists.get(i);
         // This is expected not to Materialize again
         List<ValueAndSMGState> readAfterMat =
             newState
                 .getSMGState()
                 .readValue(pObject, pFieldOffset, pSizeofInBits, readType, false, true);
-        checkArgument(readAfterMat.size() == 1);
+        if (readAfterMat.size() != 1) {
+          // 0+ followed by 0+, e.g. 0+ -> 0+, can lead to eradication of the first and then mat of
+          // second. Assert that this only occurs in the case that removed the 0+, and not the
+          // extension case.
+          checkArgument(
+              i == 0,
+              "Error: nested/subsequent materialization on multiple 0+ is only allowed for the"
+                  + " materialization case that does not extend the list further, but ends it."
+                  + " First was from value %s with PTE %s, second read returned %s",
+              readSMGValue,
+              readValuePte,
+              readAfterMat.stream()
+                  .map(
+                      t ->
+                          t.getValue()
+                              + " with PTE "
+                              + t.getState()
+                                  .getMemoryModel()
+                                  .getSmg()
+                                  .getPTEdge(
+                                      t.getState()
+                                          .getMemoryModel()
+                                          .getSMGValueFromValue(t.getValue())
+                                          .orElseGet(() -> SMGValue.zeroValue())))
+                  .collect(ImmutableList.toImmutableList()));
+        }
+
         returnBuilder.addAll(readAfterMat);
       }
     } else {
