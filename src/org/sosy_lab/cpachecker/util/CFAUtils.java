@@ -38,6 +38,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
@@ -363,7 +364,7 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains the predecessor nodes of a given CFANode, excluding
    * the one reachable via the summary edge (if there is one).
    */
-  public static FluentIterable<CFANode> predecessorsOf(final CFANode node) {
+  public static FluentIterable<@NonNull CFANode> predecessorsOf(final CFANode node) {
     return enteringEdges(node).transform(CFAEdge::getPredecessor);
   }
 
@@ -371,7 +372,7 @@ public class CFAUtils {
    * Return an {@link Iterable} that contains all the predecessor nodes of a given CFANode,
    * including the one reachable via the summary edge (if there is one).
    */
-  public static FluentIterable<CFANode> allPredecessorsOf(final CFANode node) {
+  public static FluentIterable<@NonNull CFANode> allPredecessorsOf(final CFANode node) {
     return allEnteringEdges(node).transform(CFAEdge::getPredecessor);
   }
 
