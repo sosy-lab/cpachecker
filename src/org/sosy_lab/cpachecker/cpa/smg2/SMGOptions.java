@@ -680,7 +680,8 @@ public class SMGOptions {
         secure = true,
         name = "overapproximateConcreteValues",
         description =
-            "When true, concrete values can be overapproximated when merging, e.g. when merged with a symbolic value, or another, but distinct concrete value.")
+            "When true, concrete values can be overapproximated when merging, e.g. when merged with"
+                + " a symbolic value, or another, but distinct concrete value.")
     private boolean overapproximateConcreteValues = false;
 
     @SuppressWarnings("unused")
