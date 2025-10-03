@@ -66,7 +66,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
           DelegatingRefinerDslLoader.loadDsl(
               Path.of(
                   "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerHeuristics/redundancyRules.json"));
-      this.matcher = new DelegatingRefinerDslMatcher(allPatternRules);
+      this.matcher = new DelegatingRefinerDslMatcher(allPatternRules, logger);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to load DSL rules for redundancy matching.", e);
     }

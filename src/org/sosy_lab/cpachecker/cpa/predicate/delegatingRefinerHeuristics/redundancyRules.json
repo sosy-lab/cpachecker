@@ -84,6 +84,18 @@
     "normalizedPattern" : "(<var> == <const>)"
   },
   {
+    "id": "NotEqVarConst32",
+    "category":"Equality",
+    "patternMatch" : "(! (= <var> <const_32>))",
+    "normalizedPattern" : "(<var> != <const>)"
+  },
+  {
+    "id": "NotEqVarConst",
+    "category":"Equality",
+    "patternMatch" : "(! (= <var> <const>))",
+    "normalizedPattern" : "(<var> != <const>)"
+  },
+  {
     "id": "EqVarVar",
     "category":"Equality",
     "patternMatch" : "(= <var1> <var2>)",

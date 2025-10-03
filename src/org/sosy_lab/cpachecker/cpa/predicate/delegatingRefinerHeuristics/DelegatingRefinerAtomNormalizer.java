@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -26,11 +26,19 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
 /**
  * A visitor that traverses Boolean formulas (Abstraction formulas) and extracts normalized atomic
- * expressions. Each atom is represented as a DelegatingRefinerNormalizedAtom, encoding a canonical
- * S-expression for DSL rule matching. The normalizer handles logical operators, bitvector functions
- * and equality expressions. It performs structural decomposition, operator normalization and
- * operand stringification. It is used by the DelegatingRefinerRedundantPredicates heuristic to
- * normalize abstraction formulas.
+ * expressions, enabling structural pattern matching. Each atom is represented as a
+ * DelegatingRefinerNormalizedAtom, encoding a canonical S-expression for DSL rule matching. The
+ * output atoms are used by the DelegatingRefinerHeuristicRedundantPredicates to identify redundant
+ * predicates via DSL rule matching. The normalizer supports logical operators, bitvector functions,
+ * and equality expressions and skips bound variables unless quantifiers are explicitly present.
+ *
+ * <p>The normalizer performs
+ *
+ * <ul>
+ *   <li>Operator normalization: maps SMT operators such as bvadd_32 or =_T(18) to canonical forms
+ *   <li>Structural decomposition: flattens nested functions
+ *   <li>Operand stringification: converts constants, variables, and subterms into matchable tokens.
+ * </ul>
  */
 class DelegatingRefinerAtomNormalizer
     implements FormulaVisitor<ImmutableList<DelegatingRefinerNormalizedAtom>> {
@@ -39,11 +47,6 @@ class DelegatingRefinerAtomNormalizer
   private final LogManager logger;
 
   private static final String NULL_OPERATOR = "<null>";
-  private static final String BOOLEAN_TRUE = "true";
-  private static final String EQUALITY_OPERATOR = "=";
-  private static final String CONSTANT = "const";
-  private static final String FREE_VARIABLE = "var";
-  private static final String FREE_VARIABLE_ID_OPERATOR = "id";
 
   private static final Map<String, String> OPERATOR_MAP =
       ImmutableMap.<String, String>builder()
@@ -83,6 +86,10 @@ class DelegatingRefinerAtomNormalizer
       pOperator = pOperator.substring(1, pOperator.length() - 1);
     }
 
+    int parenthesisIndex = pOperator.indexOf('(');
+    if (parenthesisIndex > 0) {
+      pOperator = pOperator.substring(0, parenthesisIndex);
+    }
     if (OPERATOR_MAP.containsKey(pOperator)) {
       return OPERATOR_MAP.get(pOperator);
     }
@@ -101,43 +108,22 @@ class DelegatingRefinerAtomNormalizer
     return pOperator;
   }
 
-  private String normalizeOperand(Formula pFormula) {
-    OperandFinder operandFinder = new OperandFinder();
-    if (pFormula == null) {
-      return NULL_OPERATOR;
-    }
-
-    try {
-
-      String shortString = formulaManager.visit(pFormula, operandFinder);
-      if (!Strings.isNullOrEmpty(shortString)) {
-        return shortString;
-      }
-    } catch (ClassCastException e) {
-      logger.logf(Level.FINEST, "OperandFinder failed on %s", pFormula);
-    }
-    return pFormula.toString();
-  }
-
   @Override
   public ImmutableList<DelegatingRefinerNormalizedAtom> visitFreeVariable(
       Formula pFormula, String pS) {
-    return ImmutableList.of(
-        new DelegatingRefinerNormalizedAtom(pS, FREE_VARIABLE_ID_OPERATOR, FREE_VARIABLE));
+    return ImmutableList.of(new DelegatingRefinerNormalizedAtom(pS));
   }
 
   @Override
   public ImmutableList<DelegatingRefinerNormalizedAtom> visitBoundVariable(
       Formula pFormula, int pI) {
-    return ImmutableList.of(
-        new DelegatingRefinerNormalizedAtom(
-            "bound", "idx", String.valueOf(pI)));
+    logger.logf(Level.FINEST, "Skipping bound variable");
+    return ImmutableList.of();
   }
 
   @Override
   public ImmutableList<DelegatingRefinerNormalizedAtom> visitConstant(Formula pFormula, Object pO) {
-    return ImmutableList.of(
-        new DelegatingRefinerNormalizedAtom(CONSTANT, EQUALITY_OPERATOR, String.valueOf(pO)));
+    return ImmutableList.of(new DelegatingRefinerNormalizedAtom(String.valueOf(pO)));
   }
 
   @Override
@@ -146,128 +132,37 @@ class DelegatingRefinerAtomNormalizer
       Quantifier pQuantifier,
       List<Formula> pList,
       BooleanFormula pBooleanFormula1) {
-    return ImmutableList.of();
+    StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append("(quant").append(pQuantifier.toString().toLowerCase(Locale.ROOT));
+    if (pList != null) {
+      for (Formula formula : pList) {
+        ImmutableList<DelegatingRefinerNormalizedAtom> atoms = formulaManager.visit(formula, this);
+        for (DelegatingRefinerNormalizedAtom atom : atoms) {
+          stringBuilder.append(" ").append(atom.toSExpr());
+        }
+      }
+    }
+    stringBuilder.append(")");
+    return ImmutableList.of(new DelegatingRefinerNormalizedAtom(stringBuilder.toString()));
   }
 
   @Override
   public ImmutableList<DelegatingRefinerNormalizedAtom> visitFunction(
       Formula pFormula, List<Formula> pList, FunctionDeclaration<?> pFunctionDeclaration) {
-
     String operator = normalizeOperator(pFunctionDeclaration.getName());
-    if (operator.equals("and") || operator.equals("or")) {
-      return handleAndOR(pList);
-    } else if (operator.equals("!")) {
-      return handleNegation(pList);
-    } else if (pList != null && pList.size() == 2) {
-      return handleBinary(operator, pList);
-    } else {
-      return handleFallBack(operator, pList);
-    }
-  }
-
-  private ImmutableList<DelegatingRefinerNormalizedAtom> handleAndOR(List<Formula> pList) {
-    ImmutableList.Builder<DelegatingRefinerNormalizedAtom> atomsBuilder = ImmutableList.builder();
+    StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append("(").append(operator);
 
     if (pList != null) {
-      for (Formula listElement : pList) {
-        if (listElement instanceof BooleanFormula pBooleanFormula) {
-          atomsBuilder.addAll(formulaManager.visit(pBooleanFormula, this));
-        } else {
-          atomsBuilder.add(
-              new DelegatingRefinerNormalizedAtom(
-                  normalizeOperand(listElement), EQUALITY_OPERATOR, BOOLEAN_TRUE));
+      for (Formula formula : pList) {
+        ImmutableList<DelegatingRefinerNormalizedAtom> atoms = formulaManager.visit(formula, this);
+        for (DelegatingRefinerNormalizedAtom atom : atoms) {
+          stringBuilder.append(" ").append(atom.toSExpr());
         }
       }
     }
 
-    ImmutableList<DelegatingRefinerNormalizedAtom> atoms = atomsBuilder.build();
-
-    ImmutableList.Builder<DelegatingRefinerNormalizedAtom> fallbackAtomsBuilder =
-        ImmutableList.builder();
-    for (DelegatingRefinerNormalizedAtom atom : atoms) {
-      fallbackAtomsBuilder.add(atom);
-    }
-    return fallbackAtomsBuilder.build();
-  }
-
-  private ImmutableList<DelegatingRefinerNormalizedAtom> handleNegation(List<Formula> pList) {
-    if (pList == null || pList.isEmpty()) {
-      return ImmutableList.of();
-    }
-    ImmutableList<DelegatingRefinerNormalizedAtom> innerAtoms =
-        formulaManager.visit((BooleanFormula) pList.getFirst(), this);
-    ImmutableList.Builder<DelegatingRefinerNormalizedAtom> result = ImmutableList.builder();
-    for (DelegatingRefinerNormalizedAtom atom : innerAtoms) {
-      result.add(new DelegatingRefinerNormalizedAtom(atom.leftAtom(), "!", atom.rightAtom()));
-    }
-    return result.build();
-  }
-
-  private ImmutableList<DelegatingRefinerNormalizedAtom> handleBinary(
-      String pOperator, List<Formula> pList) {
-    String leftAtom = normalizeOperand(pList.getFirst());
-    String rightAtom = normalizeOperand(pList.get(1));
-    DelegatingRefinerNormalizedAtom atom =
-        new DelegatingRefinerNormalizedAtom(leftAtom, pOperator, rightAtom);
-    return ImmutableList.of(atom);
-  }
-
-  private ImmutableList<DelegatingRefinerNormalizedAtom> handleFallBack(
-      String pOperator, List<Formula> pList) {
-    ImmutableList.Builder<DelegatingRefinerNormalizedAtom> fallback = ImmutableList.builder();
-    if (pList != null) {
-      for (Formula listElement : pList) {
-        if (listElement instanceof BooleanFormula pBooleanFormula) {
-          fallback.addAll(formulaManager.visit(pBooleanFormula, this));
-        } else {
-          String s = normalizeOperand(listElement);
-          fallback.add(new DelegatingRefinerNormalizedAtom(s, pOperator, ""));
-        }
-      }
-    }
-    return fallback.build();
-  }
-
-  private class OperandFinder implements FormulaVisitor<String> {
-    @Override
-    public String visitFreeVariable(Formula pFormula, String pS) {
-      return pS;
-    }
-
-    @Override
-    public String visitBoundVariable(Formula pFormula, int pI) {
-      return "<b" + pI + ">";
-    }
-
-    @Override
-    public String visitConstant(Formula pFormula, Object pO) {
-      return String.valueOf(pO);
-    }
-
-    @Override
-    public String visitFunction(
-        Formula pFormula, List<Formula> pList, FunctionDeclaration<?> pFunctionDeclaration) {
-      String operator = normalizeOperator(pFunctionDeclaration.getName());
-
-      StringBuilder pStringBuilder = new StringBuilder();
-      pStringBuilder.append("(").append(operator);
-      if (pList != null) {
-        for (Formula childFormula : pList) {
-          pStringBuilder.append(" ").append(normalizeOperand(childFormula));
-        }
-      }
-
-      pStringBuilder.append(")");
-      return pStringBuilder.toString();
-    }
-
-    @Override
-    public String visitQuantifier(
-        BooleanFormula pBooleanFormula,
-        Quantifier pQuantifier,
-        List<Formula> pList,
-        BooleanFormula pBooleanFormula1) {
-      return "<quant>";
-    }
+    stringBuilder.append(")");
+    return ImmutableList.of(new DelegatingRefinerNormalizedAtom(stringBuilder.toString()));
   }
 }

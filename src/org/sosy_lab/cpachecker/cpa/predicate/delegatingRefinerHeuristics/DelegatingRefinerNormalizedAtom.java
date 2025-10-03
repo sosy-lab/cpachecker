@@ -8,26 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
-import com.google.common.base.Strings;
-
 /**
- * Represents a normalized atomic formula created by the DelegatingRefinerAtomNormalizer. Each atom
- * encodes a canonical expression with a left operand, an operator and an optional right operand.
- * Atoms are structurally comparable and are used as input for the DelegatingRefinerDslMatcher.
+ * Represents a normalized atomic formula extracted from a Boolean abstraction formula by the
+ * DelegatingRefinerAtomNormalizer. Each atom encodes a canonical s-expression suitable for DSL rule
+ * matching. Atoms may represent logical operators, bitvector expressions, equality comparisons, or
+ * nested constructs such as negations and conjunctions. They are structurally comparable and serve
+ * as input units for the DelegatingRefinerDslMatcher. The atoms are produced by the
+ * DelegatingRefinerAtomNormalizer and reflect operator normalization, structural flattening and
+ * operand stringification.
  */
-record DelegatingRefinerNormalizedAtom(String leftAtom, String operator, String rightAtom) {
+record DelegatingRefinerNormalizedAtom(String pNormalizedExpression) {
   String toSExpr() {
-    if (operator.equals("and") || operator.equals("or")) {
-      if (!Strings.isNullOrEmpty(rightAtom)) {
-        return "(" + operator + " " + leftAtom + " " + rightAtom + ")";
-      }
-      return "(" + operator + " " + leftAtom + ")";
-    }
-
-    if (!Strings.isNullOrEmpty(rightAtom)) {
-      return "(" + operator + " " + leftAtom + " " + rightAtom + ")";
-    }
-
-    return "(" + operator + " " + leftAtom + ")";
+    return pNormalizedExpression;
   }
 }

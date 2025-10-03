@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 
 /**
  * Applies the first matching DSL pattern rule to a normalized atomic formula. Returns a normalized
@@ -27,9 +27,12 @@ import java.util.Optional;
  */
 final class DelegatingRefinerDslMatcher {
   private final ImmutableList<DelegatingRefinerPatternRule> patternRules;
+  private final LogManager logger;
 
-  public DelegatingRefinerDslMatcher(ImmutableList<DelegatingRefinerPatternRule> pPatternRules) {
+  public DelegatingRefinerDslMatcher(
+      ImmutableList<DelegatingRefinerPatternRule> pPatternRules, LogManager pLogger) {
     this.patternRules = pPatternRules;
+    this.logger = pLogger;
   }
 
   // Splits an s-expression into tokens (e.g. identifiers, parentheses, numbers).
@@ -72,6 +75,7 @@ final class DelegatingRefinerDslMatcher {
                 normalized, patternRule.id(), patternRule.category()));
       }
     }
+    logger.logf(Level.INFO, "No rule matched for: %s", pSmtExpr);
     return Optional.empty();
   }
 
@@ -90,13 +94,9 @@ final class DelegatingRefinerDslMatcher {
       String pP = patternParts.get(i);
       String eP = expressionParts.get(i);
 
-      if (pP.contains("<")) {
-        Optional<ImmutableMap<String, String>> mayBeTokenBindings =
-            matchTokensWithWildcards(pP, eP);
-        if (mayBeTokenBindings.isEmpty()) {
-          return Optional.empty();
-        }
-        bindings.putAll(mayBeTokenBindings.orElseThrow());
+      if (pP.startsWith("<") || pP.endsWith(">")) {
+        String part = pP.substring(1, pP.length() - 1);
+        bindings.put(part, eP);
       } else if (!pP.equals(eP)) {
         return Optional.empty();
       }
@@ -112,32 +112,6 @@ final class DelegatingRefinerDslMatcher {
       result = result.replace(placeholder, entry.getValue());
     }
     return result;
-  }
-
-  // Matches tokens with underscore-separated wildcards, e.g. BVExtract_31_31.
-  private static Optional<ImmutableMap<String, String>> matchTokensWithWildcards(
-      String pPatternToken, String pExpressionToken) {
-    Map<String, String> bindings = new HashMap<>();
-
-    ImmutableList<String> patternParts =
-        ImmutableList.copyOf(Splitter.on('_').split(pPatternToken));
-    ImmutableList<String> expressionParts =
-        ImmutableList.copyOf(Splitter.on('_').split(pExpressionToken));
-
-    if (patternParts.size() != expressionParts.size()) {
-      return Optional.empty();
-    }
-
-    for (int i = 0; i < patternParts.size(); i++) {
-      String p = patternParts.get(i);
-      String e = expressionParts.get(i);
-      if (p.startsWith("<") && p.endsWith(">")) {
-        bindings.put(p.substring(1, p.length() - 1), e);
-      } else if (!p.equals(e)) {
-        return Optional.empty();
-      }
-    }
-    return Optional.of(ImmutableMap.copyOf(bindings));
   }
 
   // Extracts matchable atoms from an s-expression.
@@ -159,6 +133,14 @@ final class DelegatingRefinerDslMatcher {
           subExp.add(part);
         }
         Collections.reverse(subExp);
+
+        // Subexpressions with only one token (mostly negations) must not be extracted in a singular
+        // atom
+        if (subExp.size() == 1
+            && (subExp.getFirst().equals("!") || subExp.getFirst().equals("not"))) {
+          continue;
+        }
+
         String atom = "(" + String.join(" ", subExp) + ")";
         if (isMatchableAtom(subExp)) {
           atoms.add(atom);
@@ -179,6 +161,13 @@ final class DelegatingRefinerDslMatcher {
       return false;
     }
     String head = pSubExpr.getFirst();
-    return head.equals("=") || head.equals("not") || head.startsWith("_T") || head.startsWith("bv");
+    return head.equals("=")
+        || head.equals("not")
+        || head.equals("!")
+        || head.startsWith("_T")
+        || head.startsWith("bv")
+        || head.startsWith("bvadd")
+        || head.startsWith("bvlshl")
+        || head.startsWith("bvextract");
   }
 }
