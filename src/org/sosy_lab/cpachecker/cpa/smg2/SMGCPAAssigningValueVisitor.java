@@ -706,6 +706,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       CFAEdge pEdge)
       throws CPATransferException, SolverException, InterruptedException {
 
+    if (pExpression instanceof CBinaryExpression binExpr
+        && !ConstraintFactory.binaryExpressionIsConstraint(binExpr)) {
+      // For example an expression of the kind array[i] % 2 == 1 is split and array[i] % 2 ends up
+      // here and would fail below.
+      return ImmutableList.of(pOldState);
+    }
+
     final ConstraintFactory constraintFactory =
         ConstraintFactory.getInstance(
             pOldState,
