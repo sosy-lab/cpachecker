@@ -153,7 +153,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         builder.append(
             TransitionInvariantUtils.removeFunctionFromVarsName(variable)
                 + " = "
-                + "__VERIFIER_nondet_" + scope.lookupVariable(variable).getType()
+                + "__VERIFIER_nondet_"
+                + scope.lookupVariable(variable).getType()
                 + "();\n");
       }
     }
