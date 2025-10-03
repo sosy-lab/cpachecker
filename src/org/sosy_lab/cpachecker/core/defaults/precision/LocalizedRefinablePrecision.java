@@ -9,8 +9,11 @@
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.notInternalVariable;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableInOriginalProgram;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableNameInFunction;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
@@ -19,6 +22,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -84,12 +88,27 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
     ImmutableList.Builder<PrecisionExchangeEntry> entriesBuilder = ImmutableList.builder();
     AstCfaRelation astCfaRelation = pCfa.getAstCfaRelation();
 
+    FluentIterable<@NonNull MemoryLocation> relevantVariables =
+        FluentIterable.from(rawPrecision.values())
+            .filter(memoryLocation -> notInternalVariable(memoryLocation.getQualifiedName()));
+
     for (CFANode currentLocation : rawPrecision.keySet()) {
+      String functionName = currentLocation.getFunctionName();
       Optional<PrecisionScope> precisionScope =
           PrecisionScope.localPrecisionScopeFor(currentLocation, astCfaRelation);
+      relevantVariables =
+          relevantVariables.filter(
+              memoryLocation ->
+                  variableNameInFunction(memoryLocation.getQualifiedName(), functionName));
       if (precisionScope.isEmpty()) {
         // We overapproximate by making this function wide
-        precisionScope = Optional.of(new FunctionPrecisionScope(currentLocation.getFunctionName()));
+        precisionScope = Optional.of(new FunctionPrecisionScope(functionName));
+      } else {
+        relevantVariables =
+            relevantVariables.filter(
+                memoryLocation ->
+                    variableInOriginalProgram(
+                        memoryLocation.getQualifiedName(), astCfaRelation, currentLocation));
       }
 
       entriesBuilder.add(
@@ -97,8 +116,7 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
               YAMLWitnessExpressionType.C,
               precisionScope.orElseThrow(),
               PrecisionType.RELEVANT_MEMORY_LOCATIONS,
-              transformedImmutableListCopy(
-                  rawPrecision.get(currentLocation), MemoryLocation::asCExpression)));
+              relevantVariables.transform(MemoryLocation::asCExpression).toList()));
     }
 
     return entriesBuilder.build();

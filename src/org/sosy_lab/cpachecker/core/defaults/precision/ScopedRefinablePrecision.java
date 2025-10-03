@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.notInternalVariable;
+import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableNameInFunction;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -94,9 +96,15 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
 
     for (MemoryLocation variable : rawPrecision) {
       if (variable.isOnFunctionStack()) {
-        functionWideVariables.put(variable.getFunctionName(), variable.asCExpression());
+        String functionName = variable.getFunctionName();
+        if (notInternalVariable(variable.getQualifiedName())
+            && variableNameInFunction(variable.getIdentifier(), functionName)) {
+          functionWideVariables.put(variable.getFunctionName(), variable.asCExpression());
+        }
       } else {
-        globalVariables.add(variable.asCExpression());
+        if (notInternalVariable(variable.getQualifiedName())) {
+          globalVariables.add(variable.asCExpression());
+        }
       }
     }
 
