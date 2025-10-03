@@ -86,7 +86,7 @@ public final class IterationElement extends BranchingElement {
         boundaryNodes =
             FluentIterable.from(getNodesBetweenConditionAndBody())
                 .transformAndConcat(CFAUtils::allPredecessorsOf);
-      } catch (BoundaryNodesComputationFailed pE) {
+      } catch (BoundaryNodesComputationFailed e) {
         // In this case, all our heuristics for computing a loop head failed.
         return Optional.empty();
       }
