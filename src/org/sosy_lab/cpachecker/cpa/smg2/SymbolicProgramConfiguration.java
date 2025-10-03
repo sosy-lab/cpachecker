@@ -415,31 +415,31 @@ public class SymbolicProgramConfiguration {
     //      Perform joinSubSMG() for the region of the var and all 3 SMGs
     //      Abort for bottom join/merge status
     for (SMGObjectMergeTriple objects : objectsToBeMerged) {
-      SMGObject thisGlobalObj = objects.getLeftVariableObject();
-      SMGObject otherGlobalObj = objects.getRightVariableObject();
-      SMGObject newGlobalObj = objects.getMergeObject();
-      if (mapping1.hasMapping(thisGlobalObj) || mapping2.hasMapping(otherGlobalObj)) {
-        if (mapping1.hasMapping(thisGlobalObj)
-            && mapping2.hasMapping(otherGlobalObj)
-            && mapping1.getMappedObject(thisGlobalObj).equals(newGlobalObj)
-            && mapping2.getMappedObject(otherGlobalObj).equals(newGlobalObj)) {
+      SMGObject thisObjToMerge = objects.getLeftVariableObject();
+      SMGObject otherObjToMerge = objects.getRightVariableObject();
+      SMGObject newMergedObj = objects.getMergeObject();
+      if (mapping1.hasMapping(thisObjToMerge) || mapping2.hasMapping(otherObjToMerge)) {
+        if (mapping1.hasMapping(thisObjToMerge)
+            && mapping2.hasMapping(otherObjToMerge)
+            && mapping1.getMappedObject(thisObjToMerge).equals(newMergedObj)
+            && mapping2.getMappedObject(otherObjToMerge).equals(newMergedObj)) {
           // The objects are already correctly mapped and were already merged
           continue;
         }
         // TODO: Abort merge? Or take a look?
         return Optional.empty();
       }
-      mapping1 = mapping1.copyAndAddMapping(thisGlobalObj, newGlobalObj);
-      mapping2 = mapping2.copyAndAddMapping(otherGlobalObj, newGlobalObj);
+      mapping1 = mapping1.copyAndAddMapping(thisObjToMerge, newMergedObj);
+      mapping2 = mapping2.copyAndAddMapping(otherObjToMerge, newMergedObj);
 
       Optional<MergedSPCAndMergeStatusWithMergingSPCsAndMapping> maybeMergeResult =
           mergeSubSMGs(
               thisSPC,
               otherSPC,
-              thisGlobalObj,
-              otherGlobalObj,
+              thisObjToMerge,
+              otherObjToMerge,
               mergedSPC,
-              newGlobalObj,
+              newMergedObj,
               mergeStatus,
               mapping1,
               mapping2,
