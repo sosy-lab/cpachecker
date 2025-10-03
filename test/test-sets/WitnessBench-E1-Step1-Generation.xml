@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
+  <option name="--benchmark"/>
+  <option name="--heap">2000M</option>
+  <resultfiles>**/witness-experiment1.yml</resultfiles>
+  <!-- Step 1: Generate witness file using Predicate Analysis -->
+  <rundefinition name="step1-witness-generation">
+    <option name="--predicateAnalysis"/>
+    <option name="--option">cpa.arg.yamlProofWitness=witness-experiment1.yml</option>
+    
+  </rundefinition>
+
+
+  <!-- Select suitable programs for testing precision effect -->
+  <tasks name="E1-Loop-Test">
+    <include>../programs/simple/loop1.yml</include>
+  </tasks>
+
+</benchmark>

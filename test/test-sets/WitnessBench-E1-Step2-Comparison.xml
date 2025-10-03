@@ -6,13 +6,6 @@
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
   <option name="--benchmark"/>
   <option name="--heap">2000M</option>
-  <resultfiles>**/witness-experiment1.yml</resultfiles>
-  <!-- Step 1: Generate witness file using Predicate Analysis -->
-  <rundefinition name="step1-witness-generation">
-    <option name="--predicateAnalysis"/>
-    <option name="--option">cpa.arg.yamlProofWitness=output/witness-experiment1.yml</option>
-    
-  </rundefinition>
 
   <!-- Step 2: Baseline - Empty Precision Value Analysis (for comparison) -->
   <rundefinition name="step2-empty-precision-baseline">
@@ -22,8 +15,8 @@
   <!-- Step 3: Generate witness-based precision and perform analysis -->
   <rundefinition name="step3-witness-precision-analysis">
     <option name="--valueAnalysis"/>
-    <requiredfiles>../results/WitnessBench-E1-experiment.2025-10-03_??-??-??.files/step1-witness-generation/${taskdef_name}/output/output/witness-experiment1.yml</requiredfiles>
-    <option name="--option">cpa.value.initialWitnessPrecisionFile=test/results/WitnessBench-E1-experiment.2025-10-03_??-??-??.files/step1-witness-generation/${taskdef_name}/output/output/witness-experiment1.yml</option>
+    <requiredfiles>../results/WitnessBench-E1-Step1-Generation.2025-10-03_23-14-25.files/step1-witness-generation/${taskdef_name}/output/output/witness-experiment1.yml</requiredfiles>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=test/results/WitnessBench-E1-Step1-Generation.2025-10-03_23-14-25.files/step1-witness-generation/${taskdef_name}/output/output/witness-experiment1.yml</option>
     <option name="--option">cpa.value.precisionFile=output/precision-experiment1.txt</option>
     
   </rundefinition>
