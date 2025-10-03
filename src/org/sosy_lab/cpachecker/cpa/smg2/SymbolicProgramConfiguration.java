@@ -418,6 +418,17 @@ public class SymbolicProgramConfiguration {
       SMGObject thisGlobalObj = objects.getLeftVariableObject();
       SMGObject otherGlobalObj = objects.getRightVariableObject();
       SMGObject newGlobalObj = objects.getMergeObject();
+      if (mapping1.hasMapping(thisGlobalObj) || mapping2.hasMapping(otherGlobalObj)) {
+        if (mapping1.hasMapping(thisGlobalObj)
+            && mapping2.hasMapping(otherGlobalObj)
+            && mapping1.getMappedObject(thisGlobalObj).equals(newGlobalObj)
+            && mapping2.getMappedObject(otherGlobalObj).equals(newGlobalObj)) {
+          // The objects are already correctly mapped and were already merged
+          continue;
+        }
+        // TODO: Abort merge? Or take a look?
+        return Optional.empty();
+      }
       mapping1 = mapping1.copyAndAddMapping(thisGlobalObj, newGlobalObj);
       mapping2 = mapping2.copyAndAddMapping(otherGlobalObj, newGlobalObj);
 
