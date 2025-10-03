@@ -678,6 +678,10 @@ public class ReportGenerator {
   /** Build ARG data for all ARG states in the reached set. */
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
     for (AbstractState entry : reached) {
+      if (!(entry instanceof ARGState)) {
+        continue;
+      }
+
       int parentStateId = ((ARGState) entry).getStateId();
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {
