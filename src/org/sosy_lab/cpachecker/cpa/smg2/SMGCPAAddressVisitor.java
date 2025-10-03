@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
@@ -111,8 +112,7 @@ public class SMGCPAAddressVisitor
     String globalVarName = evaluator.getCStringLiteralExpressionVairableName(e);
     SMGState currentState = state;
     if (!currentState.isGlobalVariablePresent(globalVarName)) {
-      Value sizeOfString =
-          new NumericValue(evaluator.getBitSizeof(currentState, e.getExpressionType()));
+      Value sizeOfString = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
       currentState =
           currentState.copyAndAddGlobalVariable(sizeOfString, globalVarName, e.getExpressionType());
       List<SMGState> statesWithString =
@@ -183,7 +183,7 @@ public class SMGCPAAddressVisitor
           continue;
         }
         // Calculate the offset out of the subscript value and the type
-        BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
+        Value typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
         Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         // Get the value from the array and return the value + state

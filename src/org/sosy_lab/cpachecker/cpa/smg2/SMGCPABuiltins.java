@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -402,13 +404,14 @@ public class SMGCPABuiltins {
     // Check the types lazy
     Preconditions.checkArgument(destIdArg.getExpressionType().equals(srcIdArg.getExpressionType()));
     // The size should be equal as the types are
-    BigInteger sizeInBits = evaluator.getBitSizeof(pState, srcIdArg);
+    Value sizeInBits = evaluator.getBitSizeof(pState, srcIdArg, pCfaEdge);
+    checkState(sizeInBits.isNumericValue());
     List<ValueAndSMGState> addressesAndStates =
         evaluator.readStackOrGlobalVariable(
             pState,
             srcIdArg.getName(),
             new NumericValue(BigInteger.ZERO),
-            sizeInBits,
+            sizeInBits.asNumericValue().bigIntegerValue(),
             SMGCPAExpressionEvaluator.getCanonicalType(srcIdArg));
     Preconditions.checkArgument(addressesAndStates.size() == 1);
     ValueAndSMGState addressAndState = addressesAndStates.getFirst();
@@ -423,7 +426,7 @@ public class SMGCPABuiltins {
         currentState.writeToStackOrGlobalVariable(
             destIdArg.getDeclaration().getQualifiedName(),
             new NumericValue(BigInteger.ZERO),
-            new NumericValue(sizeInBits),
+            sizeInBits,
             addressAndState.getValue(),
             destIdArg.getExpressionType(),
             pCfaEdge);
@@ -481,11 +484,13 @@ public class SMGCPABuiltins {
           paramDecl.getType(),
           secondArg.getExpressionType());
     }
-    Value sizeInBitsPointer = new NumericValue(evaluator.getBitSizeof(pState, firstArg));
+    Value sizeInBitsPointer = evaluator.getBitSizeof(pState, firstArg, cfaEdge);
 
-    BigInteger sizeInBitsVarArg = evaluator.getBitSizeof(pState, secondArg);
+    Value sizeInBitsVarArg = evaluator.getBitSizeof(pState, secondArg, cfaEdge);
+    checkState(sizeInBitsVarArg.isNumericValue());
     BigInteger overallSizeOfVarArgs =
-        BigInteger.valueOf(currentStack.getVariableArguments().size()).multiply(sizeInBitsVarArg);
+        BigInteger.valueOf(currentStack.getVariableArguments().size())
+            .multiply(sizeInBitsVarArg.asNumericValue().bigIntegerValue());
 
     ValueAndSMGState pointerAndState =
         evaluator.createHeapMemoryAndPointer(
@@ -519,14 +524,14 @@ public class SMGCPABuiltins {
           currentState.writeValueTo(
               address,
               offset,
-              new NumericValue(sizeInBitsVarArg),
+              sizeInBitsVarArg,
               varArg,
               SMGCPAExpressionEvaluator.getCanonicalType(secondArg),
               cfaEdge);
       // Unlikely that someone throws an abstracted list into a var args
       Preconditions.checkArgument(writtenStates.size() == 1);
       currentState = writtenStates.getFirst();
-      offset = offset.add(sizeInBitsVarArg);
+      offset = offset.add(sizeInBitsVarArg.asNumericValue().bigIntegerValue());
     }
 
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));

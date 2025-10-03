@@ -146,6 +146,12 @@ public class SMGOptions {
               + " value itself is overapproximated to unknown in the memory region.")
   private boolean overapproximateValuesForSymbolicSize = false;
 
+  @Option(
+      secure = true,
+      name = "allowSymbolicvariableArrayLength",
+      description = "If this Option is enabled, variable array length may be symbolic.")
+  private boolean allowSymbolicvariableArrayLength = false;
+
   public boolean isOverapproximateValuesForSymbolicSize() {
     return overapproximateValuesForSymbolicSize;
   }
@@ -179,6 +185,10 @@ public class SMGOptions {
 
   public void decConcreteValueForSymbolicOffsetsAssignmentMaximum() {
     actualConcreteValueForSymbolicOffsetsAssignmentMaximum--;
+  }
+
+  public boolean allowSymbolicvariableArrayLength() {
+    return allowSymbolicvariableArrayLength;
   }
 
   public enum UnknownFunctionHandling {

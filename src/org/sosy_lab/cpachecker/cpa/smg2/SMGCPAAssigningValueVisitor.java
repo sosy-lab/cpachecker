@@ -210,7 +210,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         if (isAssignable(leftHandSideAssignments)) {
 
           CType lType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-          Value size = new NumericValue(evaluator.getBitSizeof(currentState, lType));
+          Value size = evaluator.getBitSizeof(currentState, lType, edge);
           if (!SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp).equals(lType)) {
             // Cast first
             ValueAndSMGState newRightValueAndState = castCValue(rightValue, lType, currentState);
@@ -241,7 +241,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           if (isAssignable(rightHandSideAssignments)) {
 
             CType rType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-            Value size = new NumericValue(evaluator.getBitSizeof(currentState, rType));
+            Value size = evaluator.getBitSizeof(currentState, rType, edge);
 
             if (!SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp).equals(rType)) {
               // Cast first
@@ -331,7 +331,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               }
 
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(stateToAssign, type));
+              Value size = evaluator.getBitSizeof(stateToAssign, type, edge);
               stateToAssign =
                   stateToAssign.writeValueWithChecks(
                       leftHandSideAssignment.getSMGObject(),
@@ -386,7 +386,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               }
 
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(stateToAssign, type));
+              Value size = evaluator.getBitSizeof(stateToAssign, type, edge);
               stateToAssign =
                   stateToAssign.writeValueWithChecks(
                       rightHandSideAssignment.getSMGObject(),

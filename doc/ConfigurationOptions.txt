@@ -3339,6 +3339,9 @@ cpa.smg2.abstraction.removeUnusedConstraints = false
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
 
+# If this Option is enabled, variable array length may be symbolic.
+cpa.smg2.allowSymbolicvariableArrayLength = false
+
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
 

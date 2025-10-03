@@ -5355,23 +5355,17 @@ public class SMGState
    *     written to the return memory.
    */
   public SMGState writeToReturn(
-      BigInteger sizeInBits, Value valueToWrite, CType returnValueType, CFAEdge edge)
+      Value sizeInBits, Value valueToWrite, CType returnValueType, CFAEdge edge)
       throws CPATransferException {
     SMGObject returnObject = getMemoryModel().getReturnObjectForCurrentStackFrame().orElseThrow();
     if (valueToWrite.isUnknown()) {
       valueToWrite = getNewSymbolicValueForType(returnValueType);
     }
-    // Check that the target can hold the value
-    if (returnObject.getOffset().compareTo(BigInteger.ZERO) > 0
-        || returnObject.getSize().asNumericValue().bigIntegerValue().compareTo(sizeInBits) < 0) {
-      // Out of range write
-      return withOutOfRangeWrite(
-          returnObject, new NumericValue(BigInteger.ZERO), sizeInBits, valueToWrite, edge);
-    }
+
     return writeValueWithChecks(
         returnObject,
         new NumericValue(BigInteger.ZERO),
-        new NumericValue(sizeInBits),
+        sizeInBits,
         valueToWrite,
         returnValueType,
         edge);
