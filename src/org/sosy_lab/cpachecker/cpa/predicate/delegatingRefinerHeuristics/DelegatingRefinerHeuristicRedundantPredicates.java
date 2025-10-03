@@ -36,16 +36,15 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * acceptable redundancy threshold, the heuristic returns false.
  */
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
-  private static final double EPSILON = 0.01;
+  private static final Path DSL_RULE_PATH =
+      Path.of(
+          "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerHeuristics/redundancyRules.json");
 
   private final double redundancyThreshold;
   private final FormulaManagerView formulaManager;
   private final LogManager logger;
   private final DelegatingRefinerAtomNormalizer normalizer;
   private final DelegatingRefinerDslMatcher matcher;
-
-  private double previousRedundancy = -1.0;
-  private double previousDominantCount = 0.0;
 
   public DelegatingRefinerHeuristicRedundantPredicates(
       double pAcceptableRedundancyThreshold,
@@ -63,9 +62,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
     try {
       ImmutableList<DelegatingRefinerPatternRule> allPatternRules =
-          DelegatingRefinerDslLoader.loadDsl(
-              Path.of(
-                  "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerHeuristics/redundancyRules.json"));
+          DelegatingRefinerDslLoader.loadDsl(DSL_RULE_PATH);
       this.matcher = new DelegatingRefinerDslMatcher(allPatternRules, logger);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to load DSL rules for redundancy matching.", e);
@@ -87,33 +84,12 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     logPatterns(patternFrequency, categoryFrequency);
 
     double maxRedundancyDetected = calculateMaxRedundancy(patternFrequency);
-
-    boolean isRedundancyPlateauing =
-        (previousRedundancy >= 0.0)
-            && (Math.abs(maxRedundancyDetected - previousRedundancy) < EPSILON);
-
-    previousRedundancy = maxRedundancyDetected;
-
-    Multiset.Entry<String> dominantPattern = getMostFrequent(patternFrequency);
-
-    boolean isDominantPatternGrowing = dominantPattern.getCount() > previousDominantCount;
-
-    previousDominantCount = dominantPattern.getCount();
-
     logger.logf(
-        Level.INFO,
+        Level.FINEST,
         "Maximal redundancy: %.2f for threshold %.2f.",
         maxRedundancyDetected,
         redundancyThreshold);
 
-    if (patternFrequency.size() > 500 && isRedundancyPlateauing && isDominantPatternGrowing) {
-      logger.logf(
-          Level.INFO,
-          "Redundancy is plateauing at: %.2f and only one pattern is growing at %.2f.",
-          previousRedundancy,
-          previousDominantCount);
-      return false;
-    }
     return maxRedundancyDetected <= redundancyThreshold;
   }
 
@@ -159,22 +135,6 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
   private void logPatterns(
       ImmutableMultiset<String> pPatternFrequency, ImmutableMultiset<String> pCategoryFrequency) {
-    for (Multiset.Entry<String> pattern : pPatternFrequency.entrySet()) {
-      logger.logf(
-          Level.FINEST,
-          "Pattern %s was registered %d number of times.",
-          pattern.getElement(),
-          pattern.getCount());
-    }
-
-    for (Multiset.Entry<String> category : pCategoryFrequency.entrySet()) {
-      logger.logf(
-          Level.FINEST,
-          "Pattern %s was registered %d number of times.",
-          category.getElement(),
-          category.getCount());
-    }
-
     Multiset.Entry<String> dominantCategory = getMostFrequent(pCategoryFrequency);
     if (dominantCategory != null) {
       logger.logf(Level.FINEST, "Dominant category is %s.", dominantCategory);
@@ -183,10 +143,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     Multiset.Entry<String> dominantPattern = getMostFrequent(pPatternFrequency);
     if (dominantPattern != null) {
       logger.logf(
-          Level.FINEST,
-          "Dominant pattern is %s for %s.",
-          dominantPattern,
-          pPatternFrequency.size());
+          Level.FINEST, "Dominant pattern is %s for %s.", dominantPattern, pPatternFrequency.size());
     }
   }
 
