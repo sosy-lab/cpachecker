@@ -595,17 +595,12 @@ public class ARGStatistics implements Statistics {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
     for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
-      if (!(targetState instanceof ARGState)) {
+      if (!(targetState instanceof ARGState s)) {
         continue;
       }
 
-      ARGState s = (ARGState) targetState;
-      CounterexampleInfo cex =
-          ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
-              .orElse(null);
-      if (cex != null) {
-        counterexamples.put(s, cex);
-      }
+      ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
+          .ifPresent(cex -> counterexamples.put(s, cex));
     }
 
     Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.buildOrThrow();
