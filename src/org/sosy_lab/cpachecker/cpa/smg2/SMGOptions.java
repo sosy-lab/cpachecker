@@ -148,9 +148,9 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      name = "allowSymbolicvariableArrayLength",
+      name = "allowSymbolicVariableArrayLength",
       description = "If this Option is enabled, variable array length may be symbolic.")
-  private boolean allowSymbolicvariableArrayLength = false;
+  private boolean allowSymbolicVariableArrayLength = false;
 
   public boolean isOverapproximateValuesForSymbolicSize() {
     return overapproximateValuesForSymbolicSize;
@@ -188,7 +188,7 @@ public class SMGOptions {
   }
 
   public boolean allowSymbolicvariableArrayLength() {
-    return allowSymbolicvariableArrayLength;
+    return allowSymbolicVariableArrayLength;
   }
 
   public enum UnknownFunctionHandling {
