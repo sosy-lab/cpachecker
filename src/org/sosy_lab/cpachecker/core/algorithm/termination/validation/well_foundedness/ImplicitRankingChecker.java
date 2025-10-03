@@ -94,7 +94,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     // Initialize the variables from the transition invariant
     Set<String> alreadyDeclaredVars = new HashSet<>();
     String varDeclaration;
-    for (String variable : cfa.getVarClassification().get().getRelevantVariables()) {
+    for (String variable : cfa.getVarClassification().orElseThrow().getRelevantVariables()) {
       varDeclaration =
           TransitionInvariantUtils.removeFunctionFromVarsName(
               scope.lookupVariable(variable).toString());
@@ -153,8 +153,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         builder.append(
             TransitionInvariantUtils.removeFunctionFromVarsName(variable)
                 + " = "
-                + "__VERIFIER_nondet_"
-                + scope.lookupVariable(variable).getType().toString()
+                + "__VERIFIER_nondet_" + scope.lookupVariable(variable).getType()
                 + "();\n");
       }
     }
