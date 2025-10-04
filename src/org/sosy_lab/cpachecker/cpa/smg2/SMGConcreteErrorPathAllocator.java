@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -55,9 +57,9 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   private static final String MEMORY_NAME = "SMGv2_Analysis_Heap";
 
   // Map Object <-> some address distinct from 0
-  private Map<SMGObject, Address> addressOfObjectMap = new HashMap<>();
+  private final Map<SMGObject, Address> addressOfObjectMap = new HashMap<>();
   private Address nextAlloc = Address.valueOf(BigInteger.valueOf(100));
-  private Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
+  private final Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
 
   protected SMGConcreteErrorPathAllocator(
       Configuration pConfig, LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel)
@@ -68,47 +70,48 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   @Override
   protected ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, List<CFAEdge>>> pPath) {
 
-    List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
+    ImmutableList.Builder<ConcreteStatePathNode> pathBuilder = ImmutableList.builder();
 
     for (Pair<SMGState, List<CFAEdge>> edgeStatePair : pPath) {
 
-      SMGState valueState = edgeStatePair.getFirst();
-      List<CFAEdge> edges = edgeStatePair.getSecond();
+      SMGState smgState = checkNotNull(edgeStatePair.getFirst());
+      List<CFAEdge> edges = checkNotNull(edgeStatePair.getSecond());
 
       if (edges.size() > 1) {
-        List<SingleConcreteState> intermediateStates = new ArrayList<>();
+        ImmutableList.Builder<SingleConcreteState> intermediateStatesBuilder =
+            ImmutableList.builder();
         Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
         boolean isFirstIteration = true;
         for (CFAEdge innerEdge : edges.reversed()) {
           ConcreteState state =
-              createConcreteStateForMultiEdge(valueState, alreadyAssigned, innerEdge);
+              createConcreteStateForMultiEdge(smgState, alreadyAssigned, innerEdge);
 
           // intermediate edge
           if (isFirstIteration) {
-            intermediateStates.add(new SingleConcreteState(innerEdge, state));
+            intermediateStatesBuilder.add(new SingleConcreteState(innerEdge, state));
             isFirstIteration = false;
 
             // last edge of (dynamic) multi edge
           } else {
-            intermediateStates.add(new IntermediateConcreteState(innerEdge, state));
+            intermediateStatesBuilder.add(new IntermediateConcreteState(innerEdge, state));
           }
         }
-        result.addAll(intermediateStates.reversed());
+        pathBuilder.addAll(intermediateStatesBuilder.build().reverse());
 
-        // a normal edge, no special handling required
       } else {
-        result.add(
+        // a normal edge, no special handling required
+        pathBuilder.add(
             new SingleConcreteState(
-                Iterables.getOnlyElement(edges),
+                edges.getFirst(),
                 new ConcreteState(
                     ImmutableMap.of(),
-                    allocateAddresses(valueState),
+                    allocateAddresses(smgState),
                     ImmutableMap.copyOf(variableAddressMap),
                     exp -> MEMORY_NAME)));
       }
     }
 
-    return new ConcreteStatePath(result);
+    return new ConcreteStatePath(pathBuilder.build());
   }
 
   private ConcreteState createConcreteStateForMultiEdge(
@@ -197,13 +200,13 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   private Map<Address, Object> createHeapValues(SMGState pSMGState) {
 
-    Map<Address, Object> result = new HashMap<>();
+    ImmutableMap.Builder<Address, Object> addressToHeapMapBuilder = ImmutableMap.builder();
 
     for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry :
         pSMGState.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges().entrySet()) {
       for (SMGHasValueEdge hvEdge : entry.getValue()) {
 
-        BigInteger value = null;
+        BigInteger value;
         SMGValue smgValue = hvEdge.hasValue();
         Optional<Value> valueForSMGValue =
             pSMGState.getMemoryModel().getValueFromSMGValue(smgValue);
@@ -240,11 +243,11 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
         // Value and the obj it is saved in
         Address address = calculateAddress(entry.getKey(), hvEdge.getOffset(), pSMGState);
-        result.put(address, value);
+        addressToHeapMapBuilder.put(address, value);
       }
     }
 
-    return result;
+    return addressToHeapMapBuilder.buildOrThrow();
   }
 
   public Address calculateAddress(SMGObject pObject, BigInteger pOffset, SMGState pSMGState) {
@@ -279,6 +282,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   }
 
   // Finds the variable names of objects if present
+  @Nullable
   private static IDExpression createIDExpression(SMGState state, SMGObject pObject) {
 
     if (state.getMemoryModel().getGlobalVariableToSmgObjectMap().containsValue(pObject)) {

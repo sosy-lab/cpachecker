@@ -185,6 +185,16 @@ public class SMGCPA
     return new AdditionalInfoExtractor().createExtendedInfo(pPath);
   }
 
+  /*
+   * Creates a ConcreteStatePath, that contain the concrete values of the given
+   * variables along the given ARGPath. The ConcreteStatePath  is used to
+   * calculate the concrete values of the variables along the generated counterexample path.
+   *
+   * pPath: A counterexample path, generated from the ARGCPA. The
+   *     concrete values of variables along this path should be calculated.
+   * return: A ConcreteStatePath along the CFAEdges of the ARGPath
+   *     that contain concrete values for the variables along the path.
+   */
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
     try {
