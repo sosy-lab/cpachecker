@@ -1519,21 +1519,12 @@ public class SMGState
       return true;
     }
 
-    if (pOther.mergeInfo.isPresent()) {
-      // Try to apply info from merge first
-      StatesMergedAndMergeStatus otherUnpackedMergeInfo = pOther.mergeInfo.orElseThrow();
-      SMGState otherMergedLeftState = otherUnpackedMergeInfo.getNewState();
-      SMGState otherMergedRightState = otherUnpackedMergeInfo.getStateFromReached();
-      checkArgument(
-          this != otherMergedRightState,
-          "Checking stop with an state that should have been removed from the reached-set. This"
-              + " should never happen.");
-      if (this == otherMergedLeftState) {
-        // Note about incomparable status: this does not mean that the merged state does not subsume
-        // the input states, just that the input states had both asymmetrical abstractions that were
-        // unified.
-        return true;
-      }
+    checkArgument(!this.subsumesDueToPreviousMerge(pOther), "Error when checking STOP");
+
+    if (pOther.subsumesDueToPreviousMerge(this)) {
+      // When merging 2 states (left is a new state, right is from reached), the result replaces the
+      // right state iff the merged state is <=
+      return true;
     }
 
     // This state needs the same amount of variables as the other state
@@ -7757,6 +7748,33 @@ public class SMGState
    */
   protected boolean isResultOfMerge() {
     return mergeInfo.isPresent();
+  }
+
+  /**
+   * Checks whether the state calling this method subsumes (is equal or fully includes; >=) the
+   * argument state based on a previous merge. Does NOT check the reverse direction, i.e. whether
+   * the argument subsumes the calling state.
+   */
+  private boolean subsumesDueToPreviousMerge(SMGState otherState) {
+    if (this == otherState) {
+      return true;
+    }
+    if (isResultOfMerge()) {
+      StatesMergedAndMergeStatus thisUnpackedMergeInfo = mergeInfo.orElseThrow();
+      // The merge status is also included for more information/debugging!
+      // It has information about the relation of the 2 merged states with each other.
+      // Note about merge status incomparable: this does not mean that the merged state does not
+      // subsume the input states, just that the input states had both asymmetrical abstractions
+      // that were unified.
+      SMGState thisMergedLeftState = thisUnpackedMergeInfo.getNewState();
+      SMGState thisMergedRightState = thisUnpackedMergeInfo.getStateFromReached();
+      if (otherState == thisMergedLeftState || otherState == thisMergedRightState) {
+        // this >= otherState
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /** For tests only, so that lessOrEquals can be tested on more states. */
