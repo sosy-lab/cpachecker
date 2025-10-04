@@ -4350,8 +4350,7 @@ public class SymbolicProgramConfiguration {
         SMGValue smgValue = valueEdge.hasValue();
         BigInteger typeSize = valueEdge.getSizeInBits();
         checkArgument(valueMapping.containsValue(smgValue));
-        Value value = valueMapping.inverse().get(smgValue).get();
-        checkNotNull(value);
+        Value value = checkNotNull(valueMapping.inverse().get(smgValue).get());
         ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
         map = map.putAndCopy(memLoc, valueAndValueSize);
       }
