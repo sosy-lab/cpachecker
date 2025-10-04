@@ -125,7 +125,12 @@ public class SMGOptions {
               + " specifies.")
   private int concreteValueForSymbolicOffsetsAssignmentMaximum = 300;
 
-  /* TODO:
+  // TODO: make a option and implementation that allows SOME concrete values to be evaluated, and
+  // then the (restricted) symbolic value is returned once a threshold is reached. The concrete
+  // values chosen should be configurable, e.g. build 1 concrete value at the lowest end of the
+  // value spectrum etc. This would could be used to boost the CEX that is currently unable to
+  // handle symbolic offsets/memory sizes well.
+  /*
     @Option(
         secure = true,
         name = "overapproximateSymbolicOffsetsAsFallback",
@@ -677,7 +682,7 @@ public class SMGOptions {
         description =
             "Apply merge operator only on states with at least one input state including an"
                 + " abstracted list.")
-    private boolean mergeOnlyWithAbstractionPresent = true;
+    private boolean mergeOnlyWithAbstractionPresent = false;
 
     @Option(
         secure = true,

@@ -3484,7 +3484,7 @@ cpa.smg2.merge.exclusivelyEqualBlockEnds = false
 
 # Apply merge operator only on states with at least one input state including
 # an abstracted list.
-cpa.smg2.merge.exclusivelyWithAbstractionPresent = true
+cpa.smg2.merge.exclusivelyWithAbstractionPresent = false
 
 # When true, concrete values can be overapproximated when merging, e.g. when
 # merged with a symbolic value, or another, but distinct concrete value.
