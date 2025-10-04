@@ -167,52 +167,6 @@ public final class ValueAnalysisState
     addToConstantsMap(MemoryLocation.parseExtendedQualifiedName(variableName), value, null);
   }
 
-  // Same as assignConstant, but if an variable is already present in the VA State, it does not get
-  // overwritten
-  // Used by extractor component of TestCaseGeneratorAlgorithm
-  //
-  public void assignConstantFromCexpression(CExpression cexpression, Value value) {
-    MemoryLocation pMemoryLocation = null;
-    if (cexpression instanceof CIdExpression cIdExpression) {
-      pMemoryLocation = MemoryLocation.forDeclaration(cIdExpression.getDeclaration());
-    } else if (cexpression instanceof CArraySubscriptExpression cArraySubscriptExpression) {
-      String pIdentifier = getIdFromArrayExpression(cArraySubscriptExpression.getArrayExpression());
-      Optional<Long> pOffset = getOffset(cArraySubscriptExpression.getSubscriptExpression());
-      if (pOffset.isPresent()) { //todo handle
-//        pMemoryLocation = MemoryLocation.forIdentifier(pIdentifier, pOffset.get());
-      }
-    } else {
-      assert (cexpression instanceof CUnaryExpression ||
-          cexpression instanceof CPointerExpression ||
-          cexpression instanceof CFieldReference)
-          : "Unknown Cexpression: " + cexpression.getExpressionType();
-    }
-    if (pMemoryLocation != null &&!this.contains(pMemoryLocation)) {
-      addToConstantsMap(pMemoryLocation, value, null);
-    }
-  }
-
-  private String getIdFromArrayExpression(CExpression arrayExpression){
-    if (arrayExpression instanceof CIdExpression cIdExpression) {
-          return cIdExpression.getDeclaration().getQualifiedName();
-    }
-    assert (arrayExpression instanceof CCastExpression)
-        : "Unknown id arrayExpression: " + arrayExpression.getExpressionType();
-    return null;
-  }
-
-  private  Optional<Long> getOffset(CExpression pCExpression) {
-    Optional<Long> offset = Optional.empty();
-    if (pCExpression instanceof CIntegerLiteralExpression pCIntegerLiteralExpression) {
-        offset = Optional.of(pCIntegerLiteralExpression.asLong());
-    } else if (pCExpression instanceof CIdExpression pCIdExpression) {
-      //todo
-    } else {
-      assert false : "unknown expression type in arrray: " + pCExpression;
-    }
-    return offset;
-  }
-
   private void addToConstantsMap(
       final MemoryLocation pMemLoc, final Value pValue, final @Nullable Type pType) {
 
