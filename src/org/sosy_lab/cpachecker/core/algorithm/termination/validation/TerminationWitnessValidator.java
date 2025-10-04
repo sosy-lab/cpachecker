@@ -173,7 +173,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
     // Check that every candidate invariant is disjunctively well-founded and transition invariant
     for (LoopStructure.Loop loop : loops) {
-      if (loop.getIncomingEdges().isEmpty()) {
+      if (loop.getIncomingEdges().isEmpty() || !loopsToTransitionInvariants.containsKey(loop)) {
         // The loop is not reachable due to prunning in CFA construction
         logger.log(Level.INFO, "A loop is not reachable !");
         continue;
@@ -231,6 +231,7 @@ public class TerminationWitnessValidator implements Algorithm {
       Path validationConfigPath =
           Classes.getCodeLocation(TerminationWitnessValidator.class)
               .resolveSibling("config/witnessValidation.properties");
+      System.out.println(witnessPath);
       Configuration generationConfig =
           CPAMain.createConfiguration(
                   new String[] {
@@ -286,6 +287,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
     for (LoopStructure.Loop loop : pLoops) {
       ImmutableList.Builder<BooleanFormula> builder1 = new ImmutableList.Builder<>();
+      boolean isTrivial = true;
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         if (!invariant.isTransitionInvariant()) {
           if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
@@ -293,13 +295,16 @@ public class TerminationWitnessValidator implements Algorithm {
             try {
               invariantFormula = invariant.getFormula(fmgr, pfmgr, pfmgr.makeEmptyPathFormula());
             } catch (CPATransferException e) {
-              invariantFormula = bfmgr.makeFalse();
+              invariantFormula = bfmgr.makeTrue();
             }
+            isTrivial = false;
             builder1.add(invariantFormula);
           }
         }
       }
-      builder.put(loop, builder1.build());
+      if (!isTrivial) {
+        builder.put(loop, builder1.build());
+      }
     }
     return builder.buildOrThrow();
   }
@@ -312,6 +317,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
     for (LoopStructure.Loop loop : pLoops) {
       BooleanFormula invariantForTheLoop = bfmgr.makeTrue();
+      boolean isTrivial = true;
       PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(loop.getInnerLoopEdges()));
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         if (!invariant.isTransitionInvariant()) {
@@ -330,9 +336,12 @@ public class TerminationWitnessValidator implements Algorithm {
             invariantFormula = bfmgr.makeTrue();
           }
           invariantForTheLoop = bfmgr.and(invariantForTheLoop, invariantFormula);
+          isTrivial = false;
         }
       }
-      builder.put(loop, invariantForTheLoop);
+      if (!isTrivial) {
+        builder.put(loop, invariantForTheLoop);
+      }
     }
     return builder.buildOrThrow();
   }

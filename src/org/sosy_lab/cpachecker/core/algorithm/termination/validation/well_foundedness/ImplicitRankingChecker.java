@@ -95,20 +95,31 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     Set<String> alreadyDeclaredVars = new HashSet<>();
     String varDeclaration;
     for (String variable : cfa.getVarClassification().orElseThrow().getRelevantVariables()) {
+      if (variable.contains("__retval__")) {
+        continue;
+      }
+      String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
       varDeclaration =
           TransitionInvariantUtils.removeFunctionFromVarsName(
               scope.lookupVariable(variable).toString());
-      alreadyDeclaredVars.add(varDeclaration);
       if (!varDeclaration.contains(";")) {
         varDeclaration = varDeclaration + ";";
       }
-      builder.append(varDeclaration + "\n");
+      if (varDeclaration.contains("struct")) {
+        continue;
+      }
+      if (!alreadyDeclaredVars.contains(variableName)) {
+        alreadyDeclaredVars.add(variableName);
+        builder.append(varDeclaration + "\n");
+      }
     }
     for (String variable : mapNamesToVariables.keySet()) {
+      String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
       varDeclaration =
           TransitionInvariantUtils.removeFunctionFromVarsName(
               scope.lookupVariable(variable).toString());
-      if (!alreadyDeclaredVars.contains(varDeclaration)) {
+      if (!alreadyDeclaredVars.contains(variableName)) {
+        alreadyDeclaredVars.add(variableName);
         builder.append(varDeclaration + "\n");
       }
     }
@@ -125,10 +136,12 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     for (BooleanFormula invariant : pSupportingInvariants) {
       loopCondition = loopCondition + " && " + converter.formulaToCExpression(invariant);
       for (String variable : fmgr.extractVariables(invariant).keySet()) {
+        String variableName = TransitionInvariantUtils.removeFunctionFromVarsName(variable);
         varDeclaration =
             TransitionInvariantUtils.removeFunctionFromVarsName(
                 scope.lookupVariable(variable).toString());
-        if (!alreadyDeclaredVars.contains(varDeclaration)) {
+        if (!alreadyDeclaredVars.contains(variableName)) {
+          alreadyDeclaredVars.add(variableName);
           builder.append(varDeclaration + "\n");
         }
       }
