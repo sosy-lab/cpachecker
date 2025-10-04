@@ -114,7 +114,7 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
           new PrecisionExchangeEntry(
               YAMLWitnessExpressionType.C,
               new GlobalPrecisionScope(),
-              PrecisionType.RELEVANT_MEMORY_LOCATIONS,
+              PrecisionType.MEMORY_LOCATIONS,
               globalVariables.build()));
     }
 
@@ -124,7 +124,7 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
           new PrecisionExchangeEntry(
               YAMLWitnessExpressionType.C,
               new FunctionPrecisionScope(functionEntry.getKey()),
-              PrecisionType.RELEVANT_MEMORY_LOCATIONS,
+              PrecisionType.MEMORY_LOCATIONS,
               ImmutableList.copyOf(functionEntry.getValue())));
     }
 

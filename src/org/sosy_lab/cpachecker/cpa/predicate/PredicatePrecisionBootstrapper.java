@@ -397,7 +397,7 @@ public final class PredicatePrecisionBootstrapper {
 
         for (PrecisionExchangeEntry precisionExchangeEntry : pExchangeSetEntry.getContent()) {
           PrecisionScope scope = precisionExchangeEntry.scope();
-          if (precisionExchangeEntry.type() != PrecisionType.PREDICATE) {
+          if (precisionExchangeEntry.type() != PrecisionType.PREDICATES) {
             logger.log(
                 Level.WARNING,
                 "Witness file %s contains a precision exchange entry with type %s, "

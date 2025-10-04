@@ -242,7 +242,7 @@ public final class PredicateMapWriter {
           new PrecisionExchangeEntry(
               witnessExpressionType,
               new GlobalPrecisionScope(),
-              PrecisionType.PREDICATE,
+              PrecisionType.PREDICATES,
               FluentIterable.from(pGlobal)
                   .transform(
                       pFormula ->
@@ -268,7 +268,7 @@ public final class PredicateMapWriter {
                   new PrecisionExchangeEntry(
                       witnessExpressionType,
                       new FunctionPrecisionScope(functionName),
-                      PrecisionType.PREDICATE,
+                      PrecisionType.PREDICATES,
                       FluentIterable.from(pFunction.get(functionName))
                           .transform(
                               pFormula ->
@@ -303,7 +303,7 @@ public final class PredicateMapWriter {
                 new PrecisionExchangeEntry(
                     witnessExpressionType,
                     new FunctionPrecisionScope(functionName),
-                    PrecisionType.PREDICATE,
+                    PrecisionType.PREDICATES,
                     FluentIterable.from(pLocation.get(cfaNode))
                         .transform(
                             pFormula ->
@@ -325,7 +325,7 @@ public final class PredicateMapWriter {
                 new PrecisionExchangeEntry(
                     witnessExpressionType,
                     precisionScope.orElseThrow(),
-                    PrecisionType.PREDICATE,
+                    PrecisionType.PREDICATES,
                     FluentIterable.from(pLocation.get(cfaNode))
                         .transform(
                             pFormula ->

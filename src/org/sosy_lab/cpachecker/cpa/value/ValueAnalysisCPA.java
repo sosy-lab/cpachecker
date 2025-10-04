@@ -272,7 +272,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     CFANode defaultLocation = getDefaultLocation(idToCfaNode);
     for (PrecisionExchangeEntry entry : pEntries) {
       if (entry.format() != YAMLWitnessExpressionType.C
-          || entry.type() != PrecisionType.RELEVANT_MEMORY_LOCATIONS) {
+          || entry.type() != PrecisionType.MEMORY_LOCATIONS) {
         logger.log(
             Level.WARNING,
             "Ignoring unsupported precision entry with type "

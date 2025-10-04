@@ -12,23 +12,23 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum PrecisionType {
-  PREDICATE,
-  RELEVANT_MEMORY_LOCATIONS;
+  PREDICATES,
+  MEMORY_LOCATIONS;
 
   @Override
   @JsonValue
   public String toString() {
     return switch (this) {
-      case PREDICATE -> "predicate";
-      case RELEVANT_MEMORY_LOCATIONS -> "relevant_memory_locations";
+      case PREDICATES -> "predicates";
+      case MEMORY_LOCATIONS -> "memory_locations";
     };
   }
 
   @JsonCreator
   public static PrecisionType fromKeyword(String keyword) {
     return switch (keyword) {
-      case "predicate" -> PREDICATE;
-      case "relevant_memory_locations" -> RELEVANT_MEMORY_LOCATIONS;
+      case "predicates" -> PREDICATES;
+      case "memory_locations" -> MEMORY_LOCATIONS;
       default -> throw new IllegalArgumentException("Unknown keyword: " + keyword);
     };
   }

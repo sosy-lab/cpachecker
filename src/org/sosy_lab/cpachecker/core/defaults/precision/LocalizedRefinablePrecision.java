@@ -115,7 +115,7 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
           new PrecisionExchangeEntry(
               YAMLWitnessExpressionType.C,
               precisionScope.orElseThrow(),
-              PrecisionType.RELEVANT_MEMORY_LOCATIONS,
+              PrecisionType.MEMORY_LOCATIONS,
               relevantVariables.transform(MemoryLocation::asCExpression).toList()));
     }
 
