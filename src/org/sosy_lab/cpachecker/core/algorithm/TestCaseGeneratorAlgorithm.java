@@ -450,7 +450,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
       Value variableValue = new NumericValue(op2.getValue());
       if (!variableValue.isUnknown()) {
-        valueAnalysisState.assignConstant(memLoc, variableValue, null);
+        valueAnalysisState.assignConstant(memLoc, variableValue, op2.getExpressionType());
       }
     } catch (UnrecognizedCodeException e) {
       logger.log(Level.FINE, "No Memorylocation found for CExpression.");
