@@ -44,11 +44,13 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   private static String LONG_LONG_CAST = "((long long)";
   private static String AT_KEYWORD = "\\at(";
   private static String ANY_PREV_KEYWORD = ", AnyPrev)";
+  private boolean exportSupportingInvariants;
 
   public TerminationYAMLWitnessExporter(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger, boolean pExportSupportingInvariants)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
+    exportSupportingInvariants = pExportSupportingInvariants;
   }
 
   private String rightSideOfRankingFunction(String pRankingFunction) {
@@ -171,9 +173,11 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
     for (Loop loop : pTerminationArguments.keySet()) {
       CFANode loopHead = loop.getLoopNodes().first();
       for (TerminationArgument argument : pTerminationArguments.get(loop)) {
-        // First construct reachability invariants that support the termination argument.
-        for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
-          entries.add(processSupportingInvariant(supportingInvariant, loopHead));
+        if (exportSupportingInvariants) {
+          // First construct reachability invariants that support the termination argument.
+          for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
+            entries.add(processSupportingInvariant(supportingInvariant, loopHead));
+          }
         }
 
         // Construct transition invariants from ranking function

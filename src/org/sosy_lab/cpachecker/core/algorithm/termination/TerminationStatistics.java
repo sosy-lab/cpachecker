@@ -164,6 +164,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
       secure = true,
+      name = "exportSupportingInvariantsInWitness",
+      description = "export supporting invariants in the witness")
+  private boolean exportSupportingInvariantsInWitness = true;
+
+  @Option(
+      secure = true,
       name = "violation.witness.dot",
       description = "Export termination counterexample to file as dot/graphviz automaton ")
   @FileOption(Type.OUTPUT_FILE)
@@ -227,7 +233,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               Specification.alwaysSatisfied()
                   .withAdditionalProperties(
                       ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-              pLogger);
+              pLogger,
+              exportSupportingInvariantsInWitness);
     } else {
       terminationWitnessExporter = null;
     }
