@@ -231,7 +231,6 @@ public class TerminationWitnessValidator implements Algorithm {
       Path validationConfigPath =
           Classes.getCodeLocation(TerminationWitnessValidator.class)
               .resolveSibling("config/witnessValidation.properties");
-      System.out.println(witnessPath);
       Configuration generationConfig =
           CPAMain.createConfiguration(
                   new String[] {
