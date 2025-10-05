@@ -179,14 +179,19 @@ public class TerminationWitnessValidator implements Algorithm {
         continue;
       }
       BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
+      ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
+      if (!loopsToSupportingInvariants.containsKey(loop)) {
+        // The loop is not reachable due to prunning in CFA construction
+        supportingInvariants = ImmutableList.of();
+      }
       if (!checkWithInfiniteSpace && hasInfiniteSpace(invariant)) {
         throw new CPAException("The configuration does not support infinite state spaces.");
       }
       // Check the proper well-foundedness of the formula and if it succeeds, check R => T
       if (wellFoundednessChecker.isWellFounded(
-              invariant, loopsToSupportingInvariants.get(loop), loop)
+              invariant, supportingInvariants, loop)
           && isCandidateInvariantTransitionInvariant(
-              loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
+              loop, loopsToTransitionInvariants.get(loop), supportingInvariants)) {
         continue;
       }
 
@@ -195,7 +200,7 @@ public class TerminationWitnessValidator implements Algorithm {
       // And hence, we have to do check R^+ => T
       boolean isWellFounded =
           wellFoundednessChecker.isDisjunctivelyWellFounded(
-              invariant, loopsToSupportingInvariants.get(loop), loop);
+              invariant, supportingInvariants, loop);
       // Our termination analysis might be unsound with respect to C semantics because it assumes
       // infinite state space.
       if (!isWellFounded && wellFoundednessChecker instanceof ImplicitRankingChecker) {
@@ -203,7 +208,7 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       if (!isWellFounded
           || !isCandidateInvariantInductiveTransitionInvariant(
-              loop, loopsToTransitionInvariants.get(loop), loopsToSupportingInvariants.get(loop))) {
+              loop, loopsToTransitionInvariants.get(loop), supportingInvariants)) {
         // The invariant is not disjunctively well-founded
         pReachedSet.addNoWaitlist(
             DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
