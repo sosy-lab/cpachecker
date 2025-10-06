@@ -353,7 +353,7 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
-# add an additional .yml file with metadata such as input file(s) and
+# create additional output file with metadata such as input file(s) and
 # algorithm options?
 analysis.algorithm.MPOR.outputMetadata = true
 

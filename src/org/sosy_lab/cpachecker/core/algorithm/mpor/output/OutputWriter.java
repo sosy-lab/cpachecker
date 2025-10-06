@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.output;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
@@ -26,14 +27,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.metadata.InputFileRecord;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.metadata.MetadataRecord;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.metadata.RootRecord;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-// TODO use records and jackson for exporting .yml metadata
 /** A class to write the sequentialized program to a file. */
 public class OutputWriter {
-
-  private static final int YML_TAB_SIZE = 2;
 
   public enum FileExtension {
     I(".i"),
@@ -138,10 +139,15 @@ public class OutputWriter {
     } catch (IOException e) {
       handleOutputMessage(Level.SEVERE, OutputMessageType.IO_ERROR, e.getMessage());
       throw new RuntimeException();
+
+    } catch (IllegalAccessException e) {
+      handleOutputMessage(Level.SEVERE, OutputMessageType.OPTION_ACCESS_ERROR, e.getMessage());
+      throw new RuntimeException();
     }
   }
 
   private void handleOutputMessage(Level pLevel, OutputMessageType pType, String pMessage) {
+    // TODO if pType is fail, throw assertion error
     logger.log(pLevel, pType.getMessage(), pMessage);
   }
 
@@ -169,7 +175,6 @@ public class OutputWriter {
   private void handleParsing() throws IOException {
     // we only parse the output if type declarations are disabled
     if (options.validateParse && !options.inputTypeDeclarations) {
-
       Path seqPath = Path.of(sequentializationPath);
       try {
         SeqValidator.validateProgramParsing(seqPath, options, shutdownNotifier, logger);
@@ -189,60 +194,44 @@ public class OutputWriter {
     }
   }
 
-  private void handleMetadata(String pMetadataPath) {
+  private void handleMetadata(String pMetadataPath) throws IOException, IllegalAccessException {
     if (options.outputMetadata) {
-      File seqMetadataFile = new File(pMetadataPath);
-      Path path = seqMetadataFile.toPath();
-      try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-        writer.write(createMetadata());
-      } catch (IllegalAccessException e) {
-        handleOutputMessage(Level.SEVERE, OutputMessageType.OPTION_ACCESS_ERROR, e.getMessage());
-        throw new RuntimeException();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      YAMLMapper yamlMapper = new YAMLMapper();
+      File metadataFile = new File(pMetadataPath);
+      RootRecord yamlRoot = buildMetadataYamlRoot(inputFilePaths, options);
+      yamlMapper.writeValue(metadataFile, yamlRoot);
     }
   }
 
-  private String createMetadata() throws IllegalAccessException {
-    StringBuilder rMetadata = new StringBuilder();
-    rMetadata.append("metadata:\n");
-    rMetadata.append(createCPAcheckerVersionEntry());
-    rMetadata.append(createCreationTimeEntry());
-    rMetadata.append(buildYmlTab(1)).append("input_files:\n");
-    for (Path path : inputFilePaths) {
-      rMetadata.append(createInputFileNameEntry(path.getFileName()));
-      rMetadata.append(createInputFilePathEntry(path));
+  private static RootRecord buildMetadataYamlRoot(List<Path> pInputFilePaths, MPOROptions pOptions)
+      throws IllegalAccessException {
+
+    MetadataRecord metadata = buildMetadataRecord(pInputFilePaths);
+    ImmutableMap<String, Object> algorithmOptions = buildAlgorithmOptionMap(pOptions);
+    return new RootRecord(metadata, algorithmOptions);
+  }
+
+  private static MetadataRecord buildMetadataRecord(List<Path> pInputFilePaths) {
+    String utcCreationTime = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+    ImmutableList<InputFileRecord> inputFiles = buildInputFileRecords(pInputFilePaths);
+    return new MetadataRecord(CPAchecker.getPlainVersion(), utcCreationTime, inputFiles);
+  }
+
+  private static ImmutableList<InputFileRecord> buildInputFileRecords(List<Path> pInputFilePaths) {
+    ImmutableList.Builder<InputFileRecord> rInputFileRecords = ImmutableList.builder();
+    for (Path path : pInputFilePaths) {
+      rInputFileRecords.add(new InputFileRecord(path.getFileName().toString(), path.toString()));
     }
-    rMetadata.append("\n");
-    rMetadata.append("algorithm_options:\n");
-    for (Field field : options.getClass().getDeclaredFields()) {
-      rMetadata.append(buildYmlTab(1)).append(field.getName()).append(": ");
-      rMetadata.append(field.get(options)).append("\n");
+    return rInputFileRecords.build();
+  }
+
+  private static ImmutableMap<String, Object> buildAlgorithmOptionMap(MPOROptions pOptions)
+      throws IllegalAccessException {
+
+    ImmutableMap.Builder<String, Object> rMap = ImmutableMap.builder();
+    for (Field field : pOptions.getClass().getDeclaredFields()) {
+      rMap.put(field.getName(), field.get(pOptions));
     }
-    return rMetadata.toString();
-  }
-
-  private String createCPAcheckerVersionEntry() {
-    return buildYmlTab(1) + "cpachecker_version: " + CPAchecker.getPlainVersion() + "\n";
-  }
-
-  private String createCreationTimeEntry() {
-    Instant now = Instant.now(); // retrieve current UTC time
-    String date = DateTimeFormatter.ISO_INSTANT.format(now); // format in ISO 8601
-    return buildYmlTab(1) + "utc_creation_time: " + date + "\n";
-  }
-
-  private String createInputFileNameEntry(Path pFileName) {
-    return buildYmlTab(1) + "- name: " + pFileName + "\n";
-  }
-
-  private String createInputFilePathEntry(Path pPath) {
-    return buildYmlTab(2) + "path: " + pPath + "\n";
-  }
-
-  private static String buildYmlTab(int pTabs) {
-    checkArgument(pTabs >= 0, "pTabs must be >= 0");
-    return " ".repeat(YML_TAB_SIZE).repeat(pTabs);
+    return rMap.build();
   }
 }
