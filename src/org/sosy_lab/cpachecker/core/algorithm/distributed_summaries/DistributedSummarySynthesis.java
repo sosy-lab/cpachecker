@@ -173,7 +173,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       // create blockGraph and reduce to relevant parts
       BlockGraph blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
       if (decompositionOptions.generateBlockGraphOnly()) {
-//        TODO: Export block graph with CFA nodes starting 0
         blockGraph.export(decompositionOptions.getBlockCFAFile(), initialCFA);
         logger.logf(
             Level.INFO, "Block graph exported to %s.", decompositionOptions.getBlockCFAFile());

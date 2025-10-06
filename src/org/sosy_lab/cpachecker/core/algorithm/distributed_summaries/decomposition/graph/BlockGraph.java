@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
