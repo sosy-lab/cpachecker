@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.output.OutputWriter;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatStyle;
@@ -196,7 +196,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description =
           "the path to output the sequentialization and metadata to. (\"output/\" by default)")
-  private String outputPath = OutputWriter.DEFAULT_OUTPUT_PATH;
+  private String outputPath = MPORWriter.DEFAULT_OUTPUT_PATH;
 
   @Option(
       secure = true,
@@ -286,9 +286,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String program = sequentialization.toString();
     String formattedProgram =
         options.formatCode ? ClangFormatter.format(program, options.formatStyle, logger) : program;
-    OutputWriter outputWriter =
-        new OutputWriter(shutdownNotifier, logger, outputFileName, cfa.getFileNames(), options);
-    outputWriter.write(formattedProgram);
+    MPORWriter.write(
+        options, formattedProgram, outputFileName, cfa.getFileNames(), shutdownNotifier, logger);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 

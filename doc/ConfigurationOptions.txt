@@ -359,7 +359,7 @@ analysis.algorithm.MPOR.outputMetadata = true
 
 # the path to output the sequentialization and metadata to. ("output/" by
 # default)
-analysis.algorithm.MPOR.outputPath = OutputWriter.DEFAULT_OUTPUT_PATH
+analysis.algorithm.MPOR.outputPath = MPORWriter.DEFAULT_OUTPUT_PATH
 
 # overwrite files in the ./output directory when creating sequentializations?
 analysis.algorithm.MPOR.overwriteFiles = true

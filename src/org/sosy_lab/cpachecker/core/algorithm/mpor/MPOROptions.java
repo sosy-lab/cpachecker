@@ -18,7 +18,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.output.OutputWriter;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.output.MPORWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatStyle;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
@@ -223,7 +223,7 @@ public class MPOROptions {
         false,
         NondeterminismSource.NUM_STATEMENTS,
         true,
-        OutputWriter.DEFAULT_OUTPUT_PATH,
+        MPORWriter.DEFAULT_OUTPUT_PATH,
         true,
         true,
         false,
@@ -298,7 +298,7 @@ public class MPOROptions {
         pNondeterminismSigned,
         pNondeterminismSource,
         false,
-        OutputWriter.DEFAULT_OUTPUT_PATH,
+        MPORWriter.DEFAULT_OUTPUT_PATH,
         false,
         // always prune empty, disabling is only for debugging, not for release
         true,
