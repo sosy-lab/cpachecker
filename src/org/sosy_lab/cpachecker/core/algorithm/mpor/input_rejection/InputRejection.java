@@ -50,9 +50,9 @@ public class InputRejection {
     RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
     UNSUPPORTED_FUNCTION("MPOR does not support the function in line ", true);
 
-    public final String message;
+    final String message;
 
-    private final boolean containsLineAndCode;
+    final boolean containsLineAndCode;
 
     InputRejectionMessage(String pMessage, boolean pContainsLineAndCode) {
       message = pMessage;

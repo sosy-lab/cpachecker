@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.output;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -29,8 +29,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
+// TODO use records and jackson for exporting .yml metadata
 /** A class to write the sequentialized program to a file. */
-public class SeqWriter {
+public class OutputWriter {
 
   private static final int YML_TAB_SIZE = 2;
 
@@ -45,20 +46,40 @@ public class SeqWriter {
     }
   }
 
-  private enum OutputError {
-    IO("MPOR FAIL. An IO error occurred while writing the outputProgram:"),
-    NO_OVERWRITING("MPOR FAIL. File exists already:"),
-    OPTIONS_ILLEGAL_ACCESS("MPOR FAIL. Could not retrieve MPOROptions fields:"),
-    TARGET_DIR("MPOR FAIL. Could not create target directory:");
+  private enum OutputMessagePrefix {
+    FAIL("MPOR FAIL. "),
+    INFO("MPOR INFO. "),
+    SUCCESS("MPOR SUCCESS. ");
 
-    final String message;
+    final String string;
 
-    OutputError(String pMessage) {
-      message = pMessage;
+    OutputMessagePrefix(String pString) {
+      string = pString;
     }
   }
 
-  private static final String SUCCESS = "MPOR SUCCESS. Sequentialization created in:";
+  private enum OutputMessageType {
+    DIRECTORY_CREATED(OutputMessagePrefix.INFO, "Directory created:"),
+    IO_ERROR(OutputMessagePrefix.FAIL, "An IO error occurred while writing the output program:"),
+    OPTION_ACCESS_ERROR(OutputMessagePrefix.FAIL, "Could not access algorithm option fields:"),
+    OVERWRITE_ERROR(OutputMessagePrefix.FAIL, "File exists already:"),
+    PARSE_ERROR(OutputMessagePrefix.FAIL, "Error while parsing sequentialization:"),
+    SEQUENTIALIZATION_CREATED(OutputMessagePrefix.SUCCESS, "Sequentialization created in:"),
+    TARGET_DIRECTORY_ERROR(OutputMessagePrefix.FAIL, "Could not create target directory:");
+
+    final OutputMessagePrefix prefix;
+
+    final String suffix;
+
+    OutputMessageType(OutputMessagePrefix pPrefix, String pSuffix) {
+      prefix = pPrefix;
+      suffix = pSuffix;
+    }
+
+    String getMessage() {
+      return prefix.string + suffix;
+    }
+  }
 
   public static final String DEFAULT_OUTPUT_PATH = "output/";
 
@@ -74,7 +95,7 @@ public class SeqWriter {
 
   private final String metadataPath;
 
-  public SeqWriter(
+  public OutputWriter(
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger,
       String pSeqName,
@@ -109,32 +130,38 @@ public class SeqWriter {
         if (options.validateParse && !options.inputTypeDeclarations) {
           handleParsing();
         } else {
-          logger.log(Level.INFO, SUCCESS, sequentializationPath);
+          handleOutputMessage(
+              Level.INFO, OutputMessageType.SEQUENTIALIZATION_CREATED, sequentializationPath);
         }
       }
 
     } catch (IOException e) {
-      logger.log(Level.SEVERE, OutputError.IO.message, e.getMessage());
+      handleOutputMessage(Level.SEVERE, OutputMessageType.IO_ERROR, e.getMessage());
       throw new RuntimeException();
     }
   }
 
+  private void handleOutputMessage(Level pLevel, OutputMessageType pType, String pMessage) {
+    logger.log(pLevel, pType.getMessage(), pMessage);
+  }
+
   private void handleDirectoryCreation(File pParentDir) {
     if (!pParentDir.exists()) {
+      String outputPath = options.outputPath;
       if (pParentDir.mkdirs()) {
-        logger.log(Level.INFO, "Directory created: " + options.outputPath);
+        handleOutputMessage(Level.INFO, OutputMessageType.DIRECTORY_CREATED, outputPath);
       } else {
-        logger.log(Level.SEVERE, OutputError.TARGET_DIR.message, options.outputPath);
+        handleOutputMessage(Level.SEVERE, OutputMessageType.TARGET_DIRECTORY_ERROR, outputPath);
         throw new RuntimeException();
       }
     }
   }
 
-  private void handleOverwriting(File pSeqProgramFile) throws IOException {
+  private void handleOverwriting(File pOutputProgramFile) throws IOException {
     // ensure the file does not exist already (if overwriteFiles is false)
-    if (!pSeqProgramFile.createNewFile() && !options.overwriteFiles) {
-      logger.log(
-          Level.SEVERE, OutputError.NO_OVERWRITING.message, pSeqProgramFile.getAbsolutePath());
+    if (!pOutputProgramFile.createNewFile() && !options.overwriteFiles) {
+      handleOutputMessage(
+          Level.SEVERE, OutputMessageType.OVERWRITE_ERROR, pOutputProgramFile.getAbsolutePath());
       throw new RuntimeException();
     }
   }
@@ -146,13 +173,14 @@ public class SeqWriter {
       Path seqPath = Path.of(sequentializationPath);
       try {
         SeqValidator.validateProgramParsing(seqPath, options, shutdownNotifier, logger);
-        logger.log(Level.INFO, SUCCESS, sequentializationPath);
+        handleOutputMessage(
+            Level.INFO, OutputMessageType.SEQUENTIALIZATION_CREATED, sequentializationPath);
 
       } catch (InvalidConfigurationException | ParserException | InterruptedException e) {
         // delete output again if parsing fails
         Files.delete(seqPath);
         Files.delete(Path.of(metadataPath));
-        logger.log(Level.SEVERE, "Error while parsing sequentialization:", e.getMessage());
+        handleOutputMessage(Level.SEVERE, OutputMessageType.PARSE_ERROR, e.getMessage());
         throw new RuntimeException(e.getMessage());
 
       } catch (IOException e) {
@@ -168,7 +196,7 @@ public class SeqWriter {
       try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
         writer.write(createMetadata());
       } catch (IllegalAccessException e) {
-        logger.log(Level.SEVERE, OutputError.OPTIONS_ILLEGAL_ACCESS.message, e);
+        handleOutputMessage(Level.SEVERE, OutputMessageType.OPTION_ACCESS_ERROR, e.getMessage());
         throw new RuntimeException();
       } catch (IOException e) {
         throw new RuntimeException(e);
