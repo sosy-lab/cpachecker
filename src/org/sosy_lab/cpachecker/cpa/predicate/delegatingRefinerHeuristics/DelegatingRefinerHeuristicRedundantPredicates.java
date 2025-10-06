@@ -143,7 +143,10 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     Multiset.Entry<String> dominantPattern = getMostFrequent(pPatternFrequency);
     if (dominantPattern != null) {
       logger.logf(
-          Level.FINEST, "Dominant pattern is %s for %s.", dominantPattern, pPatternFrequency.size());
+          Level.FINEST,
+          "Dominant pattern is %s for %s.",
+          dominantPattern,
+          pPatternFrequency.size());
     }
   }
 

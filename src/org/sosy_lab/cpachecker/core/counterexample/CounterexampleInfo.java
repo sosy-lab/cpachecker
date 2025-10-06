@@ -46,6 +46,7 @@ public class CounterexampleInfo extends AbstractAppender {
 
   private final boolean spurious;
   private final boolean isPreciseCounterExample;
+  private final boolean shouldTerminateRefinement;
 
   private final ARGPath targetPath;
 
@@ -64,12 +65,23 @@ public class CounterexampleInfo extends AbstractAppender {
       CFAPathWithAssumptions pAssignments,
       boolean pIsPreciseCEX,
       CFAPathWithAdditionalInfo pAdditionalInfo) {
+    this(pSpurious, pTargetPath, pAssignments, pIsPreciseCEX, pAdditionalInfo, false);
+  }
+
+  protected CounterexampleInfo(
+      boolean pSpurious,
+      ARGPath pTargetPath,
+      CFAPathWithAssumptions pAssignments,
+      boolean pIsPreciseCEX,
+      CFAPathWithAdditionalInfo pAdditionalInfo,
+      boolean pShouldTerminateRefinement) {
     uniqueId = ID_GENERATOR.getFreshId();
     spurious = pSpurious;
     targetPath = pTargetPath;
     assignments = pAssignments;
     additionalInfo = pAdditionalInfo;
     isPreciseCounterExample = pIsPreciseCEX;
+    shouldTerminateRefinement = pShouldTerminateRefinement;
 
     if (!spurious) {
       furtherInfo = new ArrayList<>(1);
@@ -80,6 +92,15 @@ public class CounterexampleInfo extends AbstractAppender {
 
   public static CounterexampleInfo spurious() {
     return SPURIOUS;
+  }
+
+  public static CounterexampleInfo giveUp(ARGPath dummyPath) {
+    return new CounterexampleInfo(
+        true, dummyPath, null, false, CFAPathWithAdditionalInfo.empty(), true);
+  }
+
+  public boolean shouldTerminateRefinement() {
+    return shouldTerminateRefinement;
   }
 
   public int getUniqueId() {

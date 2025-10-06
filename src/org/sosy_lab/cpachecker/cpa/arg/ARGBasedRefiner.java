@@ -32,12 +32,4 @@ public interface ARGBasedRefiner {
    */
   CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException;
-
-  /**
-   * Indicates whether a refiner should continue refinement. The default is true, but a
-   * PredicateStopRefiner can override this to return false.
-   */
-  default boolean continueRefinement() {
-    return true;
-  }
 }

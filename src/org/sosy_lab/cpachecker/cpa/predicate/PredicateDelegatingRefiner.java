@@ -32,17 +32,22 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
   private final ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners;
   private final LogManager logger;
+  private boolean shouldTerminate;
 
   public PredicateDelegatingRefiner(
       ImmutableList<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords,
       final LogManager pLogger) {
     this.pRefiners = ImmutableList.copyOf(pHeuristicRefinerRecords);
     this.logger = pLogger;
+    shouldTerminate = false;
   }
 
   @Override
   public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
+    if (shouldTerminate) {
+      return CounterexampleInfo.giveUp(pPath);
+    }
 
     UnmodifiableReachedSet reachedSet = pReached.asReachedSet();
     // The reachedSet comes as a UnmodifiableReachedSetWrapper and needs to be unwrapped to expose
@@ -65,13 +70,22 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
     for (HeuristicDelegatingRefinerRecord pRecord : pRefiners) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
+
       if (pHeuristic.fulfilled(reachedSet, deltaSequence)) {
         logger.logf(
-            Level.FINE,
+            Level.INFO,
             "Heuristic %s matched for refiner %s.",
             pHeuristic.getClass().getSimpleName(),
             pRecord.pRefiner().getClass().getSimpleName());
-        return pRecord.pRefiner().performRefinementForPath(pReached, pPath);
+
+        CounterexampleInfo refinementResult =
+            pRecord.pRefiner().performRefinementForPath(pReached, pPath);
+
+        if (refinementResult.shouldTerminateRefinement()) {
+          shouldTerminate = true;
+          return refinementResult;
+        }
+        return refinementResult;
       }
     }
 

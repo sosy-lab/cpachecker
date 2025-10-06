@@ -16,20 +16,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * A refiner that's only job is to stop the current refinement. Intended for use with the
- * DelegatingRefiner as the refiner when all other refiner-heuristic pairs failed.
+ * DelegatingRefiner and the DelegatingRefinerHeuristicStopHeuristic as the refiner when all other
+ * refiner-heuristic pairs failed.
  */
 public class PredicateStopRefiner implements ARGBasedRefiner {
-
   public PredicateStopRefiner() {}
 
   @Override
   public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
-    return CounterexampleInfo.spurious();
-  }
-
-  @Override
-  public boolean continueRefinement() {
-    return false;
+    return CounterexampleInfo.giveUp(pPath);
   }
 }
