@@ -852,8 +852,7 @@ public class InstrumentationAutomaton {
     InstrumentationState q1 =
         new InstrumentationState("q1", StateAnnotation.FUNCTIONHEADFORLOOP, this);
     InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
-    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.LOOPHEAD, this);
-    InstrumentationState q4 = new InstrumentationState("q4", StateAnnotation.FALSE, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
     this.initialState = q1;
 
     InstrumentationTransition t1 =
@@ -883,7 +882,20 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                "pc = "
+                "if (saved == 0) {pc_INSTR = pc"
+                    + (!liveVariablesAndTypes.isEmpty() ? " ; " : "")
+                    + liveVariablesAndTypes.entrySet().stream()
+                        .map(
+                            (entry) ->
+                                getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey()
+                                    + "_INSTR"
+                                    + " = "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey())
+                        .collect(Collectors.joining(";"))
+                    + ";}\\n"
+                    + " pc = "
                     + pIndex
                     + "; "
                     + "if(__VERIFIER_nondet_int() && saved"
@@ -920,32 +932,12 @@ public class InstrumentationAutomaton {
             q3);
     InstrumentationTransition t3 =
         new InstrumentationTransition(
-            q2,
-            new InstrumentationPattern("[cond]"),
-            new InstrumentationOperation(
-                "if (saved == 0) {pc_INSTR = pc"
-                    + (!liveVariablesAndTypes.isEmpty() ? " ; " : "")
-                    + liveVariablesAndTypes.entrySet().stream()
-                        .map(
-                            (entry) ->
-                                getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey()
-                                    + "_INSTR"
-                                    + " = "
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey())
-                        .collect(Collectors.joining(";"))
-                    + ";}"),
-            InstrumentationOrder.BEFORE,
-            q4);
-    InstrumentationTransition t4 =
-        new InstrumentationTransition(
-            q4,
+            q3,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(""),
             InstrumentationOrder.AFTER,
-            q4);
-    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3, t4);
+            q3);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
   }
 
   private void constructOneStepReachabilityAutomaton(int pIndex) {
