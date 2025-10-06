@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,14 +60,14 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      ImmutableMap<Integer, CFANode> pIdToNodeMap)
+      BiMap<Integer, CFANode> pIdToNodeMap)
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
-        new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
+        new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager(), pIdToNodeMap.inverse());
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), pIdToNodeMap::get);

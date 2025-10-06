@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -49,14 +50,14 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   private final BlockNode node;
 
   public DistributedLocationCPA(
-      LocationCPA pLocationCPA, BlockNode pNode, Map<Integer, CFANode> pNodes) {
+      LocationCPA pLocationCPA, BlockNode pNode, BiMap<Integer, CFANode> pNodes) {
     locationCPA = pLocationCPA;
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
     proceedOperator = ProceedOperator.always();
     coverageOperator = new LocationStateCoverageOperator();
     combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
-    serializeOperator = new SerializeLocationStateOperator();
+    serializeOperator = new SerializeLocationStateOperator(pNodes.inverse());
     deserializeOperator = new DeserializeLocationState(locationCPA.getStateFactory(), pNodes);
     violationConditionOperator =
         new BackwardTransferViolationConditionOperator(

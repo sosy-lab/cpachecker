@@ -84,7 +84,8 @@ public class CPAchecker {
     private final ShutdownManager shutdownManager;
 
     CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
-      super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
+      super("org.sosy_lab.cpachecker:type=CPAchecker,name=Thread-" + Thread.currentThread()
+          .threadId(), logger);
       reached = pReached;
       shutdownManager = pShutdownManager;
     }
@@ -107,22 +108,34 @@ public class CPAchecker {
   private boolean stopAfterError = true;
 
   public enum InitialStatesFor {
-    /** Function entry node of the entry function */
+    /**
+     * Function entry node of the entry function
+     */
     ENTRY,
 
-    /** Set of function entry nodes of all functions. */
+    /**
+     * Set of function entry nodes of all functions.
+     */
     FUNCTION_ENTRIES,
 
-    /** All locations that are possible targets of the analysis. */
+    /**
+     * All locations that are possible targets of the analysis.
+     */
     TARGET,
 
-    /** Function exit node of the entry function. */
+    /**
+     * Function exit node of the entry function.
+     */
     EXIT,
 
-    /** All function exit nodes of all functions and all loop heads of endless loops. */
+    /**
+     * All function exit nodes of all functions and all loop heads of endless loops.
+     */
     FUNCTION_SINKS,
 
-    /** All function exit nodes of the entry function, and all loop heads of endless loops. */
+    /**
+     * All function exit nodes of the entry function, and all loop heads of endless loops.
+     */
     PROGRAM_SINKS
   }
 
@@ -301,9 +314,9 @@ public class CPAchecker {
       return run0(cfa, stats);
 
     } catch (InvalidConfigurationException
-        | ParserException
-        | IOException
-        | InterruptedException e) {
+             | ParserException
+             | IOException
+             | InterruptedException e) {
       logErrorMessage(e, logger);
       return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
     } finally {
@@ -424,15 +437,13 @@ public class CPAchecker {
     StringBuilder msg = new StringBuilder();
     msg.append("Please make sure that the code can be compiled by a compiler.\n");
     switch (e.getLanguage()) {
-      case C ->
-          msg.append(
-              """
+      case C -> msg.append(
+          """
               If the code was not preprocessed, please use a C preprocessor
               or specify the --preprocess command-line argument.
               """);
-      case LLVM ->
-          msg.append(
-              """
+      case LLVM -> msg.append(
+          """
               If you want to use the LLVM frontend, please make sure that
               the code can be compiled by clang or input valid LLVM code.
               """);
@@ -442,9 +453,9 @@ public class CPAchecker {
     }
     msg.append(
         """
-        If the error still occurs, please send this error message
-        together with the input file to cpachecker-users@googlegroups.com.
-        """);
+            If the error still occurs, please send this error message
+            together with the input file to cpachecker-users@googlegroups.com.
+            """);
     pLogger.log(Level.INFO, msg);
   }
 
@@ -588,8 +599,8 @@ public class CPAchecker {
     for (CFANode loc : pLocations) {
       StateSpacePartition putIntoPartition =
           partitionInitialStates
-              ? StateSpacePartition.getPartitionWithKey(pPartitionKey)
-              : StateSpacePartition.getDefaultPartition();
+          ? StateSpacePartition.getPartitionWithKey(pPartitionKey)
+          : StateSpacePartition.getDefaultPartition();
 
       AbstractState initialState = pCpa.getInitialState(loc, putIntoPartition);
       Precision initialPrecision = pCpa.getInitialPrecision(loc, putIntoPartition);
@@ -623,23 +634,20 @@ public class CPAchecker {
               yield Optionals.asSet(pAnalysisEntryFunction.getExitNode());
             }
             case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.entryNodes());
-            case FUNCTION_SINKS ->
-                ImmutableSet.<CFANode>builder()
-                    .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
-                    .addAll(getAllFunctionExitNodes(pCfa))
-                    .build();
-            case PROGRAM_SINKS ->
-                ImmutableSet.<CFANode>builder()
-                    .addAll(
-                        CFAUtils.getProgramSinks(
-                            pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
-                    .build();
-            case TARGET ->
-                new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
-                    .tryGetAutomatonTargetLocations(
-                        pAnalysisEntryFunction,
-                        Specification.fromFiles(
-                            backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
+            case FUNCTION_SINKS -> ImmutableSet.<CFANode>builder()
+                .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
+                .addAll(getAllFunctionExitNodes(pCfa))
+                .build();
+            case PROGRAM_SINKS -> ImmutableSet.<CFANode>builder()
+                .addAll(
+                    CFAUtils.getProgramSinks(
+                        pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+                .build();
+            case TARGET -> new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
+                .tryGetAutomatonTargetLocations(
+                    pAnalysisEntryFunction,
+                    Specification.fromFiles(
+                        backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
           };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }

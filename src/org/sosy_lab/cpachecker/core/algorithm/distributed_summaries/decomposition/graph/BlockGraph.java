@@ -31,9 +31,11 @@ import java.util.Map;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.StronglyConnectedComponents;
@@ -180,9 +182,9 @@ public class BlockGraph {
   }
 
   private static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>
-      findLoopPredecessors(
-          BlockNodeWithoutGraphInformation pRoot,
-          Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
+  findLoopPredecessors(
+      BlockNodeWithoutGraphInformation pRoot,
+      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> predecessors =
         ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodeToBlockNodes =
@@ -199,8 +201,12 @@ public class BlockGraph {
     return predecessors;
   }
 
-  public void export(Path blockCFAFile) throws IOException {
+  public void export(Path blockCFAFile, CFA cfa) throws IOException {
     Map<String, Map<String, Object>> treeMap = new HashMap<>();
+    int minCfaNodeNumber = cfa.nodes().stream()
+        .mapToInt(CFANode::getNodeNumber)
+        .min()
+        .getAsInt();
     getNodes()
         .forEach(
             n -> {
@@ -214,13 +220,15 @@ public class BlockGraph {
                       n.getEdges(),
                       e ->
                           ImmutableList.of(
-                              e.getPredecessor().getNodeNumber(),
-                              e.getSuccessor().getNodeNumber())));
-              attributes.put("startNode", n.getInitialLocation().getNodeNumber());
-              attributes.put("endNode", n.getFinalLocation().getNodeNumber());
+                              e.getPredecessor().getNodeNumber() - minCfaNodeNumber,
+                              e.getSuccessor().getNodeNumber() - minCfaNodeNumber)));
+              attributes.put("startNode",
+                  n.getInitialLocation().getNodeNumber() - minCfaNodeNumber);
+              attributes.put("endNode", n.getFinalLocation().getNodeNumber() - minCfaNodeNumber);
               attributes.put("loopPredecessors", n.getLoopPredecessorIds());
               attributes.put(
-                  "abstractionLocation", n.getViolationConditionLocation().getNodeNumber());
+                  "abstractionLocation",
+                  n.getViolationConditionLocation().getNodeNumber() - minCfaNodeNumber);
               treeMap.put(n.getId(), attributes);
             });
     JSON.writeJSONString(treeMap, blockCFAFile);
@@ -233,4 +241,21 @@ public class BlockGraph {
         + nodes.stream().map(BlockNode::getId).collect(Collectors.joining(", "))
         + '}';
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof BlockGraph other)) {
+      return false;
+    }
+    return nodes.equals(other.nodes);
+  }
+
+  @Override
+  public int hashCode() {
+    return nodes.hashCode();
+  }
+
 }

@@ -43,16 +43,18 @@ public class ImportDecomposition implements DssBlockDecomposition {
     }
   }
 
-  private String edgeToString(CFAEdge edge) {
-    return edge.getPredecessor().getNodeNumber() + " " + edge.getSuccessor().getNodeNumber();
+  private String edgeToString(CFAEdge edge, int minNodeId) {
+    return (edge.getPredecessor().getNodeNumber() - minNodeId) + " " + (edge.getSuccessor().getNodeNumber() - minNodeId);
   }
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
     ImmutableSet.Builder<BlockNodeWithoutGraphInformation> nodes =
         ImmutableSet.builderWithExpectedSize(blocks.size());
-    Map<Integer, CFANode> nodeIdMap = Maps.uniqueIndex(cfa.nodes(), CFANode::getNodeNumber);
-    Map<String, CFAEdge> edgeIdsMap = Maps.uniqueIndex(cfa.edges(), this::edgeToString);
+    int minCfaNodeNumber = cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().getAsInt();
+    Map<Integer, CFANode> nodeIdMap = Maps.uniqueIndex(cfa.nodes(), (n) -> n.getNodeNumber() - minCfaNodeNumber);
+    Map<String, CFAEdge> edgeIdsMap = Maps.uniqueIndex(cfa.edges(), (e) -> edgeToString(e, minCfaNodeNumber));
+
     for (Entry<String, ImportedBlock> importedBlock : blocks.entrySet()) {
       FluentIterable<List<Integer>> edges = FluentIterable.from(importedBlock.getValue().edges());
       ImmutableSet<CFANode> cfaNodes =

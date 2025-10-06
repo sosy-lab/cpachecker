@@ -12,7 +12,11 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -65,6 +69,15 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     SINGLE_WORKER
   }
 
+//  private record ModifiedBlockGraphKey(CFA cfa, BlockGraph blockGraph) {
+//      ModifiedBlockGraphKey {
+//          Objects.requireNonNull(cfa);
+//          Objects.requireNonNull(blockGraph);
+//      }
+//  }
+
+  private static final Map<BlockGraph, Modification> modifiedBlockGraphCache = new HashMap<>();
+
   public DistributedSummarySynthesis(
       Configuration pConfig,
       LogManager pLogger,
@@ -102,27 +115,38 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   private Modification modifyBlockGraph(BlockGraph blockGraph) {
     dssStats.getInstrumentationTimer().start();
-    Modification modification =
-        BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
-    dssStats.getInstrumentationTimer().stop();
-    ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
-    dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
-    if (!abstractionDeadEnds.isEmpty() && !decompositionOptions.allowMissingAbstractionNodes()) {
-      for (BlockNode node : blockGraph.getRoots()) {
-        if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
-          throw new AssertionError(
-              "Direct successors of the root node are required to have an abstraction"
-                  + " location.");
+//    ModifiedBlockGraphKey key = new ModifiedBlockGraphKey(initialCFA, blockGraph);
+    synchronized (modifiedBlockGraphCache) {
+      if (modifiedBlockGraphCache.containsKey(blockGraph)) {
+        logger.logf(Level.INFO, "Using cached modified block graph.");
+        dssStats.getInstrumentationTimer().stop();
+        return modifiedBlockGraphCache.get(blockGraph);
+      }
+      Modification modification =
+          BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
+      modifiedBlockGraphCache.put(blockGraph, modification);
+
+
+      dssStats.getInstrumentationTimer().stop();
+      ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
+      dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
+      if (!abstractionDeadEnds.isEmpty() && !decompositionOptions.allowMissingAbstractionNodes()) {
+        for (BlockNode node : blockGraph.getRoots()) {
+          if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
+            throw new AssertionError(
+                "Direct successors of the root node are required to have an abstraction"
+                    + " location.");
+          }
         }
       }
+      if (!abstractionDeadEnds.isEmpty()) {
+        logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
+      }
+      for (BlockNode node : modification.blockGraph().getNodes()) {
+        dssStats.getAverageNumberOfEdges().setNextValue(node.getEdges().size());
+      }
+      return modification;
     }
-    if (!abstractionDeadEnds.isEmpty()) {
-      logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
-    }
-    for (BlockNode node : modification.blockGraph().getNodes()) {
-      dssStats.getAverageNumberOfEdges().setNextValue(node.getEdges().size());
-    }
-    return modification;
   }
 
   private AlgorithmStatus interpretResult(StatusAndResult statusAndResult, ReachedSet reachedSet) {
@@ -149,7 +173,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       // create blockGraph and reduce to relevant parts
       BlockGraph blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
       if (decompositionOptions.generateBlockGraphOnly()) {
-        blockGraph.export(decompositionOptions.getBlockCFAFile());
+//        TODO: Export block graph with CFA nodes starting 0
+        blockGraph.export(decompositionOptions.getBlockCFAFile(), initialCFA);
         logger.logf(
             Level.INFO, "Block graph exported to %s.", decompositionOptions.getBlockCFAFile());
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
