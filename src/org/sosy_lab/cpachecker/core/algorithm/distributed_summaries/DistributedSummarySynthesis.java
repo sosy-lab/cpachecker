@@ -15,8 +15,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -69,13 +67,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     SINGLE_WORKER
   }
 
-//  private record ModifiedBlockGraphKey(CFA cfa, BlockGraph blockGraph) {
-//      ModifiedBlockGraphKey {
-//          Objects.requireNonNull(cfa);
-//          Objects.requireNonNull(blockGraph);
-//      }
-//  }
-
+  // Cache is static because it is shared between different instances of DistributedSummarySynthesis
   private static final Map<BlockGraph, Modification> modifiedBlockGraphCache = new HashMap<>();
 
   public DistributedSummarySynthesis(
@@ -115,7 +107,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   private Modification modifyBlockGraph(BlockGraph blockGraph) {
     dssStats.getInstrumentationTimer().start();
-//    ModifiedBlockGraphKey key = new ModifiedBlockGraphKey(initialCFA, blockGraph);
     synchronized (modifiedBlockGraphCache) {
       if (modifiedBlockGraphCache.containsKey(blockGraph)) {
         logger.logf(Level.INFO, "Using cached modified block graph.");
@@ -125,7 +116,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       Modification modification =
           BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
       modifiedBlockGraphCache.put(blockGraph, modification);
-
 
       dssStats.getInstrumentationTimer().stop();
       ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();

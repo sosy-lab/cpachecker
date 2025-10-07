@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location;
 
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

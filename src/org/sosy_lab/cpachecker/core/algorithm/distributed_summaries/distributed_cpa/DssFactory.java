@@ -63,13 +63,13 @@ public class DssFactory {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
 
-    int minNodeNumber = integerToNodeMap.keySet().stream()
-        .min(Integer::compareTo).get();
+    int minCfaNodeNumber = integerToNodeMap.keySet().stream().min(Integer::compareTo).get();
 
+    // All node IDs are shifted such that they start from 0
     BiMap<Integer, CFANode> resetNodeIds = HashBiMap.create();
 
     for (Map.Entry<Integer, CFANode> entry : integerToNodeMap.entrySet()) {
-      int index = entry.getKey() - minNodeNumber;
+      int index = entry.getKey() - minCfaNodeNumber;
       resetNodeIds.put(index, entry.getValue());
     }
 
@@ -84,8 +84,7 @@ public class DssFactory {
               pLogManager,
               pShutdownNotifier,
               resetNodeIds);
-      case CallstackCPA callstackCPA ->
-          distribute(callstackCPA, pBlockNode, pCFA, resetNodeIds);
+      case CallstackCPA callstackCPA -> distribute(callstackCPA, pBlockNode, pCFA, resetNodeIds);
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
       case ARGCPA argCPA ->

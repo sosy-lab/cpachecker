@@ -34,8 +34,7 @@ public class ImportDecomposition implements DssBlockDecomposition {
     ObjectMapper objectMapper = new ObjectMapper();
     blocks =
         objectMapper.readValue(
-            pImportFile.toFile(), new TypeReference<Map<String, ImportedBlock>>() {
-            });
+            pImportFile.toFile(), new TypeReference<Map<String, ImportedBlock>>() {});
     for (ImportedBlock value : blocks.values()) {
       if (value.edges().stream().anyMatch(e -> e.size() != 2)) {
         throw new IllegalArgumentException(
@@ -44,9 +43,15 @@ public class ImportDecomposition implements DssBlockDecomposition {
     }
   }
 
+  // All node IDs are shifted such that they start from 0
+  private int shiftedNodeNumber(int originalNodeNumber, int shift) {
+    return originalNodeNumber - shift;
+  }
+
   private String edgeToString(CFAEdge edge, int minCfaNodeNumber) {
-    return (edge.getPredecessor().getNodeNumber() - minCfaNodeNumber) + " " + (
-        edge.getSuccessor().getNodeNumber() - minCfaNodeNumber);
+    return shiftedNodeNumber(edge.getPredecessor().getNodeNumber(), minCfaNodeNumber)
+        + " "
+        + shiftedNodeNumber(edge.getSuccessor().getNodeNumber(), minCfaNodeNumber);
   }
 
   @Override
@@ -55,9 +60,9 @@ public class ImportDecomposition implements DssBlockDecomposition {
         ImmutableSet.builderWithExpectedSize(blocks.size());
     int minCfaNodeNumber = cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().getAsInt();
     Map<Integer, CFANode> nodeIdMap =
-        Maps.uniqueIndex(cfa.nodes(), (n) -> n.getNodeNumber() - minCfaNodeNumber);
+        Maps.uniqueIndex(cfa.nodes(), n -> shiftedNodeNumber(n.getNodeNumber(), minCfaNodeNumber));
     Map<String, CFAEdge> edgeIdsMap =
-        Maps.uniqueIndex(cfa.edges(), (e) -> edgeToString(e, minCfaNodeNumber));
+        Maps.uniqueIndex(cfa.edges(), e -> edgeToString(e, minCfaNodeNumber));
 
     for (Entry<String, ImportedBlock> importedBlock : blocks.entrySet()) {
       FluentIterable<List<Integer>> edges = FluentIterable.from(importedBlock.getValue().edges());

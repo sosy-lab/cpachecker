@@ -181,9 +181,9 @@ public class BlockGraph {
   }
 
   private static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>
-  findLoopPredecessors(
-      BlockNodeWithoutGraphInformation pRoot,
-      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
+      findLoopPredecessors(
+          BlockNodeWithoutGraphInformation pRoot,
+          Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> predecessors =
         ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodeToBlockNodes =
@@ -202,10 +202,7 @@ public class BlockGraph {
 
   public void export(Path blockCFAFile, CFA cfa) throws IOException {
     Map<String, Map<String, Object>> treeMap = new HashMap<>();
-    int minCfaNodeNumber = cfa.nodes().stream()
-        .mapToInt(CFANode::getNodeNumber)
-        .min()
-        .getAsInt();
+    int minCfaNodeNumber = cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().getAsInt();
     getNodes()
         .forEach(
             n -> {
@@ -219,18 +216,29 @@ public class BlockGraph {
                       n.getEdges(),
                       e ->
                           ImmutableList.of(
-                              e.getPredecessor().getNodeNumber() - minCfaNodeNumber,
-                              e.getSuccessor().getNodeNumber() - minCfaNodeNumber)));
-              attributes.put("startNode",
-                  n.getInitialLocation().getNodeNumber() - minCfaNodeNumber);
-              attributes.put("endNode", n.getFinalLocation().getNodeNumber() - minCfaNodeNumber);
+                              shiftedNodeNumber(
+                                  e.getPredecessor().getNodeNumber(), minCfaNodeNumber),
+                              shiftedNodeNumber(
+                                  e.getSuccessor().getNodeNumber(), minCfaNodeNumber))));
+              attributes.put(
+                  "startNode",
+                  shiftedNodeNumber(n.getInitialLocation().getNodeNumber(), minCfaNodeNumber));
+              attributes.put(
+                  "endNode",
+                  shiftedNodeNumber(n.getFinalLocation().getNodeNumber(), minCfaNodeNumber));
               attributes.put("loopPredecessors", n.getLoopPredecessorIds());
               attributes.put(
                   "abstractionLocation",
-                  n.getViolationConditionLocation().getNodeNumber() - minCfaNodeNumber);
+                  shiftedNodeNumber(
+                      n.getViolationConditionLocation().getNodeNumber(), minCfaNodeNumber));
               treeMap.put(n.getId(), attributes);
             });
     JSON.writeJSONString(treeMap, blockCFAFile);
+  }
+
+  // All node IDs are shifted such that they start from 0
+  private int shiftedNodeNumber(int originalNodeNumber, int shift) {
+    return originalNodeNumber - shift;
   }
 
   @Override
@@ -256,5 +264,4 @@ public class BlockGraph {
   public int hashCode() {
     return nodes.hashCode();
   }
-
 }

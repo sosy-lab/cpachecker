@@ -112,8 +112,9 @@ public class CEGARAlgorithm
 
   private class CEGARMBean extends AbstractMBean implements CEGARMXBean {
     CEGARMBean() {
-      super("org.sosy_lab.cpachecker:type=CEGAR,name=Thread-" + Thread.currentThread()
-          .threadId(), logger);
+      super(
+          "org.sosy_lab.cpachecker:type=CEGAR,name=Thread-" + Thread.currentThread().threadId(),
+          logger);
     }
 
     @Override
@@ -206,9 +207,7 @@ public class CEGARAlgorithm
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
-  /**
-   * This constructor gets a Refiner object instead of generating it from the refiner parameter.
-   */
+  /** This constructor gets a Refiner object instead of generating it from the refiner parameter. */
   private CEGARAlgorithm(
       Algorithm pAlgorithm,
       Refiner pRefiner,
