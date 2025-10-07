@@ -235,9 +235,20 @@ input:checked + .slider:before {
   max-width: 270px;
 }
 
+.showValuesButton {
+  /* placeholder for border of 2px when marked.
+  We use this placeholder to avoid that the size
+  of the element changes when an actual border is added */
+  border: 2px solid transparent;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .markedTableElement {
   border: solid 2px;
-  border-color: #00d415;
+  border-color: #00d415 !important;
 }
 
 .markedValueElement pre {
