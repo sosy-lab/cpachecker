@@ -39,7 +39,7 @@
             <includesfile>../../../sv-benchmarks/c/Recursive.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/Sequentialized.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
-            <propertyfile>../../config/propertiestermination.prp</propertyfile>
+            <propertyfile>../../config/properties/termination.prp</propertyfile>
         </tasks>
         <tasks name="C.termination.SoftwareSystems-DeviceDriversLinux64">
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
