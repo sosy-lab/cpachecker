@@ -63,7 +63,7 @@ public class DssFactory {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
 
-    int minCfaNodeNumber = integerToNodeMap.keySet().stream().min(Integer::compareTo).get();
+    int minCfaNodeNumber = integerToNodeMap.keySet().stream().min(Integer::compareTo).orElseThrow();
 
     // All node IDs are shifted such that they start from 0
     BiMap<Integer, CFANode> resetNodeIds = HashBiMap.create();

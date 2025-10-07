@@ -28,13 +28,13 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
   private final Map<CFANode, Integer> nodeToId;
   private final FormulaManagerView formulaManagerView;
 
-
   public static final String DSS_MESSAGE_GLOBAL_KEY = "global";
   public static final String DSS_MESSAGE_LOCATION_INSTANCES_KEY = "locationInstances";
   public static final String DSS_MESSAGE_LOCAL_PREDICATES_KEY = "localPredicates";
   public static final String DSS_MESSAGE_FUNCTION_PREDICATES_KEY = "functionPredicates";
 
-  public SerializePredicatePrecisionOperator(final FormulaManagerView pFormulaManagerView, Map<CFANode, Integer> pNodeToId) {
+  public SerializePredicatePrecisionOperator(
+      final FormulaManagerView pFormulaManagerView, Map<CFANode, Integer> pNodeToId) {
     nodeToId = pNodeToId;
     formulaManagerView = pFormulaManagerView;
   }

@@ -445,9 +445,9 @@ public class CPAchecker {
     }
     msg.append(
         """
-            If the error still occurs, please send this error message
-            together with the input file to cpachecker-users@googlegroups.com.
-            """);
+        If the error still occurs, please send this error message
+        together with the input file to cpachecker-users@googlegroups.com.
+        """);
     pLogger.log(Level.INFO, msg);
   }
 

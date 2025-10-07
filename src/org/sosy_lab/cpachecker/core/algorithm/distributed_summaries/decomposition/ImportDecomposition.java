@@ -58,7 +58,8 @@ public class ImportDecomposition implements DssBlockDecomposition {
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
     ImmutableSet.Builder<BlockNodeWithoutGraphInformation> nodes =
         ImmutableSet.builderWithExpectedSize(blocks.size());
-    int minCfaNodeNumber = cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().getAsInt();
+    int minCfaNodeNumber =
+        cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().orElseThrow();
     Map<Integer, CFANode> nodeIdMap =
         Maps.uniqueIndex(cfa.nodes(), n -> shiftedNodeNumber(n.getNodeNumber(), minCfaNodeNumber));
     Map<String, CFAEdge> edgeIdsMap =

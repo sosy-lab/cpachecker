@@ -32,6 +32,7 @@ import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -202,7 +203,8 @@ public class BlockGraph {
 
   public void export(Path blockCFAFile, CFA cfa) throws IOException {
     Map<String, Map<String, Object>> treeMap = new HashMap<>();
-    int minCfaNodeNumber = cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().getAsInt();
+    int minCfaNodeNumber =
+        cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().orElseThrow();
     getNodes()
         .forEach(
             n -> {
@@ -250,14 +252,14 @@ public class BlockGraph {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public boolean equals(@Nullable Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (!(o instanceof BlockGraph other)) {
-      return false;
-    }
-    return nodes.equals(other.nodes);
+
+    return pOther instanceof BlockGraph other
+        && nodes.equals(other.nodes)
+        && roots.equals(other.roots);
   }
 
   @Override

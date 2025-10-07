@@ -66,7 +66,8 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
-        new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager(), pIdToNodeMap.inverse());
+        new SerializePredicatePrecisionOperator(
+            pPredicateCPA.getSolver().getFormulaManager(), pIdToNodeMap.inverse());
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), pIdToNodeMap::get);
