@@ -70,6 +70,9 @@ public final class FunctionExitNode extends CFANode {
   @Override
   public FluentIterable<CFAEdge> getLeavingEdges() {
     if (leavingEdges == null) {
+      // In general edges in sets are problematic to do their equals(),
+      // but for function-return edges there should never be two edges with the same predecessor and
+      // successor nodes.
       leavingEdges = from(super.getLeavingEdges().toSet());
       assert super.getLeavingEdges().size() == leavingEdges.size();
     }
