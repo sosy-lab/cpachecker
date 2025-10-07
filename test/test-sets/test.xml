@@ -36,7 +36,7 @@
             <includesfile>../../../sv-benchmarks/c/Floats.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/Heap.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/Loops.set</includesfile>
-            <includesfile>../.././sv-benchmarks/c/ProductLines.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/ProductLines.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/Recursive.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/Sequentialized.set</includesfile>
             <includesfile>../../../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
