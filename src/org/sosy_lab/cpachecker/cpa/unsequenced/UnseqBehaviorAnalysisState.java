@@ -132,27 +132,7 @@ public class UnseqBehaviorAnalysisState
 
     int index = 1;
     for (ConflictPair conflict : detectedConflicts) {
-      String location = conflict.location().getFileLocation().toString();
-
-      String exprA = UnseqUtils.replaceTmpInExpression(conflict.exprA(), this);
-      String exprB = UnseqUtils.replaceTmpInExpression(conflict.exprB(), this);
-
-      String varName = conflict.accessA().memoryLocation().toString();
-      sb.append(index)
-          .append(". ")
-          .append(location)
-          .append(": (")
-          .append(exprA)
-          .append(") ⊕ (")
-          .append(exprB)
-          .append(") on '")
-          .append(varName)
-          .append("' (access: ")
-          .append(conflict.accessA())
-          .append(" / ")
-          .append(conflict.accessB())
-          .append(")");
-
+      sb.append(conflict.toString());
       if (index < detectedConflicts.size()) {
         sb.append(", ");
       }
@@ -193,34 +173,29 @@ public class UnseqBehaviorAnalysisState
           entry.getKey(),
           new HashSet<>(entry.getValue()),
           (a, b) -> {
-            a.addAll(b);
+            for (SideEffectInfo se : b) {
+              boolean exists =
+                  a.stream()
+                      .anyMatch(
+                          x ->
+                              x.cfaEdge().getLineNumber() == se.cfaEdge().getLineNumber()
+                                  && x.sideEffectKind() == se.sideEffectKind()
+                                  && Objects.equals(x.memoryLocation(), se.memoryLocation()));
+              if (!exists) {
+                a.add(se);
+              }
+            }
             return a;
           });
     }
     ImmutableMap<String, ImmutableSet<SideEffectInfo>> mergedSideEffects =
         UnseqUtils.toImmutableSideEffectsMap(mutableSideEffects);
 
-    Map<String, CRightHandSide> mutableTmpMap = new HashMap<>(this.tmpToOriginalExprMap);
-    for (Map.Entry<String, CRightHandSide> entry : other.tmpToOriginalExprMap.entrySet()) {
-      if (mutableTmpMap.containsKey(entry.getKey())
-          && !Objects.equals(mutableTmpMap.get(entry.getKey()), entry.getValue())) {
-        throw new IllegalStateException(
-            "Conflicting tmp mappings during join: "
-                + mutableTmpMap.get(entry.getKey())
-                + " vs "
-                + entry.getValue());
-      }
-      mutableTmpMap.put(entry.getKey(), entry.getValue());
-    }
-
-    Set<ConflictPair> mutableConflicts = new HashSet<>(this.detectedConflicts);
-    mutableConflicts.addAll(other.detectedConflicts);
-
     return new UnseqBehaviorAnalysisState(
         mergedSideEffects,
         this.calledFunctionStack,
-        ImmutableSet.copyOf(mutableConflicts),
-        ImmutableMap.copyOf(mutableTmpMap),
+        this.detectedConflicts,
+        this.tmpToOriginalExprMap,
         this.logger);
   }
 
@@ -236,20 +211,22 @@ public class UnseqBehaviorAnalysisState
       Set<SideEffectInfo> thisEffects = entry.getValue();
       Set<SideEffectInfo> reachedStateEffects = reachedState.sideEffectsInFun.get(functionName);
 
-      if (reachedStateEffects == null || !reachedStateEffects.containsAll(thisEffects)) {
+      if (reachedStateEffects == null) {
         return false;
       }
-    }
 
-    if (!reachedState
-        .tmpToOriginalExprMap
-        .entrySet()
-        .containsAll(this.tmpToOriginalExprMap.entrySet())) {
-      return false;
-    }
-
-    if (!reachedState.detectedConflicts.containsAll(this.detectedConflicts)) {
-      return false;
+      for (SideEffectInfo se : thisEffects) {
+        boolean covered =
+            reachedStateEffects.stream()
+                .anyMatch(
+                    x ->
+                        x.cfaEdge().getLineNumber() == se.cfaEdge().getLineNumber()
+                            && x.sideEffectKind() == se.sideEffectKind()
+                            && Objects.equals(x.memoryLocation(), se.memoryLocation()));
+        if (!covered) {
+          return false;
+        }
+      }
     }
 
     return true;

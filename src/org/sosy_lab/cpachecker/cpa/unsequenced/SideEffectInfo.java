@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  *     actual target address (which may be unknown at this point).
  * @param accessType the type of access performed: either READ or WRITE.
  * @param cfaEdge the CFA edge on which the side effect occurs, useful for diagnostics.
- * @param sideEffectKind the kind of memory access: global variable, pointer dereference unresolved
- *     and pointer dereference resolved
+ * @param sideEffectKind the kind of memory access: global variable, pointer dereference unresolved,
+ *     resolved pointer, or array access.
  */
 public record SideEffectInfo(
     MemoryLocation memoryLocation,
@@ -69,12 +69,10 @@ public record SideEffectInfo(
   public String toString() {
     String locInfo;
 
-    if (sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_RESOLVED) {
-      locInfo = "pointee " + memoryLocation;
-    } else if (sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED) {
-      locInfo = "pointer " + memoryLocation;
-    } else {
-      locInfo = memoryLocation.toString();
+    switch (sideEffectKind) {
+      case POINTER_DEREFERENCE_RESOLVED -> locInfo = "pointee " + memoryLocation;
+      case POINTER_DEREFERENCE_UNRESOLVED -> locInfo = "pointer " + memoryLocation;
+      default -> locInfo = memoryLocation.toString();
     }
 
     return String.format(

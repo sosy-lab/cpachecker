@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="4">
+
+    <require cpuModel="Intel Core i9-9900 @ 3.10 GHz" />
+
+    <resultfiles>**/witness.*</resultfiles>
+
+    <option name="--unseqBehaviorAnalysis" />
+    <option name="--heap" />
+    <option name="10000M" />
+    <option name="--benchmark" />
+
+    <rundefinition name="MemSafety">
+        <tasks name="MemSafety-Arrays">
+            <includesfile>../../../sv-benchmarks/c/Arrays.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/Heap-Termination.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+        </tasks>
+        <tasks name="MemSafety-Heap">
+            <includesfile>../../../sv-benchmarks/c/Heap.set</includesfile>
+        </tasks>
+        <tasks name="MemSafety-LinkedLists">
+            <includesfile>../../../sv-benchmarks/c/LinkedLists.set</includesfile>
+        </tasks>
+        <tasks name="MemSafety-Other">
+            <includesfile>../../../sv-benchmarks/c/Loops.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/ControlFlow.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/Recursive.set</includesfile>
+        </tasks>
+        <tasks name="MemSafety-Juliet">
+            <includesfile>../../../sv-benchmarks/c/Juliet.set</includesfile>
+        </tasks>
+
+        <tasks name="SoftwareSystems-coreutils-MemSafety">
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-coreutils.set</includesfile>
+        </tasks>
+        <tasks name="SoftwareSystems-DeviceDriversLinux64-MemSafety">
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+        </tasks>
+        <tasks name="SoftwareSystems-Other-MemSafety">
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-BusyBox.set</includesfile>
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-OpenBSD.set</includesfile>
+        </tasks>
+        <tasks name="SoftwareSystems-uthash-MemSafety">
+            <includesfile>../../../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
+        </tasks>
+        <tasks name="ConcurrencySafety-MemSafety">
+            <includesfile>../../../sv-benchmarks/c/Concurrency.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+</benchmark>
+
