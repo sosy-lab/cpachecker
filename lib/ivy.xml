@@ -145,7 +145,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
-        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.9" conf="build->default" />
+        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.10" conf="build->default" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
@@ -153,7 +153,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.28.0" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.29.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
         <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.9.6" conf="spotbugs->default"/>
