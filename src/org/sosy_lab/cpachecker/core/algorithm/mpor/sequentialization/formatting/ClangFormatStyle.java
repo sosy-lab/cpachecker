@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public enum ClangFormatStyle {
+  NONE(""),
   CHROMIUM("Chromium"),
   GNU("GNU"),
   GOOGLE("Google"),
@@ -24,6 +27,11 @@ public enum ClangFormatStyle {
   }
 
   public String getCommand() {
+    checkArgument(isEnabled(), "cannot get command, ClangFormatStyle is NONE");
     return "--style=" + command;
+  }
+
+  public boolean isEnabled() {
+    return !this.equals(NONE);
   }
 }

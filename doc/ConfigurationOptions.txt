@@ -273,6 +273,11 @@ analysis.algorithm.MPOR.bitVectorEncoding = NONE
 # add 
 analysis.algorithm.MPOR.bitVectorReduction = false
 
+# the style preset used by clang-format to format the output program. use
+# NONE to disable formatting.
+analysis.algorithm.MPOR.clangFormatStyle = WEBKIT
+  enum:     [NONE, CHROMIUM, GNU, GOOGLE, LLVM, MICROSOFT, MOZILLA, WEBKIT]
+
 # include comments with trivia explaining the sequentialization?
 analysis.algorithm.MPOR.comments = false
 
@@ -295,13 +300,6 @@ analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
 # chosen.
 analysis.algorithm.MPOR.controlEncodingThread = NONE
   enum:     [NONE, BINARY_SEARCH_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
-
-# format the output sequentialized C program using clang-format?
-analysis.algorithm.MPOR.formatCode = true
-
-# set the C formatting style preset used by clang-format, if enabled.
-analysis.algorithm.MPOR.formatStyle = WEBKIT
-  enum:     [CHROMIUM, GNU, GOOGLE, LLVM, MICROSOFT, MOZILLA, WEBKIT]
 
 # include original function declarations from input file? including them may
 # result in unsound analysis (e.g. false alarms for CBMC + ignored function

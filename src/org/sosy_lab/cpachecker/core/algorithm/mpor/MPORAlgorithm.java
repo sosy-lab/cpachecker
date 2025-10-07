@@ -71,6 +71,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       secure = true,
+      description =
+          "the style preset used by clang-format to format the output program. use NONE to disable"
+              + " formatting.")
+  private ClangFormatStyle clangFormatStyle = ClangFormatStyle.WEBKIT;
+
+  @Option(
+      secure = true,
       description = "include comments with trivia explaining the sequentialization?")
   private boolean comments = false;
 
@@ -99,16 +106,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description = "defines the syntax in which the next thread executing a statement is chosen.")
   private MultiControlStatementEncoding controlEncodingThread = MultiControlStatementEncoding.NONE;
-
-  @Option(
-      secure = true,
-      description = "format the output sequentialized C program using clang-format?")
-  private boolean formatCode = true;
-
-  @Option(
-      secure = true,
-      description = "set the C formatting style preset used by clang-format, if enabled.")
-  private ClangFormatStyle formatStyle = ClangFormatStyle.WEBKIT;
 
   @Option(
       description =
@@ -284,8 +281,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
     Sequentialization sequentialization = buildSequentialization(inputFileName, outputFileName);
     String program = sequentialization.toString();
-    String formattedProgram =
-        options.formatCode ? ClangFormatter.format(program, options.formatStyle, logger) : program;
+    String formattedProgram = ClangFormatter.tryFormat(options, program, logger);
     MPORWriter.write(
         options, formattedProgram, outputFileName, cfa.getFileNames(), shutdownNotifier, logger);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
@@ -339,13 +335,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
                     atomicBlockMerge,
                     bitVectorEncoding,
                     bitVectorReduction,
+                    clangFormatStyle,
                     comments,
                     conflictReduction,
                     consecutiveLabels,
                     controlEncodingStatement,
                     controlEncodingThread,
-                    formatCode,
-                    formatStyle,
                     inputFunctionDeclarations,
                     inputTypeDeclarations,
                     kAssignLazy,

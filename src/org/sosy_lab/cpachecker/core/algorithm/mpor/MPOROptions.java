@@ -39,6 +39,8 @@ public class MPOROptions {
 
   public final boolean bitVectorReduction;
 
+  public final ClangFormatStyle clangFormatStyle;
+
   public final boolean comments;
 
   public final boolean conflictReduction;
@@ -48,10 +50,6 @@ public class MPOROptions {
   public final MultiControlStatementEncoding controlEncodingStatement;
 
   public final MultiControlStatementEncoding controlEncodingThread;
-
-  public final boolean formatCode;
-
-  public final ClangFormatStyle formatStyle;
 
   public final boolean inputFunctionDeclarations;
 
@@ -112,13 +110,12 @@ public class MPOROptions {
       boolean pAtomicBlockMerge,
       BitVectorEncoding pBitVectorEncoding,
       boolean pBitVectorReduction,
+      ClangFormatStyle pClangFormatStyle,
       boolean pComments,
       boolean pConflictReduction,
       boolean pConsecutiveLabels,
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
-      boolean pFormatCode,
-      ClangFormatStyle pFormatStyle,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
       boolean pKAssignLazy,
@@ -159,13 +156,12 @@ public class MPOROptions {
     atomicBlockMerge = pAtomicBlockMerge;
     bitVectorEncoding = pBitVectorEncoding;
     bitVectorReduction = pBitVectorReduction;
+    clangFormatStyle = pClangFormatStyle;
     comments = pComments;
     conflictReduction = pConflictReduction;
     consecutiveLabels = pConsecutiveLabels;
     controlEncodingStatement = pControlEncodingStatement;
     controlEncodingThread = pControlEncodingThread;
-    formatCode = pFormatCode;
-    formatStyle = pFormatStyle;
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
     kAssignLazy = pKAssignLazy;
@@ -201,13 +197,12 @@ public class MPOROptions {
         true,
         BitVectorEncoding.NONE,
         false,
+        ClangFormatStyle.WEBKIT,
         false,
         false,
         true,
         MultiControlStatementEncoding.SWITCH_CASE,
         MultiControlStatementEncoding.NONE,
-        true,
-        ClangFormatStyle.WEBKIT,
         true,
         true,
         true,
@@ -274,15 +269,14 @@ public class MPOROptions {
         true,
         pBitVectorEncoding,
         pBitVectorReduction,
+        // never format output code so that unit test is independent of clang-format
+        ClangFormatStyle.NONE,
         pComments,
         pConflictReduction,
         // always use consecutive labels, disabling is only for debugging, not for release
         true,
         pControlEncodingStatement,
         pControlEncodingThread,
-        // never format output code so that unit test is independent of clang-format
-        false,
-        ClangFormatStyle.GNU,
         pInputFunctionDeclarations,
         // always include type declarations at the moment, excluding them is unsafe
         true,
