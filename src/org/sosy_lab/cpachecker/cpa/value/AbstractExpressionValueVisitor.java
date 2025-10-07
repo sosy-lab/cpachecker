@@ -2305,7 +2305,9 @@ public abstract class AbstractExpressionValueVisitor
         checkArgument(numericParam.bigIntegerValue().compareTo(BigInteger.ZERO) >= 0);
 
         return new NumericValue(numericParam.bigIntegerValue().bitCount());
+
       } else if (paramValue instanceof SymbolicExpression symbolicParam) {
+        // Value Analysis never ends up here!
         return new PopcountFunctionExpression(symbolicParam, e);
       }
 
