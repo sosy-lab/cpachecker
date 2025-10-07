@@ -11,7 +11,6 @@
 
     <resultfiles>**/witness.*</resultfiles>
 
-    <option name="--svcomp25" />
     <option name="--heap">4096M</option>
     <option name="--benchmark" />
 
