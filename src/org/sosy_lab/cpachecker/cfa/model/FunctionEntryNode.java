@@ -130,6 +130,9 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   @Override
   public final FluentIterable<CFAEdge> getEnteringEdges() {
     if (enteringEdges == null) {
+      // In general edges in sets are problematic to do their equals(),
+      // but for function-call edges there should never be two edges with the same predecessor and
+      // successor nodes.
       enteringEdges = from(super.getEnteringEdges().toSet());
       assert super.getEnteringEdges().size() == enteringEdges.size();
     }
