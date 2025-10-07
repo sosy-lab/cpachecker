@@ -7,19 +7,18 @@
 <!-- -->
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="5 min" hardtimelimit="6 min" memlimit="15 GB" cpuCores="2">
-
-    <require cpuModel="Intel Core i7-10700 @ 2.90 GHz" />
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="5 min" hardtimelimit="6 min" memlimit="6 GB" cpuCores="2">
 
     <resultfiles>**/witness.*</resultfiles>
 
-    <option name="--unseqBehaviorAnalysis" />
-    <option name="--heap">10000M</option>
+    <option name="--svcomp25" />
+    <option name="--heap">4096M</option>
     <option name="--benchmark" />
 
-    <rundefinition name="unseq">
-        <tasks name="ReachSafety">
-            <includesfile>../../../sv-benchmarks/c/Unspecified-Behavior.set</includesfile>
+    <rundefinition name="SV-COMP25_no-data-race">
+        <tasks name="C.no-data-race.Concurrency">
+            <includesfile>../../../sv-benchmarks/c/Concurrency.set</includesfile>
+            <propertyfile>../../config/properties/no-data-race.prp</propertyfile>
         </tasks>
     </rundefinition>
 
