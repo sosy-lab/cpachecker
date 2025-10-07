@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -125,7 +124,8 @@ public class TerminationLoopInformation {
 
   public boolean isPredecessorOfIncomingEdge(CFANode pLocation) {
     return loop.isPresent()
-        && leavingEdges(pLocation)
+        && pLocation
+            .getLeavingEdges()
             .anyMatch(edge -> loop.orElseThrow().getIncomingEdges().contains(edge));
   }
 
