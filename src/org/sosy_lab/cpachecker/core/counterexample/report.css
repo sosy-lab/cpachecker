@@ -99,7 +99,8 @@ body {
 }
 
 .popover {
-  min-width: 500px;
+  /* override default bootstrap .popover max-width */
+  max-width: 500px !important;
   max-height: 500px;
   white-space: pre-line !important;
   overflow: auto;
