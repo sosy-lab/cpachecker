@@ -108,6 +108,7 @@ body {
   border: solid 2px;
   border-color: #00d415;
   font-family: monospace;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .dropdown-menu a:hover {
@@ -799,6 +800,7 @@ text {
   background-color: #ffef96;
   display: inline-block;
   border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .tool_tip #boxContent::after {
