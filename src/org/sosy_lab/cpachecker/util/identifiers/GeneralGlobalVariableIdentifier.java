@@ -11,15 +11,15 @@ package org.sosy_lab.cpachecker.util.identifiers;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class GeneralLocalVariableIdentifier extends LocalVariableIdentifier
+public final class GeneralGlobalVariableIdentifier extends GlobalVariableIdentifier
     implements GeneralIdentifier {
 
-  public GeneralLocalVariableIdentifier(String pNm, int pDereference) {
-    super(pNm, null, "", pDereference);
+  public GeneralGlobalVariableIdentifier(String pNm, CType type, int pDereference) {
+    super(pNm, type, pDereference);
   }
 
-  public GeneralLocalVariableIdentifier(String pNm, CType type, String function, int pDereference) {
-    super(pNm, type, function, pDereference);
+  public GeneralGlobalVariableIdentifier(String pNm, int pDereference) {
+    super(pNm, null, pDereference);
   }
 
   @Override
@@ -44,7 +44,7 @@ public final class GeneralLocalVariableIdentifier extends LocalVariableIdentifie
   }
 
   @Override
-  public GeneralLocalVariableIdentifier cloneWithDereference(int deref) {
-    return new GeneralLocalVariableIdentifier(name, type, function, deref);
+  public GeneralGlobalVariableIdentifier cloneWithDereference(int deref) {
+    return new GeneralGlobalVariableIdentifier(name, type, deref);
   }
 }
