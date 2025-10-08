@@ -26,6 +26,6 @@ SPDX-License-Identifier: Apache-2.0
   </component>
   <component name="EclipseCompilerSettings">
     <option name="ECJ_TOOL_PATH" value="$PROJECT_DIR$/lib/java/build/ecj.jar" />
-    <option name="ADDITIONAL_OPTIONS_STRING" value="-properties $PROJECT_DIR$/.settings/org.eclipse.jdt.core.prefs" />
+    <option name="ADDITIONAL_OPTIONS_STRING" value="-properties $PROJECT_DIR$/.settings/org.eclipse.jdt.core.prefs -g:source,lines,vars -enableJavadoc -encoding UTF-8 -processorpath $PROJECT_DIR$/lib/build/*.jar -s $PROJECT_DIR$/.apt-generated" />
   </component>
 </project>
