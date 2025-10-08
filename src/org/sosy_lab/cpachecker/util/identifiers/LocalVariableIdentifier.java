@@ -64,7 +64,7 @@ public sealed class LocalVariableIdentifier extends VariableIdentifier
   }
 
   @Override
-  public GeneralIdentifier getGeneralId() {
+  public AbstractIdentifier getGeneralId() {
     return new GeneralLocalVariableIdentifier(name, type, function, dereference);
   }
 

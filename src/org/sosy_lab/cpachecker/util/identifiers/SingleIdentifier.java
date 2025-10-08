@@ -82,7 +82,7 @@ public abstract sealed class SingleIdentifier implements AbstractIdentifier
 
   public abstract String toLog();
 
-  public abstract GeneralIdentifier getGeneralId();
+  public abstract AbstractIdentifier getGeneralId();
 
   @Override
   public int compareTo(AbstractIdentifier pO) {

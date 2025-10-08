@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class ReturnIdentifier extends VariableIdentifier implements GeneralIdentifier {
+public final class ReturnIdentifier extends VariableIdentifier {
 
   private static Map<Integer, ReturnIdentifier> instances;
 
@@ -31,7 +31,7 @@ public final class ReturnIdentifier extends VariableIdentifier implements Genera
   }
 
   @Override
-  public GeneralIdentifier getGeneralId() {
+  public AbstractIdentifier getGeneralId() {
     return null;
   }
 
