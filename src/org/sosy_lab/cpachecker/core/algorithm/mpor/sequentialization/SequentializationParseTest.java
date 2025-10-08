@@ -21,7 +21,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
@@ -29,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -546,11 +544,8 @@ public class SequentializationParseTest {
     testProgram(path, options);
   }
 
-  private MPORAlgorithm buildAlgorithmTestInstance(
-      Path pInputFilePath,
-      MPOROptions pOptions,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
+  private CFA buildCfaTestInstance(
+      Path pInputFilePath, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws Exception {
 
     // create cfa for test program pInputFilePath. always use preprocessor, we work with .c files
@@ -559,16 +554,20 @@ public class SequentializationParseTest {
             Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
             pLogger,
             pShutdownNotifier);
-    CFA inputCfa =
-        creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
-
-    // create mpor algorithm and generate seq
-    return MPORAlgorithm.testInstance(pLogger, inputCfa, pOptions);
+    return creatorWithPreProcessor.parseFileAndCreateCFA(
+        ImmutableList.of(pInputFilePath.toString()));
   }
 
-  private Sequentialization buildSequentialization(MPORAlgorithm pAlgorithm) {
-    String inputFileName = "test.i";
-    return pAlgorithm.buildSequentialization(inputFileName, SeqToken.__MPOR_SEQ__ + inputFileName);
+  private String buildTestOutputProgram(
+      MPOROptions pOptions,
+      Path pInputFilePath,
+      ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger)
+      throws Exception {
+
+    CFA cfaA = buildCfaTestInstance(pInputFilePath, pLogger, pShutdownNotifier);
+    return Sequentialization.tryBuildProgramString(
+        pOptions, cfaA, "test", pShutdownNotifier, pLogger);
   }
 
   private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {
@@ -576,22 +575,14 @@ public class SequentializationParseTest {
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
 
     // create two sequentializations A, B of the same input program with the same option
-    MPORAlgorithm algorithmA =
-        buildAlgorithmTestInstance(pInputFilePath, pOptions, logger, shutdownNotifier);
-    Sequentialization sequentializationA = buildSequentialization(algorithmA);
-    SequentializationFields fieldsA = sequentializationA.buildFields();
-    String stringA = sequentializationA.toString(fieldsA);
-    MPORAlgorithm algorithmB =
-        buildAlgorithmTestInstance(pInputFilePath, pOptions, logger, shutdownNotifier);
-    Sequentialization sequentializationB = buildSequentialization(algorithmB);
-    SequentializationFields fieldsB = sequentializationB.buildFields();
-    String stringB = sequentializationB.toString(fieldsB);
+    String programA = buildTestOutputProgram(pOptions, pInputFilePath, shutdownNotifier, logger);
+    String programB = buildTestOutputProgram(pOptions, pInputFilePath, shutdownNotifier, logger);
 
     // test that the output programs of A, B are equal
     // (this does not imply that our algorithm is deterministic)
-    testEqualOutput(stringA, stringB);
+    testEqualOutput(programA, programB);
     // test if program A parses (which implies that program B parses too)
-    testParse(stringA, logger, shutdownNotifier);
+    testParse(programA, logger, shutdownNotifier);
   }
 
   // TODO also try to compare SequentializationFields for equality

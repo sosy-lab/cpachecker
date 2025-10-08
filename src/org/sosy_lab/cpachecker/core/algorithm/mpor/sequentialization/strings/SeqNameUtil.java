@@ -290,6 +290,10 @@ public class SeqNameUtil {
     return SeqToken.dummy + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;
   }
 
+  public static String buildOutputFileName(String pInputFileName) {
+    return SeqToken.__MPOR_SEQ__ + pInputFileName;
+  }
+
   public static String buildOutputFileName(Path pInputFilePath) {
     return SeqToken.__MPOR_SEQ__ + getFileNameWithoutExtension(pInputFilePath);
   }

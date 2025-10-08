@@ -25,11 +25,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 public class InputRejectionTest {
@@ -221,26 +221,22 @@ public class InputRejectionTest {
             false);
 
     // create cfa for test program pFileName
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     LogManager logger = LogManager.createTestLogManager();
     CFACreator creatorWithPreProcessor =
         new CFACreator(
             Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
             logger,
-            ShutdownNotifier.createDummy());
-    CFA inputCfa =
+            shutdownNotifier);
+    CFA cfa =
         creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(inputFilePath.toString()));
-
-    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa, customOptions);
-    String inputFileName = "input.i";
-
     // test if MPORAlgorithm rejects program with correct error message
     RuntimeException throwable =
         assertThrows(
             RuntimeException.class,
             () ->
-                algorithm
-                    .buildSequentialization(inputFileName, SeqToken.__MPOR_SEQ__ + inputFileName)
-                    .toString());
+                Sequentialization.tryBuildProgramString(
+                    customOptions, cfa, "test", shutdownNotifier, logger));
     String expectedMessage = InputRejectionMessage.POINTER_WRITE.message;
     assertThat(throwable.getMessage().contains(expectedMessage)).isTrue();
   }

@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_ord
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 
 /**
- * For better overview so that not all {@link Option}s passed to {@code analysis.algorithm.MPOR}
- * have to be passed as parameters.
+ * For better overview so that {@link Option}s do not have to be accessed through {@link
+ * MPORAlgorithm}.
  */
 public class MPOROptions {
 

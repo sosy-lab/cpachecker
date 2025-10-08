@@ -17,7 +17,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
@@ -52,6 +51,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // TODO add shortFunctions Option (e.g. assume instead of __MPOR_SEQ__assume)
 
+  // using Optional for @Option is not allowed, so we use 'NONE' for enums that can be disabled.
+
   @Option(secure = true, description = "allow input programs that write pointer variables?")
   private boolean allowPointerWrites = true;
 
@@ -62,7 +63,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private boolean atomicBlockMerge = true;
 
   @Option(secure = true, description = "the encoding of the partial order reduction bit vectors.")
-  // using optional for @Options is not allowed, unfortunately...
   private BitVectorEncoding bitVectorEncoding = BitVectorEncoding.NONE;
 
   @Option(secure = true, description = "add ")
@@ -278,25 +278,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     // just use the first input file name for naming purposes
     Path firstInputFilePath = cfa.getFileNames().getFirst();
     String inputFileName = firstInputFilePath.toString();
-    String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
-    Sequentialization sequentialization = buildSequentialization(inputFileName, outputFileName);
-    String program = sequentialization.toString();
+    String program =
+        Sequentialization.tryBuildProgramString(
+            options, cfa, inputFileName, shutdownNotifier, logger);
     String formattedProgram = ClangFormatter.tryFormat(options, program, logger);
+    String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
     MPORWriter.write(
         options, formattedProgram, outputFileName, cfa.getFileNames(), shutdownNotifier, logger);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
-  }
-
-  /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
-  public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName) {
-    return new Sequentialization(
-        options,
-        cfa,
-        pInputFileName,
-        pOutputFileName,
-        binaryExpressionBuilder,
-        shutdownNotifier,
-        logger);
   }
 
   private final ConfigurableProgramAnalysis cpa;
@@ -308,8 +297,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final ShutdownNotifier shutdownNotifier;
 
   private final CFA cfa;
-
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -378,9 +365,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     options.handleOptionRejections(logger);
     options.handleOptionWarnings(logger);
     InputRejection.handleRejections(logger, cfa);
-
     resetStaticFields();
-    binaryExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
   }
 
   public static MPORAlgorithm testInstance(

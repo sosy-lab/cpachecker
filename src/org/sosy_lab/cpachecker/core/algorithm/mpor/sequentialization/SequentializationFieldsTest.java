@@ -21,13 +21,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 /**
  * Tests if {@link SequentializationFields} are expected depending on the input program, e.g. number
@@ -353,12 +352,8 @@ public class SequentializationFieldsTest {
             shutdownNotifier);
     CFA inputCfa =
         creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
-
-    // create mpor algorithm and generate seq
-    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa, pOptions);
-    String inputFileName = "test.i";
-    Sequentialization sequentialization =
-        algorithm.buildSequentialization(inputFileName, SeqToken.__MPOR_SEQ__ + inputFileName);
-    return sequentialization.buildFields();
+    CBinaryExpressionBuilder binaryExpressionBuilder =
+        new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
+    return new SequentializationFields(pOptions, inputCfa, binaryExpressionBuilder, logger);
   }
 }
