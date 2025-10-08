@@ -29,9 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionOrder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -365,7 +362,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     options.handleOptionRejections(logger);
     options.handleOptionWarnings(logger);
     InputRejection.handleRejections(logger, cfa);
-    resetStaticFields();
   }
 
   public static MPORAlgorithm testInstance(
@@ -373,13 +369,5 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       throws InvalidConfigurationException {
 
     return new MPORAlgorithm(null, null, pLogManager, null, pInputCfa, pOptions);
-  }
-
-  /** Resets all static fields, e.g. used for IDs. This may be necessary for unit tests. */
-  private void resetStaticFields() {
-    ThreadBuilder.resetThreadId();
-    ThreadBuilder.resetPc();
-    ThreadEdge.resetId();
-    ThreadNode.resetId();
   }
 }

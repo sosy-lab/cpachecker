@@ -17,13 +17,13 @@ import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
@@ -345,13 +345,8 @@ public class SequentializationFieldsTest {
     // create cfa for test program pInputFilePath
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    CFACreator creatorWithPreProcessor =
-        new CFACreator(
-            Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
-            logger,
-            shutdownNotifier);
-    CFA inputCfa =
-        creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
+    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(logger, shutdownNotifier);
+    CFA inputCfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
     CBinaryExpressionBuilder binaryExpressionBuilder =
         new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
     return new SequentializationFields(pOptions, inputCfa, binaryExpressionBuilder, logger);

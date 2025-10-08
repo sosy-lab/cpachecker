@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -21,6 +20,11 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -444,25 +448,20 @@ public final class MPORUtil {
     return pElements;
   }
 
-  /**
-   * Returns the symmetric difference of the key sets in {@code pMapA} and {@code pMapB} but retains
-   * all values. Assumes that if a key is present in both maps, the value sets are equal.
-   */
-  public static <K, V> ImmutableSetMultimap<K, V> symmetricDifference(
-      ImmutableSetMultimap<K, V> pMapA, ImmutableSetMultimap<K, V> pMapB) {
+  // CFA ===========================================================================================
 
-    ImmutableSetMultimap.Builder<K, V> rSymmetricDifference = ImmutableSetMultimap.builder();
-    ImmutableSet<K> keys =
-        ImmutableSet.copyOf(Sets.symmetricDifference(pMapA.keySet(), pMapB.keySet()));
-    for (K key : keys) {
-      if (!pMapB.containsKey(key)) {
-        rSymmetricDifference.putAll(key, pMapA.get(key));
-      }
-      if (pMapA.containsKey(key) && pMapB.containsKey(key)) {
-        assert pMapA.get(key).equals(pMapB.get(key))
-            : "value sets must be equal if both pMapA and pMapB contain a key";
-      }
-    }
-    return rSymmetricDifference.build();
+  public static CFACreator buildCfaCreator(LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+
+    return new CFACreator(Configuration.builder().build(), pLogger, pShutdownNotifier);
+  }
+
+  public static CFACreator buildCfaCreatorWithPreprocessor(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+
+    return new CFACreator(
+        Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
+        pLogger,
+        pShutdownNotifier);
   }
 }

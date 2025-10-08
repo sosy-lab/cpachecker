@@ -16,12 +16,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorEncoding;
@@ -549,13 +549,8 @@ public class SequentializationParseTest {
       throws Exception {
 
     // create cfa for test program pInputFilePath. always use preprocessor, we work with .c files
-    CFACreator creatorWithPreProcessor =
-        new CFACreator(
-            Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
-            pLogger,
-            pShutdownNotifier);
-    return creatorWithPreProcessor.parseFileAndCreateCFA(
-        ImmutableList.of(pInputFilePath.toString()));
+    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
+    return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
   }
 
   private String buildTestOutputProgram(
@@ -611,9 +606,8 @@ public class SequentializationParseTest {
     assertThat(pSequentialization.isEmpty()).isFalse();
 
     // test that seq can be parsed and cfa created -> code compiles
-    CFACreator creator =
-        new CFACreator(Configuration.builder().build(), pLogger, pShutdownNotifier);
-    CFA seqCfa = creator.parseSourceAndCreateCFA(pSequentialization);
+    CFACreator cfaCreator = MPORUtil.buildCfaCreator(pLogger, pShutdownNotifier);
+    CFA seqCfa = cfaCreator.parseSourceAndCreateCFA(pSequentialization);
     assertThat(seqCfa != null).isTrue();
 
     // "anti" test: just remove the last 100 chars from the seq, it probably won't compile
@@ -623,7 +617,7 @@ public class SequentializationParseTest {
     // test that we get an exception while parsing the new "faulty" program
     boolean fail = false;
     try {
-      creator.parseSourceAndCreateCFA(faultySeq);
+      cfaCreator.parseSourceAndCreateCFA(faultySeq);
     } catch (Exception exception) {
       fail = true;
     }

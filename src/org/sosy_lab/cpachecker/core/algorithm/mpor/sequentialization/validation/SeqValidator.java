@@ -23,11 +23,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
@@ -59,14 +59,9 @@ public class SeqValidator {
         !pOptions.inputTypeDeclarations,
         "can only validate source code if inputTypeDeclaration is disabled");
     // validate that seq can be parsed and cfa created -> code compiles
-    CFACreator creator =
-        new CFACreator(
-            // we use a preprocessor so that missing type declarations do not cause an error
-            Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
-            pLogger,
-            pShutdownNotifier);
+    CFACreator cfaCreator = MPORUtil.buildCfaCreatorWithPreprocessor(pLogger, pShutdownNotifier);
     List<String> files = ImmutableList.of(pSequentializationPath.toString());
-    Verify.verify(creator.parseFileAndCreateCFA(files) != null);
+    Verify.verify(cfaCreator.parseFileAndCreateCFA(files) != null);
   }
 
   /**
@@ -87,11 +82,8 @@ public class SeqValidator {
         pOptions.inputTypeDeclarations,
         "can only validate source code if inputTypeDeclaration is enabled");
     // validate that seq can be parsed and cfa created -> code compiles
-    CFACreator creator =
-        new CFACreator(
-            // we use a preprocessor so that missing type declarations do not cause an error
-            Configuration.builder().build(), pLogger, pShutdownNotifier);
-    Verify.verify(creator.parseSourceAndCreateCFA(pSequentialization) != null);
+    CFACreator cfaCreator = MPORUtil.buildCfaCreator(pLogger, pShutdownNotifier);
+    Verify.verify(cfaCreator.parseSourceAndCreateCFA(pSequentialization) != null);
     return pSequentialization;
   }
 

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -71,6 +72,7 @@ public class SequentializationFields {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
+    resetStaticFields();
     threads = ThreadBuilder.createThreads(pOptions, pInputCfa);
     numThreads = threads.size();
     substitutions =
@@ -112,5 +114,13 @@ public class SequentializationFields {
             ? Optional.of(
                 SeqFunctionBuilder.extractMainThreadSimulationFunction(threadSimulationFunctions))
             : Optional.empty();
+  }
+
+  /** Resets all static fields, e.g. used for IDs. This may be necessary for unit tests. */
+  private static void resetStaticFields() {
+    ThreadBuilder.resetThreadId();
+    ThreadBuilder.resetPc();
+    ThreadEdge.resetId();
+    ThreadNode.resetId();
   }
 }
