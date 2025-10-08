@@ -16,67 +16,51 @@
 [{
         "id": "BVExtractExpr",
         "category":"Bitvector",
-        "patternMatch" : "(bvextract_<hi>_<lo> <var>)",
-        "normalizedPattern" : "(extract (<hi>, <lo> <var>))"
+        "patternMatch" : "(bvextract <hi> <lo> <var>)",
+        "normalizedPattern" : "(extract <hi> <lo> <var>)"
 },
-
   {
     "id": "BVExtractConst",
     "category":"Bitvector",
-    "patternMatch" : "(= (bvextract_<hi>_<lo> <var>) <const>)",
-    "normalizedPattern" : " (<var>[<hi>:<lo>] == <const>)"
+    "patternMatch" : "(= (bvextract <hi> <lo> <var>) <const>)",
+    "normalizedPattern" : "(<var>[<hi>:<lo>] == <const>)"
   },
-
-
   {
     "id": "NotBVExtract",
     "category":"Bitvector",
-    "patternMatch" : "(! (= (bvextract_<hi>_<lo> <var>) <const>))",
+    "patternMatch" : "(not (= (bvextract <hi> <lo> <var>) <const>))",
     "normalizedPattern" : "(not (<var>[<hi>:<lo>] == <const>))"
   },
-
   {
     "id": "NotBVExtractExpr",
     "category":"Bitvector",
-    "patternMatch" : "(! bvextract_<hi>_<lo> <var>)",
-    "normalizedPattern" : "(not extract (<hi>, <lo>, <var>))"
+    "patternMatch" : "(not (bvextract <hi> <lo> <var>))",
+    "normalizedPattern" : "(not (extract <hi> <lo> <var>))"
   },
-
   {
     "id": "BVAdd",
     "category":"Bitvector",
     "patternMatch" : "(= (bvadd <const1> <var>) <const2>)",
     "normalizedPattern" : "(<var> + <const1> == <const2>)"
   },
-
   {
     "id": "BVAddExpr",
     "category":"Bitvector",
     "patternMatch" : "(bvadd <const> <var>)",
     "normalizedPattern" : "(<var> + <const>)"
   },
-
   {
     "id": "BVLshl",
     "category":"Bitvector",
     "patternMatch" : "(= (bvlshl <var> <const1>) <const2>)",
     "normalizedPattern" : "(<var> << <const1> == <const2>)"
   },
-
   {
     "id": "BVLshlExpr",
     "category":"Bitvector",
     "patternMatch" : "(bvlshl <var> <const>)",
     "normalizedPattern" : "(<var> << <const>)"
   },
-
-  {
-    "id": "EqVarConst32",
-    "category":"Equality",
-    "patternMatch" : "(= <var1> <const>_32)",
-    "normalizedPattern" : "(<var1> == <const>)"
-  },
-
   {
     "id": "EqVarConst",
     "category":"Equality",
@@ -84,15 +68,9 @@
     "normalizedPattern" : "(<var> == <const>)"
   },
   {
-    "id": "NotEqVarConst32",
-    "category":"Equality",
-    "patternMatch" : "(! (= <var> <const_32>))",
-    "normalizedPattern" : "(<var> != <const>)"
-  },
-  {
     "id": "NotEqVarConst",
     "category":"Equality",
-    "patternMatch" : "(! (= <var> <const>))",
+    "patternMatch" : "(not (= <var> <const>))",
     "normalizedPattern" : "(<var> != <const>)"
   },
   {
@@ -113,29 +91,24 @@
     "patternMatch" : "(= <var> <term>)",
     "normalizedPattern" : "(<var> == <term>)"
   },
-
   {
     "id": "NestedAND",
     "category":"Logical",
     "patternMatch" : "(and <term1> <term2>)",
     "normalizedPattern" : "(<term1> AND <term2>)"
   },
-
   {
     "id": "MultiAnd",
     "category":"Logical",
     "patternMatch" : "(and <term1> (and <term2> <term3>))",
     "normalizedPattern" : "(<term1> AND (<term2> AND <term3>))"
   },
-
-
   {
     "id": "NestedOR",
     "category":"Logical",
     "patternMatch" : "(or <term1> <term2>)",
     "normalizedPattern" : "(<term1> OR <term2>)"
   },
-
   {
     "id": "NegatedExpr",
     "category":"Logical",

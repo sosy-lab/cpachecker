@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
+package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils;
 
 import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,12 +15,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * Loads and parses DSL rules from a block of lines into PatternRule objects. Used by the
- * DelegatingRefinerHeuristics.
+ * Loads and parses redundancy DSL rules from JSON file into a list of {@link
+ * DelegatingRefinerPatternRule} rules.
  */
-final class DelegatingRefinerDslLoader {
+public final class DelegatingRefinerDslLoader {
 
-  static ImmutableList<DelegatingRefinerPatternRule> loadDsl(Path pPathToDsl) throws IOException {
+  public static ImmutableList<DelegatingRefinerPatternRule> loadDsl(Path pPathToDsl)
+      throws IOException {
     ObjectMapper JSONMapper = new ObjectMapper();
     JSONMapper.configure(Feature.ALLOW_COMMENTS, true);
     DelegatingRefinerPatternRule[] patternRules =

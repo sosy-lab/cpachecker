@@ -10,13 +10,11 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -24,6 +22,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAtomNormalizer;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerDslLoader;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerMatchingVisitor;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerNormalizedFormula;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerPatternRule;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerSExpression;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerSExpressionSExpressionOperator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -36,15 +41,20 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * acceptable redundancy threshold, the heuristic returns false.
  */
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
+  private static final double EPSILON = 0.01;
+  private static final double CATEGORY_REDUNDANCY_THRESHOLD = 0.7;
   private static final Path DSL_RULE_PATH =
       Path.of(
-          "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerHeuristics/redundancyRules.json");
+          "src/org/sosy_lab/cpachecker/cpa/predicate/delegatingRefinerUtils/redundancyRules.json");
 
   private final double redundancyThreshold;
   private final FormulaManagerView formulaManager;
   private final LogManager logger;
   private final DelegatingRefinerAtomNormalizer normalizer;
-  private final DelegatingRefinerDslMatcher matcher;
+  private final DelegatingRefinerMatchingVisitor matcher;
+
+  private double previousRedundancyPatterns = -1.0;
+  private double previousDominantPatternCount = 0.0;
 
   public DelegatingRefinerHeuristicRedundantPredicates(
       double pAcceptableRedundancyThreshold,
@@ -58,12 +68,12 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     this.redundancyThreshold = pAcceptableRedundancyThreshold;
     this.formulaManager = checkNotNull(pFormulaManager);
     this.logger = pLogger;
-    normalizer = new DelegatingRefinerAtomNormalizer(formulaManager, logger);
+    normalizer = new DelegatingRefinerAtomNormalizer(formulaManager);
 
     try {
       ImmutableList<DelegatingRefinerPatternRule> allPatternRules =
           DelegatingRefinerDslLoader.loadDsl(DSL_RULE_PATH);
-      this.matcher = new DelegatingRefinerDslMatcher(allPatternRules, logger);
+      this.matcher = new DelegatingRefinerMatchingVisitor(allPatternRules);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to load DSL rules for redundancy matching.", e);
     }
@@ -83,14 +93,52 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
     logPatterns(patternFrequency, categoryFrequency);
 
-    double maxRedundancyDetected = calculateMaxRedundancy(patternFrequency);
-    logger.logf(
-        Level.FINEST,
-        "Maximal redundancy: %.2f for threshold %.2f.",
-        maxRedundancyDetected,
-        redundancyThreshold);
+    double maxRedundancyDetectedPatterns = calculateMaxRedundancy(patternFrequency);
+    boolean isRedundancyPlateauingPatterns =
+        (previousRedundancyPatterns >= 0.0)
+            && (Math.abs(maxRedundancyDetectedPatterns - previousRedundancyPatterns) < EPSILON);
+    previousRedundancyPatterns = maxRedundancyDetectedPatterns;
 
-    return maxRedundancyDetected <= redundancyThreshold;
+    Multiset.Entry<String> currentDominantPattern = getMostFrequent(patternFrequency);
+
+    boolean isDominantPatternGrowing =
+        currentDominantPattern.getCount() > previousDominantPatternCount;
+    previousDominantPatternCount = currentDominantPattern.getCount();
+
+    if (patternFrequency.size() > 1000
+        && isRedundancyPlateauingPatterns
+        && isDominantPatternGrowing) {
+      logger.logf(
+          Level.INFO,
+          "Redundancy is plateauing and only pattern %s is growing ",
+          currentDominantPattern);
+      return false;
+    }
+
+    double maxRedundancyDetectedCategories = calculateMaxRedundancy(categoryFrequency);
+    boolean isOneCategoryDominant = maxRedundancyDetectedCategories > CATEGORY_REDUNDANCY_THRESHOLD;
+
+    if (isOneCategoryDominant) {
+      Multiset.Entry<String> currentDominantCategory = getMostFrequent(categoryFrequency);
+      logger.logf(
+          Level.INFO,
+          "Category %s is dominant at %.2f",
+          currentDominantCategory,
+          maxRedundancyDetectedCategories);
+      return false;
+    }
+
+    boolean isPatternRedundancyAboveThreshold = maxRedundancyDetectedPatterns > redundancyThreshold;
+    if (isPatternRedundancyAboveThreshold) {
+      logger.logf(
+          Level.INFO,
+          "Redundancy in patterns too high: %.2f for threshold %.2f.",
+          maxRedundancyDetectedPatterns,
+          redundancyThreshold);
+      return false;
+    }
+
+    return true;
   }
 
   private void collectAndCategorizePatterns(
@@ -105,30 +153,26 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
         if (predState.isAbstractionState()) {
           BooleanFormula abstractionFormula = predState.getAbstractionFormula().asFormula();
-          ImmutableList<DelegatingRefinerNormalizedAtom> atoms =
-              normalizer.normalizeFormula(abstractionFormula);
-
-          for (DelegatingRefinerNormalizedAtom atom : atoms) {
-            processAtom(atom, pPatternBuilder, pCategoryBuilder);
-          }
+          DelegatingRefinerSExpression rootExpression = normalizer.buildAtom(abstractionFormula);
+          collectMatches(rootExpression, matcher, pPatternBuilder, pCategoryBuilder);
         }
       }
     }
   }
 
-  private void processAtom(
-      DelegatingRefinerNormalizedAtom atom,
-      ImmutableCollection.Builder<String> pPatternBuilder,
-      ImmutableCollection.Builder<String> pCategoryBuilder) {
-    String sExpr = atom.toSExpr();
-    for (String subAtom : DelegatingRefinerDslMatcher.extractAtoms(sExpr)) {
-      Optional<DelegatingRefinerNormalizedFormula> maybeFormula = matcher.applyPatternRule(subAtom);
-      if (maybeFormula.isPresent()) {
-        DelegatingRefinerNormalizedFormula normalizedFormula = maybeFormula.orElseThrow();
-        pPatternBuilder.add(normalizedFormula.id());
-        pCategoryBuilder.add(normalizedFormula.category());
-      } else {
-        logger.logf(Level.FINEST, "No rule matched formula: %s.", atom);
+  private void collectMatches(
+      DelegatingRefinerSExpression pExpression,
+      DelegatingRefinerMatchingVisitor pMatcher,
+      ImmutableMultiset.Builder<String> pPatternBuilder,
+      ImmutableMultiset.Builder<String> pCategoryBuilder) {
+    ImmutableList<DelegatingRefinerNormalizedFormula> matches = pExpression.accept(pMatcher);
+    for (DelegatingRefinerNormalizedFormula match : matches) {
+      pPatternBuilder.add(match.id());
+      pCategoryBuilder.add(match.category());
+    }
+    if (pExpression instanceof DelegatingRefinerSExpressionSExpressionOperator operator) {
+      for (DelegatingRefinerSExpression subAtom : operator.sExpressionList()) {
+        collectMatches(subAtom, pMatcher, pPatternBuilder, pCategoryBuilder);
       }
     }
   }
@@ -150,16 +194,16 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
     }
   }
 
-  private double calculateMaxRedundancy(ImmutableMultiset<String> pPatternFrequency) {
-    int totalPatterns = pPatternFrequency.size();
-    if (totalPatterns == 0) {
+  private <T> double calculateMaxRedundancy(ImmutableMultiset<T> pMultiset) {
+    int total = pMultiset.size();
+    if (total == 0) {
       return 0.0;
     }
-    Multiset.Entry<String> dominantPattern = getMostFrequent(pPatternFrequency);
-    if (dominantPattern == null) {
+    Multiset.Entry<T> dominant = getMostFrequent(pMultiset);
+    if (dominant == null) {
       return 0.0;
     }
-    return (double) dominantPattern.getCount() / totalPatterns;
+    return (double) dominant.getCount() / total;
   }
 
   private <T> Multiset.Entry<T> getMostFrequent(ImmutableMultiset<T> pMultiset) {
