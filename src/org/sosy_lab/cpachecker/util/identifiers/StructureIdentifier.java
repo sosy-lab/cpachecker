@@ -17,21 +17,21 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 @SuppressWarnings("EqualsGetClass") // should be refactored
 public sealed class StructureIdentifier extends SingleIdentifier permits StructureFieldIdentifier {
 
-  protected final AbstractIdentifier owner;
+  private final AbstractIdentifier owner;
 
-  public StructureIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
-    super(pNm, pTp, dereference);
+  public StructureIdentifier(String pNm, CType pTp, int pDereference, AbstractIdentifier own) {
+    super(pNm, pTp, pDereference);
     owner = own;
   }
 
   @Override
   public String toString() {
-    return Identifiers.getCharsOf(dereference) + "((" + owner + ")." + name + ")";
+    return Identifiers.getCharsOf(getDereference()) + "((" + owner + ")." + getName() + ")";
   }
 
   @Override
   public StructureIdentifier cloneWithDereference(int pDereference) {
-    return new StructureIdentifier(name, type, pDereference, owner);
+    return new StructureIdentifier(getName(), getType(), pDereference, owner);
   }
 
   public AbstractIdentifier getOwner() {
@@ -74,19 +74,20 @@ public sealed class StructureIdentifier extends SingleIdentifier permits Structu
 
   @Override
   public String toLog() {
-    return "s;" + name + ";" + dereference;
+    return "s;" + getName() + ";" + getDereference();
   }
 
   @Override
-  public GeneralIdentifier getGeneralId() {
-    return new GeneralStructureFieldIdentifier(name, type, dereference, owner);
+  public AbstractIdentifier getGeneralId() {
+    return new GeneralStructureFieldIdentifier(getName(), getType(), getDereference(), owner);
   }
 
   public StructureFieldIdentifier toStructureFieldIdentifier() {
     if (owner instanceof SingleIdentifier singleIdentifier) {
-      return new StructureFieldIdentifier(name, singleIdentifier.type, dereference, null);
+      return new StructureFieldIdentifier(
+          getName(), singleIdentifier.getType(), getDereference(), null);
     } else {
-      return new StructureFieldIdentifier(name, type, dereference, null);
+      return new StructureFieldIdentifier(getName(), getType(), getDereference(), null);
     }
   }
 

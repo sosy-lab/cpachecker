@@ -9,15 +9,17 @@
 package org.sosy_lab.cpachecker.util.identifiers;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 @SuppressWarnings("EqualsGetClass") // should be refactored
-public sealed class LocalVariableIdentifier extends VariableIdentifier
+public sealed class LocalVariableIdentifier extends SingleIdentifier
     permits GeneralLocalVariableIdentifier {
 
-  protected @NonNull String function; // function, where this variable was declared
+  private final @NonNull String function; // function, where this variable was declared
 
   public LocalVariableIdentifier(String nm, CType t, String func, int dereference) {
     super(nm, t, dereference);
@@ -46,7 +48,7 @@ public sealed class LocalVariableIdentifier extends VariableIdentifier
 
   @Override
   public LocalVariableIdentifier cloneWithDereference(int pDereference) {
-    return new LocalVariableIdentifier(name, type, function, pDereference);
+    return new LocalVariableIdentifier(getName(), getType(), function, pDereference);
   }
 
   public String getFunction() {
@@ -60,12 +62,12 @@ public sealed class LocalVariableIdentifier extends VariableIdentifier
 
   @Override
   public String toLog() {
-    return "l;" + name + ";" + dereference;
+    return "l;" + getName() + ";" + getDereference();
   }
 
   @Override
-  public GeneralIdentifier getGeneralId() {
-    return new GeneralLocalVariableIdentifier(name, type, function, dereference);
+  public AbstractIdentifier getGeneralId() {
+    return new GeneralLocalVariableIdentifier(getName(), getType(), function, getDereference());
   }
 
   @Override
@@ -82,5 +84,10 @@ public sealed class LocalVariableIdentifier extends VariableIdentifier
     } else {
       return 1;
     }
+  }
+
+  @Override
+  public Collection<AbstractIdentifier> getComposedIdentifiers() {
+    return ImmutableSet.of();
   }
 }

@@ -8,18 +8,19 @@
 
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public sealed class GlobalVariableIdentifier extends VariableIdentifier
-    permits GeneralGlobalVariableIdentifier {
+public non-sealed class GlobalVariableIdentifier extends SingleIdentifier {
 
-  public GlobalVariableIdentifier(String nm, CType t, int dereference) {
-    super(nm, t, dereference);
+  public GlobalVariableIdentifier(String nm, CType t, int pDereference) {
+    super(nm, t, pDereference);
   }
 
   @Override
   public GlobalVariableIdentifier cloneWithDereference(int pDereference) {
-    return new GlobalVariableIdentifier(name, type, pDereference);
+    return new GlobalVariableIdentifier(getName(), getType(), pDereference);
   }
 
   @Override
@@ -29,12 +30,12 @@ public sealed class GlobalVariableIdentifier extends VariableIdentifier
 
   @Override
   public String toLog() {
-    return "g;" + name + ";" + dereference;
+    return "g;" + getName() + ";" + getDereference();
   }
 
   @Override
-  public GeneralIdentifier getGeneralId() {
-    return new GeneralGlobalVariableIdentifier(name, type, dereference);
+  public AbstractIdentifier getGeneralId() {
+    return new GlobalVariableIdentifier(getName(), null, getDereference());
   }
 
   @Override
@@ -45,5 +46,10 @@ public sealed class GlobalVariableIdentifier extends VariableIdentifier
     } else {
       return 1;
     }
+  }
+
+  @Override
+  public Collection<AbstractIdentifier> getComposedIdentifiers() {
+    return ImmutableSet.of();
   }
 }

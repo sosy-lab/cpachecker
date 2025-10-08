@@ -12,22 +12,23 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class GeneralLocalVariableIdentifier extends LocalVariableIdentifier
-    implements GeneralIdentifier {
+    implements AbstractIdentifier {
 
   public GeneralLocalVariableIdentifier(String pNm, int pDereference) {
     super(pNm, null, "", pDereference);
   }
 
-  public GeneralLocalVariableIdentifier(String pNm, CType type, String function, int pDereference) {
-    super(pNm, type, function, pDereference);
+  public GeneralLocalVariableIdentifier(
+      String pNm, CType type, String pFunction, int pDereference) {
+    super(pNm, type, pFunction, pDereference);
   }
 
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + dereference;
-    result = prime * result + Objects.hashCode(name);
+    result = prime * result + getDereference();
+    result = prime * result + Objects.hashCode(getName());
     return result;
   }
 
@@ -40,11 +41,11 @@ public final class GeneralLocalVariableIdentifier extends LocalVariableIdentifie
       return false;
     }
     SingleIdentifier other = (SingleIdentifier) obj;
-    return dereference == other.dereference && Objects.equals(name, other.name);
+    return getDereference() == other.getDereference() && Objects.equals(getName(), other.getName());
   }
 
   @Override
   public GeneralLocalVariableIdentifier cloneWithDereference(int deref) {
-    return new GeneralLocalVariableIdentifier(name, type, function, deref);
+    return new GeneralLocalVariableIdentifier(getName(), getType(), getFunction(), deref);
   }
 }

@@ -23,14 +23,14 @@ public sealed class StructureFieldIdentifier extends StructureIdentifier
 
   @Override
   public String toString() {
-    return Identifiers.getCharsOf(dereference) + "(?." + name + ")";
+    return Identifiers.getCharsOf(getDereference()) + "(?." + getName() + ")";
   }
 
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + Objects.hashCode(type);
+    result = prime * result + Objects.hashCode(getType());
     return result;
   }
 
@@ -43,12 +43,12 @@ public sealed class StructureFieldIdentifier extends StructureIdentifier
       return false;
     }
     StructureFieldIdentifier other = (StructureFieldIdentifier) obj;
-    return Objects.equals(type, other.type);
+    return Objects.equals(getType(), other.getType());
   }
 
   @Override
   public StructureFieldIdentifier cloneWithDereference(int deref) {
-    return new StructureFieldIdentifier(name, type, deref, owner);
+    return new StructureFieldIdentifier(getName(), getType(), deref, getOwner());
   }
 
   @Override
@@ -58,12 +58,12 @@ public sealed class StructureFieldIdentifier extends StructureIdentifier
 
   @Override
   public String toLog() {
-    return "f;" + name + ";" + dereference;
+    return "f;" + getName() + ";" + getDereference();
   }
 
   @Override
-  public GeneralIdentifier getGeneralId() {
-    return new GeneralStructureFieldIdentifier(name, type, dereference, owner);
+  public AbstractIdentifier getGeneralId() {
+    return new GeneralStructureFieldIdentifier(getName(), getType(), getDereference(), getOwner());
   }
 
   @Override
