@@ -4,6 +4,8 @@
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
 
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
+
+  
   <option name="--benchmark"/>
   <option name="--heap">2000M</option>
 
@@ -15,8 +17,9 @@
   <!-- Step 3: Generate witness-based precision and perform analysis -->
   <rundefinition name="step3-witness-precision-analysis">
     <option name="--valueAnalysis"/>
-    <requiredfiles>../results/WitnessBench-E1-Step1-Generation.2025-10-03_23-14-25.files/step1-witness-generation/${taskdef_name}/output/output/witness-experiment1.yml</requiredfiles>
-    <option name="--option">cpa.value.initialWitnessPrecisionFile=test/results/WitnessBench-E1-Step1-Generation.2025-10-03_23-14-25.files/step1-witness-generation/${taskdef_name}/output/output/witness-experiment1.yml</option>
+    <requiredfiles>../results/WitnessBench-E1-Step1-Generation.2025-10-04_17-54-14.files/step1-witness-generation/${taskdef_name}/output/witness-experiment1.yml</requiredfiles>
+    <option name="--option">cpa.value.initialWitnessPrecisionFile=test/results/WitnessBench-E1-Step1-Generation.2025-10-04_17-54-14.files/step1-witness-generation/${taskdef_name}/output/witness-experiment1.yml</option>
+
     <option name="--option">cpa.value.precisionFile=output/precision-experiment1.txt</option>
     
   </rundefinition>
@@ -24,8 +27,8 @@
   <resultfiles>**/*experiment1.*</resultfiles>
 
   <!-- Select suitable programs for testing precision effect -->
-  <tasks name="E1-Loop-Test">
-    <include>../programs/simple/loop1.yml</include>
+   <tasks name="loop-invariants-bin-suffix-5-Test">
+    <include>../programs/benchmarks/loop-invariants/bin-suffix-5.yml</include>
   </tasks>
 
 </benchmark>
