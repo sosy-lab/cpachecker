@@ -47,7 +47,11 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   private boolean exportSupportingInvariants;
 
   public TerminationYAMLWitnessExporter(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger, boolean pExportSupportingInvariants)
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      boolean pExportSupportingInvariants)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
     exportSupportingInvariants = pExportSupportingInvariants;

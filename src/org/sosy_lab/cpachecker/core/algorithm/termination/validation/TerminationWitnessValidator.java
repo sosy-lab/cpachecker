@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -29,6 +30,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
@@ -188,8 +190,7 @@ public class TerminationWitnessValidator implements Algorithm {
         throw new CPAException("The configuration does not support infinite state spaces.");
       }
       // Check the proper well-foundedness of the formula and if it succeeds, check R => T
-      if (wellFoundednessChecker.isWellFounded(
-              invariant, supportingInvariants, loop)
+      if (wellFoundednessChecker.isWellFounded(invariant, supportingInvariants, loop)
           && isCandidateInvariantTransitionInvariant(
               loop, loopsToTransitionInvariants.get(loop), supportingInvariants)) {
         continue;
@@ -199,8 +200,7 @@ public class TerminationWitnessValidator implements Algorithm {
       // well-foundedness
       // And hence, we have to do check R^+ => T
       boolean isWellFounded =
-          wellFoundednessChecker.isDisjunctivelyWellFounded(
-              invariant, supportingInvariants, loop);
+          wellFoundednessChecker.isDisjunctivelyWellFounded(invariant, supportingInvariants, loop);
       // Our termination analysis might be unsound with respect to C semantics because it assumes
       // infinite state space.
       if (!isWellFounded && wellFoundednessChecker instanceof ImplicitRankingChecker) {
@@ -376,7 +376,8 @@ public class TerminationWitnessValidator implements Algorithm {
       BooleanFormula pCandidateInvariant,
       ImmutableList<BooleanFormula> pSupportingInvariants)
       throws InterruptedException, CPATransferException {
-    PathFormula loopFormula = pfmgr.makeFormulaForPath(new ArrayList<>(pLoop.getInnerLoopEdges()));
+    PathFormula loopFormula =
+        constructPathFormulaForLoop(pLoop.getInnerLoopEdges(), pLoop.getLoopHeads());
     pCandidateInvariant =
         fmgr.instantiate(
             pCandidateInvariant,
@@ -485,5 +486,51 @@ public class TerminationWitnessValidator implements Algorithm {
       }
     }
     return false;
+  }
+
+  private PathFormula constructPathFormulaForLoop(
+      ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pLoopHeads)
+      throws CPATransferException, InterruptedException {
+    List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
+    for (CFAEdge edge : pEdges) {
+      if (pLoopHeads.contains(edge.getPredecessor())) {
+        listOfAllPaths.add(new ArrayList<>());
+        listOfAllPaths.getLast().add(edge);
+      }
+    }
+    boolean updated = true;
+    while (updated) {
+      updated = false;
+      List<List<CFAEdge>> newPaths = new ArrayList<>();
+      for (List<CFAEdge> path : listOfAllPaths) {
+        CFAEdge lastEdge = path.getLast();
+        List<CFAEdge> succEdges =
+            pEdges.stream()
+                .filter(
+                    e ->
+                        e.getPredecessor().equals(lastEdge.getSuccessor())
+                            && !pLoopHeads.contains(e.getPredecessor()))
+                .toList();
+        if (!succEdges.isEmpty()) {
+          if (succEdges.size() > 1) {
+            for (int i = 1; i < succEdges.size(); i++) {
+              newPaths.add(new ArrayList<>(path));
+              newPaths.getLast().add(succEdges.get(i));
+            }
+          }
+          updated = true;
+          path.add(succEdges.getFirst());
+        }
+      }
+      if (!newPaths.isEmpty()) {
+        listOfAllPaths.addAll(newPaths);
+      }
+    }
+    PathFormula formulaForLoop = pfmgr.makeFormulaForPath(listOfAllPaths.getFirst());
+    for (int i = 1; i < listOfAllPaths.size(); i++) {
+      formulaForLoop =
+          pfmgr.makeOr(formulaForLoop, pfmgr.makeFormulaForPath(listOfAllPaths.get(i)));
+    }
+    return formulaForLoop;
   }
 }
