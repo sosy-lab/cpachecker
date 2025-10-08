@@ -65,7 +65,8 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
               serializedState, pathFormulaManager, formulaManagerView, pts, map);
 
       return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-          abstraction, (PredicateAbstractState)
+          abstraction,
+          (PredicateAbstractState)
               predicateCPA.getInitialState(
                   blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition()));
     } finally {
