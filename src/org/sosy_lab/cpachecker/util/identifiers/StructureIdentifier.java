@@ -78,7 +78,7 @@ public sealed class StructureIdentifier extends SingleIdentifier permits Structu
   }
 
   @Override
-  public GeneralIdentifier getGeneralId() {
+  public AbstractIdentifier getGeneralId() {
     return new GeneralStructureFieldIdentifier(name, type, dereference, owner);
   }
 
