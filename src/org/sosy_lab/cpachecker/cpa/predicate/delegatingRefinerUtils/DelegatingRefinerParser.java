@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.List;
@@ -72,9 +74,7 @@ public class DelegatingRefinerParser {
   }
 
   private static DelegatingRefinerPatternNode parseNode(ArrayDeque<String> stack) {
-    if (stack.isEmpty()) {
-      throw new IllegalArgumentException("Pattern ended unexpectedly");
-    }
+    checkArgument(!stack.isEmpty(), "Pattern ended unexpectedly");
     String token = stack.removeFirst();
 
     if ("(".equals(token)) {
@@ -89,9 +89,7 @@ public class DelegatingRefinerParser {
     }
 
     // Unmatched ')'
-    if (")".equals(token)) {
-      throw new IllegalArgumentException("Unmatched ')'");
-    }
+    checkArgument(!")".equals(token), "Unmatched ')'");
 
     // Wildcard <var>
     if (token.length() >= 2 && token.startsWith("<") && token.endsWith(">")) {
@@ -104,17 +102,13 @@ public class DelegatingRefinerParser {
   }
 
   private static String require(ArrayDeque<String> stack) {
-    if (stack.isEmpty()) {
-      throw new IllegalArgumentException("Expected operator after '('");
-    }
+    checkArgument(!stack.isEmpty(), "Expected operator after '('");
     return stack.removeFirst();
   }
 
   private static String peek(ArrayDeque<String> stack) {
     String token = stack.peekFirst();
-    if (token == null) {
-      throw new IllegalArgumentException("Missing ')' to close '(' for operator");
-    }
+    checkArgument(token != null, "Missing ')' to close '(' for operator");
     return token;
   }
 }

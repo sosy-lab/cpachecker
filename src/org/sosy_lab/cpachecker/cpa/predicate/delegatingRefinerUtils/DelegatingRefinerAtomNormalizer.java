@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.elementsAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -112,12 +113,12 @@ public class DelegatingRefinerAtomNormalizer
     Optional<HiLo> hiLo = parseBVExtract(pRawOperator);
 
     if (hiLo.isPresent() && pList.size() == 1) {
+
       ImmutableList<DelegatingRefinerSExpression> expressionsList =
-          ImmutableList.<DelegatingRefinerSExpression>builder()
-              .add(new DelegatingRefinerSExpressionAtom(hiLo.get().hi()))
-              .add(new DelegatingRefinerSExpressionAtom(hiLo.get().lo()))
-              .addAll(pList)
-              .build();
+          elementsAndList(
+              new DelegatingRefinerSExpressionAtom(hiLo.orElseThrow().hi()),
+              new DelegatingRefinerSExpressionAtom(hiLo.orElseThrow().lo()),
+              pList);
       return new DelegatingRefinerSExpressionSExpressionOperator("bvextract", expressionsList);
     }
     return new DelegatingRefinerSExpressionSExpressionOperator(pNormalized, pList);
@@ -157,6 +158,7 @@ public class DelegatingRefinerAtomNormalizer
     return new DelegatingRefinerSExpressionAtom(pS);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public DelegatingRefinerSExpression visitBoundVariable(Formula pFormula, int pI) {
     return null;

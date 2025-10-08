@@ -29,8 +29,7 @@ public final class DelegatingRefinerMatchingVisitor
       ImmutableList<DelegatingRefinerPatternRule> pPatternRules) {
 
     ImmutableList.Builder<CompiledRule> compiledRuleBuilder = ImmutableList.builder();
-    for (int i = 0; i < pPatternRules.size(); i++) {
-      DelegatingRefinerPatternRule rule = pPatternRules.get(i);
+    for (DelegatingRefinerPatternRule rule : pPatternRules) {
       DelegatingRefinerPatternNode root =
           DelegatingRefinerParser.parseExpression(rule.patternMatch());
       compiledRuleBuilder.add(new CompiledRule(rule, root));
