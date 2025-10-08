@@ -4,7 +4,7 @@
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
 
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
-
+<require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
   
   <option name="--benchmark"/>
   <option name="--heap">2000M</option>
