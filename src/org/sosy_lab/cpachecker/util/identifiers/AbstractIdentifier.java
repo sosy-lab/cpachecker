@@ -11,11 +11,7 @@ package org.sosy_lab.cpachecker.util.identifiers;
 import java.util.Collection;
 
 public sealed interface AbstractIdentifier extends Comparable<AbstractIdentifier>
-    permits BinaryIdentifier,
-        ConstantIdentifier,
-        SingleIdentifier,
-        GeneralLocalVariableIdentifier,
-        GeneralStructureFieldIdentifier {
+    permits BinaryIdentifier, ConstantIdentifier, GeneralIdentifier, SingleIdentifier {
 
   @Override
   boolean equals(Object other);
