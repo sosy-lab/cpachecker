@@ -12,15 +12,15 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class GeneralStructureFieldIdentifier extends StructureFieldIdentifier
-    implements GeneralIdentifier {
+    implements AbstractIdentifier {
 
   public GeneralStructureFieldIdentifier(String pNm, int pDereference) {
-    super(pNm, /*"",*/ null, pDereference, null);
+    super(pNm, null, pDereference, null);
   }
 
   public GeneralStructureFieldIdentifier(
-      String pNm, /*String fType,*/ CType type, int pDereference, AbstractIdentifier own) {
-    super(pNm, /*fType,*/ type, pDereference, own);
+      String pNm, CType type, int pDereference, AbstractIdentifier own) {
+    super(pNm, type, pDereference, own);
     assert type != null : "Creating GeneralStructureFieldIdentifier with null field";
   }
 
@@ -28,8 +28,8 @@ public final class GeneralStructureFieldIdentifier extends StructureFieldIdentif
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + dereference;
-    result = prime * result + Objects.hashCode(name);
+    result = prime * result + getDereference();
+    result = prime * result + Objects.hashCode(getName());
     return result;
   }
 
@@ -42,11 +42,11 @@ public final class GeneralStructureFieldIdentifier extends StructureFieldIdentif
       return false;
     }
     SingleIdentifier other = (SingleIdentifier) obj;
-    return dereference == other.dereference && Objects.equals(name, other.name);
+    return getDereference() == other.getDereference() && Objects.equals(getName(), other.getName());
   }
 
   @Override
   public GeneralStructureFieldIdentifier cloneWithDereference(int deref) {
-    return new GeneralStructureFieldIdentifier(name, /* fieldType,*/ type, deref, owner);
+    return new GeneralStructureFieldIdentifier(getName(), getType(), deref, getOwner());
   }
 }

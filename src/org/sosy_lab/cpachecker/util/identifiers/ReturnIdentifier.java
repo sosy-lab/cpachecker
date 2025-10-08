@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class ReturnIdentifier extends VariableIdentifier implements GeneralIdentifier {
+public final class ReturnIdentifier extends SingleIdentifier {
 
   private static Map<Integer, ReturnIdentifier> instances;
 
@@ -31,7 +33,7 @@ public final class ReturnIdentifier extends VariableIdentifier implements Genera
   }
 
   @Override
-  public GeneralIdentifier getGeneralId() {
+  public AbstractIdentifier getGeneralId() {
     return null;
   }
 
@@ -61,5 +63,10 @@ public final class ReturnIdentifier extends VariableIdentifier implements Genera
   @Override
   public AbstractIdentifier cloneWithDereference(int pDereference) {
     return getInstance(pDereference);
+  }
+
+  @Override
+  public Collection<AbstractIdentifier> getComposedIdentifiers() {
+    return ImmutableSet.of();
   }
 }

@@ -12,13 +12,16 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 
-@SuppressWarnings("EqualsGetClass") // should be refactored
 public abstract sealed class SingleIdentifier implements AbstractIdentifier
-    permits FunctionIdentifier, StructureIdentifier, VariableIdentifier {
+    permits FunctionIdentifier,
+        GlobalVariableIdentifier,
+        LocalVariableIdentifier,
+        ReturnIdentifier,
+        StructureIdentifier {
 
-  protected final String name;
-  protected final CType type;
-  protected final int dereference;
+  private final String name;
+  private final CType type;
+  private final int dereference;
 
   protected SingleIdentifier(String nm, CType tp, int deref) {
     name = nm;
@@ -64,10 +67,10 @@ public abstract sealed class SingleIdentifier implements AbstractIdentifier
     if (this == obj) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (obj == null || !(obj instanceof SingleIdentifier other)) {
       return false;
     }
-    SingleIdentifier other = (SingleIdentifier) obj;
+
     return dereference == other.dereference
         && Objects.equals(name, other.name)
         && Objects.equals(type.toASTString(""), other.type.toASTString(""));
@@ -82,7 +85,7 @@ public abstract sealed class SingleIdentifier implements AbstractIdentifier
 
   public abstract String toLog();
 
-  public abstract GeneralIdentifier getGeneralId();
+  public abstract AbstractIdentifier getGeneralId();
 
   @Override
   public int compareTo(AbstractIdentifier pO) {

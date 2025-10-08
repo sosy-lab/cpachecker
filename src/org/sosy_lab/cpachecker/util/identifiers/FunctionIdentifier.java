@@ -35,7 +35,7 @@ public final class FunctionIdentifier extends SingleIdentifier {
 
   @Override
   public SingleIdentifier cloneWithDereference(int pDereference) {
-    return new FunctionIdentifier(name, type, pDereference);
+    return new FunctionIdentifier(getName(), getType(), pDereference);
   }
 
   @Override
@@ -45,11 +45,11 @@ public final class FunctionIdentifier extends SingleIdentifier {
 
   @Override
   public String toLog() {
-    return "func;" + name + ";" + dereference;
+    return "func;" + getName() + ";" + getDereference();
   }
 
   @Override
-  public GeneralIdentifier getGeneralId() {
+  public AbstractIdentifier getGeneralId() {
     return null;
   }
 
