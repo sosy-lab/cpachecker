@@ -24,7 +24,7 @@ public sealed interface AbstractIdentifier extends Comparable<AbstractIdentifier
 
   boolean isGlobal();
 
-  AbstractIdentifier cloneWithDereference(int dereference);
+  AbstractIdentifier cloneWithDereference(int pDereference);
 
   int getDereference();
 
