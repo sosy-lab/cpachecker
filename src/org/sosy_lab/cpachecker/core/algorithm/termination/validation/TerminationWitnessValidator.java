@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessExc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -209,10 +210,8 @@ public class TerminationWitnessValidator implements Algorithm {
       if (!isWellFounded
           || !isCandidateInvariantInductiveTransitionInvariant(
               loop, loopsToTransitionInvariants.get(loop), supportingInvariants)) {
-        // The invariant is not disjunctively well-founded
-        pReachedSet.addNoWaitlist(
-            DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
-        return AlgorithmStatus.SOUND_AND_PRECISE;
+        // In this case, we are not sure whether the invariant could be divided otherwise
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
     }
     pReachedSet.clear();
@@ -377,7 +376,7 @@ public class TerminationWitnessValidator implements Algorithm {
       ImmutableList<BooleanFormula> pSupportingInvariants)
       throws InterruptedException, CPATransferException {
     PathFormula loopFormula =
-        constructPathFormulaForLoop(pLoop.getInnerLoopEdges(), pLoop.getLoopHeads());
+        constructPathFormulaForLoop(pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), -1);
     pCandidateInvariant =
         fmgr.instantiate(
             pCandidateInvariant,
@@ -441,20 +440,14 @@ public class TerminationWitnessValidator implements Algorithm {
       return false;
     }
     PathFormula loopFormula =
-        TransitionInvariantUtils.makeLoopFormulaWithInitialSSAIndex(
-            new ArrayList<>(pLoop.getInnerLoopEdges()), pfmgr);
+        constructPathFormulaForLoop(pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), 2);
     BooleanFormula booleanLoopFormula = loopFormula.getFormula();
 
     BooleanFormula firstStep =
         fmgr.instantiate(
             pCandidateInvariant,
             TransitionInvariantUtils.setIndicesToDifferentValues(
-                pCandidateInvariant, 1, 2, fmgr, scope));
-    firstStep =
-        bfmgr.and(
-            firstStep,
-            TransitionInvariantUtils.makeStatesEquivalent(
-                firstStep, booleanLoopFormula, 1, 2, bfmgr, fmgr));
+                pCandidateInvariant, 1, 1, fmgr, scope));
 
     BooleanFormula secondStep =
         fmgr.instantiate(
@@ -465,12 +458,9 @@ public class TerminationWitnessValidator implements Algorithm {
                         pCandidateInvariant, 1, -1, fmgr, scope)
                     .withDefault(2),
                 MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
-
     boolean isTransitionInvariant;
     try {
-      isTransitionInvariant =
-          solver.isUnsat(
-              bfmgr.not(bfmgr.implication(bfmgr.and(firstStep, booleanLoopFormula), secondStep)));
+      isTransitionInvariant = solver.implies(bfmgr.and(firstStep, booleanLoopFormula), secondStep);
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Transition invariant check failed !");
       return false;
@@ -489,7 +479,7 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   private PathFormula constructPathFormulaForLoop(
-      ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pLoopHeads)
+      ImmutableSet<CFAEdge> pEdges, ImmutableSet<CFANode> pLoopHeads, int pInitialSSAIndex)
       throws CPATransferException, InterruptedException {
     List<List<CFAEdge>> listOfAllPaths = new ArrayList<>();
     for (CFAEdge edge : pEdges) {
@@ -526,10 +516,32 @@ public class TerminationWitnessValidator implements Algorithm {
         listOfAllPaths.addAll(newPaths);
       }
     }
-    PathFormula formulaForLoop = pfmgr.makeFormulaForPath(listOfAllPaths.getFirst());
-    for (int i = 1; i < listOfAllPaths.size(); i++) {
-      formulaForLoop =
-          pfmgr.makeOr(formulaForLoop, pfmgr.makeFormulaForPath(listOfAllPaths.get(i)));
+    PathFormula formulaForLoop = pfmgr.makeEmptyPathFormula();
+    formulaForLoop =
+        formulaForLoop.withContext(
+            formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
+            PointerTargetSet.emptyPointerTargetSet());
+    boolean initialized = false;
+    for (List<CFAEdge> path : listOfAllPaths) {
+      PathFormula anotherPath = pfmgr.makeEmptyPathFormula();
+      anotherPath =
+          anotherPath.withContext(
+              anotherPath.getSsa().withDefault(pInitialSSAIndex),
+              PointerTargetSet.emptyPointerTargetSet());
+      for (CFAEdge edge : path) {
+        anotherPath = pfmgr.makeAnd(anotherPath, edge);
+      }
+      if (!initialized) {
+        initialized = true;
+        formulaForLoop = anotherPath;
+      } else {
+        formulaForLoop =
+            pfmgr
+                .makeOr(formulaForLoop, anotherPath)
+                .withContext(
+                    formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
+                    PointerTargetSet.emptyPointerTargetSet());
+      }
     }
     return formulaForLoop;
   }

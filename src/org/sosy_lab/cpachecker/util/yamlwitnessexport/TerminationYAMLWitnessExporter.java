@@ -20,6 +20,7 @@ import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.I
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -104,7 +105,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   }
 
   private InvariantEntry processRankingFunction(
-      RankingFunction pRankingFunction, CFANode pLoopHead) {
+      Collection<TerminationArgument> pArguments, CFANode pLoopHead) {
     List<String> transitionInvariants = new ArrayList<>();
     final String TMP_KEYWORD = "__CPAchecker_TMP";
     Optional<IterationElement> iterationStructure =
@@ -118,9 +119,31 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
             fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
             pLoopHead.getFunctionName());
-
-    if (pRankingFunction instanceof NestedRankingFunction pNestedRankingFunction) {
-      for (AffineFunction rankingFunction : pNestedRankingFunction.getComponents()) {
+    for (TerminationArgument argument : pArguments) {
+      RankingFunction rankingFunction = argument.getRankingFunction();
+      if (rankingFunction instanceof NestedRankingFunction pNestedRankingFunction) {
+        for (AffineFunction nestedRankingFunction : pNestedRankingFunction.getComponents()) {
+          String prevRank =
+              rightSideOfRankingFunction(
+                  wrapTheVariablesWithAdditionalContext(
+                      nestedRankingFunction.toString(),
+                      nestedRankingFunction.getVariables(),
+                      LONG_LONG_CAST + AT_KEYWORD,
+                      ANY_PREV_KEYWORD + ")"));
+          String currentRank =
+              rightSideOfRankingFunction(
+                  wrapTheVariablesWithAdditionalContext(
+                      nestedRankingFunction.toString(),
+                      nestedRankingFunction.getVariables(),
+                      LONG_LONG_CAST,
+                      ")"));
+          if (prevRank.contains(TMP_KEYWORD)) {
+            transitionInvariants.add("true");
+          } else {
+            transitionInvariants.add(prevRank + " > " + currentRank);
+          }
+        }
+      } else {
         String prevRank =
             rightSideOfRankingFunction(
                 wrapTheVariablesWithAdditionalContext(
@@ -140,26 +163,6 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         } else {
           transitionInvariants.add(prevRank + " > " + currentRank);
         }
-      }
-    } else {
-      String prevRank =
-          rightSideOfRankingFunction(
-              wrapTheVariablesWithAdditionalContext(
-                  pRankingFunction.toString(),
-                  pRankingFunction.getVariables(),
-                  LONG_LONG_CAST + AT_KEYWORD,
-                  ANY_PREV_KEYWORD + ")"));
-      String currentRank =
-          rightSideOfRankingFunction(
-              wrapTheVariablesWithAdditionalContext(
-                  pRankingFunction.toString(),
-                  pRankingFunction.getVariables(),
-                  LONG_LONG_CAST,
-                  ")"));
-      if (prevRank.contains(TMP_KEYWORD)) {
-        transitionInvariants.add("true");
-      } else {
-        transitionInvariants.add(prevRank + " > " + currentRank);
       }
     }
     return new InvariantEntry(
@@ -183,10 +186,9 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
             entries.add(processSupportingInvariant(supportingInvariant, loopHead));
           }
         }
-
-        // Construct transition invariants from ranking function
-        entries.add(processRankingFunction(argument.getRankingFunction(), loopHead));
       }
+      // Construct transition invariants from ranking function
+      entries.add(processRankingFunction(pTerminationArguments.get(loop), loopHead));
     }
     exportEntries(
         new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), entries.build()), pPath);
