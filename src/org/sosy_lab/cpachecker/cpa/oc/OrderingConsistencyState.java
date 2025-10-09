@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.oc;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -42,7 +40,7 @@ public record OrderingConsistencyState(
 
   Optional<Pair<Integer, OrderingConsistencyThreadState>> nextThreadToStep() {
     final Predicate<OrderingConsistencyThreadState> hasNext =
-        state -> !allLeavingEdges(state.pLocationState().getLocationNode()).isEmpty();
+        state -> !state.pLocationState().getLocationNode().getAllLeavingEdges().isEmpty();
 
     // if the current pid can continue, we keep it
     if (pid.isPresent() && hasNext.test(waitingThreads.get(pid.get()))) {
