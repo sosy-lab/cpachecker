@@ -406,9 +406,13 @@ public class DssBlockAnalysis {
       }
       for (Entry<String, StateAndPrecision> previousEntry : preconditions.entries()) {
         StateAndPrecision previous = previousEntry.getValue();
-        if (previousEntry.getKey().equals(pReceived.getSenderId())
-            && dcpa.isMostGeneralBlockEntryState(previous.state())) {
-          discard.add(new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
+        if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
+          if (previousEntry.getKey().equals(pReceived.getSenderId())) {
+            discard.add(
+                new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
+          } else if (!block.getLoopPredecessorIds().isEmpty()) {
+            soundPredecessors.remove(previousEntry.getKey());
+          }
         }
         boolean previousLessEqualDeserialized =
             dcpa.getCoverageOperator()
@@ -524,7 +528,9 @@ public class DssBlockAnalysis {
         analyzeViolationCondition(
             transformedImmutableListCopy(violations, v -> (ARGState) v.state()));
     if (!result.summaries().isEmpty()) {
-      messages.addAll(reportPreconditions(result.summaries(), result.isSound()));
+      messages.addAll(
+          reportPreconditions(
+              result.summaries(), result.isSound() && result.violationConditions().isEmpty()));
     }
     if (!result.violationConditions().isEmpty()) {
       messages.addAll(reportViolationConditions(result.violationConditions(), false));

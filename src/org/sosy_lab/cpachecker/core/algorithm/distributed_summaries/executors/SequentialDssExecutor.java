@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
@@ -111,6 +112,9 @@ public class SequentialDssExecutor implements DssExecutor {
             if (next instanceof DssResultMessage resultMessage) {
               return new StatusAndResult(
                   AlgorithmStatus.SOUND_AND_PRECISE, resultMessage.getResult());
+            }
+            if (next instanceof DssExceptionMessage exceptionMessage) {
+              throw new CPAException(exceptionMessage.getExceptionMessage());
             }
             Collection<DssMessage> results = actor.processMessage(next);
             actor.broadcast(results);
