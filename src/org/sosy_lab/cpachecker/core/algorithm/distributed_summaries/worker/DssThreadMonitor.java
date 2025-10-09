@@ -41,7 +41,7 @@ public class DssThreadMonitor extends Thread {
                       t.getState() == Thread.State.WAITING
                           || t.getState() == Thread.State.TIMED_WAITING);
 
-      if (allWaiting) {
+      if (allWaiting && connection.getBroadcaster().isEmpty()) {
         connection
             .getBroadcaster()
             .broadcastToAll(messageFactory.createDssResultMessage(THREAD_NAME, Result.TRUE));

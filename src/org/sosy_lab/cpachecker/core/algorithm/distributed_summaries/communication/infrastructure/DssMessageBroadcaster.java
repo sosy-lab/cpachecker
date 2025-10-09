@@ -17,13 +17,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 
 public class DssMessageBroadcaster {
 
   public record CommunicationId(String senderId, DssCommunicationEntity dssCommunicationEntity) {}
 
-  private final Map<String, BlockingQueue<DssMessage>> connectionsBySenderId;
+  private final Map<String, @NonNull BlockingQueue<DssMessage>> connectionsBySenderId;
   private final Multimap<DssCommunicationEntity, BlockingQueue<DssMessage>> connectionsByEntity;
 
   /**
@@ -41,6 +42,10 @@ public class DssMessageBroadcaster {
           connectionsByEntity.put(id.dssCommunicationEntity(), queue);
           connectionsByEntity.put(DssCommunicationEntity.ALL, queue);
         });
+  }
+
+  public boolean isEmpty() {
+    return connectionsBySenderId.values().stream().allMatch(BlockingQueue::isEmpty);
   }
 
   private void broadcast(DssMessage message, DssCommunicationEntity entity) {

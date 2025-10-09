@@ -196,10 +196,15 @@ public class DssAnalysisWorker extends DssWorker {
     }
   }
 
+  public void broadcastInitialMessages()
+      throws CPAException, SolverException, InterruptedException {
+    broadcast(dssBlockAnalysis.runInitialAnalysis());
+  }
+
   @Override
   public void run() {
     try {
-      broadcast(dssBlockAnalysis.runInitialAnalysis());
+      broadcastInitialMessages();
       super.run();
     } catch (Exception | Error e) {
       logger.logException(Level.SEVERE, e, "Worker stopped working due to an error...");

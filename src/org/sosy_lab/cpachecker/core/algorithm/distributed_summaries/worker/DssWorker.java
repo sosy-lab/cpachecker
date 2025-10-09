@@ -63,6 +63,9 @@ public abstract class DssWorker implements DssActor {
 
   @Override
   public void run() {
+    if (shutdownRequested()) {
+      return;
+    }
     final DssConnection connection = getConnection();
     try (connection) {
       while (!shutdownRequested()) {

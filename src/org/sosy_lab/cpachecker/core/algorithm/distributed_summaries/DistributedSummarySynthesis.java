@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.NaiveDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SequentialDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SingleWorkerDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
@@ -62,7 +63,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   private enum ExecutorType {
     DSS,
-    SINGLE_WORKER
+    SINGLE_WORKER,
+    SEQUENTIAL
   }
 
   public DistributedSummarySynthesis(
@@ -89,6 +91,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     return switch (executorType) {
       case DSS -> new NaiveDssExecutor(configuration, specification);
       case SINGLE_WORKER -> new SingleWorkerDssExecutor(configuration, specification);
+      case SEQUENTIAL -> new SequentialDssExecutor(configuration, specification);
     };
   }
 

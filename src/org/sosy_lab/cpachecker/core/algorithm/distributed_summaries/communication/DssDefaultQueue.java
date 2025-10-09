@@ -44,6 +44,11 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
   }
 
   @Override
+  public boolean isEmpty() {
+    return next.isEmpty() && highestPriority.isEmpty() && queue.isEmpty();
+  }
+
+  @Override
   public boolean add(DssMessage pMessage) {
     return queue.add(pMessage);
   }
