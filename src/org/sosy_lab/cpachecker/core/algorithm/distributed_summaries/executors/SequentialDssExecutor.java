@@ -19,9 +19,12 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
@@ -104,7 +107,12 @@ public class SequentialDssExecutor implements DssExecutor {
         for (DssActor actor : actors) {
           if (actor.getConnection().hasPendingMessages()) {
             finished.remove(actor.getId());
-            Collection<DssMessage> results = actor.processMessage(actor.nextMessage());
+            DssMessage next = actor.nextMessage();
+            if (next instanceof DssResultMessage resultMessage) {
+              return new StatusAndResult(
+                  AlgorithmStatus.SOUND_AND_PRECISE, resultMessage.getResult());
+            }
+            Collection<DssMessage> results = actor.processMessage(next);
             actor.broadcast(results);
           } else {
             finished.add(actor.getId());
@@ -116,7 +124,7 @@ public class SequentialDssExecutor implements DssExecutor {
     }
 
     // blocks the thread until the result message is received
-    return observer.observe();
+    return new StatusAndResult(AlgorithmStatus.SOUND_AND_PRECISE, Result.TRUE);
   }
 
   @Override

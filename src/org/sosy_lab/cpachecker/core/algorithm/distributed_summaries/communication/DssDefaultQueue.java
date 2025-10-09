@@ -14,6 +14,7 @@ import java.util.Deque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssThreadMonitor;
 
 public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
@@ -77,6 +78,11 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
     if (!next.isEmpty()) {
       return next.removeFirst();
     }
-    return queue.take();
+    DssThreadMonitor.remove(Thread.currentThread().getName());
+    try {
+      return queue.take();
+    } finally {
+      DssThreadMonitor.add(Thread.currentThread().getName());
+    }
   }
 }
