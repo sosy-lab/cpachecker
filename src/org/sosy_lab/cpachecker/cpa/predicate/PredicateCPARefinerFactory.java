@@ -35,10 +35,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Delegat
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunNTimes;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStaticRefinement;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicStopHeuristic;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.TrackingPredicateCPARefinementContext;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -330,7 +330,6 @@ public final class PredicateCPARefinerFactory {
         throw new InvalidConfigurationException(
             "Refiner must not be null. Available refiners: " + pRefinersAvailable.keySet());
       }
-
       DelegatingRefinerHeuristic pHeuristic =
           switch (pHeuristicName) {
             case STATIC -> new DelegatingRefinerHeuristicStaticRefinement();
@@ -343,7 +342,7 @@ public final class PredicateCPARefinerFactory {
                     acceptableRedundancyThreshold,
                     predicateCpa.getSolver().getFormulaManager(),
                     predicateCpa.getLogger());
-            case STOP -> new DelegatingRefinerHeuristicStopHeuristic();
+            case STOP -> (pReached, pDeltas) -> true;
           };
 
       recordBuilder.add(new HeuristicDelegatingRefinerRecord(pHeuristic, pRefiner));

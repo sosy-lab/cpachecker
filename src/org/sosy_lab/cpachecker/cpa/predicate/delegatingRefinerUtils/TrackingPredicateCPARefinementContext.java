@@ -6,14 +6,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * A tracking class to store metadata about the current refinement. Intended for use with delegating
- * refiner and its heuristics.
+ * A metadata tracker used by {@link
+ * org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate}.
+ * The class stores refinement count and generated interpolants across iterations.Interpolants are
+ * stored as grouped list per refinement steps.
  */
 public class TrackingPredicateCPARefinementContext {
 
@@ -22,12 +24,12 @@ public class TrackingPredicateCPARefinementContext {
   private ImmutableList<ImmutableList<BooleanFormula>> allInterpolantsAdded = ImmutableList.of();
   private int numberOfRefinements = 0;
 
-  void storeInterpolants(ImmutableList<BooleanFormula> pInterpolantList) {
+  public void storeInterpolants(ImmutableList<BooleanFormula> pInterpolantList) {
     allInterpolantsAddedBuilder.add(pInterpolantList);
     allInterpolantsAdded = allInterpolantsAddedBuilder.build();
   }
 
-  void storeNumberOfRefinements(int pNumberOfRefinements) {
+  public void storeNumberOfRefinements(int pNumberOfRefinements) {
     numberOfRefinements = pNumberOfRefinements;
   }
 

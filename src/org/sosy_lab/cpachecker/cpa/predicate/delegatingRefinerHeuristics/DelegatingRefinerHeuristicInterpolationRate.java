@@ -14,12 +14,16 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.TrackingPredicateCPARefinementContext;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.TrackingPredicateCPARefinementContext;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * A heuristic that checks whether the ratio of generated interpolants with respect to the number of
- * refinements is below an acceptable threshold.
+ * A heuristic that monitors the rate interpolant generation in predicate abstraction. All
+ * information necessary for monitoring is retrieved from the {@link
+ * TrackingPredicateCPARefinementContext}, which stores a history of the number refinements and the
+ * generated interpolants. It checks if the number of interpolants produced per refinement remains
+ * below the configured threshold. It the interpolant rate exceeds the threshold, the heuristic
+ * returns {@code false}.
  */
 public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRefinerHeuristic {
   private final TrackingPredicateCPARefinementContext refinementContext;

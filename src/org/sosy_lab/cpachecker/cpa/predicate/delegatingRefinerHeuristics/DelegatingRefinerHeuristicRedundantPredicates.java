@@ -34,11 +34,18 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * A heuristic that checks for redundant patterns in the newly added predicates. In order to do so,
- * the predicates are split into singular atomic formulas, normalized and matched against a set of
- * declarative DSL rules defining the singular patterns. The heuristic tracks the frequency of each
- * pattern across all newly added predicates. If any singular pattern dominates beyond the
- * acceptable redundancy threshold, the heuristic returns false.
+ * A heuristic that detects saturation in predicate abstraction by analyzing pattern redundancy
+ * across the added predicates stored in the {@link ReachedSetDelta}. For each predicate, its
+ * abstraction formula is split into atomic expressions, normalized and matched against a
+ * declarative DSL rules set. The heuristic tracks the frequency of matched patterns and their
+ * semantic categories to identify dominant structures. The heuristic returns {@code false} if any
+ * of the following stop conditions are met:
+ *
+ * <ul>
+ *   <li>Redundancy has plateaued and only a single patterns continues to grow.
+ *   <li>A single semantic category dominates the predicate set.
+ *   <li>Overall pattern redundancy exceeds beyond the configured threshold.
+ * </ul>
  */
 public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
   private static final double EPSILON = 0.01;
@@ -93,48 +100,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
     logPatterns(patternFrequency, categoryFrequency);
 
-    double maxRedundancyDetectedPatterns = calculateMaxRedundancy(patternFrequency);
-    boolean isRedundancyPlateauingPatterns =
-        (previousRedundancyPatterns >= 0.0)
-            && (Math.abs(maxRedundancyDetectedPatterns - previousRedundancyPatterns) < EPSILON);
-    previousRedundancyPatterns = maxRedundancyDetectedPatterns;
-
-    Multiset.Entry<String> currentDominantPattern = getMostFrequent(patternFrequency);
-
-    boolean isDominantPatternGrowing =
-        currentDominantPattern.getCount() > previousDominantPatternCount;
-    previousDominantPatternCount = currentDominantPattern.getCount();
-
-    if (patternFrequency.size() > 1000
-        && isRedundancyPlateauingPatterns
-        && isDominantPatternGrowing) {
-      logger.logf(
-          Level.INFO,
-          "Redundancy is plateauing and only pattern %s is growing ",
-          currentDominantPattern);
-      return false;
-    }
-
-    double maxRedundancyDetectedCategories = calculateMaxRedundancy(categoryFrequency);
-    boolean isOneCategoryDominant = maxRedundancyDetectedCategories > CATEGORY_REDUNDANCY_THRESHOLD;
-
-    if (isOneCategoryDominant) {
-      Multiset.Entry<String> currentDominantCategory = getMostFrequent(categoryFrequency);
-      logger.logf(
-          Level.INFO,
-          "Category %s is dominant at %.2f",
-          currentDominantCategory,
-          maxRedundancyDetectedCategories);
-      return false;
-    }
-
-    boolean isPatternRedundancyAboveThreshold = maxRedundancyDetectedPatterns > redundancyThreshold;
-    if (isPatternRedundancyAboveThreshold) {
-      logger.logf(
-          Level.INFO,
-          "Redundancy in patterns too high: %.2f for threshold %.2f.",
-          maxRedundancyDetectedPatterns,
-          redundancyThreshold);
+    if (checkStopConditions(patternFrequency, categoryFrequency)) {
       return false;
     }
 
@@ -214,6 +180,75 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
       }
     }
     return dominant;
+  }
+
+  private boolean checkStopConditions(
+      ImmutableMultiset<String> pPatternFrequency, ImmutableMultiset<String> pCategoryFrequency) {
+    int patternSize = pPatternFrequency.size();
+    double maxRedundancyDetectedPatterns = calculateMaxRedundancy(pPatternFrequency);
+    Multiset.Entry<String> currentDominantPattern = getMostFrequent(pPatternFrequency);
+
+    if (isPlateauingAndDominantPatternGrowing(
+            maxRedundancyDetectedPatterns, currentDominantPattern, patternSize)
+        || isCategoryDominant(pCategoryFrequency, patternSize)
+        || isPatternRedundancyAboveThreshold(pPatternFrequency)) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isPlateauingAndDominantPatternGrowing(
+      double pMaxRedundancyDetectedPatterns,
+      Multiset.Entry<String> pCurrentDominantPattern,
+      int pPatternSize) {
+    boolean isRedundancyPlateauingPatterns =
+        (previousRedundancyPatterns >= 0.0)
+            && (Math.abs(pMaxRedundancyDetectedPatterns - previousRedundancyPatterns) < EPSILON);
+    previousRedundancyPatterns = pMaxRedundancyDetectedPatterns;
+
+    boolean isDominantPatternGrowing =
+        pCurrentDominantPattern.getCount() > previousDominantPatternCount;
+    previousDominantPatternCount = pCurrentDominantPattern.getCount();
+
+    if (pPatternSize > 1000 && isRedundancyPlateauingPatterns && isDominantPatternGrowing) {
+      logger.logf(
+          Level.FINEST,
+          "Redundancy is plateauing and only pattern %s is growing ",
+          pCurrentDominantPattern);
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isCategoryDominant(
+      ImmutableMultiset<String> pCategoryFrequency, int pPatternSize) {
+    double maxRedundancyDetectedCategories = calculateMaxRedundancy(pCategoryFrequency);
+    boolean isOneCategoryDominant = maxRedundancyDetectedCategories > CATEGORY_REDUNDANCY_THRESHOLD;
+
+    if (pPatternSize > 1000 && isOneCategoryDominant) {
+      Multiset.Entry<String> currentDominantCategory = getMostFrequent(pCategoryFrequency);
+      logger.logf(
+          Level.FINEST,
+          "Category %s is dominant at %.2f",
+          currentDominantCategory,
+          maxRedundancyDetectedCategories);
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isPatternRedundancyAboveThreshold(ImmutableMultiset<String> pPatternFrequency) {
+    double maxRedundancyDetectedPatterns = calculateMaxRedundancy(pPatternFrequency);
+    boolean isPatternRedundancyAboveThreshold = maxRedundancyDetectedPatterns > redundancyThreshold;
+    if (isPatternRedundancyAboveThreshold) {
+      logger.logf(
+          Level.FINEST,
+          "Redundancy in patterns too high: %.2f for threshold %.2f.",
+          maxRedundancyDetectedPatterns,
+          redundancyThreshold);
+      return true;
+    }
+    return false;
   }
 
   public double getRedundancyThreshold() {
