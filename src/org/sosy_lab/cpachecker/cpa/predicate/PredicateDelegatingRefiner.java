@@ -25,29 +25,30 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Heurist
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * * This class provides a delegating refiner implementation for predicate analysis. It decides
- * which refiner to use in the next refinement iteration, based on a set of core heuristics.
+ * A heuristic-driven refinement orchestrator for predicate analysis. The refiner delegates
+ * refinement to one of several {@link ARGBasedRefiner} refiners bases on a set of core heuristics.
+ * Each refiner is paired with a heuristic. During each refinement, the heuristics are evaluated in
+ * order against the current {@link TrackingForwardingReachedSet} and its delta history. If all
+ * heuristics indicate likely divergence in the verification, the DelegatingRefiner uses a {@link
+ * PredicateStopRefiner} to signal the CEGAR algorithm to stop with refinement and end verification
+ * early.
  */
 public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
   private final ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners;
   private final LogManager logger;
-  private boolean shouldTerminate;
+  private ARGBasedRefiner currentRefiner = null;
 
   public PredicateDelegatingRefiner(
       ImmutableList<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords,
       final LogManager pLogger) {
     this.pRefiners = ImmutableList.copyOf(pHeuristicRefinerRecords);
     this.logger = pLogger;
-    shouldTerminate = false;
   }
 
   @Override
   public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
-    if (shouldTerminate) {
-      return CounterexampleInfo.giveUp(pPath);
-    }
 
     UnmodifiableReachedSet reachedSet = pReached.asReachedSet();
     // The reachedSet comes as a UnmodifiableReachedSetWrapper and needs to be unwrapped to expose
@@ -70,25 +71,22 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
     for (HeuristicDelegatingRefinerRecord pRecord : pRefiners) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
-
+      logger.logf(
+          Level.FINEST,
+          "Heuristic %s matched for %s",
+          pHeuristic.getClass().getSimpleName(),
+          pRecord.pRefiner().getClass().getSimpleName());
       if (pHeuristic.fulfilled(reachedSet, deltaSequence)) {
-        logger.logf(
-            Level.INFO,
-            "Heuristic %s matched for refiner %s.",
-            pHeuristic.getClass().getSimpleName(),
-            pRecord.pRefiner().getClass().getSimpleName());
-
-        CounterexampleInfo refinementResult =
-            pRecord.pRefiner().performRefinementForPath(pReached, pPath);
-
-        if (refinementResult.shouldTerminateRefinement()) {
-          shouldTerminate = true;
-          return refinementResult;
-        }
-        return refinementResult;
+        currentRefiner = pRecord.pRefiner();
+        return currentRefiner.performRefinementForPath(pReached, pPath);
       }
     }
 
     throw new CPAException("No heuristic matched for refinement.");
+  }
+
+  @Override
+  public boolean shouldTerminateRefinement() {
+    return currentRefiner.shouldTerminateRefinement();
   }
 }

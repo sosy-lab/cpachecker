@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -47,6 +48,10 @@ import org.sosy_lab.cpachecker.util.CPAs;
 
 public class CEGARAlgorithm
     implements Algorithm, StatisticsProvider, ReachedSetUpdater, AutoCloseable {
+
+  // used by DelegatingRefiner to stop refinement if all its heuristics indicate likely divergence
+  // and end with result "UNKNOWN"
+  private boolean earlyTerminationRequested = false;
 
   private static class CEGARStatistics implements Statistics {
 
@@ -248,6 +253,13 @@ public class CEGARAlgorithm
           break;
         }
 
+        if (earlyTerminationRequested) {
+          logger.logf(
+              Level.INFO, "Terminating refinement due to signal from PredicateDelegatingRefiner");
+          status = status.withPrecise(false);
+          break;
+        }
+
         if (refinementNecessary(reached, previousLastState)) {
           // if there is any target state do refinement
           refinementSuccessful = refine(reached);
@@ -305,6 +317,11 @@ public class CEGARAlgorithm
     boolean refinementResult;
     try {
       refinementResult = mRefiner.performRefinement(reached);
+
+      if (mRefiner instanceof AbstractARGBasedRefiner aRGBasedRefiner
+          && aRGBasedRefiner.unwrap().shouldTerminateRefinement()) {
+        earlyTerminationRequested = true;
+      }
 
     } catch (RefinementFailedException e) {
       stats.countFailedRefinements++;

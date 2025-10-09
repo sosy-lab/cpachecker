@@ -188,4 +188,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   public String toString() {
     return refiner.toString();
   }
+
+  public ARGBasedRefiner unwrap() {
+    return refiner;
+  }
 }
