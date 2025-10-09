@@ -26,8 +26,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
-import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralGlobalVariableIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralLocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralStructureFieldIdentifier;
 
@@ -40,15 +40,15 @@ public class PrecisionParser {
     logger = l;
   }
 
-  public Map<CFANode, Map<AbstractIdentifier, DataType>> parse(Path file) {
-    Map<CFANode, Map<AbstractIdentifier, DataType>> localStatistics = new HashMap<>();
+  public Map<CFANode, Map<GeneralIdentifier, DataType>> parse(Path file) {
+    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = new HashMap<>();
     Map<Integer, CFANode> idToNodeMap = new HashMap<>();
     cfa.nodes().forEach(n -> idToNodeMap.put(n.getNodeNumber(), n));
 
     try (BufferedReader reader = Files.newBufferedReader(file, Charset.defaultCharset())) {
       String line;
       CFANode node = null;
-      Map<AbstractIdentifier, DataType> info = null;
+      Map<GeneralIdentifier, DataType> info = null;
       Pattern nodePattern = Pattern.compile("N[0-9]*$");
 
       while ((line = reader.readLine()) != null) {
@@ -75,7 +75,7 @@ public class PrecisionParser {
           if (shouldBeSkipped(localSet)) {
             continue;
           }
-          AbstractIdentifier id = parseId(localSet);
+          GeneralIdentifier id = parseId(localSet);
           DataType type = DataType.valueOf(Ascii.toUpperCase(localSet.get(3)));
           info.put(id, type);
         }
@@ -88,7 +88,7 @@ public class PrecisionParser {
     }
   }
 
-  private AbstractIdentifier parseId(List<String> splittedLine) {
+  private GeneralIdentifier parseId(List<String> splittedLine) {
     String type = splittedLine.getFirst();
     String name = splittedLine.get(1);
     int deref = Integer.parseInt(splittedLine.get(2));
@@ -114,9 +114,9 @@ public class PrecisionParser {
   }
 
   private void putIntoMap(
-      Map<CFANode, Map<AbstractIdentifier, DataType>> map,
+      Map<CFANode, Map<GeneralIdentifier, DataType>> map,
       CFANode node,
-      Map<AbstractIdentifier, DataType> info) {
+      Map<GeneralIdentifier, DataType> info) {
     if (node != null && info != null) {
       if (map.containsKey(node)) {
         logger.log(Level.WARNING, "Node " + node + " is already in precision");

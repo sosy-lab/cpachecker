@@ -33,7 +33,7 @@ public sealed class GlobalVariableIdentifier extends VariableIdentifier
   }
 
   @Override
-  public AbstractIdentifier getGeneralId() {
+  public GeneralIdentifier getGeneralId() {
     return new GeneralGlobalVariableIdentifier(name, type, dereference);
   }
 

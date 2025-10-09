@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
@@ -370,16 +371,16 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     SingleIdentifier singleId = usage.getId();
 
     CFANode node = AbstractStates.extractLocation(newState);
-    Map<AbstractIdentifier, DataType> localInfo = precision.get(node);
+    Map<GeneralIdentifier, DataType> localInfo = precision.get(node);
 
     if (localInfo != null) {
-      AbstractIdentifier gId = singleId.getGeneralId();
+      GeneralIdentifier gId = singleId.getGeneralId();
       if (localInfo.get(gId) == DataType.LOCAL) {
         logger.log(
             Level.FINER, singleId + " is considered to be local, so it wasn't add to statistics");
         return;
       } else {
-        FluentIterable<AbstractIdentifier> composedIds =
+        FluentIterable<GeneralIdentifier> composedIds =
             from(singleId.getComposedIdentifiers())
                 .filter(SingleIdentifier.class)
                 .transform(SingleIdentifier::getGeneralId);
