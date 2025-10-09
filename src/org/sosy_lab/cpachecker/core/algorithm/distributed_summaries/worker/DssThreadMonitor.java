@@ -23,7 +23,7 @@ public class DssThreadMonitor extends Thread {
   private final DssConnection connection;
   private final DssMessageFactory messageFactory;
 
-  public static Set<String> active = ConcurrentHashMap.newKeySet();
+  public static final Set<String> active = ConcurrentHashMap.newKeySet();
 
   public DssThreadMonitor(
       List<Thread> pThreadsToMonitor,

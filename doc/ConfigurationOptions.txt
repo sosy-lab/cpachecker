@@ -4231,7 +4231,7 @@ distributedSummaries.decomposition.importDecomposition = no default value
 
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
-  enum:     [DSS, SINGLE_WORKER]
+  enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
 
 # If this option is set to true, the analysis will try to cover all violation
 # conditions in the block, even if no valid ARG path exists. In some cases,
