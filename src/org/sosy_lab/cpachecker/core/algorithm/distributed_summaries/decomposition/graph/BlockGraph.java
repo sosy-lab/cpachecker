@@ -43,7 +43,6 @@ public class BlockGraph {
 
   public static final String GHOST_EDGE_DESCRIPTION = "<<ghost-edge>>";
 
-  public static final String ROOT_ID = "root";
   private final ImmutableSet<BlockNode> nodes;
   private final ImmutableSet<BlockNode> roots;
 

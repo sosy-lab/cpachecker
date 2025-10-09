@@ -32,19 +32,15 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
   private final CFA cfa;
-
-  private final PredicateAbstractState previousState;
+  private final BlockNode blockNode;
 
   public DeserializePredicateStateOperator(
       PredicateCPA pPredicateCPA, CFA pCFA, BlockNode pBlockNode) {
     predicateCPA = pPredicateCPA;
     formulaManagerView = predicateCPA.getSolver().getFormulaManager();
     pathFormulaManager = pPredicateCPA.getPathFormulaManager();
-    previousState =
-        (PredicateAbstractState)
-            predicateCPA.getInitialState(
-                pBlockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition());
     cfa = pCFA;
+    blockNode = pBlockNode;
   }
 
   @Override
@@ -69,7 +65,10 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
               serializedState, pathFormulaManager, formulaManagerView, pts, map);
 
       return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-          abstraction, previousState);
+          abstraction,
+          (PredicateAbstractState)
+              predicateCPA.getInitialState(
+                  blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition()));
     } finally {
       SerializationInfoStorage.clear();
     }

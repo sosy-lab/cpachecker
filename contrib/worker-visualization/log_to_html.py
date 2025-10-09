@@ -97,7 +97,7 @@ def html_for_message(message, block_log: Dict[str, str], export_keys: dict):
     senders = ["all"]
     receivers = ["all"]
     msg_id = message["filename"]
-    if direction == "BLOCK_POSTCONDITION":
+    if direction == "PRECONDITION":
         receivers = successors
         senders = predecessors
         arrow = "&darr;"
@@ -162,9 +162,10 @@ def html_dict_to_html_table(
     table = Airium()
     with table.table(klass="worker"):
         # header
-        with table.tr(klass="header_row"):
-            for key in headers:
-                table.th(_t=f"{key}")
+        with table.thead():
+            with table.tr(klass="header_row"):
+                for key in headers:
+                    table.th(_t=f"{key}")
 
         # row values
         type_to_klass = {
