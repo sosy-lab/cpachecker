@@ -492,10 +492,15 @@ public class DssBlockAnalysis {
         preconditions.putAll(pReceived.getSenderId(), deserializedStates);
         return DssMessageProcessing.proceed();
       }
-      boolean isEquivalent = false;
-      for (StateAndPrecision previous : preconditions.get(pReceived.getSenderId())) {
+      for (Entry<String, StateAndPrecision> previousEntry : preconditions.entries()) {
+        StateAndPrecision previous = previousEntry.getValue();
         if (dcpa.isMostGeneralBlockEntryState(previous.state())) {
-          discard.add(new PredecessorStateEntry(pReceived.getSenderId(), previous));
+          if (previousEntry.getKey().equals(pReceived.getSenderId())) {
+            discard.add(
+                new PredecessorStateEntry(previousEntry.getKey(), previousEntry.getValue()));
+          } else if (!block.getLoopPredecessorIds().isEmpty()) {
+            soundPredecessors.remove(previousEntry.getKey());
+          }
         }
         // the reset resets the callstack state, too
         boolean previousLessEqualDeserialized =
@@ -621,7 +626,7 @@ public class DssBlockAnalysis {
             transformedImmutableListCopy(violations, v -> (ARGState) v.state()));
     if (!result.summaries().isEmpty()) {
       messages.addAll(
-          reportPostconditions(
+          reportPreconditions(
               result.summaries(), result.isSound() && result.violationConditions().isEmpty()));
     }
     if (!result.violationConditions().isEmpty()) {
