@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.util.identifiers;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class GeneralStructureFieldIdentifier extends StructureFieldIdentifier {
+public final class GeneralStructureFieldIdentifier extends StructureFieldIdentifier
+    implements GeneralIdentifier {
 
   public GeneralStructureFieldIdentifier(String pNm, int pDereference) {
     super(pNm, /*"",*/ null, pDereference, null);

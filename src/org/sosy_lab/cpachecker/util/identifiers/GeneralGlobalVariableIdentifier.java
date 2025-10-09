@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.util.identifiers;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class GeneralGlobalVariableIdentifier extends GlobalVariableIdentifier {
+public final class GeneralGlobalVariableIdentifier extends GlobalVariableIdentifier
+    implements GeneralIdentifier {
 
   public GeneralGlobalVariableIdentifier(String pNm, CType pType, int pDereference) {
     super(pNm, pType, pDereference);

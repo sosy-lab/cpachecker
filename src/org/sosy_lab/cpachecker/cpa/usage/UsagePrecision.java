@@ -19,24 +19,24 @@ import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
-import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 
 public final class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
-  private final Map<CFANode, Map<AbstractIdentifier, DataType>> localStatistics;
+  private final Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics;
   private final Precision wrappedPrecision;
 
   private UsagePrecision(
-      Precision pWrappedPrecision, Map<CFANode, Map<AbstractIdentifier, DataType>> pMap) {
+      Precision pWrappedPrecision, Map<CFANode, Map<GeneralIdentifier, DataType>> pMap) {
     localStatistics = pMap;
     wrappedPrecision = pWrappedPrecision;
   }
 
   static UsagePrecision create(
-      Precision pWrappedPrecision, Map<CFANode, Map<AbstractIdentifier, DataType>> pMap) {
+      Precision pWrappedPrecision, Map<CFANode, Map<GeneralIdentifier, DataType>> pMap) {
     return new UsagePrecision(pWrappedPrecision, ImmutableMap.copyOf(pMap));
   }
 
-  Map<AbstractIdentifier, DataType> get(CFANode node) {
+  Map<GeneralIdentifier, DataType> get(CFANode node) {
     return localStatistics.get(node);
   }
 
@@ -77,7 +77,7 @@ public final class UsagePrecision implements WrapperPrecision, AdjustablePrecisi
 
   public int getTotalRecords() {
     int sum = 0;
-    for (Map<AbstractIdentifier, DataType> val : localStatistics.values()) {
+    for (Map<GeneralIdentifier, DataType> val : localStatistics.values()) {
       sum += val.size();
     }
     return sum;

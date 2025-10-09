@@ -49,7 +49,7 @@ public final class FunctionIdentifier extends SingleIdentifier {
   }
 
   @Override
-  public AbstractIdentifier getGeneralId() {
+  public GeneralIdentifier getGeneralId() {
     return null;
   }
 
