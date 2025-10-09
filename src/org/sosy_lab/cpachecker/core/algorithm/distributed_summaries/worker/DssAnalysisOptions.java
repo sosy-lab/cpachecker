@@ -43,7 +43,7 @@ public class DssAnalysisOptions {
               + " same name as the ID of the worker.",
       secure = true)
   @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path logDirectory = Path.of("block_summary/logfiles");
+  private Path logDirectory = Path.of("block_analysis/logfiles");
 
   private final Configuration parentConfig;
 

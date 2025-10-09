@@ -220,7 +220,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       }
 
       if (provideCEXInfoFromCEXCheck) {
-        CFAEdge targetEdge = pErrorState.getParents().iterator().next().getEdgeToChild(pErrorState);
+        CFAEdge targetEdge = pErrorState.getParents().getFirst().getEdgeToChild(pErrorState);
         lConfigBuilder.setOption(
             "testcase.targets.edge",
             targetEdge.getPredecessor().getNodeNumber()
@@ -359,7 +359,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     if (pNewInfo.isPreciseCounterExample()) {
       // target path is only valid in temporary, local ARG computed by counterexample-check.
       // To make this counterexample usable in other parts of CPAchecker, create a new, exchangeable
-      // ARGpath
+      // ARG path
       ARGPath strippedDownPath = getExchangeableTargetPath(pNewInfo.getTargetPath());
       assert strippedDownPath.getLastState().isTarget()
           : "Last state of exchangeable target path is no target: "

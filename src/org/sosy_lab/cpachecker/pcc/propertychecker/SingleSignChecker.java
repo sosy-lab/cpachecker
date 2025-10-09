@@ -31,7 +31,7 @@ public class SingleSignChecker extends PerElementPropertyChecker {
   public boolean satisfiesProperty(AbstractState pElemToCheck)
       throws UnsupportedOperationException {
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
-    if (node instanceof CFALabelNode && ((CFALabelNode) node).getLabel().equals(label)) {
+    if (node instanceof CFALabelNode cFALabelNode && cFALabelNode.getLabel().equals(label)) {
       SignState state = AbstractStates.extractStateByType(pElemToCheck, SignState.class);
       if (state != null) {
         if (state.getSignForVariable(varName) == value) {

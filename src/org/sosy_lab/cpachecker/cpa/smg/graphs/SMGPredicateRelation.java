@@ -94,14 +94,11 @@ public final class SMGPredicateRelation {
       SMGType pSMGTypeTwo,
       BinaryOperator pOperator) {
     if (!pOne.isUnknown() && !pTwo.isUnknown()) {
-      if (pOne instanceof SMGExplicitValue) {
+      if (pOne instanceof SMGExplicitValue sMGExplicitValue) {
         addExplicitRelation(
-            pTwo,
-            pSMGTypeTwo,
-            (SMGExplicitValue) pOne,
-            pOperator.getSwitchOperandsSidesLogicalOperator());
-      } else if (pTwo instanceof SMGExplicitValue) {
-        addExplicitRelation(pOne, pSMGTypeOne, (SMGExplicitValue) pTwo, pOperator);
+            pTwo, pSMGTypeTwo, sMGExplicitValue, pOperator.getSwitchOperandsSidesLogicalOperator());
+      } else if (pTwo instanceof SMGExplicitValue sMGExplicitValue) {
+        addExplicitRelation(pOne, pSMGTypeOne, sMGExplicitValue, pOperator);
       } else if (!pOne.isZero() && !pTwo.isZero()) {
         addSymbolicRelation(pOne, pSMGTypeOne, pTwo, pSMGTypeTwo, pOperator);
       } else if (pOne.isZero() && !pTwo.isZero()) {

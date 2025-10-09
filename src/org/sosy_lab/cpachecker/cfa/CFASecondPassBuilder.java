@@ -114,7 +114,7 @@ public class CFASecondPassBuilder {
     for (final AStatementEdge functionCall : visitor.getFunctionCalls()) {
       // it could be that the current function call was already removed
       // due to being unreachable (endless loop in front)
-      // therefore we have to check that a predecessor exists before
+      // Therefore, we have to check that a predecessor exists before
       // inserting the new call edges
       if (functionCall.getPredecessor().getNumEnteringEdges() != 0) {
         insertCallEdges(functionCall);
@@ -394,10 +394,9 @@ public class CFASecondPassBuilder {
   }
 
   private void applyAttributes(AStatementEdge edge, AFunctionCall call) {
-    if (!(edge instanceof CStatementEdge)) {
+    if (!(edge instanceof CStatementEdge cEdge)) {
       return;
     }
-    CStatementEdge cEdge = (CStatementEdge) edge;
 
     AFunctionCallExpression f = call.getFunctionCallExpression();
     AFunctionDeclaration decl = f.getDeclaration();
@@ -436,7 +435,7 @@ public class CFASecondPassBuilder {
   }
 
   private boolean isAbortingFunction(AFunctionDeclaration pDecl) {
-    return (pDecl instanceof CFunctionDeclaration
-        && ((CFunctionDeclaration) pDecl).doesNotReturn());
+    return (pDecl instanceof CFunctionDeclaration cFunctionDeclaration
+        && cFunctionDeclaration.doesNotReturn());
   }
 }

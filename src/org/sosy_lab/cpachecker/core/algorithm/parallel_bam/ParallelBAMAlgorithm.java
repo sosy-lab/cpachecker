@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -124,10 +123,10 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
 
     ThreadFactory threadFactory =
-        new ThreadFactoryBuilder()
-            .setDaemon(true) // for killing hanging threads at program exit
-            .setNameFormat("ParallelBAM-thread-%d")
-            .build();
+        Thread.ofPlatform()
+            .daemon() // for killing hanging threads at program exit
+            .name("ParallelBAM-thread-", 0)
+            .factory();
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores, threadFactory);
     final List<Throwable> errors = Collections.synchronizedList(new ArrayList<>());
     final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
@@ -267,22 +266,19 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       logger.log(Level.ALL, "The following errors appeared in the analysis:", errors);
       List<CPAException> cpaExceptions = new ArrayList<>();
       for (Throwable toThrow : errors) {
-        if (toThrow instanceof Error) { // something very serious
-          addSuppressedAndThrow((Error) toThrow, errors);
-        } else if (toThrow instanceof RuntimeException) { // something less serious
-          addSuppressedAndThrow((RuntimeException) toThrow, errors);
-        } else if (toThrow instanceof InterruptedException) {
-          addSuppressedAndThrow((InterruptedException) toThrow, errors);
-        } else if (toThrow instanceof CPAException) {
-          cpaExceptions.add((CPAException) toThrow);
-        } else {
-          // here, we add one suppressed too much, but that should be irrelevant
-          addSuppressedAndThrow(new UnexpectedCheckedException("ParallelBAM", toThrow), errors);
+        switch (toThrow) {
+          case Error error -> addSuppressedAndThrow(error, errors);
+          case RuntimeException runtimeException -> addSuppressedAndThrow(runtimeException, errors);
+          case InterruptedException interruptedException ->
+              addSuppressedAndThrow(interruptedException, errors);
+          case CPAException cPAException -> cpaExceptions.add(cPAException);
+          default -> // here, we add one suppressed too much, but that should be irrelevant
+              addSuppressedAndThrow(new UnexpectedCheckedException("ParallelBAM", toThrow), errors);
         }
       }
       // if there was no other type of exception, we can throw the CPAException directly.
       if (cpaExceptions.size() == 1) {
-        throw cpaExceptions.get(0);
+        throw cpaExceptions.getFirst();
       } else {
         throw new CompoundException(cpaExceptions);
       }

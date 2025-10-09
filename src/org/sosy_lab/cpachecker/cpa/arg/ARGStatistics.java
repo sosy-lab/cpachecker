@@ -239,7 +239,7 @@ public class ARGStatistics implements Statistics {
       Specification pSpecification,
       CFA pCFA)
       throws InvalidConfigurationException {
-    config.inject(this, ARGStatistics.class); // needed for sub-classes
+    config.inject(this, ARGStatistics.class); // needed for subclasses
 
     counterexampleOptions = new CEXExportOptions(config);
     argToBitmapExporterOptions = new PixelsWriterOptions(config);

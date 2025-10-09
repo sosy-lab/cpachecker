@@ -139,12 +139,12 @@ public abstract class PathTranslator {
     }
 
     while (!waitlist.isEmpty()) {
-      // we need to sort the list based on arg element id because we have to process
+      // we need to sort the list based on ARG element id because we have to process
       // the edges in topological sort
       Collections.sort(waitlist);
 
       // get the first element in the list (this is the smallest element when topologically sorted)
-      Edge nextEdge = waitlist.remove(0);
+      Edge nextEdge = waitlist.removeFirst();
 
       waitlist.addAll(handleEdge(nextEdge, mergeNodes, elementsOnPath, callback));
     }
@@ -303,7 +303,7 @@ public abstract class PathTranslator {
       case 2 -> {
         // If there are more than one relevant child, then this is a condition.
         // We need to update the stack.
-        ARGState child1 = relevantChildrenOfElement.get(0);
+        ARGState child1 = relevantChildrenOfElement.getFirst();
         ARGState child2 = relevantChildrenOfElement.get(1);
         CAssumeEdge edge1 = (CAssumeEdge) currentElement.getEdgeToChild(child1);
         CAssumeEdge edge2 = (CAssumeEdge) currentElement.getEdgeToChild(child2);

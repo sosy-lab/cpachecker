@@ -108,14 +108,14 @@ public class DssAnalysisWorker extends DssWorker {
 
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
-    switch (message.getType()) {
+    return switch (message.getType()) {
       case VIOLATION_CONDITION -> {
         try {
           backwardAnalysisTime.start();
-          return dssBlockAnalysis.runAnalysisUnderCondition(
+          yield dssBlockAnalysis.runAnalysisUnderCondition(
               (DssViolationConditionMessage) message, true);
         } catch (Exception | Error e) {
-          return ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
+          yield ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
         } finally {
           backwardAnalysisTime.stop();
         }
@@ -123,22 +123,19 @@ public class DssAnalysisWorker extends DssWorker {
       case BLOCK_POSTCONDITION -> {
         try {
           forwardAnalysisTime.start();
-          return dssBlockAnalysis.runAnalysis((DssPostConditionMessage) message);
+          yield dssBlockAnalysis.runAnalysis((DssPostConditionMessage) message);
         } catch (Exception | Error e) {
-          return ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
+          yield ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
         } finally {
           forwardAnalysisTime.stop();
         }
       }
       case ERROR, FOUND_RESULT -> {
         shutdown = true;
-        return ImmutableSet.of(messageFactory.newStatisticsMessage(getBlockId(), getStats()));
+        yield ImmutableSet.of(messageFactory.newStatisticsMessage(getBlockId(), getStats()));
       }
-      case STATISTICS -> {
-        return ImmutableSet.of();
-      }
-      default -> throw new AssertionError("MessageType " + message.getType() + " does not exist");
-    }
+      case STATISTICS -> ImmutableSet.of();
+    };
   }
 
   public void storeMessage(DssMessage message) throws SolverException, InterruptedException {
@@ -153,7 +150,6 @@ public class DssAnalysisWorker extends DssWorker {
         //noinspection ResultOfMethodCallIgnored
         dssBlockAnalysis.shouldRepeatAnalysis((DssPostConditionMessage) message);
       }
-      default -> throw new AssertionError("MessageType " + message.getType() + " does not exist");
     }
   }
 

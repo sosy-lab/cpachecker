@@ -146,11 +146,11 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
   }
 
   /**
-   * This method performs an value-analysis refinement.
+   * This method performs a value-analysis refinement.
    *
    * @param reached the current reached set
    * @param errorPath the current error path
-   * @return true, if the value-analysis refinement was successful, else false
+   * @return whether the value-analysis refinement was successful
    * @throws CPAException when value-analysis interpolation fails
    */
   private boolean performValueAnalysisRefinement(
@@ -212,7 +212,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     }
 
     reached.removeSubtree(
-        ((ARGState) reachedSet.getFirstState()).getChildren().iterator().next(),
+        ((ARGState) reachedSet.getFirstState()).getChildren().getFirst(),
         apronPrecision.withIncrement(increment),
         VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
 
@@ -276,7 +276,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    * This method checks if the given path is feasible, when doing a full-precision check.
    *
    * @param path the path to check
-   * @return true, if the path is feasible, else false
+   * @return whether the path is feasible
    * @throws CPAException if the path check gets interrupted
    */
   boolean isPathFeasible(ARGPath path) throws CPAException, InterruptedException {

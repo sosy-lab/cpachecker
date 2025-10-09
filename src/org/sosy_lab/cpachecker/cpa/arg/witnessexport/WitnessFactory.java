@@ -56,6 +56,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiPredicate;
@@ -170,9 +172,11 @@ class WitnessFactory implements EdgeAppender {
   private final Multimap<String, Edge> leavingEdges = LinkedHashMultimap.create();
   private final Multimap<String, Edge> enteringEdges = LinkedHashMultimap.create();
 
-  private final Map<String, ExpressionTree<Object>> stateInvariants = new LinkedHashMap<>();
-  private final Map<String, ExpressionTree<Object>> stateQuasiInvariants = new LinkedHashMap<>();
-  private final Map<String, String> stateScopes = new LinkedHashMap<>();
+  private final SequencedMap<String, ExpressionTree<Object>> stateInvariants =
+      new LinkedHashMap<>();
+  private final SequencedMap<String, ExpressionTree<Object>> stateQuasiInvariants =
+      new LinkedHashMap<>();
+  private final SequencedMap<String, String> stateScopes = new LinkedHashMap<>();
   private final Set<String> invariantExportStates = new TreeSet<>();
 
   private final Map<Edge, CFANode> loopHeadEnteringEdges = new HashMap<>();
@@ -370,8 +374,8 @@ class WitnessFactory implements EdgeAppender {
     if (witnessOptions.exportFunctionCallsAndReturns()) {
       String functionName = pAlternativeFunctionEntry.orElse(null);
       CFANode succ = pEdge.getSuccessor();
-      if (succ instanceof FunctionEntryNode) {
-        functionName = ((FunctionEntryNode) succ).getFunctionDefinition().getOrigName();
+      if (succ instanceof FunctionEntryNode functionEntryNode) {
+        functionName = functionEntryNode.getFunctionDefinition().getOrigName();
       } else if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
         functionName = succ.getFunctionName();
       }
@@ -381,8 +385,8 @@ class WitnessFactory implements EdgeAppender {
     }
 
     if (witnessOptions.exportFunctionCallsAndReturns()
-        && pEdge.getSuccessor() instanceof FunctionExitNode) {
-      FunctionEntryNode entryNode = ((FunctionExitNode) pEdge.getSuccessor()).getEntryNode();
+        && pEdge.getSuccessor() instanceof FunctionExitNode functionExitNode) {
+      FunctionEntryNode entryNode = functionExitNode.getEntryNode();
       String functionName = entryNode.getFunctionDefinition().getOrigName();
       result = result.putAndCopy(KeyDef.FUNCTIONEXIT, functionName);
     }
@@ -403,7 +407,7 @@ class WitnessFactory implements EdgeAppender {
           // by creating a transition for the function call, to the sink:
           FunctionCallEdge callEdge =
               Iterables.getOnlyElement(
-                  CFAUtils.leavingEdges(assumeEdge.getSuccessor()).filter(FunctionCallEdge.class));
+                  assumeEdge.getSuccessor().getLeavingEdges().filter(FunctionCallEdge.class));
           FunctionEntryNode in = callEdge.getSuccessor();
           result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
         }
@@ -471,8 +475,8 @@ class WitnessFactory implements EdgeAppender {
       }
       if (sourceCode.isEmpty()
           && !isEmptyTransitionPossible(pAdditionalInfo)
-          && pEdge instanceof FunctionReturnEdge) {
-        sourceCode = ((FunctionReturnEdge) pEdge).getSummaryEdge().getRawStatement().trim();
+          && pEdge instanceof FunctionReturnEdge functionReturnEdge) {
+        sourceCode = functionReturnEdge.getSummaryEdge().getRawStatement().trim();
       }
 
       if (!sourceCode.isEmpty()) {
@@ -487,7 +491,7 @@ class WitnessFactory implements EdgeAppender {
    * Method is used for additional check if TransitionCondition.empty() is applicable.
    *
    * @param pAdditionalInfo is used at {@link ExtendedWitnessFactory}
-   * @return true if TransitionCondition.empty is applicable.
+   * @return whether TransitionCondition.empty is applicable.
    */
   protected boolean isEmptyTransitionPossible(CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     return true;
@@ -527,7 +531,7 @@ class WitnessFactory implements EdgeAppender {
           cfaEdgeWithAssignments =
               new CFAEdgeWithAssumptions(
                   pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
-          FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
+          FluentIterable<CFAEdge> nextEdges = pEdge.getSuccessor().getLeavingEdges();
 
           if (nextEdges.size() == 1 && state.getChildren().size() == 1) {
             String keyFrom = pTo;
@@ -554,20 +558,17 @@ class WitnessFactory implements EdgeAppender {
 
         // Export function return value for cases where it is not explicitly assigned to a variable
         if ((pEdge instanceof AStatementEdge edge)
-            && (edge.getStatement() instanceof AFunctionCallAssignmentStatement)) {
-          AFunctionCallAssignmentStatement assignment =
-              (AFunctionCallAssignmentStatement) edge.getStatement();
-          if (assignment.getLeftHandSide() instanceof AIdExpression
+            && (edge.getStatement() instanceof AFunctionCallAssignmentStatement assignment)) {
+
+          if (assignment.getLeftHandSide() instanceof AIdExpression idExpression
               && assignment.getFunctionCallExpression().getFunctionNameExpression()
-                  instanceof AIdExpression) {
-            AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
+                  instanceof AIdExpression resultFunctionName) {
+
             if (isTmpVariable(idExpression)) {
               // get only assignments without nested tmpVariables (except self)
               assignments = getAssignments(cfaEdgeWithAssignments, idExpression);
               resultVariable = Optional.of(idExpression);
-              AIdExpression resultFunctionName =
-                  (AIdExpression)
-                      assignment.getFunctionCallExpression().getFunctionNameExpression();
+
               if (resultFunctionName.getDeclaration() != null) {
                 resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
               } else {
@@ -640,9 +641,8 @@ class WitnessFactory implements EdgeAppender {
     Predicate<CIdExpression> isGoodVariable = v -> !isTmpVariable(v) || v.equals(toIgnore);
     ImmutableList.Builder<AExpressionStatement> assignments = ImmutableList.builder();
     for (AExpressionStatement s : cfaEdgeWithAssignments.getExpStmts()) {
-      if (s.getExpression() instanceof CExpression
-          && CFAUtils.getIdExpressionsOfExpression((CExpression) s.getExpression())
-              .allMatch(isGoodVariable)) {
+      if (s.getExpression() instanceof CExpression cExpression
+          && CFAUtils.getIdExpressionsOfExpression(cExpression).allMatch(isGoodVariable)) {
         assignments.add(s);
       }
     }
@@ -707,8 +707,8 @@ class WitnessFactory implements EdgeAppender {
             : CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER;
     final Function<Object, String> converter =
         pLeafExpression -> {
-          if (pLeafExpression instanceof CExpression) {
-            return ((CExpression) pLeafExpression).accept(transformer);
+          if (pLeafExpression instanceof CExpression cExpression) {
+            return cExpression.accept(transformer);
           }
           if (pLeafExpression == null) {
             return "(0)";
@@ -842,11 +842,11 @@ class WitnessFactory implements EdgeAppender {
 
     if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       AStatement statement = ((AStatementEdge) pEdge).getStatement();
-      if (statement instanceof AFunctionCall) {
+      if (statement instanceof AFunctionCall aFunctionCall) {
         AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          final String functionName = aIdExpression.getName();
           switch (functionName) {
             case ThreadingTransferRelation.THREAD_START -> {
               Optional<ARGState> possibleChild =
@@ -1041,7 +1041,7 @@ class WitnessFactory implements EdgeAppender {
         if (cex instanceof FaultLocalizationInfoWithTraceFormula fInfo) {
           List<Fault> faults = fInfo.getRankedList();
           if (!faults.isEmpty()) {
-            Fault bestFault = faults.get(0);
+            Fault bestFault = faults.getFirst();
             FluentIterable.from(bestFault)
                 .transform(FaultContribution::correspondingEdge)
                 .copyInto(edgesInFault);
@@ -1295,14 +1295,14 @@ class WitnessFactory implements EdgeAppender {
           if (witnessOptions.produceInvariantWitnesses()) {
             // First, collect all invariants
             List<ExpressionTree<Object>> iterableList = new ArrayList<>();
-            for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
+            for (CFAEdge enteringCFAEdge : loopHead.getEnteringEdges()) {
               iterableList.add(
                   invariantProvider.provideInvariantFor(enteringCFAEdge, Optional.empty()));
             }
             // Next,compute the invariant as disjunction
             loopHeadInvariant = computeInvariantForInvariantWitnesses(iterableList);
           } else {
-            for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
+            for (CFAEdge enteringCFAEdge : loopHead.getEnteringEdges()) {
               loopHeadInvariant =
                   Or.of(
                       loopHeadInvariant,
@@ -1518,7 +1518,7 @@ class WitnessFactory implements EdgeAppender {
     // Merge mapping
     stateToARGStates.putAll(nodeToKeep, stateToARGStates.removeAll(nodeToRemove));
 
-    Set<Edge> replacementEdges = new LinkedHashSet<>();
+    SequencedSet<Edge> replacementEdges = new LinkedHashSet<>();
 
     // Move the leaving edges
     Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(leavingEdges.get(nodeToRemove));
@@ -1562,7 +1562,7 @@ class WitnessFactory implements EdgeAppender {
     Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(enteringEdges.get(nodeToRemove));
     // Create the replacement edges,
     // Add them as entering edges to the source node,
-    // Add add them as leaving edges to their source nodes
+    // Add them as leaving edges to their source nodes
     for (Edge enteringEdge : enteringEdgesToMove) {
       if (!pEdge.equals(enteringEdge)) {
         TransitionCondition label =
@@ -1806,7 +1806,8 @@ class WitnessFactory implements EdgeAppender {
     // loop proximity
     return FluentIterable.concat(
             Collections.singleton(referenceNode),
-            CFAUtils.enteringEdges(referenceNode)
+            referenceNode
+                .getEnteringEdges()
                 .filter(AssumeEdge.class)
                 .transform(CFAEdge::getPredecessor))
         .anyMatch(this::isInLoopProximity);
@@ -1833,7 +1834,7 @@ class WitnessFactory implements EdgeAppender {
     }
     while (!waitlist.isEmpty()) {
       List<CFANode> current = waitlist.pop();
-      CFANode currentNode = current.get(current.size() - 1);
+      CFANode currentNode = current.getLast();
       Boolean memoized = loopProximityMemo.get(currentNode);
       if (memoized != null && !memoized) {
         continue;
@@ -1845,7 +1846,7 @@ class WitnessFactory implements EdgeAppender {
         return true;
       }
       // boolean isFirst = true;
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode).filter(epsilonEdge)) {
+      for (CFAEdge enteringEdge : currentNode.getEnteringEdges().filter(epsilonEdge)) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (visited.add(predecessor)) {
           waitlist.push(listAndElement(current, predecessor));
@@ -1882,7 +1883,7 @@ class WitnessFactory implements EdgeAppender {
         if (pNode.isLoopStart()) {
           boolean gotoLoop = false;
           if (pNode instanceof CFALabelNode node) {
-            for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
+            for (BlankEdge e : pNode.getEnteringEdges().filter(BlankEdge.class)) {
               if (e.getDescription().equals("Goto: " + node.getLabel())) {
                 gotoLoop = true;
                 break;
@@ -1943,11 +1944,11 @@ class WitnessFactory implements EdgeAppender {
 
     private final boolean gotoLoop;
 
-    public LoopEntryInfo() {
+    LoopEntryInfo() {
       this(null, false);
     }
 
-    public LoopEntryInfo(CFANode pLoopHead, boolean pGotoLoop) {
+    LoopEntryInfo(CFANode pLoopHead, boolean pGotoLoop) {
       if (pGotoLoop) {
         Objects.requireNonNull(pLoopHead);
       }
@@ -1955,15 +1956,15 @@ class WitnessFactory implements EdgeAppender {
       gotoLoop = pGotoLoop;
     }
 
-    public boolean entersLoop() {
+    boolean entersLoop() {
       return loopHead != null;
     }
 
-    public CFANode getLoopHead() {
+    CFANode getLoopHead() {
       return loopHead;
     }
 
-    public boolean isGotoLoop() {
+    boolean isGotoLoop() {
       return gotoLoop;
     }
 

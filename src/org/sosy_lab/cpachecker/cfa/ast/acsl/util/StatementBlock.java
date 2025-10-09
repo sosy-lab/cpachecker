@@ -16,7 +16,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class StatementBlock implements SyntacticBlock {
 
@@ -80,7 +79,7 @@ public class StatementBlock implements SyntacticBlock {
       return false;
     }
 
-    CFAUtils.enteringEdges(firstNode).copyInto(enteringEdges);
+    firstNode.getEnteringEdges().copyInto(enteringEdges);
     if (endNodes.size() == 1 && endNodes.contains(firstNode)) {
       // Block is empty, so there is no need to compute contained nodes or leaving edges.
       // However, do not discard this block as it may contain ACSL assertions
@@ -95,11 +94,10 @@ public class StatementBlock implements SyntacticBlock {
         continue;
       }
       visited.add(currentEdge);
-      if (currentEdge instanceof CFunctionCallEdge) {
+      if (currentEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
         // If currentEdge is a function call, then continue with the return edge and skip
         // everything in between
-        CFAUtils.enteringEdges(((CFunctionCallEdge) currentEdge).getReturnNode())
-            .copyInto(waitlist);
+        cFunctionCallEdge.getReturnNode().getEnteringEdges().copyInto(waitlist);
         continue;
       }
       CFANode successor = currentEdge.getSuccessor();
@@ -107,7 +105,7 @@ public class StatementBlock implements SyntacticBlock {
         leavingEdges.add(currentEdge);
       } else {
         containedNodes.add(successor);
-        CFAUtils.leavingEdges(successor).copyInto(waitlist);
+        successor.getLeavingEdges().copyInto(waitlist);
       }
     }
     return true;
