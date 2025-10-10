@@ -89,7 +89,8 @@ public class SMGOptions {
               + " memory section that can be freed normally. Functions allocating external memory"
               + " and returning their address can be defined with option externalAllocationFunction"
               + " and externalAllocationSize.")
-  private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.ASSUME_EXTERNAL_ALLOCATED;
+  private UnknownFunctionHandling handleUnknownFunctions =
+      UnknownFunctionHandling.ASSUME_EXTERNAL_ALLOCATED;
 
   @Option(
       secure = true,
