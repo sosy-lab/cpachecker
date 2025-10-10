@@ -1,0 +1,24 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+format_version: '2.0'
+
+input_files: 'memsafety_double-free_not_influencing_reachsafety1.c'
+
+properties:
+  - property_file: ../../../config/properties/unreach-call.prp
+    # expected_verdict: unknown (hence why this is commented out)
+  - property_file: ../../../config/properties/unreach-label.prp
+    # expected_verdict: unknown (hence why this is commented out)
+  - property_file: ../../../config/properties/valid-memsafety.prp
+    expected_verdict: false
+    subproperty: valid-free
+
+options:
+  language: C
+  data_model: ILP32
