@@ -153,24 +153,24 @@ public class MemoryModelStructTest {
 
   private final MemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final MemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   // Memory Locations (structs)
 
   private final MemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_MEMBER_DECLARATION);
 
   private final MemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           INNER_STRUCT_MEMBER_DECLARATION);

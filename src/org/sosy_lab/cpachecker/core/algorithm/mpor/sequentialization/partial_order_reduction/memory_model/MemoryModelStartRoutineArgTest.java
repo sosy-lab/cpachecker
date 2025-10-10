@@ -71,11 +71,12 @@ public class MemoryModelStartRoutineArgTest {
   // Memory Locations (primitives)
 
   private final MemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
 
   private final MemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), START_ROUTINE_ARG_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), START_ROUTINE_ARG_DECLARATION);
 
   @Test
   public void test_local_start_routine_arg_implicit_global() {

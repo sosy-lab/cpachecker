@@ -34,36 +34,6 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 public class InputRejectionTest {
 
-  private final MPOROptions defaultTestOptions =
-      MPOROptions.testInstance(
-          true,
-          BitVectorEncoding.NONE,
-          false,
-          false,
-          false,
-          MultiControlStatementEncoding.SWITCH_CASE,
-          MultiControlStatementEncoding.NONE,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          0,
-          false,
-          false,
-          false,
-          false,
-          NondeterminismSource.NUM_STATEMENTS,
-          false,
-          false,
-          ReductionMode.NONE,
-          ReductionOrder.NONE,
-          false,
-          false,
-          false,
-          false);
-
   /**
    * Tests for pInputFilePath if it throws an {@link RuntimeException} with the message
    * pErrorMessage in it.
@@ -105,7 +75,7 @@ public class InputRejectionTest {
   public void testRejectNotParallel() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/relax-1.c");
     testExpectedRejection(
-        defaultTestOptions,
+        MPOROptions.getDefaultTestInstance(),
         inputFilePath,
         RuntimeException.class,
         InputRejectionMessage.NOT_CONCURRENT);
@@ -116,7 +86,7 @@ public class InputRejectionTest {
     // this program uses pthread_cond_wait and pthread_cond_signal
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sync01.c");
     testExpectedRejection(
-        defaultTestOptions,
+        MPOROptions.getDefaultTestInstance(),
         inputFilePath,
         RuntimeException.class,
         InputRejectionMessage.UNSUPPORTED_FUNCTION);
@@ -126,7 +96,7 @@ public class InputRejectionTest {
   public void testRejectPthreadArrayIdentifiers() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/indexer-no-pthread-exit.c");
     testExpectedRejection(
-        defaultTestOptions,
+        MPOROptions.getDefaultTestInstance(),
         inputFilePath,
         RuntimeException.class,
         InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
@@ -141,7 +111,7 @@ public class InputRejectionTest {
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/twostage_3.c");
     testExpectedRejection(
-        defaultTestOptions,
+        MPOROptions.getDefaultTestInstance(),
         inputFilePath,
         RuntimeException.class,
         InputRejectionMessage.PTHREAD_RETURN_VALUE);
@@ -152,7 +122,7 @@ public class InputRejectionTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/queue_longest-pthread-create-loop.c");
     testExpectedRejection(
-        defaultTestOptions,
+        MPOROptions.getDefaultTestInstance(),
         inputFilePath,
         RuntimeException.class,
         InputRejectionMessage.PTHREAD_CREATE_LOOP);
@@ -163,7 +133,7 @@ public class InputRejectionTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/queue_longest-direct-recursion.c");
     testExpectedRejection(
-        defaultTestOptions,
+        MPOROptions.getDefaultTestInstance(),
         inputFilePath,
         RuntimeException.class,
         InputRejectionMessage.RECURSIVE_FUNCTION);
@@ -174,7 +144,7 @@ public class InputRejectionTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/queue_longest-indirect-recursion.c");
     testExpectedRejection(
-        defaultTestOptions,
+        MPOROptions.getDefaultTestInstance(),
         inputFilePath,
         RuntimeException.class,
         InputRejectionMessage.RECURSIVE_FUNCTION);

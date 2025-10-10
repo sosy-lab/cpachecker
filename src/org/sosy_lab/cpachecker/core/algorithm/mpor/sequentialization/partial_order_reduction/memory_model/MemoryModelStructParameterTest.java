@@ -264,32 +264,32 @@ public class MemoryModelStructParameterTest {
 
   private final MemoryLocation OUTER_STRUCT_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), OUTER_STRUCT_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), OUTER_STRUCT_DECLARATION);
 
   private final MemoryLocation OUTER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_MEMBER_DECLARATION);
 
   private final MemoryLocation OUTER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           OUTER_STRUCT_POINTER_MEMBER_DECLARATION);
 
   private final MemoryLocation INNER_STRUCT_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           INNER_STRUCT_MEMBER_DECLARATION);
 
   private final MemoryLocation INNER_STRUCT_POINTER_MEMBER_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.empty(),
           OUTER_STRUCT_DECLARATION,
           INNER_STRUCT_POINTER_MEMBER_DECLARATION);
@@ -297,28 +297,30 @@ public class MemoryModelStructParameterTest {
   // Memory Locations (primitives)
 
   private final MemoryLocation GLOBAL_G1_MEMORY_LOCATION =
-      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_G1_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_G1_DECLARATION);
 
   private final MemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_L1_DECLARATION);
 
   // Memory Locations (parameters)
 
   private final MemoryLocation PARAMETER_POINTER_OUTER_STRUCT_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_POINTER_OUTER_STRUCT);
 
   private final MemoryLocation PARAMETER_POINTER_P1_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_POINTER_P1);
 
   private final MemoryLocation PARAMETER_POINTER_P2_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_POINTER_P2);
 

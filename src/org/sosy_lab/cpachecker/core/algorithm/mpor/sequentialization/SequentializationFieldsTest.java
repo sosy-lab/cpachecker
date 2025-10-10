@@ -40,7 +40,7 @@ public class SequentializationFieldsTest {
     Path path =
         Path.of("./test/programs/mpor/sequentialization/13-privatized_04-priv_multi_true.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 4).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -60,7 +60,7 @@ public class SequentializationFieldsTest {
     // this program contains a start_routine argument passed via pthread_create
     Path path = Path.of("./test/programs/mpor/sequentialization/28-race_reach_45-escape_racing.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 2).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -87,7 +87,7 @@ public class SequentializationFieldsTest {
         Path.of(
             "./test/programs/mpor/sequentialization/36-apron_41-threadenter-no-locals_unknown_1_pos.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 2).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -109,7 +109,7 @@ public class SequentializationFieldsTest {
     // this program contains multiple calls to the same function in a single thread
     Path path = Path.of("./test/programs/mpor/sequentialization/chl-match-symm.wvr.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 3).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -140,7 +140,7 @@ public class SequentializationFieldsTest {
     // otherwise the local variables are declared (and initialized) and then never updated in cases.
     Path path = Path.of("./test/programs/mpor/sequentialization/fib_safe-7.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 3).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -160,7 +160,7 @@ public class SequentializationFieldsTest {
   public void test_lazy01() throws Exception {
     Path path = Path.of("./test/programs/mpor/sequentialization/lazy01.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 4).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -182,7 +182,7 @@ public class SequentializationFieldsTest {
     // this program was incorrect 'true' with last_thread order reduction
     Path path = Path.of("./test/programs/mpor/sequentialization/mix008_tso.oepc.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 5).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -206,7 +206,7 @@ public class SequentializationFieldsTest {
     Path path =
         Path.of("./test/programs/mpor/sequentialization/mix014_power.oepc_pso.oepc_rmo.oepc.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 5).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -229,7 +229,7 @@ public class SequentializationFieldsTest {
     // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
     Path path = Path.of("./test/programs/mpor/sequentialization/queue_longest.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 3).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -257,7 +257,7 @@ public class SequentializationFieldsTest {
     // at the bottom of a thread simulation.
     Path path = Path.of("./test/programs/mpor/sequentialization/read_write_lock-2.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 5).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -277,7 +277,7 @@ public class SequentializationFieldsTest {
     // this program contains no return statements for the created threads
     Path path = Path.of("./test/programs/mpor/sequentialization/simple_two.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 3).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -299,7 +299,7 @@ public class SequentializationFieldsTest {
     Path path =
         Path.of("./test/programs/mpor/sequentialization/singleton_with-uninit-problems-b.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 7).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();
@@ -320,7 +320,7 @@ public class SequentializationFieldsTest {
   public void test_stack_1() throws Exception {
     Path path = Path.of("./test/programs/mpor/sequentialization/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.defaultTestInstance();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
     assertThat(fields.numThreads == 3).isTrue();
     assertThat(fields.numThreads == fields.substitutions.size()).isTrue();

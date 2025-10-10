@@ -194,33 +194,35 @@ public class MemoryModelParameterTest {
 
   private final MemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final MemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
 
   private final MemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
   private final MemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
   private final MemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_POINTER_P);
 
   private final MemoryLocation PARAMETER_Q_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_Q);
 
   private final MemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(),
+          MPOROptions.getDefaultTestInstance(),
           Optional.of(DUMMY_CALL_CONTEXT),
           PARAMETER_DECLARATION_POINTER_R);
 

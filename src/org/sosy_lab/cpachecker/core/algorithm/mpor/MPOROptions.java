@@ -191,46 +191,49 @@ public class MPOROptions {
     validatePc = pValidatePc;
   }
 
-  public static MPOROptions defaultTestInstance() {
-    return new MPOROptions(
-        true,
-        true,
-        BitVectorEncoding.NONE,
-        false,
-        ClangFormatStyle.WEBKIT,
-        false,
-        false,
-        true,
-        MultiControlStatementEncoding.SWITCH_CASE,
-        MultiControlStatementEncoding.NONE,
-        true,
-        true,
-        true,
-        false,
-        false,
-        false,
-        // true so that MemoryModel is created
-        true,
-        0,
-        false,
-        true,
-        true,
-        false,
-        NondeterminismSource.NUM_STATEMENTS,
-        true,
-        MPORWriter.DEFAULT_OUTPUT_PATH,
-        true,
-        true,
-        false,
-        false,
-        ReductionMode.NONE,
-        ReductionOrder.NONE,
-        true,
-        false,
-        true,
-        true,
-        true,
-        true);
+  private static MPOROptions defaultTestOptions =
+      new MPOROptions(
+          true,
+          true,
+          BitVectorEncoding.NONE,
+          false,
+          ClangFormatStyle.WEBKIT,
+          false,
+          false,
+          true,
+          MultiControlStatementEncoding.SWITCH_CASE,
+          MultiControlStatementEncoding.NONE,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          // true so that MemoryModel is created
+          true,
+          0,
+          false,
+          true,
+          true,
+          false,
+          NondeterminismSource.NUM_STATEMENTS,
+          true,
+          MPORWriter.DEFAULT_OUTPUT_PATH,
+          true,
+          true,
+          false,
+          false,
+          ReductionMode.NONE,
+          ReductionOrder.NONE,
+          true,
+          false,
+          true,
+          true,
+          true,
+          true);
+
+  public static MPOROptions getDefaultTestInstance() {
+    return defaultTestOptions;
   }
 
   /** Returns a test instance where only the program customization, not output, can be specified. */

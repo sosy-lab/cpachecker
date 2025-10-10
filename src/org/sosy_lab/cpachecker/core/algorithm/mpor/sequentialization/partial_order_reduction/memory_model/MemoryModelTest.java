@@ -131,35 +131,38 @@ public class MemoryModelTest {
 
   private final MemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
 
   private final MemoryLocation GLOBAL_POINTER_B_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_B_DECLARATION);
 
   private final MemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_C_DECLARATION);
 
   private final MemoryLocation LOCAL_POINTER_D_MEMORY_LOCATION =
       MemoryLocation.of(
-          MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_POINTER_D_DECLARATION);
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_POINTER_D_DECLARATION);
 
   private final MemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_X_DECLARATION);
 
   private final MemoryLocation GLOBAL_Y_MEMORY_LOCATION =
-      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_Y_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_Y_DECLARATION);
 
   private final MemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      MemoryLocation.of(MPOROptions.defaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
+      MemoryLocation.of(
+          MPOROptions.getDefaultTestInstance(), Optional.empty(), LOCAL_Z_DECLARATION);
 
   @Test
   public void test_memory_location_equals() {
     // create new MemoryLocation with the same parameters
     MemoryLocation int_pointer_a_memory_location_alt =
         MemoryLocation.of(
-            MPOROptions.defaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+            MPOROptions.getDefaultTestInstance(), Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
     // test that .equals returns true
     assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.equals(int_pointer_a_memory_location_alt)).isTrue();
     // test that .equals returns false
