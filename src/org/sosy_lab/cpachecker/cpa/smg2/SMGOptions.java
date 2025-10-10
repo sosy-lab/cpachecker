@@ -76,17 +76,20 @@ public class SMGOptions {
       toUppercase = true,
       name = "handleUnknownFunctions",
       description =
-          "Sets how unknown functions are handled. Strict: Unknown functions cause a stop in the"
-              + " analysis except for known and handled functions or functions defined in option"
-              + " safeUnknownFunctions, which are handled as SAFE. ASSUME_SAFE: unknown functions"
-              + " are assumed to be safe. No input into the function is checked for validity and"
-              + " the result is a UNKNOWN value (which may itself violate memorysafety etc.)."
-              + " ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and"
+          "Sets how unknown functions are handled.\n"
+              + "STRICT: Unknown functions cause a stop in the"
+              + " analysis, i.e. known and handled functions are evaluated normally, while"
+              + " functions defined in option safeUnknownFunctions are handled as SAFE.\n"
+              + "ASSUME_SAFE: unknown functions are assumed to be safe. No input into the function"
+              + " is checked for validity and the result is a UNKNOWN value (which may itself"
+              + " violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound due to side"
+              + " effects!\n"
+              + "ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and"
               + " may cause memory based errors. Returned values are unknown, but in a valid new"
               + " memory section that can be freed normally. Functions allocating external memory"
-              + " and returning their address can be defined with option"
-              + " externalAllocationFunction. externalAllocationSize.")
-  private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
+              + " and returning their address can be defined with option externalAllocationFunction"
+              + " and externalAllocationSize.")
+  private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.ASSUME_EXTERNAL_ALLOCATED;
 
   @Option(
       secure = true,
