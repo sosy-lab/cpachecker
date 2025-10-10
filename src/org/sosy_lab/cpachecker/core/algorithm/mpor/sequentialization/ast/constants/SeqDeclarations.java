@@ -81,12 +81,16 @@ public class SeqDeclarations {
 
   public static class SeqParameterDeclaration {
 
-    public static final CParameterDeclaration COND =
-        new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.CONST_INT, SeqToken.cond);
-
     public static final CParameterDeclaration ASSERTION =
         new CParameterDeclaration(
             FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, SeqToken.__assertion);
+
+    public static final CParameterDeclaration COND =
+        new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.CONST_INT, SeqToken.cond);
+
+    public static final CParameterDeclaration FUNCTION =
+        new CParameterDeclaration(
+            FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, SeqToken.__function);
 
     public static final CParameterDeclaration FILE =
         new CParameterDeclaration(
@@ -95,9 +99,8 @@ public class SeqDeclarations {
     public static final CParameterDeclaration LINE =
         new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, SeqToken.__line);
 
-    public static final CParameterDeclaration FUNCTION =
-        new CParameterDeclaration(
-            FileLocation.DUMMY, CPointerType.POINTER_TO_CONST_CHAR, SeqToken.__function);
+    public static final CParameterDeclaration SIZE =
+        new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, SeqToken.size);
   }
 
   public static class SeqFunctionDeclaration {
@@ -163,6 +166,14 @@ public class SeqDeclarations {
             SeqFunctionType.MAIN,
             SeqToken.main,
             ImmutableList.of(),
+            ImmutableSet.of());
+
+    public static final CFunctionDeclaration MALLOC =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            SeqFunctionType.MALLOC,
+            SeqToken.malloc,
+            ImmutableList.of(SeqParameterDeclaration.SIZE),
             ImmutableSet.of());
   }
 }

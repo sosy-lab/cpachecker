@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqParameterDeclaration;
@@ -61,5 +62,9 @@ public class SeqTypes {
 
     public static final CFunctionType MAIN =
         new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
+
+    public static final CFunctionTypeWithNames MALLOC =
+        new CFunctionTypeWithNames(
+            CPointerType.POINTER_TO_VOID, ImmutableList.of(SeqParameterDeclaration.SIZE), false);
   }
 }

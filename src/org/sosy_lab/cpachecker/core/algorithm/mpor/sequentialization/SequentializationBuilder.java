@@ -259,8 +259,8 @@ public class SequentializationBuilder {
     if (pOptions.comments) {
       rFunctionDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS);
     }
+
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
-    rFunctionDeclarations.add(SeqFunctionDeclaration.ASSERT_FAIL.toASTString());
     if (pOptions.nondeterminismSigned) {
       rFunctionDeclarations.add(
           VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString());
@@ -268,9 +268,14 @@ public class SequentializationBuilder {
       rFunctionDeclarations.add(
           VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
     }
-    rFunctionDeclarations.add(SeqFunctionDeclaration.ABORT.toASTString());
     rFunctionDeclarations.add(SeqFunctionDeclaration.REACH_ERROR.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclaration.ASSERT_FAIL.toASTString());
     rFunctionDeclarations.add(SeqFunctionDeclaration.ASSUME.toASTString());
+    rFunctionDeclarations.add(SeqFunctionDeclaration.ABORT.toASTString());
+
+    // malloc is required for valid-memsafety tasks
+    rFunctionDeclarations.add(SeqFunctionDeclaration.MALLOC.toASTString());
+
     // thread simulation functions, only enabled with loop is unrolled
     if (pOptions.loopUnrolling) {
       for (MPORThread thread : pFields.threads) {

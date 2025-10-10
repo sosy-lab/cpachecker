@@ -125,6 +125,8 @@ public class SeqToken {
 
   public static final String MAIN_FUNCTION_ARG = "MAIN_FUNCTION_ARG";
 
+  public static final String malloc = "malloc";
+
   public static final String __MPOR_SEQ__ = "__MPOR_SEQ__";
 
   public static final String next_thread = "next_thread";
@@ -157,6 +159,8 @@ public class SeqToken {
   public static final String S = "S";
 
   public static final String __SEQUENTIALIZATION_ERROR__ = "__SEQUENTIALIZATION_ERROR__";
+
+  public static final String size = "size";
 
   public static final String START_ROUTINE_ARG = "START_ROUTINE_ARG";
 
