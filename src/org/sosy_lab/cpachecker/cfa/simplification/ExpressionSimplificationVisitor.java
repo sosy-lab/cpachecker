@@ -253,7 +253,8 @@ public class ExpressionSimplificationVisitor
     }
 
     final CExpression op = recursive(operand);
-    assert op.getExpressionType().equals(operandType) : "simplification should not change type";
+    assert op.getExpressionType().getCanonicalType().equals(operandType.getCanonicalType())
+        : "simplification should not change type";
     final NumericValue value = getValue(op);
 
     if (value != null && operandType instanceof CSimpleType cSimpleType) {
