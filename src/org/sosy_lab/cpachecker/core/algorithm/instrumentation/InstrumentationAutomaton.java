@@ -860,7 +860,7 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                (pIndex == 0 ? "; int saved = 0; int pc = 0; int pc_INSTR = 0; " : "")
+                (pIndex == 0 ? "; int saved = 0; int pc_INSTR = 0; " : "")
                     + undeclaredVariables.entrySet().stream()
                         .map(
                             (entry) ->
@@ -882,7 +882,8 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
-                "if (saved == 0) {pc_INSTR = pc"
+                "if (saved == 0) {pc_INSTR = "
+                    + pIndex
                     + (!liveVariablesAndTypes.isEmpty() ? " ; " : "")
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
@@ -895,12 +896,11 @@ public class InstrumentationAutomaton {
                                     + entry.getKey())
                         .collect(Collectors.joining(";"))
                     + ";}\\n"
-                    + " pc = "
-                    + pIndex
-                    + "; "
                     + "if(__VERIFIER_nondet_int() && saved"
                     + " == 0) { saved"
-                    + " =1; pc_INSTR = pc; "
+                    + " =1; pc_INSTR = "
+                    + pIndex
+                    + "; "
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
                             (entry) ->
@@ -913,7 +913,9 @@ public class InstrumentationAutomaton {
                         .collect(Collectors.joining("; "))
                     + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
                     + "} else { __VERIFIER_assert((saved"
-                    + " == 0) || (pc_INSTR != pc)"
+                    + " == 0) || (pc_INSTR != "
+                    + pIndex
+                    + ")"
                     + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
                     + liveVariablesAndTypes.entrySet().stream()
                         .map(
