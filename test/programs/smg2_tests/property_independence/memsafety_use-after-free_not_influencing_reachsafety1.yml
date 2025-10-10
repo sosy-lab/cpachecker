@@ -11,11 +11,11 @@ format_version: '2.0'
 input_files: 'memsafety_use-after-free_not_influencing_reachsafety1.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-call.prp
+  - property_file: ../../../../config/properties/unreach-call.prp
     # expected_verdict: unknown (hence why this is commented out)
-  - property_file: ../../../config/properties/unreach-label.prp
+  - property_file: ../../../../config/properties/unreach-label.prp
     # expected_verdict: unknown (hence why this is commented out)
-  - property_file: ../../../config/properties/valid-memsafety.prp
+  - property_file: ../../../../config/properties/valid-memsafety.prp
     expected_verdict: false
     subproperty: valid-deref
 
