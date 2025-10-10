@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN"
+        "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="120 s" hardtimelimit="180 s" memlimit="2 GB" cpuCores="2">
+    <rundefinition>
+        <option name="--svcomp25"/>
+    </rundefinition>
+
+    <option name="--no-output-files"/>
+
+    <tasks name="CoreUtils-MemSafety">
+        <includesfile>coreutils.set</includesfile>
+        <propertyfile>../../benchmarks/properties/valid-memsafety.prp</propertyfile>
+    </tasks>
+
+    <tasks name="CoreUtils-NoOverflow">
+        <includesfile>coreutils.set</includesfile>
+        <propertyfile>../../benchmarks/properties/no-overflow.prp</propertyfile>
+    </tasks>
+</benchmark>
