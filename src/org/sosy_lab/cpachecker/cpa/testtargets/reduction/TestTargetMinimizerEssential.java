@@ -108,7 +108,7 @@ public class TestTargetMinimizerEssential {
       }
 
       // create copies of all outgoing edges and the nodes they go into if they don't yet exist
-      for (CFAEdge currentEdge : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge currentEdge : currentNode.getLeavingEdges()) {
         CFANode copiedSuccessorNode;
         if (origNodesCopied.contains(currentEdge.getSuccessor())) {
           // node the edge goes to has been added already so we retrieve the mapped dummy node to
@@ -281,7 +281,7 @@ public class TestTargetMinimizerEssential {
 
     updateTestGoalMappingAfterRemoval(
         toRemove,
-        isLeaving ? CFAUtils.enteringEdges(pred) : CFAUtils.leavingEdges(succ),
+        isLeaving ? pred.getEnteringEdges() : succ.getLeavingEdges(),
         copiedEdgeToTestTargetsMap,
         pTestTargets);
 
@@ -339,7 +339,7 @@ public class TestTargetMinimizerEssential {
       }
 
       // register unexplored successors
-      for (CFAEdge leaveEdge : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge leaveEdge : currentNode.getLeavingEdges()) {
         if (visitedNodes.add(leaveEdge.getSuccessor())) {
           waitlist.add(leaveEdge.getSuccessor());
         }
@@ -375,7 +375,7 @@ public class TestTargetMinimizerEssential {
         waitlist.remove(currentNode);
       }
       // add nodes to the queue that haven't been added yet
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
         if (vistedNodes.add(leavingEdge.getSuccessor())) {
           waitlist.add(leavingEdge.getSuccessor());
         }
@@ -392,7 +392,7 @@ public class TestTargetMinimizerEssential {
     Pair<CFANode, CFANode> newPath;
     boolean viaInput;
 
-    for (CFAEdge leaving : CFAUtils.allLeavingEdges(pEntryNode)) {
+    for (CFAEdge leaving : pEntryNode.getAllLeavingEdges()) {
       newPath = Pair.of(pEntryNode, leaving.getSuccessor());
       pathsToRequiredInputs.put(newPath, TestTargetReductionUtils.isInputEdge(leaving));
       waitlist.add(newPath);
@@ -400,7 +400,7 @@ public class TestTargetMinimizerEssential {
 
     while (!waitlist.isEmpty()) {
       path = waitlist.pop();
-      for (CFAEdge leaving : CFAUtils.allLeavingEdges(path.getSecond())) {
+      for (CFAEdge leaving : path.getSecond().getAllLeavingEdges()) {
         newPath = Pair.of(leaving.getPredecessor(), leaving.getSuccessor());
         viaInput = TestTargetReductionUtils.isInputEdge(leaving);
         if (!pathsToRequiredInputs.containsKey(newPath)
@@ -456,7 +456,7 @@ public class TestTargetMinimizerEssential {
       currentNode = waitlist.poll();
       ruleApplicable = currentNode.getNumEnteringEdges() > 0;
       removedEdge = null;
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
         if (!inverseDomTree.isAncestorOf(leavingEdge.getSuccessor(), currentNode)
             || pathsWithInput.contains(Pair.of(currentNode, leavingEdge.getSuccessor()))) {
           if (removedEdge == null) {
@@ -486,7 +486,7 @@ public class TestTargetMinimizerEssential {
       }
 
       if (!waitlist.contains(currentNode)) {
-        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+        for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
           if (visitedNodes.add(leavingEdge.getSuccessor())) {
             waitlist.add(leavingEdge.getSuccessor());
           }
@@ -518,7 +518,7 @@ public class TestTargetMinimizerEssential {
 
       ruleApplicable = currentNode.getNumLeavingEdges() > 0;
       removedEdge = null;
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode)) {
+      for (CFAEdge enteringEdge : currentNode.getEnteringEdges()) {
         if (!domTree.isAncestorOf(currentNode, enteringEdge.getPredecessor())) {
           if (removedEdge == null) {
             removedEdge = enteringEdge;
@@ -540,7 +540,7 @@ public class TestTargetMinimizerEssential {
       }
 
       // add successors of the current node to the queue
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
+      for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
         if (visitedNodes.add(leavingEdge.getSuccessor())) {
           waitlist.add(leavingEdge.getSuccessor());
         }

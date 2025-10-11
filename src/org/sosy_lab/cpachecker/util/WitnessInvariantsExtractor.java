@@ -408,7 +408,7 @@ public class WitnessInvariantsExtractor {
             // Check if there are any leaving return edges:
             // The predecessors are also potential matches for the invariant
             for (FunctionReturnEdge returnEdge :
-                CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
+                location.getLeavingEdges().filter(FunctionReturnEdge.class)) {
               CFANode successor = returnEdge.getSuccessor();
               if (!pCandidateGroupLocations.containsEntry(groupId, successor)
                   && !visited.contains(successor)) {

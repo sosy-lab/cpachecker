@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
@@ -74,30 +73,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -115,17 +107,11 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -300,46 +286,6 @@ public class CFAUtils {
   }
 
   /**
-   * Extracts the parameter at pIndex from the function call in pCfaEdge.
-   *
-   * @param pCfaEdge CFAEdge that must be a CFunctionCallStatement
-   * @param pIndex the position of the parameter to be extracted (starting at 0)
-   * @return the CExpression of the parameter at pIndex
-   * @throws IllegalArgumentException if pCfaEdge cannot be cast accordingly
-   */
-  public static CExpression getParameterAtIndex(CFAEdge pCfaEdge, int pIndex) {
-    if (isCfaEdgeCFunctionCall(pCfaEdge)) {
-      AAstNode aAstNode = pCfaEdge.getRawAST().orElseThrow();
-      CFunctionCallStatement cFunctionCallStatement = (CFunctionCallStatement) aAstNode;
-      List<CExpression> cExpressions =
-          cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
-      return cExpressions.get(pIndex);
-    }
-    throw new IllegalArgumentException("pCfaEdge must be a CFunctionCallStatement");
-  }
-
-  public static CFunctionDeclaration getFunctionDeclarationByStatementEdge(
-      CStatementEdge pStatementEdge) {
-
-    if (pStatementEdge.getStatement() instanceof CFunctionCallStatement functionCallStatement) {
-      return functionCallStatement.getFunctionCallExpression().getDeclaration();
-    }
-    throw new IllegalArgumentException("pStatementEdge has no function call statement");
-  }
-
-  public static ImmutableSet<CFunctionCallEdge> getFunctionCallEdgesByReturnStatementEdge(
-      CReturnStatementEdge pReturnStatementEdge) {
-
-    ImmutableSet.Builder<CFunctionCallEdge> rFunctionCallEdges = ImmutableSet.builder();
-    FunctionEntryNode functionEntryNode = pReturnStatementEdge.getSuccessor().getEntryNode();
-    for (FunctionCallEdge enteringEdge : enteringEdges(functionEntryNode)) {
-      assert enteringEdge instanceof CFunctionCallEdge;
-      rFunctionCallEdges.add((CFunctionCallEdge) enteringEdge);
-    }
-    return rFunctionCallEdges.build();
-  }
-
-  /**
    * Returns a {@link FluentIterable} that contains all edges of the specified CFA, including all
    * summary edges.
    *
@@ -356,83 +302,11 @@ public class CFAUtils {
   }
 
   /**
-   * The allEdges function contains {@link FunctionSummaryEdge}s, leading to parallel edges (two
-   * edges from node A to B) in the return value. This function filters out all {@link
-   * FunctionSummaryEdge}s.
-   *
-   * @param pCfa CFA whose edges we filter
-   * @return {@link FluentIterable} of {@link CFAEdge}s that are not instances of {@link
-   *     FunctionSummaryEdge}
-   */
-  public static FluentIterable<CFAEdge> allUniqueEdges(CFA pCfa) {
-    return allEdges(pCfa).filter(edge -> !(edge instanceof FunctionSummaryEdge));
-  }
-
-  @SuppressWarnings("unchecked")
-  public static FluentIterable<FunctionCallEdge> enteringEdges(final FunctionEntryNode node) {
-    return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) enteringEdges((CFANode) node);
-  }
-
-  public static FluentIterable<CFAEdge> leavingEdges(final FunctionExitNode node) {
-    // may be strengthened to only return FunctionReturnEdges
-    // if no analysis adds dummy edges after FunctionExitNodes anymore
-    // (currently https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1319)
-    // and we really want unchecked casts
-    return leavingEdges((CFANode) node);
-  }
-
-  @Deprecated // entry nodes do not have summary edges
-  @InlineMe(
-      replacement = "CFAUtils.enteringEdges(node)",
-      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<FunctionCallEdge> allEnteringEdges(final FunctionEntryNode node) {
-    return enteringEdges(node);
-  }
-
-  @Deprecated // exit nodes do not have summary edges
-  @InlineMe(
-      replacement = "CFAUtils.enteringEdges(node)",
-      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<CFAEdge> allEnteringEdges(final FunctionExitNode node) {
-    return enteringEdges(node);
-  }
-
-  @Deprecated // entry nodes do not have summary edges
-  @InlineMe(
-      replacement = "CFAUtils.leavingEdges(node)",
-      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<CFAEdge> allLeavingEdges(final FunctionEntryNode node) {
-    return leavingEdges(node);
-  }
-
-  @Deprecated // exit nodes do not have summary edges
-  @InlineMe(
-      replacement = "CFAUtils.leavingEdges(node)",
-      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
-  public static FluentIterable<CFAEdge> allLeavingEdges(final FunctionExitNode node) {
-    return leavingEdges(node);
-  }
-
-  @Deprecated // termination nodes do not have leaving edges
-  @DoNotCall
-  public static FluentIterable<CFAEdge> leavingEdges(
-      @SuppressWarnings("unused") final CFATerminationNode node) {
-    throw new AssertionError("useless method");
-  }
-
-  @Deprecated // termination nodes do not have leaving edges
-  @DoNotCall
-  public static FluentIterable<CFAEdge> allLeavingEdges(
-      @SuppressWarnings("unused") final CFATerminationNode node) {
-    throw new AssertionError("useless method");
-  }
-
-  /**
    * Return an {@link Iterable} that contains the predecessor nodes of a given CFANode, excluding
    * the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> predecessorsOf(final CFANode node) {
-    return enteringEdges(node).transform(CFAEdge::getPredecessor);
+    return node.getEnteringEdges().transform(CFAEdge::getPredecessor);
   }
 
   /**
@@ -440,7 +314,7 @@ public class CFAUtils {
    * including the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> allPredecessorsOf(final CFANode node) {
-    return allEnteringEdges(node).transform(CFAEdge::getPredecessor);
+    return node.getAllEnteringEdges().transform(CFAEdge::getPredecessor);
   }
 
   /**
@@ -448,7 +322,7 @@ public class CFAUtils {
    * one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> successorsOf(final CFANode node) {
-    return leavingEdges(node).transform(CFAEdge::getSuccessor);
+    return node.getLeavingEdges().transform(CFAEdge::getSuccessor);
   }
 
   /**
@@ -456,7 +330,7 @@ public class CFAUtils {
    * the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
-    return allLeavingEdges(node).transform(CFAEdge::getSuccessor);
+    return node.getAllLeavingEdges().transform(CFAEdge::getSuccessor);
   }
 
   @Deprecated // entry nodes do not have summary edges
@@ -738,27 +612,6 @@ public class CFAUtils {
     return visitor.hasBackwardsEdges();
   }
 
-  /** Extracts all {@link CVariableDeclaration} from {@code pCfa} that are global. */
-  public static ImmutableList<CVariableDeclaration> getGlobalVariableDeclarations(CFA pCfa) {
-    ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
-    Set<CVariableDeclaration> visited = new HashSet<>();
-    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
-      if (edge instanceof CDeclarationEdge declarationEdge) {
-        CDeclaration declaration = declarationEdge.getDeclaration();
-        if (declaration.isGlobal()) {
-          // exclude CFunctionDeclaration and CTypeDeclaration (e.g. for structs)
-          if (declaration instanceof CVariableDeclaration variableDeclaration) {
-            // the same variable declaration may be present twice, e.g.: 'int z;' and 'int z = 0;'
-            if (visited.add(variableDeclaration)) {
-              rGlobalVariables.add(variableDeclaration);
-            }
-          }
-        }
-      }
-    }
-    return rGlobalVariables.build();
-  }
-
   /**
    * This method allows to select from a set of variables all local variables from a given function.
    * This requires that the given set contains the qualified names of each variable as returned by
@@ -859,95 +712,6 @@ public class CFAUtils {
     }
 
     return true;
-  }
-
-  /** Returns true if the given {@link CFAEdge} contains a {@link CFunctionCall}. */
-  public static boolean isCfaEdgeCFunctionCall(CFAEdge pCfaEdge) {
-    checkNotNull(pCfaEdge);
-    Optional<AAstNode> aAstNode = pCfaEdge.getRawAST();
-    return aAstNode.isPresent() && aAstNode.orElseThrow() instanceof CFunctionCall;
-  }
-
-  /**
-   * This function does not check if pCfaEdge actually is a {@link CFunctionCall}. Best use in
-   * combination with {@link CFAUtils#isCfaEdgeCFunctionCall(CFAEdge)}.
-   */
-  public static CFunctionCall getCFunctionCallFromCfaEdge(CFAEdge pCfaEdge) {
-    checkNotNull(pCfaEdge);
-    return (CFunctionCall) pCfaEdge.getRawAST().orElseThrow();
-  }
-
-  public static String getFunctionNameFromCfaEdge(CFAEdge pCfaEdge) {
-    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pCfaEdge));
-    return CFAUtils.getCFunctionCallFromCfaEdge(pCfaEdge)
-        .getFunctionCallExpression()
-        .getFunctionNameExpression()
-        .toASTString();
-  }
-
-  public static CFunctionDeclaration getCFunctionDeclarationFromCFaEdge(CFAEdge pCfaEdge) {
-    CFunctionCall functionCall = getCFunctionCallFromCfaEdge(pCfaEdge);
-    return functionCall.getFunctionCallExpression().getDeclaration();
-  }
-
-  public static ImmutableList<CParameterDeclaration> getParameterDeclarationsFromCfaEdge(
-      CFAEdge pCfaEdge) {
-
-    CFunctionDeclaration functionDeclaration = getCFunctionDeclarationFromCFaEdge(pCfaEdge);
-    return ImmutableList.copyOf(functionDeclaration.getParameters());
-  }
-
-  /**
-   * Extracts and returns the {@link CExpression} from the given address. E.g. if pAddress is &id1
-   * from pthread_create(&id1, ...), then this function returns id1's expression.
-   */
-  public static CExpression getValueFromAddress(CExpression pAddress) {
-    if (pAddress instanceof CUnaryExpression unaryExpr) {
-      if (unaryExpr.getExpressionType() instanceof CPointerType) {
-        return unaryExpr.getOperand();
-      }
-    }
-    throw new IllegalArgumentException("cannot extract value from pAddress");
-  }
-
-  /**
-   * Extracts and returns the {@link CFunctionType} of pCExpression which points to a function and
-   * throws an {@link IllegalArgumentException} if it can't be extracted.
-   */
-  public static CFunctionType getCFunctionTypeFromCExpression(CExpression pCExpression) {
-    if (pCExpression instanceof CUnaryExpression cUnaryExpression) {
-      if (cUnaryExpression.getExpressionType() instanceof CPointerType) {
-        if (cUnaryExpression.getOperand() instanceof CIdExpression cIdExpression) {
-          if (cIdExpression.getExpressionType() instanceof CFunctionType cFunctionType) {
-            return cFunctionType;
-          }
-        }
-      }
-    }
-    throw new IllegalArgumentException("pCExpression is not a pointer to a function");
-  }
-
-  /**
-   * Searches pCfa for the FunctionEntryNode of pCFunctionType and returns the FunctionEntryNode.
-   *
-   * @param pCfa the CFA to be searched for the FunctionEntryNode
-   * @param pCFunctionType the CFunctionType whose FunctionEntryNode is searched for
-   * @return the unique FunctionEntryNode for pCFunctionType
-   * @throws IllegalArgumentException if no FunctionEntryNode for the CFunctionType is found
-   */
-  public static FunctionEntryNode getFunctionEntryNodeFromCFunctionType(
-      CFA pCfa, CFunctionType pCFunctionType) {
-
-    checkNotNull(pCFunctionType);
-    for (CFANode cfaNode : pCfa.nodes()) {
-      if (cfaNode instanceof FunctionEntryNode functionEntryNode) {
-        if (functionEntryNode.getFunction().getType().equals(pCFunctionType)) {
-          return functionEntryNode;
-        }
-      }
-    }
-    throw new IllegalArgumentException(
-        "the given CFA does not contain a FunctionEntryNode for the given pCFunctionType");
   }
 
   /** Get all {@link FileLocation} objects that are attached to an edge or its AST nodes. */

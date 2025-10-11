@@ -265,7 +265,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // so all unnecessary nodes are only reachable with BACKWARD-search.
     // we only disconnect them from the CFA and let garbage collection do the rest
     for (CFANode node : cfaNodes) {
-      for (CFAEdge edge : CFAUtils.enteringEdges(node).toList()) {
+      for (CFAEdge edge : node.getEnteringEdges().toList()) {
         if (!cfaNodes.contains(edge.getPredecessor())) {
           CFACreationUtils.removeEdgeFromNodes(edge);
         }
@@ -954,7 +954,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       if (isReachableNode(prevNode)) {
 
-        for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
+        for (CFAEdge prevEdge : prevNode.getAllEnteringEdges().toList()) {
           if ((prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty()) {
 
             // the only entering edge is a BlankEdge, so we delete this edge and prevNode
