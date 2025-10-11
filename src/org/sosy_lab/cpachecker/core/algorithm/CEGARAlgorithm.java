@@ -254,8 +254,7 @@ public class CEGARAlgorithm
         }
 
         if (earlyTerminationRequested) {
-          logger.logf(
-              Level.INFO, "Terminating refinement due to signal from PredicateDelegatingRefiner");
+          logger.logf(Level.INFO, "Terminating refinement due to signal from refiner");
           status = status.withPrecise(false);
           break;
         }

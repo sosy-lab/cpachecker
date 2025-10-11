@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
@@ -35,15 +36,17 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
-  private final ImmutableList<HeuristicDelegatingRefinerRecord> pRefiners;
+  private final ImmutableList<HeuristicDelegatingRefinerRecord> refiners;
   private final LogManager logger;
-  private ARGBasedRefiner currentRefiner = null;
+  private ARGBasedRefiner currentRefiner;
 
   public PredicateDelegatingRefiner(
       ImmutableList<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords,
-      final LogManager pLogger) {
-    this.pRefiners = ImmutableList.copyOf(pHeuristicRefinerRecords);
+      final LogManager pLogger)
+      throws InvalidConfigurationException {
+    this.refiners = ImmutableList.copyOf(pHeuristicRefinerRecords);
     this.logger = pLogger;
+    this.currentRefiner = null;
   }
 
   @Override
@@ -69,7 +72,7 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
     ImmutableList<ReachedSetDelta> deltaSequence =
         ImmutableList.of(trackingForwardingReachedSet.getDelta());
 
-    for (HeuristicDelegatingRefinerRecord pRecord : pRefiners) {
+    for (HeuristicDelegatingRefinerRecord pRecord : refiners) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
       logger.logf(
           Level.FINEST,
@@ -87,6 +90,9 @@ public class PredicateDelegatingRefiner implements ARGBasedRefiner {
 
   @Override
   public boolean shouldTerminateRefinement() {
-    return currentRefiner.shouldTerminateRefinement();
+    if (currentRefiner != null) {
+      return currentRefiner.shouldTerminateRefinement();
+    }
+    return false;
   }
 }
