@@ -54,9 +54,9 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
 
   private final CVariableDeclaration constCpaCheckerTmpDeclaration;
 
-  private final SubstituteEdge statementA;
+  private final SubstituteEdge substituteEdgeA;
 
-  private final SubstituteEdge statementB;
+  private final Optional<SubstituteEdge> substituteEdgeB;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -70,56 +70,59 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
 
   private void checkArguments(
       CVariableDeclaration pVariableDeclaration,
-      SubstituteEdge pStatementA,
-      SubstituteEdge pStatementB) {
+      SubstituteEdge pSubstituteEdgeA,
+      Optional<SubstituteEdge> pSubstituteEdgeB) {
 
     checkArgument(
         MPORUtil.isConstCpaCheckerTmp(pVariableDeclaration),
         "pDeclaration must declare a const __CPAchecker_TMP variable");
     checkArgument(
-        pStatementA.cfaEdge instanceof CStatementEdge,
-        "pStatementA.cfaEdge must be CStatementEdge");
-    checkArgument(
-        pStatementB.cfaEdge instanceof CStatementEdge,
-        "pStatementB.cfaEdge must be CStatementEdge");
-
-    CStatement bStatement = ((CStatementEdge) pStatementB.cfaEdge).getStatement();
-    if (bStatement instanceof CExpressionStatement bExpressionStatement) {
-      CIdExpression idExpressionB = extractIdExpressionB(bExpressionStatement.getExpression());
-      CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
+        pSubstituteEdgeA.cfaEdge instanceof CStatementEdge,
+        "pSubstituteEdgeA.cfaEdge must be CStatementEdge");
+    if (pSubstituteEdgeB.isPresent()) {
       checkArgument(
-          pVariableDeclaration.equals(declarationB),
-          "pDeclaration and pStatementB must use the same __CPAchecker_TMP variable when"
-              + " pStatementB is a CExpressionStatement");
+          pSubstituteEdgeB.orElseThrow().cfaEdge instanceof CStatementEdge,
+          "pSubstituteEdgeB.cfaEdge must be CStatementEdge");
 
-    } else if (bStatement instanceof CExpressionAssignmentStatement bAssignment) {
-      CStatement aStatement = ((CStatementEdge) pStatementA.cfaEdge).getStatement();
-      checkArgument(
-          aStatement instanceof CExpressionAssignmentStatement,
-          "pStatementA must be CExpressionAssignmentStatement when pStatementB is a"
-              + " CExpressionAssignmentStatement");
-      CExpressionAssignmentStatement aAssignment = (CExpressionAssignmentStatement) aStatement;
-      if (pVariableDeclaration.getInitializer()
-          instanceof CInitializerExpression initializerExpression) {
-        if (initializerExpression.getExpression().equals(aAssignment.getLeftHandSide())) {
-          if (bAssignment.getRightHandSide() instanceof CIdExpression bIdExpression) {
-            // this happens e.g. in weaver/parallel-ticket-6.wvr.c
-            // _Atomic int CPA_TMP_0 = t; t = t + 1; m1 = CPA_TMP_0;
-            // we want to ensure that the declaration is equal to the RHS in the last statement
-            checkArgument(
-                pVariableDeclaration.equals(bIdExpression.getDeclaration()),
-                "pVariableDeclaration must equal pStatementB RHS");
-            return;
+      CStatement statementB =
+          ((CStatementEdge) pSubstituteEdgeB.orElseThrow().cfaEdge).getStatement();
+      if (statementB instanceof CExpressionStatement bExpressionStatement) {
+        CIdExpression idExpressionB = extractIdExpressionB(bExpressionStatement.getExpression());
+        CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
+        checkArgument(
+            pVariableDeclaration.equals(declarationB),
+            "pDeclaration and pSubstituteEdgeB must use the same __CPAchecker_TMP variable when"
+                + " pSubstituteEdgeB is a CExpressionStatement");
+
+      } else if (statementB instanceof CExpressionAssignmentStatement bAssignment) {
+        CStatement statementA = ((CStatementEdge) pSubstituteEdgeA.cfaEdge).getStatement();
+        checkArgument(
+            statementA instanceof CExpressionAssignmentStatement,
+            "pSubstituteEdgeA must be CExpressionAssignmentStatement when pSubstituteEdgeB is a"
+                + " CExpressionAssignmentStatement");
+        CExpressionAssignmentStatement aAssignment = (CExpressionAssignmentStatement) statementA;
+        if (pVariableDeclaration.getInitializer()
+            instanceof CInitializerExpression initializerExpression) {
+          if (initializerExpression.getExpression().equals(aAssignment.getLeftHandSide())) {
+            if (bAssignment.getRightHandSide() instanceof CIdExpression bIdExpression) {
+              // this happens e.g. in weaver/parallel-ticket-6.wvr.c
+              // _Atomic int CPA_TMP_0 = t; t = t + 1; m1 = CPA_TMP_0;
+              // we want to ensure that the declaration is equal to the RHS in the last statement
+              checkArgument(
+                  pVariableDeclaration.equals(bIdExpression.getDeclaration()),
+                  "pVariableDeclaration must equal pSubstituteEdgeB RHS");
+              return;
+            }
           }
         }
+        // this happens e.g. in ldv-races/race-2_2-container_of:
+        // CPA_TMP_0 = {  }; CPA_TMP_1 = (struct my_data *)(((char *)mptr) - 40); data = CPA_TMP_1;
+        // check if the middle statement LHS matches the last statements RHS (CPA_TMP_1)
+        checkArgument(
+            aAssignment.getLeftHandSide().equals(bAssignment.getRightHandSide()),
+            "pSubstituteEdgeA LHS must equal pSubstituteEdgeB RHS when pSubstituteEdgeB is a"
+                + " CExpressionAssignmentStatement");
       }
-      // this happens e.g. in ldv-races/race-2_2-container_of:
-      // CPA_TMP_0 = {  }; CPA_TMP_1 = (struct my_data *)(((char *)mptr) - 40); data = CPA_TMP_1;
-      // check if the middle statement LHS matches the last statements RHS (CPA_TMP_1)
-      checkArgument(
-          aAssignment.getLeftHandSide().equals(bAssignment.getRightHandSide()),
-          "pStatementA LHS must equal pStatementB RHS when pStatementB is a"
-              + " CExpressionAssignmentStatement");
     }
   }
 
@@ -138,16 +141,16 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   SeqConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
       CVariableDeclaration pDeclaration,
-      SubstituteEdge pStatementA,
-      SubstituteEdge pStatementB,
+      SubstituteEdge pSubstituteEdgeA,
+      Optional<SubstituteEdge> pSubstituteEdgeB,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    checkArguments(pDeclaration, pStatementA, pStatementB);
+    checkArguments(pDeclaration, pSubstituteEdgeA, pSubstituteEdgeB);
     options = pOptions;
-    statementA = pStatementA;
-    statementB = pStatementB;
+    substituteEdgeA = pSubstituteEdgeA;
+    substituteEdgeB = pSubstituteEdgeB;
     constCpaCheckerTmpDeclaration = pDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -159,18 +162,18 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   private SeqConstCpaCheckerTmpStatement(
       MPOROptions pOptions,
       CVariableDeclaration pConstCpaCheckerTmpDeclaration,
-      SubstituteEdge pStatementA,
-      SubstituteEdge pStatementB,
+      SubstituteEdge pSubstituteEdgeA,
+      Optional<SubstituteEdge> pSubstituteEdgeB,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    checkArguments(pConstCpaCheckerTmpDeclaration, pStatementA, pStatementB);
+    checkArguments(pConstCpaCheckerTmpDeclaration, pSubstituteEdgeA, pSubstituteEdgeB);
     options = pOptions;
-    statementA = pStatementA;
-    statementB = pStatementB;
+    substituteEdgeA = pSubstituteEdgeA;
+    substituteEdgeB = pSubstituteEdgeB;
     constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -187,9 +190,10 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     // we only want name and initializer here, the declaration is done beforehand
     return constCpaCheckerTmpDeclaration.toASTString()
         + SeqSyntax.SPACE
-        + statementA.cfaEdge.getCode()
-        + SeqSyntax.SPACE
-        + statementB.cfaEdge.getCode()
+        + substituteEdgeA.cfaEdge.getCode()
+        + (substituteEdgeB.isPresent()
+            ? (SeqSyntax.SPACE + substituteEdgeB.orElseThrow().cfaEdge.getCode())
+            : SeqSyntax.EMPTY_STRING)
         + SeqSyntax.SPACE
         + targetStatements;
   }
@@ -219,8 +223,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
-        statementA,
-        statementB,
+        substituteEdgeA,
+        substituteEdgeB,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -233,8 +237,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
-        statementA,
-        statementB,
+        substituteEdgeA,
+        substituteEdgeB,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -249,8 +253,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
-        statementA,
-        statementB,
+        substituteEdgeA,
+        substituteEdgeB,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -265,8 +269,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
     return new SeqConstCpaCheckerTmpStatement(
         options,
         constCpaCheckerTmpDeclaration,
-        statementA,
-        statementB,
+        substituteEdgeA,
+        substituteEdgeB,
         pcLeftHandSide,
         substituteEdges,
         targetPc,

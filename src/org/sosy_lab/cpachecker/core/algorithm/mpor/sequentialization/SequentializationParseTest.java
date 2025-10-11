@@ -47,10 +47,6 @@ public class SequentializationParseTest {
   //  by CPAchecker during CFA creation)
   // pthread-divine/tls_basic
 
-  // TODO this program is analyzed as false by multiple tools (Bubaak, CBMC, CPAchecker, ESBMC,
-  //  Symbiotic) even though its true, but only when linkReduction is enabled
-  // weaver/chl-match-symm.wvr.c
-
   @Test
   public void test_13_privatized_04_priv_multi_true() throws Exception {
     // this program contains multiple loops whose condition only contains local variables
