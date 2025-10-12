@@ -44,7 +44,7 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
-  public SeqCondWaitStatement(
+  SeqCondWaitStatement(
       MPOROptions pOptions,
       CondSignaled pCondSignaled,
       MutexLocked pMutexLocked,

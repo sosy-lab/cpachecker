@@ -263,8 +263,8 @@ public class SeqThreadStatementBuilder {
             pOptions, pThread, pAllThreads, pThreadEdge, pSubstituteEdge, targetPc, pGhostElements);
       }
     }
-    // "leftover" edges should be statement edges
-    assert pSubstituteEdge.cfaEdge instanceof CStatementEdge;
+    assert pSubstituteEdge.cfaEdge instanceof CStatementEdge
+        : "leftover CFAEdge must be CStatementEdge";
     return new SeqDefaultStatement(
         pOptions,
         (CStatementEdge) pSubstituteEdge.cfaEdge,
@@ -475,6 +475,33 @@ public class SeqThreadStatementBuilder {
         pTargetPc);
   }
 
+  public static SeqCondWaitStatement buildCondWaitStatement(
+      MPOROptions pOptions,
+      ThreadEdge pThreadEdge,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc,
+      CLeftHandSide pPcLeftHandSide,
+      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
+
+    CIdExpression signaledCondT = PthreadUtil.extractPthreadCondT(pThreadEdge.cfaEdge);
+    assert pThreadSynchronizationVariables.condSignaled.containsKey(signaledCondT);
+    CondSignaled condSignaledVariable =
+        Objects.requireNonNull(pThreadSynchronizationVariables.condSignaled.get(signaledCondT));
+
+    CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
+    assert pThreadSynchronizationVariables.locked.containsKey(pthreadMutexT);
+    MutexLocked mutexLocked =
+        Objects.requireNonNull(pThreadSynchronizationVariables.locked.get(pthreadMutexT));
+
+    return new SeqCondWaitStatement(
+        pOptions,
+        condSignaledVariable,
+        mutexLocked,
+        pPcLeftHandSide,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc);
+  }
+
   private static SeqThreadCreationStatement buildThreadCreationStatement(
       MPOROptions pOptions,
       MPORThread pThread,
@@ -562,7 +589,7 @@ public class SeqThreadStatementBuilder {
         pTargetPc);
   }
 
-  private static SeqMutexUnlockStatement buildMutexUnlockStatement(
+  public static SeqMutexUnlockStatement buildMutexUnlockStatement(
       MPOROptions pOptions,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,

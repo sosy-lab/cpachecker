@@ -44,7 +44,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
-  public SeqMutexUnlockStatement(
+  SeqMutexUnlockStatement(
       MPOROptions pOptions,
       MutexLocked pMutexLockedVariable,
       CLeftHandSide pPcLeftHandSide,

@@ -11,14 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -32,8 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.CondSignaled;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockMerger;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
@@ -195,9 +190,9 @@ public class SeqThreadStatementClauseBuilder {
    */
   private static ImmutableList<SeqThreadStatementClause> buildClausesFromThreadNode(
       MPOROptions pOptions,
-      final MPORThread pThread,
-      final Optional<MPORThread> pNextThread,
-      final ImmutableList<MPORThread> pAllThreads,
+      MPORThread pThread,
+      Optional<MPORThread> pNextThread,
+      ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
@@ -216,6 +211,7 @@ public class SeqThreadStatementClauseBuilder {
     }
 
     ThreadEdge firstThreadEdge = pThreadNode.firstLeavingEdge();
+    int targetPc = firstThreadEdge.getSuccessor().pc;
     ImmutableList<SeqThreadStatementClause> multiClauseEdge =
         handleMultipleClauseEdge(
             pOptions,
@@ -224,7 +220,7 @@ public class SeqThreadStatementClauseBuilder {
             firstThreadEdge,
             pSubstituteEdges.get(firstThreadEdge),
             labelPc,
-            firstThreadEdge.getSuccessor().pc,
+            targetPc,
             pcLeftHandSide,
             pGhostElements.getThreadSynchronizationVariables());
 
@@ -234,21 +230,21 @@ public class SeqThreadStatementClauseBuilder {
       return multiClauseEdge;
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-      int targetPc = pThreadNode.firstLeavingEdge().getSuccessor().pc;
       statements.add(
           SeqThreadStatementBuilder.buildBlankStatement(pOptions, pcLeftHandSide, targetPc));
-    }
 
-    statements.addAll(
-        SeqThreadStatementBuilder.buildStatementsFromThreadNode(
-            pOptions,
-            pThread,
-            pAllThreads,
-            pThreadNode,
-            pcLeftHandSide,
-            pCoveredNodes,
-            pSubstituteEdges,
-            pGhostElements));
+    } else {
+      statements.addAll(
+          SeqThreadStatementBuilder.buildStatementsFromThreadNode(
+              pOptions,
+              pThread,
+              pAllThreads,
+              pThreadNode,
+              pcLeftHandSide,
+              pCoveredNodes,
+              pSubstituteEdges,
+              pGhostElements));
+    }
     SeqThreadStatementClause clause =
         buildClause(pOptions, pThread, pNextThread, labelPc, statements.build());
     return ImmutableList.of(clause);
@@ -317,37 +313,30 @@ public class SeqThreadStatementClauseBuilder {
       CLeftHandSide pPcLeftHandSide,
       ThreadSynchronizationVariables pThreadSynchronizationVariables) {
 
-    CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
-    assert pThreadSynchronizationVariables.locked.containsKey(lockedMutexT);
-    MutexLocked mutexLockedVariable =
-        Objects.requireNonNull(pThreadSynchronizationVariables.locked.get(lockedMutexT));
-
-    CIdExpression signaledCondT = PthreadUtil.extractPthreadCondT(pThreadEdge.cfaEdge);
-    assert pThreadSynchronizationVariables.condSignaled.containsKey(signaledCondT);
-    CondSignaled condSignaledVariable =
-        Objects.requireNonNull(pThreadSynchronizationVariables.condSignaled.get(signaledCondT));
-
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
+
+    // step 1: reuse pthread_mutex_unlock statements for pthread_cond_wait
     int nextFreePc = pThread.cfa.getNextFreePc();
     SeqMutexUnlockStatement mutexUnlockStatement =
-        new SeqMutexUnlockStatement(
+        SeqThreadStatementBuilder.buildMutexUnlockStatement(
             pOptions,
-            mutexLockedVariable,
+            pSubstituteEdge,
+            nextFreePc,
             pPcLeftHandSide,
-            ImmutableSet.of(pSubstituteEdge),
-            nextFreePc);
+            pThreadSynchronizationVariables);
     rClauses.add(
         buildClause(
             pOptions, pThread, pNextThread, pLabelPc, ImmutableList.of(mutexUnlockStatement)));
 
+    // step 2: build pthread_cond_t handling statement
     SeqCondWaitStatement condWaitStatement =
-        new SeqCondWaitStatement(
+        SeqThreadStatementBuilder.buildCondWaitStatement(
             pOptions,
-            condSignaledVariable,
-            mutexLockedVariable,
+            pThreadEdge,
+            pSubstituteEdge,
+            pTargetPc,
             pPcLeftHandSide,
-            ImmutableSet.of(pSubstituteEdge),
-            pTargetPc);
+            pThreadSynchronizationVariables);
     rClauses.add(
         buildClause(
             pOptions, pThread, pNextThread, nextFreePc, ImmutableList.of(condWaitStatement)));
