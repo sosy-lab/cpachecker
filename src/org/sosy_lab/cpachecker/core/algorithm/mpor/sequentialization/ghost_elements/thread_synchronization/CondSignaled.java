@@ -17,12 +17,12 @@ public class CondSignaled {
 
   public final CIdExpression idExpression;
 
-  public final CBinaryExpression notSignaledExpression;
+  public final CBinaryExpression isSignaledExpression;
 
-  public CondSignaled(CIdExpression pIdExpression, CBinaryExpression pNotSignaledExpression) {
+  public CondSignaled(CIdExpression pIdExpression, CBinaryExpression pIsSignaledExpression) {
     checkNotNull(pIdExpression);
-    checkNotNull(pNotSignaledExpression);
+    checkNotNull(pIsSignaledExpression);
     idExpression = pIdExpression;
-    notSignaledExpression = pNotSignaledExpression;
+    isSignaledExpression = pIsSignaledExpression;
   }
 }

@@ -46,8 +46,8 @@ public class ThreadSynchronizationVariableBuilders {
       throws UnrecognizedCodeException {
 
     return new ThreadSynchronizationVariables(
-        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
         buildCondSignaledVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
+        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
         buildSyncVariables(pOptions, pThreads));
   }
 
@@ -115,11 +115,11 @@ public class ThreadSynchronizationVariableBuilders {
               CIdExpression condSignaled =
                   SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                       true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializer.INT_0);
-              CBinaryExpression notSignaledExpression =
+              CBinaryExpression isSignaledExpression =
                   pBinaryExpressionBuilder.buildBinaryExpression(
-                      condSignaled, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+                      condSignaled, SeqIntegerLiteralExpression.INT_1, BinaryOperator.EQUALS);
               rSignaledVariables.put(
-                  pthreadCondT, new CondSignaled(condSignaled, notSignaledExpression));
+                  pthreadCondT, new CondSignaled(condSignaled, isSignaledExpression));
             }
           }
         }

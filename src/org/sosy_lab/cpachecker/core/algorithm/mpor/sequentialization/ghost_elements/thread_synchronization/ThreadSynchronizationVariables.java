@@ -17,10 +17,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class ThreadSynchronizationVariables {
 
+  public final ImmutableMap<CIdExpression, CondSignaled> condSignaled;
+
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
-
-  public final ImmutableMap<CIdExpression, CondSignaled> condSignaled;
 
   /**
    * The map of {@link MPORThread}s to their {@code sync} flag that indicates whether a thread is at
@@ -29,8 +29,8 @@ public class ThreadSynchronizationVariables {
   public final ImmutableMap<MPORThread, CIdExpression> sync;
 
   ThreadSynchronizationVariables(
-      ImmutableMap<CIdExpression, MutexLocked> pLocked,
       ImmutableMap<CIdExpression, CondSignaled> pCondSignaled,
+      ImmutableMap<CIdExpression, MutexLocked> pLocked,
       ImmutableMap<MPORThread, CIdExpression> pSync) {
 
     locked = pLocked;
@@ -41,6 +41,9 @@ public class ThreadSynchronizationVariables {
   /** Returns all declarations of the thread synchronization variables. */
   public ImmutableList<CSimpleDeclaration> getDeclarations(MPOROptions pOptions) {
     ImmutableList.Builder<CSimpleDeclaration> rDeclarations = ImmutableList.builder();
+    for (CondSignaled condSignaledVariable : condSignaled.values()) {
+      rDeclarations.add(condSignaledVariable.idExpression.getDeclaration());
+    }
     for (MutexLocked mutexLockedVariable : locked.values()) {
       rDeclarations.add(mutexLockedVariable.idExpression.getDeclaration());
     }
