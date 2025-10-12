@@ -37,8 +37,6 @@ public class SeqToken {
 
   public static final String ACCESS = "ACCESS";
 
-  public static final String act = "act";
-
   public static final String __assert_fail = "__assert_fail";
 
   public static final String __assertion = "__assertion";
@@ -83,8 +81,6 @@ public class SeqToken {
 
   public static final String E = "E";
 
-  public static final String END = "END";
-
   public static final String EXIT = "EXIT";
 
   public static final String __file = "__file";
@@ -127,7 +123,7 @@ public class SeqToken {
 
   public static final String malloc = "malloc";
 
-  public static final String __MPOR_SEQ__ = "__MPOR_SEQ__";
+  public static final String __MPOR__ = "__MPOR__";
 
   public static final String next_thread = "next_thread";
 

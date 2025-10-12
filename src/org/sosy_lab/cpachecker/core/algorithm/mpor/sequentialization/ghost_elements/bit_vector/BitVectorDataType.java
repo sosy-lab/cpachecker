@@ -30,7 +30,7 @@ public enum BitVectorDataType {
   }
 
   public String toASTString() {
-    return SeqToken.__MPOR_SEQ__ + SeqToken.uint + size + SeqToken._t;
+    return SeqToken.__MPOR__ + SeqToken.uint + size + SeqToken._t;
   }
 
   public CTypeDeclaration buildDeclaration() {

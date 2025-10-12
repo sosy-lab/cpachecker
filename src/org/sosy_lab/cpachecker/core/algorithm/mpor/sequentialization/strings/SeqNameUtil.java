@@ -31,13 +31,13 @@ public class SeqNameUtil {
   }
 
   public static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
-    return (pOptions.shortVariableNames ? SeqToken.T : SeqToken.__MPOR_SEQ__ + SeqToken.THREAD)
+    return (pOptions.shortVariableNames ? SeqToken.T : SeqToken.__MPOR__ + SeqToken.THREAD)
         + pThreadId;
   }
 
   /** Returns {@code "__MPOR_SEQ__{pFunctionName}"}. */
   public static String buildFunctionName(String pFunctionName) {
-    return SeqToken.__MPOR_SEQ__ + pFunctionName;
+    return SeqToken.__MPOR__ + pFunctionName;
   }
 
   public static String buildGlobalVariableName(
@@ -274,7 +274,7 @@ public class SeqNameUtil {
 
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */
   public static String buildMutexLockedName(MPOROptions pOptions, String pMutexName) {
-    return (pOptions.shortVariableNames ? pMutexName : SeqToken.__MPOR_SEQ__ + pMutexName)
+    return (pOptions.shortVariableNames ? pMutexName : SeqToken.__MPOR__ + pMutexName)
         + SeqSyntax.UNDERSCORE
         + SeqToken.LOCKED;
   }
@@ -295,11 +295,11 @@ public class SeqNameUtil {
   }
 
   public static String buildOutputFileName(String pInputFileName) {
-    return SeqToken.__MPOR_SEQ__ + pInputFileName;
+    return SeqToken.__MPOR__ + pInputFileName;
   }
 
   public static String buildOutputFileName(Path pInputFilePath) {
-    return SeqToken.__MPOR_SEQ__ + getFileNameWithoutExtension(pInputFilePath);
+    return SeqToken.__MPOR__ + getFileNameWithoutExtension(pInputFilePath);
   }
 
   private static String getFileNameWithoutExtension(Path pInputFilePath) {
