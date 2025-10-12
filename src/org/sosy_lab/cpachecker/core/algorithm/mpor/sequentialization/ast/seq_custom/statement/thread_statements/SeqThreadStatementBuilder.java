@@ -410,6 +410,14 @@ public class SeqThreadStatementBuilder {
               pTargetPc,
               pcLeftHandSide,
               pGhostElements.getThreadSynchronizationVariables());
+      case PTHREAD_COND_WAIT ->
+          buildCondWaitStatement(
+              pOptions,
+              pThreadEdge,
+              pSubstituteEdge,
+              pTargetPc,
+              pcLeftHandSide,
+              pGhostElements.getThreadSynchronizationVariables());
       case PTHREAD_CREATE ->
           buildThreadCreationStatement(
               pOptions,
@@ -471,6 +479,33 @@ public class SeqThreadStatementBuilder {
     return new SeqCondSignalStatement(
         pOptions,
         condSignaledVariable,
+        pPcLeftHandSide,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc);
+  }
+
+  private static SeqCondWaitStatement buildCondWaitStatement(
+      MPOROptions pOptions,
+      ThreadEdge pThreadEdge,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc,
+      CLeftHandSide pPcLeftHandSide,
+      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
+
+    CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
+    assert pThreadSynchronizationVariables.locked.containsKey(lockedMutexT);
+    MutexLocked mutexLockedVariable =
+        Objects.requireNonNull(pThreadSynchronizationVariables.locked.get(lockedMutexT));
+
+    CIdExpression signaledCondT = PthreadUtil.extractPthreadCondT(pThreadEdge.cfaEdge);
+    assert pThreadSynchronizationVariables.condSignaled.containsKey(signaledCondT);
+    CondSignaled condSignaledVariable =
+        Objects.requireNonNull(pThreadSynchronizationVariables.condSignaled.get(signaledCondT));
+
+    return new SeqCondWaitStatement(
+        pOptions,
+        condSignaledVariable,
+        mutexLockedVariable,
         pPcLeftHandSide,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc);

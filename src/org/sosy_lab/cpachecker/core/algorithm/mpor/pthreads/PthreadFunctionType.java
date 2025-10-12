@@ -56,6 +56,17 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
+  PTHREAD_COND_INIT(
+      "pthread_cond_init",
+      true,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.of(0),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
   PTHREAD_COND_SIGNAL(
       "pthread_cond_signal",
       true,
@@ -69,8 +80,8 @@ public enum PthreadFunctionType {
       Optional.empty()),
   PTHREAD_COND_WAIT(
       "pthread_cond_wait",
-      false,
-      false,
+      true,
+      true,
       Optional.empty(),
       Optional.empty(),
       Optional.of(1),
@@ -404,9 +415,13 @@ public enum PthreadFunctionType {
     return isPthreadTPointer.orElseThrow();
   }
 
+  public int getPthreadCondTIndex() {
+    checkArgument(pthreadCondTIndex.isPresent(), "%s has no pthread_cond_t parameter", this);
+    return pthreadCondTIndex.orElseThrow();
+  }
+
   public int getPthreadMutexTIndex() {
-    checkArgument(
-        pthreadMutexTIndex.isPresent(), "this PthreadFuncType has no pthread_mutex_t param");
+    checkArgument(pthreadMutexTIndex.isPresent(), "%s has no pthread_mutex_t parameter", this);
     return pthreadMutexTIndex.orElseThrow();
   }
 

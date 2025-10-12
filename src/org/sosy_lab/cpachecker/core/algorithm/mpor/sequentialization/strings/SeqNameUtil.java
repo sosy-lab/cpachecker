@@ -279,7 +279,7 @@ public class SeqNameUtil {
         + SeqToken.LOCKED;
   }
 
-  public static String buildCondSignaledName(MPOROptions pOptions, String pCondName) {
+  public static String buildCondSignaledName(String pCondName) {
     return pCondName + SeqSyntax.UNDERSCORE + SeqToken.SIGNALED;
   }
 

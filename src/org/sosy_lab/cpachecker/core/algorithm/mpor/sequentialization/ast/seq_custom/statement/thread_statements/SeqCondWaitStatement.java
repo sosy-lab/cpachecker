@@ -20,21 +20,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.CondSignaled;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/**
- * Represents a statement that simulates calls to {@code pthread_mutex_lock} of the form:
- *
- * <p>{@code assume(!m_LOCKED);}
- */
-public class SeqMutexLockStatement implements SeqThreadStatement {
+public class SeqCondWaitStatement implements SeqThreadStatement {
 
   private final MPOROptions options;
 
-  private final MutexLocked mutexLockedVariable;
+  private final CondSignaled condSignaled;
+
+  private final MutexLocked mutexLocked;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -46,15 +44,17 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
-  SeqMutexLockStatement(
+  SeqCondWaitStatement(
       MPOROptions pOptions,
-      MutexLocked pMutexLockedVariable,
+      CondSignaled pCondSignaled,
+      MutexLocked pMutexLocked,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
-    mutexLockedVariable = pMutexLockedVariable;
+    condSignaled = pCondSignaled;
+    mutexLocked = pMutexLocked;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -62,9 +62,10 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
     injectedStatements = ImmutableList.of();
   }
 
-  private SeqMutexLockStatement(
+  private SeqCondWaitStatement(
       MPOROptions pOptions,
-      MutexLocked pMutexLockedVariable,
+      CondSignaled pCondSignaled,
+      MutexLocked pMutexLocked,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -72,7 +73,8 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     options = pOptions;
-    mutexLockedVariable = pMutexLockedVariable;
+    condSignaled = pCondSignaled;
+    mutexLocked = pMutexLocked;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -83,10 +85,13 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     CFunctionCallStatement assumeCall =
-        SeqAssumptionBuilder.buildAssumption(mutexLockedVariable.notLockedExpression);
-    CExpressionAssignmentStatement setMutexLockedTrue =
+        SeqAssumptionBuilder.buildAssumption(condSignaled.isSignaledExpression);
+    CExpressionAssignmentStatement setMutexLockedFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLockedVariable.idExpression, SeqIntegerLiteralExpression.INT_1);
+            mutexLocked.idExpression, SeqIntegerLiteralExpression.INT_0);
+    CExpressionAssignmentStatement setSignaledFalse =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
+            condSignaled.idExpression, SeqIntegerLiteralExpression.INT_0);
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
@@ -94,7 +99,9 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
     return assumeCall.toASTString()
         + SeqSyntax.SPACE
-        + setMutexLockedTrue.toASTString()
+        + setMutexLockedFalse.toASTString()
+        + SeqSyntax.SPACE
+        + setSignaledFalse.toASTString()
         + SeqSyntax.SPACE
         + injected;
   }
@@ -120,10 +127,11 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqMutexLockStatement(
+  public SeqThreadStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqCondWaitStatement(
         options,
-        mutexLockedVariable,
+        condSignaled,
+        mutexLocked,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -133,9 +141,10 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
-    return new SeqMutexLockStatement(
+    return new SeqCondWaitStatement(
         options,
-        mutexLockedVariable,
+        condSignaled,
+        mutexLocked,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -147,9 +156,10 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneReplacingInjectedStatements(
       ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
-    return new SeqMutexLockStatement(
+    return new SeqCondWaitStatement(
         options,
-        mutexLockedVariable,
+        condSignaled,
+        mutexLocked,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -159,16 +169,17 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   @Override
   public SeqThreadStatement cloneAppendingInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pAppendingInjectedStatements) {
 
-    return new SeqMutexLockStatement(
+    return new SeqCondWaitStatement(
         options,
-        mutexLockedVariable,
+        condSignaled,
+        mutexLocked,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
         targetGoto,
-        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendingInjectedStatements));
   }
 
   @Override

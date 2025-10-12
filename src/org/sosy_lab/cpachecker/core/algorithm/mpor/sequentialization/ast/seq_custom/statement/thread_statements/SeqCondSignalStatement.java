@@ -165,7 +165,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
 
   @Override
   public boolean synchronizesThreads() {
-    return true;
+    return false;
   }
 
   @Override

@@ -76,13 +76,13 @@ public class PthreadUtil {
   public static CIdExpression extractPthreadCondT(CFAEdge pEdge) {
     checkArgument(
         isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_COND_T),
-        "pEdge must be call to a pthread method with a pthread_mutex_t param");
+        "pEdge must be call to a pthread method with a pthread_cond_t parameter");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
-    CExpression pthreadMutexT =
-        CFAUtils.getParameterAtIndex(pEdge, functionType.getPthreadMutexTIndex());
+    CExpression pthreadCondT =
+        CFAUtils.getParameterAtIndex(pEdge, functionType.getPthreadCondTIndex());
 
-    CExpression expression = CFAUtils.getValueFromAddress(pthreadMutexT);
+    CExpression expression = CFAUtils.getValueFromAddress(pthreadCondT);
     if (expression instanceof CIdExpression idExpression) {
       return idExpression;
     } else if (expression instanceof CFieldReference fieldReference) {
@@ -92,7 +92,7 @@ public class PthreadUtil {
       }
     }
     throw new IllegalArgumentException(
-        "pthread_mutex_t must be a CIdExpression, or inside a CFieldReference that is a"
+        "pthread_cond_t must be a CIdExpression, or inside a CFieldReference that is a"
             + " CIdExpression");
   }
 

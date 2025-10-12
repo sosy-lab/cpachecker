@@ -46,7 +46,7 @@ public class ThreadSynchronizationVariableBuilders {
       throws UnrecognizedCodeException {
 
     return new ThreadSynchronizationVariables(
-        buildCondSignaledVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
+        buildCondSignaledVariables(pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
         buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
         buildSyncVariables(pOptions, pThreads));
   }
@@ -93,7 +93,6 @@ public class ThreadSynchronizationVariableBuilders {
   }
 
   private static ImmutableMap<CIdExpression, CondSignaled> buildCondSignaledVariables(
-      MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -110,7 +109,7 @@ public class ThreadSynchronizationVariableBuilders {
           if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PTHREAD_COND_WAIT)) {
             CIdExpression pthreadCondT = PthreadUtil.extractPthreadCondT(threadEdge.cfaEdge);
             if (!rSignaledVariables.containsKey(pthreadCondT)) { // add cond only once
-              String varName = SeqNameUtil.buildCondSignaledName(pOptions, pthreadCondT.getName());
+              String varName = SeqNameUtil.buildCondSignaledName(pthreadCondT.getName());
               // use unsigned char (8 bit), we only need values 0 and 1
               CIdExpression condSignaled =
                   SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(

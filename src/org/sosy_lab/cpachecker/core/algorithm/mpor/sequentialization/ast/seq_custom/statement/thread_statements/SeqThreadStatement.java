@@ -62,7 +62,10 @@ public interface SeqThreadStatement extends SeqStatement {
 
   boolean isLinkable();
 
-  /** A statement may synchronize threads, e.g. with mutex locks, pthread_join, etc. */
+  /**
+   * A statement may synchronize threads, e.g. with mutex locks, pthread_join, etc. via assumptions,
+   * forcing us to e.g. not link the statements, otherwise a thread may terminate pre-emptively.
+   */
   boolean synchronizesThreads();
 
   /** Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;} */
