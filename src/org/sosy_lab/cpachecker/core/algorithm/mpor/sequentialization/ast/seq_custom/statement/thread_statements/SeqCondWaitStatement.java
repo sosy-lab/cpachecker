@@ -44,7 +44,7 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
-  SeqCondWaitStatement(
+  public SeqCondWaitStatement(
       MPOROptions pOptions,
       CondSignaled pCondSignaled,
       MutexLocked pMutexLocked,
@@ -85,20 +85,13 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
-    // step 1: calling thread must hold mutex -> assume(mutex_locked == 1)
-    CFunctionCallStatement assumeMutexLocked =
-        SeqAssumptionBuilder.buildAssumption(mutexLocked.isLockedExpression);
-    // step 2: cond_wait atomically releases the mutex -> mutex_locked = 0
-    CExpressionAssignmentStatement setMutexLockedFalse =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLocked.idExpression, SeqIntegerLiteralExpression.INT_0);
-    // step 3: the calling thread blocks on the condition variable -> assume(signaled == 1)
+    // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
     CFunctionCallStatement assumeSignaled =
         SeqAssumptionBuilder.buildAssumption(condSignaled.isSignaledExpression);
     CExpressionAssignmentStatement setSignaledFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             condSignaled.idExpression, SeqIntegerLiteralExpression.INT_0);
-    // step 4: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
+    // step 2: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             mutexLocked.idExpression, SeqIntegerLiteralExpression.INT_1);
@@ -107,11 +100,7 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
-    return assumeMutexLocked.toASTString()
-        + SeqSyntax.SPACE
-        + setMutexLockedFalse.toASTString()
-        + SeqSyntax.SPACE
-        + assumeSignaled.toASTString()
+    return assumeSignaled.toASTString()
         + SeqSyntax.SPACE
         + setSignaledFalse.toASTString()
         + SeqSyntax.SPACE

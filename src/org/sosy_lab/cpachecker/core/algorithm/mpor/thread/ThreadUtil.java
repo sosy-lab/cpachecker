@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -133,5 +134,15 @@ public class ThreadUtil {
       }
     }
     return false;
+  }
+
+  static int getHighestPc(ImmutableList<ThreadNode> pThreadNodes) {
+    int highestPc = Sequentialization.EXIT_PC;
+    for (ThreadNode threadNode : pThreadNodes) {
+      if (threadNode.pc > highestPc) {
+        highestPc = threadNode.pc;
+      }
+    }
+    return highestPc;
   }
 }

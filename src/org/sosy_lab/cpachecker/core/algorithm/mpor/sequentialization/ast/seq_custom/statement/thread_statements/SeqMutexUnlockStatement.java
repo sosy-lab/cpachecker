@@ -14,8 +14,11 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -29,7 +32,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
   private final MPOROptions options;
 
-  private final CExpressionAssignmentStatement lockedFalse;
+  private final MutexLocked mutexLockedVariable;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -41,15 +44,15 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
-  SeqMutexUnlockStatement(
+  public SeqMutexUnlockStatement(
       MPOROptions pOptions,
-      CExpressionAssignmentStatement pLockedFalse,
+      MutexLocked pMutexLockedVariable,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
-    lockedFalse = pLockedFalse;
+    mutexLockedVariable = pMutexLockedVariable;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -59,7 +62,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
   private SeqMutexUnlockStatement(
       MPOROptions pOptions,
-      CExpressionAssignmentStatement pLockedFalse,
+      MutexLocked pMutexLockedVariable,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -67,7 +70,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     options = pOptions;
-    lockedFalse = pLockedFalse;
+    mutexLockedVariable = pMutexLockedVariable;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -77,10 +80,13 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
+    CExpressionAssignmentStatement lockedFalseAssignment =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
+            mutexLockedVariable.idExpression, SeqIntegerLiteralExpression.INT_0);
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
             options, pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return lockedFalse.toASTString() + SeqSyntax.SPACE + injected;
+    return lockedFalseAssignment.toASTString() + SeqSyntax.SPACE + injected;
   }
 
   @Override
@@ -107,7 +113,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
   public SeqMutexUnlockStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqMutexUnlockStatement(
         options,
-        lockedFalse,
+        mutexLockedVariable,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -119,7 +125,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqMutexUnlockStatement(
         options,
-        lockedFalse,
+        mutexLockedVariable,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -133,7 +139,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
     return new SeqMutexUnlockStatement(
         options,
-        lockedFalse,
+        mutexLockedVariable,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -147,7 +153,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
     return new SeqMutexUnlockStatement(
         options,
-        lockedFalse,
+        mutexLockedVariable,
         pcLeftHandSide,
         substituteEdges,
         targetPc,

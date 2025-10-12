@@ -18,7 +18,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -37,8 +36,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
@@ -87,7 +84,7 @@ public class SeqThreadStatementBuilder {
       } else if (!(threadEdge.cfaEdge instanceof FunctionSummaryEdge)) {
         if (pSubstituteEdges.containsKey(threadEdge)) {
           SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
-          SeqThreadStatement statement =
+          rStatements.add(
               SeqThreadStatementBuilder.buildStatementFromThreadEdge(
                   pOptions,
                   pThread,
@@ -96,8 +93,7 @@ public class SeqThreadStatementBuilder {
                   i == numLeavingEdges - 1,
                   threadEdge,
                   substitute,
-                  pGhostElements);
-          rStatements.add(statement);
+                  pGhostElements));
         }
       }
     }
@@ -225,7 +221,7 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       GhostElements pGhostElements) {
 
-    CFAEdge edge = pThreadEdge.cfaEdge;
+    CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
     CLeftHandSide pcLeftHandSide =
@@ -262,7 +258,7 @@ public class SeqThreadStatementBuilder {
             pcLeftHandSide,
             pGhostElements.getFunctionStatementsByThread(pThread));
 
-      } else if (PthreadUtil.isExplicitlyHandledPthreadFunction(edge)) {
+      } else if (PthreadUtil.isExplicitlyHandledPthreadFunction(cfaEdge)) {
         return buildStatementFromPthreadFunction(
             pOptions, pThread, pAllThreads, pThreadEdge, pSubstituteEdge, targetPc, pGhostElements);
       }
@@ -411,13 +407,8 @@ public class SeqThreadStatementBuilder {
               pcLeftHandSide,
               pGhostElements.getThreadSynchronizationVariables());
       case PTHREAD_COND_WAIT ->
-          buildCondWaitStatement(
-              pOptions,
-              pThreadEdge,
-              pSubstituteEdge,
-              pTargetPc,
-              pcLeftHandSide,
-              pGhostElements.getThreadSynchronizationVariables());
+          throw new AssertionError(
+              "pthread_cond_wait is handled separately, it requires two clauses");
       case PTHREAD_CREATE ->
           buildThreadCreationStatement(
               pOptions,
@@ -479,33 +470,6 @@ public class SeqThreadStatementBuilder {
     return new SeqCondSignalStatement(
         pOptions,
         condSignaledVariable,
-        pPcLeftHandSide,
-        ImmutableSet.of(pSubstituteEdge),
-        pTargetPc);
-  }
-
-  private static SeqCondWaitStatement buildCondWaitStatement(
-      MPOROptions pOptions,
-      ThreadEdge pThreadEdge,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc,
-      CLeftHandSide pPcLeftHandSide,
-      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
-
-    CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
-    assert pThreadSynchronizationVariables.locked.containsKey(lockedMutexT);
-    MutexLocked mutexLockedVariable =
-        Objects.requireNonNull(pThreadSynchronizationVariables.locked.get(lockedMutexT));
-
-    CIdExpression signaledCondT = PthreadUtil.extractPthreadCondT(pThreadEdge.cfaEdge);
-    assert pThreadSynchronizationVariables.condSignaled.containsKey(signaledCondT);
-    CondSignaled condSignaledVariable =
-        Objects.requireNonNull(pThreadSynchronizationVariables.condSignaled.get(signaledCondT));
-
-    return new SeqCondWaitStatement(
-        pOptions,
-        condSignaledVariable,
-        mutexLockedVariable,
         pPcLeftHandSide,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc);
@@ -609,14 +573,9 @@ public class SeqThreadStatementBuilder {
     // TODO goblint-regression/13-privatized_68-pfscan_protected_loop_minimal_interval_true
     //  causes issues here, the unlockedMutexT is a parameter which is not in the locked map
     assert pThreadSynchronizationVariables.locked.containsKey(unlockedMutexT);
-    // assign 0 to locked variable
-    CExpressionAssignmentStatement lockedFalse =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            Objects.requireNonNull(pThreadSynchronizationVariables.locked.get(unlockedMutexT))
-                .idExpression,
-            SeqIntegerLiteralExpression.INT_0);
+    MutexLocked mutexLocked = pThreadSynchronizationVariables.locked.get(unlockedMutexT);
     return new SeqMutexUnlockStatement(
-        pOptions, lockedFalse, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+        pOptions, mutexLocked, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqAtomicBeginStatement buildAtomicBeginStatement(

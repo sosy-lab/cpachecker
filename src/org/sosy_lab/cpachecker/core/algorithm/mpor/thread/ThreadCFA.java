@@ -26,6 +26,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 
 public class ThreadCFA {
 
+  private int nextFreePc;
+
+  public int getNextFreePc() {
+    return nextFreePc++;
+  }
+
   public final int threadId;
 
   /** FunctionEntryNode of the main function (main thread) or start_routine (pthreads). */
@@ -56,6 +62,7 @@ public class ThreadCFA {
     initPredecessors(threadNodes);
     initSuccessors(threadEdges, threadNodes);
     handleFunctionReturnEdges();
+    nextFreePc = ThreadUtil.getHighestPc(threadNodes) + 1;
   }
 
   /**
