@@ -83,8 +83,8 @@ public class InputRejectionTest {
 
   @Test
   public void testRejectUnsupportedFunction() throws Exception {
-    // this program uses pthread_cond_wait and pthread_cond_signal
-    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sync01.c");
+    // this program uses pthread_getspecific
+    Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/tls_basic.c");
     testExpectedRejection(
         MPOROptions.getDefaultTestInstance(),
         inputFilePath,

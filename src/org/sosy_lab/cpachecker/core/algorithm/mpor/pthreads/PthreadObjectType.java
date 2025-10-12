@@ -14,10 +14,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 // TODO pthread_rwlock_t
 // TODO pthread_key_t
 public enum PthreadObjectType {
-  PTHREAD_T("pthread_t"),
+  PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER"),
   PTHREAD_COND_T("pthread_cond_t"),
   PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER"),
-  PTHREAD_MUTEX_T("pthread_mutex_t");
+  PTHREAD_MUTEX_T("pthread_mutex_t"),
+  PTHREAD_T("pthread_t");
 
   public final String name;
 

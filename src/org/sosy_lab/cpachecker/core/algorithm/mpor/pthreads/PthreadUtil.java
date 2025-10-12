@@ -222,11 +222,13 @@ public class PthreadUtil {
       PthreadFunctionType pFunctionType, PthreadObjectType pObjectType) {
 
     return switch (pObjectType) {
-      case PTHREAD_T -> pFunctionType.pthreadTIndex.isPresent();
+      // PTHREAD_COND_INITIALIZER are never parameters
+      case PTHREAD_COND_INITIALIZER -> false;
       case PTHREAD_COND_T -> pFunctionType.pthreadCondTIndex.isPresent();
       // PTHREAD_MUTEX_INITIALIZER are never parameters
       case PTHREAD_MUTEX_INITIALIZER -> false;
       case PTHREAD_MUTEX_T -> pFunctionType.pthreadMutexTIndex.isPresent();
+      case PTHREAD_T -> pFunctionType.pthreadTIndex.isPresent();
     };
   }
 
