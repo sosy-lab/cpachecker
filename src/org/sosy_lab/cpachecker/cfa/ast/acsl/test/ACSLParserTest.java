@@ -26,7 +26,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -88,9 +87,9 @@ public class ACSLParserTest {
   public void annotationParsingProducesExpectedNumberOfAnnotations() throws Exception {
     List<String> files = ImmutableList.of(Path.of(TEST_DIR, programName).toString());
     CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
-    if (cfa instanceof CFAWithACSLAnnotations cfaWithLocs) {
+    if (cfa.getEdgesToAnnotations().isPresent()) {
       Set<ACSLAnnotation> annotations =
-          ImmutableSet.copyOf(cfaWithLocs.getEdgesToAnnotations().values());
+          ImmutableSet.copyOf(cfa.getEdgesToAnnotations().get().values());
       assertThat(annotations).hasSize(expectedAnnotations);
     } else {
       assertThat(expectedAnnotations).isEqualTo(0);

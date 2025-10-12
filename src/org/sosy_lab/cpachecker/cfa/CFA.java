@@ -9,12 +9,15 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -75,6 +78,10 @@ public interface CFA extends CfaNetwork {
 
   default List<Path> getFileNames() {
     return getMetadata().getFileNames();
+  }
+
+  default Optional<Multimap<CFAEdge, ACSLAnnotation>> getEdgesToAnnotations() {
+    return getMetadata().getEdgesToAnnotations();
   }
 
   /**
