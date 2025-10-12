@@ -160,6 +160,8 @@ public class SeqToken {
 
   public static final String __SEQUENTIALIZATION_ERROR__ = "__SEQUENTIALIZATION_ERROR__";
 
+  public static final String SIGNALED = "SIGNALED";
+
   public static final String size = "size";
 
   public static final String START_ROUTINE_ARG = "START_ROUTINE_ARG";

@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -83,8 +84,9 @@ public class ThreadUtil {
 
   public static MPORThread getThreadByCfaEdge(
       ImmutableCollection<MPORThread> pThreads, CFAEdge pEdge) {
+
     checkArgument(
-        PthreadUtil.callsAnyPthreadFunctionWithPthreadT(pEdge),
+        PthreadUtil.isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_T),
         "pEdge must be call to a pthread method with a pthread_t param");
 
     PthreadFunctionType funcType = PthreadUtil.getPthreadFunctionType(pEdge);

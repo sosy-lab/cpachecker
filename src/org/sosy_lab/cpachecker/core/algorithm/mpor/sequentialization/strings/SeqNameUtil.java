@@ -279,6 +279,10 @@ public class SeqNameUtil {
         + SeqToken.LOCKED;
   }
 
+  public static String buildCondSignaledName(MPOROptions pOptions, String pCondName) {
+    return pCondName + SeqSyntax.UNDERSCORE + SeqToken.SIGNALED;
+  }
+
   public static String buildSyncName(MPOROptions pOptions, int pThreadId) {
     return buildThreadPrefix(pOptions, pThreadId) + SeqSyntax.UNDERSCORE + SeqToken.SYNC;
   }

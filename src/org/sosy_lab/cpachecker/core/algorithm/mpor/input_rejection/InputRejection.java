@@ -114,7 +114,7 @@ public class InputRejection {
   private static void checkIsParallelProgram(LogManager pLogger, CFA pInputCfa) {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadUtil.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
+      if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
         isParallel = true;
         break;
       }
@@ -150,7 +150,7 @@ public class InputRejection {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
       for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
         if (!funcType.isSupported) {
-          if (PthreadUtil.callsPthreadFunction(edge, funcType)) {
+          if (PthreadUtil.isCallToPthreadFunction(edge, funcType)) {
             handleRejection(
                 pLogger,
                 InputRejectionMessage.UNSUPPORTED_FUNCTION,
@@ -184,7 +184,7 @@ public class InputRejection {
    */
   private static void checkPthreadCreateLoops(LogManager pLogger, CFA pInputCfa) {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadUtil.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
+      if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
         if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
           handleRejection(pLogger, InputRejectionMessage.PTHREAD_CREATE_LOOP);
         }

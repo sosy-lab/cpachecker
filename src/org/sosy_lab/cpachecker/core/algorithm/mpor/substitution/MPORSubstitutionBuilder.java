@@ -269,7 +269,7 @@ public class MPORSubstitutionBuilder {
     for (MPORThread thread : pAllThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadUtil.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
+        if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
           // TODO if we support pthread return values, this may not hold
           assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
           CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);

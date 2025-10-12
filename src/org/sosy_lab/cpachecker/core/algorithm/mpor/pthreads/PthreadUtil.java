@@ -31,7 +31,7 @@ public class PthreadUtil {
 
   public static CIdExpression extractPthreadT(CFAEdge pEdge) {
     checkArgument(
-        callsAnyPthreadFunctionWithPthreadT(pEdge),
+        isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_T),
         "pEdge must be call to a pthread method with a pthread_t parameter");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
@@ -52,7 +52,30 @@ public class PthreadUtil {
 
   public static CIdExpression extractPthreadMutexT(CFAEdge pEdge) {
     checkArgument(
-        callsAnyPthreadFunctionWithPthreadMutexT(pEdge),
+        isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_MUTEX_T),
+        "pEdge must be call to a pthread method with a pthread_mutex_t param");
+
+    PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
+    CExpression pthreadMutexT =
+        CFAUtils.getParameterAtIndex(pEdge, functionType.getPthreadMutexTIndex());
+
+    CExpression expression = CFAUtils.getValueFromAddress(pthreadMutexT);
+    if (expression instanceof CIdExpression idExpression) {
+      return idExpression;
+    } else if (expression instanceof CFieldReference fieldReference) {
+      // TODO this may have to be adjusted, if the struct itself contains arrays of pthread_mutex_t
+      if (fieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
+        return idExpression;
+      }
+    }
+    throw new IllegalArgumentException(
+        "pthread_mutex_t must be a CIdExpression, or inside a CFieldReference that is a"
+            + " CIdExpression");
+  }
+
+  public static CIdExpression extractPthreadCondT(CFAEdge pEdge) {
+    checkArgument(
+        isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_COND_T),
         "pEdge must be call to a pthread method with a pthread_mutex_t param");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
@@ -181,35 +204,38 @@ public class PthreadUtil {
    * Tries to extract the {@link CFunctionCallStatement} from pEdge and returns true if it is a call
    * to pFunctionType.
    */
-  public static boolean callsPthreadFunction(CFAEdge pEdge, PthreadFunctionType pFunctionType) {
+  public static boolean isCallToPthreadFunction(CFAEdge pEdge, PthreadFunctionType pFunctionType) {
     return CFAUtils.isCfaEdgeCFunctionCall(pEdge)
         && CFAUtils.getFunctionNameFromCfaEdge(pEdge).equals(pFunctionType.name);
   }
 
   public static boolean callsAnyPthreadFunction(CFAEdge pEdge) {
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
-      if (callsPthreadFunction(pEdge, functionType)) {
+      if (isCallToPthreadFunction(pEdge, functionType)) {
         return true;
       }
     }
     return false;
   }
 
-  public static boolean callsAnyPthreadFunctionWithPthreadT(CFAEdge pEdge) {
-    for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
-      if (functionType.pthreadTIndex.isPresent()) {
-        if (callsPthreadFunction(pEdge, functionType)) {
-          return true;
-        }
-      }
-    }
-    return false;
+  private static boolean isPthreadObjectTypePresent(
+      PthreadFunctionType pFunctionType, PthreadObjectType pObjectType) {
+
+    return switch (pObjectType) {
+      case PTHREAD_T -> pFunctionType.pthreadTIndex.isPresent();
+      case PTHREAD_COND_T -> pFunctionType.pthreadCondTIndex.isPresent();
+      // PTHREAD_MUTEX_INITIALIZER are never parameters
+      case PTHREAD_MUTEX_INITIALIZER -> false;
+      case PTHREAD_MUTEX_T -> pFunctionType.pthreadMutexTIndex.isPresent();
+    };
   }
 
-  public static boolean callsAnyPthreadFunctionWithPthreadMutexT(CFAEdge pEdge) {
+  public static boolean isCallToPthreadFunctionWithObjectType(
+      CFAEdge pCfaEdge, PthreadObjectType pPthreadObjectType) {
+
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
-      if (functionType.pthreadMutexTIndex.isPresent()) {
-        if (callsPthreadFunction(pEdge, functionType)) {
+      if (isPthreadObjectTypePresent(functionType, pPthreadObjectType)) {
+        if (isCallToPthreadFunction(pCfaEdge, functionType)) {
           return true;
         }
       }
@@ -220,7 +246,7 @@ public class PthreadUtil {
   public static boolean callsAnyPthreadFunctionWithStartRoutineParameter(CFAEdge pEdge) {
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
       if (functionType.startRoutineIndex.isPresent()) {
-        if (callsPthreadFunction(pEdge, functionType)) {
+        if (isCallToPthreadFunction(pEdge, functionType)) {
           return true;
         }
       }
@@ -231,7 +257,7 @@ public class PthreadUtil {
   public static boolean callsAnyPthreadFunctionWithReturnValue(CFAEdge pEdge) {
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
       if (functionType.returnValueIndex.isPresent()) {
-        if (callsPthreadFunction(pEdge, functionType)) {
+        if (isCallToPthreadFunction(pEdge, functionType)) {
           return true;
         }
       }

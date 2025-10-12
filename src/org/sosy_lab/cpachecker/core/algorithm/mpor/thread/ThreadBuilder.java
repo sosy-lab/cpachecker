@@ -93,7 +93,7 @@ public class ThreadBuilder {
 
     for (ThreadEdge threadEdge : pCurrentThread.cfa.threadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
-      if (PthreadUtil.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
+      if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
         assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
         // extract the first parameter of pthread_create, i.e. the pthread_t value
         CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
@@ -232,9 +232,10 @@ public class ThreadBuilder {
 
   /** Checks if, after calling {@code pCfaEdge}, the thread is still/yet in an atomic block. */
   private static boolean updateIsInAtomicBlock(CFAEdge pCfaEdge, boolean pPreviousIsInAtomicBlock) {
-    if (PthreadUtil.callsPthreadFunction(pCfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN)) {
+    if (PthreadUtil.isCallToPthreadFunction(
+        pCfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN)) {
       return true;
-    } else if (PthreadUtil.callsPthreadFunction(
+    } else if (PthreadUtil.isCallToPthreadFunction(
         pCfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_END)) {
       return false;
     }
@@ -250,7 +251,8 @@ public class ThreadBuilder {
       MPOROptions pOptions, ThreadCFA pThreadCFA) {
 
     for (ThreadEdge threadEdge : pThreadCFA.threadEdges) {
-      if (PthreadUtil.callsPthreadFunction(threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+      if (PthreadUtil.isCallToPthreadFunction(
+          threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
         String name = SeqNameUtil.buildStartRoutineExitVariableName(pOptions, pThreadCFA.threadId);
         CVariableDeclaration declaration =
             SeqDeclarationBuilder.buildVariableDeclaration(

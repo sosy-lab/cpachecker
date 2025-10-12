@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.CondSignaled;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -401,6 +402,14 @@ public class SeqThreadStatementBuilder {
         pGhostElements.getPcVariables().getPcLeftHandSide(pThread.getId());
 
     return switch (pthreadFunctionType) {
+      case PTHREAD_COND_SIGNAL ->
+          buildCondSignalStatement(
+              pOptions,
+              pThreadEdge,
+              pSubstituteEdge,
+              pTargetPc,
+              pcLeftHandSide,
+              pGhostElements.getThreadSynchronizationVariables());
       case PTHREAD_CREATE ->
           buildThreadCreationStatement(
               pOptions,
@@ -445,6 +454,26 @@ public class SeqThreadStatementBuilder {
           throw new AssertionError(
               "unhandled relevant pthread method: " + pthreadFunctionType.name);
     };
+  }
+
+  private static SeqCondSignalStatement buildCondSignalStatement(
+      MPOROptions pOptions,
+      ThreadEdge pThreadEdge,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc,
+      CLeftHandSide pPcLeftHandSide,
+      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
+
+    CIdExpression signaledCondT = PthreadUtil.extractPthreadCondT(pThreadEdge.cfaEdge);
+    assert pThreadSynchronizationVariables.condSignaled.containsKey(signaledCondT);
+    CondSignaled condSignaledVariable =
+        Objects.requireNonNull(pThreadSynchronizationVariables.condSignaled.get(signaledCondT));
+    return new SeqCondSignalStatement(
+        pOptions,
+        condSignaledVariable,
+        pPcLeftHandSide,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc);
   }
 
   private static SeqThreadCreationStatement buildThreadCreationStatement(

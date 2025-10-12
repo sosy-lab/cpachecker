@@ -262,7 +262,8 @@ public class FunctionStatementBuilder {
     ImmutableMap.Builder<ThreadEdge, FunctionReturnValueAssignment> rStartRoutineExitAssignments =
         ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (PthreadUtil.callsPthreadFunction(threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+      if (PthreadUtil.isCallToPthreadFunction(
+          threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
         assert pThread.startRoutineExitVariable.isPresent()
             : "thread calls pthread_exit but has no intermediateExitVariable";
         SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));

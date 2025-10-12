@@ -20,6 +20,8 @@ public class ThreadSynchronizationVariables {
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
 
+  public final ImmutableMap<CIdExpression, CondSignaled> condSignaled;
+
   /**
    * The map of {@link MPORThread}s to their {@code sync} flag that indicates whether a thread is at
    * a location that synchronizes threads, e.g. {@code pthread_join}.
@@ -28,9 +30,11 @@ public class ThreadSynchronizationVariables {
 
   ThreadSynchronizationVariables(
       ImmutableMap<CIdExpression, MutexLocked> pLocked,
+      ImmutableMap<CIdExpression, CondSignaled> pCondSignaled,
       ImmutableMap<MPORThread, CIdExpression> pSync) {
 
     locked = pLocked;
+    condSignaled = pCondSignaled;
     sync = pSync;
   }
 

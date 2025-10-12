@@ -8,17 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization;
 
+import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType.PTHREAD_COND_WAIT;
 import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType.PTHREAD_MUTEX_LOCK;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -45,9 +47,15 @@ public class ThreadSynchronizationVariableBuilders {
 
     return new ThreadSynchronizationVariables(
         buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
+        buildCondSignaledVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
         buildSyncVariables(pOptions, pThreads));
   }
 
+  /**
+   * Links the {@link CIdExpression}s of {@code pthread_mutex_t} to their {@link MutexLocked} ghost
+   * variables. We use {@link CIdExpression} of substituted expressions instead of {@link
+   * CVariableDeclaration} due to call-context sensitivity.
+   */
   private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
@@ -55,8 +63,7 @@ public class ThreadSynchronizationVariableBuilders {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<CIdExpression, MutexLocked> rLockedVariables = ImmutableMap.builder();
-    Set<CIdExpression> lockedVariables = new HashSet<>();
+    Map<CIdExpression, MutexLocked> rLockedVariables = new HashMap<>();
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         if (pSubstituteEdges.containsKey(threadEdge)) {
@@ -64,9 +71,9 @@ public class ThreadSynchronizationVariableBuilders {
           CFAEdge cfaEdge = substituteEdge.cfaEdge;
 
           // extract pthread_mutex_t based on function calls to pthread_mutex_lock
-          if (PthreadUtil.callsPthreadFunction(cfaEdge, PTHREAD_MUTEX_LOCK)) {
+          if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PTHREAD_MUTEX_LOCK)) {
             CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
-            if (lockedVariables.add(pthreadMutexT)) { // add mutex only once
+            if (!rLockedVariables.containsKey(pthreadMutexT)) { // add mutex only once
               String varName = SeqNameUtil.buildMutexLockedName(pOptions, pthreadMutexT.getName());
               // use unsigned char (8 bit), we only need values 0 and 1
               CIdExpression mutexLocked =
@@ -82,7 +89,43 @@ public class ThreadSynchronizationVariableBuilders {
         }
       }
     }
-    return rLockedVariables.buildOrThrow();
+    return ImmutableMap.copyOf(rLockedVariables);
+  }
+
+  private static ImmutableMap<CIdExpression, CondSignaled> buildCondSignaledVariables(
+      MPOROptions pOptions,
+      ImmutableList<MPORThread> pThreads,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    Map<CIdExpression, CondSignaled> rSignaledVariables = new HashMap<>();
+    for (MPORThread thread : pThreads) {
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        if (pSubstituteEdges.containsKey(threadEdge)) {
+          SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+          CFAEdge cfaEdge = substituteEdge.cfaEdge;
+
+          // extract pthread_cond_t based on function calls to pthread_cond_wait
+          if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PTHREAD_COND_WAIT)) {
+            CIdExpression pthreadCondT = PthreadUtil.extractPthreadCondT(threadEdge.cfaEdge);
+            if (!rSignaledVariables.containsKey(pthreadCondT)) { // add cond only once
+              String varName = SeqNameUtil.buildCondSignaledName(pOptions, pthreadCondT.getName());
+              // use unsigned char (8 bit), we only need values 0 and 1
+              CIdExpression condSignaled =
+                  SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
+                      true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializer.INT_0);
+              CBinaryExpression notSignaledExpression =
+                  pBinaryExpressionBuilder.buildBinaryExpression(
+                      condSignaled, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+              rSignaledVariables.put(
+                  pthreadCondT, new CondSignaled(condSignaled, notSignaledExpression));
+            }
+          }
+        }
+      }
+    }
+    return ImmutableMap.copyOf(rSignaledVariables);
   }
 
   private static ImmutableMap<MPORThread, CIdExpression> buildSyncVariables(

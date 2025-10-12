@@ -386,7 +386,7 @@ public class MemoryModelBuilder {
     for (SubstituteEdge substituteEdge : pSubstituteEdges) {
       // use the original edge, so that we use the original variable declarations
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
-      if (PthreadUtil.callsPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
+      if (PthreadUtil.isCallToPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
         ThreadEdge callContext = substituteEdge.getThreadEdge();
         CExpression startRoutineArg =
             CFAUtils.getParameterAtIndex(
