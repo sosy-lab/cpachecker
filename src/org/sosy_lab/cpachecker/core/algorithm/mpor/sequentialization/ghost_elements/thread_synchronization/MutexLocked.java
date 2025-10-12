@@ -18,12 +18,20 @@ public class MutexLocked {
 
   public final CIdExpression idExpression;
 
+  public final CBinaryExpression isLockedExpression;
+
   public final CBinaryExpression notLockedExpression;
 
-  public MutexLocked(CIdExpression pIdExpression, CBinaryExpression pNotLockedExpression) {
+  public MutexLocked(
+      CIdExpression pIdExpression,
+      CBinaryExpression pIsLockedExpression,
+      CBinaryExpression pNotLockedExpression) {
+
     checkNotNull(pIdExpression);
+    checkNotNull(pIsLockedExpression);
     checkNotNull(pNotLockedExpression);
     idExpression = pIdExpression;
+    isLockedExpression = pIsLockedExpression;
     notLockedExpression = pNotLockedExpression;
   }
 }

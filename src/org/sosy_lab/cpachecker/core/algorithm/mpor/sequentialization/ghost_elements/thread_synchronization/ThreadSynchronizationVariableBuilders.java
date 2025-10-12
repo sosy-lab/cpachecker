@@ -79,11 +79,15 @@ public class ThreadSynchronizationVariableBuilders {
               CIdExpression mutexLocked =
                   SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                       true, CNumericTypes.UNSIGNED_CHAR, varName, SeqInitializer.INT_0);
+              CBinaryExpression isLockedExpression =
+                  pBinaryExpressionBuilder.buildBinaryExpression(
+                      mutexLocked, SeqIntegerLiteralExpression.INT_1, BinaryOperator.EQUALS);
               CBinaryExpression notLockedExpression =
                   pBinaryExpressionBuilder.buildBinaryExpression(
                       mutexLocked, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
               rLockedVariables.put(
-                  pthreadMutexT, new MutexLocked(mutexLocked, notLockedExpression));
+                  pthreadMutexT,
+                  new MutexLocked(mutexLocked, isLockedExpression, notLockedExpression));
             }
           }
         }
