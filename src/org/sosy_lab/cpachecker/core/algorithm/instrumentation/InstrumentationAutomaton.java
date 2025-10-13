@@ -852,7 +852,8 @@ public class InstrumentationAutomaton {
     InstrumentationState q1 =
         new InstrumentationState("q1", StateAnnotation.FUNCTIONHEADFORLOOP, this);
     InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
-    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
+    InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.LOOPHEAD, this);
+    InstrumentationState q4 = new InstrumentationState("q4", StateAnnotation.FALSE, this);
     this.initialState = q1;
 
     InstrumentationTransition t1 =
@@ -860,7 +861,7 @@ public class InstrumentationAutomaton {
             q1,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
-                (pIndex == 0 ? "; int saved = 0; int pc_INSTR = 0; " : "")
+                (pIndex == 0 ? "; int saved = 0; int pc_INSTR = -1; " : "")
                     + undeclaredVariables.entrySet().stream()
                         .map(
                             (entry) ->
@@ -880,6 +881,13 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t2 =
         new InstrumentationTransition(
             q2,
+            new InstrumentationPattern("[cond]"),
+            new InstrumentationOperation("if (pc_INSTR == " + pIndex + ") {pc_INSTR = -1;}"),
+            InstrumentationOrder.BEFORE,
+            q3);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q3,
             new InstrumentationPattern("[cond]"),
             new InstrumentationOperation(
                 "if (saved == 0) {pc_INSTR = "
@@ -931,15 +939,15 @@ public class InstrumentationAutomaton {
                         .collect(Collectors.joining("||"))
                     + ");}"),
             InstrumentationOrder.AFTER,
-            q3);
-    InstrumentationTransition t3 =
+            q4);
+    InstrumentationTransition t4 =
         new InstrumentationTransition(
-            q3,
+            q4,
             new InstrumentationPattern("true"),
             new InstrumentationOperation(""),
             InstrumentationOrder.AFTER,
-            q3);
-    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
+            q4);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3, t4);
   }
 
   private void constructOneStepReachabilityAutomaton(int pIndex) {
