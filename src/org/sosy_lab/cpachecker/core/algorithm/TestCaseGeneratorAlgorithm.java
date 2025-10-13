@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.IntStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -78,6 +79,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
@@ -332,10 +334,11 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // after the algo is done, the newly reached states are added to this variable
   private void runExtractorAlgo(
       final ReachedSet pReached, AbstractState reachedState, CounterexampleInfo cexInfo) {
-
+    logger.log(Level.INFO, "Running Extractor Algorithm to compute extended path.");
     Algorithm extractionAlgorithm;
+    ShutdownManager lShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
-      extractionAlgorithm = createExtractorAlgorithm();
+      extractionAlgorithm = createExtractorAlgorithm(lShutdownManager);
     } catch (CPAException e) {
       logger.log(Level.FINE, "Could not create CPA Algorithm for extractor.");
       return;
@@ -347,20 +350,21 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     ReachedSet eReached = factory.createReachedSet(cpa);
     eReached.add(eStartState, pReached.getPrecision(reachedState));
     // run value analysis and check what additional targets have been covered
-    extractorRunCPAA(eReached, extractionAlgorithm);
+    extractorRunCPAA(eReached, extractionAlgorithm, lShutdownManager);
     evaluateExtractorResult(eReached);
+    logger.log(Level.INFO, "Finished Extraction Analysis.");
   }
 
-  private Algorithm createExtractorAlgorithm() throws CPAException {
+  private Algorithm createExtractorAlgorithm(ShutdownManager lShutdownManager) throws CPAException {
     Algorithm extractionAlgorithm = null;
     try {
       assert (configFile != null);
       ConfigurationBuilder lConfigBuilder = Configuration.builder().loadFromFile(configFile);
       Configuration lConfig = lConfigBuilder.build();
-      // todo create new logger and shutdownnotifier?
+      ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownManager).start();
       CoreComponentsFactory eFactory =
           new CoreComponentsFactory(
-              lConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
+              lConfig, logger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty());
 
       ConfigurableProgramAnalysis eCpas = eFactory.createCPA(cfa, spec);
       extractionAlgorithm = eFactory.createAlgorithm(eCpas, cfa, spec);
@@ -471,7 +475,10 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   // exploring the successors of eStartState for additional ARGstates
-  private void extractorRunCPAA(ReachedSet eReached, Algorithm extractionAlgorithm) {
+  private void extractorRunCPAA(
+      ReachedSet eReached,
+      Algorithm extractionAlgorithm,
+      ShutdownManager lShutdownManager) {
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     try {
@@ -487,6 +494,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       // may be thrown only be counterexample check, if not will be thrown again in finally
       // block due to respective shutdown notifier call
       status = status.withPrecise(false);
+    } finally {
+      lShutdownManager.requestShutdown("Analysis terminated");
     }
   }
 
