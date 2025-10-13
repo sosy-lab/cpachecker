@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This interface represents abstract states that somehow store information about which CFA location
@@ -38,11 +37,11 @@ public interface AbstractStateWithLocation extends AbstractStateWithLocations {
 
   @Override
   default Iterable<CFAEdge> getOutgoingEdges() {
-    return CFAUtils.leavingEdges(getLocationNode());
+    return getLocationNode().getLeavingEdges();
   }
 
   @Override
   default Iterable<CFAEdge> getIncomingEdges() {
-    return CFAUtils.enteringEdges(getLocationNode());
+    return getLocationNode().getEnteringEdges();
   }
 }

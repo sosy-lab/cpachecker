@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetAdaption;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @Options(prefix = "testcase")
 public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
@@ -130,7 +129,7 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
         Optional<CFANode> pred =
             pCfa.nodes().stream().filter(node -> (node.getNodeNumber() == predNum)).findFirst();
         if (pred.isPresent()) {
-          for (CFAEdge edge : CFAUtils.allLeavingEdges(pred.orElseThrow())) {
+          for (CFAEdge edge : pred.orElseThrow().getAllLeavingEdges()) {
             if (System.identityHashCode(edge) == edgeID) {
               return ImmutableSet.of(edge);
             }

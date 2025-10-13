@@ -58,6 +58,7 @@ rootDirectory = "."
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -128,18 +129,26 @@ solver.nonLinearArithmetic = USE
   enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
 
 # Algorithm for boolean interpolation
-solver.opensmt.algBool = 0
+solver.opensmt.algBool = MCMILLAN
+  enum:     [MCMILLAN, PUDLAK, MCMILLAN_PRIME, PROOF_SENSITIVE, PROOF_SENSITIVE_WEAK,
+             PROOF_SENSITIVE_STRONG]
 
 # Algorithm for LRA interpolation
-solver.opensmt.algLra = 0
+solver.opensmt.algLra = STRONG
+  enum:     [STRONG, WEAK, FACTOR, DECOMPOSING_STRONG, DECOMPOSING_WEAK]
 
 # Algorithm for UF interpolation
-solver.opensmt.algUf = 0
+solver.opensmt.algUf = STRONG
+  enum:     [STRONG, WEAK, RANDOM]
 
 # SMT-LIB2 name of the logic to be used by the solver.
 solver.opensmt.logic = QF_AUFLIRA
   enum:     [CORE, QF_AX, QF_UF, QF_IDL, QF_RDL, QF_LIA, QF_LRA, QF_ALIA, QF_ALRA,
              QF_UFLIA, QF_UFLRA, QF_AUFLIA, QF_AUFLRA, QF_AUFLIRA]
+
+# Level of simplification for interpolants,ranging from 0 (no simplification)
+# to 4 (maximum simplification).
+solver.opensmt.simplifyInterpolants = 0
 
 # Enable additional assertion checks within Princess. The main usage is
 # debugging. This option can cause a performance overhead.

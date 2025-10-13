@@ -269,7 +269,7 @@ public class CustomInstructionTest {
           CFAUtils.allPredecessorsOf(node).copyInto(endNodes);
         }
       }
-      for (CFAEdge e : CFAUtils.allLeavingEdges(node)) {
+      for (CFAEdge e : node.getAllLeavingEdges()) {
         if (!visitedNodes.contains(e.getSuccessor())) {
           queue.add(e.getSuccessor());
           visitedNodes.add(e.getSuccessor());

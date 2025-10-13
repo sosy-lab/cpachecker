@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
@@ -404,7 +403,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private CFunctionCallEdge getCallEdge(CFunctionSummaryEdge pSummaryEdge) {
 
-    for (CFAEdge edge : CFAUtils.leavingEdges(pSummaryEdge.getPredecessor())) {
+    for (CFAEdge edge : pSummaryEdge.getPredecessor().getLeavingEdges()) {
       if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
         return cFunctionCallEdge;
       }
@@ -743,7 +742,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               pointerState,
               foreignDefUseData,
               complexTypeDeclarationEdges,
-              dependenceConsumer)
+              dependenceConsumer,
+              logger)
           .run();
     }
   }
@@ -761,7 +761,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
       Optional<AFunctionDeclaration> procedure = Optional.of(entryNode.getFunction());
 
-      for (FunctionCallEdge edge : CFAUtils.enteringEdges(entryNode)) {
+      for (FunctionCallEdge edge : entryNode.getEnteringCallEdges()) {
         if (edge instanceof CFunctionCallEdge callEdge) {
 
           builder

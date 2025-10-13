@@ -106,7 +106,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -1505,7 +1504,7 @@ public class SMGTransferRelation
     if (pCfaEdge instanceof CAssumeEdge && !((CAssumeEdge) pCfaEdge).getTruthAssumption()) {
       CFANode pred = pCfaEdge.getPredecessor();
       final CFAEdge thisEdge = pCfaEdge;
-      pCfaEdge = Iterables.getOnlyElement(CFAUtils.leavingEdges(pred).filter(e -> e != thisEdge));
+      pCfaEdge = Iterables.getOnlyElement(pred.getLeavingEdges().filter(e -> e != thisEdge));
       Preconditions.checkState(
           pCfaEdge instanceof CAssumeEdge && ((CAssumeEdge) pCfaEdge).getTruthAssumption());
     }

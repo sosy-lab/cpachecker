@@ -285,7 +285,7 @@ public class AppliedCustomInstructionParser {
       }
 
       // search for endNodes in the subtree of pred, breadth-first search
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pred)) {
+      for (CFAEdge leavingEdge : pred.getLeavingEdges()) {
         if (leavingEdge instanceof FunctionReturnEdge) {
           continue;
         }
@@ -475,7 +475,7 @@ public class AppliedCustomInstructionParser {
         continue;
       }
 
-      for (CFAEdge leave : CFAUtils.allLeavingEdges(visit)) {
+      for (CFAEdge leave : visit.getAllLeavingEdges()) {
         if (containsGlobalVars(leave)) {
           return false;
         }

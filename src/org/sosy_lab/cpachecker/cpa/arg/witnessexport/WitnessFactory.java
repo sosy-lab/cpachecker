@@ -407,7 +407,7 @@ class WitnessFactory implements EdgeAppender {
           // by creating a transition for the function call, to the sink:
           FunctionCallEdge callEdge =
               Iterables.getOnlyElement(
-                  CFAUtils.leavingEdges(assumeEdge.getSuccessor()).filter(FunctionCallEdge.class));
+                  assumeEdge.getSuccessor().getLeavingEdges().filter(FunctionCallEdge.class));
           FunctionEntryNode in = callEdge.getSuccessor();
           result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
         }
@@ -531,7 +531,7 @@ class WitnessFactory implements EdgeAppender {
           cfaEdgeWithAssignments =
               new CFAEdgeWithAssumptions(
                   pEdge, functionValidAssignments, cfaEdgeWithAssignments.getComment());
-          FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
+          FluentIterable<CFAEdge> nextEdges = pEdge.getSuccessor().getLeavingEdges();
 
           if (nextEdges.size() == 1 && state.getChildren().size() == 1) {
             String keyFrom = pTo;
@@ -1295,14 +1295,14 @@ class WitnessFactory implements EdgeAppender {
           if (witnessOptions.produceInvariantWitnesses()) {
             // First, collect all invariants
             List<ExpressionTree<Object>> iterableList = new ArrayList<>();
-            for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
+            for (CFAEdge enteringCFAEdge : loopHead.getEnteringEdges()) {
               iterableList.add(
                   invariantProvider.provideInvariantFor(enteringCFAEdge, Optional.empty()));
             }
             // Next,compute the invariant as disjunction
             loopHeadInvariant = computeInvariantForInvariantWitnesses(iterableList);
           } else {
-            for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
+            for (CFAEdge enteringCFAEdge : loopHead.getEnteringEdges()) {
               loopHeadInvariant =
                   Or.of(
                       loopHeadInvariant,
@@ -1806,7 +1806,8 @@ class WitnessFactory implements EdgeAppender {
     // loop proximity
     return FluentIterable.concat(
             Collections.singleton(referenceNode),
-            CFAUtils.enteringEdges(referenceNode)
+            referenceNode
+                .getEnteringEdges()
                 .filter(AssumeEdge.class)
                 .transform(CFAEdge::getPredecessor))
         .anyMatch(this::isInLoopProximity);
@@ -1845,7 +1846,7 @@ class WitnessFactory implements EdgeAppender {
         return true;
       }
       // boolean isFirst = true;
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode).filter(epsilonEdge)) {
+      for (CFAEdge enteringEdge : currentNode.getEnteringEdges().filter(epsilonEdge)) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (visited.add(predecessor)) {
           waitlist.push(listAndElement(current, predecessor));
@@ -1882,7 +1883,7 @@ class WitnessFactory implements EdgeAppender {
         if (pNode.isLoopStart()) {
           boolean gotoLoop = false;
           if (pNode instanceof CFALabelNode node) {
-            for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
+            for (BlankEdge e : pNode.getEnteringEdges().filter(BlankEdge.class)) {
               if (e.getDescription().equals("Goto: " + node.getLabel())) {
                 gotoLoop = true;
                 break;

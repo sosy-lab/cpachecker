@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
-import com.google.common.primitives.Longs;
 import jsylvan.JSylvan;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
@@ -42,7 +41,7 @@ public class SylvanBDDRegion implements Region {
 
   @Override
   public int hashCode() {
-    return Longs.hashCode(bddRepr);
+    return Long.hashCode(bddRepr);
   }
 
   @Override

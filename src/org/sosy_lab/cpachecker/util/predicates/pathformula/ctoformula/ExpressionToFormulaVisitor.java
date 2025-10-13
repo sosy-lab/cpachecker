@@ -445,7 +445,7 @@ public class ExpressionToFormulaVisitor
     return fmgr.makeNumber(
         converted.getExponent(),
         converted.getMantissa(),
-        converted.getSign(),
+        converted.getMathSign(),
         FormulaType.getFloatingPointType(value.getFormat().expBits(), value.getFormat().sigBits()));
   }
 
