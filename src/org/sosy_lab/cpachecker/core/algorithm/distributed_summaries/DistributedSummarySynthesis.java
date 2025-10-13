@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.Ds
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.NaiveDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SequentialDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SingleWorkerDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -56,37 +57,27 @@ import org.sosy_lab.java_smt.api.SolverException;
  * <h2>1. Decomposition</h2>
  *
  * <p>The CFA is partitioned into blocks using some {@link DssBlockDecomposition}. The resulting
- * {@link BlockGraph} and the underlying CFA are then instrumented with {@link
- * BlockGraphModification} to ensure clean block boundaries.
+ * {@link BlockGraph} and the underlying CFA are then instrumented with
+ * {@link BlockGraphModification} to ensure clean block boundaries.
  *
  * <h2>2. Worker Creation</h2>
- *
- * <p>DSS spawns multiple workers through {@link DssWorkerBuilder}:
- *
- * <p>For each block, an {@link DssWorkerBuilder#addAnalysisWorker(BlockNode, DssAnalysisOptions)
- * analysis worker} is created. An additional {@link DssWorkerBuilder#addRootWorker(BlockNode,
- * DssAnalysisOptions) root worker}) is responsible for messages reaching the program entry point.
- * If {@link DssAnalysisOptions#isDebugModeEnabled() debug mode} is enabled, a {@link
- * DssWorkerBuilder#addVisualizationWorker(BlockGraph, DssAnalysisOptions) visualization worker} is
- * used to provide a visualization of the message exchange between analysis workers.
- *
- * <p>DSS also manually creates the {@link DssObserverWorker}, which monitors message exchange and
- * detects when the DSS algorithm reaches a final verdict.
- *
- * <p>When {@link #spawnWorkerForId} is specified, only one worker is created (i.e., for the
- * specified block ID). This is useful for single-block analysis.
+ * Workers are spawned for all blocks resulting from the decomposition.
+ * Special workers like the
+ * {@link org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssVisualizationWorker visualization worker}
+ * are created in debug mode to get an overview of all messages.
+ * The {@link org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker observer worker}
+ * is used to collect statistics.
  *
  * <h2>3. Execution and Coordination</h2>
  *
- * <p>After worker creation, DistributedSummarySynthesis coordinates the analysis execution:
+ * <p>After worker creation, DistributedSummarySynthesis coordinates the analysis execution based
+ * on the configured executor. However, they all have common steps:
  *
  * <ul>
- *   <li>Initializes the {@link DssFixpointNotifier} for termination detection
- *   <li>Starts each analysis worker: If {@link #knownConditions} and/or {@link #newConditions} is
- *       set, workers are started with these conditions as input. Otherwise, {@link
- *       DssAnalysisWorker#runInitialAnalysis()} is called on all workers.
- *   <li>Delegates message monitoring to the {@link DssObserverWorker}, which blocks until it can
- *       determine a final verification verdict (SAFE, UNSAFE, or timeout)
+ *   <li> Execute one of three {@link DssExecutor executors} to either run DSS,
+ *        a single block analysis, or DSS but every worker is scheduled after
+ *        the other in deterministic order
+ *   <li> Delegating the interpretation of messages to conclude a final verdict to observers.
  *   <li>Processes the final result by updating the {@link ReachedSet}:
  *       <ul>
  *         <li>For UNSAFE results: Adds a {@link DummyTargetState} to indicate property violation
@@ -99,11 +90,11 @@ import org.sosy_lab.java_smt.api.SolverException;
  * <p>DistributedSummarySynthesis supports several operational modes:
  *
  * <ul>
- *   <li><strong>Block Graph Export Only:</strong> When {@link #generateBlockGraphOnly} is enabled,
+ *   <li><strong>Block Graph Export Only:</strong>
+ *       When {@link DssDecompositionOptions#generateBlockGraphOnly()} is enabled,
  *       the analysis stops after decomposition and exports the block graph to JSON format
- *   <li><strong>Incremental Analysis:</strong> You can provide {@link #knownConditions} and {@link
- *       #newConditions} for analyzing blocks with pre-existing postconditions and violation
- *       conditions
+ *   <li><strong>Incremental Analysis:</strong> You can provide one of three executors
+ *       to run different strategies.
  * </ul>
  */
 @Options(prefix = "distributedSummaries")

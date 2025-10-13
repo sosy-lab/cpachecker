@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class DssBlockAnalyses {
 
@@ -222,7 +221,7 @@ public class DssBlockAnalyses {
           path.add(lastEdge);
           CFAEdge last = lastEdge;
           while (!last.getSuccessor().equals(pEdges.getFirst().getPredecessor())) {
-            Collection<CFAEdge> successors = CFAUtils.enteringEdges(last.getPredecessor()).toList();
+            Iterable<CFAEdge> successors = last.getPredecessor().getAllEnteringEdges();
             path.add(Iterables.getOnlyElement(successors));
             last = path.getLast();
           }
