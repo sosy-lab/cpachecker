@@ -24,7 +24,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class PotentialOverflowHandler {
 
-  public record ValueLiteralStub(CSimpleType type, BigInteger value) {}
+  public record ValueLiteralStub(CSimpleType type, BigInteger value) {
+  }
 
   public static Optional<ValueLiteralStub> handlePotentialIntegerOverflow(
       AssumptionToEdgeAllocator assumptionToEdgeAllocator,
@@ -44,9 +45,9 @@ public class PotentialOverflowHandler {
       }
       LogManagerWithoutDuplicates logManager =
           assumptionToEdgeAllocator.getLogger()
-                  instanceof LogManagerWithoutDuplicates logManagerWithoutDuplicates
-              ? logManagerWithoutDuplicates
-              : new LogManagerWithoutDuplicates(assumptionToEdgeAllocator.getLogger());
+              instanceof LogManagerWithoutDuplicates logManagerWithoutDuplicates
+          ? logManagerWithoutDuplicates
+          : new LogManagerWithoutDuplicates(assumptionToEdgeAllocator.getLogger());
       Value castValue =
           AbstractExpressionValueVisitor.castCValue(
               new NumericValue(pIntegerValue),
@@ -59,8 +60,8 @@ public class PotentialOverflowHandler {
 
       Number number = castValue.asNumericValue().getNumber();
       final BigInteger valueAsBigInt;
-      if (number instanceof BigInteger) {
-        valueAsBigInt = (BigInteger) number;
+      if (number instanceof BigInteger bigInteger) {
+        valueAsBigInt = bigInteger;
       } else {
         valueAsBigInt = BigInteger.valueOf(number.longValue());
       }
