@@ -5179,6 +5179,9 @@ termination.config = no default value
 # enable to also analyze whether recursive calls terminate
 termination.considerRecursion = false
 
+# export supporting invariants in the witness
+termination.exportSupportingInvariantsInWitness = true
+
 # export correctness witness in YAML format
 termination.exportYamlCorrectnessWitness = true
 
