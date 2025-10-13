@@ -18,7 +18,12 @@ public enum PthreadObjectType {
   PTHREAD_COND_T("pthread_cond_t"),
   PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER"),
   PTHREAD_MUTEX_T("pthread_mutex_t"),
-  PTHREAD_T("pthread_t");
+  PTHREAD_T("pthread_t"),
+  // TODO should be void * type
+  RETURN_VALUE(""),
+  // TODO should be void * type
+  START_ROUTINE(""),
+  START_ROUTINE_ARGUMENT("");
 
   public final String name;
 

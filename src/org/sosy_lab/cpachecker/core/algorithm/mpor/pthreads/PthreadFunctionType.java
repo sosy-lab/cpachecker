@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 
 /**
@@ -20,321 +21,97 @@ public enum PthreadFunctionType {
 
   // TODO create barrier logic, see e.g. pthread-divine/barrier_2t.i
 
-  // TODO its probably best to map <PthreadObjectType, int> here instead of using so many Optionals
-
   // Note that all indices start at 0.
-  PTHREAD_BARRIER_INIT(
-      "pthread_barrier_init",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
-  PTHREAD_BARRIER_WAIT(
-      "pthread_barrier_wait",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+  PTHREAD_BARRIER_INIT("pthread_barrier_init", false, false),
+  PTHREAD_BARRIER_WAIT("pthread_barrier_wait", false, false),
   PTHREAD_CANCEL(
       "pthread_cancel",
       false,
       false,
-      Optional.of(0),
-      Optional.of(false),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_T, false, 0)),
   PTHREAD_COND_INIT(
       "pthread_cond_init",
       true,
       false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(0),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_COND_T, 0)),
   PTHREAD_COND_SIGNAL(
       "pthread_cond_signal",
       true,
       true,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(0),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_COND_T, 0)),
   PTHREAD_COND_WAIT(
       "pthread_cond_wait",
       true,
       true,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(1),
-      Optional.of(0),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_COND_T, 0),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 1)),
   PTHREAD_CREATE(
       "pthread_create",
       true,
       true,
-      Optional.of(0),
-      Optional.of(true),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(2),
-      Optional.of(3),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_T, true, 0),
+      new PthreadParameterInfo(PthreadObjectType.START_ROUTINE, 2),
+      new PthreadParameterInfo(PthreadObjectType.START_ROUTINE_ARGUMENT, 3)),
   PTHREAD_DETACH(
       "pthread_detach",
       false,
       false,
-      Optional.of(0),
-      Optional.of(false),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_T, false, 0)),
   PTHREAD_EQUAL(
       "pthread_equal",
       false,
       false,
-      // TODO this method has pthread_t at index 1 and 2 -> add list as param later
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_T, false, 0, 1)),
   PTHREAD_EXIT(
-      "pthread_exit",
-      true,
-      true,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(0)),
-  PTHREAD_GETSPECIFIC(
-      "pthread_getspecific",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      "pthread_exit", true, true, new PthreadParameterInfo(PthreadObjectType.RETURN_VALUE, 0)),
+  PTHREAD_GETSPECIFIC("pthread_getspecific", false, false),
   PTHREAD_JOIN(
       "pthread_join",
       true,
       true,
-      Optional.of(0),
-      Optional.of(false),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(1)),
-  PTHREAD_KEY_CREATE(
-      "pthread_key_create",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_T, false, 0),
+      new PthreadParameterInfo(PthreadObjectType.RETURN_VALUE, 1)),
+  PTHREAD_KEY_CREATE("pthread_key_create", false, false),
   PTHREAD_KILL(
       "pthread_kill",
       false,
       false,
-      // TODO actually want Optional.of(0) here, but it causes an ExceptionInInitializerError
-      //  -> fix once we support pthread_kill
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_T, false, 0)),
   PTHREAD_MUTEX_DESTROY(
       "pthread_mutex_destroy",
       true,
       false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(0),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 0)),
   PTHREAD_MUTEX_INIT(
       "pthread_mutex_init",
       true,
       false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(0),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 0)),
   PTHREAD_MUTEX_LOCK(
       "pthread_mutex_lock",
       true,
       true,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(0),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 0)),
   PTHREAD_MUTEX_TRYLOCK(
       "pthread_mutex_trylock",
       false,
       false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(0),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 0)),
   PTHREAD_MUTEX_UNLOCK(
       "pthread_mutex_unlock",
       true,
       true,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.of(0),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
-  PTHREAD_ONCE(
-      "pthread_once",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
-  PTHREAD_RWLOCK_RDLOCK(
-      "pthread_rwlock_rdlock",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
-  PTHREAD_RWLOCK_TRYRDLOCK(
-      "pthread_rwlock_tryrdlock",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
-  PTHREAD_RWLOCK_UNLOCK(
-      "pthread_rwlock_unlock",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
-  PTHREAD_RWLOCK_WRLOCK(
-      "pthread_rwlock_wrlock",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
-  PTHREAD_SELF(
-      "pthread_self",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
-  PTHREAD_SETSPECIFIC(
-      "pthread_setspecific",
-      false,
-      false,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 0)),
+  PTHREAD_ONCE("pthread_once", false, false),
+  PTHREAD_RWLOCK_RDLOCK("pthread_rwlock_rdlock", false, false),
+  PTHREAD_RWLOCK_TRYRDLOCK("pthread_rwlock_tryrdlock", false, false),
+  PTHREAD_RWLOCK_UNLOCK("pthread_rwlock_unlock", false, false),
+  PTHREAD_RWLOCK_WRLOCK("pthread_rwlock_wrlock", false, false),
+  PTHREAD_SELF("pthread_self", false, false),
+  PTHREAD_SETSPECIFIC("pthread_setspecific", false, false),
   // __VERIFIER_atomic functions are not part of the pthread standard, but still related to threads
-  __VERIFIER_ATOMIC_BEGIN(
-      "__VERIFIER_atomic_begin",
-      true,
-      true,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty()),
-  __VERIFIER_ATOMIC_END(
-      "__VERIFIER_atomic_end",
-      true,
-      true,
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty(),
-      Optional.empty());
+  __VERIFIER_ATOMIC_BEGIN("__VERIFIER_atomic_begin", true, true),
+  __VERIFIER_ATOMIC_END("__VERIFIER_atomic_end", true, true);
 
   // TODO unsure about pthread_yield
   //  pthread_barrier stuff
@@ -350,21 +127,7 @@ public enum PthreadFunctionType {
    */
   public final boolean isExplicitlyHandled;
 
-  /** The index of the pthread_t param if present. */
-  public final Optional<Integer> pthreadTIndex;
-
-  public final Optional<Boolean> isPthreadTPointer;
-
-  /** The index of the pthread_mutex_t param if present. */
-  public final Optional<Integer> pthreadMutexTIndex;
-
-  public final Optional<Integer> pthreadCondTIndex;
-
-  public final Optional<Integer> startRoutineIndex;
-
-  public final Optional<Integer> startRoutineArgIndex;
-
-  public final Optional<Integer> returnValueIndex;
+  final ImmutableSet<PthreadParameterInfo> parameterInfo;
 
   // TODO maybe its best to create a class that states the type of the pthread object, the index /
   //  indices and whether it is never / always / sometimes a pointer
@@ -373,71 +136,79 @@ public enum PthreadFunctionType {
       String pName,
       boolean pIsSupported,
       boolean pIsExplicitlyHandled,
-      Optional<Integer> pPthreadTIndex,
-      Optional<Boolean> pIsPthreadTPointer,
-      Optional<Integer> pPthreadMutexTIndex,
-      Optional<Integer> pPthreadCondTIndex,
-      Optional<Integer> pStartRoutineIndex,
-      Optional<Integer> pStartRoutineArgIndex,
-      Optional<Integer> pReturnValueIndex) {
+      PthreadParameterInfo... pParameterInfo) {
 
-    // pPthreadTIndex and pIsPthreadTPointer have to be equivalent (both empty or both present)
-    checkArgument(pPthreadTIndex.isEmpty() || pIsPthreadTPointer.isPresent());
-    checkArgument(pIsPthreadTPointer.isEmpty() || pPthreadTIndex.isPresent());
     // if the function is not supported, it cannot be explicitly handled
     checkArgument(pIsSupported || !pIsExplicitlyHandled);
-
     name = pName;
     isSupported = pIsSupported;
     isExplicitlyHandled = pIsExplicitlyHandled;
-    pthreadTIndex = pPthreadTIndex;
-    isPthreadTPointer = pIsPthreadTPointer;
-    pthreadMutexTIndex = pPthreadMutexTIndex;
-    pthreadCondTIndex = pPthreadCondTIndex;
-    startRoutineIndex = pStartRoutineIndex;
-    startRoutineArgIndex = pStartRoutineArgIndex;
-    returnValueIndex = pReturnValueIndex;
+    parameterInfo = ImmutableSet.copyOf(pParameterInfo);
   }
 
-  public boolean hasPthreadTIndex() {
-    return pthreadTIndex.isPresent();
+  public boolean isParameterInfoPresent(PthreadObjectType pObjectType) {
+    return tryGetParameterInfoByObjectType(pObjectType).isPresent();
   }
 
   public int getPthreadTIndex() {
-    checkArgument(pthreadTIndex.isPresent(), "this PthreadFuncType has no pthread_t param");
-    return pthreadTIndex.orElseThrow();
+    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.PTHREAD_T));
   }
 
   // TODO problem: even if the function declaration states that pthread_t is a pointer, the address
   //  may not necessarily be passed on afaik. need more tests here (same with start_routines)
   public boolean isPthreadTPointer() {
-    checkArgument(pthreadTIndex.isPresent(), "this PthreadFuncType has no pthread_t param");
-    return isPthreadTPointer.orElseThrow();
+    checkArgument(
+        isParameterInfoPresent(PthreadObjectType.PTHREAD_T),
+        "this PthreadFuncType has no pthread_t param");
+    return getParameterInfoByObjectType(PthreadObjectType.PTHREAD_T).isPointer();
   }
 
   public int getPthreadCondTIndex() {
-    checkArgument(pthreadCondTIndex.isPresent(), "%s has no pthread_cond_t parameter", this);
-    return pthreadCondTIndex.orElseThrow();
+    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.PTHREAD_COND_T));
   }
 
   public int getPthreadMutexTIndex() {
-    checkArgument(pthreadMutexTIndex.isPresent(), "%s has no pthread_mutex_t parameter", this);
-    return pthreadMutexTIndex.orElseThrow();
-  }
-
-  public int getStartRoutineIndex() {
-    checkArgument(startRoutineIndex.isPresent(), "this PthreadFuncType has no start_routine param");
-    return startRoutineIndex.orElseThrow();
-  }
-
-  public int getStartRoutineArgIndex() {
-    checkArgument(
-        startRoutineArgIndex.isPresent(), "this PthreadFuncType has no start_routine arg param");
-    return startRoutineArgIndex.orElseThrow();
+    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.PTHREAD_MUTEX_T));
   }
 
   public int getReturnValueIndex() {
-    checkArgument(returnValueIndex.isPresent(), "this PthreadFuncType has no retval param");
-    return returnValueIndex.orElseThrow();
+    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.RETURN_VALUE));
+  }
+
+  public int getStartRoutineIndex() {
+    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.START_ROUTINE));
+  }
+
+  public int getStartRoutineArgIndex() {
+    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.START_ROUTINE_ARGUMENT));
+  }
+
+  // Helpers =======================================================================================
+
+  private Optional<PthreadParameterInfo> tryGetParameterInfoByObjectType(
+      PthreadObjectType pObjectType) {
+
+    for (PthreadParameterInfo info : parameterInfo) {
+      if (info.getObjectType().equals(pObjectType)) {
+        return Optional.of(info);
+      }
+    }
+    return Optional.empty();
+  }
+
+  private PthreadParameterInfo getParameterInfoByObjectType(PthreadObjectType pObjectType) {
+    for (PthreadParameterInfo info : parameterInfo) {
+      if (info.getObjectType().equals(pObjectType)) {
+        return info;
+      }
+    }
+    throw new AssertionError(
+        String.format("could not find pObjectType %s in parameterInfo", pObjectType));
+  }
+
+  private static int getSingleIndex(PthreadParameterInfo pParameterInfo) {
+    checkArgument(
+        pParameterInfo.getIndices().size() == 1, "pParameterInfo must have exactly one index");
+    return pParameterInfo.getIndices().iterator().next();
   }
 }

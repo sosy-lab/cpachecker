@@ -98,7 +98,7 @@ public class PthreadUtil {
 
   public static CFunctionType extractStartRoutineType(CFAEdge pEdge) {
     checkArgument(
-        callsAnyPthreadFunctionWithStartRoutineParameter(pEdge),
+        isCallToPthreadFunctionWithStartRoutine(pEdge),
         "pEdge must be call to a pthread method with a start_routine param");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
@@ -108,7 +108,7 @@ public class PthreadUtil {
 
   public static CFunctionDeclaration extractStartRoutineDeclaration(CFAEdge pEdge) {
     checkArgument(
-        callsAnyPthreadFunctionWithStartRoutineParameter(pEdge),
+        isCallToPthreadFunctionWithStartRoutine(pEdge),
         "pEdge must be call to a pthread method with a start_routine param");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
@@ -131,7 +131,7 @@ public class PthreadUtil {
 
   public static CExpression extractStartRoutineArg(CFAEdge pEdge) {
     checkArgument(
-        callsAnyPthreadFunctionWithStartRoutineParameter(pEdge),
+        isCallToPthreadFunctionWithStartRoutine(pEdge),
         "pEdge must be a call to a pthread method with a start_routine parameter");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
@@ -140,7 +140,7 @@ public class PthreadUtil {
 
   public static CExpression extractExitReturnValue(CFAEdge pEdge) {
     checkArgument(
-        callsAnyPthreadFunctionWithReturnValue(pEdge),
+        isCallToPthreadFunctionWithReturnValue(pEdge),
         "pEdge must be a call to a pthread method with a start_routine parameter");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
@@ -218,25 +218,11 @@ public class PthreadUtil {
     return false;
   }
 
-  private static boolean isPthreadObjectTypePresent(
-      PthreadFunctionType pFunctionType, PthreadObjectType pObjectType) {
-
-    return switch (pObjectType) {
-      // PTHREAD_COND_INITIALIZER are never parameters
-      case PTHREAD_COND_INITIALIZER -> false;
-      case PTHREAD_COND_T -> pFunctionType.pthreadCondTIndex.isPresent();
-      // PTHREAD_MUTEX_INITIALIZER are never parameters
-      case PTHREAD_MUTEX_INITIALIZER -> false;
-      case PTHREAD_MUTEX_T -> pFunctionType.pthreadMutexTIndex.isPresent();
-      case PTHREAD_T -> pFunctionType.pthreadTIndex.isPresent();
-    };
-  }
-
   public static boolean isCallToPthreadFunctionWithObjectType(
       CFAEdge pCfaEdge, PthreadObjectType pPthreadObjectType) {
 
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
-      if (isPthreadObjectTypePresent(functionType, pPthreadObjectType)) {
+      if (functionType.isParameterInfoPresent(pPthreadObjectType)) {
         if (isCallToPthreadFunction(pCfaEdge, functionType)) {
           return true;
         }
@@ -245,9 +231,9 @@ public class PthreadUtil {
     return false;
   }
 
-  public static boolean callsAnyPthreadFunctionWithStartRoutineParameter(CFAEdge pEdge) {
+  public static boolean isCallToPthreadFunctionWithStartRoutine(CFAEdge pEdge) {
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
-      if (functionType.startRoutineIndex.isPresent()) {
+      if (functionType.isParameterInfoPresent(PthreadObjectType.START_ROUTINE)) {
         if (isCallToPthreadFunction(pEdge, functionType)) {
           return true;
         }
@@ -256,9 +242,9 @@ public class PthreadUtil {
     return false;
   }
 
-  public static boolean callsAnyPthreadFunctionWithReturnValue(CFAEdge pEdge) {
+  public static boolean isCallToPthreadFunctionWithReturnValue(CFAEdge pEdge) {
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
-      if (functionType.returnValueIndex.isPresent()) {
+      if (functionType.isParameterInfoPresent(PthreadObjectType.RETURN_VALUE)) {
         if (isCallToPthreadFunction(pEdge, functionType)) {
           return true;
         }
