@@ -16,8 +16,12 @@ import org.junit.Test;
 
 public class DelegatingRefinerParserTest {
 
+  /**
+   * This test checks if the Parser returns a PatternOperatorNode with an empty subtree associated
+   * with it for a single token.
+   */
   @Test
-  public void parseSingleToken_returnZeroArityOperator() {
+  public void checkParseSingleTokenReturnZeroArityOperator() {
     DelegatingRefinerPatternNode node = DelegatingRefinerParser.parseExpression("x");
     assertThat(node instanceof DelegatingRefinerPatternOperator).isTrue();
     DelegatingRefinerPatternOperator operator = (DelegatingRefinerPatternOperator) node;
@@ -25,8 +29,11 @@ public class DelegatingRefinerParserTest {
     assertThat(operator.sExpressionList()).isEmpty();
   }
 
+  /**
+   * This test checks if the Parser ignores noise such as newline or tab separators and whitespaces.
+   */
   @Test
-  public void parseNoise_patternCorrect() {
+  public void checkParseNoisePatternCorrect() {
     DelegatingRefinerPatternNode node =
         DelegatingRefinerParser.parseExpression("(\nbvlshl\t    <var>\t\n     <const>\t\n)");
     assertThat(node instanceof DelegatingRefinerPatternOperator).isTrue();
@@ -45,8 +52,11 @@ public class DelegatingRefinerParserTest {
         .isEqualTo("const");
   }
 
+  /**
+   * This test checks if the Parser returns a PatternAtom for a single wildcard such as {@code var}.
+   */
   @Test
-  public void parseWildcardAtom_returnsAtom() {
+  public void checkParseWildcardAtomReturnsAtom() {
     DelegatingRefinerPatternNode node = DelegatingRefinerParser.parseExpression("<var>");
     assertThat(node instanceof DelegatingRefinerDelegatingRefinerPatternAtom).isTrue();
     DelegatingRefinerDelegatingRefinerPatternAtom atom =
@@ -54,8 +64,11 @@ public class DelegatingRefinerParserTest {
     assertThat(atom.name()).isEqualTo("var");
   }
 
+  /**
+   * This test checks if the Parser returns the correct expression tree for an associated operator.
+   */
   @Test
-  public void parseOperatorWithWildcards_buildTree() {
+  public void checkParseOperatorWithWildcardsBuildTree() {
     DelegatingRefinerPatternNode node =
         DelegatingRefinerParser.parseExpression("(bvadd <var> <const>)");
     assertThat(node instanceof DelegatingRefinerPatternOperator).isTrue();
@@ -73,8 +86,11 @@ public class DelegatingRefinerParserTest {
         .isEqualTo("const");
   }
 
+  /**
+   * This test checks if the Parser returns the correct expression trees for a nested expression.
+   */
   @Test
-  public void parseNested_buildNestedTree() {
+  public void checkParseNestedBuildNestedTree() {
     DelegatingRefinerPatternNode node =
         DelegatingRefinerParser.parseExpression("(and (= <var> <const>) (not <var2>))");
     assertThat(node instanceof DelegatingRefinerPatternOperator).isTrue();
@@ -111,8 +127,12 @@ public class DelegatingRefinerParserTest {
         .isEqualTo("var2");
   }
 
+  /**
+   * This test checks if the Parser correctly parses a deeply nested tree with more than one
+   * subexpression.
+   */
   @Test
-  public void parseDeeplyNestedTree() {
+  public void checkParseDeeplyNestedTree() {
     DelegatingRefinerPatternNode node =
         DelegatingRefinerParser.parseExpression(
             "(and (or (not (= <var> <const>)) (bvadd <const> <var>)))");
@@ -141,8 +161,12 @@ public class DelegatingRefinerParserTest {
     assertThat(equalityOperator.sExpressionList()).hasSize(2);
   }
 
+  /**
+   * This test checks if the Parser correctly identifies extra tokens after the end of an
+   * expression.
+   */
   @Test
-  public void parse_extraTokens() {
+  public void checkParseExtraTokens() {
     IllegalArgumentException extraArguments =
         assertThrows(
             IllegalArgumentException.class,
@@ -150,16 +174,18 @@ public class DelegatingRefinerParserTest {
     assertThat(extraArguments.getMessage()).contains("Extra tokens");
   }
 
+  /** This test checks if the Parser correctly identifies an extra closing parenthesis. */
   @Test
-  public void parse_unmatchedParentheses() {
+  public void checkParseUnmatchedParentheses() {
     IllegalArgumentException unmatchedParentheses =
         assertThrows(
             IllegalArgumentException.class, () -> DelegatingRefinerParser.parseExpression(")"));
     assertThat(unmatchedParentheses.getMessage()).contains("Unmatched ')'");
   }
 
+  /** This test checks if the Parser correctly identifies a missing closing parenthesis. */
   @Test
-  public void parse_missingClosingParentheses() {
+  public void checkParseMissingClosingParentheses() {
     IllegalArgumentException missingClosingParentheses =
         assertThrows(
             IllegalArgumentException.class,
@@ -167,16 +193,18 @@ public class DelegatingRefinerParserTest {
     assertThat(missingClosingParentheses.getMessage()).contains("Missing ')'");
   }
 
+  /** This test checks if the Parser correctly handles a set of empty parenthesis. */
   @Test
-  public void parse_missingOperator() {
+  public void checkParseMissingOperator() {
     IllegalArgumentException missingOperator =
         assertThrows(
             IllegalArgumentException.class, () -> DelegatingRefinerParser.parseExpression("()"));
     assertThat(missingOperator.getMessage()).contains("Missing ')'");
   }
 
+  /** This test checks if the Parser correctly identifies an empty statement. */
   @Test
-  public void parse_missingInput() {
+  public void checkParseMissingInput() {
     IllegalArgumentException missingInput =
         assertThrows(
             IllegalArgumentException.class, () -> DelegatingRefinerParser.parseExpression(""));
