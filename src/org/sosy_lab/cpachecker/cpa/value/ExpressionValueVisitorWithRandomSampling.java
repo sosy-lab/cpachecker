@@ -98,8 +98,8 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
         }
         // Does not use the full range of INT128, but should be okay
         case INT128 -> new NumericValue(randomGenerator.nextLong());
-        case FLOAT -> new NumericValue(BigDecimal.valueOf(randomGenerator.nextFloat()));
-        case DOUBLE -> new NumericValue(BigDecimal.valueOf(randomGenerator.nextDouble()));
+        case FLOAT -> new NumericValue(randomGenerator.nextFloat());
+        case DOUBLE -> new NumericValue(randomGenerator.nextDouble());
         // Does not use the full range of FLOAT128, but should be okay
         case FLOAT128 -> new NumericValue(BigDecimal.valueOf(randomGenerator.nextDouble()));
       };
