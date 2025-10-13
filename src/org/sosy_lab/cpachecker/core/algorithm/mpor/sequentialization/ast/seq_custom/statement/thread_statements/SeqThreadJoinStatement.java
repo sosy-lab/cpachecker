@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
@@ -110,10 +111,11 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
 
     if (pJoinedThreadExitVariable.isPresent()) {
       SubstituteEdge substituteEdge = pSubstituteEdges.iterator().next();
-      CExpression retvalParameter =
-          CFAUtils.getParameterAtIndex(
-              substituteEdge.cfaEdge, PthreadFunctionType.PTHREAD_JOIN.getReturnValueIndex());
-      if (retvalParameter instanceof CUnaryExpression unaryExpression) {
+      int index =
+          PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
+      CExpression returnValueParameter =
+          CFAUtils.getParameterAtIndex(substituteEdge.cfaEdge, index);
+      if (returnValueParameter instanceof CUnaryExpression unaryExpression) {
         // extract retval from unary expression &retval
         if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
           if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {

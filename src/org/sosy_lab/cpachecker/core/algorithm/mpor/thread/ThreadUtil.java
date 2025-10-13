@@ -90,13 +90,15 @@ public class ThreadUtil {
         PthreadUtil.isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_T),
         "pEdge must be call to a pthread method with a pthread_t param");
 
-    PthreadFunctionType funcType = PthreadUtil.getPthreadFunctionType(pEdge);
-    CExpression pthreadTParam = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
+    PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(pEdge);
+    CExpression pthreadTParam =
+        CFAUtils.getParameterAtIndex(
+            pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_T));
 
     return getThreadByObject(
         pThreads,
         Optional.of(
-            funcType.isPthreadTPointer()
+            functionType.isPthreadTPointer()
                 ? CFAUtils.getValueFromAddress(pthreadTParam)
                 : pthreadTParam));
   }

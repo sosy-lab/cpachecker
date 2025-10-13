@@ -146,41 +146,21 @@ public enum PthreadFunctionType {
     parameterInfo = ImmutableSet.copyOf(pParameterInfo);
   }
 
-  public boolean isParameterInfoPresent(PthreadObjectType pObjectType) {
-    return tryGetParameterInfoByObjectType(pObjectType).isPresent();
-  }
-
-  public int getPthreadTIndex() {
-    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.PTHREAD_T));
-  }
-
   // TODO problem: even if the function declaration states that pthread_t is a pointer, the address
   //  may not necessarily be passed on afaik. need more tests here (same with start_routines)
   public boolean isPthreadTPointer() {
     checkArgument(
-        isParameterInfoPresent(PthreadObjectType.PTHREAD_T),
+        isParameterPresent(PthreadObjectType.PTHREAD_T),
         "this PthreadFuncType has no pthread_t param");
     return getParameterInfoByObjectType(PthreadObjectType.PTHREAD_T).isPointer();
   }
 
-  public int getPthreadCondTIndex() {
-    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.PTHREAD_COND_T));
+  public boolean isParameterPresent(PthreadObjectType pObjectType) {
+    return tryGetParameterInfoByObjectType(pObjectType).isPresent();
   }
 
-  public int getPthreadMutexTIndex() {
-    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.PTHREAD_MUTEX_T));
-  }
-
-  public int getReturnValueIndex() {
-    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.RETURN_VALUE));
-  }
-
-  public int getStartRoutineIndex() {
-    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.START_ROUTINE));
-  }
-
-  public int getStartRoutineArgIndex() {
-    return getSingleIndex(getParameterInfoByObjectType(PthreadObjectType.START_ROUTINE_ARGUMENT));
+  public int getParameterIndex(PthreadObjectType pObjectType) {
+    return getSingleIndex(getParameterInfoByObjectType(pObjectType));
   }
 
   // Helpers =======================================================================================

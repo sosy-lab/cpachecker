@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -388,9 +389,10 @@ public class MemoryModelBuilder {
       CFAEdge original = substituteEdge.getOriginalCfaEdge();
       if (PthreadUtil.isCallToPthreadFunction(original, PthreadFunctionType.PTHREAD_CREATE)) {
         ThreadEdge callContext = substituteEdge.getThreadEdge();
-        CExpression startRoutineArg =
-            CFAUtils.getParameterAtIndex(
-                original, PthreadFunctionType.PTHREAD_CREATE.getStartRoutineArgIndex());
+        int index =
+            PthreadFunctionType.PTHREAD_CREATE.getParameterIndex(
+                PthreadObjectType.START_ROUTINE_ARGUMENT);
+        CExpression startRoutineArg = CFAUtils.getParameterAtIndex(original, index);
         Optional<MemoryLocation> rhsMemoryLocation =
             extractMemoryLocation(pOptions, callContext, startRoutineArg, pInitialMemoryLocations);
         if (rhsMemoryLocation.isPresent()) {
