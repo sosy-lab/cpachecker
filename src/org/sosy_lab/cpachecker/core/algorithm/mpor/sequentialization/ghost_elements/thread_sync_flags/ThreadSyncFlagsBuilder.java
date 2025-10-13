@@ -67,7 +67,7 @@ public class ThreadSyncFlagsBuilder {
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadUtil.isCallToPthreadFunctionWithObjectType(cfaEdge, pObjectType)) {
+        if (PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(cfaEdge, pObjectType)) {
           rIdExpressions.add(
               PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_RWLOCK_T));
         }

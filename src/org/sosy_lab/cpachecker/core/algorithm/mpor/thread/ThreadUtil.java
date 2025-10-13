@@ -88,7 +88,7 @@ public class ThreadUtil {
       ImmutableCollection<MPORThread> pThreads, CFAEdge pEdge) {
 
     checkArgument(
-        PthreadUtil.isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_T),
+        PthreadUtil.isCallToAnyPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_T),
         "pEdge must be call to a pthread method with a pthread_t param");
 
     PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(pEdge);

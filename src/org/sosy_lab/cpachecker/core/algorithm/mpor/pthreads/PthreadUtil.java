@@ -30,27 +30,37 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class PthreadUtil {
 
+  public static PthreadFunctionType getPthreadFunctionType(CFAEdge pEdge) {
+    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pEdge));
+    String functionName = CFAUtils.getFunctionNameFromCfaEdge(pEdge);
+    for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
+      if (functionType.name.equals(functionName)) {
+        return functionType;
+      }
+    }
+    throw new IllegalArgumentException("unrecognized pthread method: " + pEdge.getRawAST());
+  }
+
   public static CIdExpression extractPthreadObject(
       CFAEdge pCfaEdge, PthreadObjectType pPthreadObjectType) {
 
     checkArgument(
-        isCallToPthreadFunctionWithObjectType(pCfaEdge, pPthreadObjectType),
+        isCallToAnyPthreadFunctionWithObjectType(pCfaEdge, pPthreadObjectType),
         "pCfaEdge must be call to a pthread method with a %s parameter",
         pPthreadObjectType);
 
     PthreadFunctionType functionType = getPthreadFunctionType(pCfaEdge);
     CExpression parameterExpression =
-        CFAUtils.getParameterAtIndex(
-            pCfaEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_T));
+        CFAUtils.getParameterAtIndex(pCfaEdge, functionType.getParameterIndex(pPthreadObjectType));
 
+    CExpression expression = MPORUtil.getOperandFromUnaryExpression(parameterExpression);
     // first handle pthread_t, the only pthread object type that may not be a pointer
     if (pPthreadObjectType.equals(PthreadObjectType.PTHREAD_T)
         && functionType.isPthreadTPointer()) {
-      if (parameterExpression instanceof CIdExpression pthreadT) {
+      if (expression instanceof CIdExpression pthreadT) {
         return pthreadT;
       }
     } else {
-      CExpression expression = MPORUtil.getOperandFromUnaryExpression(parameterExpression);
       if (expression instanceof CIdExpression idExpression) {
         return idExpression;
       } else if (expression instanceof CFieldReference fieldReference) {
@@ -68,7 +78,7 @@ public class PthreadUtil {
 
   public static CFunctionType extractStartRoutineType(CFAEdge pEdge) {
     checkArgument(
-        isCallToPthreadFunctionWithStartRoutine(pEdge),
+        isCallToAnyPthreadFunctionWithObjectType(pEdge, PthreadObjectType.START_ROUTINE),
         "pEdge must be call to a pthread method with a start_routine param");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
@@ -79,7 +89,7 @@ public class PthreadUtil {
 
   public static CFunctionDeclaration extractStartRoutineDeclaration(CFAEdge pEdge) {
     checkArgument(
-        isCallToPthreadFunctionWithStartRoutine(pEdge),
+        isCallToAnyPthreadFunctionWithObjectType(pEdge, PthreadObjectType.START_ROUTINE),
         "pEdge must be call to a pthread method with a start_routine param");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
@@ -103,7 +113,7 @@ public class PthreadUtil {
 
   public static CExpression extractStartRoutineArg(CFAEdge pEdge) {
     checkArgument(
-        isCallToPthreadFunctionWithStartRoutine(pEdge),
+        isCallToAnyPthreadFunctionWithObjectType(pEdge, PthreadObjectType.START_ROUTINE),
         "pEdge must be a call to a pthread method with a start_routine parameter");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
@@ -113,13 +123,15 @@ public class PthreadUtil {
 
   public static CExpression extractExitReturnValue(CFAEdge pEdge) {
     checkArgument(
-        isCallToPthreadFunctionWithReturnValue(pEdge),
+        isCallToAnyPthreadFunctionWithObjectType(pEdge, PthreadObjectType.RETURN_VALUE),
         "pEdge must be a call to a pthread method with a start_routine parameter");
 
     PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
     return CFAUtils.getParameterAtIndex(
         pEdge, functionType.getParameterIndex(PthreadObjectType.RETURN_VALUE));
   }
+
+  // PTHREAD_MUTEX_INITIALIZER =====================================================================
 
   /**
    * Returns true if {@code pCfaEdge} assigns a {@code PTHREAD_MUTEX_INITIALIZER}:
@@ -130,7 +142,7 @@ public class PthreadUtil {
    *       beforehand
    * </ul>
    */
-  public static boolean assignsPthreadMutexInitializer(CFAEdge pCfaEdge) {
+  public static boolean isPthreadMutexInitializerAssignment(CFAEdge pCfaEdge) {
     if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
       // pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER; (declaration)
       if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
@@ -164,6 +176,8 @@ public class PthreadUtil {
     return false;
   }
 
+  // boolean helpers ===============================================================================
+
   public static boolean isPthreadObjectType(CType pType) {
     String typeName = SeqStringUtil.getTypeName(pType);
     for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
@@ -183,7 +197,7 @@ public class PthreadUtil {
         && CFAUtils.getFunctionNameFromCfaEdge(pEdge).equals(pFunctionType.name);
   }
 
-  public static boolean callsAnyPthreadFunction(CFAEdge pEdge) {
+  public static boolean isCallToAnyPthreadFunction(CFAEdge pEdge) {
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
       if (isCallToPthreadFunction(pEdge, functionType)) {
         return true;
@@ -192,7 +206,7 @@ public class PthreadUtil {
     return false;
   }
 
-  public static boolean isCallToPthreadFunctionWithObjectType(
+  public static boolean isCallToAnyPthreadFunctionWithObjectType(
       CFAEdge pCfaEdge, PthreadObjectType pPthreadObjectType) {
 
     for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
@@ -205,46 +219,13 @@ public class PthreadUtil {
     return false;
   }
 
-  public static boolean isCallToPthreadFunctionWithStartRoutine(CFAEdge pEdge) {
-    for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
-      if (functionType.isParameterPresent(PthreadObjectType.START_ROUTINE)) {
-        if (isCallToPthreadFunction(pEdge, functionType)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  public static boolean isCallToPthreadFunctionWithReturnValue(CFAEdge pEdge) {
-    for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
-      if (functionType.isParameterPresent(PthreadObjectType.RETURN_VALUE)) {
-        if (isCallToPthreadFunction(pEdge, functionType)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  public static PthreadFunctionType getPthreadFunctionType(CFAEdge pEdge) {
-    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pEdge));
-    String functionName = CFAUtils.getFunctionNameFromCfaEdge(pEdge);
-    for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
-      if (functionType.name.equals(functionName)) {
-        return functionType;
-      }
-    }
-    throw new IllegalArgumentException("unrecognized pthread method: " + pEdge.getRawAST());
-  }
-
   /**
    * Returns true if the semantics of the pthread method in pEdge is considered in the
    * sequentialization, i.e. the case block contains code. A function may be supported by MPOR but
    * not considered in the sequentialization.
    */
   public static boolean isExplicitlyHandledPthreadFunction(CFAEdge pEdge) {
-    if (PthreadUtil.callsAnyPthreadFunction(pEdge)) {
+    if (PthreadUtil.isCallToAnyPthreadFunction(pEdge)) {
       return PthreadUtil.getPthreadFunctionType(pEdge).isExplicitlyHandled;
     }
     return false;

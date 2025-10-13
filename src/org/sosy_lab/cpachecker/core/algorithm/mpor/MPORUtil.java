@@ -287,8 +287,8 @@ public final class MPORUtil {
   // Pointers ======================================================================================
 
   /**
-   * Extracts and returns the {@link CExpression} from the given address. E.g. if pAddress is &id1
-   * from pthread_create(&id1, ...), then this function returns id1's expression.
+   * Extracts e.g. {@code id1} from {@code &id1}, throws a {@link IllegalArgumentException} if the
+   * extraction not possible.
    */
   public static CExpression getOperandFromUnaryExpression(CExpression pAddress) {
     if (pAddress instanceof CUnaryExpression unaryExpression) {

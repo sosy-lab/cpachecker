@@ -676,7 +676,7 @@ public class SeqThreadStatementBuilder {
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
       return true;
 
-    } else if (PthreadUtil.assignsPthreadMutexInitializer(pSubstituteEdge.cfaEdge)) {
+    } else if (PthreadUtil.isPthreadMutexInitializerAssignment(pSubstituteEdge.cfaEdge)) {
       // PTHREAD_MUTEX_INITIALIZER are similar to pthread_mutex_init, we exclude it
       return true;
 
@@ -691,7 +691,7 @@ public class SeqThreadStatementBuilder {
       }
       return true;
 
-    } else if (PthreadUtil.callsAnyPthreadFunction(pSubstituteEdge.cfaEdge)) {
+    } else if (PthreadUtil.isCallToAnyPthreadFunction(pSubstituteEdge.cfaEdge)) {
       // not explicitly handled PthreadFunc -> empty case code
       return !PthreadUtil.isExplicitlyHandledPthreadFunction(pSubstituteEdge.cfaEdge);
     }

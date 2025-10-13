@@ -166,7 +166,7 @@ public class InputRejection {
   //  i.e. it is not guaranteed that thread starts etc.
   private static void checkPthreadFunctionReturnValues(LogManager pLogger, CFA pInputCfa) {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadUtil.callsAnyPthreadFunction(edge)) {
+      if (PthreadUtil.isCallToAnyPthreadFunction(edge)) {
         if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
           handleRejection(
               pLogger,
