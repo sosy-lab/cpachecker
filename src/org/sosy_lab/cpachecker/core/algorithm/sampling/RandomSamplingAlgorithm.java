@@ -174,7 +174,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
         FluentIterable.from(pReachedSet.asCollection())
             .filter(ARGState.class)
             .toSortedList(Comparator.naturalOrder());
-    ARGState lastOne = sortedById.get(sortedById.size() - 1);
+    ARGState lastOne = sortedById.getLast();
 
     Set<ARGPath> reachablePaths = ARGUtils.getAllPaths(pReachedSet, lastOne);
     Verify.verify(reachablePaths.size() == 1);

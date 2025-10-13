@@ -224,7 +224,7 @@ public class DetailedCounterexampleExport implements Algorithm {
           if (cfaEdge.getRawStatement().contains(" = ")) {
             aliases.put(
                 variable.name(),
-                Splitter.on(" = ").splitToList(cfaEdge.getRawStatement()).get(0).trim());
+                Splitter.on(" = ").splitToList(cfaEdge.getRawStatement()).getFirst().trim());
           }
         }
       }
@@ -277,7 +277,7 @@ public class DetailedCounterexampleExport implements Algorithm {
           variable = Splitter.on("::").limit(2).splitToList(variable).get(1);
         }
         if (variable.contains("@")) {
-          variable = Splitter.on("@").limit(2).splitToList(variable).get(0);
+          variable = Splitter.on("@").limit(2).splitToList(variable).getFirst();
         }
         preciseCexExport
             .append("Functions: ")
