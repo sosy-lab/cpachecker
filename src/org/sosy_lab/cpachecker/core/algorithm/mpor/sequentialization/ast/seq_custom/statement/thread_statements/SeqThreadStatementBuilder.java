@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
@@ -472,8 +473,9 @@ public class SeqThreadStatementBuilder {
       CLeftHandSide pPcLeftHandSide,
       ThreadSyncFlags pThreadSyncFlags) {
 
-    CIdExpression signaledCondT = PthreadUtil.extractPthreadCondT(pThreadEdge.cfaEdge);
-    CondSignaledFlag condSignaledFlag = pThreadSyncFlags.getCondSignaledFlag(signaledCondT);
+    CIdExpression pthreadCondT =
+        PthreadUtil.extractPthreadObject(pThreadEdge.cfaEdge, PthreadObjectType.PTHREAD_COND_T);
+    CondSignaledFlag condSignaledFlag = pThreadSyncFlags.getCondSignaledFlag(pthreadCondT);
     return new SeqCondSignalStatement(
         pOptions, condSignaledFlag, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
@@ -486,10 +488,12 @@ public class SeqThreadStatementBuilder {
       CLeftHandSide pPcLeftHandSide,
       ThreadSyncFlags pThreadSyncFlags) {
 
-    CIdExpression signaledCondT = PthreadUtil.extractPthreadCondT(pThreadEdge.cfaEdge);
-    CondSignaledFlag condSignaledFlag = pThreadSyncFlags.getCondSignaledFlag(signaledCondT);
+    CIdExpression pthreadCondT =
+        PthreadUtil.extractPthreadObject(pThreadEdge.cfaEdge, PthreadObjectType.PTHREAD_COND_T);
+    CondSignaledFlag condSignaledFlag = pThreadSyncFlags.getCondSignaledFlag(pthreadCondT);
 
-    CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
+    CIdExpression pthreadMutexT =
+        PthreadUtil.extractPthreadObject(pThreadEdge.cfaEdge, PthreadObjectType.PTHREAD_MUTEX_T);
     MutexLockedFlag mutexLockedFlag = pThreadSyncFlags.getMutexLockedFlag(pthreadMutexT);
 
     return new SeqCondWaitStatement(
@@ -515,7 +519,8 @@ public class SeqThreadStatementBuilder {
     checkArgument(
         cfaEdge instanceof CFunctionCallEdge || cfaEdge instanceof CStatementEdge,
         "cfaEdge must be CFunctionCallEdge or CStatementEdge");
-    CExpression pthreadTObject = PthreadUtil.extractPthreadT(cfaEdge);
+    CExpression pthreadTObject =
+        PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_T);
     MPORThread createdThread =
         ThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadTObject));
     Optional<FunctionParameterAssignment> startRoutineArgAssignment =
@@ -576,8 +581,9 @@ public class SeqThreadStatementBuilder {
       CLeftHandSide pPcLeftHandSide,
       ThreadSyncFlags pThreadSyncFlags) {
 
-    CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
-    MutexLockedFlag mutexLockedFlag = pThreadSyncFlags.getMutexLockedFlag(lockedMutexT);
+    CIdExpression pthreadMutexT =
+        PthreadUtil.extractPthreadObject(pThreadEdge.cfaEdge, PthreadObjectType.PTHREAD_MUTEX_T);
+    MutexLockedFlag mutexLockedFlag = pThreadSyncFlags.getMutexLockedFlag(pthreadMutexT);
     return new SeqMutexLockStatement(
         pOptions, mutexLockedFlag, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
@@ -589,10 +595,12 @@ public class SeqThreadStatementBuilder {
       CLeftHandSide pPcLeftHandSide,
       ThreadSyncFlags pThreadSyncFlags) {
 
-    CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(pSubstituteEdge.cfaEdge);
+    CIdExpression pthreadMutexT =
+        PthreadUtil.extractPthreadObject(
+            pSubstituteEdge.cfaEdge, PthreadObjectType.PTHREAD_MUTEX_T);
     // TODO goblint-regression/13-privatized_68-pfscan_protected_loop_minimal_interval_true
-    //  causes issues here, the unlockedMutexT is a parameter which is not in the locked map
-    MutexLockedFlag mutexLocked = pThreadSyncFlags.getMutexLockedFlag(unlockedMutexT);
+    //  causes issues here, the pthreadMutexT is a parameter which is not in the locked map
+    MutexLockedFlag mutexLocked = pThreadSyncFlags.getMutexLockedFlag(pthreadMutexT);
     return new SeqMutexUnlockStatement(
         pOptions, mutexLocked, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
@@ -605,8 +613,10 @@ public class SeqThreadStatementBuilder {
       ThreadSyncFlags pThreadSyncFlags,
       PthreadFunctionType pPthreadFunctionType) {
 
-    CIdExpression rwLock = PthreadUtil.extractPthreadRwLockT(pSubstituteEdge.cfaEdge);
-    RwLockNumReadersWritersFlag rwLockFlags = pThreadSyncFlags.getRwLockFlag(rwLock);
+    CIdExpression rwLockT =
+        PthreadUtil.extractPthreadObject(
+            pSubstituteEdge.cfaEdge, PthreadObjectType.PTHREAD_RWLOCK_T);
+    RwLockNumReadersWritersFlag rwLockFlags = pThreadSyncFlags.getRwLockFlag(rwLockT);
     return switch (pPthreadFunctionType) {
       case PTHREAD_RWLOCK_RDLOCK ->
           new SeqRwLockRdLockStatement(

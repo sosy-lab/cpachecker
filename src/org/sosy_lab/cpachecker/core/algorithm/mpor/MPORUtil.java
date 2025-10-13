@@ -286,6 +286,19 @@ public final class MPORUtil {
 
   // Pointers ======================================================================================
 
+  /**
+   * Extracts and returns the {@link CExpression} from the given address. E.g. if pAddress is &id1
+   * from pthread_create(&id1, ...), then this function returns id1's expression.
+   */
+  public static CExpression getOperandFromUnaryExpression(CExpression pAddress) {
+    if (pAddress instanceof CUnaryExpression unaryExpression) {
+      if (unaryExpression.getExpressionType() instanceof CPointerType) {
+        return unaryExpression.getOperand();
+      }
+    }
+    throw new IllegalArgumentException("cannot extract value from pAddress");
+  }
+
   public static boolean isFunctionPointer(CInitializer pInitializer) {
     if (pInitializer instanceof CInitializerExpression initializerExpression) {
       if (initializerExpression.getExpression() instanceof CIdExpression idExpression) {

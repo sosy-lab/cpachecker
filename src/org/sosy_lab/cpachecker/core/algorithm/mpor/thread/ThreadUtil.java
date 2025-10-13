@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -91,7 +92,7 @@ public class ThreadUtil {
         "pEdge must be call to a pthread method with a pthread_t param");
 
     PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(pEdge);
-    CExpression pthreadTParam =
+    CExpression pthreadTParameter =
         CFAUtils.getParameterAtIndex(
             pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_T));
 
@@ -99,8 +100,8 @@ public class ThreadUtil {
         pThreads,
         Optional.of(
             functionType.isPthreadTPointer()
-                ? CFAUtils.getValueFromAddress(pthreadTParam)
-                : pthreadTParam));
+                ? MPORUtil.getOperandFromUnaryExpression(pthreadTParameter)
+                : pthreadTParameter));
   }
 
   /** Searches the given map of MPORThreads for the given thread object. */

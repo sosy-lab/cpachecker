@@ -24,104 +24,46 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class PthreadUtil {
 
-  public static CIdExpression extractPthreadT(CFAEdge pEdge) {
+  public static CIdExpression extractPthreadObject(
+      CFAEdge pCfaEdge, PthreadObjectType pPthreadObjectType) {
+
     checkArgument(
-        isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_T),
-        "pEdge must be call to a pthread method with a pthread_t parameter");
+        isCallToPthreadFunctionWithObjectType(pCfaEdge, pPthreadObjectType),
+        "pCfaEdge must be call to a pthread method with a %s parameter",
+        pPthreadObjectType);
 
-    PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
-    CExpression parameter =
+    PthreadFunctionType functionType = getPthreadFunctionType(pCfaEdge);
+    CExpression parameterExpression =
         CFAUtils.getParameterAtIndex(
-            pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_T));
+            pCfaEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_T));
 
-    if (functionType.isPthreadTPointer()) {
-      CExpression value = CFAUtils.getValueFromAddress(parameter);
-      if (value instanceof CIdExpression pthreadT) {
+    // first handle pthread_t, the only pthread object type that may not be a pointer
+    if (pPthreadObjectType.equals(PthreadObjectType.PTHREAD_T)
+        && functionType.isPthreadTPointer()) {
+      if (parameterExpression instanceof CIdExpression pthreadT) {
         return pthreadT;
       }
     } else {
-      if (parameter instanceof CIdExpression pthreadT) {
-        return pthreadT;
-      }
-    }
-    throw new IllegalArgumentException("pthread_t must be CIdExpression");
-  }
-
-  public static CIdExpression extractPthreadMutexT(CFAEdge pEdge) {
-    checkArgument(
-        isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_MUTEX_T),
-        "pEdge must be call to a pthread method with a pthread_mutex_t param");
-
-    PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
-    CExpression pthreadMutexT =
-        CFAUtils.getParameterAtIndex(
-            pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_MUTEX_T));
-
-    CExpression expression = CFAUtils.getValueFromAddress(pthreadMutexT);
-    if (expression instanceof CIdExpression idExpression) {
-      return idExpression;
-    } else if (expression instanceof CFieldReference fieldReference) {
-      // TODO this may have to be adjusted, if the struct itself contains arrays of pthread_mutex_t
-      if (fieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
+      CExpression expression = MPORUtil.getOperandFromUnaryExpression(parameterExpression);
+      if (expression instanceof CIdExpression idExpression) {
         return idExpression;
+      } else if (expression instanceof CFieldReference fieldReference) {
+        // TODO this may have to be adjusted, if the struct itself contains arrays
+        if (fieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
+          return idExpression;
+        }
       }
     }
     throw new IllegalArgumentException(
-        "pthread_mutex_t must be a CIdExpression, or inside a CFieldReference that is a"
-            + " CIdExpression");
-  }
-
-  public static CIdExpression extractPthreadCondT(CFAEdge pEdge) {
-    checkArgument(
-        isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_COND_T),
-        "pEdge must be call to a pthread method with a pthread_cond_t parameter");
-
-    PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
-    CExpression pthreadCondT =
-        CFAUtils.getParameterAtIndex(
-            pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_COND_T));
-
-    CExpression expression = CFAUtils.getValueFromAddress(pthreadCondT);
-    if (expression instanceof CIdExpression idExpression) {
-      return idExpression;
-    } else if (expression instanceof CFieldReference fieldReference) {
-      // TODO this may have to be adjusted, if the struct itself contains arrays of pthread_mutex_t
-      if (fieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
-        return idExpression;
-      }
-    }
-    throw new IllegalArgumentException(
-        "pthread_cond_t must be a CIdExpression, or inside a CFieldReference that is a"
-            + " CIdExpression");
-  }
-
-  public static CIdExpression extractPthreadRwLockT(CFAEdge pEdge) {
-    checkArgument(
-        isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_RWLOCK_T),
-        "pEdge must be call to a pthread method with a pthread_rwlock_t parameter");
-
-    PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
-    CExpression pthreadRwLockT =
-        CFAUtils.getParameterAtIndex(
-            pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_RWLOCK_T));
-
-    CExpression expression = CFAUtils.getValueFromAddress(pthreadRwLockT);
-    if (expression instanceof CIdExpression idExpression) {
-      return idExpression;
-    } else if (expression instanceof CFieldReference fieldReference) {
-      // TODO this may have to be adjusted, if the struct itself contains arrays of pthread_mutex_t
-      if (fieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
-        return idExpression;
-      }
-    }
-    throw new IllegalArgumentException(
-        "pthread_rwlock_t must be a CIdExpression, or inside a CFieldReference that is a"
-            + " CIdExpression");
+        String.format(
+            "could not extract pthread object of type %s from expression %s",
+            pPthreadObjectType, parameterExpression.toASTString()));
   }
 
   public static CFunctionType extractStartRoutineType(CFAEdge pEdge) {

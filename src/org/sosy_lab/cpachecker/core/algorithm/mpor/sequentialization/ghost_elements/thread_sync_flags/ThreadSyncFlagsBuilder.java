@@ -68,7 +68,8 @@ public class ThreadSyncFlagsBuilder {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadUtil.isCallToPthreadFunctionWithObjectType(cfaEdge, pObjectType)) {
-          rIdExpressions.add(PthreadUtil.extractPthreadRwLockT(cfaEdge));
+          rIdExpressions.add(
+              PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_RWLOCK_T));
         }
       }
     }
@@ -98,7 +99,9 @@ public class ThreadSyncFlagsBuilder {
 
           // extract pthread_mutex_t based on function calls to pthread_mutex_lock
           if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PTHREAD_MUTEX_LOCK)) {
-            CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
+            CIdExpression pthreadMutexT =
+                PthreadUtil.extractPthreadObject(
+                    threadEdge.cfaEdge, PthreadObjectType.PTHREAD_MUTEX_T);
             if (!rMutexLockedFlags.containsKey(pthreadMutexT)) { // add mutex only once
               String varName = SeqNameUtil.buildMutexLockedName(pOptions, pthreadMutexT.getName());
               // use unsigned char (8 bit), we only need values 0 and 1
@@ -137,7 +140,9 @@ public class ThreadSyncFlagsBuilder {
 
           // extract pthread_cond_t based on function calls to pthread_cond_wait
           if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PTHREAD_COND_WAIT)) {
-            CIdExpression pthreadCondT = PthreadUtil.extractPthreadCondT(threadEdge.cfaEdge);
+            CIdExpression pthreadCondT =
+                PthreadUtil.extractPthreadObject(
+                    threadEdge.cfaEdge, PthreadObjectType.PTHREAD_COND_T);
             if (!rCondSignaledFlags.containsKey(pthreadCondT)) { // add cond only once
               String varName = SeqNameUtil.buildCondSignaledName(pthreadCondT.getName());
               // use unsigned char (8 bit), we only need values 0 and 1

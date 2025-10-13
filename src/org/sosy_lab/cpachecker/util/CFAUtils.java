@@ -868,19 +868,6 @@ public class CFAUtils {
         .toASTString();
   }
 
-  /**
-   * Extracts and returns the {@link CExpression} from the given address. E.g. if pAddress is &id1
-   * from pthread_create(&id1, ...), then this function returns id1's expression.
-   */
-  public static CExpression getValueFromAddress(CExpression pAddress) {
-    if (pAddress instanceof CUnaryExpression unaryExpr) {
-      if (unaryExpr.getExpressionType() instanceof CPointerType) {
-        return unaryExpr.getOperand();
-      }
-    }
-    throw new IllegalArgumentException("cannot extract value from pAddress");
-  }
-
   /** Returns true if the given {@link CFAEdge} contains a {@link CFunctionCall}. */
   public static boolean isCfaEdgeCFunctionCall(CFAEdge pCfaEdge) {
     checkNotNull(pCfaEdge);

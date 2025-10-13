@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
@@ -96,7 +97,8 @@ public class ThreadBuilder {
       if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
         assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
         // extract the first parameter of pthread_create, i.e. the pthread_t value
-        CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
+        CIdExpression pthreadT =
+            PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_T);
         // extract the third parameter of pthread_create which points to the start_routine function
         CFunctionType startRoutine = PthreadUtil.extractStartRoutineType(cfaEdge);
         FunctionEntryNode entryNode =

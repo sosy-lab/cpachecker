@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -272,7 +273,8 @@ public class MPORSubstitutionBuilder {
         if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
           // TODO if we support pthread return values, this may not hold
           assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
-          CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
+          CIdExpression pthreadT =
+              PthreadUtil.extractPthreadObject(cfaEdge, PthreadObjectType.PTHREAD_T);
           MPORThread createdThread =
               ThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
           // pthread_t matches
