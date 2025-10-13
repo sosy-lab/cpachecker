@@ -21,8 +21,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -30,6 +32,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -188,10 +191,27 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         }
       }
       // Construct transition invariants from ranking function
-      entries.add(processRankingFunction(pTerminationArguments.get(loop), loopHead));
+      entries.add(
+          processRankingFunction(
+              collectArgumentsForNestedLoops(
+                  loop, pTerminationArguments.keySet(), pTerminationArguments),
+              loopHead));
     }
     exportEntries(
         new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), entries.build()), pPath);
+  }
+
+  private Set<TerminationArgument> collectArgumentsForNestedLoops(
+      Loop pLoop, Set<Loop> pAllLoops, Multimap<Loop, TerminationArgument> pTerminationArguments) {
+    Set<TerminationArgument> argumentsForNestedLoops = new HashSet<>();
+    for (Loop loop : pAllLoops) {
+      for (CFAEdge innerEdge : loop.getInnerLoopEdges()) {
+        if (pLoop.getLoopHeads().contains(innerEdge.getPredecessor())) {
+          argumentsForNestedLoops.addAll(pTerminationArguments.get(loop));
+        }
+      }
+    }
+    return argumentsForNestedLoops;
   }
 
   /**
