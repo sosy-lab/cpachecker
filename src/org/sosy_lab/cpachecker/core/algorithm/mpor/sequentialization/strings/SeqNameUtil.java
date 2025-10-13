@@ -272,6 +272,10 @@ public class SeqNameUtil {
 
   // Thread Synchronization ========================================================================
 
+  public static String buildCondSignaledName(String pCondName) {
+    return pCondName + SeqSyntax.UNDERSCORE + SeqToken.SIGNALED;
+  }
+
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */
   public static String buildMutexLockedName(MPOROptions pOptions, String pMutexName) {
     return (pOptions.shortVariableNames ? pMutexName : SeqToken.__MPOR__ + pMutexName)
@@ -279,8 +283,20 @@ public class SeqNameUtil {
         + SeqToken.LOCKED;
   }
 
-  public static String buildCondSignaledName(String pCondName) {
-    return pCondName + SeqSyntax.UNDERSCORE + SeqToken.SIGNALED;
+  public static String buildRwLockReadersName(MPOROptions pOptions, String pRwLockName) {
+    return (pOptions.shortVariableNames ? pRwLockName : SeqToken.__MPOR__ + pRwLockName)
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.NUM
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.READERS;
+  }
+
+  public static String buildRwLockWritersName(MPOROptions pOptions, String pRwLockName) {
+    return (pOptions.shortVariableNames ? pRwLockName : SeqToken.__MPOR__ + pRwLockName)
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.NUM
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.WRITERS;
   }
 
   public static String buildSyncName(MPOROptions pOptions, int pThreadId) {

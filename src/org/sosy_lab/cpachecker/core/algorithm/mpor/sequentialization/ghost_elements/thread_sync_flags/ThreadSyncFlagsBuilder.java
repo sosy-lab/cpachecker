@@ -13,9 +13,12 @@ import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncti
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -24,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
@@ -45,10 +49,28 @@ public class ThreadSyncFlagsBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    ImmutableSet<CIdExpression> rwLocks =
+        getIdExpressionsByObjectType(pThreads, PthreadObjectType.PTHREAD_RWLOCK_T);
     return new ThreadSyncFlags(
         buildCondSignaledFlags(pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
         buildMutexLockedFlags(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
+        buildRwLockFlags(pOptions, rwLocks),
         buildSyncFlags(pOptions, pThreads));
+  }
+
+  private static ImmutableSet<CIdExpression> getIdExpressionsByObjectType(
+      ImmutableList<MPORThread> pThreads, PthreadObjectType pObjectType) {
+
+    Set<CIdExpression> rIdExpressions = new HashSet<>();
+    for (MPORThread thread : pThreads) {
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        CFAEdge cfaEdge = threadEdge.cfaEdge;
+        if (PthreadUtil.isCallToPthreadFunctionWithObjectType(cfaEdge, pObjectType)) {
+          rIdExpressions.add(PthreadUtil.extractPthreadRwLockT(cfaEdge));
+        }
+      }
+    }
+    return ImmutableSet.copyOf(rIdExpressions);
   }
 
   // Private Builder Methods =======================================================================
@@ -131,6 +153,27 @@ public class ThreadSyncFlagsBuilder {
       }
     }
     return ImmutableMap.copyOf(rCondSignaledFlags);
+  }
+
+  private static ImmutableMap<CIdExpression, RwLockNumReadersWritersFlag> buildRwLockFlags(
+      MPOROptions pOptions, ImmutableSet<CIdExpression> pRwLocks) {
+
+    ImmutableMap.Builder<CIdExpression, RwLockNumReadersWritersFlag> rFlags =
+        ImmutableMap.builder();
+    for (CIdExpression rwLock : pRwLocks) {
+      String readersVarName = SeqNameUtil.buildRwLockReadersName(pOptions, rwLock.getName());
+      String writersVarName = SeqNameUtil.buildRwLockWritersName(pOptions, rwLock.getName());
+      // use int (32 bit), we increment the READERS flag for every rdlock
+      CIdExpression readersIdExpression =
+          SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
+              true, CNumericTypes.UNSIGNED_INT, readersVarName, SeqInitializer.INT_0);
+      // use unsigned char (8 bit), we only need values 0 and 1 (only one writer at a time)
+      CIdExpression writersIdExpression =
+          SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
+              true, CNumericTypes.UNSIGNED_CHAR, writersVarName, SeqInitializer.INT_0);
+      rFlags.put(rwLock, new RwLockNumReadersWritersFlag(readersIdExpression, writersIdExpression));
+    }
+    return rFlags.buildOrThrow();
   }
 
   private static ImmutableMap<MPORThread, CIdExpression> buildSyncFlags(

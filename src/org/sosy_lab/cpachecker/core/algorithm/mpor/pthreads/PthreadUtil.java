@@ -100,6 +100,30 @@ public class PthreadUtil {
             + " CIdExpression");
   }
 
+  public static CIdExpression extractPthreadRwLockT(CFAEdge pEdge) {
+    checkArgument(
+        isCallToPthreadFunctionWithObjectType(pEdge, PthreadObjectType.PTHREAD_RWLOCK_T),
+        "pEdge must be call to a pthread method with a pthread_rwlock_t parameter");
+
+    PthreadFunctionType functionType = getPthreadFunctionType(pEdge);
+    CExpression pthreadRwLockT =
+        CFAUtils.getParameterAtIndex(
+            pEdge, functionType.getParameterIndex(PthreadObjectType.PTHREAD_RWLOCK_T));
+
+    CExpression expression = CFAUtils.getValueFromAddress(pthreadRwLockT);
+    if (expression instanceof CIdExpression idExpression) {
+      return idExpression;
+    } else if (expression instanceof CFieldReference fieldReference) {
+      // TODO this may have to be adjusted, if the struct itself contains arrays of pthread_mutex_t
+      if (fieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
+        return idExpression;
+      }
+    }
+    throw new IllegalArgumentException(
+        "pthread_rwlock_t must be a CIdExpression, or inside a CFieldReference that is a"
+            + " CIdExpression");
+  }
+
   public static CFunctionType extractStartRoutineType(CFAEdge pEdge) {
     checkArgument(
         isCallToPthreadFunctionWithStartRoutine(pEdge),

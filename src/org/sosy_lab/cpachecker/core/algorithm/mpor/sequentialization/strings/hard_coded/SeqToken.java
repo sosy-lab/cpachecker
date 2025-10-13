@@ -127,6 +127,8 @@ public class SeqToken {
 
   public static final String next_thread = "next_thread";
 
+  public static final String NUM = "NUM";
+
   /** Constant, hence uppercase. */
   public static final String NUM_THREADS = "NUM_THREADS";
 
@@ -147,6 +149,8 @@ public class SeqToken {
   public static final String reach_error = "reach_error";
 
   public static final String READ = "READ";
+
+  public static final String READERS = "READERS";
 
   public static final String _return = "return";
 
@@ -182,4 +186,6 @@ public class SeqToken {
   public static final String w = "w";
 
   public static final String WRITE = "WRITE";
+
+  public static final String WRITERS = "WRITERS";
 }

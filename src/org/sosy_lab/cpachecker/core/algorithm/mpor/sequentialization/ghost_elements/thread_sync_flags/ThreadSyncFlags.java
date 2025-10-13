@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -24,6 +25,8 @@ public class ThreadSyncFlags {
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   private final ImmutableMap<CIdExpression, MutexLockedFlag> mutexLockedFlags;
 
+  private final ImmutableMap<CIdExpression, RwLockNumReadersWritersFlag> rwLockFlags;
+
   /**
    * The map of {@link MPORThread}s to their {@code sync} flag that indicates whether a thread is at
    * a location that synchronizes threads, e.g. {@code pthread_join}.
@@ -33,10 +36,12 @@ public class ThreadSyncFlags {
   ThreadSyncFlags(
       ImmutableMap<CIdExpression, CondSignaledFlag> pCondSignaledFlags,
       ImmutableMap<CIdExpression, MutexLockedFlag> pMutexLockedFlags,
+      ImmutableMap<CIdExpression, RwLockNumReadersWritersFlag> pRwLockFlags,
       ImmutableMap<MPORThread, CIdExpression> pSyncFlags) {
 
     mutexLockedFlags = pMutexLockedFlags;
     condSignaledFlags = pCondSignaledFlags;
+    rwLockFlags = pRwLockFlags;
     syncFlags = pSyncFlags;
   }
 
@@ -48,6 +53,10 @@ public class ThreadSyncFlags {
     }
     for (MutexLockedFlag mutexLockedFlag : mutexLockedFlags.values()) {
       rDeclarations.add(mutexLockedFlag.idExpression.getDeclaration());
+    }
+    for (RwLockNumReadersWritersFlag rwLockFlag : rwLockFlags.values()) {
+      rDeclarations.add(rwLockFlag.readersIdExpression.getDeclaration());
+      rDeclarations.add(rwLockFlag.writersIdExpression.getDeclaration());
     }
     if (pOptions.kIgnoreZeroReduction) {
       for (CIdExpression syncFlag : syncFlags.values()) {
@@ -73,6 +82,22 @@ public class ThreadSyncFlags {
         "pIdExpression %s was not found in mutexLocked map",
         pIdExpression);
     return mutexLockedFlags.get(pIdExpression);
+  }
+
+  public CIdExpression getRwLockNumReadersFlag(CIdExpression pIdExpression) {
+    checkArgument(
+        rwLockFlags.containsKey(pIdExpression),
+        "pIdExpression %s was not found in rwLockFlags map",
+        pIdExpression);
+    return Objects.requireNonNull(rwLockFlags.get(pIdExpression)).readersIdExpression;
+  }
+
+  public CIdExpression getRwLockNumWritersFlag(CIdExpression pIdExpression) {
+    checkArgument(
+        rwLockFlags.containsKey(pIdExpression),
+        "pIdExpression %s was not found in rwLockFlags map",
+        pIdExpression);
+    return Objects.requireNonNull(rwLockFlags.get(pIdExpression)).writersIdExpression;
   }
 
   public CIdExpression getSyncFlag(MPORThread pThread) {
