@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Random;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -97,7 +98,7 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
           }
         }
         // Does not use the full range of INT128, but should be okay
-        case INT128 -> new NumericValue(randomGenerator.nextLong());
+        case INT128 -> new NumericValue(BigInteger.valueOf(randomGenerator.nextLong()));
         case FLOAT -> new NumericValue(randomGenerator.nextFloat());
         case DOUBLE -> new NumericValue(randomGenerator.nextDouble());
         // Does not use the full range of FLOAT128, but should be okay
