@@ -431,7 +431,7 @@ public class IntervalAnalysisTransferRelation
     }
     return state;
     //TODO: Erweitern, sodass auch array assignments abgedeckt sind
-  };
+  }
 
   private IntervalAnalysisState assign(CExpression assignee, Interval value, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
