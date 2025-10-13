@@ -95,17 +95,4 @@ public class TransitionInvariantUtils {
   public static String removeFunctionFromVarsName(String pFormula) {
     return pFormula.replaceAll("\\b\\w+::", "");
   }
-
-  public static PathFormula makeLoopFormulaWithInitialSSAIndex(
-      List<CFAEdge> pLoop, PathFormulaManager pfmgr)
-      throws InterruptedException, CPATransferException {
-    PathFormula loopFormula = pfmgr.makeEmptyPathFormula();
-    loopFormula =
-        loopFormula.withContext(
-            loopFormula.getSsa().withDefault(2), PointerTargetSet.emptyPointerTargetSet());
-    for (CFAEdge edge : pLoop) {
-      loopFormula = pfmgr.makeAnd(loopFormula, edge);
-    }
-    return loopFormula;
-  }
 }
