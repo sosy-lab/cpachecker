@@ -12,7 +12,6 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -309,7 +308,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
     BooleanFormula conjunction = bfmgr.and(Lists.transform(pPathFormulas, PathFormula::getFormula));
     int lengthSum = pPathFormulas.stream().mapToInt(PathFormula::getLength).sum();
-    PathFormula last = Iterables.getLast(pPathFormulas);
+    PathFormula last = pPathFormulas.getLast();
     return new PathFormula(conjunction, last.getSsa(), last.getPointerTargetSet(), lengthSum);
   }
 

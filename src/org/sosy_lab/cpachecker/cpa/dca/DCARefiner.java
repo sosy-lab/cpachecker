@@ -331,15 +331,16 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     for (StronglyConnectedComponent scc : SCCs) {
 
       shutdownNotifier.shutdownIfNecessary();
-      List<List<ARGState>> sscCycles = GraphUtils.retrieveSimpleCycles(scc.getNodes(), reached);
+      List<ImmutableList<ARGState>> sscCycles =
+          GraphUtils.retrieveSimpleCycles(scc.getNodes(), reached);
       logger.logf(Level.INFO, "Found %d cycle(s) in current SCC", sscCycles.size());
 
-      for (List<ARGState> cycle : sscCycles) {
+      for (ImmutableList<ARGState> cycle : sscCycles) {
         logger.logf(Level.INFO, "Analyzing cycle: %s\n", lazyPrintNodes(cycle));
         assert cycle.stream().anyMatch(ARGState::isTarget) : "Cycle does not contain a target";
 
         shutdownNotifier.shutdownIfNecessary();
-        ARGState firstNodeInCycle = cycle.iterator().next();
+        ARGState firstNodeInCycle = cycle.getFirst();
         ARGPath stemPath = ARGUtils.getShortestPathTo(firstNodeInCycle);
         ARGPath loopPath = new ARGPath(cycle);
         assert loopPath.asStatesList().equals(cycle)
@@ -380,7 +381,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                   firstNodeInCycle,
                   loopPath.asStatesList(),
                   stemPathFormula.getSsa(),
-                  Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
+                  stemPathFormulaList.getLast().getPointerTargetSet(),
                   AbstractionPosition.NONE);
           PathFormula loopPathFormula =
               loopPathFormulaList.isEmpty()
@@ -441,7 +442,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
               FluentIterable.from(loopStructure.getAllLoops())
                   .filter(x -> x.getLoopNodes().containsAll(cfaNodesOfCurrentCycle))
                   .toList();
-          Loop loop = loops.iterator().next();
+          Loop loop = loops.getFirst();
 
           Set<CVariableDeclaration> varDeclarations = variables.getDeclarations(loop);
           ImmutableMap<String, CVariableDeclaration> varDeclarationsForName =

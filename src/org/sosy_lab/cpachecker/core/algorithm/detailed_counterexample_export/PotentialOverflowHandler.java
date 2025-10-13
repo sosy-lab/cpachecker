@@ -13,7 +13,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -44,16 +43,16 @@ public class PotentialOverflowHandler {
         return Optional.empty();
       }
       LogManagerWithoutDuplicates logManager =
-          assumptionToEdgeAllocator.getLogger() instanceof LogManagerWithoutDuplicates
-              ? (LogManagerWithoutDuplicates) assumptionToEdgeAllocator.getLogger()
+          assumptionToEdgeAllocator.getLogger()
+                  instanceof LogManagerWithoutDuplicates logManagerWithoutDuplicates
+              ? logManagerWithoutDuplicates
               : new LogManagerWithoutDuplicates(assumptionToEdgeAllocator.getLogger());
       Value castValue =
           AbstractExpressionValueVisitor.castCValue(
               new NumericValue(pIntegerValue),
               pType,
               assumptionToEdgeAllocator.getMachineModel(),
-              logManager,
-              FileLocation.DUMMY);
+              logManager);
       if (castValue.isUnknown()) {
         return Optional.empty();
       }
@@ -99,8 +98,7 @@ public class PotentialOverflowHandler {
       LogManager pLogManager, CSimpleType pType) {
     if (pType.hasSignedSpecifier()) {
       return new CSimpleType(
-          pType.isConst(),
-          pType.isVolatile(),
+          pType.getQualifiers(),
           pType.getType(),
           pType.hasLongSpecifier(),
           pType.hasShortSpecifier(),

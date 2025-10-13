@@ -383,22 +383,22 @@ public class ExceptionHandlingAlgorithm
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 
   @Override
   public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).register(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.register(pReachedSetUpdateListener);
     }
   }
 
   @Override
   public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
-    if (algorithm instanceof ReachedSetUpdater) {
-      ((ReachedSetUpdater) algorithm).unregister(pReachedSetUpdateListener);
+    if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
+      reachedSetUpdater.unregister(pReachedSetUpdateListener);
     }
   }
 }

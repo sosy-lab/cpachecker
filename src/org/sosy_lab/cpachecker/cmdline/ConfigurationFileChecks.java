@@ -81,7 +81,8 @@ public class ConfigurationFileChecks {
               + " read precision from file.*|.*The SMT solver MATHSAT5 is not available on this"
               + " machine because of missing libraries \\(no optimathsat5j in"
               + " java\\.library\\.path.*|.*The SMT solver Z3 is not available on this machine"
-              + " because of missing libraries .* version `GLIBCXX_3.4.26' not found.*",
+              + " because of missing libraries .* version"
+              + " `(GLIBCXX_3\\.4\\.26|GLIBC_2\\.34|GLIBC_2\\.38)' not found.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
@@ -256,10 +257,10 @@ public class ConfigurationFileChecks {
   private static ConfigurationBuilder parse(Object pConfigFile)
       throws IOException, InvalidConfigurationException, URISyntaxException {
     Path configFile;
-    if (pConfigFile instanceof Path) {
-      configFile = (Path) pConfigFile;
-    } else if (pConfigFile instanceof URL) {
-      configFile = Path.of(((URL) pConfigFile).toURI());
+    if (pConfigFile instanceof Path path) {
+      configFile = path;
+    } else if (pConfigFile instanceof URL uRL) {
+      configFile = Path.of(uRL.toURI());
     } else {
       throw new AssertionError("Unexpected config file " + pConfigFile);
     }
@@ -391,7 +392,7 @@ public class ConfigurationFileChecks {
     config.inject(options);
 
     @SuppressWarnings("deprecation")
-    final String spec = config.getProperty(SPECIFICATION_OPTION);
+    final @Nullable String spec = config.getProperty(SPECIFICATION_OPTION);
     @SuppressWarnings("deprecation")
     final String cpas = Objects.requireNonNullElse(config.getProperty("CompositeCPA.cpas"), "");
     @SuppressWarnings("deprecation")

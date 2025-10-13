@@ -33,7 +33,7 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private static class Block {
-    public static final String ENTRY_BLOCK_NAME = "entry_block_main";
+    static final String ENTRY_BLOCK_NAME = "entry_block_main";
 
     // function name which is the basis for the block
     @SuppressWarnings("unused")
@@ -59,7 +59,7 @@ public class BlockWaitlist implements Waitlist {
     }
 
     @SuppressWarnings("unused")
-    public int getSavedResources() {
+    int getSavedResources() {
       return savedResources;
     }
 

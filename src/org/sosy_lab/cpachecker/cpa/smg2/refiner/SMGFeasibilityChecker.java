@@ -99,9 +99,9 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
       SMGState next =
           SMGState.of(machineModel, logger, new SMGOptions(config), cfa, evaluator, statistics);
 
-      if (cfa.getMainFunction() instanceof CFunctionEntryNode) {
+      if (cfa.getMainFunction() instanceof CFunctionEntryNode functionNode) {
         // Init main
-        CFunctionEntryNode functionNode = (CFunctionEntryNode) cfa.getMainFunction();
+
         next = next.copyAndAddStackFrame(functionNode.getFunctionDefinition());
       }
 

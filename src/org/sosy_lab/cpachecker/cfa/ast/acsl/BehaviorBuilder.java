@@ -31,15 +31,12 @@ public class BehaviorBuilder {
 
   @CanIgnoreReturnValue
   public BehaviorBuilder add(Object o) {
-    if (o instanceof RequiresClause) {
-      return add((RequiresClause) o);
-    } else if (o instanceof EnsuresClause) {
-      return add((EnsuresClause) o);
-    } else if (o instanceof AssumesClause) {
-      return add((AssumesClause) o);
-    } else {
-      throw new IllegalArgumentException();
-    }
+    return switch (o) {
+      case RequiresClause clause -> add(clause);
+      case EnsuresClause clause -> add(clause);
+      case AssumesClause clause -> add(clause);
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   @CanIgnoreReturnValue

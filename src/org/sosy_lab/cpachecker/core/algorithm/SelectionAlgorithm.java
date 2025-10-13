@@ -79,8 +79,8 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       switch (pEdge.getEdgeType()) {
         case StatementEdge -> {
           final AStatementEdge edge = (AStatementEdge) pEdge;
-          if (edge.getStatement() instanceof AFunctionCall) {
-            final AFunctionCall call = (AFunctionCall) edge.getStatement();
+          if (edge.getStatement() instanceof AFunctionCall call) {
+
             final AExpression exp = call.getFunctionCallExpression().getFunctionNameExpression();
             if (exp instanceof AIdExpression id) {
               functionNames.add(id.getName());

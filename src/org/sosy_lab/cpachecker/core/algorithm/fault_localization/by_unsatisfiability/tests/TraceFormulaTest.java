@@ -52,7 +52,7 @@ public class TraceFormulaTest {
     TFPRECONDITION,
     TFPOSTCONDITION;
 
-    public static boolean containsKey(String keyString) {
+    static boolean containsKey(String keyString) {
       for (LogKeys key : values()) {
         if (key.toString().equalsIgnoreCase(keyString)) {
           return true;
@@ -85,8 +85,8 @@ public class TraceFormulaTest {
         .forEach(
             line -> {
               List<String> result = Splitter.on("=").limit(2).splitToList(line);
-              if (result.size() == 2 && LogKeys.containsKey(result.get(0))) {
-                LogKeys key = LogKeys.valueOf(Ascii.toUpperCase(result.get(0)));
+              if (result.size() == 2 && LogKeys.containsKey(result.getFirst())) {
+                LogKeys key = LogKeys.valueOf(Ascii.toUpperCase(result.getFirst()));
                 String value = result.get(1).replaceAll("\\(.*, " + logLevel + "\\)", "").trim();
                 if (keywords.contains(key)) {
                   if (key == LogKeys.TFPRECONDITION) {

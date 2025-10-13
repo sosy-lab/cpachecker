@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Class responsible for extracting coverage information. */
 public abstract class CoverageCollector {
@@ -138,7 +137,7 @@ class ReachedSetCoverageCollector {
         // Cover all edges from reached nodes
         // It is less precise, but without ARG it is impossible to know what path we chose
         CFANode node = AbstractStates.extractLocation(state);
-        for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+        for (CFAEdge edge : node.getLeavingEdges()) {
           if (reachedNodes.contains(edge.getSuccessor())) {
             cov.addVisitedEdge(edge);
           }

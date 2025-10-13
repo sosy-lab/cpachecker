@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.math.BigInteger;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.OptionalLong;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -66,16 +66,14 @@ public record NumericValue(Number number) implements Value {
    * NumericValue#floatingPointValue(Format)} for conversion.
    */
   public FloatValue getFloatValue() {
-    if (number instanceof FloatValue floatValue) {
-      return floatValue;
-    } else if (number instanceof Double doubleValue) {
-      return FloatValue.fromDouble(doubleValue);
-    } else if (number instanceof Float floatValue) {
-      return FloatValue.fromFloat(floatValue);
-    } else {
-      throw new IllegalArgumentException(
-          "Value is not a floating point number and needs to be converted first.");
-    }
+    return switch (number) {
+      case FloatValue floatValue -> floatValue;
+      case Double doubleValue -> FloatValue.fromDouble(doubleValue);
+      case Float floatValue -> FloatValue.fromFloat(floatValue);
+      default ->
+          throw new IllegalArgumentException(
+              "Value is not a floating point number and needs to be converted first.");
+    };
   }
 
   /**
@@ -177,30 +175,30 @@ public record NumericValue(Number number) implements Value {
    * @return the negation of this objects value
    */
   public NumericValue negate() {
-    if (number instanceof Float numberToNegate) {
-      if (Float.isNaN(numberToNegate)) {
-        // If the number is NaN we need to convert to FloatValue to handle the sign
-        return new NumericValue(FloatValue.nan(FloatValue.Format.Float32).negate().floatValue());
-      } else {
-        return new NumericValue(-numberToNegate);
+    return switch (number) {
+      case Float numberToNegate when Float.isNaN(numberToNegate) ->
+          // If the number is NaN we need to convert to FloatValue to handle the sign
+          new NumericValue(FloatValue.nan(FloatValue.Format.Float32).negate().floatValue());
+      case Float numberToNegate -> new NumericValue(-numberToNegate);
+
+      case Double numberToNegate when Double.isNaN(numberToNegate) ->
+          // If the number is NaN we need to convert to FloatValue to handle the sign
+          new NumericValue(FloatValue.nan(FloatValue.Format.Float64).negate().floatValue());
+      case Double numberToNegate -> new NumericValue(-numberToNegate);
+
+      case FloatValue floatValue -> new NumericValue(floatValue.negate());
+
+      case Rational rat -> new NumericValue(rat.negate());
+
+      default -> {
+        if (hasIntegerType()) {
+          // FIXME: This might be broken for -MAX_VALUE if the type is not BigInteger
+          yield new NumericValue(bigIntegerValue().negate());
+        } else {
+          throw new UnsupportedOperationException("Should be unreachable.");
+        }
       }
-    } else if (number instanceof Double numberToNegate) {
-      if (Double.isNaN(numberToNegate)) {
-        // If the number is NaN we need to convert to FloatValue to handle the sign
-        return new NumericValue(FloatValue.nan(FloatValue.Format.Float64).negate().floatValue());
-      } else {
-        return new NumericValue(-numberToNegate);
-      }
-    } else if (number instanceof FloatValue floatValue) {
-      return new NumericValue(floatValue.negate());
-    } else if (hasIntegerType()) {
-      // FIXME: This might be broken for -MAX_VALUE if the type is not BigInteger
-      return new NumericValue(bigIntegerValue().negate());
-    } else if (number instanceof Rational rat) {
-      return new NumericValue(rat.negate());
-    } else {
-      throw new UnsupportedOperationException("Should be unreachable.");
-    }
+    };
   }
 
   @Override
@@ -209,17 +207,17 @@ public record NumericValue(Number number) implements Value {
   }
 
   @Override
-  public @Nullable Long asLong(CType type) {
+  public OptionalLong asLong(CType type) {
     checkNotNull(type);
     type = type.getCanonicalType();
     if (!(type instanceof CSimpleType)) {
-      return null;
+      return OptionalLong.empty();
     }
 
     if (((CSimpleType) type).getType() == CBasicType.INT) {
-      return longValue();
+      return OptionalLong.of(longValue());
     } else {
-      return null;
+      return OptionalLong.empty();
     }
   }
 

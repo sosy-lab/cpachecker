@@ -338,7 +338,8 @@ public class CPAMain {
    *
    * @return A Configuration object, the output directory, and the specification properties.
    */
-  private static Config createConfiguration(String[] args)
+  @VisibleForTesting
+  public static Config createConfiguration(String[] args)
       throws InvalidConfigurationException,
           InvalidCmdlineArgumentException,
           IOException,
@@ -608,7 +609,7 @@ public class CPAMain {
     if (propertyFiles.size() > 1) {
       throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
     }
-    String propertyFile = propertyFiles.get(0);
+    String propertyFile = propertyFiles.getFirst();
 
     // Parse property files
     PropertyFileParser parser = new PropertyFileParser(Path.of(propertyFile));
@@ -892,8 +893,8 @@ public class CPAMain {
       justification = "Default encoding is the correct one for stdout.")
   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
   private static PrintStream makePrintStream(OutputStream stream) {
-    if (stream instanceof PrintStream) {
-      return (PrintStream) stream;
+    if (stream instanceof PrintStream printStream) {
+      return printStream;
     } else {
       // Default encoding is actually desired here because we output to the terminal,
       // so the default PrintStream constructor is ok.
@@ -903,15 +904,5 @@ public class CPAMain {
 
   private CPAMain() {} // prevent instantiation
 
-  private static class Config {
-
-    private final Configuration configuration;
-
-    private final String outputPath;
-
-    public Config(Configuration pConfiguration, String pOutputPath) {
-      configuration = pConfiguration;
-      outputPath = pOutputPath;
-    }
-  }
+  public record Config(Configuration configuration, String outputPath) {}
 }

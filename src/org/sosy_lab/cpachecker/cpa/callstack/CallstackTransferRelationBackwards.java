@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,13 +54,11 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
     switch (pEdge.getEdgeType()) {
       case StatementEdge -> {
         AStatementEdge edge = (AStatementEdge) pEdge;
-        if (edge.getStatement() instanceof AFunctionCall) {
+        if (edge.getStatement() instanceof AFunctionCall aFunctionCall) {
           AExpression functionNameExp =
-              ((AFunctionCall) edge.getStatement())
-                  .getFunctionCallExpression()
-                  .getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression) {
-            String functionName = ((AIdExpression) functionNameExp).getName();
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            String functionName = aIdExpression.getName();
             if (options.getUnsupportedFunctions().contains(functionName)) {
               throw new UnrecognizedCodeException(
                   "Unsupported feature: " + options.getUnsupportedFunctions(),
@@ -72,8 +68,8 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
           }
         }
 
-        if (pEdge instanceof CFunctionSummaryStatementEdge) {
-          if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
+        if (pEdge instanceof CFunctionSummaryStatementEdge cFunctionSummaryStatementEdge) {
+          if (!shouldGoByFunctionSummaryStatement(e, cFunctionSummaryStatementEdge)) {
             // should go by function call and skip the current edge
             return ImmutableSet.of();
           }
@@ -146,7 +142,7 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
 
   @Override
   protected FunctionCallEdge findOutgoingCallEdge(CFANode predNode) {
-    for (CFAEdge edge : leavingEdges(predNode)) {
+    for (CFAEdge edge : predNode.getLeavingEdges()) {
       if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         return (FunctionCallEdge) edge;
       }

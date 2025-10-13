@@ -84,12 +84,6 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
   }
 
   @Override
-  public Boolean visitBoundVariable(Formula pF, int pDeBruijnIdx) {
-    // No-OP; not relevant for the given use-cases
-    return true;
-  }
-
-  @Override
   public Boolean visitConstant(Formula pF, Object pValue) {
     FormulaType<?> type = fmgr.getFormulaType(pF);
     final String value = pValue.toString();
@@ -131,17 +125,14 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
    */
   private boolean appendOverflowGuardForNegativeIntegralLiterals(
       String pGuardString, Object pValue) {
-    if (pValue instanceof BigInteger) {
+    if (pValue instanceof BigInteger bigInteger) {
       String valueString = pValue.toString();
       if (valueString.equals("-" + pGuardString)) {
-        builder.append("( ( ").append(((BigInteger) pValue).add(BigInteger.ONE)).append(" ) - 1 )");
+        builder.append("( ( ").append(bigInteger.add(BigInteger.ONE)).append(" ) - 1 )");
         return true;
       }
       if (bvSigned && valueString.equals(pGuardString)) {
-        builder
-            .append("( ( -")
-            .append(((BigInteger) pValue).subtract(BigInteger.ONE))
-            .append(" ) - 1 )");
+        builder.append("( ( -").append(bigInteger.subtract(BigInteger.ONE)).append(" ) - 1 )");
         return true;
       }
     }
@@ -203,7 +194,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
     builder.append("( ");
     if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
-      if (!fmgr.visit(pArgs.get(0), this)) {
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
         return false;
       }
       builder.append(" ? ");
@@ -216,7 +207,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       }
     } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
       builder.append(op).append(" ");
-      if (!fmgr.visit(pArgs.get(0), this)) {
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
         return false;
       }
     } else if (N_ARY_OPS.contains(kind)) {
@@ -229,7 +220,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         }
       }
     } else if (pArgs.size() == 2) {
-      if (!fmgr.visit(pArgs.get(0), this)) {
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
         return false;
       }
       builder.append(" ").append(op).append(" ");

@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
@@ -141,7 +140,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     CFANode node = extractLocation(pElement);
     results = new ArrayList<>(node.getNumLeavingEdges());
 
-    for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+    for (CFAEdge edge : node.getLeavingEdges()) {
       results.addAll(getAbstractSuccessorsForEdge(pElement, pPrecision, edge));
     }
     return results;
@@ -227,21 +226,19 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
   private void handleFunctionCall(CFunctionCallEdge edge) throws HandleCodeException {
     CFunctionCall statement = edge.getFunctionCall();
 
-    if (statement instanceof CFunctionCallAssignmentStatement) {
+    if (statement instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
       /*
        * a = f(b)
        */
-      CFunctionCallExpression right =
-          ((CFunctionCallAssignmentStatement) statement).getRightHandSide();
-      CExpression variable = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
+      CFunctionCallExpression right = cFunctionCallAssignmentStatement.getRightHandSide();
+      CExpression variable = cFunctionCallAssignmentStatement.getLeftHandSide();
 
       visitStatement(variable, Access.WRITE);
       // expression - only name of function
       handleFunctionCallExpression(variable, right);
 
-    } else if (statement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
-          null, ((CFunctionCallStatement) statement).getFunctionCallExpression());
+    } else if (statement instanceof CFunctionCallStatement cFunctionCallStatement) {
+      handleFunctionCallExpression(null, cFunctionCallStatement.getFunctionCallExpression());
 
     } else {
       throw new HandleCodeException("No function found");
@@ -267,8 +264,8 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       return;
     }
 
-    if (init instanceof CInitializerExpression) {
-      CExpression initExpression = ((CInitializerExpression) init).getExpression();
+    if (init instanceof CInitializerExpression cInitializerExpression) {
+      CExpression initExpression = cInitializerExpression.getExpression();
       // Use EdgeType assignment for initializer expression to avoid mistakes related to expressions
       // "int CPACHECKER_TMP_0 = global;"
       visitStatement(initExpression, Access.READ);
@@ -306,33 +303,29 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
   private void handleStatement(final CStatement pStatement) throws HandleCodeException {
 
-    if (pStatement instanceof CAssignment assignment) {
-      // assignment like "a = b" or "a = foo()"
-      CExpression left = assignment.getLeftHandSide();
-      CRightHandSide right = assignment.getRightHandSide();
+    switch (pStatement) {
+      case CAssignment assignment -> {
+        // assignment like "a = b" or "a = foo()"
+        CExpression left = assignment.getLeftHandSide();
+        CRightHandSide right = assignment.getRightHandSide();
+        visitStatement(left, Access.WRITE);
+        if (right instanceof CExpression cExpression) {
+          visitStatement(cExpression, Access.READ);
 
-      visitStatement(left, Access.WRITE);
+        } else if (right instanceof CFunctionCallExpression cFunctionCallExpression) {
+          handleFunctionCallExpression(left, cFunctionCallExpression);
 
-      if (right instanceof CExpression) {
-        visitStatement((CExpression) right, Access.READ);
-
-      } else if (right instanceof CFunctionCallExpression) {
-        handleFunctionCallExpression(left, (CFunctionCallExpression) right);
-
-      } else {
-        throw new HandleCodeException(
-            "Unrecognised type of right side of assignment: " + assignment.toASTString());
+        } else {
+          throw new HandleCodeException(
+              "Unrecognised type of right side of assignment: " + assignment.toASTString());
+        }
       }
-
-    } else if (pStatement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
-          null, ((CFunctionCallStatement) pStatement).getFunctionCallExpression());
-
-    } else if (pStatement instanceof CExpressionStatement) {
-      visitStatement(((CExpressionStatement) pStatement).getExpression(), Access.WRITE);
-
-    } else {
-      throw new HandleCodeException("Unrecognized statement: " + pStatement.toASTString());
+      case CFunctionCallStatement cFunctionCallStatement ->
+          handleFunctionCallExpression(null, cFunctionCallStatement.getFunctionCallExpression());
+      case CExpressionStatement cExpressionStatement ->
+          visitStatement(cExpressionStatement.getExpression(), Access.WRITE);
+      default ->
+          throw new HandleCodeException("Unrecognized statement: " + pStatement.toASTString());
     }
   }
 

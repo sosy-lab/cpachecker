@@ -35,15 +35,14 @@ public final class CFAEdgeUtils {
 
   public static Type getLeftHandType(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration =
-            (AVariableDeclaration) declarationEdge.getDeclaration();
+      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration variableDeclaration) {
+
         return variableDeclaration.getType();
       }
     } else {
       ALeftHandSide lhs = getLeftHandSide(pEdge);
-      if (lhs instanceof AIdExpression) {
-        return ((AIdExpression) lhs).getDeclaration().getType();
+      if (lhs instanceof AIdExpression aIdExpression) {
+        return aIdExpression.getDeclaration().getType();
       }
     }
     return null;
@@ -51,15 +50,14 @@ public final class CFAEdgeUtils {
 
   public static String getLeftHandVariable(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration =
-            (AVariableDeclaration) declarationEdge.getDeclaration();
+      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration variableDeclaration) {
+
         return variableDeclaration.getQualifiedName();
       }
     } else {
       ALeftHandSide lhs = getLeftHandSide(pEdge);
-      if (lhs instanceof AIdExpression) {
-        return ((AIdExpression) lhs).getDeclaration().getQualifiedName();
+      if (lhs instanceof AIdExpression aIdExpression) {
+        return aIdExpression.getDeclaration().getQualifiedName();
       }
     }
     return null;
@@ -80,24 +78,28 @@ public final class CFAEdgeUtils {
   }
 
   public static CRightHandSide getRightHandSide(CFAEdge pEdge) {
-    if (pEdge instanceof CDeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-        CVariableDeclaration variableDeclaration =
-            (CVariableDeclaration) declarationEdge.getDeclaration();
-        CInitializer initializer = variableDeclaration.getInitializer();
-        if (initializer instanceof CInitializerExpression) {
-          return ((CInitializerExpression) initializer).getExpression();
+    switch (pEdge) {
+      case CDeclarationEdge declarationEdge -> {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+
+          CInitializer initializer = variableDeclaration.getInitializer();
+          if (initializer instanceof CInitializerExpression cInitializerExpression) {
+            return cInitializerExpression.getExpression();
+          }
         }
       }
-    } else if (pEdge instanceof CStatementEdge statementEdge) {
-      if (statementEdge.getStatement() instanceof CAssignment assignment) {
-        return assignment.getRightHandSide();
+      case CStatementEdge statementEdge -> {
+        if (statementEdge.getStatement() instanceof CAssignment assignment) {
+          return assignment.getRightHandSide();
+        }
       }
-    } else if (pEdge instanceof CFunctionCallEdge functionCallEdge) {
-      CFunctionCall functionCall = functionCallEdge.getFunctionCall();
-      if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
-        return assignment.getRightHandSide();
+      case CFunctionCallEdge functionCallEdge -> {
+        CFunctionCall functionCall = functionCallEdge.getFunctionCall();
+        if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
+          return assignment.getRightHandSide();
+        }
       }
+      case null /*TODO check if null is necessary*/, default -> {}
     }
     return null;
   }

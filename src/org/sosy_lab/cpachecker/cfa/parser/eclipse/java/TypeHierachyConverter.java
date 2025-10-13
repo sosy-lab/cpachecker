@@ -209,8 +209,8 @@ class TypeHierachyConverter {
   private JClassType convertClassOfConstructor(MethodDeclaration md) {
     JClassOrInterfaceType type = convertDeclaringClassType(md);
 
-    if (type instanceof JClassType) {
-      return (JClassType) type;
+    if (type instanceof JClassType jClassType) {
+      return jClassType;
     } else {
       return typeTable.getUnresolvableClassType();
     }

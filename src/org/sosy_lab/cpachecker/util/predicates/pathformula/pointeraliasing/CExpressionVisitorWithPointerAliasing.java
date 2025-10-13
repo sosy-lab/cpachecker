@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
@@ -314,11 +313,11 @@ class CExpressionVisitorWithPointerAliasing
     } else {
       // expressing as unaliased location failed, return a corresponding aliased location
       final CType fieldOwnerType = typeHandler.getSimplifiedType(e.getFieldOwner());
-      if (fieldOwnerType instanceof CCompositeType) {
+      if (fieldOwnerType instanceof CCompositeType cCompositeType) {
         // visit the field owner to get the base aliased location
         final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
         // make the field
-        CompositeField field = CompositeField.of((CCompositeType) fieldOwnerType, e.getFieldName());
+        CompositeField field = CompositeField.of(cCompositeType, e.getFieldName());
         // add the field to used fields for use by UF finishing assignments
         usedFields.add(field);
         // apply the field offset to base aliased location
@@ -370,7 +369,7 @@ class CExpressionVisitorWithPointerAliasing
       return Value.ofValue(
           conv.makeCast(
               operandType, resultType, asValueFormula(result, operandType), constraints, edge));
-    } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
+    } else if (resultType.withoutConst().equals(operandType.withoutConst())) {
       // Special case: conversion of non-scalar type to itself is allowed (and ignored)
       // Change of const modifier is ignored, too.
       return result;
@@ -501,9 +500,9 @@ class CExpressionVisitorWithPointerAliasing
         usedFields.addAll(alreadyUsedFields);
 
         return Value.ofValue(addressExpression.getAddress());
-      } else if (operand instanceof CIdExpression
+      } else if (operand instanceof CIdExpression cIdExpression
           && typeHandler.simplifyType(operand.getExpressionType()) instanceof CArrayType
-          && ((CIdExpression) operand).getDeclaration() instanceof CParameterDeclaration) {
+          && cIdExpression.getDeclaration() instanceof CParameterDeclaration) {
         return Value.ofValue(dereference(operand, operand.accept(this)).getAddress());
       } else {
         final Variable base = baseVisitor.getLastBase();
@@ -620,8 +619,8 @@ class CExpressionVisitorWithPointerAliasing
     final CExpression functionNameExpression = e.getFunctionNameExpression();
 
     // First let's handle special cases such as allocations
-    if (functionNameExpression instanceof CIdExpression) {
-      final String functionName = ((CIdExpression) functionNameExpression).getName();
+    if (functionNameExpression instanceof CIdExpression cIdExpression) {
+      final String functionName = cIdExpression.getName();
 
       if (conv.options.isDynamicMemoryFunction(functionName)) {
         DynamicMemoryHandler memoryHandler =
@@ -661,7 +660,7 @@ class CExpressionVisitorWithPointerAliasing
                 dummy,
                 returnType,
                 new CIdExpression(dummy, functionDecl),
-                Collections.singletonList(parameters.get(0)),
+                Collections.singletonList(parameters.getFirst()),
                 functionDecl);
 
         BooleanFormula form = null;
@@ -684,7 +683,7 @@ class CExpressionVisitorWithPointerAliasing
           final int maxIndex = conv.options.maxPreciseStrFunctionSize();
           List<CExpression> parameters = e.getParameterExpressions();
           verify(parameters.size() == 1);
-          CExpression parameter = parameters.get(0);
+          CExpression parameter = parameters.getFirst();
           final CType returnType = e.getExpressionType();
 
           Formula f = conv.makeNondet(functionName, returnType, ssa, constraints);
@@ -739,7 +738,7 @@ class CExpressionVisitorWithPointerAliasing
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
         List<CExpression> parameters = e.getParameterExpressions();
         verify(parameters.size() == 3);
-        CExpression var1 = parameters.get(0);
+        CExpression var1 = parameters.getFirst();
         CExpression var2 = parameters.get(1);
         CExpression var3 = parameters.get(2);
         Expression overflows =
@@ -788,7 +787,7 @@ class CExpressionVisitorWithPointerAliasing
       throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
     verify(parameters.size() == 2 || parameters.size() == 3);
-    final CExpression s1 = parameters.get(0);
+    final CExpression s1 = parameters.getFirst();
     final CExpression s2 = parameters.get(1);
     final CSimpleType returnType = (CSimpleType) e.getExpressionType().getCanonicalType();
 
@@ -804,8 +803,8 @@ class CExpressionVisitorWithPointerAliasing
     long maxIndex = conv.options.maxPreciseStrFunctionSize();
     if (hasBounds) {
       CExpression size = parameters.get(2);
-      if (size instanceof CIntegerLiteralExpression) {
-        maxIndex = Math.min(maxIndex, ((CIntegerLiteralExpression) size).asLong());
+      if (size instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+        maxIndex = Math.min(maxIndex, cIntegerLiteralExpression.asLong());
       }
       sizeType = e.getDeclaration().getParameters().get(2).getType().getCanonicalType();
       sizeFormula = asValueFormula(size.accept(this), sizeType);

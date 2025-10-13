@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public sealed class StructureFieldIdentifier extends StructureIdentifier
     permits GeneralStructureFieldIdentifier {
 
-  public StructureFieldIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
-    super(pNm, pTp, dereference, own);
+  public StructureFieldIdentifier(String pNm, CType pTp, int pDereference, AbstractIdentifier own) {
+    super(pNm, pTp, pDereference, own);
   }
 
   @Override

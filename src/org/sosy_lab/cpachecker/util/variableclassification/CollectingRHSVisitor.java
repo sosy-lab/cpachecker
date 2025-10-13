@@ -93,8 +93,8 @@ final class CollectingRHSVisitor
       // Inner composite members might be CElaboratedType and have to be unboxed to be handle them
       // well
       CType memberType = TypeUtils.getRealExpressionType(member.getType());
-      if (memberType instanceof CCompositeType) {
-        result = addNestedDependenciesAsNecessary(result, (CCompositeType) memberType);
+      if (memberType instanceof CCompositeType cCompositeType) {
+        result = addNestedDependenciesAsNecessary(result, cCompositeType);
       }
     }
 

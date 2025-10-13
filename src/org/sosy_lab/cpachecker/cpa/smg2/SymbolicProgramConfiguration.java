@@ -1624,9 +1624,8 @@ public class SymbolicProgramConfiguration {
     // specified offset, overriding any existing from this value
     SMGPointsToEdge pointsToEdge =
         new SMGPointsToEdge(target, offsetInBits, SMGTargetSpecifier.IS_REGION);
-    if (target instanceof SMGSinglyLinkedListSegment) {
-      Preconditions.checkArgument(
-          ((SMGSinglyLinkedListSegment) target).getMinLength() >= nestingLevel);
+    if (target instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      Preconditions.checkArgument(sMGSinglyLinkedListSegment.getMinLength() >= nestingLevel);
     }
     Preconditions.checkArgument(nestingLevel >= 0);
     return spc.copyAndReplaceSMG(spc.getSmg().copyAndAddPTEdge(pointsToEdge, smgAddress));
@@ -1652,9 +1651,8 @@ public class SymbolicProgramConfiguration {
     // Now we create a points-to-edge from this value to the target object at the
     // specified offset, overriding any existing from this value
     SMGPointsToEdge pointsToEdge = new SMGPointsToEdge(target, offsetInBits, specifier);
-    if (target instanceof SMGSinglyLinkedListSegment) {
-      Preconditions.checkArgument(
-          ((SMGSinglyLinkedListSegment) target).getMinLength() >= nestingLevel);
+    if (target instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      Preconditions.checkArgument(sMGSinglyLinkedListSegment.getMinLength() >= nestingLevel);
     }
     Preconditions.checkArgument(nestingLevel >= 0);
     return spc.copyAndReplaceSMG(spc.getSmg().copyAndAddPTEdge(pointsToEdge, smgAddress));

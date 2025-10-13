@@ -110,10 +110,10 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return super.equals(other)
-        && other instanceof LocalizedRefinablePrecision
-        && rawPrecision.equals(((LocalizedRefinablePrecision) other).rawPrecision);
+  public boolean equals(Object pObj) {
+    return super.equals(pObj)
+        && pObj instanceof LocalizedRefinablePrecision other
+        && rawPrecision.equals(other.rawPrecision);
   }
 
   @Override

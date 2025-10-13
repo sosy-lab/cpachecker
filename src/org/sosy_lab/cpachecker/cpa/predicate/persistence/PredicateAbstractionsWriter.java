@@ -24,6 +24,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -70,11 +72,11 @@ public final class PredicateAbstractionsWriter {
     // In this set, we collect the definitions and declarations necessary
     // for the predicates (e.g., for variables)
     // The order of the definitions is important!
-    Set<String> definitions = new LinkedHashSet<>();
+    SequencedSet<String> definitions = new LinkedHashSet<>();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)
-    Map<ARGState, String> stateToAssert = new LinkedHashMap<>();
+    SequencedMap<ARGState, String> stateToAssert = new LinkedHashMap<>();
 
     // Get list of all abstraction states in the set reached
     Deque<ARGState> worklist = new ArrayDeque<>();

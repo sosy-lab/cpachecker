@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.value")
@@ -75,6 +76,8 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   private final ValueAnalysisCPA cpa;
   private final LogManager logger;
   private final ValueAnalysisResultToLoopInvariants loopInvGenExporter;
+
+  final StatTimer transferTime = new StatTimer("Time for transfer relation");
 
   public ValueAnalysisCPAStatistics(
       ValueAnalysisCPA cpa,
@@ -150,6 +153,8 @@ public class ValueAnalysisCPAStatistics implements Statistics {
         }
       }
     }
+
+    writer.spacer().put(transferTime);
   }
 
   private boolean shouldExportLoopInvariants(final Result result) {

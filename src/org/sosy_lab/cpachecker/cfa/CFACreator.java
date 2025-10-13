@@ -835,14 +835,13 @@ public class CFACreator {
     // for all possible edges
     for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
       // check for creation of new thread
-      if (edge instanceof AStatementEdge) {
-        final AStatement statement = ((AStatementEdge) edge).getStatement();
-        if (statement instanceof AFunctionCall) {
+      if (edge instanceof AStatementEdge aStatementEdge) {
+        final AStatement statement = aStatementEdge.getStatement();
+        if (statement instanceof AFunctionCall aFunctionCall) {
           final AExpression functionNameExp =
-              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression) {
-            if (ThreadingTransferRelation.THREAD_START.equals(
-                ((AIdExpression) functionNameExp).getName())) {
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())) {
               return true;
             }
           }
@@ -988,7 +987,7 @@ public class CFACreator {
 
     } else if (sourceFiles.size() == 1) {
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      Path path = Path.of(sourceFiles.get(0)).getFileName();
+      Path path = Path.of(sourceFiles.getFirst()).getFileName();
       if (path != null) {
         String filename = path.toString(); // remove directory
 
@@ -1135,8 +1134,8 @@ public class CFACreator {
           // (e.g., "struct s;"), we cannot produce an initializer.
           // (Although there shouldn't be any variables of this type anyway.)
           CType type = v.getType().getCanonicalType();
-          if (!(type instanceof CElaboratedType)
-              || (((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM)) {
+          if (!(type instanceof CElaboratedType cElaboratedType)
+              || (cElaboratedType.getKind() == ComplexTypeKind.ENUM)) {
             CInitializer initializer = CDefaults.forType(pMachineModel, type, v.getFileLocation());
             v.addInitializer(initializer);
             v =
@@ -1173,7 +1172,7 @@ public class CFACreator {
       @JsonProperty("name") @NonNull String name,
       @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
 
-    public AVariableDeclarationExchange {
+    AVariableDeclarationExchange {
       checkNotNull(name);
       checkNotNull(simpleType);
     }
