@@ -108,8 +108,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       if (varDeclaration.contains("struct")) {
         continue;
       }
-      if (!alreadyDeclaredVars.contains(variableName)) {
-        alreadyDeclaredVars.add(variableName);
+      if (alreadyDeclaredVars.add(variableName)) {
         builder.append(varDeclaration + "\n");
       }
     }
@@ -118,8 +117,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       varDeclaration =
           TransitionInvariantUtils.removeFunctionFromVarsName(
               scope.lookupVariable(variable).toString());
-      if (!alreadyDeclaredVars.contains(variableName)) {
-        alreadyDeclaredVars.add(variableName);
+      if (alreadyDeclaredVars.add(variableName)) {
         builder.append(varDeclaration + "\n");
       }
     }
@@ -140,8 +138,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         varDeclaration =
             TransitionInvariantUtils.removeFunctionFromVarsName(
                 scope.lookupVariable(variable).toString());
-        if (!alreadyDeclaredVars.contains(variableName)) {
-          alreadyDeclaredVars.add(variableName);
+        if (alreadyDeclaredVars.add(variableName)) {
           builder.append(varDeclaration + "\n");
         }
       }
