@@ -19,8 +19,6 @@ import java.util.Optional;
  */
 public enum PthreadFunctionType {
 
-  // TODO create barrier logic, see e.g. pthread-divine/barrier_2t.i
-
   // Note that all indices start at 0.
   PTHREAD_BARRIER_INIT("pthread_barrier_init", false, false),
   PTHREAD_BARRIER_WAIT("pthread_barrier_wait", false, false),
@@ -103,10 +101,31 @@ public enum PthreadFunctionType {
       true,
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 0)),
   PTHREAD_ONCE("pthread_once", false, false),
-  PTHREAD_RWLOCK_RDLOCK("pthread_rwlock_rdlock", false, false),
-  PTHREAD_RWLOCK_TRYRDLOCK("pthread_rwlock_tryrdlock", false, false),
-  PTHREAD_RWLOCK_UNLOCK("pthread_rwlock_unlock", false, false),
-  PTHREAD_RWLOCK_WRLOCK("pthread_rwlock_wrlock", false, false),
+  PTHREAD_RWLOCK_RDLOCK(
+      "pthread_rwlock_rdlock",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
+  PTHREAD_RWLOCK_TRYRDLOCK(
+      "pthread_rwlock_tryrdlock",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
+  PTHREAD_RWLOCK_TRYWRLOCK(
+      "pthread_rwlock_trywrlock",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
+  PTHREAD_RWLOCK_UNLOCK(
+      "pthread_rwlock_unlock",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
+  PTHREAD_RWLOCK_WRLOCK(
+      "pthread_rwlock_wrlock",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
   PTHREAD_SELF("pthread_self", false, false),
   PTHREAD_SETSPECIFIC("pthread_setspecific", false, false),
   // __VERIFIER_atomic functions are not part of the pthread standard, but still related to threads
@@ -114,7 +133,7 @@ public enum PthreadFunctionType {
   __VERIFIER_ATOMIC_END("__VERIFIER_atomic_end", true, true);
 
   // TODO unsure about pthread_yield
-  //  pthread_barrier stuff
+  //  pthread_barrier stuff (cf. pthread-divine/barrier_2t.i)
   //  etc. probably a lot more things
 
   public final String name;
@@ -129,12 +148,10 @@ public enum PthreadFunctionType {
 
   final ImmutableSet<PthreadParameterInfo> parameterInfo;
 
-  // TODO maybe its best to create a class that states the type of the pthread object, the index /
-  //  indices and whether it is never / always / sometimes a pointer
-  //  then just create an immutablelist with the desired properties of the function
   PthreadFunctionType(
       String pName,
       boolean pIsSupported,
+      // TODO all functions should be explicitly handled -> remove later
       boolean pIsExplicitlyHandled,
       PthreadParameterInfo... pParameterInfo) {
 

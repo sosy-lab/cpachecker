@@ -18,6 +18,7 @@ public enum PthreadObjectType {
   PTHREAD_COND_T("pthread_cond_t"),
   PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER"),
   PTHREAD_MUTEX_T("pthread_mutex_t"),
+  PTHREAD_RWLOCK_T("pthread_rwlock_t"),
   PTHREAD_T("pthread_t"),
   // TODO should be void * type
   RETURN_VALUE(""),
