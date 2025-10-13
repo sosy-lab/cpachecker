@@ -84,20 +84,12 @@ public class ThreadSyncFlags {
     return mutexLockedFlags.get(pIdExpression);
   }
 
-  public CIdExpression getRwLockNumReadersFlag(CIdExpression pIdExpression) {
+  public RwLockNumReadersWritersFlag getRwLockFlag(CIdExpression pIdExpression) {
     checkArgument(
         rwLockFlags.containsKey(pIdExpression),
         "pIdExpression %s was not found in rwLockFlags map",
         pIdExpression);
-    return Objects.requireNonNull(rwLockFlags.get(pIdExpression)).readersIdExpression;
-  }
-
-  public CIdExpression getRwLockNumWritersFlag(CIdExpression pIdExpression) {
-    checkArgument(
-        rwLockFlags.containsKey(pIdExpression),
-        "pIdExpression %s was not found in rwLockFlags map",
-        pIdExpression);
-    return Objects.requireNonNull(rwLockFlags.get(pIdExpression)).writersIdExpression;
+    return Objects.requireNonNull(rwLockFlags.get(pIdExpression));
   }
 
   public CIdExpression getSyncFlag(MPORThread pThread) {

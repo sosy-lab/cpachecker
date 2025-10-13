@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 public class RwLockNumReadersWritersFlag {
@@ -18,12 +20,29 @@ public class RwLockNumReadersWritersFlag {
 
   public final CIdExpression writersIdExpression;
 
+  public final CBinaryExpression readersEqualsZero;
+
+  public final CBinaryExpression writerEqualsZero;
+
+  public final CExpressionAssignmentStatement readersIncrement;
+
+  public final CExpressionAssignmentStatement readersDecrement;
+
   public RwLockNumReadersWritersFlag(
-      CIdExpression pReadersIdExpression, CIdExpression pWritersIdExpression) {
+      CIdExpression pReadersIdExpression,
+      CIdExpression pWritersIdExpression,
+      CBinaryExpression pReadersEqualsZero,
+      CBinaryExpression pWritersEqualsZero,
+      CExpressionAssignmentStatement pReadersIncrement,
+      CExpressionAssignmentStatement pReadersDecrement) {
 
     checkNotNull(pReadersIdExpression);
     checkNotNull(pWritersIdExpression);
     readersIdExpression = pReadersIdExpression;
     writersIdExpression = pWritersIdExpression;
+    readersEqualsZero = pReadersEqualsZero;
+    writerEqualsZero = pWritersEqualsZero;
+    readersIncrement = pReadersIncrement;
+    readersDecrement = pReadersDecrement;
   }
 }

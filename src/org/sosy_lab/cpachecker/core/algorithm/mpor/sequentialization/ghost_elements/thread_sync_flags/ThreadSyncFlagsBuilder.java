@@ -22,6 +22,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -54,7 +56,7 @@ public class ThreadSyncFlagsBuilder {
     return new ThreadSyncFlags(
         buildCondSignaledFlags(pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
         buildMutexLockedFlags(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
-        buildRwLockFlags(pOptions, rwLocks),
+        buildRwLockFlags(pOptions, rwLocks, pBinaryExpressionBuilder),
         buildSyncFlags(pOptions, pThreads));
   }
 
@@ -156,7 +158,10 @@ public class ThreadSyncFlagsBuilder {
   }
 
   private static ImmutableMap<CIdExpression, RwLockNumReadersWritersFlag> buildRwLockFlags(
-      MPOROptions pOptions, ImmutableSet<CIdExpression> pRwLocks) {
+      MPOROptions pOptions,
+      ImmutableSet<CIdExpression> pRwLocks,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<CIdExpression, RwLockNumReadersWritersFlag> rFlags =
         ImmutableMap.builder();
@@ -171,7 +176,30 @@ public class ThreadSyncFlagsBuilder {
       CIdExpression writersIdExpression =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
               true, CNumericTypes.UNSIGNED_CHAR, writersVarName, SeqInitializer.INT_0);
-      rFlags.put(rwLock, new RwLockNumReadersWritersFlag(readersIdExpression, writersIdExpression));
+
+      CBinaryExpression readersEqualsZero =
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              readersIdExpression, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+      CBinaryExpression writersEqualsZero =
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              writersIdExpression, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+
+      CExpressionAssignmentStatement readersIncrement =
+          SeqStatementBuilder.buildIncrementStatement(
+              readersIdExpression, pBinaryExpressionBuilder);
+      CExpressionAssignmentStatement readersDecrement =
+          SeqStatementBuilder.buildDecrementStatement(
+              readersIdExpression, pBinaryExpressionBuilder);
+
+      rFlags.put(
+          rwLock,
+          new RwLockNumReadersWritersFlag(
+              readersIdExpression,
+              writersIdExpression,
+              readersEqualsZero,
+              writersEqualsZero,
+              readersIncrement,
+              readersDecrement));
     }
     return rFlags.buildOrThrow();
   }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.SeqASTNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
@@ -39,10 +40,19 @@ public class SeqIfExpression implements SeqSingleControlExpression {
     return SingleControlExpressionUtil.buildStatementString(this, expression);
   }
 
-  public String toASTStringWithBlock(ImmutableList<SeqASTNode> pBlockStatements)
+  // TODO make SeqAstNode / CAstNode parameters, and then inject automatically
+
+  public String toASTStringWithSeqAstNodeBlock(ImmutableList<SeqASTNode> pBlockStatements)
       throws UnrecognizedCodeException {
 
     String block = SeqStringUtil.buildStringFromSeqASTNodes(pBlockStatements);
+    return toASTString() + SeqStringUtil.wrapInCurlyBracketsInwards(block);
+  }
+
+  public String toASTStringWithCAstNodeBlock(ImmutableList<CAstNode> pBlockStatements)
+      throws UnrecognizedCodeException {
+
+    String block = SeqStringUtil.buildStringFromCAstNodes(pBlockStatements);
     return toASTString() + SeqStringUtil.wrapInCurlyBracketsInwards(block);
   }
 

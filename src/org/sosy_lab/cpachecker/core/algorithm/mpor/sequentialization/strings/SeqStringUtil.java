@@ -108,7 +108,7 @@ public class SeqStringUtil {
     };
   }
 
-  // String from SeqASTNodes =======================================================================
+  // String from ASTNodes ==========================================================================
 
   public static String buildStringFromSeqASTNodes(ImmutableList<SeqASTNode> pSeqASTNodes)
       throws UnrecognizedCodeException {
@@ -116,6 +116,15 @@ public class SeqStringUtil {
     StringBuilder rString = new StringBuilder();
     for (SeqASTNode seqASTNode : pSeqASTNodes) {
       rString.append(seqASTNode.toASTString()).append(SeqSyntax.NEWLINE);
+    }
+    return rString.toString();
+  }
+
+  public static String buildStringFromCAstNodes(ImmutableList<CAstNode> pCASTNodes) {
+
+    StringBuilder rString = new StringBuilder();
+    for (CAstNode cASTNode : pCASTNodes) {
+      rString.append(cASTNode.toASTString()).append(SeqSyntax.NEWLINE);
     }
     return rString.toString();
   }

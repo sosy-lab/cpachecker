@@ -53,7 +53,7 @@ public class SeqBitVectorEvaluationStatement implements SeqInjectedBitVectorStat
       // for next_thread nondeterminism, we use goto instead of assume, if there is no conflict
       SeqIfExpression ifExpression = new SeqIfExpression(evaluationExpression.negate());
       SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
-      return ifExpression.toASTStringWithBlock(ImmutableList.of(gotoStatement));
+      return ifExpression.toASTStringWithSeqAstNodeBlock(ImmutableList.of(gotoStatement));
 
     } else {
       return SeqAssumptionBuilder.buildAssumption(evaluationExpression.toASTString());

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -445,6 +446,14 @@ public class SeqThreadStatementBuilder {
               pTargetPc,
               pcLeftHandSide,
               pGhostElements.getThreadSyncFlags());
+      case PTHREAD_RWLOCK_RDLOCK, PTHREAD_RWLOCK_UNLOCK, PTHREAD_RWLOCK_WRLOCK ->
+          buildRwLockStatement(
+              pOptions,
+              pSubstituteEdge,
+              pTargetPc,
+              pcLeftHandSide,
+              pGhostElements.getThreadSyncFlags(),
+              pthreadFunctionType);
       case __VERIFIER_ATOMIC_BEGIN ->
           buildAtomicBeginStatement(pOptions, pSubstituteEdge, pTargetPc, pcLeftHandSide);
       case __VERIFIER_ATOMIC_END ->
@@ -586,6 +595,32 @@ public class SeqThreadStatementBuilder {
     MutexLockedFlag mutexLocked = pThreadSyncFlags.getMutexLockedFlag(unlockedMutexT);
     return new SeqMutexUnlockStatement(
         pOptions, mutexLocked, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+  }
+
+  private static SeqThreadStatement buildRwLockStatement(
+      MPOROptions pOptions,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc,
+      CLeftHandSide pPcLeftHandSide,
+      ThreadSyncFlags pThreadSyncFlags,
+      PthreadFunctionType pPthreadFunctionType) {
+
+    CIdExpression rwLock = PthreadUtil.extractPthreadRwLockT(pSubstituteEdge.cfaEdge);
+    RwLockNumReadersWritersFlag rwLockFlags = pThreadSyncFlags.getRwLockFlag(rwLock);
+    return switch (pPthreadFunctionType) {
+      case PTHREAD_RWLOCK_RDLOCK ->
+          new SeqRwLockRdLockStatement(
+              pOptions, rwLockFlags, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+      case PTHREAD_RWLOCK_UNLOCK ->
+          new SeqRwLockUnlockStatement(
+              pOptions, rwLockFlags, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+      case PTHREAD_RWLOCK_WRLOCK ->
+          new SeqRwLockWrLockStatement(
+              pOptions, rwLockFlags, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+      default ->
+          throw new AssertionError(
+              String.format("pPthreadFunctionType is no rwlock method: %s", pPthreadFunctionType));
+    };
   }
 
   private static SeqAtomicBeginStatement buildAtomicBeginStatement(

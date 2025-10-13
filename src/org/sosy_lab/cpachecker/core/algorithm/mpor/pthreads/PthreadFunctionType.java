@@ -103,8 +103,8 @@ public enum PthreadFunctionType {
   PTHREAD_ONCE("pthread_once", false, false),
   PTHREAD_RWLOCK_RDLOCK(
       "pthread_rwlock_rdlock",
-      false,
-      false,
+      true,
+      true,
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
   PTHREAD_RWLOCK_TRYRDLOCK(
       "pthread_rwlock_tryrdlock",
@@ -118,13 +118,13 @@ public enum PthreadFunctionType {
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
   PTHREAD_RWLOCK_UNLOCK(
       "pthread_rwlock_unlock",
-      false,
-      false,
+      true,
+      true,
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
   PTHREAD_RWLOCK_WRLOCK(
       "pthread_rwlock_wrlock",
-      false,
-      false,
+      true,
+      true,
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_RWLOCK_T, 0)),
   PTHREAD_SELF("pthread_self", false, false),
   PTHREAD_SETSPECIFIC("pthread_setspecific", false, false),
