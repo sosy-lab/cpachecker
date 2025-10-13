@@ -44,9 +44,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.CondSignaled;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.MutexLocked;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -405,7 +405,7 @@ public class SeqThreadStatementBuilder {
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostElements.getThreadSynchronizationVariables());
+              pGhostElements.getThreadSyncFlags());
       case PTHREAD_COND_WAIT ->
           throw new AssertionError(
               "pthread_cond_wait is handled separately, it requires two clauses");
@@ -437,14 +437,14 @@ public class SeqThreadStatementBuilder {
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostElements.getThreadSynchronizationVariables());
+              pGhostElements.getThreadSyncFlags());
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexUnlockStatement(
               pOptions,
               pSubstituteEdge,
               pTargetPc,
               pcLeftHandSide,
-              pGhostElements.getThreadSynchronizationVariables());
+              pGhostElements.getThreadSyncFlags());
       case __VERIFIER_ATOMIC_BEGIN ->
           buildAtomicBeginStatement(pOptions, pSubstituteEdge, pTargetPc, pcLeftHandSide);
       case __VERIFIER_ATOMIC_END ->
@@ -461,18 +461,12 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
+      ThreadSyncFlags pThreadSyncFlags) {
 
     CIdExpression signaledCondT = PthreadUtil.extractPthreadCondT(pThreadEdge.cfaEdge);
-    assert pThreadSynchronizationVariables.condSignaled.containsKey(signaledCondT);
-    CondSignaled condSignaledVariable =
-        Objects.requireNonNull(pThreadSynchronizationVariables.condSignaled.get(signaledCondT));
+    CondSignaledFlag condSignaledFlag = pThreadSyncFlags.getCondSignaledFlag(signaledCondT);
     return new SeqCondSignalStatement(
-        pOptions,
-        condSignaledVariable,
-        pPcLeftHandSide,
-        ImmutableSet.of(pSubstituteEdge),
-        pTargetPc);
+        pOptions, condSignaledFlag, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   public static SeqCondWaitStatement buildCondWaitStatement(
@@ -481,22 +475,18 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
+      ThreadSyncFlags pThreadSyncFlags) {
 
     CIdExpression signaledCondT = PthreadUtil.extractPthreadCondT(pThreadEdge.cfaEdge);
-    assert pThreadSynchronizationVariables.condSignaled.containsKey(signaledCondT);
-    CondSignaled condSignaledVariable =
-        Objects.requireNonNull(pThreadSynchronizationVariables.condSignaled.get(signaledCondT));
+    CondSignaledFlag condSignaledFlag = pThreadSyncFlags.getCondSignaledFlag(signaledCondT);
 
     CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
-    assert pThreadSynchronizationVariables.locked.containsKey(pthreadMutexT);
-    MutexLocked mutexLocked =
-        Objects.requireNonNull(pThreadSynchronizationVariables.locked.get(pthreadMutexT));
+    MutexLockedFlag mutexLockedFlag = pThreadSyncFlags.getMutexLockedFlag(pthreadMutexT);
 
     return new SeqCondWaitStatement(
         pOptions,
-        condSignaledVariable,
-        mutexLocked,
+        condSignaledFlag,
+        mutexLockedFlag,
         pPcLeftHandSide,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc);
@@ -575,18 +565,12 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
+      ThreadSyncFlags pThreadSyncFlags) {
 
     CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
-    assert pThreadSynchronizationVariables.locked.containsKey(lockedMutexT);
-    MutexLocked mutexLockedVariable =
-        Objects.requireNonNull(pThreadSynchronizationVariables.locked.get(lockedMutexT));
+    MutexLockedFlag mutexLockedFlag = pThreadSyncFlags.getMutexLockedFlag(lockedMutexT);
     return new SeqMutexLockStatement(
-        pOptions,
-        mutexLockedVariable,
-        pPcLeftHandSide,
-        ImmutableSet.of(pSubstituteEdge),
-        pTargetPc);
+        pOptions, mutexLockedFlag, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   public static SeqMutexUnlockStatement buildMutexUnlockStatement(
@@ -594,13 +578,12 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
+      ThreadSyncFlags pThreadSyncFlags) {
 
     CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(pSubstituteEdge.cfaEdge);
     // TODO goblint-regression/13-privatized_68-pfscan_protected_loop_minimal_interval_true
     //  causes issues here, the unlockedMutexT is a parameter which is not in the locked map
-    assert pThreadSynchronizationVariables.locked.containsKey(unlockedMutexT);
-    MutexLocked mutexLocked = pThreadSynchronizationVariables.locked.get(unlockedMutexT);
+    MutexLockedFlag mutexLocked = pThreadSyncFlags.getMutexLockedFlag(unlockedMutexT);
     return new SeqMutexUnlockStatement(
         pOptions, mutexLocked, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }

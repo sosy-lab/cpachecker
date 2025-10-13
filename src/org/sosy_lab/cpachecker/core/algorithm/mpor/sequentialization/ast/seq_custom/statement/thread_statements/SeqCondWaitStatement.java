@@ -20,8 +20,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.CondSignaled;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.MutexLocked;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -30,9 +30,9 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
 
   private final MPOROptions options;
 
-  private final CondSignaled condSignaled;
+  private final CondSignaledFlag condSignaledFlag;
 
-  private final MutexLocked mutexLocked;
+  private final MutexLockedFlag mutexLockedFlag;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -46,15 +46,15 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
 
   SeqCondWaitStatement(
       MPOROptions pOptions,
-      CondSignaled pCondSignaled,
-      MutexLocked pMutexLocked,
+      CondSignaledFlag pCondSignaledFlag,
+      MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
-    condSignaled = pCondSignaled;
-    mutexLocked = pMutexLocked;
+    condSignaledFlag = pCondSignaledFlag;
+    mutexLockedFlag = pMutexLockedFlag;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -64,8 +64,8 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
 
   private SeqCondWaitStatement(
       MPOROptions pOptions,
-      CondSignaled pCondSignaled,
-      MutexLocked pMutexLocked,
+      CondSignaledFlag pCondSignaledFlag,
+      MutexLockedFlag pMutexLockedFlag,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -73,8 +73,8 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     options = pOptions;
-    condSignaled = pCondSignaled;
-    mutexLocked = pMutexLocked;
+    condSignaledFlag = pCondSignaledFlag;
+    mutexLockedFlag = pMutexLockedFlag;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -87,14 +87,14 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
     // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
     CFunctionCallStatement assumeSignaled =
-        SeqAssumptionBuilder.buildAssumption(condSignaled.isSignaledExpression);
+        SeqAssumptionBuilder.buildAssumption(condSignaledFlag.isSignaledExpression);
     CExpressionAssignmentStatement setSignaledFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaled.idExpression, SeqIntegerLiteralExpression.INT_0);
+            condSignaledFlag.idExpression, SeqIntegerLiteralExpression.INT_0);
     // step 2: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLocked.idExpression, SeqIntegerLiteralExpression.INT_1);
+            mutexLockedFlag.idExpression, SeqIntegerLiteralExpression.INT_1);
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
@@ -133,8 +133,8 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqCondWaitStatement(
         options,
-        condSignaled,
-        mutexLocked,
+        condSignaledFlag,
+        mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -146,8 +146,8 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqCondWaitStatement(
         options,
-        condSignaled,
-        mutexLocked,
+        condSignaledFlag,
+        mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -161,8 +161,8 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
 
     return new SeqCondWaitStatement(
         options,
-        condSignaled,
-        mutexLocked,
+        condSignaledFlag,
+        mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -176,8 +176,8 @@ public class SeqCondWaitStatement implements SeqThreadStatement {
 
     return new SeqCondWaitStatement(
         options,
-        condSignaled,
-        mutexLocked,
+        condSignaledFlag,
+        mutexLockedFlag,
         pcLeftHandSide,
         substituteEdges,
         targetPc,

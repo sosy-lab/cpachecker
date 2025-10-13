@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariableBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariableBuilders;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlagsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -51,14 +51,14 @@ public class GhostElementBuilder {
     ProgramCounterVariables programCounterVariables =
         ProgramCounterVariableBuilder.buildProgramCounterVariables(
             pOptions, pThreads.size(), pBinaryExpressionBuilder);
-    ThreadSynchronizationVariables threadSynchronizationVariables =
-        ThreadSynchronizationVariableBuilders.buildThreadSynchronizationVariables(
+    ThreadSyncFlags threadSyncFlags =
+        ThreadSyncFlagsBuilder.buildThreadSyncFlags(
             pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder);
     return new GhostElements(
         numThreadsIdExpression,
         bitVectorVariables,
         functionStatements,
         programCounterVariables,
-        threadSynchronizationVariables);
+        threadSyncFlags);
   }
 }

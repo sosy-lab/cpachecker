@@ -283,8 +283,7 @@ public class NumStatementsNondeterministicSimulation {
               pGhostElements.getBitVectorVariables().orElseThrow(),
               pBinaryExpressionBuilder);
       // ensure that thread is not at a thread sync location: !sync && !conflict
-      CIdExpression syncVariable =
-          pGhostElements.getThreadSynchronizationVariables().sync.get(pActiveThread);
+      CIdExpression syncVariable = pGhostElements.getThreadSyncFlags().getSyncFlag(pActiveThread);
       SeqLogicalNotExpression notSync = new SeqLogicalNotExpression(syncVariable);
       SeqLogicalAndExpression notSyncAndNotConflict =
           new SeqLogicalAndExpression(notSync, bitVectorEvaluationExpression.negate());
@@ -358,8 +357,7 @@ public class NumStatementsNondeterministicSimulation {
     CExpressionAssignmentStatement rIncrement =
         SeqStatementBuilder.buildIncrementStatement(SeqIdExpression.R, pBinaryExpressionBuilder);
     // sync
-    CIdExpression syncVariable =
-        pGhostElements.getThreadSynchronizationVariables().sync.get(pThread);
+    CIdExpression syncFlag = pGhostElements.getThreadSyncFlags().getSyncFlag(pThread);
 
     ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
@@ -373,7 +371,7 @@ public class NumStatementsNondeterministicSimulation {
                 countDecrement,
                 rSmallerK,
                 rIncrement,
-                syncVariable,
+                syncFlag,
                 labelClauseMap));
       }
       updatedClauses.add(clause.cloneWithBlocks(newBlocks.build()));
@@ -390,7 +388,7 @@ public class NumStatementsNondeterministicSimulation {
       CExpressionAssignmentStatement pCountDecrement,
       CBinaryExpression pRSmallerK,
       CExpressionAssignmentStatement pRIncrement,
-      CIdExpression pSyncVariable,
+      CIdExpression pSyncFlag,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     SeqThreadStatementBlock withCountUpdate =
@@ -399,7 +397,7 @@ public class NumStatementsNondeterministicSimulation {
         NondeterministicSimulationUtil.injectRoundGotoIntoBlock(
             pOptions, withCountUpdate, pRSmallerK, pRIncrement, pLabelClauseMap);
     return NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
-        pOptions, withRoundGoto, pSyncVariable, pLabelClauseMap);
+        pOptions, withRoundGoto, pSyncFlag, pLabelClauseMap);
   }
 
   private static SeqThreadStatementBlock tryInjectCountUpdatesIntoBlock(

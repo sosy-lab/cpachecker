@@ -404,7 +404,7 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.THREAD_SIMULATION_VARIABLES);
     }
     for (CSimpleDeclaration declaration :
-        pFields.ghostElements.getThreadSynchronizationVariables().getDeclarations(pOptions)) {
+        pFields.ghostElements.getThreadSyncFlags().getDeclarations(pOptions)) {
       rDeclarations.add(declaration.toASTString());
     }
     return rDeclarations.build();

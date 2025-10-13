@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags;
 
 import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType.PTHREAD_COND_WAIT;
 import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType.PTHREAD_MUTEX_LOCK;
@@ -34,36 +34,38 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class ThreadSynchronizationVariableBuilders {
+public class ThreadSyncFlagsBuilder {
 
-  // Thread Synchronization Variables ==============================================================
+  // Public Interface ==============================================================================
 
-  public static ThreadSynchronizationVariables buildThreadSynchronizationVariables(
+  public static ThreadSyncFlags buildThreadSyncFlags(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    return new ThreadSynchronizationVariables(
-        buildCondSignaledVariables(pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
-        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
-        buildSyncVariables(pOptions, pThreads));
+    return new ThreadSyncFlags(
+        buildCondSignaledFlags(pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
+        buildMutexLockedFlags(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder),
+        buildSyncFlags(pOptions, pThreads));
   }
 
+  // Private Builder Methods =======================================================================
+
   /**
-   * Links the {@link CIdExpression}s of {@code pthread_mutex_t} to their {@link MutexLocked} ghost
-   * variables. We use {@link CIdExpression} of substituted expressions instead of {@link
+   * Links the {@link CIdExpression}s of {@code pthread_mutex_t} to their {@link MutexLockedFlag}
+   * ghost variables. We use {@link CIdExpression} of substituted expressions instead of {@link
    * CVariableDeclaration} due to call-context sensitivity.
    */
-  private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
+  private static ImmutableMap<CIdExpression, MutexLockedFlag> buildMutexLockedFlags(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    Map<CIdExpression, MutexLocked> rLockedVariables = new HashMap<>();
+    Map<CIdExpression, MutexLockedFlag> rMutexLockedFlags = new HashMap<>();
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         if (pSubstituteEdges.containsKey(threadEdge)) {
@@ -73,7 +75,7 @@ public class ThreadSynchronizationVariableBuilders {
           // extract pthread_mutex_t based on function calls to pthread_mutex_lock
           if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PTHREAD_MUTEX_LOCK)) {
             CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
-            if (!rLockedVariables.containsKey(pthreadMutexT)) { // add mutex only once
+            if (!rMutexLockedFlags.containsKey(pthreadMutexT)) { // add mutex only once
               String varName = SeqNameUtil.buildMutexLockedName(pOptions, pthreadMutexT.getName());
               // use unsigned char (8 bit), we only need values 0 and 1
               CIdExpression mutexLocked =
@@ -85,24 +87,24 @@ public class ThreadSynchronizationVariableBuilders {
               CBinaryExpression notLockedExpression =
                   pBinaryExpressionBuilder.buildBinaryExpression(
                       mutexLocked, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
-              rLockedVariables.put(
+              rMutexLockedFlags.put(
                   pthreadMutexT,
-                  new MutexLocked(mutexLocked, isLockedExpression, notLockedExpression));
+                  new MutexLockedFlag(mutexLocked, isLockedExpression, notLockedExpression));
             }
           }
         }
       }
     }
-    return ImmutableMap.copyOf(rLockedVariables);
+    return ImmutableMap.copyOf(rMutexLockedFlags);
   }
 
-  private static ImmutableMap<CIdExpression, CondSignaled> buildCondSignaledVariables(
+  private static ImmutableMap<CIdExpression, CondSignaledFlag> buildCondSignaledFlags(
       ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    Map<CIdExpression, CondSignaled> rSignaledVariables = new HashMap<>();
+    Map<CIdExpression, CondSignaledFlag> rCondSignaledFlags = new HashMap<>();
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         if (pSubstituteEdges.containsKey(threadEdge)) {
@@ -112,7 +114,7 @@ public class ThreadSynchronizationVariableBuilders {
           // extract pthread_cond_t based on function calls to pthread_cond_wait
           if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PTHREAD_COND_WAIT)) {
             CIdExpression pthreadCondT = PthreadUtil.extractPthreadCondT(threadEdge.cfaEdge);
-            if (!rSignaledVariables.containsKey(pthreadCondT)) { // add cond only once
+            if (!rCondSignaledFlags.containsKey(pthreadCondT)) { // add cond only once
               String varName = SeqNameUtil.buildCondSignaledName(pthreadCondT.getName());
               // use unsigned char (8 bit), we only need values 0 and 1
               CIdExpression condSignaled =
@@ -121,20 +123,20 @@ public class ThreadSynchronizationVariableBuilders {
               CBinaryExpression isSignaledExpression =
                   pBinaryExpressionBuilder.buildBinaryExpression(
                       condSignaled, SeqIntegerLiteralExpression.INT_1, BinaryOperator.EQUALS);
-              rSignaledVariables.put(
-                  pthreadCondT, new CondSignaled(condSignaled, isSignaledExpression));
+              rCondSignaledFlags.put(
+                  pthreadCondT, new CondSignaledFlag(condSignaled, isSignaledExpression));
             }
           }
         }
       }
     }
-    return ImmutableMap.copyOf(rSignaledVariables);
+    return ImmutableMap.copyOf(rCondSignaledFlags);
   }
 
-  private static ImmutableMap<MPORThread, CIdExpression> buildSyncVariables(
+  private static ImmutableMap<MPORThread, CIdExpression> buildSyncFlags(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
-    ImmutableMap.Builder<MPORThread, CIdExpression> rSyncVariables = ImmutableMap.builder();
+    ImmutableMap.Builder<MPORThread, CIdExpression> rSyncFlags = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       String name = SeqNameUtil.buildSyncName(pOptions, thread.getId());
       // use unsigned char (8 bit), we only need values 0 and 1
@@ -142,8 +144,8 @@ public class ThreadSynchronizationVariableBuilders {
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
               // TODO a thread could also start with pthread_mutex_lock -> initialize with 1
               true, CNumericTypes.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
-      rSyncVariables.put(thread, sync);
+      rSyncFlags.put(thread, sync);
     }
-    return rSyncVariables.buildOrThrow();
+    return rSyncFlags.buildOrThrow();
   }
 }

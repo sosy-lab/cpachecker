@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.CondSignaled;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -27,7 +27,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
 
   private final MPOROptions options;
 
-  private final CondSignaled condSignaled;
+  private final CondSignaledFlag condSignaledFlag;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -41,13 +41,13 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
 
   SeqCondSignalStatement(
       MPOROptions pOptions,
-      CondSignaled pCondSignaled,
+      CondSignaledFlag pCondSignaledFlag,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     options = pOptions;
-    condSignaled = pCondSignaled;
+    condSignaledFlag = pCondSignaledFlag;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -57,7 +57,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
 
   private SeqCondSignalStatement(
       MPOROptions pOptions,
-      CondSignaled pCondSignaled,
+      CondSignaledFlag pCondSignaled,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -65,7 +65,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     options = pOptions;
-    condSignaled = pCondSignaled;
+    condSignaledFlag = pCondSignaled;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -77,7 +77,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement setCondSignaledTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaled.idExpression, SeqIntegerLiteralExpression.INT_1);
+            condSignaledFlag.idExpression, SeqIntegerLiteralExpression.INT_1);
 
     String injected =
         SeqThreadStatementUtil.buildInjectedStatementsString(
@@ -110,7 +110,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqCondSignalStatement(
         options,
-        condSignaled,
+        condSignaledFlag,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -122,7 +122,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqCondSignalStatement(
         options,
-        condSignaled,
+        condSignaledFlag,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -136,7 +136,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
 
     return new SeqCondSignalStatement(
         options,
-        condSignaled,
+        condSignaledFlag,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -150,7 +150,7 @@ public class SeqCondSignalStatement implements SeqThreadStatement {
 
     return new SeqCondSignalStatement(
         options,
-        condSignaled,
+        condSignaledFlag,
         pcLeftHandSide,
         substituteEdges,
         targetPc,

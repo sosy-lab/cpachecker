@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
@@ -30,20 +30,20 @@ public class GhostElements {
 
   private final ProgramCounterVariables programCounterVariables;
 
-  private final ThreadSynchronizationVariables threadSynchronizationVariables;
+  private final ThreadSyncFlags threadSyncFlags;
 
   public GhostElements(
       CIdExpression pNumThreadsIdExpression,
       Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableMap<MPORThread, FunctionStatements> pFunctionStatements,
       ProgramCounterVariables pProgramCounterVariables,
-      ThreadSynchronizationVariables pThreadSynchronizationVariables) {
+      ThreadSyncFlags pThreadSyncFlags) {
 
     numThreadsIdExpression = pNumThreadsIdExpression;
     bitVectorVariables = pBitVectorVariables;
     functionStatements = pFunctionStatements;
     programCounterVariables = pProgramCounterVariables;
-    threadSynchronizationVariables = pThreadSynchronizationVariables;
+    threadSyncFlags = pThreadSyncFlags;
   }
 
   public Optional<BitVectorVariables> getBitVectorVariables() {
@@ -64,7 +64,7 @@ public class GhostElements {
     return programCounterVariables;
   }
 
-  public ThreadSynchronizationVariables getThreadSynchronizationVariables() {
-    return threadSynchronizationVariables;
+  public ThreadSyncFlags getThreadSyncFlags() {
+    return threadSyncFlags;
   }
 }

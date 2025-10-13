@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_synchronization.ThreadSynchronizationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -160,7 +160,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         buildSingleThreadClausesWithoutCount(
             pOptions,
             pThread,
-            pGhostElements.getThreadSynchronizationVariables(),
+            pGhostElements.getThreadSyncFlags(),
             pClauses,
             pBinaryExpressionBuilder);
 
@@ -196,7 +196,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
   private static ImmutableList<SeqThreadStatementClause> buildSingleThreadClausesWithoutCount(
       MPOROptions pOptions,
       MPORThread pActiveThread,
-      ThreadSynchronizationVariables pThreadSynchronizationVariables,
+      ThreadSyncFlags pThreadSyncFlags,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -220,7 +220,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
             NondeterministicSimulationUtil.injectSyncUpdatesIntoBlock(
                 pOptions,
                 withRoundGoto,
-                pThreadSynchronizationVariables.sync.get(pActiveThread),
+                pThreadSyncFlags.getSyncFlag(pActiveThread),
                 labelClauseMap);
         newBlocks.add(withSyncUpdate);
       }
